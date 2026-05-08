@@ -36,16 +36,13 @@ class EnvironmentProject(Model):
         unique_together = (("project", "environment"),)
 
 
-NAME_LENGTH = 64
-
-
 @cell_silo_model
 class Environment(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
-    name = models.CharField(max_length=NAME_LENGTH)
+    name = models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=["pk"])
@@ -74,7 +71,7 @@ class Environment(Model):
     @classmethod
     def get_name_or_default(cls, name):
         if name:
-            return name[:NAME_LENGTH]
+            return name[:ENVIRONMENT_NAME_MAX_LENGTH]
         return ""
 
     @classmethod
