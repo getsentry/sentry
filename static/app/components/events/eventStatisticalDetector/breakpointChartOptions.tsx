@@ -125,25 +125,23 @@ export function getBreakpointChartOptionsFromData(
           axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
     },
-    options: {
-      visualMap: VisualMap({
-        show: false,
-        type: 'piecewise',
-        selectedMode: false,
-        dimension: 0,
-        pieces: [
-          {
-            gte: 0,
-            lt: breakpointMs,
-            color: theme.colors.gray800,
-          },
-          {
-            gte: breakpointMs,
-            color: theme.colors.red400,
-          },
-        ],
-      }),
-    },
+    visualMap: VisualMap({
+      show: false,
+      type: 'piecewise',
+      selectedMode: false,
+      dimension: 0,
+      pieces: [
+        {
+          gte: 0,
+          lt: breakpointMs,
+          color: theme.colors.gray800,
+        },
+        {
+          gte: breakpointMs,
+          color: theme.colors.red400,
+        },
+      ],
+    }),
   } satisfies BaseChartProps;
   return {
     series,
