@@ -401,7 +401,7 @@ export const LogRowContent = memo(function LogRowContent({
             ) : null;
           const value = (dataRow as OurLogsResponseItem)[field];
 
-          if (!defined(value) || (field === 'message' && index === 1)) {
+          if (!defined(value)) {
             return (
               <LogTableBodyCell key={field}>
                 <Flex position="relative" height="100%" width="100%" justify="end">
