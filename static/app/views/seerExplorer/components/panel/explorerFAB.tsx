@@ -21,7 +21,7 @@ export function ExplorerFloatingActionButton() {
   const organization = useOrganization({allowNull: true});
   const {openSeerExplorer, isOpen: isSeerExplorerDrawerOpen} = useSeerExplorerContext();
 
-  if (!organization || !isSeerExplorerEnabled(organization)) {
+  if (!isSeerExplorerEnabled(organization)) {
     return null;
   }
 
