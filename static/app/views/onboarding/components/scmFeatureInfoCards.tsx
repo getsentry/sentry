@@ -14,8 +14,8 @@ interface ScmFeatureInfoCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
   featureMeta: Record<ProductSolution, FeatureMeta>;
-  platformName: string;
   isVolumeLoading?: boolean;
+  platformName?: string;
 }
 
 // Informational variant of the SCM feature card list. Renders the products
@@ -33,15 +33,17 @@ export function ScmFeatureInfoCards({
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Stack gap="md">
-        <Heading as="h3" size="xl">
-          {tct('Available with [platformName]', {
-            platformName: (
-              <Text as="span" bold variant="accent">
-                {platformName}
-              </Text>
-            ),
-          })}
-        </Heading>
+        {platformName ? (
+          <Heading as="h3" size="xl">
+            {tct('Available with [platformName]', {
+              platformName: (
+                <Text as="span" bold variant="accent">
+                  {platformName}
+                </Text>
+              ),
+            })}
+          </Heading>
+        ) : null}
         <Text size="lg" variant="secondary" density="comfortable">
           {t('In the next step, run our setup wizard to choose what to instrument')}
         </Text>

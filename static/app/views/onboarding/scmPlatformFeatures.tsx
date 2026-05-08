@@ -91,6 +91,11 @@ function shouldSuggestFramework(platformKey: PlatformKey): boolean {
   );
 }
 
+function getPlatformName(platformKey: PlatformKey | undefined) {
+  if (!platformKey) return;
+  return getPlatformInfo(platformKey)?.name;
+}
+
 export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
   const organization = useOrganization();
   const {
@@ -161,6 +166,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
   const detectedPlatformKey = resolvedPlatforms[0]?.platform;
   // Derive platform from explicit selection, falling back to first detected
   const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
+
+  const currentPlatformName = getPlatformName(currentPlatformKey);
 
   // Fire scm_platform_selected once when detection auto-resolves a platform
   // and the user hasn't explicitly chosen one. Otherwise a user who accepts
@@ -628,12 +635,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     availableFeatures={availableFeatures}
                     disabledProducts={disabledProducts}
                     featureMeta={featureMeta}
-                    platformName={
-                      currentPlatformKey
-                        ? (getPlatformInfo(currentPlatformKey)?.name ??
-                          currentPlatformKey)
-                        : ''
-                    }
+                    platformName={currentPlatformName}
                     isVolumeLoading={isFeatureMetaLoading}
                   />
                 )}
