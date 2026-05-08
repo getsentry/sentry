@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import partial
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.db import DatabaseError, router, transaction
 from django.db.models import Value
@@ -24,10 +24,13 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.seer.models.project_repository import (
-    SeerProjectRepository,
-    SeerProjectRepositoryBranchOverride,
+from sentry.seer.autofix.utils import (
+    add_seer_project_repos,
+    replace_all_seer_project_repos,
+    update_seer_project_repo,
 )
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.models.project_repository import SeerProjectRepository
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
     "name": "repository__name",
@@ -119,10 +122,13 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
 
 
 def _get_valid_repo_ids(repo_ids: list[int], organization: Organization) -> set[int]:
-    """Return a subset of active repo ids belonging to the given org."""
+    """Return a subset of active repo ids with Seer-supported providers belonging to the given org."""
     return set(
         Repository.objects.filter(
-            id__in=repo_ids, organization_id=organization.id, status=ObjectStatus.ACTIVE
+            id__in=repo_ids,
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
         ).values_list("id", flat=True)
     )
 
@@ -135,87 +141,6 @@ def _get_project_repos_queryset(project: Project):
         .select_related("repository")
         .prefetch_related("branch_overrides")
     )
-
-
-def _write_branch_overrides(
-    project_repo: SeerProjectRepository, branch_overrides: list[dict[str, str]]
-) -> None:
-    """Replace all branch overrides for the given project repo."""
-    SeerProjectRepositoryBranchOverride.objects.filter(
-        seer_project_repository=project_repo
-    ).delete()
-    if branch_overrides:
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(
-            [
-                SeerProjectRepositoryBranchOverride(
-                    seer_project_repository=project_repo,
-                    tag_name=override["tag_name"],
-                    tag_value=override["tag_value"],
-                    branch_name=override["branch_name"],
-                )
-                for override in branch_overrides
-            ]
-        )
-
-
-def _add_project_repos(project: Project, repos_data: list[dict[str, Any]]) -> list[int]:
-    """Connect repos to the given project. Raise if we attempt to add a repo that's already connected."""
-    repo_ids = [d["repository_id"] for d in repos_data]
-
-    connected_ids = set(
-        SeerProjectRepository.objects.filter(
-            project=project, repository_id__in=repo_ids
-        ).values_list("repository_id", flat=True)
-    )
-    if connected_ids:
-        raise ValueError(connected_ids)
-
-    created_ids = []
-    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-        list(Project.objects.select_for_update().filter(id=project.id))
-
-        for data in repos_data:
-            project_repo = SeerProjectRepository.objects.create(
-                project=project,
-                repository_id=data["repository_id"],
-                branch_name=data.get("branch_name"),
-                instructions=data.get("instructions"),
-            )
-            _write_branch_overrides(project_repo, data.get("branch_overrides", []))
-            created_ids.append(project_repo.id)
-
-    return created_ids
-
-
-def _replace_all_project_repos(project: Project, repos_data: list[dict[str, Any]]) -> None:
-    """Replace all repos for the given project."""
-    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-        list(Project.objects.select_for_update().filter(id=project.id))
-        SeerProjectRepository.objects.filter(project=project).delete()
-        for data in repos_data:
-            project_repo = SeerProjectRepository.objects.create(
-                project=project,
-                repository_id=data["repository_id"],
-                branch_name=data.get("branch_name"),
-                instructions=data.get("instructions"),
-            )
-            _write_branch_overrides(project_repo, data.get("branch_overrides", []))
-
-
-def _update_project_repo(project_repo: SeerProjectRepository, data: dict[str, Any]) -> None:
-    """Update a given project repo."""
-    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-        list(Project.objects.select_for_update().filter(id=project_repo.project_id))
-        if "branch_name" in data:
-            project_repo.branch_name = data["branch_name"]
-        if "instructions" in data:
-            project_repo.instructions = data["instructions"]
-
-        # If the project repo doesn't exist, Django throws DatabaseError.
-        project_repo.save(force_update=True)
-
-        if "branch_overrides" in data:
-            _write_branch_overrides(project_repo, data["branch_overrides"])
 
 
 class BranchOverrideSerializer(CamelSnakeSerializer):
@@ -322,7 +247,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
             )
 
         try:
-            created_ids = _add_project_repos(project, repos_data)
+            created_ids = add_seer_project_repos(project, repos_data)
         except ValueError as e:
             connected_ids = e.args[0]
             return Response(
@@ -352,7 +277,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
                     status=400,
                 )
 
-        _replace_all_project_repos(project, repos_data)
+        replace_all_seer_project_repos(project, repos_data)
 
         result = _get_project_repos_queryset(project)
         return Response([_serialize_project_repo(r) for r in result])
@@ -396,11 +321,14 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         try:
-            _update_project_repo(project_repo, serializer.validated_data)
+            update_seer_project_repo(project_repo, serializer.validated_data)
         except DatabaseError:
             return Response(status=404)
 
-        return Response(_serialize_project_repo(self._get_project_repo(project, repo_id)))
+        project_repo = self._get_project_repo(project, repo_id)
+        if project_repo is None:
+            return Response(status=404)
+        return Response(_serialize_project_repo(project_repo))
 
     def delete(
         self, request: Request, organization: Organization, project_id: int, repo_id: int
