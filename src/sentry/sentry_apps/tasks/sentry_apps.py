@@ -44,7 +44,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -745,12 +745,14 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         # TODO(ecosystem): We need to change this payload format after alerts create issues
+        # Sentry app webhooks always use the legacy rule id for backward compatibility.
+        # Ignore test notifications (id == -1).
         id = f.rule.id
-
-        # if we are using the new workflow engine, we need to use the legacy rule id
-        # Ignore test notifications
         if int(id) != -1:
-            _, id = get_rule_or_workflow_id(f.rule)
+            try:
+                id = get_key_from_rule_data(f.rule, "legacy_rule_id")
+            except AssertionError:
+                pass
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:

@@ -99,8 +99,8 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Rules": "my rule",
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.id}/details/",
+                "Triggering Workflows": "my rule",
+                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -166,8 +166,8 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Rules": rule.label,
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
+                "Triggering Workflows": rule.label,
+                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",

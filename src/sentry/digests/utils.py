@@ -125,10 +125,29 @@ def build_custom_digest(
 ) -> Digest:
     """Given a digest and a set of events, filter the digest to only records that include the events."""
     user_digest: Digest = {}
+
+    # Collect all rule IDs to check for snoozes: both the digest key IDs
+    # (workflow IDs for workflow-based rules) and any legacy_rule_ids stored
+    # in the rule data. Snoozes are stored against real Rule DB IDs.
+    all_rule_ids: set[int] = set()
+    legacy_to_digest_id: dict[int, int] = {}
+    for rule in original_digest:
+        all_rule_ids.add(rule.id)
+        actions = rule.data.get("actions") or []
+        legacy_id = actions[0].get("legacy_rule_id") if actions else None
+        if legacy_id is not None:
+            all_rule_ids.add(int(legacy_id))
+            legacy_to_digest_id[int(legacy_id)] = rule.id
+
     rule_snoozes = RuleSnooze.objects.filter(
-        Q(user_id=participant.id) | Q(user_id__isnull=True), rule__in=original_digest.keys()
-    ).values_list("rule", flat=True)
-    snoozed_rule_ids = {rule for rule in rule_snoozes}
+        Q(user_id=participant.id) | Q(user_id__isnull=True), rule_id__in=all_rule_ids
+    ).values_list("rule_id", flat=True)
+    snoozed_rule_ids: set[int] = set()
+    for snoozed_id in rule_snoozes:
+        snoozed_rule_ids.add(snoozed_id)
+        # If a legacy rule ID is snoozed, also mark the corresponding digest key ID
+        if snoozed_id in legacy_to_digest_id:
+            snoozed_rule_ids.add(legacy_to_digest_id[snoozed_id])
 
     for rule, rule_groups in original_digest.items():
         if rule.id in snoozed_rule_ids:

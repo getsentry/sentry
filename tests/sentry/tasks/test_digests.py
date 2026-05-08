@@ -9,6 +9,7 @@ from django.core.mail.message import EmailMultiAlternatives
 import sentry
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.digests.types import IdentifierKey
 from sentry.models.projectownership import ProjectOwnership
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
@@ -39,13 +40,17 @@ class DeliverDigestTest(TestCase):
             notification_uuid = str(uuid.uuid4())
             backend.add(
                 key,
-                event_to_record(event, [rule], notification_uuid),
+                event_to_record(
+                    event, [rule], notification_uuid, identifier_key=IdentifierKey.WORKFLOW
+                ),
                 increment_delay=0,
                 maximum_delay=0,
             )
             backend.add(
                 key,
-                event_to_record(event_2, [rule], notification_uuid),
+                event_to_record(
+                    event_2, [rule], notification_uuid, identifier_key=IdentifierKey.WORKFLOW
+                ),
                 increment_delay=0,
                 maximum_delay=0,
             )

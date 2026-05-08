@@ -67,7 +67,9 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
             ),
         ]
 
-        records = [event_to_record(event, (rule,)) for event in events]
+        records = [
+            event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE) for event in events
+        ]
 
         digest = build_digest(project, sort_records(records))[0]
 
@@ -234,10 +236,9 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         ]
 
     def test_simple(self) -> None:
-        records = [
-            event_to_record(event, (self.rule,))
-            for event in self.team1_events + self.team2_events + self.user4_events
-        ]
+        records = []
+        for event in self.team1_events + self.team2_events + self.user4_events:
+            records.extend(_get_records(self.project, (self.rule,), event))
         digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {
@@ -284,7 +285,9 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
     def test_direct_email(self) -> None:
         """When the action type is not Issue Owners, then the target actor gets a digest."""
         self.project_ownership.update(fallthrough=False)
-        records = [event_to_record(event, (self.rule,)) for event in self.team1_events]
+        records = []
+        for event in self.team1_events:
+            records.extend(_get_records(self.project, (self.rule,), event))
         digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {self.user1.id: set(self.team1_events)}
@@ -410,7 +413,9 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         events = self.create_events_from_filenames(
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
         )
-        records = [event_to_record(event, (self.rule,)) for event in events + self.team1_events]
+        records = []
+        for event in events + self.team1_events:
+            records.extend(_get_records(self.project, (self.rule,), event))
         digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
             self.user1.id: set(events),
