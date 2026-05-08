@@ -1,5 +1,5 @@
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -35,7 +35,7 @@ export function ScmFeatureInfoCards({
           {t('Features available for this platform')}
         </Heading>
       </Flex>
-      <Stack gap="md">
+      <Grid gap="md" columns="1fr 1fr">
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];
           return (
@@ -62,7 +62,7 @@ export function ScmFeatureInfoCards({
             </Container>
           );
         })}
-      </Stack>
+      </Grid>
     </Stack>
   );
 }
