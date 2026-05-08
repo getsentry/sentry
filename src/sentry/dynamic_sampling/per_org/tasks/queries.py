@@ -187,4 +187,3 @@ def get_eap_transaction_volumes(
         }
         for project_id, project_volumes in sorted(volumes_by_project.items())
     ]
-

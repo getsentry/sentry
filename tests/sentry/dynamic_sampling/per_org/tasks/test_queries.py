@@ -264,5 +264,3 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert volumes == []
-
-
