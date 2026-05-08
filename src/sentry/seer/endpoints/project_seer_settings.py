@@ -27,7 +27,7 @@ from sentry.seer.models.project_repository import SeerProjectRepository
 
 
 class SeerProjectSettingsResponse(TypedDict):
-    projectId: int
+    projectId: str
     projectSlug: str
     agent: str
     integrationId: str | None
@@ -57,7 +57,7 @@ def _serialize_seer_project_settings(
         integration_id = str(handoff.integration_id)
 
     return SeerProjectSettingsResponse(
-        projectId=project.id,
+        projectId=str(project.id),
         projectSlug=project.slug,
         agent=agent,
         integrationId=integration_id,
