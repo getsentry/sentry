@@ -44,6 +44,7 @@ function SentryApplicationDashboard() {
   const organization = useOrganization();
   const {appSlug} = useParams<{appSlug: string}>();
 
+  // Default time range for now: 90 days ago to now
   const [timeRange] = useState(() => {
     const now = Math.floor(Date.now() / 1000);
     return {since: now - 3600 * 24 * 90, until: now};
