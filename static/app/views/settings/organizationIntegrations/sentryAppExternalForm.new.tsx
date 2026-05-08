@@ -735,64 +735,110 @@ export function SentryAppExternalFormNew({
 
   const handleFieldChange = useCallback(
     async (fieldName: string, value: unknown) => {
-      const impactedFields = getAllSchemaFields(fieldGroups).filter(field =>
+      const directlyImpactedFields = getAllSchemaFields(fieldGroups).filter(field =>
         field.depends_on?.includes(fieldName)
       );
 
-      if (!impactedFields.length) {
+      if (!directlyImpactedFields.length) {
         return;
       }
 
-      const impactedFieldNames = new Set(impactedFields.map(field => field.name));
       const requestVersion = dependentFetchVersionRef.current + 1;
-      const nextCurrentValues = omitValues(
-        {...currentFormValuesRef.current, [fieldName]: value},
-        impactedFieldNames
-      );
-      const nextDefaultValues = {...externalDefaultValues};
-
-      for (const impactedFieldName of impactedFieldNames) {
-        delete nextDefaultValues[impactedFieldName];
-      }
-
       dependentFetchVersionRef.current = requestVersion;
-      currentFormValuesRef.current = nextCurrentValues;
-      setDynamicFieldValues(getTriggerFieldValues(nextCurrentValues, triggerFieldNames));
-      setFormInitialValues(nextCurrentValues);
-      setExternalDefaultValues(nextDefaultValues);
+
+      // Stage the cascade: clear directly-impacted fields' values and defaults
+      // so they re-resolve from the fresh fetch. Transitively-impacted fields
+      // keep their previous values until their level of the cascade resolves.
+      const directlyImpactedNames = new Set(
+        directlyImpactedFields.map(field => field.name)
+      );
+      const stagedCurrentValues = omitValues(
+        {...currentFormValuesRef.current, [fieldName]: value},
+        directlyImpactedNames
+      );
+      const stagedDefaultValues = {...externalDefaultValues};
+      for (const name of directlyImpactedNames) delete stagedDefaultValues[name];
+
+      currentFormValuesRef.current = stagedCurrentValues;
+      setDynamicFieldValues(
+        getTriggerFieldValues(stagedCurrentValues, triggerFieldNames)
+      );
+      setFormInitialValues(stagedCurrentValues);
+      setExternalDefaultValues(stagedDefaultValues);
       setIsFetchingDependentFields(true);
 
-      try {
-        const results = await Promise.all(
-          impactedFields.map(async field => ({
-            fieldName: field.name,
-            ...(await fetchFieldChoices({
-              currentValues: nextCurrentValues,
-              defaultValues: nextDefaultValues,
-              field,
-              input: '',
-              nextFieldGroups: fieldGroups,
-            })),
-          }))
-        );
+      // BFS over the dependency graph. A newly-defaulted field can itself be a
+      // trigger for fields that depend on it (transitive cascade A → B → C),
+      // so we process triggers level by level until no further dependents
+      // remain. processedTriggers and fetchedFields prevent re-processing on
+      // diamond shapes (A → B, A → C, B → D, C → D) and cycles.
+      const triggerQueue: string[] = [fieldName];
+      const processedTriggers = new Set<string>();
+      const fetchedFields = new Set<string>();
+      const allImpactedNames = new Set<string>();
+      let workingFieldGroups = fieldGroups;
+      let workingDefaults = stagedDefaultValues;
+      let workingValues = stagedCurrentValues;
 
-        if (requestVersion !== dependentFetchVersionRef.current) {
-          return;
+      try {
+        while (triggerQueue.length > 0) {
+          const trigger = triggerQueue.shift()!;
+          if (processedTriggers.has(trigger)) continue;
+          processedTriggers.add(trigger);
+
+          const dependentFields = getAllSchemaFields(workingFieldGroups).filter(
+            field => field.depends_on?.includes(trigger) && !fetchedFields.has(field.name)
+          );
+          if (!dependentFields.length) continue;
+
+          for (const field of dependentFields) {
+            fetchedFields.add(field.name);
+            allImpactedNames.add(field.name);
+          }
+
+          // Snapshot the working state for this iteration so the closure
+          // below doesn't capture vars reassigned by later iterations.
+          const iterFieldGroups = workingFieldGroups;
+          const iterDefaults = workingDefaults;
+          const iterValues = workingValues;
+
+          const results = await Promise.all(
+            dependentFields.map(async field => ({
+              fieldName: field.name,
+              ...(await fetchFieldChoices({
+                currentValues: iterValues,
+                defaultValues: iterDefaults,
+                field,
+                input: '',
+                nextFieldGroups: iterFieldGroups,
+              })),
+            }))
+          );
+
+          if (requestVersion !== dependentFetchVersionRef.current) return;
+
+          const folded = foldChoiceResults(workingFieldGroups, workingDefaults, results);
+          workingFieldGroups = folded.updatedFieldGroups;
+          workingDefaults = folded.nextDefaultValues;
+
+          for (const result of results) {
+            if (result.defaultValue !== undefined) {
+              workingValues = {...workingValues, [result.fieldName]: result.defaultValue};
+              triggerQueue.push(result.fieldName);
+            }
+          }
         }
 
-        const {updatedFieldGroups, nextDefaultValues: updatedDefaultValues} =
-          foldChoiceResults(fieldGroups, nextDefaultValues, results);
-
         const mergedFormValues = {
-          ...omitValues(currentFormValuesRef.current, impactedFieldNames),
-          ...updatedDefaultValues,
+          ...omitValues(currentFormValuesRef.current, allImpactedNames),
+          ...workingDefaults,
         };
 
         currentFormValuesRef.current = mergedFormValues;
-        setFieldGroups(updatedFieldGroups);
+        setFieldGroups(workingFieldGroups);
         setDynamicFieldValues(getTriggerFieldValues(mergedFormValues, triggerFieldNames));
         setFormInitialValues(mergedFormValues);
-        setExternalDefaultValues(updatedDefaultValues);
+        setExternalDefaultValues(workingDefaults);
         setFormVersion(version => version + 1);
       } catch (error) {
         addErrorMessage(t('Unable to load dependent options.'));
@@ -805,7 +851,7 @@ export function SentryAppExternalFormNew({
           extra: {
             sentryAppInstallationUuid,
             configUri: config.uri,
-            impactedFields: impactedFields.map(field => field.name),
+            impactedFields: [...allImpactedNames],
           },
         });
       } finally {
