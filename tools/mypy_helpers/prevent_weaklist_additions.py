@@ -19,7 +19,7 @@ def _modules_for_override_key(data: dict[str, object], key: str, filename: str) 
             f"{filename}: multiple [tool.mypy.overrides] sections with "
             f"{key!r}; expected exactly one."
         )
-    return frozenset(matching[0]["module"])  # type: ignore[arg-type]
+    return frozenset(matching[0]["module"])
 
 
 # (override key, human-readable list name, advice suffix)
