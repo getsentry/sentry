@@ -217,6 +217,9 @@ export default function SnapshotsPage() {
 
   const handleToggleStatus = useCallback(
     (status: DiffStatus) => {
+      if (availableStatuses.size <= 1) {
+        return;
+      }
       startTransition(() => {
         setActiveStatusList(prev => {
           if (prev.length === 0) {
