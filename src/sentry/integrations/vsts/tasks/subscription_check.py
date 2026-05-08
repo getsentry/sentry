@@ -9,17 +9,22 @@ from sentry.integrations.tasks import logger
 from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 
 
 @instrumented_task(
     name="sentry.integrations.vsts.tasks.vsts_subscription_check",
     namespace=integrations_control_tasks,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(
+        times=5,
+        delay=60 * 5,
+        on=(Exception,),
+        ignore=(ApiError, ApiUnauthorized, Integration.DoesNotExist, IdentityNotValid),
+    ),
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(ApiError, ApiUnauthorized, Integration.DoesNotExist, IdentityNotValid),
 )
-@retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist, IdentityNotValid))
 def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     from sentry.integrations.vsts.integration import VstsIntegration
 

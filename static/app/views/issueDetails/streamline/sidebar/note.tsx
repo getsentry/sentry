@@ -16,7 +16,7 @@ import type {
 } from 'sentry/components/activity/note/types';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
@@ -49,7 +49,7 @@ function StreamlinedNoteInput({
 }: Props) {
   const theme = useTheme();
 
-  const {members} = useMembers();
+  const {data: members = []} = useMembers();
   const {teams} = useTeams();
 
   const suggestMembers = members.map(member => ({

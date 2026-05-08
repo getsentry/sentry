@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
 import {mentionStyle} from './mentionStyle';
@@ -63,7 +63,7 @@ function NoteInput({
 }: Props) {
   const theme = useTheme();
 
-  const {members} = useMembers();
+  const {data: members = []} = useMembers();
   const {teams} = useTeams();
 
   const suggestMembers = members.map(member => ({

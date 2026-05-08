@@ -1069,3 +1069,4 @@ EXTENSION_LANGUAGE_MAP = {
 # After this date APIs that are incompatible with cell routing
 # will begin periodic brownouts.
 CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)
+ALERTS_API_DEPRECATION_DATE = datetime(2026, 5, 14, 0, 0, 0, tzinfo=UTC)

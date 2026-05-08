@@ -9,11 +9,18 @@ from sentry.constants import (
     DataCategory,
     ObjectStatus,
 )
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.models.options.project_option import ProjectOption
+from sentry.seer.autofix.constants import (
+    AutofixAutomationTuningSettings,
+    AutofixStatus,
+)
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
+    AutofixStoppingPoint,
     AutofixTriggerSource,
+    AutomationCodingAgent,
+    CodingAgentProviderType,
     CodingAgentStatus,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
@@ -26,9 +33,11 @@ from sentry.seer.autofix.utils import (
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     read_preference_from_sentry_db,
+    update_seer_project_settings,
     write_preference_to_sentry_db,
 )
 from sentry.seer.models import (
+    AutofixHandoffPoint,
     BranchOverride,
     SeerApiError,
     SeerAutomationHandoffConfiguration,
@@ -1556,3 +1565,164 @@ class TestExtractApiErrorMessage:
     def test_returns_none_when_message_is_not_a_string(self) -> None:
         response = self._response({"error": {"message": 42}})
         assert extract_api_error_message(response) is None
+
+
+class TestUpdateSeerProjectSettings(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+
+    def test_agent_seer_clears_handoff_options(self) -> None:
+        """Setting agent=seer should delete all handoff-related project options."""
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target",
+            CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+        )
+        self.project.update_option(
+            "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+
+        update_seer_project_settings(self.project, {"agent": AutomationCodingAgent.SEER})
+
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+
+    def test_agent_external_sets_handoff_options(self) -> None:
+        """Setting agent=cursor with integrationId should set handoff target, point, and integration ID."""
+        update_seer_project_settings(
+            self.project, {"agent": AutomationCodingAgent.CURSOR, "integrationId": 99}
+        )
+
+        assert (
+            self.project.get_option("sentry:seer_automation_handoff_target")
+            == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
+        )
+        assert (
+            self.project.get_option("sentry:seer_automation_handoff_point")
+            == AutofixHandoffPoint.ROOT_CAUSE
+        )
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") == 99
+
+    def test_agent_external_requires_integration_id(self) -> None:
+        """Setting an external agent without integrationId should raise ValueError."""
+        with pytest.raises(ValueError):
+            update_seer_project_settings(self.project, {"agent": AutomationCodingAgent.CURSOR})
+
+    def test_agent_external_with_open_pr_sets_auto_create_pr(self) -> None:
+        """External agent + stoppingPoint=open_pr should set auto_create_pr=True."""
+        update_seer_project_settings(
+            self.project,
+            {
+                "agent": AutomationCodingAgent.CURSOR,
+                "integrationId": 99,
+                "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
+            },
+        )
+
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+
+    def test_agent_external_with_non_open_pr_does_not_set_auto_create_pr(self) -> None:
+        """External agent + stoppingPoint!=open_pr should not set auto_create_pr."""
+        update_seer_project_settings(
+            self.project,
+            {
+                "agent": AutomationCodingAgent.CURSOR,
+                "integrationId": 99,
+                "stoppingPoint": AutofixStoppingPoint.CODE_CHANGES,
+            },
+        )
+
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    def test_stopping_point_off_sets_tuning_off(self) -> None:
+        """stoppingPoint=off should set tuning to OFF and preserve stopping point and auto_create_pr."""
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        update_seer_project_settings(self.project, {"stoppingPoint": "off"})
+
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.OFF
+        )
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+
+    def test_stopping_point_sets_tuning_medium_and_stores_value(self) -> None:
+        """A non-off stoppingPoint should set tuning to MEDIUM and store the value."""
+        update_seer_project_settings(
+            self.project, {"stoppingPoint": AutofixStoppingPoint.ROOT_CAUSE}
+        )
+
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.MEDIUM
+        )
+        assert (
+            self.project.get_option("sentry:seer_automated_run_stopping_point")
+            == AutofixStoppingPoint.ROOT_CAUSE
+        )
+
+    def test_stopping_point_omitted_preserves_existing_options(self) -> None:
+        """Omitting stoppingPoint from data should leave tuning, stopping point, and auto_create_pr unchanged."""
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        update_seer_project_settings(self.project, {"scannerAutomation": False})
+
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.MEDIUM
+        )
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+
+    def test_stopping_point_non_open_pr_clears_auto_create_pr(self) -> None:
+        """Changing stoppingPoint away from open_pr should clear auto_create_pr."""
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target",
+            CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+        )
+
+        update_seer_project_settings(
+            self.project, {"stoppingPoint": AutofixStoppingPoint.CODE_CHANGES}
+        )
+
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+        assert not ProjectOption.objects.filter(
+            project=self.project, key="sentry:seer_automation_handoff_auto_create_pr"
+        ).exists()
+
+    def test_stopping_point_open_pr_sets_auto_create_pr(self) -> None:
+        """stoppingPoint=open_pr should set auto_create_pr, even if no handoff is configured."""
+        update_seer_project_settings(self.project, {"stoppingPoint": AutofixStoppingPoint.OPEN_PR})
+
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+
+    def test_scanner_automation_false(self) -> None:
+        """scannerAutomation=false should update the project option."""
+        update_seer_project_settings(self.project, {"scannerAutomation": False})
+
+        assert self.project.get_option("sentry:seer_scanner_automation") is False
+
+    def test_deletes_option_when_value_is_default(self) -> None:
+        """Setting a value equal to its registered default should delete the ProjectOption row."""
+        self.project.update_option("sentry:seer_scanner_automation", False)
+        assert ProjectOption.objects.filter(
+            project=self.project, key="sentry:seer_scanner_automation"
+        ).exists()
+
+        update_seer_project_settings(self.project, {"scannerAutomation": True})
+
+        assert not ProjectOption.objects.filter(
+            project=self.project, key="sentry:seer_scanner_automation"
+        ).exists()
