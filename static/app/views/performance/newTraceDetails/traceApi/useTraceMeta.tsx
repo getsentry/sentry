@@ -58,12 +58,12 @@ function getMetaQueryParams(
   };
 }
 
-export function isEAPTraceMeta(
-  meta: TraceMeta | EAPTraceMeta | undefined
-): meta is EAPTraceMeta {
-  if (!meta) return false;
-  return 'uptime_checks' in meta && !('transactions' in meta);
-}
+// export function isEAPTraceMeta(
+//   meta: TraceMeta | EAPTraceMeta | undefined
+// ): meta is EAPTraceMeta {
+//   if (!meta) return false;
+//   return 'uptime_checks' in meta && !('transactions' in meta);
+// }
 
 async function fetchTraceMetaInBatches(
   type: 'non-eap' | 'eap',
