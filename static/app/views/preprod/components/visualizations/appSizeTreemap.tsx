@@ -389,6 +389,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         align="start"
         padding="xs"
         radius="xs"
+        gap="xl"
         style={{
           backgroundColor:
             index % 2 === 0 ? theme.tokens.background.secondary : 'transparent',
