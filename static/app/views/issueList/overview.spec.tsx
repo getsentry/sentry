@@ -121,6 +121,11 @@ describe('IssueList', () => {
       body: [MemberFixture({projects: [project.slug]})],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      method: 'GET',
+      body: [MemberFixture()],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sent-first-event/',
       body: {sentFirstEvent: true},
     });

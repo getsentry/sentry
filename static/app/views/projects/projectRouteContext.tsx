@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,7 +17,6 @@ import {
 } from 'sentry/utils/featureFlags';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -34,7 +32,6 @@ function isNotFoundError(error: Error | null) {
 }
 
 export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProviderProps) {
-  const api = useApi();
   const organization = useOrganization();
   const {
     initiallyLoaded: projectsInitiallyLoaded,
@@ -73,14 +70,6 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
       handler: buildSentryFeaturesHandler('feature.projects:'),
     });
   }, [detailedProject, projectSlug]);
-
-  useEffect(() => {
-    if (!summaryProject?.hasAccess) {
-      return;
-    }
-
-    fetchOrgMembers(api, organization.slug, [summaryProject.id]);
-  }, [api, organization.slug, summaryProject]);
 
   const title = detailedProject?.slug ?? summaryProject?.slug ?? 'Sentry';
 
