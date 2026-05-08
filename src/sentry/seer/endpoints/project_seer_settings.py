@@ -41,6 +41,7 @@ from sentry.seer.autofix.utils import (
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
 from sentry.utils import json
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
@@ -64,6 +65,14 @@ search_config = SearchConfig.create_from(
 parse_search_query = partial(base_parse_search_query, config=search_config)
 
 
+class SeerProjectSettings(TypedDict):
+    automation_tuning: str
+    handoff: SeerAutomationHandoffConfiguration | None
+    repos_count: int
+    scanner_automation: bool
+    stopping_point: str
+
+
 class SeerProjectSettingsResponse(TypedDict):
     projectId: str
     projectSlug: str
@@ -74,54 +83,19 @@ class SeerProjectSettingsResponse(TypedDict):
     reposCount: int
 
 
-def _serialize_seer_project_settings(
-    project: Project, attrs: dict[str, Any]
-) -> SeerProjectSettingsResponse:
-    # Only use the real stopping point if tuning is on.
-    tuning = attrs["sentry:autofix_automation_tuning"]
-    stopping_point = (
-        "off"
-        if tuning == AutofixAutomationTuningSettings.OFF
-        else attrs["sentry:seer_automated_run_stopping_point"]
-    )
-
-    # No configured external handoff means use Seer agent.
-    handoff = build_automation_handoff(attrs.get)
-    if handoff is None:
-        agent: str = "seer"
-        integration_id: str | None = None
-    else:
-        agent = handoff.target
-        integration_id = str(handoff.integration_id)
-
-    return SeerProjectSettingsResponse(
-        projectId=str(project.id),
-        projectSlug=project.slug,
-        agent=agent,
-        integrationId=integration_id,
-        stoppingPoint=stopping_point,
-        scannerAutomation=attrs["sentry:seer_scanner_automation"],
-        reposCount=attrs["repos_count"],
+def _get_project_settings(project: Project) -> SeerProjectSettings:
+    return SeerProjectSettings(
+        automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
+        scanner_automation=project.get_option("sentry:seer_scanner_automation"),
+        stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
+        handoff=build_automation_handoff(project.get_option),
+        repos_count=SeerProjectRepository.objects.filter(
+            project=project, repository__status=ObjectStatus.ACTIVE
+        ).count(),
     )
 
 
-def _get_attrs_for_project(project: Project) -> dict[str, Any]:
-    attrs: dict[str, Any] = {}
-
-    for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS:
-        attrs[key] = project.get_option(key)
-
-    attrs["repos_count"] = SeerProjectRepository.objects.filter(
-        project=project, repository__status=ObjectStatus.ACTIVE
-    ).count()
-
-    return attrs
-
-
-def _get_attrs_for_projects(
-    projects: list[Project],
-) -> dict[int, dict[str, Any]]:
-    """For each project, construct a dict containing repos_count and the relevant Seer project options."""
+def _bulk_get_project_settings(projects: list[Project]) -> dict[int, SeerProjectSettings]:
     if not projects:
         return {}
 
@@ -141,25 +115,70 @@ def _get_attrs_for_projects(
         .values_list("project_id", "count")
     )
 
-    attrs_by_project: dict[int, dict[str, Any]] = {}
+    settings_by_project_id: dict[int, SeerProjectSettings] = {}
     for project in projects:
-        attrs_by_project[project.id] = {}
 
-        for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS:
+        def _get_option(key: str):
             value = project_options[key].get(project.id)
             if value is None:
                 value = projectoptions.get_well_known_default(key, project=project)
-            attrs_by_project[project.id][key] = value
+            return value
 
-        attrs_by_project[project.id]["repos_count"] = repo_counts.get(project.id, 0)
+        settings_by_project_id[project.id] = SeerProjectSettings(
+            automation_tuning=_get_option("sentry:autofix_automation_tuning"),
+            scanner_automation=_get_option("sentry:seer_scanner_automation"),
+            stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
+            handoff=build_automation_handoff(_get_option),
+            repos_count=repo_counts.get(project.id, 0),
+        )
 
-    return attrs_by_project
+    return settings_by_project_id
+
+
+def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSettingsResponse:
+    # Automation tuning is a high-level toggle (OFF / LOW / MEDIUM / HIGH) that
+    # controls whether Seer runs automatically at all. When it's OFF, report
+    # stopping point as "off" regardless of the stored value so the UI reports
+    # disabled automation instead of an active stopping point.
+    stopping_point = (
+        "off"
+        if settings["automation_tuning"] == AutofixAutomationTuningSettings.OFF
+        else settings["stopping_point"]
+    )
+
+    handoff = settings["handoff"]
+    if handoff is None:
+        # No configured external handoff means use Seer agent.
+        agent: str = "seer"
+        integration_id: str | None = None
+    else:
+        agent = handoff.target
+        integration_id = str(handoff.integration_id)
+
+    return SeerProjectSettingsResponse(
+        projectId=str(project.id),
+        projectSlug=project.slug,
+        agent=agent,
+        integrationId=integration_id,
+        stoppingPoint=stopping_point,
+        scannerAutomation=settings["scanner_automation"],
+        reposCount=settings["repos_count"],
+    )
+
+
+def serialize_project(project: Project) -> SeerProjectSettingsResponse:
+    return _serialize(project, _get_project_settings(project))
+
+
+def serialize_projects(projects: list[Project]) -> list[SeerProjectSettingsResponse]:
+    settings_by_project = _bulk_get_project_settings(projects)
+    return [_serialize(p, settings_by_project[p.id]) for p in projects]
 
 
 def _annotate_queryset(queryset):
     # ProjectOption.value is a LegacyTextJSONField — a text column storing JSON.
-    # Use LegacyTextJSONField as output_field. Coalesce fallback values must also
-    # be JSON-encoded to match what the DB stores.
+    # Use LegacyTextJSONField as output_field for project options. Coalesce fallback
+    # values must also be JSON-encoded.
 
     def _project_option_subquery(key: str) -> Subquery:
         return Subquery(
@@ -326,8 +345,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
-        attrs = _get_attrs_for_project(project)
-        return Response(_serialize_seer_project_settings(project, attrs))
+        return Response(serialize_project(project))
 
     def put(self, request: Request, project: Project) -> Response:
         serializer = ProjectSettingsUpdateSerializer(
@@ -346,7 +364,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             data={"project_id": project.id},
         )
 
-        return Response(_serialize_seer_project_settings(project, _get_attrs_for_project(project)))
+        return Response(serialize_project(project))
 
 
 class BulkProjectSettingsUpdateSerializer(ProjectSettingsUpdateSerializer):
@@ -381,15 +399,11 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             except (InvalidSearchQuery, ValueError):
                 return Response({"detail": "Invalid search query"}, status=400)
 
-        def on_results(projects: list[Project]) -> list[SeerProjectSettingsResponse]:
-            attrs_by_project = _get_attrs_for_projects(projects)
-            return [_serialize_seer_project_settings(p, attrs_by_project[p.id]) for p in projects]
-
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=on_results,
+            on_results=serialize_projects,
             paginator_cls=OffsetPaginator,
         )
 
