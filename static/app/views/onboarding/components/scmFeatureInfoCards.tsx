@@ -1,4 +1,5 @@
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -83,11 +84,14 @@ export function ScmFeatureInfoCards({
                     />
                   )}
                 </Container>
-                <Container area="label">
+                <Flex area="label" gap="sm" align="center">
                   <Text bold size="md" variant={isDisabled ? 'muted' : undefined}>
                     {meta.label}
                   </Text>
-                </Container>
+                  {meta.alwaysEnabled ? (
+                    <Tag variant="muted">{t('Always on')}</Tag>
+                  ) : null}
+                </Flex>
                 <Stack gap="md" area="description">
                   <Text
                     variant={isDisabled ? 'muted' : 'secondary'}
@@ -106,7 +110,7 @@ export function ScmFeatureInfoCards({
                       >
                         <Text
                           variant="muted"
-                          underline={isDisabled ? undefined : 'dotted'}
+                          underline="dotted"
                           size="sm"
                           density="comfortable"
                         >
