@@ -9,7 +9,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/tables/useOurLogsPinning.tsx';
+import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning.tsx';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
@@ -40,7 +40,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
         Array.from(logsPinning.pinnedRows).map(rowId => {
           const dataRow = allRows.find(datum => datum[OurLogKnownFieldKey.ID] === rowId);
 
-          // TODO: this is not correct yet because the virtualizer might not have found it yet.
+          // TODO(LOGS-781): this is not correct yet because the virtualizer might not have found it yet.
           // Will have to manually re-fetch data.
           if (!dataRow) {
             return null;
@@ -50,7 +50,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
         })}
       <GridRow>
         <PinnedGridBodyCell>
-          <Flex align="center" justify="center">
+          <Flex justify="end">
             <Button
               size="xs"
               icon={<IconChevron size="xs" direction={expanded ? 'up' : 'down'} />}

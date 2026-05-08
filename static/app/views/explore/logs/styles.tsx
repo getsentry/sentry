@@ -9,6 +9,7 @@ import {HighlightComponent} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
+import {IconPin} from 'sentry/icons/iconPin';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
@@ -305,6 +306,19 @@ export const LogsFilteredHelperText = styled('span')`
   background-color: ${p => p.theme.colors.gray200};
 `;
 
+export const LogIconPin = styled(IconPin)<{isPinned: boolean}>`
+  position: absolute;
+  right: calc(-1 * var(--logsPinButtonArea));
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  ${LogTableRow}:focus-within,
+  ${LogTableRow}:hover & {
+    opacity: 1;
+  }
+`;
+
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
   white-space: ${p => (p.wrapText ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
@@ -562,18 +576,5 @@ export const TraceIconStyleWrapper = styled(Flex)`
     width: 12px;
     height: 12px;
     fill: #ffffff;
-  }
-`;
-
-export const PinActionButton = styled(Button)<{isPinned: boolean}>`
-  position: absolute;
-  right: calc(-1 * var(--logsPinButtonArea));
-  opacity: ${p => (p.isPinned ? 1 : 0)};
-  transition: opacity 0.1s;
-  z-index: 1;
-
-  ${LogTableRow}:focus-within,
-  ${LogTableRow}:hover & {
-    opacity: 1;
   }
 `;

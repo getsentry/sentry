@@ -11,7 +11,7 @@ import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconAdd, IconJson, IconPin, IconSubtract, IconWarning} from 'sentry/icons';
+import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -58,6 +58,7 @@ import {
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning.tsx';
 import {
   DetailsBody,
   DetailsContent,
@@ -68,14 +69,13 @@ import {
   LogDetailTableActionsCell,
   LogDetailTableBodyCell,
   LogFirstCellContent,
+  LogIconPin,
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
-  PinActionButton,
   StyledChevronButton,
   TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
-import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/tables/useOurLogsPinning.tsx';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -384,16 +384,16 @@ export const LogRowContent = memo(function LogRowContent({
         {fields?.map((field, index) => {
           const pin =
             logsPinningEnabled && index === fields.length - 1 ? (
-              <PinActionButton
+              <LogIconPin
                 aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
-                icon={<IconPin isSolid={isPinned} size="xs" />}
                 isPinned={isPinned}
+                isSolid={isPinned}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   logsPinning.togglePinnedRow(rowId);
                 }}
-                size="zero"
-                variant={isPinned ? 'primary' : undefined}
+                size="xs"
+                variant={isPinned ? 'accent' : 'primary'}
               />
             ) : null;
           const value = (dataRow as OurLogsResponseItem)[field];
