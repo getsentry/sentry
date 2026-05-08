@@ -44,9 +44,6 @@ function SentryApplicationDashboard() {
   const organization = useOrganization();
   const {appSlug} = useParams<{appSlug: string}>();
 
-  // Time range is captured once on mount so the queryKey stays stable across
-  // re-renders. Otherwise `now` advances every second and react-query refetches
-  // each tick.
   const [timeRange] = useState(() => {
     const now = Math.floor(Date.now() / 1000);
     return {since: now - 3600 * 24 * 90, until: now};
@@ -58,16 +55,7 @@ function SentryApplicationDashboard() {
     isError: isAppError,
   } = useQuery(sentryAppApiOptions({appSlug}));
 
-  // Stats and interactions are only rendered for published apps (or, for
-  // component interactions, when the app declares schema elements). Gate the
-  // queries so unpublished apps don't fire backend requests for data that's
-  // never displayed — those requests can hang and would otherwise leave the
-  // whole page stuck on a spinner.
   const showInstallData = app?.status === 'published';
-  // Fetch gate: union of the conditions used to render the two panels that
-  // consume the interactions response — Integration Views needs `views`
-  // (rendered when `showInstallData`), Component Interactions needs
-  // `componentInteractions` (rendered when `app.schema.elements`).
   const shouldFetchInteractions =
     app?.status === 'published' || Boolean(app?.schema.elements);
 
