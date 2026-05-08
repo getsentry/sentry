@@ -251,14 +251,14 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 conditions.extend(data["filters"])
 
             kwargs = {
-                "name": data["name"],
+                "name": data.get("name", rule.label),
                 "environment": data.get("environment"),
                 "project": None,
                 "project_id": project.id,
-                "action_match": data["actionMatch"],
+                "action_match": data.get("actionMatch", rule.data.get("action_match")),
                 "filter_match": data.get("filterMatch"),
                 "conditions": conditions,
-                "actions": data["actions"],
+                "actions": data.get("actions", rule.data.get("actions", [])),
                 "frequency": data.get("frequency"),
             }
             duplicate_rule = find_duplicate_rule(project=project, rule_data=kwargs, rule_id=rule.id)
