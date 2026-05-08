@@ -24,6 +24,7 @@ from sentry.scm.private.helpers import (
     record_timer_metric,
 )
 from sentry.scm.private.webhooks.github import deserialize_github_event
+from sentry.scm.private.webhooks.gitlab import deserialize_gitlab_event
 from sentry.scm.types import (
     CheckRunEvent,
     CommentEvent,
@@ -88,6 +89,7 @@ class PullRequestBranchParser(msgspec.Struct, gc=False, frozen=True):
 
 
 class PullRequestEventDataParser(msgspec.Struct, gc=False, frozen=True):
+    repository_id: str
     id: str
     title: str
     description: str | None
@@ -95,6 +97,7 @@ class PullRequestEventDataParser(msgspec.Struct, gc=False, frozen=True):
     base: PullRequestBranchParser
     is_private_repo: bool
     author: AuthorParser | None
+    draft: bool
 
 
 class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
@@ -187,6 +190,7 @@ def deserialize_pull_request_event(event_data: str) -> PullRequestEvent:
     return PullRequestEvent(
         action=parsed.action,
         pull_request={
+            "repository_id": parsed.pull_request.repository_id,
             "id": parsed.pull_request.id,
             "title": parsed.pull_request.title,
             "description": parsed.pull_request.description,
@@ -201,6 +205,7 @@ def deserialize_pull_request_event(event_data: str) -> PullRequestEvent:
                 if parsed.pull_request.author
                 else None
             ),
+            "draft": parsed.pull_request.draft,
         },
         subscription_event=_map_subscription_event(parsed.subscription_event),
     )
@@ -245,6 +250,7 @@ def serialize_comment_event(event: CommentEvent) -> str:
 
 def serialize_pull_request_event(event: PullRequestEvent) -> str:
     pull_request_data = PullRequestEventDataParser(
+        repository_id=event.pull_request["repository_id"],
         id=event.pull_request["id"],
         title=event.pull_request["title"],
         description=event.pull_request["description"],
@@ -265,6 +271,7 @@ def serialize_pull_request_event(event: PullRequestEvent) -> str:
             if event.pull_request["author"]
             else None
         ),
+        draft=event.pull_request["draft"],
     )
     structured_event = PullRequestEventParser(
         action=event.action,
@@ -305,7 +312,7 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
     elif event["type"] == "bitbucket":
         raise SCMProviderNotSupported("Bitbucket has not been implemented.")
     elif event["type"] == "gitlab":
-        raise SCMProviderNotSupported("GitLab has not been implemented.")
+        return deserialize_gitlab_event(event)
     else:
         assert_never(event["type"])
 

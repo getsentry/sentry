@@ -14,7 +14,7 @@ from sentry.seer.code_review.webhooks.issue_comment import (
     is_pr_review_command,
 )
 from sentry.seer.code_review.webhooks.pull_request import PullRequestAction
-from sentry.seer.code_review.webhooks.task import MAX_RETRIES, process_github_webhook_event
+from sentry.seer.code_review.webhooks.task import MAX_RETRIES, process_webhook_event
 from sentry.testutils.cases import TestCase
 
 
@@ -31,7 +31,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         This is a critical test that verifies the retry configuration itself.
         Without on=(HTTPError,), the task would NOT retry despite times=3.
         """
-        task = process_github_webhook_event
+        task = process_webhook_event
 
         assert task.retry is not None, "Task should have retry configuration"
 
@@ -70,7 +70,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
 
         with pytest.raises(HTTPError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -94,7 +94,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(503, b'{"detail": "Service unavailable"}')
 
         with pytest.raises(HTTPError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -118,7 +118,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(429, b'{"detail": "Rate limit exceeded"}')
 
         with pytest.raises(HTTPError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -142,7 +142,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(400, b'{"detail": "Bad request"}')
 
         with pytest.raises(ClientError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -169,7 +169,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = MaxRetryError(None, "test", reason="Connection failed")  # type: ignore[arg-type]
 
         with pytest.raises(MaxRetryError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -195,7 +195,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = TimeoutError("Request timed out")
 
         with pytest.raises(TimeoutError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -221,7 +221,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = SSLError("Certificate verification failed")
 
         with pytest.raises(SSLError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -247,7 +247,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = NewConnectionError(None, "Failed to establish connection")  # type: ignore[arg-type]
 
         with pytest.raises(NewConnectionError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -273,7 +273,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = TimeoutError("Request timed out")
 
         with pytest.raises(TimeoutError):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -302,7 +302,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         # Unexpected exceptions are not retried
         with pytest.raises(ValueError, match="Invalid JSON format"):
-            process_github_webhook_event._func(
+            process_webhook_event._func(
                 seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 tags={},
@@ -327,7 +327,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         """E2E latency was removed; success path should not call metrics.timing."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
-        process_github_webhook_event._func(
+        process_webhook_event._func(
             seer_path="/v1/code_review/check/rerun",
             event_payload={"original_run_id": self.original_run_id},
             tags={},
@@ -347,7 +347,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         for _ in range(MAX_RETRIES):
             with pytest.raises(MaxRetryError):
-                process_github_webhook_event._func(
+                process_webhook_event._func(
                     seer_path="/v1/code_review/check/rerun",
                     event_payload={"original_run_id": self.original_run_id},
                     tags={},
@@ -361,7 +361,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         """Test that check rerun and PR review use their configured Seer paths."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
-        process_github_webhook_event._func(
+        process_webhook_event._func(
             seer_path="/v1/code_review/check/rerun",
             event_payload={"original_run_id": self.original_run_id},
             tags={},
@@ -403,7 +403,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             },
         }
 
-        process_github_webhook_event._func(
+        process_webhook_event._func(
             seer_path="/v1/code_review/review-request",
             event_payload=event_payload,
             tags={},
@@ -454,7 +454,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             },
         }
 
-        process_github_webhook_event._func(
+        process_webhook_event._func(
             seer_path="/v1/code_review/review-request",
             event_payload=event_payload,
             tags={},
@@ -511,7 +511,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         }
 
         # Should not raise validation error
-        process_github_webhook_event._func(
+        process_webhook_event._func(
             seer_path="/v1/code_review/review-request",
             event_payload=event_payload,
             tags={},
@@ -554,7 +554,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         }
 
         # Should not raise validation error
-        process_github_webhook_event._func(
+        process_webhook_event._func(
             seer_path="/v1/code_review/pr-closed",
             event_payload=event_payload,
             tags={},
@@ -578,7 +578,7 @@ class TestProcessGitHubWebhookEventSetsTags:
             "pr_id": 42,
         }
 
-        process_github_webhook_event._func(
+        process_webhook_event._func(
             seer_path="/v1/code_review/check/rerun",
             event_payload={"original_run_id": "123"},
             tags=tags,

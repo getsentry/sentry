@@ -177,6 +177,7 @@ def test_run_pull_request_listener() -> None:
     pr_event = PullRequestEventParser(
         action="opened",
         pull_request=PullRequestEventDataParser(
+            repository_id="repo-42",
             id="789",
             title="Test PR",
             description="Test description",
@@ -184,6 +185,7 @@ def test_run_pull_request_listener() -> None:
             base=PullRequestBranchParser(ref="main", sha="def456"),
             is_private_repo=False,
             author=AuthorParser(id="456", username="testuser"),
+            draft=False,
         ),
         subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
@@ -458,6 +460,7 @@ def test_serialize_deserialize_pull_request_event() -> None:
     event = PullRequestEvent(
         action="opened",
         pull_request={
+            "repository_id": "repo-42",
             "id": "pr-123",
             "title": "Add new feature",
             "description": "This PR adds a new feature",
@@ -465,6 +468,7 @@ def test_serialize_deserialize_pull_request_event() -> None:
             "base": {"ref": "main", "sha": "fedcba654321"},
             "is_private_repo": True,
             "author": {"id": "user-789", "username": "contributor"},
+            "draft": False,
         },
         subscription_event={
             "event": "raw_event_data",
@@ -495,6 +499,7 @@ def test_serialize_deserialize_pull_request_event_no_author() -> None:
     event = PullRequestEvent(
         action="closed",
         pull_request={
+            "repository_id": "repo-42",
             "id": "pr-456",
             "title": "Fix bug",
             "description": None,
@@ -502,6 +507,7 @@ def test_serialize_deserialize_pull_request_event_no_author() -> None:
             "base": {"ref": "develop", "sha": "bbb"},
             "is_private_repo": False,
             "author": None,
+            "draft": False,
         },
         subscription_event={
             "event": "",
@@ -554,6 +560,7 @@ def test_serialize_event_dispatches_correctly() -> None:
     pr_event = PullRequestEvent(
         action="opened",
         pull_request={
+            "repository_id": "repo-42",
             "id": "1",
             "title": "Test",
             "description": None,
@@ -561,6 +568,7 @@ def test_serialize_event_dispatches_correctly() -> None:
             "base": {"ref": "c", "sha": "d"},
             "is_private_repo": False,
             "author": None,
+            "draft": False,
         },
         subscription_event={
             "event": "",
@@ -608,6 +616,7 @@ def test_deserialize_event_dispatches_correctly() -> None:
     pr_parser = PullRequestEventParser(
         action="opened",
         pull_request=PullRequestEventDataParser(
+            "repo-42",
             "1",
             "Test",
             None,
@@ -615,6 +624,7 @@ def test_deserialize_event_dispatches_correctly() -> None:
             PullRequestBranchParser("c", "d"),
             False,
             None,
+            False,
         ),
         subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
     )
@@ -732,6 +742,7 @@ def test_produce_to_listeners_pull_request() -> None:
         return PullRequestEvent(
             action="opened",
             pull_request={
+                "repository_id": "repo-42",
                 "id": "1",
                 "title": "Test",
                 "description": None,
@@ -739,6 +750,7 @@ def test_produce_to_listeners_pull_request() -> None:
                 "base": {"ref": "c", "sha": "d"},
                 "is_private_repo": False,
                 "author": None,
+                "draft": False,
             },
             subscription_event=event,
         )

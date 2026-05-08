@@ -3,6 +3,7 @@ import datetime
 import time
 
 from sentry import options
+from sentry.integrations.github import handlers  # noqa: F401
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.utils import jwt

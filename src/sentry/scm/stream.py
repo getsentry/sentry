@@ -5,6 +5,7 @@
 # Example:
 #
 #    from sentry.my_module import check_run_listener, pull_request_listener
+import sentry.seer.code_review.webhooks.scm_listeners  # noqa: F401 - registers listeners on import
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import (
     CheckRunEvent,

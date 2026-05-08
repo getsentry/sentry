@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
@@ -8,6 +9,7 @@ from typing import Any
 
 import orjson
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
@@ -36,6 +38,9 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.scm.private.stream_producer import produce_event_to_scm_stream
+from sentry.scm.types import SubscriptionEventSentryMeta
+from sentry.silo.base import SiloMode
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -526,5 +531,32 @@ class GitlabWebhookEndpoint(Endpoint):
                     ).capture(),
                 ):
                     event_handler(event, integration=integration, organization=organization)
+
+                # Publish the request to the unified SCM (source control management) subscription's
+                # platform. This is a replacement for the handlers defined above. Handlers should be
+                # defined as consumers of the SCM subscriptions Kafka topic.
+                #
+                # NOTE: Publication of the event assumes the event has been properly authorized (as it has
+                #       been above).
+                # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
+                #       middleware has handled routing.
+                produce_event_to_scm_stream(
+                    {
+                        "event_type_hint": request.META.get("HTTP_X_GITLAB_EVENT"),
+                        "event": request.body.decode("utf-8"),
+                        "extra": {},
+                        "received_at": int(time.time()),
+                        "sentry_meta": [
+                            SubscriptionEventSentryMeta(
+                                id=install.id,
+                                organization_id=organization.id,
+                                integration_id=integration.id,
+                            )
+                        ],
+                        "type": IntegrationProviderSlug.GITLAB.value,
+                    },
+                    silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
+                    is_dev=settings.IS_DEV,
+                )
 
         return HttpResponse(status=204)
