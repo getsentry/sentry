@@ -390,6 +390,7 @@ def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
     short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -400,7 +401,8 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+        issue_ref = f"[{short_id}]({issue_url})" if issue_url else short_id
+        parts.append(f"Include 'Fixes {issue_ref}' in the PR description.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -559,8 +561,9 @@ def trigger_coding_agent_handoff(
             )
 
     short_id = group.qualified_short_id
+    issue_url = f"https://sentry.io/organizations/{group.organization.slug}/issues/{group.id}/"
 
-    prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
+    prompt = generate_autofix_handoff_prompt(state, short_id=short_id, issue_url=issue_url)
 
     coding_agents = client.launch_coding_agents(
         run_id=run_id,
@@ -626,12 +629,15 @@ def trigger_push_changes(
         )
     )
 
+    issue_pr_suffix: str | None = None
+    if group.qualified_short_id:
+        issue_url = f"https://sentry.io/organizations/{group.organization.slug}/issues/{group.id}/"
+        issue_pr_suffix = f"Fixes [{group.qualified_short_id}]({issue_url})"
+
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=(
-            f"Fixes {group.qualified_short_id}" if group.qualified_short_id else None
-        ),
+        pr_description_suffix=issue_pr_suffix,
         blocking=False,
     )
 
