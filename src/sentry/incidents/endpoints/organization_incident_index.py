@@ -19,14 +19,11 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
-from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineIncidentSerializer,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.alert_rule import AlertRuleActivity, AlertRuleActivityType
-from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -40,10 +37,7 @@ from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 from .utils import parse_team_params
 
@@ -80,89 +74,19 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_status = request.GET.get("status")
         teams = request.GET.getlist("team", [])
 
-        use_workflow_engine = features.has(
-            "organizations:workflow-engine-rule-serializers", organization
-        ) or features.has("organizations:workflow-engine-metric-alert-endpoints-get", organization)
-
-        if use_workflow_engine:
-            return self._get_workflow_engine(
-                request,
-                organization,
-                projects=projects,
-                envs=envs,
-                expand=expand,
-                title=title,
-                query_alert_rule=query_alert_rule,
-                query_include_snapshots=query_include_snapshots,
-                query_start_s=query_start_s,
-                query_end_s=query_end_s,
-                query_status=query_status,
-                teams=teams,
-            )
-
-        incidents = Incident.objects.fetch_for_organization(organization, projects)
-        report_used_legacy_models()
-
-        if envs:
-            incidents = incidents.filter(alert_rule__snuba_query__environment__in=envs)
-        if query_alert_rule is not None:
-            query_alert_rule_id = to_valid_int_id("alertRule", query_alert_rule)
-            alert_rule_ids = [query_alert_rule_id]
-            if query_include_snapshots:
-                snapshot_alerts = AlertRuleActivity.objects.filter(
-                    previous_alert_rule=query_alert_rule_id,
-                    type=AlertRuleActivityType.SNAPSHOT.value,
-                )
-                for snapshot_alert in snapshot_alerts:
-                    alert_rule_ids.append(snapshot_alert.alert_rule_id)
-            incidents = incidents.filter(alert_rule__in=alert_rule_ids)
-
-        if query_start_s is not None:
-            # exclude incidents closed before the window
-            query_start = ensure_aware(parse_date(query_start_s))
-            incidents = incidents.exclude(date_closed__lt=query_start)
-
-        if query_end_s is not None:
-            # exclude incidents started after the window
-            query_end = ensure_aware(parse_date(query_end_s))
-            incidents = incidents.exclude(date_started__gt=query_end)
-
-        if query_status is not None:
-            if query_status == "open":
-                incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
-            elif query_status == "warning":
-                incidents = incidents.filter(status=IncidentStatus.WARNING.value)
-            elif query_status == "critical":
-                incidents = incidents.filter(status=IncidentStatus.CRITICAL.value)
-            elif query_status == "closed":
-                incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
-
-        if teams:
-            try:
-                teams_query, unassigned = parse_team_params(request, organization, teams)
-            except InvalidParams as err:
-                return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
-
-            team_filter_query = Q(alert_rule__team_id__in=teams_query.values_list("id", flat=True))
-            if unassigned:
-                team_filter_query = team_filter_query | Q(alert_rule__team_id__isnull=True)
-
-            incidents = incidents.filter(team_filter_query)
-
-        if title:
-            incidents = incidents.filter(Q(title__icontains=title))
-
-        if not features.has("organizations:performance-view", organization):
-            # Filter to only error alerts
-            incidents = incidents.filter(alert_rule__snuba_query__dataset=Dataset.Events.value)
-
-        return self.paginate(
+        return self._get_workflow_engine(
             request,
-            queryset=incidents,
-            order_by="-date_started",
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, IncidentSerializer(expand=expand)),
-            default_per_page=25,
+            organization,
+            projects=projects,
+            envs=envs,
+            expand=expand,
+            title=title,
+            query_alert_rule=query_alert_rule,
+            query_include_snapshots=query_include_snapshots,
+            query_start_s=query_start_s,
+            query_end_s=query_end_s,
+            query_status=query_status,
+            teams=teams,
         )
 
     def _get_workflow_engine(
