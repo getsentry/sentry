@@ -11,10 +11,10 @@ import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
@@ -503,6 +503,8 @@ export function SourceMapsDebuggerModal({
   organization,
   projectId,
 }: SourceMapsDebuggerModalProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
 
   const {projects} = useProjects();

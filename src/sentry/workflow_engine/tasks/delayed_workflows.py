@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.workflow_engine.utils import log_context
@@ -17,10 +18,16 @@ logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows"
     name="sentry.workflow_engine.tasks.delayed_workflows",
     namespace=workflow_engine_tasks,
     processing_deadline_duration=60,
-    retry=Retry(times=5, delay=5),
+    retry=Retry(
+        times=5,
+        delay=5,
+        on=(
+            Exception,
+            ProcessingDeadlineExceeded,
+        ),
+    ),
     silo_mode=SiloMode.CELL,
 )
-@retry(timeouts=True)
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any

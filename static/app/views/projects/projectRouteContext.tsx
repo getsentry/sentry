@@ -51,18 +51,12 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
     ? !summaryProject.hasAccess && !summaryProject.isMember
     : false;
 
-  const shouldFetchDetailedProject = projectsInitiallyLoaded && !missingProjectMembership;
-
   const {
     data: detailedProject,
     error: detailedProjectError,
-    isFetching: isFetchingDetailedProject,
     isPending: isDetailedProjectPending,
     refetch,
-  } = useDetailedProject(
-    {orgSlug: organization.slug, projectSlug},
-    {enabled: shouldFetchDetailedProject}
-  );
+  } = useDetailedProject({orgSlug: organization.slug, projectSlug});
 
   useEffect(() => {
     if (!detailedProject) {
@@ -92,13 +86,11 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
 
   // Still loading project list or initial detailed project fetch
   const loading =
-    fetchingProjects ||
-    !projectsInitiallyLoaded ||
-    (shouldFetchDetailedProject && isDetailedProjectPending);
+    fetchingProjects || !projectsInitiallyLoaded || isDetailedProjectPending;
   // Project was renamed -- show loading while the useEffect redirect fires
   const projectRenamed = detailedProject && detailedProject.slug !== projectSlug;
 
-  if (loading || projectRenamed || isFetchingDetailedProject) {
+  if (loading || projectRenamed) {
     return (
       <SentryDocumentTitle noSuffix title={title}>
         <div className="loading-full-layout">

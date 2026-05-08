@@ -5,6 +5,7 @@ from typing import NamedTuple
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.per_org.tasks.configuration import (
     AutomaticDynamicSamplingConfiguration,
@@ -12,6 +13,10 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     CustomDynamicSamplingProjectConfiguration,
     NoDynamicSamplingConfiguration,
     get_configuration,
+)
+from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    DynamicSamplingException,
+    TelemetryStatus,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.organization import Organization
@@ -77,6 +82,20 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             getattr(configuration, "measure")
         with pytest.raises(AttributeError):
             getattr(configuration, "sample_rate")
+
+    def test_subscription_backed_org_without_subscription_bubbles_terminal_status(self) -> None:
+        org = self.create_organization()
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                side_effect=ObjectDoesNotExist,
+            ),
+            pytest.raises(DynamicSamplingException) as exc_info,
+        ):
+            get_configuration(org.id)
+
+        assert exc_info.value.status == TelemetryStatus.NO_SUBSCRIPTION
 
     def test_am2_ignores_project_mode_option(self) -> None:
         org = self.create_organization()

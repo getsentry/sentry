@@ -13,7 +13,7 @@ from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
@@ -141,10 +141,9 @@ def reprocess_group(
     name="sentry.tasks.reprocessing2.handle_remaining_events",
     namespace=issues_tasks,
     processing_deadline_duration=60 * 5,
-    retry=Retry(times=5),
+    retry=Retry(times=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def handle_remaining_events(
     project_id: int,
     new_group_id: int,

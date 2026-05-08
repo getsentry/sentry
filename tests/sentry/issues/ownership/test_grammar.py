@@ -10,10 +10,12 @@ from sentry.issues.ownership.grammar import (
     convert_codeowners_syntax,
     convert_schema_to_rules_text,
     dump_schema,
+    get_invalid_owner_details,
     load_schema,
     parse_code_owners,
     parse_rules,
 )
+from sentry.testutils.cases import TestCase
 
 fixture_data = """
 # cool stuff comment
@@ -1244,3 +1246,56 @@ def test_codeowners_double_star_matching(
     "/**/example.py" pattern should only match files named exactly "example.py" at any directory depth.
     """
     _assert_matcher(Matcher("codeowners", pattern), path_details, expected)
+
+
+class GetInvalidOwnerDetailsTest(TestCase):
+    def test_team_not_in_organization(self) -> None:
+        project = self.create_project()
+        bad_owners = [Owner(type="team", identifier="nonexistent")]
+        messages = get_invalid_owner_details(bad_owners, project.id)
+        assert messages == [f"Team #nonexistent does not have access to project '{project.slug}'."]
+
+    def test_team_in_org_but_not_on_project(self) -> None:
+        project = self.create_project(slug="my-project")
+        self.create_team(organization=project.organization, slug="other-team")
+        bad_owners = [Owner(type="team", identifier="other-team")]
+        messages = get_invalid_owner_details(bad_owners, project.id)
+        assert messages == ["Team #other-team does not have access to project 'my-project'."]
+
+    def test_user_not_in_organization(self) -> None:
+        project = self.create_project()
+        bad_owners = [Owner(type="user", identifier="nobody@example.com")]
+        messages = get_invalid_owner_details(bad_owners, project.id)
+        assert messages == ["User nobody@example.com is not a member of this organization."]
+
+    def test_user_in_org_but_not_on_project_team(self) -> None:
+        team = self.create_team(organization=self.organization)
+        project = self.create_project(organization=self.organization, teams=[team], slug="proj")
+        other_user = self.create_user("other@example.com")
+        other_team = self.create_team(organization=self.organization, slug="other-team")
+        self.create_member(
+            user=other_user, organization=self.organization, role="member", teams=[other_team]
+        )
+        bad_owners = [Owner(type="user", identifier="other@example.com")]
+        messages = get_invalid_owner_details(bad_owners, project.id)
+        assert messages == ["User other@example.com does not have access to project 'proj'."]
+
+    def test_mixed_invalid_owners(self) -> None:
+        project = self.create_project(slug="my-proj")
+        self.create_team(organization=project.organization, slug="org-team")
+        bad_owners = [
+            Owner(type="team", identifier="ghost-team"),
+            Owner(type="team", identifier="org-team"),
+            Owner(type="user", identifier="nobody@example.com"),
+        ]
+        messages = get_invalid_owner_details(bad_owners, project.id)
+        assert messages == [
+            "Team #ghost-team does not have access to project 'my-proj'.",
+            "Team #org-team does not have access to project 'my-proj'.",
+            "User nobody@example.com is not a member of this organization.",
+        ]
+
+    def test_empty_bad_owners(self) -> None:
+        project = self.create_project()
+        messages = get_invalid_owner_details([], project.id)
+        assert messages == []

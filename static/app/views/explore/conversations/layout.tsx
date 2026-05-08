@@ -52,7 +52,10 @@ function ConversationsLayoutContent() {
         <Stack flex={1}>
           <ConversationsHeader />
           <NoProjectMessage organization={organization}>
-            <PageFiltersContainer maxPickableDays={MAX_PICKABLE_DAYS}>
+            <PageFiltersContainer
+              maxPickableDays={MAX_PICKABLE_DAYS}
+              storageNamespace="conversations"
+            >
               <Outlet />
             </PageFiltersContainer>
           </NoProjectMessage>
