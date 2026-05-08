@@ -8,7 +8,7 @@ export const ToolbarSection = styled('div')`
   margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
-export function ToolbarHeader(props: FlexProps<'div'>) {
+export function ToolbarHeader(props: FlexProps) {
   return <Flex justify="between" align="baseline" marginBottom="sm" {...props} />;
 }
 

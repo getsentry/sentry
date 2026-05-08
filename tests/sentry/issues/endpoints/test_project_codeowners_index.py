@@ -95,6 +95,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
         assert resp_data["dateUpdated"] == code_owner.date_updated
+        assert resp_data["dateSynced"] == code_owner.date_synced
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
         assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"

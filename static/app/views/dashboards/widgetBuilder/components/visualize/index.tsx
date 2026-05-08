@@ -357,9 +357,9 @@ export function Visualize({error, setError}: VisualizeProps) {
         .filter(
           column =>
             column !== '' &&
-            !stringSpanTags.hasOwnProperty(column) &&
-            !numericSpanTags.hasOwnProperty(column) &&
-            !booleanSpanTags.hasOwnProperty(column)
+            !Object.hasOwn(stringSpanTags, column) &&
+            !Object.hasOwn(numericSpanTags, column) &&
+            !Object.hasOwn(booleanSpanTags, column)
         )
         .map(column => {
           return {
@@ -1251,7 +1251,7 @@ export const PrimarySelectRow = styled('div')<{
   }
 `;
 
-export function FieldRow(props: FlexProps<'div'>) {
+export function FieldRow(props: FlexProps) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
 }
 

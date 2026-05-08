@@ -33,7 +33,7 @@ export function ExploreParams({
 
   const {width} = useDimensions({elementRef: containerRef});
   const [childWidths, setChildWidths] = useState<number[]>([]);
-  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   const debouncedSetContainerWidth = useMemo(
     () =>

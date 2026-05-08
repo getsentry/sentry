@@ -419,7 +419,17 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
-    default={"base_url": "http://127.0.0.1:8888"},
+    default={
+        "base_url": "http://127.0.0.1:8888",
+        # Test-only token generator with no permissions. Only active when no real
+        # objectstore config is deployed. Exists so mint_token() does not raise in
+        # test/dev environments that lack signing keys.
+        "token_generator": {
+            "kid": "test",
+            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
+            "permissions": [],
+        },
+    },
     flags=FLAG_NOSTORE,
 )
 
@@ -664,19 +674,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for expanding the unreal report in the endpoint rather than during processing.
+# Killswitch for fetching projects in the endpoints.
 register(
-    "relay.unreal-report-expansion.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for fetching project configs in the minidump endpoint.
-register(
-    "relay.minidump-endpoint-fetch-config.rollout-rate",
-    type=Float,
-    default=0.0,
+    "relay.endpoint-fetch-config.enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3231,13 +3233,6 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Whether to enforce max-segment-bytes during ingestion via the Lua script.
-register(
-    "spans.buffer.enforce-segment-size",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
     "spans.buffer.redis-ttl",
@@ -3290,6 +3285,18 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, done_flush_segments uses Lua scripts to conditionally clean up
+# segments only if their state hasn't changed since the flush started: Phase 1
+# ZREMs the queue entry only if the score is unchanged, and Phase 2 deletes the
+# per-segment data keys (hrs, ic, ibc) only if the ingested count is unchanged.
+# When False, both phases unconditionally remove queue entries and delete data
+# keys for every flushed segment.
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
@@ -3330,6 +3337,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.flusher.log-flushed-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -3366,6 +3378,11 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.process-segments.semantic-partitioning",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -3638,22 +3655,6 @@ register(
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
     "workflow_engine.max_more_workflows_per_org",
-    type=Int,
-    default=10000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Tuning knobs for the periodic open-period-activity cleanup task.
-# time_limit is a wall-clock budget checked *between* batches, so a single
-# batch that exceeds it will still run to completion. Setting it to 0
-# prevents any batches from running.
-register(
-    "workflow_engine.open_period_activity_cleanup.time_limit_seconds",
-    type=Float,
-    default=5.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.open_period_activity_cleanup.batch_size",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4026,6 +4027,13 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issue-detection.llm-detection.traces-per-invocation",
+    type=Dict,
+    default={"team": 1, "business": 1},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls whether deletion from EAP is enabled.

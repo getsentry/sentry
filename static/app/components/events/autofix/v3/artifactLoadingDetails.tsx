@@ -1,4 +1,3 @@
-import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -8,7 +7,7 @@ import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerA
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {defined} from 'sentry/utils';
+import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 
 interface ArtifactLoadingDetailsProps {
   blocks: AutofixSection['blocks'];
@@ -19,22 +18,10 @@ export function ArtifactLoadingDetails({
   loadingMessage,
   blocks,
 }: ArtifactLoadingDetailsProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const bottom = bottomRef.current;
-    if (!defined(container) || !defined(bottom)) {
-      return;
-    }
-
-    if (container.scrollHeight <= container.clientHeight) {
-      return;
-    }
-
-    bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
-  }, [blocks]);
+  const {containerRef, onScrollHandler} = useAutoScroll({
+    enabled: true,
+    key: blocks,
+  });
 
   return (
     <ArtifactDetails>
@@ -44,6 +31,7 @@ export function ArtifactLoadingDetails({
         ref={containerRef}
         maxHeight="200px"
         overflowY="auto"
+        onScroll={onScrollHandler}
       >
         {blocks.map((block, index) => {
           if (block.message.role === 'user') {
@@ -55,9 +43,13 @@ export function ArtifactLoadingDetails({
             return <StyledMarkedText key={index} text={block.message.content} />;
           }
 
+          if (block.message.thinking_content) {
+            return <StyledMarkedText key={index} text={block.message.thinking_content} />;
+          }
+
           return null;
         })}
-        <Flex ref={bottomRef} direction="row" gap="md">
+        <Flex direction="row" gap="md">
           <StyledLoadingIndicator size={16} />
           <Text variant="muted">{loadingMessage}</Text>
         </Flex>

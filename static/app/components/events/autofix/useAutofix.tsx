@@ -214,9 +214,9 @@ export const useAiAutofix = (
   const orgSlug = useOrganization().slug;
   const isUserWatching = !options.isSidebar;
 
-  const [isReset, setIsReset] = useState<boolean>(false);
+  const [isReset, setIsReset] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
+  const [waitingForNextRun, setWaitingForNextRun] = useState(false);
 
   const {data: apiData, isPending} = useQuery({
     ...autofixApiOptions(orgSlug, group.id, isUserWatching),

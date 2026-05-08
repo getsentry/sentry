@@ -76,25 +76,25 @@ type LogsFrozenContextProviderWithChildrenProps =
 function isLogsFrozenForTracesProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForTracesProviderWithChildrenProps {
-  return value.hasOwnProperty('traceIds');
+  return Object.hasOwn(value, 'traceIds');
 }
 
 function isLogsFrozenForTraceProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForTraceProviderWithChildrenProps {
-  return value.hasOwnProperty('traceId');
+  return Object.hasOwn(value, 'traceId');
 }
 
 function isLogsFrozenForSpanProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForSpanProviderWithChildrenProps {
-  return value.hasOwnProperty('span');
+  return Object.hasOwn(value, 'span');
 }
 
 function isLogsFrozenForReplayProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForReplayProviderWithChildrenProps {
-  return value.hasOwnProperty('replayId');
+  return Object.hasOwn(value, 'replayId');
 }
 
 export function LogsFrozenContextProvider(

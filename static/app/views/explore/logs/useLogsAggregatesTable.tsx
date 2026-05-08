@@ -34,6 +34,8 @@ interface UseLogsAggregatesTableOptions {
   referrer?: string;
 }
 
+export type LogsAggregatesTableResult = ReturnType<typeof useLogsAggregatesTable>;
+
 export function useLogsAggregatesTable({
   enabled,
   limit,

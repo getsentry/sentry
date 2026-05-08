@@ -36,7 +36,7 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
 
 @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
-    feature_name = "organizations:discover"
+    feature_name = "organizations:discover-query"
 
     def setUp(self) -> None:
         super().setUp()

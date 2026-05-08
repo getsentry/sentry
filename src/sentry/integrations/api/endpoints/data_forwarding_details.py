@@ -114,7 +114,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             data_forwarder = serializer.save()
             return Response(
-                serialize(data_forwarder, request.user),
+                serialize(data_forwarder, request.user, access=request.access),
                 status=status.HTTP_200_OK,
             )
         # Validation failed - return None to signal caller ddto try other operations
@@ -231,7 +231,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             ).update(is_enabled=False)
 
         return Response(
-            serialize(data_forwarder, request.user),
+            serialize(data_forwarder, request.user, access=request.access),
             status=status.HTTP_200_OK,
         )
 
@@ -277,7 +277,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             serializer.save()
             return Response(
-                serialize(data_forwarder, request.user),
+                serialize(data_forwarder, request.user, access=request.access),
                 status=status.HTTP_200_OK,
             )
 
