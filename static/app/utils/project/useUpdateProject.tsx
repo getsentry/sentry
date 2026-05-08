@@ -13,6 +13,17 @@ type OptimisticProject = Project & {
   options?: DetailedProject['options'];
 };
 
+function isValidProjectWithOptions(
+  project?: OptimisticProject
+): project is OptimisticProject {
+  return (
+    project !== undefined &&
+    'options' in project &&
+    project.options !== null &&
+    project.options !== undefined
+  );
+}
+
 type Context =
   | {
       previousProject: OptimisticProject;
@@ -38,14 +49,7 @@ export function useUpdateProject(project: Project) {
       const fromStore = ProjectsStore.getById(project.id);
       const fromProp = project;
 
-      const isValidProjectWithOptions = (obj: unknown): obj is OptimisticProject =>
-        obj !== null &&
-        typeof obj === 'object' &&
-        'options' in obj &&
-        typeof obj.options === 'object' &&
-        obj.options !== null;
-
-      const previousProject =
+      const previousProject: OptimisticProject =
         (isValidProjectWithOptions(fromCache) ? fromCache : null) ||
         (isValidProjectWithOptions(fromStore) ? fromStore : null) ||
         fromProp;
@@ -67,10 +71,11 @@ export function useUpdateProject(project: Project) {
 
       // Update caches optimistically
       ProjectsStore.onUpdateSuccess(updatedProject);
-      queryClient.setQueryData(queryKey, prev => ({
-        headers: prev?.headers ?? {},
-        json: updatedProject,
-      }));
+      queryClient.setQueryData(queryKey, prev =>
+        prev
+          ? {...prev, json: updatedProject as DetailedProject}
+          : {headers: {}, json: updatedProject as DetailedProject}
+      );
 
       return {previousProject};
     },
@@ -81,13 +86,20 @@ export function useUpdateProject(project: Project) {
         data: {...data},
       });
     },
+    onSuccess: updatedProject => {
+      ProjectsStore.onUpdateSuccess(updatedProject);
+      queryClient.setQueryData(queryKey, prev =>
+        prev ? {...prev, json: updatedProject} : {headers: {}, json: updatedProject}
+      );
+    },
     onError: (_error, _variables, context) => {
       if (context?.previousProject) {
         ProjectsStore.onUpdateSuccess(context.previousProject);
-        queryClient.setQueryData(queryKey, prev => ({
-          headers: prev?.headers ?? {},
-          json: context.previousProject,
-        }));
+        queryClient.setQueryData(queryKey, prev =>
+          prev
+            ? {...prev, json: context.previousProject as DetailedProject}
+            : {headers: {}, json: context.previousProject as DetailedProject}
+        );
       }
     },
     onSettled: () => {
