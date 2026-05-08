@@ -17,6 +17,10 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
+import {
+  AI_QUERY_PARAM,
+  logAiQueryResults,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -447,6 +451,9 @@ function IssueListOverviewInner({
 
         const hits = resp.getResponseHeader('X-Hits');
         const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
+        if (location.query[AI_QUERY_PARAM] === '1') {
+          logAiQueryResults({dataset: 'issues', resultCount: newQueryCount});
+        }
         const maxHits = resp.getResponseHeader('X-Max-Hits');
         const newQueryMaxCount =
           maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;

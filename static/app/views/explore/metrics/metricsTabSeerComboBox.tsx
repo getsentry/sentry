@@ -5,6 +5,7 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -304,6 +305,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             end: selection.datetime.end,
             statsPeriod: selection.datetime.period,
             utc: selection.datetime.utc,
+            [AI_QUERY_PARAM]: '1',
           },
         },
         {replace: true, preventScrollReset: true}

@@ -15,6 +15,10 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
+  AI_QUERY_PARAM,
+  logAiQueryResults,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
@@ -26,6 +30,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -277,6 +282,25 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   }, [autorefreshEnabled]);
 
   const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
+
+  const location = useLocation();
+  const isAiQuery = location.query[AI_QUERY_PARAM] === '1';
+  const hasLoggedResultCountRef = useRef(false);
+  // AI query analytics
+  useEffect(() => {
+    if (!isAiQuery) {
+      hasLoggedResultCountRef.current = false;
+      return;
+    }
+    if (rawLogCounts.total.isLoading || rawLogCounts.total.count === null) {
+      hasLoggedResultCountRef.current = false;
+      return;
+    }
+    if (!hasLoggedResultCountRef.current) {
+      hasLoggedResultCountRef.current = true;
+      logAiQueryResults({dataset: 'logs', resultCount: rawLogCounts.total.count});
+    }
+  }, [isAiQuery, rawLogCounts.total.count, rawLogCounts.total.isLoading]);
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));

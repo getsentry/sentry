@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import type {
@@ -5,6 +6,21 @@ import type {
   NoneOfTheseItem,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+
+export const AI_QUERY_PARAM = 'aiQuery';
+
+export function logAiQueryResults({
+  dataset,
+  resultCount,
+}: {
+  dataset: string;
+  resultCount: number;
+}) {
+  Sentry.logger.info('ai_query.results_loaded', {dataset, result_count: resultCount});
+  Sentry.metrics.distribution('ai_query.result_count', resultCount, {
+    attributes: {dataset},
+  });
+}
 
 export function isNoneOfTheseItem(
   item: AskSeerSearchItems<any>

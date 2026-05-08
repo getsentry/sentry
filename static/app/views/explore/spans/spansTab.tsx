@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -14,6 +14,10 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  AI_QUERY_PARAM,
+  logAiQueryResults,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -25,6 +29,7 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -191,6 +196,7 @@ function SpanTabContentSectionInner({
   const [tab, setTab] = useTab();
   const [caseInsensitive] = useCaseInsensitivity();
   const organization = useOrganization();
+  const location = useLocation();
   const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
   const crossEventQueries = useCrossEventQueries(crossEventDatasetAvailability);
   const sortBys = useQueryParamsSortBys();
@@ -227,6 +233,24 @@ function SpanTabContentSectionInner({
   const limit = 50;
 
   const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
+
+  const isAiQuery = location.query[AI_QUERY_PARAM] === '1';
+  const hasLoggedResultCountRef = useRef(false);
+  // AI query analytics
+  useEffect(() => {
+    if (!isAiQuery) {
+      hasLoggedResultCountRef.current = false;
+      return;
+    }
+    if (rawSpanCounts.total.isLoading || rawSpanCounts.total.count === null) {
+      hasLoggedResultCountRef.current = false;
+      return;
+    }
+    if (!hasLoggedResultCountRef.current) {
+      hasLoggedResultCountRef.current = true;
+      logAiQueryResults({dataset: 'spans', resultCount: rawSpanCounts.total.count});
+    }
+  }, [isAiQuery, rawSpanCounts.total.count, rawSpanCounts.total.isLoading]);
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,

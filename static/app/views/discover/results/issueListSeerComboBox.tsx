@@ -5,6 +5,7 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
@@ -250,6 +251,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       const newQueryParams: Record<string, string | string[] | null | undefined> = {
         ...location.query,
         query: queryToUse,
+        [AI_QUERY_PARAM]: '1',
       };
 
       // Apply sort if provided - convert to aliased format for Discover

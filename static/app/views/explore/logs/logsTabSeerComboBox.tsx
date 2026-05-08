@@ -4,6 +4,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -226,6 +227,7 @@ export function LogsTabSeerComboBox() {
       const newQuery = {
         ...location.query,
         [LOGS_QUERY_KEY]: queryToUse,
+        [AI_QUERY_PARAM]: '1',
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
         // Datetime params from selection

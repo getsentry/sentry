@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
@@ -222,6 +223,7 @@ export function IssueListSeerComboBox() {
         ...omit(location.query, ['page', 'cursor']),
         referrer: 'issue-list',
         query: queryToUse,
+        [AI_QUERY_PARAM]: '1',
         ...(sort ? {sort} : {}),
         ...timeParams,
       };
