@@ -633,6 +633,9 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     availableFeatures={availableFeatures}
                     disabledProducts={disabledProducts}
                     featureMeta={featureMeta}
+                    platformName={
+                      platforms.find(p => p.id === currentPlatformKey)?.name ?? ''
+                    }
                     isVolumeLoading={isFeatureMetaLoading}
                   />
                 )}

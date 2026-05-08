@@ -13,6 +13,7 @@ interface ScmFeatureInfoCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
   featureMeta: Record<ProductSolution, FeatureMeta>;
+  platformName: string;
   isVolumeLoading?: boolean;
 }
 
@@ -24,16 +25,17 @@ interface ScmFeatureInfoCardsProps {
 export function ScmFeatureInfoCards({
   availableFeatures,
   featureMeta,
+  platformName,
   isVolumeLoading,
 }: ScmFeatureInfoCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Stack gap="md">
         <Heading as="h3" size="xl">
-          {tct('Available with [bold:platform]', {
-            bold: (
+          {tct('Available with [platformName]', {
+            platformName: (
               <Text as="span" bold variant="accent">
-                {null}
+                {platformName}
               </Text>
             ),
           })}
