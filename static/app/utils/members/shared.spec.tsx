@@ -1,16 +1,7 @@
 import {MemberFixture} from 'sentry-fixture/member';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {indexMembersByProject, selectUsersFromMembers} from 'sentry/utils/members/shared';
-
-describe('selectUsersFromMembers', () => {
-  it('extracts users and includes role', () => {
-    const user = UserFixture();
-    const members = [MemberFixture({role: 'owner', user}), MemberFixture({user: null})];
-
-    expect(selectUsersFromMembers(members)).toEqual([{...user, role: 'owner'}]);
-  });
-});
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 
 describe('indexMembersByProject', () => {
   it('maps project slugs to their users', () => {
