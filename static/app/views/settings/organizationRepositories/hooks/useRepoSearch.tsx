@@ -2,8 +2,7 @@ import {useMemo} from 'react';
 
 import type {Repository} from 'sentry/types/integrations';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-
-import type {ScmRepoMatches} from './scmRepositoryTable';
+import type {ScmRepoMatches} from 'sentry/views/settings/organizationRepositories/types';
 
 const FUSE_OPTIONS = {keys: ['name'], minMatchCharLength: 1};
 

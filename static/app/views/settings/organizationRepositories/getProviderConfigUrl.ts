@@ -18,7 +18,6 @@ export function getProviderConfigUrl(
 
   if (provider.key === 'github_enterprise') {
     if (domainName) {
-      // GHE externalId format is "<host>:<numeric_installation_id>"
       const installationId = externalId.split(':').at(-1);
       const host = domainName.split('/')[0];
       if (accountType === 'Organization') {
