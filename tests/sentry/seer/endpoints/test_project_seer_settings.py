@@ -28,7 +28,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "projectId": self.project.id,
+            "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
             "agent": "seer",
             "integrationId": None,
@@ -124,7 +124,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         )
 
         assert response.status_code == 200
-        assert response.data["projectId"] == self.project.id
+        assert response.data["projectId"] == str(self.project.id)
         assert response.data["projectSlug"] == self.project.slug
         assert response.data["agent"] == "seer"
         assert response.data["stoppingPoint"] == "code_changes"
