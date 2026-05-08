@@ -400,10 +400,7 @@ export const LogRowContent = memo(function LogRowContent({
             type: FieldValueType.STRING,
           };
 
-          const shouldRenderActions =
-            !embedded &&
-            field !== OurLogKnownFieldKey.TIMESTAMP &&
-            shouldRenderHoverElements;
+          const shouldRenderActions = !embedded && shouldRenderHoverElements;
 
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
