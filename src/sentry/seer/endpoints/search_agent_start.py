@@ -32,6 +32,17 @@ from sentry.seer.signed_seer_api import (
 logger = logging.getLogger(__name__)
 
 
+class SeerRunOutboxDrainFailedError(SeerApiError):
+    """Raised when the synchronous outbox drain fails after the SeerRun row
+    is committed. The run uuid lets future client retries reuse the same
+    run instead of creating a duplicate via a fresh idempotency key.
+    """
+
+    def __init__(self, run_uuid: str):
+        super().__init__("Seer run outbox drain failed", 500)
+        self.run_uuid = run_uuid
+
+
 class SearchAgentStartSerializer(serializers.Serializer):
     project_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -118,7 +129,7 @@ def send_search_agent_start_request(
                     },
                 ).save()
         except OutboxFlushError as e:
-            raise SeerApiError("Seer run outbox drain failed", 500) from e
+            raise SeerRunOutboxDrainFailedError(run_uuid=str(run.uuid)) from e
         run.refresh_from_db()
         if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
             raise SeerApiError("Seer run mirror failed to materialize", 500)
@@ -233,6 +244,19 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
             )
             return Response({"run_id": run_id})
 
+        except SeerRunOutboxDrainFailedError as e:
+            logger.exception(
+                "search_agent.outbox_drain_failed",
+                extra={
+                    "organization_id": organization.id,
+                    "project_ids": project_ids,
+                    "run_uuid": e.run_uuid,
+                },
+            )
+            return Response(
+                {"detail": "Failed to start search agent", "retry_token": e.run_uuid},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         except SeerApiError as e:
             logger.exception(
                 "search_agent.start_error",
