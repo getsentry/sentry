@@ -64,7 +64,7 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-const GRID_COLUMNS = 'auto 1fr 40px';
+const GRID_COLUMNS = 'auto 1fr auto';
 
 function computeEquationReferencedLabels(
   equationQuery: MetricQuery | undefined,
