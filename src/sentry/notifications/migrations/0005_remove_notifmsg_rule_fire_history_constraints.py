@@ -31,22 +31,21 @@ class Migration(CheckedMigration):
             model_name="notificationmessage",
             constraint=models.CheckConstraint(
                 condition=models.Q(
-                    models.Q(("incident__isnull", True), ("trigger_action__isnull", True)),
-                    models.Q(("incident__isnull", False), ("trigger_action__isnull", False)),
+                    models.Q(
+                        ("incident__isnull", False),
+                        ("trigger_action__isnull", False),
+                        ("action__isnull", True),
+                        ("group__isnull", True),
+                    ),
+                    models.Q(
+                        ("incident__isnull", True),
+                        ("trigger_action__isnull", True),
+                        ("action__isnull", False),
+                        ("group__isnull", False),
+                    ),
                     _connector="OR",
                 ),
-                name="notifmsg_incident_trigger_action_pairing",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="notificationmessage",
-            constraint=models.CheckConstraint(
-                condition=models.Q(
-                    models.Q(("action__isnull", True), ("group__isnull", True)),
-                    models.Q(("action__isnull", False), ("group__isnull", False)),
-                    _connector="OR",
-                ),
-                name="notifmsg_action_group_pairing",
+                name="notifmsg_metric_or_workflow_exclusive",
             ),
         ),
         migrations.RemoveConstraint(

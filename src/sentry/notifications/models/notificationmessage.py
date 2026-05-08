@@ -79,21 +79,24 @@ class NotificationMessage(Model):
                 ),
                 name="singular_parent_message_per_incident_and_trigger_action",
             ),
-            # incident and trigger_action must be set or unset together
+            # A row is either a metric-alert message (incident + trigger_action)
+            # or a workflow-action message (action + group), never both.
             models.CheckConstraint(
                 condition=(
-                    Q(incident__isnull=True, trigger_action__isnull=True)
-                    | Q(incident__isnull=False, trigger_action__isnull=False)
+                    Q(
+                        incident__isnull=False,
+                        trigger_action__isnull=False,
+                        action__isnull=True,
+                        group__isnull=True,
+                    )
+                    | Q(
+                        incident__isnull=True,
+                        trigger_action__isnull=True,
+                        action__isnull=False,
+                        group__isnull=False,
+                    )
                 ),
-                name="notifmsg_incident_trigger_action_pairing",
-            ),
-            # action and group must be set or unset together
-            models.CheckConstraint(
-                condition=(
-                    Q(action__isnull=True, group__isnull=True)
-                    | Q(action__isnull=False, group__isnull=False)
-                ),
-                name="notifmsg_action_group_pairing",
+                name="notifmsg_metric_or_workflow_exclusive",
             ),
         ]
 
