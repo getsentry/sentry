@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -14,7 +14,6 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -24,6 +23,15 @@ from sentry.seer.autofix.utils import (
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
+
+
+class SeerProjectAttrs(TypedDict):
+    automation_tuning: str
+    handoff: SeerAutomationHandoffConfiguration | None
+    repos_count: int
+    scanner_automation: bool
+    stopping_point: str
 
 
 class SeerProjectSettingsResponse(TypedDict):
@@ -36,20 +44,32 @@ class SeerProjectSettingsResponse(TypedDict):
     reposCount: int
 
 
-def _serialize_seer_project_settings(
-    project: Project, attrs: dict[str, Any]
-) -> SeerProjectSettingsResponse:
-    # Only use the real stopping point if tuning is on.
-    tuning = attrs["sentry:autofix_automation_tuning"]
-    stopping_point = (
-        "off"
-        if tuning == AutofixAutomationTuningSettings.OFF
-        else attrs["sentry:seer_automated_run_stopping_point"]
+def _build_attrs(project: Project) -> SeerProjectAttrs:
+    return SeerProjectAttrs(
+        automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
+        scanner_automation=project.get_option("sentry:seer_scanner_automation"),
+        stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
+        handoff=build_automation_handoff(project.get_option),
+        repos_count=SeerProjectRepository.objects.filter(
+            project=project, repository__status=ObjectStatus.ACTIVE
+        ).count(),
     )
 
-    # No configured external handoff means use Seer agent.
-    handoff = build_automation_handoff(attrs.get)
+
+def _serialize(project: Project, attrs: SeerProjectAttrs) -> SeerProjectSettingsResponse:
+    # Automation tuning is a high-level toggle (OFF / LOW / MEDIUM / HIGH) that
+    # controls whether Seer runs automatically at all. When it's OFF, report
+    # stopping point as "off" regardless of the stored value so the UI reports
+    # disabled automation instead of an active stopping point.
+    stopping_point = (
+        "off"
+        if attrs["automation_tuning"] == AutofixAutomationTuningSettings.OFF
+        else attrs["stopping_point"]
+    )
+
+    handoff = attrs["handoff"]
     if handoff is None:
+        # No configured external handoff means use Seer agent.
         agent: str = "seer"
         integration_id: str | None = None
     else:
@@ -62,22 +82,13 @@ def _serialize_seer_project_settings(
         agent=agent,
         integrationId=integration_id,
         stoppingPoint=stopping_point,
-        scannerAutomation=attrs["sentry:seer_scanner_automation"],
+        scannerAutomation=attrs["scanner_automation"],
         reposCount=attrs["repos_count"],
     )
 
 
-def _get_attrs_for_project(project: Project) -> dict[str, Any]:
-    attrs: dict[str, Any] = {}
-
-    for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS:
-        attrs[key] = project.get_option(key)
-
-    attrs["repos_count"] = SeerProjectRepository.objects.filter(
-        project=project, repository__status=ObjectStatus.ACTIVE
-    ).count()
-
-    return attrs
+def serialize_project(project: Project) -> SeerProjectSettingsResponse:
+    return _serialize(project, _build_attrs(project))
 
 
 class ProjectSettingsUpdateSerializer(serializers.Serializer):
@@ -127,8 +138,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
-        attrs = _get_attrs_for_project(project)
-        return Response(_serialize_seer_project_settings(project, attrs))
+        return Response(serialize_project(project))
 
     def put(self, request: Request, project: Project) -> Response:
         serializer = ProjectSettingsUpdateSerializer(
@@ -147,4 +157,4 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             data={"project_id": project.id},
         )
 
-        return Response(_serialize_seer_project_settings(project, _get_attrs_for_project(project)))
+        return Response(serialize_project(project))

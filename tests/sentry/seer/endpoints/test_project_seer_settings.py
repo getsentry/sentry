@@ -143,6 +143,20 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
+    def test_put_rejects_integration_id_from_other_org(self) -> None:
+        """An integration ID that doesn't belong to this org should return 400."""
+        other_org = self.create_organization()
+        integration = self.create_integration(
+            organization=other_org, external_id="other", provider="github"
+        )
+
+        response = self.client.put(
+            self.url,
+            data={"agent": "cursor_background_agent", "integrationId": integration.id},
+            format="json",
+        )
+        assert response.status_code == 400
+
     def test_put_seer_agent_does_not_require_integration_id(self) -> None:
         """agent=seer should not require integrationId."""
         response = self.client.put(self.url, data={"agent": "seer"}, format="json")
