@@ -8,6 +8,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
+
 /** Checks if session is in a terminal state where the agent is done processing. */
 const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
   sessionData &&
