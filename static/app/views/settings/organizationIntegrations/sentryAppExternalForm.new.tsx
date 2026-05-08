@@ -172,6 +172,12 @@ function getTriggerFieldValues(
   );
 }
 
+/**
+ * Returns a stable reference to `value` that only changes when `serializedValue`
+ * changes. Use when a prop's reference identity churns each render but its
+ * structural content rarely does — pass the stringified content as
+ * `serializedValue` and downstream hooks/memos won't re-run on no-op changes.
+ */
 function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
   const ref = useRef<{serializedValue: string; value: T} | null>(null);
 
@@ -180,6 +186,37 @@ function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
   }
 
   return ref.current.value;
+}
+
+/**
+ * Apply a batch of field-choice fetch results to a schema: replace each
+ * impacted field's `choices` and merge any returned `defaultValue`s.
+ */
+function foldChoiceResults(
+  baseFieldGroups: FieldGroups,
+  baseDefaultValues: Record<string, unknown>,
+  results: ReadonlyArray<{
+    choices: Choices;
+    fieldName: string;
+    defaultValue?: unknown;
+  }>
+): {
+  nextDefaultValues: Record<string, unknown>;
+  updatedFieldGroups: FieldGroups;
+} {
+  let updatedFieldGroups = baseFieldGroups;
+  const nextDefaultValues = {...baseDefaultValues};
+  for (const result of results) {
+    updatedFieldGroups = updateSchemaFieldChoices(
+      updatedFieldGroups,
+      result.fieldName,
+      result.choices
+    );
+    if (result.defaultValue !== undefined) {
+      nextDefaultValues[result.fieldName] = result.defaultValue;
+    }
+  }
+  return {updatedFieldGroups, nextDefaultValues};
 }
 
 function getAllSchemaFields(fieldGroups: FieldGroups) {
@@ -480,18 +517,11 @@ export function SentryAppExternalFormNew({
         return;
       }
 
-      let updatedFieldGroups = nextFieldGroups;
-      const nextDefaultValues: Record<string, unknown> = {};
-      for (const result of results) {
-        updatedFieldGroups = updateSchemaFieldChoices(
-          updatedFieldGroups,
-          result.fieldName,
-          result.choices
-        );
-        if (result.defaultValue !== undefined) {
-          nextDefaultValues[result.fieldName] = result.defaultValue;
-        }
-      }
+      const {updatedFieldGroups, nextDefaultValues} = foldChoiceResults(
+        nextFieldGroups,
+        {},
+        results
+      );
 
       setFieldGroups(updatedFieldGroups);
       setFormInitialValues({...nextInitialValues, ...nextDefaultValues});
@@ -744,20 +774,8 @@ export function SentryAppExternalFormNew({
           return;
         }
 
-        let updatedFieldGroups = fieldGroups;
-        const updatedDefaultValues = {...nextDefaultValues};
-
-        for (const result of results) {
-          updatedFieldGroups = updateSchemaFieldChoices(
-            updatedFieldGroups,
-            result.fieldName,
-            result.choices
-          );
-
-          if (result.defaultValue !== undefined) {
-            updatedDefaultValues[result.fieldName] = result.defaultValue;
-          }
-        }
+        const {updatedFieldGroups, nextDefaultValues: updatedDefaultValues} =
+          foldChoiceResults(fieldGroups, nextDefaultValues, results);
 
         const mergedFormValues = {
           ...omitValues(currentFormValuesRef.current, impactedFieldNames),
@@ -906,10 +924,6 @@ export function SentryAppExternalFormNew({
         .join(',')}`,
     [action, adapterFields, formVersion]
   );
-
-  if (!sentryAppInstallationUuid) {
-    return null;
-  }
 
   return (
     <BackendJsonSubmitForm
