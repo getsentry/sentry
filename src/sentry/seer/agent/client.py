@@ -367,9 +367,6 @@ class SeerAgentClient:
         has_org_project_context: bool | None,
     ) -> None:
         """Trigger explorer indexing for the org if Seer reports missing indexes."""
-        if not options.get("seer.explorer_index.enable"):
-            return
-
         if options.get("seer.explorer_index.killswitch.enable"):
             logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return

@@ -3,7 +3,8 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import {ConnectProviderDropdown} from 'sentry/views/settings/organizationRepositories/connectProviderDropdown';
+
+import {ConnectProviderDropdown} from './connectProviderDropdown';
 
 const githubProvider = GitHubIntegrationProviderFixture();
 const gitlabProvider = GitHubIntegrationProviderFixture({

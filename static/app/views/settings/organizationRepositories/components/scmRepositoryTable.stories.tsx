@@ -11,10 +11,10 @@ import type {
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/hooks/useRepoSearch';
+import type {ScmInstallation} from 'sentry/views/settings/organizationRepositories/types';
 
-import type {ScmInstallation} from './scmRepositoryTable';
 import {ScmRepositoryTable} from './scmRepositoryTable';
-import {useRepoSearch} from './useRepoSearch';
 
 const GITHUB_PROVIDER: IntegrationProvider = {
   key: 'github',

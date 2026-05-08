@@ -15,6 +15,10 @@ describe('ErrorDetectorDetails', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: ProjectFixture(),

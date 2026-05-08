@@ -13,14 +13,14 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button, type ButtonProps, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
@@ -34,120 +34,22 @@ import {
   IconSliders,
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {
-  IntegrationProvider,
-  OrganizationIntegration,
-  Repository,
-} from 'sentry/types/integrations';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
+import type {IntegrationProvider} from 'sentry/types/integrations';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useMedia} from 'sentry/utils/useMedia';
-
-const REPO_LIST_MAX_HEIGHT = 400;
-const ESTIMATED_REPO_ROW_HEIGHT = 32;
-
-/**
- * Fuse match results keyed by `repository.id`, used to highlight the matched
- * portions of repository names in the table.
- */
-export type ScmRepoMatches = Record<string, readonly Fuse.FuseResultMatch[]>;
-
-export interface ScmInstallation {
-  /**
-   * The installed integration this row represents.
-   */
-  integration: OrganizationIntegration;
-  /**
-   * Repositories under this installation. Empty arrays render an empty-state
-   * message in place of the row list.
-   */
-  repositories: Repository[];
-  /**
-   * When true, the installation header is rendered as a non-toggleable row
-   * (can't be expanded). Use for disabled/inactive integrations whose
-   * repos shouldn't be exposed.
-   */
-  expandDisabled?: boolean;
-  /**
-   * Whether the installation should start expanded. Single-installation
-   * tables auto-expand regardless of this flag.
-   */
-  initiallyExpanded?: boolean;
-  /**
-   * When true, the tag icon switches to a loading indicator and the tooltip
-   * shows "Re-syncing in the background…" instead of the sync button.
-   */
-  isSyncing?: boolean;
-  /**
-   * Optional URL to the upstream provider's installation-management page
-   * (e.g. GitHub's app settings). Surfaced as a "Manage repositories" link in
-   * the empty state and the no-search-results state.
-   */
-  manageUrl?: string;
-  /**
-   * Project slugs keyed by `repository.id` for repos that have code mappings.
-   * Each repo with one or more slugs renders a stack of project avatars on the
-   * right of its row, with a hover tooltip identifying each project. When the
-   * key is undefined, the right-side button + project list slot is hidden
-   * entirely (use this when mapping data isn't available at all, vs. an empty
-   * record which means "loaded, this repo has no mappings").
-   */
-  mappedProjectSlugsByRepoId?: Record<string, string[]>;
-  /**
-   * Whether code mappings are still being fetched. When true, rows that don't
-   * yet have any mapped slugs render a `<Placeholder>` skeleton in place of
-   * the project list, so users see an inline loading hint without blocking
-   * the rest of the row.
-   */
-  mappingsLoading?: boolean;
-  /**
-   * Called when the user clicks the settings button. When omitted the button
-   * is hidden.
-   */
-  onSettings?: () => void;
-  /**
-   * Called when the user clicks "Sync now" in the repository count tag
-   * tooltip. When omitted the button is hidden.
-   */
-  onSync?: () => void;
-  /**
-   * Called when the user clicks the uninstall button. When omitted the button
-   * is hidden.
-   */
-  onUninstall?: () => void;
-  /**
-   * Items rendered into the per-installation overflow (`...`) menu. When
-   * omitted or empty, the menu trigger is hidden.
-   */
-  overflowMenuItems?: MenuItemProps[];
-  /**
-   * Renders an action element in the right slot of each repository row.
-   * Only called when `mappedProjectSlugsByRepoId` is set on the installation.
-   */
-  repoActions?: (repo: Repository) => React.ReactNode;
-  /**
-   * Whether the parent is still fetching the repository list. Drives the
-   * "Loading repositories" empty state and shows a loading indicator
-   * alongside the repository count tag.
-   */
-  reposLoading?: boolean;
-  /**
-   * Props forwarded to the settings button. Use to disable or annotate it
-   * while per-integration config is still being fetched.
-   */
-  settingsButtonProps?: Omit<ButtonProps, 'onClick'>;
-  /**
-   * Props forwarded to the uninstall button. Use to disable or annotate it
-   * when the viewer lacks the required access.
-   */
-  uninstallButtonProps?: Omit<ButtonProps, 'onClick'>;
-}
+import type {
+  ScmInstallation,
+  ScmRepoMatches,
+} from 'sentry/views/settings/organizationRepositories/types';
 
 export interface InstallationWrapperProps {
   children: React.ReactNode;
   installation: ScmInstallation;
 }
+
+const REPO_LIST_MAX_HEIGHT = 400;
+const ESTIMATED_REPO_ROW_HEIGHT = 32;
 
 interface ScmRepositoryTableProps {
   /**
