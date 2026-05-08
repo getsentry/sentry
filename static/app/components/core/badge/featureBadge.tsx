@@ -51,6 +51,7 @@ export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) 
 
 const SquareTag = styled(Tag)`
   width: 20px;
+  flex-shrink: 0;
   padding: 0;
   justify-content: center;
 `;
