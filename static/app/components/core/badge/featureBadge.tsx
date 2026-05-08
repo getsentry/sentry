@@ -26,10 +26,10 @@ const variantMap: Record<FeatureBadgeProps['type'], TagVariant> = {
 };
 
 const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
-  alpha: <IconLab isSolid size="xs" />,
-  beta: <IconLab isSolid size="xs" />,
-  new: <IconBroadcast size="xs" />,
-  experimental: <IconLab isSolid size="xs" />,
+  alpha: <IconLab isSolid size="xs" aria-hidden />,
+  beta: <IconLab isSolid size="xs" aria-hidden />,
+  new: <IconBroadcast size="xs" aria-hidden />,
+  experimental: <IconLab isSolid size="xs" aria-hidden />,
 };
 
 export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'> {
