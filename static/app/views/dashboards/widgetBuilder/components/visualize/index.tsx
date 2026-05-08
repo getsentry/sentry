@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css, useTheme} from '@emotion/react';
@@ -636,6 +636,10 @@ export function Visualize({
     tableFieldOptions,
   ]);
 
+  const handleEquationRemoved = useCallback(() => {
+    onSetEquationMode?.(false);
+  }, [onSetEquationMode]);
+
   return (
     <Fragment>
       <SectionHeader
@@ -643,7 +647,7 @@ export function Visualize({
         tooltipText={tooltipText}
       />
       {isEquationMode && canShowTraceMetricEquations ? (
-        <MetricsEquationVisualize onEquationRemoved={() => onSetEquationMode?.(false)} />
+        <MetricsEquationVisualize onEquationRemoved={handleEquationRemoved} />
       ) : (
         <Fragment>
           <StyledFieldGroup
