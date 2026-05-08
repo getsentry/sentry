@@ -261,6 +261,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const organization = useOrganization();
 
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
@@ -298,9 +299,18 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
     }
     if (!hasLoggedResultCountRef.current) {
       hasLoggedResultCountRef.current = true;
-      logAiQueryResults({dataset: 'logs', resultCount: rawLogCounts.total.count});
+      logAiQueryResults({
+        dataset: 'logs',
+        resultCount: rawLogCounts.total.count,
+        orgSlug: organization.slug,
+      });
     }
-  }, [isAiQuery, rawLogCounts.total.count, rawLogCounts.total.isLoading]);
+  }, [
+    isAiQuery,
+    organization.slug,
+    rawLogCounts.total.count,
+    rawLogCounts.total.isLoading,
+  ]);
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));

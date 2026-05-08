@@ -452,7 +452,11 @@ function IssueListOverviewInner({
         const hits = resp.getResponseHeader('X-Hits');
         const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
         if (location.query[AI_QUERY_PARAM] === '1') {
-          logAiQueryResults({dataset: 'issues', resultCount: newQueryCount});
+          logAiQueryResults({
+            dataset: 'issues',
+            resultCount: newQueryCount,
+            orgSlug: organization.slug,
+          });
         }
         const maxHits = resp.getResponseHeader('X-Max-Hits');
         const newQueryMaxCount =

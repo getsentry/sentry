@@ -248,9 +248,18 @@ function SpanTabContentSectionInner({
     }
     if (!hasLoggedResultCountRef.current) {
       hasLoggedResultCountRef.current = true;
-      logAiQueryResults({dataset: 'spans', resultCount: rawSpanCounts.total.count});
+      logAiQueryResults({
+        dataset: 'spans',
+        resultCount: rawSpanCounts.total.count,
+        orgSlug: organization.slug,
+      });
     }
-  }, [isAiQuery, rawSpanCounts.total.count, rawSpanCounts.total.isLoading]);
+  }, [
+    isAiQuery,
+    organization.slug,
+    rawSpanCounts.total.count,
+    rawSpanCounts.total.isLoading,
+  ]);
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,

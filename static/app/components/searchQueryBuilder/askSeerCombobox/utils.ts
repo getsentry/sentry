@@ -12,14 +12,23 @@ export const AI_QUERY_PARAM = 'aiQuery';
 export function logAiQueryResults({
   dataset,
   resultCount,
+  orgSlug,
 }: {
   dataset: string;
+  orgSlug: string;
   resultCount: number;
 }) {
-  Sentry.logger.info('ai_query.results_loaded', {dataset, result_count: resultCount});
-  Sentry.metrics.distribution('ai_query.result_count', resultCount, {
-    attributes: {dataset},
+  const attributes = {
+    dataset,
+    outcome: resultCount > 0 ? 'has_results' : 'empty_results',
+    referrer: dataset,
+    org_slug: orgSlug,
+  };
+  Sentry.logger.info('assisted_query.outcome', {
+    ...attributes,
+    result_count: resultCount,
   });
+  Sentry.metrics.distribution('assisted_query.outcome', resultCount, {attributes});
 }
 
 export function isNoneOfTheseItem(

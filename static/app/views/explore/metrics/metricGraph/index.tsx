@@ -15,6 +15,7 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -121,6 +122,7 @@ function Graph({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const traceMetric = useTraceMetric();
   const location = useLocation();
+  const organization = useOrganization();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
     enabled:
@@ -146,9 +148,18 @@ function Graph({
     }
     if (!hasLoggedResultCountRef.current) {
       hasLoggedResultCountRef.current = true;
-      logAiQueryResults({dataset: 'metrics', resultCount: rawMetricCounts.total.count});
+      logAiQueryResults({
+        dataset: 'metrics',
+        resultCount: rawMetricCounts.total.count,
+        orgSlug: organization.slug,
+      });
     }
-  }, [isAiQuery, rawMetricCounts.total.count, rawMetricCounts.total.isLoading]);
+  }, [
+    isAiQuery,
+    organization.slug,
+    rawMetricCounts.total.count,
+    rawMetricCounts.total.isLoading,
+  ]);
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
