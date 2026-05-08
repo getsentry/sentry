@@ -154,7 +154,7 @@ export function BlockComponent({
 
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
-  const hasContent = hasValidContent(block.message.content);
+  const hasContent = hasValidContent(block.message.content ?? '');
   const hasThinkingContentToShow =
     showThinking && hasValidContent(block.message.thinking_content ?? '');
   const processedContent = useMemo(

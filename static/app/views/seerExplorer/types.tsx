@@ -46,15 +46,15 @@ const toolResultSchema = z.object({
 const toolCallSchema = z.object({
   args: z.string(),
   function: z.string(),
-  id: z.string(),
+  id: z.string().nullable().optional(),
 });
 
 const messageSchema = z.object({
-  content: z.string(),
+  content: z.string().nullable(),
   role: z.enum(['user', 'assistant', 'tool_use']),
   metadata: z.record(z.string(), z.string()).nullable().optional(),
-  thinking_content: z.string().optional(),
-  tool_calls: z.array(toolCallSchema).optional(),
+  thinking_content: z.string().nullable().optional(),
+  tool_calls: z.array(toolCallSchema).nullable().optional(),
 });
 
 export const blockSchema = z.object({
@@ -62,13 +62,13 @@ export const blockSchema = z.object({
   message: messageSchema,
   timestamp: z.string(),
   artifacts: z.array(artifactSchema).optional(),
-  file_patches: z.array(explorerFilePatchSchema).optional(),
+  file_patches: z.array(explorerFilePatchSchema).nullable().optional(),
   loading: z.boolean().optional(),
-  merged_file_patches: z.array(explorerFilePatchSchema).optional(),
-  pr_commit_shas: z.record(z.string(), z.string()).optional(),
-  todos: z.array(todoItemSchema).optional(),
-  tool_links: z.array(toolLinkSchema.nullable()).optional(),
-  tool_results: z.array(toolResultSchema.nullable()).optional(),
+  merged_file_patches: z.array(explorerFilePatchSchema).nullable().optional(),
+  pr_commit_shas: z.record(z.string(), z.string()).nullable().optional(),
+  todos: z.array(todoItemSchema).nullable().optional(),
+  tool_links: z.array(toolLinkSchema.nullable()).nullable().optional(),
+  tool_results: z.array(toolResultSchema.nullable()).nullable().optional(),
 });
 
 export const explorerSessionSchema = z.object({
@@ -83,7 +83,7 @@ const codingAgentResultSchema = z.object({
   repo_full_name: z.string(),
   repo_provider: z.string(),
   branch_name: z.string().optional(),
-  pr_url: z.string().optional(),
+  pr_url: z.string().nullable().optional(),
 });
 
 export const explorerCodingAgentStateSchema = z.object({
@@ -92,7 +92,7 @@ export const explorerCodingAgentStateSchema = z.object({
   provider: z.string(),
   started_at: z.string(),
   status: z.enum(['pending', 'running', 'completed', 'failed']),
-  agent_url: z.string().optional(),
+  agent_url: z.string().nullable().optional(),
   results: z.array(codingAgentResultSchema).optional(),
 });
 
