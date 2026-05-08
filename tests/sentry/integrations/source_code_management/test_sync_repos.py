@@ -71,11 +71,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             ]
         )
 
-        with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -107,15 +104,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         # GitHub no longer returns this repo
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with self.feature(
-            [
-                "organizations:github-repo-auto-sync",
-                "organizations:github-repo-auto-sync-apply",
-                "organizations:scm-repo-auto-sync-removal",
-            ]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -160,15 +150,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         # Provider isn't returning the active repo
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with self.feature(
-            [
-                "organizations:github-repo-auto-sync",
-                "organizations:github-repo-auto-sync-apply",
-                "organizations:scm-repo-auto-sync-removal",
-            ]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             still_active_repo.refresh_from_db()
@@ -189,11 +172,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         # GitHub returns the repo again
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -219,11 +199,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id)
@@ -240,11 +217,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         self.oi.refresh_from_db()
         assert self.oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
@@ -269,11 +243,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         self.oi.refresh_from_db()
         assert self.oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
@@ -288,37 +259,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
     def test_inactive_integration(self, _: MagicMock) -> None:
         self.integration.update(status=ObjectStatus.DISABLED)
 
-        with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
-
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert Repository.objects.count() == 0
-
-    @responses.activate
-    def test_dry_run_without_apply_flag(self, _: MagicMock) -> None:
-        """With auto-sync on but apply off, the task computes the diff but doesn't apply changes."""
-        self._add_repos_response(
-            [
-                {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
-                {"id": 2, "full_name": "getsentry/snuba", "name": "snuba"},
-            ]
-        )
-
-        # Only the sync flag, not the apply flag
-        with self.feature("organizations:github-repo-auto-sync"):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
-
-        # No repos should be created
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert Repository.objects.count() == 0
-
-    def test_skips_without_sync_flag(self, _: MagicMock) -> None:
-        """Without the auto-sync flag, the task returns early without fetching from GitHub."""
-        sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
@@ -335,7 +277,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             },
         )
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -349,7 +291,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             '{"message":"This installation has been suspended"}'
         )
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -375,15 +317,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             ]
         )
 
-        with self.feature(
-            [
-                "organizations:github-repo-auto-sync",
-                "organizations:github-repo-auto-sync-apply",
-                "organizations:scm-repo-auto-sync-removal",
-            ]
-        ):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -423,14 +358,8 @@ class SyncReposForOrgGHETestCase(TestCase):
             {"id": 2, "full_name": "testorg/repo2", "name": "repo2"},
         ]
 
-        with self.feature(
-            [
-                "organizations:github_enterprise-repo-auto-sync",
-                "organizations:github_enterprise-repo-auto-sync-apply",
-            ]
-        ):
-            with self.tasks():
-                sync_repos_for_org(oi.id)
+        with self.tasks():
+            sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -481,15 +410,8 @@ class SyncReposForOrgGHETestCase(TestCase):
             partial_data=[{"id": 1, "full_name": "testorg/repo1", "name": "repo1"}]
         )
 
-        with self.feature(
-            [
-                "organizations:github_enterprise-repo-auto-sync",
-                "organizations:github_enterprise-repo-auto-sync-apply",
-                "organizations:scm-repo-auto-sync-removal",
-            ]
-        ):
-            with self.tasks():
-                sync_repos_for_org(oi.id)
+        with self.tasks():
+            sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -561,11 +483,8 @@ class SyncReposForOrgGitLabTestCase(TestCase):
             json={"id": 100},
         )
 
-        with self.feature(
-            ["organizations:gitlab-repo-auto-sync", "organizations:gitlab-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(oi.id)
+        with self.tasks():
+            sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -652,14 +571,8 @@ class SyncReposForOrgBitbucketTestCase(TestCase):
             json={"uuid": "{hook-002}"},
         )
 
-        with self.feature(
-            [
-                "organizations:bitbucket-repo-auto-sync",
-                "organizations:bitbucket-repo-auto-sync-apply",
-            ]
-        ):
-            with self.tasks():
-                sync_repos_for_org(oi.id)
+        with self.tasks():
+            sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -714,11 +627,8 @@ class SyncReposForOrgVstsTestCase(TestCase):
         }
         mock_get_client.return_value = mock_client
 
-        with self.feature(
-            ["organizations:vsts-repo-auto-sync", "organizations:vsts-repo-auto-sync-apply"]
-        ):
-            with self.tasks():
-                sync_repos_for_org(oi.id)
+        with self.tasks():
+            sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -766,7 +676,7 @@ class SyncReposForOrgVstsTestCase(TestCase):
         mock_get_repositories.side_effect = _wrap_unauthorized
 
         oi = self._create_vsts_integration()
-        with self.feature("organizations:vsts-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -791,7 +701,7 @@ class SyncReposForOrgVstsTestCase(TestCase):
         mock_get_repositories.side_effect = _wrap_identity_not_valid
 
         oi = self._create_vsts_integration()
-        with self.feature("organizations:vsts-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -843,7 +753,7 @@ class SyncReposForOrgBrokenIdentityTestCase(TestCase):
 
         mock_get_repositories.side_effect = IdentityNotValid()
 
-        with self.feature("organizations:gitlab-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -885,11 +795,11 @@ class SyncReposLockTestCase(IntegrationTestCase):
             json={"total_count": 0, "repositories": []},
         )
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         # A second call should succeed (lock was released).
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
 
@@ -1232,7 +1142,7 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
             Exception("Unable to reach host")
         )
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -1242,7 +1152,7 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     def test_api_timeout_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
         mock_get_repositories.side_effect = ApiTimeoutError("timed out")
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -1252,7 +1162,7 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     def test_too_many_redirects_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
         mock_get_repositories.side_effect = TooManyRedirects("Exceeded 30 redirects")
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -1264,7 +1174,7 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     ) -> None:
         mock_get_repositories.side_effect = IntegrationConfigurationError("Identity not found.")
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -1276,7 +1186,7 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     ) -> None:
         mock_get_repositories.side_effect = Identity.DoesNotExist()
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -1288,7 +1198,7 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     ) -> None:
         mock_get_repositories.side_effect = ApiError("Internal Server Error", code=500)
 
-        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+        with self.tasks():
             with pytest.raises((ApiError, RetryTaskError)):
                 sync_repos_for_org(self.oi.id)
 

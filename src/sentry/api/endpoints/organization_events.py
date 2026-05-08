@@ -5,6 +5,7 @@ from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -161,7 +162,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 "OrganizationEventsResponseDict", EventsApiResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
-            404: api_constants.RESPONSE_NOT_FOUND,
+            403: api_constants.RESPONSE_FORBIDDEN,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
@@ -177,7 +178,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         - The `meta` key contains information about the response, including the unit or type of the fields requested
         """
         if not self.has_feature(organization, request):
-            return Response(status=404)
+            return Response(
+                {
+                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         referrer = request.GET.get("referrer")
 

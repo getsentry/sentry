@@ -805,7 +805,7 @@ export default typescript.config([
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'error',
 
       // TODO: Evaluate which rules we could practically fix violations from & enable
       'unicorn/consistent-date-clone': 'off',

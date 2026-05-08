@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
@@ -41,6 +42,7 @@ import type {
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useMedia} from 'sentry/utils/useMedia';
 
 const REPO_LIST_MAX_HEIGHT = 400;
 const ESTIMATED_REPO_ROW_HEIGHT = 32;
@@ -273,6 +275,9 @@ function SingleInstallTableContent({
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
+          <Flex display={{xs: 'none', sm: 'flex'}}>
+            <InstallationRepoCountTag installation={merged} />
+          </Flex>
           <InstallationActions installation={merged} providerName={provider.name} />
         </Flex>
       </TableHeader>
@@ -301,7 +306,7 @@ function MultiInstallTable({
           <Text bold>{provider.name}</Text>
         </Flex>
       </TableHeader>
-      <Grid role="list" columns="max-content 1fr" gap="0 md">
+      <Grid role="list" columns="max-content 1fr max-content max-content" gap="0 md">
         {installations.map(installation => {
           const hasSearchHits =
             repoMatches !== undefined &&
@@ -396,13 +401,14 @@ function InstallationRow({
         onKeyDown={handleRowKeyDown}
       >
         <IconChevron direction={expanded && !expandDisabled ? 'down' : 'right'} />
-        <Flex column="2" align="center" justify="between" gap="md">
-          <Flex align="center" gap="sm">
-            <IntegrationSummary installation={merged} />
-          </Flex>
-          <Flex align="center" gap="md">
-            <InstallationActions installation={merged} providerName={provider.name} />
-          </Flex>
+        <Flex align="center" gap="sm">
+          <IntegrationSummary installation={merged} />
+        </Flex>
+        <Flex align="center" display={{xs: 'none', sm: 'flex'}}>
+          <InstallationRepoCountTag installation={merged} />
+        </Flex>
+        <Flex align="center" gap="md" justifySelf="end">
+          <InstallationActions installation={merged} providerName={provider.name} />
         </Flex>
       </RowButton>
       {expanded && !expandDisabled && (
@@ -414,6 +420,35 @@ function InstallationRow({
         />
       )}
     </Fragment>
+  );
+}
+
+function InstallationRepoCountTag({installation}: {installation: ScmInstallation}) {
+  const {repositories, reposLoading, isSyncing, integration} = installation;
+
+  if (integration.status === 'disabled') {
+    return null;
+  }
+
+  const rawLastSync = integration.configData?.last_sync;
+  const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
+  const isLoading = reposLoading || isSyncing;
+
+  return (
+    <Tooltip
+      isHoverable={!isLoading}
+      title={getRepoCountTooltip(installation, lastSync)}
+      skipWrapper
+    >
+      <Tag
+        variant="muted"
+        icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}
+      >
+        <Text as="span" tabular>
+          {tn('%s repository', '%s repositories', repositories.length)}
+        </Text>
+      </Tag>
+    </Tooltip>
   );
 }
 
@@ -471,33 +506,15 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     overflowMenuItems,
     settingsButtonProps,
     uninstallButtonProps,
-    repositories,
-    reposLoading,
-    isSyncing,
     onSettings,
     onUninstall,
-    integration,
   } = installation;
 
-  const isDisabled = integration.status === 'disabled';
-  const rawLastSync = integration.configData?.last_sync;
-  const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
-
-  const isLoading = reposLoading || isSyncing;
-  const repoCountTooltip = getRepoCountTooltip(installation, lastSync);
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   return (
     <Fragment>
-      {!isDisabled && (
-        <Tooltip isHoverable={!isLoading} title={repoCountTooltip} skipWrapper>
-          <Tag
-            variant="muted"
-            icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}
-          >
-            {tn('%s repository', '%s repositories', repositories.length)}
-          </Tag>
-        </Tooltip>
-      )}
       {manageUrl && (
         <LinkButton
           tooltipProps={{
@@ -509,7 +526,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
           size="xs"
           icon={<IconOpen />}
         >
-          {t('Manage repositories')}
+          {isSmallScreen ? undefined : t('Manage repositories')}
         </LinkButton>
       )}
       {(onUninstall || onSettings || !!overflowMenuItems?.length) && (
@@ -641,7 +658,7 @@ function VirtualizedRepoList({
 
   const outerColumn = nested ? '1/-1' : undefined;
   const outerColumns = nested ? 'subgrid' : '1fr';
-  const contentColumn = nested ? '2' : undefined;
+  const contentColumn = nested ? '2/-1' : undefined;
 
   const items =
     visibleRepos.length === 0 ? (
