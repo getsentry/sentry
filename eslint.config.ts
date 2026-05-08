@@ -794,16 +794,16 @@ export default typescript.config([
 
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-single-promise-in-promise-methods': 'error',
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-this-assignment': 'error',
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-default-parameters': 'error',
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-prototype-methods': 'error',
       'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/throw-new-error': 'error',
 
