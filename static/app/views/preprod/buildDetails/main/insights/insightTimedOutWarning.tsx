@@ -30,7 +30,7 @@ export function InsightTimedOutWarning({insight}: {insight: ProcessedInsight}) {
           <br />
           <br />
           {t(
-            'Consider running your app through Launchpad locally for complete results: github.com/getsentry/launchpad'
+            'For complete results, run your app through Launchpad locally: github.com/getsentry/launchpad'
           )}
         </span>
       }
