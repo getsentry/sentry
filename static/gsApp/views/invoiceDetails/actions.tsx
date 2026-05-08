@@ -4,12 +4,14 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -89,26 +91,40 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
   const showPayNowButton = !invoice.isPaid && !invoice.isClosed && !isSelfServePartner;
 
   return (
-    <Fragment>
-      <Flex justify="end" align="start" className="no-print">
-        <EmailForm method="post" action="" onSubmit={handleSend}>
-          {invoice.isPaid && (
-            <Fragment>
-              <Input type="email" name="email" placeholder="you@example.com" />
-              <StyledButton type="submit" variant="primary">
-                {t('Email Receipt')}
-              </StyledButton>
-            </Fragment>
-          )}
-          {showPayNowButton && (
-            <StyledButton variant="primary" onClick={handlePayNow} data-test-id="pay-now">
-              {t('Pay Now')}
-            </StyledButton>
-          )}
-          <StyledLinkButton href={invoice.receipt.url}>{t('Save PDF')}</StyledLinkButton>
-        </EmailForm>
-      </Flex>
-    </Fragment>
+    <Flex
+      borderTop="primary"
+      padding="xl 2xl"
+      align="center"
+      justify="between"
+      className="no-print"
+    >
+      <EmailForm method="post" action="" onSubmit={handleSend}>
+        {invoice.isPaid && (
+          <Fragment>
+            <Input type="email" name="email" placeholder="you@example.com" size="sm" />
+            <Button type="submit" size="sm" variant="secondary">
+              {t('Email Receipt')}
+            </Button>
+          </Fragment>
+        )}
+        {showPayNowButton && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handlePayNow}
+            data-test-id="pay-now"
+          >
+            {t('Pay Now')}
+          </Button>
+        )}
+        <LinkButton href={invoice.receipt.url} size="sm" variant="secondary">
+          {t('Save PDF')}
+        </LinkButton>
+      </EmailForm>
+      <Text size="sm" variant="secondary">
+        {t('Generated')} <DateTime date={invoice.dateCreated} />.
+      </Text>
+    </Flex>
   );
 }
 
@@ -127,12 +143,4 @@ const EmailForm = styled('form')`
     grid-auto-flow: row;
     width: 100%;
   }
-`;
-
-const StyledButton = styled(Button)`
-  flex-shrink: 0;
-`;
-
-const StyledLinkButton = styled(LinkButton)`
-  flex-shrink: 0;
 `;
