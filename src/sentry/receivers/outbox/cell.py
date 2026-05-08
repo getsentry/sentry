@@ -316,7 +316,10 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     run_id = data.get("run_id")
     if run_id is None:
-        raise RuntimeError("Seer response missing run_id")
+        # 2xx with structurally valid JSON but no run_id won't self-heal on
+        # retry — same terminal class as the malformed-body case above.
+        _mark_seer_run_failed(run, "seer_run_create.missing_run_id", status=response.status)
+        return
 
     run.seer_run_state_id = run_id
     run.mirror_status = SeerRunMirrorStatus.LIVE
