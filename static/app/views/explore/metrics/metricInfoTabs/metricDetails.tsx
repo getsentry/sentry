@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -99,17 +100,9 @@ export function MetricDetails({
     );
   }
 
-  if (!traceDetailsData) {
-    return (
-      <MetricsDetailsWrapper ref={ref}>
-        <LogDetailTableBodyCell colSpan={0} />
-      </MetricsDetailsWrapper>
-    );
-  }
-
   const attributes: Record<string, TraceItemResponseAttribute['value']> = {};
   const attributeTypes: Record<string, TraceItemResponseAttribute['type']> = {};
-  for (const attr of traceDetailsData.attributes) {
+  for (const attr of traceDetailsData?.attributes ?? []) {
     attributes[attr.name] = attr.value;
     attributeTypes[attr.name] = attr.type;
   }
@@ -120,37 +113,47 @@ export function MetricDetails({
         <DetailsContent>
           {showTelemetry && isEAPTraceMeta(traceMeta) ? (
             <Fragment>
-              <Container>
-                <pre>
-                  Logs: {traceMeta?.logs} Spans: {traceMeta?.span_count} Errors:{' '}
-                  {traceMeta?.errors}
-                </pre>
-              </Container>
-              <Separator padding="md" orientation="horizontal" />
+              <Stack paddingLeft="md" paddingRight="md" paddingTop="sm">
+                <Text bold>Trace Summary</Text>
+                <Flex radius="md" paddingRight="lg" paddingTop="sm" gap="lg">
+                  <Text size="sm" monospace variant="secondary">
+                    Errors: {traceMeta?.errors}, Logs: {traceMeta?.logs}, Spans:{' '}
+                    {traceMeta?.span_count}
+                  </Text>
+                </Flex>
+              </Stack>
+              <Separator padding="sm" orientation="horizontal" />
             </Fragment>
           ) : null}
-          <LogAttributeTreeWrapper>
-            <AttributesTree
-              attributes={traceDetailsData.attributes.filter(
-                attribute => !HiddenTraceMetricDetailFields.includes(attribute.name)
-              )}
-              getCustomActions={getActions}
-              renderers={LogAttributesRendererMap}
-              rendererExtra={{
-                attributes,
-                attributeTypes,
-                caseSensitiveHighlighting: false,
-                highlightTerms: [],
-                logColors: getLogColors(SeverityLevel.INFO, theme),
-                location,
-                organization,
-                projectSlug,
-                project,
-                traceItemMeta: traceDetailsData.meta,
-                theme,
-              }}
-            />
-          </LogAttributeTreeWrapper>
+          {traceDetailsData ? (
+            <LogAttributeTreeWrapper>
+              <Container paddingBottom="md">
+                <Text bold>Attributes</Text>
+              </Container>
+              <AttributesTree
+                attributes={traceDetailsData?.attributes?.filter(
+                  attribute => !HiddenTraceMetricDetailFields.includes(attribute.name)
+                )}
+                getCustomActions={getActions}
+                renderers={LogAttributesRendererMap}
+                rendererExtra={{
+                  attributes,
+                  attributeTypes,
+                  caseSensitiveHighlighting: false,
+                  highlightTerms: [],
+                  logColors: getLogColors(SeverityLevel.INFO, theme),
+                  location,
+                  organization,
+                  projectSlug,
+                  project,
+                  traceItemMeta: traceDetailsData?.meta,
+                  theme,
+                }}
+              />
+            </LogAttributeTreeWrapper>
+          ) : (
+            <LogDetailTableBodyCell colSpan={0} />
+          )}
         </DetailsContent>
       </LogDetailTableBodyCell>
     </MetricsDetailsWrapper>
