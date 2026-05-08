@@ -190,9 +190,10 @@ function readPlatforms(): PlatformEntry[] {
 
     let lang: string | null = null;
     let guide: string | null = null;
-    if (CANONICAL_OVERRIDES[id]) {
-      lang = CANONICAL_OVERRIDES[id].lang;
-      guide = CANONICAL_OVERRIDES[id].guide ?? null;
+    const override = CANONICAL_OVERRIDES[id];
+    if (override) {
+      lang = override.lang;
+      guide = override.guide ?? null;
     } else if (NO_DOCS_TREE.has(id)) {
       // leave lang null
     } else if (link) {
