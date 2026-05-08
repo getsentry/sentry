@@ -450,6 +450,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-modal-export", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable pinning logs to the top of the table in the logs UI and query parameters
     manager.add("organizations:ourlogs-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable removing the schema hints section to declutter the logs UI
+    manager.add("organizations:ourlogs-schema-hints-removal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the expand/collapse table height toggle in the logs UI
     manager.add("organizations:ourlogs-table-expando", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable various explore related dev features, may be used by internal branches for testing.
