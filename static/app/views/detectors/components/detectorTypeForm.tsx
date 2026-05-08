@@ -29,7 +29,7 @@ export function DetectorTypeForm() {
       </Text>
       <Text as="p" size="md">
         {tct(
-          'If you’re looking for an [link:Error Monitors], those are created by Sentry. To customize an error monitor, click into an existing one.',
+          'If you’re looking for [link:Error Monitors], those are created by Sentry. To customize an error monitor, click into an existing one.',
           {
             link: <Link to={`${makeMonitorBasePathname(organization.slug)}errors/`} />,
           }
