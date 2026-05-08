@@ -101,7 +101,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   );
   const {starredViews: views} = useStarredIssueViews();
 
-  const detailedProject = useDetailedProject({
+  const {data: projectDetails = project} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -125,11 +125,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const needsRepoSelection =
     repos.length === 0 && !preference?.repositories?.length && !codeMappingRepos?.length;
   const needsAutomation =
-    detailedProject?.data &&
-    (detailedProject?.data?.autofixAutomationTuning === 'off' ||
-      detailedProject?.data?.autofixAutomationTuning === undefined ||
-      detailedProject?.data?.seerScannerAutomation === false ||
-      detailedProject?.data?.seerScannerAutomation === undefined);
+    projectDetails.autofixAutomationTuning === 'off' ||
+    projectDetails.autofixAutomationTuning === undefined ||
+    projectDetails.seerScannerAutomation === false ||
+    projectDetails.seerScannerAutomation === undefined;
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
     isStarredViewAllowed;
@@ -166,8 +165,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     }
 
     const isAutomationDisabled =
-      project.seerScannerAutomation === false ||
-      project.autofixAutomationTuning === 'off';
+      projectDetails.seerScannerAutomation !== true ||
+      projectDetails.autofixAutomationTuning === 'off';
 
     if (isAutomationDisabled) {
       await updateProjectAutomation({
