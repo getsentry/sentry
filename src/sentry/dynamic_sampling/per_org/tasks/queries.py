@@ -112,7 +112,6 @@ def get_eap_transaction_volumes(
     order_by_volume: Literal["asc", "desc"] | None = None,
     max_transactions: int | None = None,
 ) -> list[ProjectTransactions]:
-
     projects = list(
         Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
     )
