@@ -300,8 +300,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     ];
 
     if (enableAISearch) {
-      baseHidden.push(ASK_SEER_ITEM_KEY);
-      baseHidden.push(ASK_SEER_CONSENT_ITEM_KEY);
+      baseHidden.push(ASK_SEER_ITEM_KEY, ASK_SEER_CONSENT_ITEM_KEY);
     }
 
     return new Set(baseHidden);

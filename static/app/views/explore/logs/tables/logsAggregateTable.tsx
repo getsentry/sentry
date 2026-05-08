@@ -77,8 +77,10 @@ export function LogsAggregateTable({
   const {projects} = useProjects();
 
   const allFields: string[] = [];
-  allFields.push(...groupBys.filter(Boolean));
-  allFields.push(...visualizes.map(visualize => visualize.yAxis));
+  allFields.push(
+    ...groupBys.filter(Boolean),
+    ...visualizes.map(visualize => visualize.yAxis)
+  );
 
   const numberOfRowsNeedingColor = Math.min(data?.data?.length ?? 0, topEventsLimit ?? 0);
 
