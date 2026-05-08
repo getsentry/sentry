@@ -158,12 +158,18 @@ export function MetricsEquationVisualize({
     return matchIdx >= 0 ? labels[matchIdx] : labels[0];
   });
 
+  // Sync the widget builder state with the new queries when there's a change
+  // in the equation or the subcomponents.
   const handleQueriesChange = useCallback(
     (newQueries: BaseMetricQuery[]) => {
       const hasEquation = newQueries.some(q =>
         isVisualizeEquation(q.queryParams.visualizes[0]!)
       );
 
+      // If there is no equation and this triggers, then we've just removed the last equation.
+      // Select the first function row and clear the query.
+      // TODO: This is temporary, the better fix is to put all of the subcomponents
+      // into the aggregations and fill the filters into the widget builder state.
       if (!hasEquation) {
         const firstFunction = newQueries.find(q =>
           isVisualizeFunction(q.queryParams.visualizes[0]!)
