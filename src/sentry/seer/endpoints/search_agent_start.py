@@ -111,7 +111,10 @@ def send_search_agent_start_request(
                 shard_identifier=organization.id,
                 category=OutboxCategory.SEER_RUN_CREATE,
                 object_identifier=run.id,
-                payload={"body": dict(body), "viewer_context": dict(viewer_context or {})},
+                payload={
+                    "body": dict(body),
+                    "viewer_context": dict(viewer_context) if viewer_context else None,
+                },
             ).save()
         run.refresh_from_db()
         if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
