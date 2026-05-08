@@ -9,7 +9,7 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncI
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.external_issues import GeneratedIssueDetails
+from sentry.integrations.utils.external_issues import GeneratedExternalIssueDetails
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
@@ -743,7 +743,7 @@ class IssueDefaultTest(TestCase):
 
     @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_ai_text_replaces_defaults(self, mock_generate: MagicMock) -> None:
-        mock_generate.return_value = GeneratedIssueDetails(
+        mock_generate.return_value = GeneratedExternalIssueDetails(
             title="LLM Title",
             description="LLM Description",
         )
@@ -759,7 +759,7 @@ class IssueDefaultTest(TestCase):
 
     @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_falls_back_when_ai_returns_empty(self, mock_generate: MagicMock) -> None:
-        mock_generate.return_value = GeneratedIssueDetails()
+        mock_generate.return_value = GeneratedExternalIssueDetails(title=None, description=None)
 
         config = self.installation.get_create_issue_config(self.group, self.user)
 

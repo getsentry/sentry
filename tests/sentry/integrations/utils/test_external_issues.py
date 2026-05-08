@@ -4,7 +4,7 @@ import pytest
 
 from sentry.integrations.utils.external_issues import (
     MAX_CONTEXT_LENGTH,
-    GeneratedIssueDetails,
+    GeneratedExternalIssueDetails,
     _make_generate_external_issue_details_request,
     maybe_generate_external_issue_details,
 )
@@ -108,7 +108,7 @@ class GenerateExternalIssueDetailsTest(TestCase):
     def test_feature_flag_disabled_returns_empty(self, mock_request: MagicMock) -> None:
         result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
-        assert result == GeneratedIssueDetails()
+        assert result == GeneratedExternalIssueDetails(title=None, description=None)
         mock_request.assert_not_called()
 
     @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
@@ -120,7 +120,7 @@ class GenerateExternalIssueDetailsTest(TestCase):
         ):
             result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
-        assert result == GeneratedIssueDetails()
+        assert result == GeneratedExternalIssueDetails(title=None, description=None)
         mock_request.assert_not_called()
 
     @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
@@ -128,7 +128,7 @@ class GenerateExternalIssueDetailsTest(TestCase):
         with self.feature("organizations:external-issues-ai-generate"):
             result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
-        assert result == GeneratedIssueDetails()
+        assert result == GeneratedExternalIssueDetails(title=None, description=None)
         mock_request.assert_not_called()
 
     @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
@@ -140,7 +140,7 @@ class GenerateExternalIssueDetailsTest(TestCase):
         ):
             result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
-        assert result == GeneratedIssueDetails()
+        assert result == GeneratedExternalIssueDetails(title=None, description=None)
 
     @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
     def test_successful_returns_details(self, mock_request: MagicMock) -> None:
@@ -155,4 +155,6 @@ class GenerateExternalIssueDetailsTest(TestCase):
         ):
             result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
-        assert result == GeneratedIssueDetails(title="AI Title", description="AI Description")
+        assert result == GeneratedExternalIssueDetails(
+            title="AI Title", description="AI Description"
+        )

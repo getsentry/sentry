@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, NamedTuple
+from typing import Any, TypedDict
 
 from sentry import features
 from sentry.models.group import Group
@@ -57,9 +57,14 @@ def _build_event_context(group: Group, event: Any | None = None) -> str:
     return context
 
 
+class GeneratedExternalIssueDetails(TypedDict):
+    title: str | None
+    description: str | None
+
+
 def _make_generate_external_issue_details_request(
     group: Group, event: Any | None = None, viewer_context: SeerViewerContext | None = None
-) -> dict[str, str] | None:
+) -> GeneratedExternalIssueDetails | None:
     logging_ctx: dict[str, Any] = {"group_id": group.id, "viewer_context": viewer_context}
     context = _build_event_context(group, event=event)
 
@@ -89,13 +94,17 @@ def _make_generate_external_issue_details_request(
     try:
         data = response.json()
     except (json.JSONDecodeError, ValueError):
-        logger.warning("external_issues.seer_response_json_failed", extra=logging_ctx)
+        logger.warning(
+            "external_issues.seer_response_json_failed", extra=logging_ctx, exc_info=True
+        )
         return None
     content = data.get("content")
     try:
         content = json.loads(content)
     except (json.JSONDecodeError, TypeError, ValueError):
-        logger.warning("external_issues.seer_response_parse_failed", extra=logging_ctx)
+        logger.warning(
+            "external_issues.seer_response_parse_failed", extra=logging_ctx, exc_info=True
+        )
         return None
 
     title = content.get("title")
@@ -109,35 +118,28 @@ def _make_generate_external_issue_details_request(
     return None
 
 
-class GeneratedIssueDetails(NamedTuple):
-    title: str | None = None
-    description: str | None = None
-
-
 def maybe_generate_external_issue_details(
     *, group: Group, user: User | RpcUser, event: GroupEvent | None = None
-) -> GeneratedIssueDetails:
+) -> GeneratedExternalIssueDetails:
     organization = group.organization
+    empty_result = GeneratedExternalIssueDetails(title=None, description=None)
     if not features.has("organizations:gen-ai-features", organization, actor=user):
-        return GeneratedIssueDetails()
+        return empty_result
     if organization.get_option("sentry:hide_ai_features", False):
-        return GeneratedIssueDetails()
+        return empty_result
     if not features.has("organizations:external-issues-ai-generate", organization, actor=user):
-        return GeneratedIssueDetails()
+        return empty_result
 
     try:
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user.id)
         result = _make_generate_external_issue_details_request(
             group, event=event, viewer_context=viewer_context
         )
-    # Open except block is wide but allows us to fallback to default title/description if anything fails.
     except Exception:
-        logger.error("external_issues.generate_issue_details_failed")
-        return GeneratedIssueDetails()
+        logger.error("external_issues.generate_issue_details_failed", exc_info=True)
+        return empty_result
 
     if not result:
-        return GeneratedIssueDetails()
+        return empty_result
 
-    title: str | None = result.get("title")
-    description: str | None = result.get("description")
-    return GeneratedIssueDetails(title=title, description=description)
+    return result
