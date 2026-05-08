@@ -118,6 +118,11 @@ type ChatSessionInterrupted = {
   queue?: ToolQueue;
 };
 
+type ChatSessionAwaitingUserInput = {
+  input: PendingUserInput;
+  status: 'awaiting user input';
+};
+
 type ChatSessionEnded = {
   reason: 'abandoned' | 'error';
   status: 'ended';
@@ -130,7 +135,24 @@ export type ChatSession =
   | ChatSessionExecutingTool
   | ChatSessionPendingInput
   | ChatSessionInterrupted
+  | ChatSessionAwaitingUserInput
   | ChatSessionEnded;
+
+// ── Pending User Input ─────────────────────────────────────────────
+
+type FileChangeApproval = {
+  data: Record<string, unknown>;
+  id: string;
+  type: 'file change approval';
+};
+
+type AskUserQuestion = {
+  data: Record<string, unknown>;
+  id: string;
+  type: 'ask user question';
+};
+
+export type PendingUserInput = FileChangeApproval | AskUserQuestion;
 
 // ── Messages ───────────────────────────────────────────────────────
 // Conversation content. The messages array is append-only, with the
@@ -146,6 +168,9 @@ interface AssistantTextMessage {
   actor: 'assistant';
   content: string;
   type: 'text';
+  artifacts?: Record<string, unknown>[];
+  filePatches?: Record<string, unknown>[];
+  todos?: Record<string, unknown>[];
   toolCalls?: ToolCall[];
 }
 

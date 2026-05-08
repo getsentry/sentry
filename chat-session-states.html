@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Session State Diagrams</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f17; color: #c8c8d4; padding: 48px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #7a7a8e; margin-bottom: 24px; }
+    h1:not(:first-child) { margin-top: 64px; }
+    .subtitle { font-size: 0.85rem; color: #55556a; margin-top: -16px; margin-bottom: 24px; }
+    .note { font-size: 0.8rem; color: #8888a0; background: #1a1a2a; border-left: 3px solid #4a4a6a; padding: 10px 14px; margin-top: 12px; margin-bottom: 8px; border-radius: 0 6px 6px 0; }
+    .diagram { background: #16161e; border: 1px solid #2a2a3a; border-radius: 12px; padding: 32px; margin-bottom: 16px; display: flex; justify-content: center; overflow: visible; }
+    .mermaid { width: 100%; overflow: visible; }
+    .mermaid svg { overflow: visible; max-width: 100%; height: auto; display: block; margin: 0 auto; }
+    .legend { display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.8rem; color: #6a6a7e; margin-top: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <h1>1. Chat Session — Parent State Machine</h1>
+    <p class="subtitle">Top-level lifecycle of a chat session. Tool execution delegates to the queue (diagram 2), which delegates to individual tools (diagram 3).</p>
+    <div class="diagram">
+      <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#2d2b55',
+  'primaryTextColor': '#e0e0e0',
+  'primaryBorderColor': '#5a4fcf',
+  'lineColor': '#4a4a6a',
+  'fontSize': '13px',
+  'fontFamily': 'system-ui'
+}}}%%
+flowchart TD
+    START(( )) -->|new session| initial
+
+    initial -->|user sends message| thinking
+
+    thinking -->|model starts streaming| streaming
+
+    streaming -->|"complete · no tool calls"| pending_input
+    streaming -->|"complete · has tool calls"| executing_tool
+
+    executing_tool -->|"queue completed · all succeeded"| thinking
+    executing_tool -->|"queue aborted · failed / rejected"| pending_input
+
+    pending_input -->|user sends message| thinking
+    pending_input -->|"abandon / unrecoverable error"| ended
+
+    thinking -->|user interrupts| interrupted
+    streaming -->|user interrupts| interrupted
+    executing_tool -->|user interrupts| interrupted
+
+    interrupted -->|immediate| pending_input
+
+    ended -->|terminal| END(( ))
+
+    style START fill:#7c3aed,stroke:none,color:#fff
+    style END fill:#ef4444,stroke:none,color:#fff
+
+    style initial fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#c7d2fe
+    style thinking fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#c7d2fe
+    style streaming fill:#0c4a6e,stroke:#0ea5e9,stroke-width:2px,color:#bae6fd
+    style executing_tool fill:#1c2333,stroke:#f59e0b,stroke-width:2px,color:#fde68a
+    style pending_input fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#bbf7d0
+    style interrupted fill:#431407,stroke:#f97316,stroke-width:2px,color:#fed7aa
+    style ended fill:#1c1117,stroke:#ef4444,stroke-width:2px,color:#fecaca
+
+    linkStyle default stroke:#4a4a6a,stroke-width:1.5px
+      </div>
+    </div>
+    <div class="note">Reopened sessions are hydrated directly into the current server-side state — there is no dedicated re-entry transition. The UI resolves the active state on load and enters the diagram at that node.</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div> Core flow</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> Streaming</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Tool execution</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Awaiting user</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Interrupted</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Terminal</div>
+    </div>
+
+    <h1>2. Tool Queue — Orchestrator</h1>
+    <p class="subtitle">Manages sequential execution of tool calls returned by the model. Lives inside the parent's <code>executing_tool</code> state. Each "processing" cycle delegates to the tool sub-state machine (diagram 3).</p>
+    <div class="diagram">
+      <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#2d2b55',
+  'primaryTextColor': '#e0e0e0',
+  'primaryBorderColor': '#5a4fcf',
+  'lineColor': '#4a4a6a',
+  'fontSize': '13px',
+  'fontFamily': 'system-ui'
+}}}%%
+flowchart TD
+    START(( )) -->|"tools enqueued"| processing
+
+    processing -->|"tool success · queue not empty"| processing
+    processing -->|"tool success · queue empty"| completed
+    processing -->|"tool failed / rejected"| aborted
+
+    processing -->|"parent interrupted"| cancelled
+
+    completed -->|"→ parent: thinking"| END_OK(( ))
+    aborted -->|"→ parent: pending_input"| END_FAIL(( ))
+    cancelled -->|"→ parent: interrupted"| END_CANCEL(( ))
+
+    style START fill:#7c3aed,stroke:none,color:#fff
+    style END_OK fill:#22c55e,stroke:none,color:#fff
+    style END_FAIL fill:#ef4444,stroke:none,color:#fff
+    style END_CANCEL fill:#f97316,stroke:none,color:#fff
+
+    style processing fill:#1c2333,stroke:#f59e0b,stroke-width:2px,color:#fde68a
+    style completed fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#bbf7d0
+    style aborted fill:#1c1117,stroke:#ef4444,stroke-width:2px,color:#fecaca
+    style cancelled fill:#431407,stroke:#f97316,stroke-width:2px,color:#fed7aa
+
+    linkStyle default stroke:#4a4a6a,stroke-width:1.5px
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Processing (delegates to tool FSM)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Completed (all succeeded)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Aborted (tool failed / rejected)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Cancelled (user interrupted)</div>
+    </div>
+
+    <h1>3. Tool Call — Individual Invocation</h1>
+    <p class="subtitle">Lifecycle of a single tool call. Instantiated by the queue for each tool in sequence.</p>
+    <div class="diagram">
+      <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#2d2b55',
+  'primaryTextColor': '#e0e0e0',
+  'primaryBorderColor': '#5a4fcf',
+  'lineColor': '#4a4a6a',
+  'fontSize': '13px',
+  'fontFamily': 'system-ui'
+}}}%%
+flowchart TD
+    START(( )) -->|requires approval| pending_approval
+    START(( )) -->|auto-approved| running
+
+    pending_approval -->|user approves| running
+    pending_approval -->|user rejects| rejected
+    pending_approval -->|parent interrupted| cancelled
+
+    running -->|tool completes| success
+    running -->|tool errors| failed
+    running -->|parent interrupted| cancelled
+
+    success --> END_S(( ))
+    failed --> END_F(( ))
+    rejected --> END_R(( ))
+    cancelled --> END_C(( ))
+
+    style START fill:#7c3aed,stroke:none,color:#fff
+    style END_S fill:#22c55e,stroke:none,color:#fff
+    style END_F fill:#ef4444,stroke:none,color:#fff
+    style END_R fill:#ef4444,stroke:none,color:#fff
+    style END_C fill:#f97316,stroke:none,color:#fff
+
+    style pending_approval fill:#2e1065,stroke:#a78bfa,stroke-width:2px,color:#ddd6fe
+    style running fill:#0c4a6e,stroke:#0ea5e9,stroke-width:2px,color:#bae6fd
+    style success fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#bbf7d0
+    style failed fill:#1c1117,stroke:#ef4444,stroke-width:2px,color:#fecaca
+    style rejected fill:#1c1117,stroke:#ef4444,stroke-width:2px,color:#fecaca
+    style cancelled fill:#431407,stroke:#f97316,stroke-width:2px,color:#fed7aa
+
+    linkStyle default stroke:#4a4a6a,stroke-width:1.5px
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Pending approval</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> Running</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Success</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Failed / Rejected</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Cancelled</div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      flowchart: {
+        curve: 'basis',
+        padding: 24,
+        nodeSpacing: 50,
+        rankSpacing: 70,
+        useMaxWidth: false
+      }
+    });
+  </script>
+</body>
+</html>
