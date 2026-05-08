@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from typing import TypedDict
+from typing import Any
 
 from django.db import IntegrityError, router
 
@@ -37,10 +37,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.plugins.providers.repository import RepositoryProvider
-
-
-class _CommitDataKwargs(TypedDict, total=False):
-    author: CommitAuthor
+MAX_COMMITS_IN_RELEASE = 1000
     message: str
     date_added: str
 
@@ -50,6 +47,20 @@ def set_commits(release, commit_list):
 
     # todo(meredith): implement for IntegrationRepositoryProvider
     commit_list = [
+
+    # Cap commit list to avoid processing deadline timeouts on releases with very large histories
+    if len(commit_list) > MAX_COMMITS_IN_RELEASE:
+        logger.warning(
+            "fetch_commits.commit_list_truncated",
+            extra={
+                "release_id": release.id,
+                "organization_id": release.organization_id,
+                "original_count": len(commit_list),
+                "truncated_count": MAX_COMMITS_IN_RELEASE,
+            },
+        )
+        commit_list = commit_list[:MAX_COMMITS_IN_RELEASE]
+
         c for c in commit_list if not RepositoryProvider.should_ignore_commit(c.get("message", ""))
     ]
     lock_key = Release.get_lock_key(release.organization_id, release.id)
@@ -77,21 +88,138 @@ def set_commits(release, commit_list):
     update_group_resolutions(release, commit_author_by_commit)
 
 
-@metrics.wraps("set_commits_on_release")
-def set_commits_on_release(release, commit_list):
     # TODO(dcramer): would be good to optimize the logic to avoid these
     # deletes but not overly important
-    ReleaseCommit.objects.filter(release=release).delete()
+    if not commit_list:
+        return {}, {}
 
-    commit_author_by_commit = {}
-    head_commit_by_repo: dict[int, int] = {}
+    # --- Step 1: Bulk create new Commits (ignore conflicts for existing ones) ---
+    commits_to_create = []
+    for data in commit_list:
+        repo = data["repo_model"]
+        author = data["author_model"]
+        kwargs: dict[str, Any] = {
+            "organization_id": release.organization_id,
+            "repository_id": repo.id,
+            "key": data["id"],
+        }
+        if author is not None:
+            kwargs["author_id"] = author.id
+        if "message" in data:
+            kwargs["message"] = data["message"]
+        if "timestamp" in data:
+            kwargs["date_added"] = data["timestamp"]
+        commits_to_create.append(Commit(**kwargs))
 
-    latest_commit = None
-    for idx, data in enumerate(commit_list):
+    Commit.objects.bulk_create(commits_to_create, ignore_conflicts=True, batch_size=200)
+
+    # Fetch all commits (newly created + pre-existing) in one query
+    all_repo_ids = list({data["repo_model"].id for data in commit_list})
+    all_keys = [data["id"] for data in commit_list]
+    existing_commits: dict[tuple[int, str], Commit] = {
+        (c.repository_id, c.key): c
+        for c in Commit.objects.filter(
+            organization_id=release.organization_id,
+            repository_id__in=all_repo_ids,
+            key__in=all_keys,
+        )
+    }
+
+    # Bulk update commits whose fields have changed since they were first created
+    commits_to_update: list[Commit] = []
+    fields_to_update: set[str] = set()
+    for data in commit_list:
+        repo = data["repo_model"]
+        author = data["author_model"]
+        commit = existing_commits.get((repo.id, data["id"]))
+        if commit is None:
+            continue
+        changed = False
+        if author is not None and commit.author_id != author.id:
+            commit.author_id = author.id
+            fields_to_update.add("author_id")
+            changed = True
+        if "message" in data and commit.message != data["message"]:
+            commit.message = data["message"]
+            fields_to_update.add("message")
+            changed = True
+        if "timestamp" in data and commit.date_added != data["timestamp"]:
+            commit.date_added = data["timestamp"]
+            fields_to_update.add("date_added")
+            changed = True
+        if changed:
+            commits_to_update.append(commit)
+
+    if commits_to_update:
+        Commit.objects.bulk_update(commits_to_update, list(fields_to_update), batch_size=200)
+
+    # --- Step 2: Batch-load authors for commits that have no author_model ---
+    # This avoids per-commit FK descriptor DB fetches when resolving commit_author_by_commit
+    fallback_author_ids: set[int] = set()
+    for data in commit_list:
+        repo = data["repo_model"]
+        commit = existing_commits.get((repo.id, data["id"]))
+        if commit and data["author_model"] is None and commit.author_id is not None:
+            fallback_author_ids.add(commit.author_id)
+
+    authors_by_id: dict[int, CommitAuthor] = {}
+    if fallback_author_ids:
+        authors_by_id = {
+            a.id: a for a in CommitAuthor.objects.filter(id__in=fallback_author_ids)
+        }
+
+    # --- Step 3: Bulk create CommitFileChanges across all commits in one call ---
+    all_file_changes: list[CommitFileChange] = []
+    for data in commit_list:
+        repo = data["repo_model"]
+        commit = existing_commits.get((repo.id, data["id"]))
+        if commit is None:
+            continue
+        for patched_file in (data.get("patch_set") or []):
+            all_file_changes.append(
+                CommitFileChange(
+                    organization_id=release.organization_id,
+                    commit_id=commit.id,
+                    filename=patched_file["path"],
+                    type=patched_file["type"],
+                )
+            )
+
+    if all_file_changes:
+        CommitFileChange.objects.bulk_create(all_file_changes, ignore_conflicts=True, batch_size=500)
+
+    # --- Step 4: Bulk create ReleaseCommits and build result mappings ---
+    release_commits_to_create: list[ReleaseCommit] = []
+    commit_author_by_commit: dict[int, CommitAuthor | None] = {}
+
+    latest_commit: Commit | None = None
+
+
+        repo = data["repo_model"]
+        commit = existing_commits.get((repo.id, data["id"]))
+        if commit is None:
+            continue
+
+        if latest_commit is None:
         commit = set_commit(idx, data, release)
         if idx == 0:
-            latest_commit = commit
+        # Use the pre-resolved author_model; fall back to batch-loaded author if needed
+        author = data["author_model"]
+        if author is None and commit.author_id is not None:
+            author = authors_by_id.get(commit.author_id)
 
+        commit_author_by_commit[commit.id] = author
+        head_commit_by_repo.setdefault(repo.id, commit.id)
+        release_commits_to_create.append(
+            ReleaseCommit(
+                organization_id=release.organization_id,
+                release=release,
+                commit=commit,
+                order=idx,
+            )
+        )
+
+    ReleaseCommit.objects.bulk_create(release_commits_to_create, ignore_conflicts=True, batch_size=200)
         commit_author_by_commit[commit.id] = commit.author
         head_commit_by_repo.setdefault(data["repo_model"].id, commit.id)
 
@@ -106,62 +234,6 @@ def set_commits_on_release(release, commit_list):
             .distinct()
         ],
         last_commit_id=latest_commit.id if latest_commit else None,
-    )
-    return head_commit_by_repo, commit_author_by_commit
-
-
-def set_commit(idx, data, release):
-    repo = data["repo_model"]
-    author = data["author_model"]
-
-    commit_data: _CommitDataKwargs = {}
-
-    # Update/set message and author if they are provided.
-    if author is not None:
-        commit_data["author"] = author
-    if "message" in data:
-        commit_data["message"] = data["message"]
-    if "timestamp" in data:
-        commit_data["date_added"] = data["timestamp"]
-
-    commit, created = Commit.objects.get_or_create(
-        organization_id=release.organization_id,
-        repository_id=repo.id,
-        key=data["id"],
-        defaults=commit_data,
-    )
-    if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
-        commit.update(**commit_data)
-
-    if author is None:
-        author = commit.author
-
-    # Guard against patch_set being None
-    patch_set = data.get("patch_set") or []
-    if patch_set:
-        CommitFileChange.objects.bulk_create(
-            [
-                CommitFileChange(
-                    organization_id=release.organization.id,
-                    commit_id=commit.id,
-                    filename=patched_file["path"],
-                    type=patched_file["type"],
-                )
-                for patched_file in patch_set
-            ],
-            ignore_conflicts=True,
-            batch_size=100,
-        )
-    try:
-        with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
-            ReleaseCommit.objects.create(
-                organization_id=release.organization_id,
-                release=release,
-                commit=commit,
-                order=idx,
-            )
-    except IntegrityError:
-        pass
 
     return commit
 
