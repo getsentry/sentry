@@ -5,11 +5,11 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
+from sentry.models.organization import Organization
 from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
 )
-from sentry.models.organization import Organization
 from sentry.preprod.models import (
     Platform,
     PreprodArtifact,
