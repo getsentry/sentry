@@ -401,12 +401,16 @@ export const LogRowContent = memo(function LogRowContent({
             ) : null;
           const value = (dataRow as OurLogsResponseItem)[field];
 
+          const shouldRenderActions = !embedded && shouldRenderHoverElements;
+
           if (!defined(value)) {
             return (
               <LogTableBodyCell key={field}>
-                <Flex position="relative" height="100%" width="100%" justify="end">
-                  {pin}
-                </Flex>
+                {shouldRenderActions ? (
+                  <Flex position="relative" height="100%" width="100%" justify="end">
+                    {pin}
+                  </Flex>
+                ) : null}
               </LogTableBodyCell>
             );
           }
@@ -433,12 +437,6 @@ export const LogRowContent = memo(function LogRowContent({
             isSortable: true,
             type: FieldValueType.STRING,
           };
-
-          const shouldRenderActions =
-            !embedded &&
-            field !== OurLogKnownFieldKey.TIMESTAMP &&
-            shouldRenderHoverElements;
-
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
               {shouldRenderActions ? (
