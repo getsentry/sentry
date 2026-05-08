@@ -319,16 +319,14 @@ def _browser_name_one_of(*args):
     For events and V1 spans, this checks the `event.contexts.browser.name` field.
     For V2 spans, it checks the `span.attributes.browser.name.value` field.
     """
-    return (
-        {
-            "op": "or",
-            "inner": [
-                {"op": "eq", "name": field, "value": browser}
-                for field in ["event.contexts.browser.name", "span.attributes.browser.name.value"]
-                for browser in args
-            ],
-        },
-    )
+    return {
+        "op": "or",
+        "inner": [
+            {"op": "eq", "name": field, "value": browser}
+            for field in ["event.contexts.browser.name", "span.attributes.browser.name.value"]
+            for browser in args
+        ],
+    }
 
 
 def _get_desktop_browser_performance_profiles(
