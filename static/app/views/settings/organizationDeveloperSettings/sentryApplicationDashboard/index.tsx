@@ -73,7 +73,7 @@ function SentryApplicationDashboard() {
 
   const {
     data: interactions,
-    isLoading: isInteractionsLoading,
+    isPending: isInteractionsPending,
     isError: isInteractionsError,
   } = useApiQuery<Interactions>(
     [
@@ -87,7 +87,7 @@ function SentryApplicationDashboard() {
 
   const {
     data: stats,
-    isLoading: isStatsLoading,
+    isPending: isStatsPending,
     isError: isStatsError,
   } = useApiQuery<Stats>(
     [
@@ -99,7 +99,11 @@ function SentryApplicationDashboard() {
     {staleTime: 0, enabled: showInstallData}
   );
 
-  if (isAppPending || isStatsLoading || isInteractionsLoading) {
+  if (
+    isAppPending ||
+    (showInstallData && isStatsPending) ||
+    (shouldFetchInteractions && isInteractionsPending)
+  ) {
     return <LoadingIndicator />;
   }
 
