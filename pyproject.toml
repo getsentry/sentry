@@ -2263,7 +2263,6 @@ module = [
     "tests.sentry.relocation.test_utils",
     "tests.sentry.rules",
     "tests.sentry.rules.actions",
-    "tests.sentry.rules.actions.test_base",
     "tests.sentry.rules.actions.test_create_ticket_utils",
     "tests.sentry.rules.actions.test_notify_event",
     "tests.sentry.rules.actions.test_notify_event_sentry_app",
