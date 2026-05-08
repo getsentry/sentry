@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from functools import partial
 from typing import Any, TypedDict
 
-from django.db.models import Case, Count, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import Case, Count, F, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -206,7 +206,7 @@ def _annotate_queryset(queryset):
                 | Q(_handoff_target=Value(json.dumps(None), output_field=LegacyTextJSONField())),
                 then=Value(json.dumps(AutomationCodingAgent.SEER)),
             ),
-            default="_handoff_target",
+            default=F("_handoff_target"),
             output_field=LegacyTextJSONField(),
         ),
     )
