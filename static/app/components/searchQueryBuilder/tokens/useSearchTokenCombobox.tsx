@@ -7,7 +7,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {useTextField} from '@react-aria/textfield';
 import {chain, mergeProps, useLabels} from '@react-aria/utils';
 import {privateValidationStateProp} from '@react-stately/form';
-import type {BaseEvent} from '@react-types/shared';
+import type {BaseEvent, Key} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
 
@@ -25,7 +25,8 @@ import {t} from 'sentry/locale';
  */
 export function useSearchTokenCombobox<T>(
   props: Parameters<typeof useComboBox<T>>[0],
-  state: Parameters<typeof useComboBox<T>>[1]
+  state: Parameters<typeof useComboBox<T>>[1],
+  focusedKeyOverride?: Key | null
 ): Pick<ReturnType<typeof useComboBox<T>>, 'inputProps' | 'listBoxProps' | 'labelProps'> {
   const {
     popoverRef,
@@ -92,6 +93,13 @@ export function useSearchTokenCombobox<T>(
           e.preventDefault();
         }
 
+        if (focusedKeyOverride !== null && focusedKeyOverride !== undefined) {
+          if (state.isOpen && e.key === 'Tab') {
+            e.preventDefault();
+          }
+          state.selectionManager.setFocused(true);
+          state.selectionManager.setFocusedKey(focusedKeyOverride);
+        }
         state.commit();
         break;
       case 'Escape':
@@ -167,9 +175,10 @@ export function useSearchTokenCombobox<T>(
     'aria-labelledby': props['aria-labelledby'] || labelProps.id,
   });
 
+  const focusedKey = focusedKeyOverride ?? state.selectionManager.focusedKey;
   const focusedItem =
-    state.selectionManager.focusedKey !== null && state.isOpen
-      ? state.collection.getItem(state.selectionManager.focusedKey)
+    focusedKey !== null && state.isOpen
+      ? state.collection.getItem(focusedKey)
       : undefined;
 
   return {

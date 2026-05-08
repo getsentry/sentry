@@ -104,10 +104,12 @@ function Footer({
 
 export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   hiddenOptions,
+  focusedKeyOverride,
   isOpen,
   isLoading,
   listBoxProps,
   listBoxRef,
+  onFocusedKeyOverrideClear,
   popoverRef,
   state,
   overlayProps,
@@ -175,6 +177,8 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               listState={state}
               hasSearch={!!filterValue}
               hiddenOptions={hiddenOptions}
+              focusedKeyOverride={focusedKeyOverride}
+              onMouseMove={onFocusedKeyOverrideClear}
               overlayIsOpen={isOpen}
               showSectionHeaders={!filterValue}
               size="sm"

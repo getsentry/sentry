@@ -21,6 +21,7 @@ export interface ListBoxOptionProps extends AriaOptionProps {
   listState: ListState<any>;
   size: MenuListItemProps['size'];
   'data-index'?: number;
+  isFocusedOverride?: boolean;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
 }
@@ -34,6 +35,7 @@ export function ListBoxOption({
   listState,
   size,
   showDetails = true,
+  isFocusedOverride,
   ref: refProp,
   'data-index': dataIndex,
 }: ListBoxOptionProps) {
@@ -108,7 +110,7 @@ export function ListBoxOption({
       disabled={isDisabled}
       isPressed={isPressed}
       isSelected={isSelected}
-      isFocused={listState.selectionManager.isFocused && isFocused}
+      isFocused={isFocusedOverride ?? (listState.selectionManager.isFocused && isFocused)}
       priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
