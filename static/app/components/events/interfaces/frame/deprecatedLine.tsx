@@ -6,8 +6,8 @@ import classNames from 'classnames';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
@@ -110,6 +110,8 @@ function DeprecatedLine({
   registersMeta,
   components,
 }: Props) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const {hasScmSourceContext} = useStacktraceContext();
   const [isHovering, setIsHovering] = useState(false);

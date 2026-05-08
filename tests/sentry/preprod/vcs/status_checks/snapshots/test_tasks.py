@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+from unittest.mock import Mock, patch
+
+import pytest
+
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
+from sentry.models.commitcomparison import CommitComparison
+from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     _compute_snapshot_status,
+    post_snapshot_status_check_task,
 )
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_snapshot_status_check_messages,
 )
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -257,3 +265,124 @@ class SnapshotStatusCheckWithSkippedTest(SnapshotTasksTestBase):
 
 def _get_comparison(metrics: PreprodSnapshotMetrics) -> PreprodSnapshotComparison:
     return PreprodSnapshotComparison.objects.get(head_snapshot_metrics=metrics)
+
+
+TASK_MODULE = "sentry.preprod.vcs.status_checks.snapshots.tasks"
+
+
+@cell_silo_test
+class PostSnapshotStatusCheckTaskTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+        self.artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=self.commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+    def _call_task(self, **overrides):
+        defaults = {
+            "preprod_artifact_id": self.artifact.id,
+            "status": StatusCheckStatus.SUCCESS.value,
+            "title": "Snapshots",
+            "subtitle": "No changes",
+            "summary": "All good",
+            "external_id": str(self.artifact.id),
+            "started_at_iso": self.artifact.date_added.isoformat(),
+            "completed_at_iso": self.artifact.date_updated.isoformat(),
+            "target_url": "https://sentry.io/test",
+            "approve_action_identifier": None,
+        }
+        defaults.update(overrides)
+        post_snapshot_status_check_task(**defaults)
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_success(self, mock_get_client, mock_get_provider):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_123"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        self._call_task()
+
+        mock_provider.create_status_check.assert_called_once()
+        self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
+        checks = self.artifact.extras["posted_status_checks"]["snapshots"]
+        assert checks["success"] is True
+        assert checks["check_id"] == "check_123"
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_api_error_records_failure_and_reraises(self, mock_get_client, mock_get_provider):
+        mock_provider = Mock()
+        mock_provider.create_status_check.side_effect = ApiError("rate limited", code=429)
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        with pytest.raises(ApiError):
+            self._call_task()
+
+        self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
+        checks = self.artifact.extras["posted_status_checks"]["snapshots"]
+        assert checks["success"] is False
+        assert checks["error_type"] == "api_error"
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_null_check_id_records_failure(self, mock_get_client, mock_get_provider):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = None
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        self._call_task()
+
+        self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
+        checks = self.artifact.extras["posted_status_checks"]["snapshots"]
+        assert checks["success"] is False
+
+    def test_nonexistent_artifact_returns_early(self):
+        self._call_task(preprod_artifact_id=99999)
+
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_no_client_returns_early(self, mock_get_client):
+        mock_get_client.return_value = (None, None)
+        self._call_task()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_permanent_4xx_does_not_reraise(self, mock_get_client, mock_get_provider):
+        mock_provider = Mock()
+        mock_provider.create_status_check.side_effect = ApiError("not found", code=404)
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        self._call_task()
+
+        self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
+        checks = self.artifact.extras["posted_status_checks"]["snapshots"]
+        assert checks["success"] is False
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_no_provider_returns_early(self, mock_get_client, mock_get_provider):
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = None
+        self._call_task()
