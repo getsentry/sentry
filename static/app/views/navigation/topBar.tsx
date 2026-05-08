@@ -67,10 +67,10 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         <Slot.Outlet name="title">
-          {props => <Flex {...props} align="center" gap="sm" />}
+          {props => <Flex {...props} align="center" gap="sm" flex="1" minWidth={0} />}
         </Slot.Outlet>
 
-        <Flex align="center" gap="sm">
+        <Flex align="center" gap="sm" flexShrink={0}>
           <Slot.Outlet name="actions">
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
