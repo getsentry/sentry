@@ -151,7 +151,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         assert "Fix the handler" in prompt
 
     def test_prompt_with_short_id(self) -> None:
-        """Test that short_id is included in prompt when provided."""
+        """Test that short_id is included in prompt when provided (no URL)."""
         state = SeerRunState(
             run_id=123,
             blocks=[],
@@ -161,7 +161,27 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
         prompt = generate_autofix_handoff_prompt(state, short_id="AIML-2301")
 
-        assert "Include 'Fixes AIML-2301' in the commit message" in prompt
+        assert "Include 'Fixes AIML-2301' in the PR description" in prompt
+
+    def test_prompt_with_short_id_and_issue_url(self) -> None:
+        """Test that a full markdown permalink is used when issue_url is provided."""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(
+            state,
+            short_id="AIML-2301",
+            issue_url="https://sentry.io/organizations/my-org/issues/456/",
+        )
+
+        assert (
+            "Include 'Fixes [AIML-2301](https://sentry.io/organizations/my-org/issues/456/)' in the PR description"
+            in prompt
+        )
 
     def test_prompt_without_short_id(self) -> None:
         """Test that 'Fixes' is not in prompt when short_id is None."""
@@ -189,7 +209,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
             state, instruction="Focus on performance", short_id="PROJ-123"
         )
 
-        assert "Include 'Fixes PROJ-123' in the commit message" in prompt
+        assert "Include 'Fixes PROJ-123' in the PR description" in prompt
         assert "Focus on performance" in prompt
 
 
@@ -690,6 +710,31 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_includes_permalink_in_prompt(
+        self, mock_client_class, mock_get_autofix_state
+    ):
+        """Test that the handoff prompt includes a full Sentry permalink."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo()
+        mock_get_autofix_state.return_value = None
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        prompt = mock_client.launch_coding_agents.call_args.kwargs["prompt"]
+        expected_url = f"https://sentry.io/organizations/{self.organization.slug}/issues/{self.group.id}/"
+        expected_ref = f"[{self.group.qualified_short_id}]({expected_url})"
+        assert f"Fixes {expected_ref}" in prompt
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_uses_group_title_for_branch(
         self, mock_client_class, mock_get_autofix_state
     ):
@@ -984,7 +1029,7 @@ class TestTriggerPushChanges(TestCase):
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_passes_correct_pr_description_suffix(self, mock_post):
-        """push_changes is called with pr_description_suffix matching the group's qualified short id."""
+        """push_changes is called with a full Sentry permalink as pr_description_suffix."""
         mock_post.return_value = MagicMock(status=200)
         state = SeerRunState(
             run_id=123,
@@ -1004,4 +1049,6 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
+        expected_url = f"https://sentry.io/organizations/{self.organization.slug}/issues/{self.group.id}/"
+        expected_suffix = f"Fixes [{self.group.qualified_short_id}]({expected_url})"
+        assert body["payload"]["pr_description_suffix"] == expected_suffix
