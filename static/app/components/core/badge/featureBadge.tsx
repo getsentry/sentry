@@ -37,23 +37,19 @@ export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'
   tooltipProps?: Partial<TooltipProps>;
 }
 
-function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
+export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
   const title = tooltipProps?.title ?? defaultTitles[type] ?? '';
 
   return (
     <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <Tag variant={variantMap[type]} {...props}>
+      <SquareTag variant={variantMap[type]} {...props}>
         {iconMap[type]}
-      </Tag>
+      </SquareTag>
     </Tooltip>
   );
 }
 
-/**
- * Requires the result of styled(FeatureBadge) to be exported as it
- * is in some cases targeted with a child selector.
- */
-export const FeatureBadge = styled(InnerFeatureBadge)`
+const SquareTag = styled(Tag)`
   width: 20px;
   padding: 0;
   justify-content: center;
