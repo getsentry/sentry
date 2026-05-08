@@ -35,21 +35,13 @@ describe('ProjectSeer', () => {
   let project: Project;
   let organization: Organization;
 
-  function mockDetailedProject({
-    org = organization,
-    projectBody = project,
-  }: {org?: Organization; projectBody?: Project} = {}) {
-    return MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${projectBody.slug}/`,
-      method: 'GET',
-      body: projectBody,
-    });
-  }
-
   beforeEach(() => {
     project = ProjectFixture();
     organization = OrganizationFixture();
-    mockDetailedProject();
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: project,
+    });
 
     // Mock the seer setup check endpoint
     MockApiClient.addMockResponse({
@@ -728,7 +720,10 @@ describe('ProjectSeer', () => {
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
-      mockDetailedProject({org: orgWithCursorFeature, projectBody: initialProject});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -808,7 +803,10 @@ describe('ProjectSeer', () => {
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
-      mockDetailedProject({org: orgWithCursorFeature, projectBody: initialProject});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -917,7 +915,10 @@ describe('ProjectSeer', () => {
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
-      mockDetailedProject({org: orgWithCursorFeature, projectBody: initialProject});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -1008,7 +1009,10 @@ describe('ProjectSeer', () => {
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
-      mockDetailedProject({org: orgWithCursorFeature, projectBody: initialProject});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -1132,7 +1136,10 @@ describe('ProjectSeer', () => {
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
-      mockDetailedProject({org: orgWithBothFeatures, projectBody: initialProject});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithBothFeatures.slug}/seer/setup-check/`,
@@ -1215,7 +1222,10 @@ describe('ProjectSeer', () => {
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
-      mockDetailedProject({org: orgWithCursorFeature, projectBody: initialProject});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
