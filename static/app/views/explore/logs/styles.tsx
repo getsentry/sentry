@@ -66,6 +66,25 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     }
   }
 
+  &[data-row-pinned='true']:not(thead > &) {
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
+
+  &[data-row-hover-linked='true']:not(thead > &) {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.active};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
+
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
@@ -103,6 +122,69 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 `;
 
+export const PinIcon = styled('button')<{isPinned: boolean}>`
+  all: unset;
+  position: absolute;
+  top: 50%;
+  right: -33px;
+  transform: translateY(-50%);
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: ${p =>
+    p.isPinned
+      ? p.theme.tokens.content.accent
+      : p.theme.tokens.content.secondary};
+
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition:
+    opacity 0.1s,
+    color 0.1s;
+  z-index: 1;
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.accent};
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid ${p => p.theme.tokens.focus.default};
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ${LogTableRow}:hover & {
+    opacity: 1;
+  }
+`;
+
+export const CellContentWrapper = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+export const PinnedRowsSection = styled('div')`
+  display: contents;
+`;
+
+export const PinnedRowsDivider = styled('div')`
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
 export const LogAttributeTreeWrapper = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-bottom: 0px;
@@ -110,6 +192,7 @@ export const LogAttributeTreeWrapper = styled('div')`
 
 export const LogTableBodyCell = styled(TableBodyCell)`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
+  position: relative;
 
   padding: 2px ${p => p.theme.space.xl};
 
@@ -123,6 +206,10 @@ export const LogTableBodyCell = styled(TableBodyCell)`
 
   &:last-child {
     padding: 2px ${p => p.theme.space.xl};
+  }
+
+  &:last-child[data-has-pin-feature] {
+    padding-right: 56px;
   }
 `;
 
@@ -237,8 +324,28 @@ export const DetailsBody = styled('div')`
   }
 `;
 
-export const StyledChevronButton = styled(Button)`
+export const StyledChevronIcon = styled('button')`
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 24px;
+  flex-shrink: 0;
   margin-right: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  transition: color 0.1s;
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.tokens.focus.default};
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 `;
 
 const DEFAULT_SIZE = '8px';

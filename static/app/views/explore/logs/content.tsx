@@ -23,6 +23,8 @@ import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {useOurLogsTableExpando} from 'sentry/views/explore/logs/tables/useOurLogsTableExpando';
+import {LogsHoveredLogIdProvider} from 'sentry/views/explore/logs/useLogsHoveredLogId';
+import {LogsPinnedRowsProvider} from 'sentry/views/explore/logs/useLogsPinnedRows';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -68,21 +70,25 @@ export default function LogsContent() {
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
               source="location"
             >
-              <LogsHeader />
-              <LogsPageDataProvider allowHighFidelity>
-                {defined(onboardingProject) ? (
-                  <LogsTabOnboarding
-                    organization={organization}
-                    project={onboardingProject}
-                    datePageFilterProps={datePageFilterProps}
-                  />
-                ) : (
-                  <LogsTabContent
-                    datePageFilterProps={datePageFilterProps}
-                    tableExpando={tableExpando}
-                  />
-                )}
-              </LogsPageDataProvider>
+              <LogsPinnedRowsProvider>
+                <LogsHoveredLogIdProvider>
+                  <LogsHeader />
+                  <LogsPageDataProvider allowHighFidelity>
+                    {defined(onboardingProject) ? (
+                      <LogsTabOnboarding
+                        organization={organization}
+                        project={onboardingProject}
+                        datePageFilterProps={datePageFilterProps}
+                      />
+                    ) : (
+                      <LogsTabContent
+                        datePageFilterProps={datePageFilterProps}
+                        tableExpando={tableExpando}
+                      />
+                    )}
+                  </LogsPageDataProvider>
+                </LogsHoveredLogIdProvider>
+              </LogsPinnedRowsProvider>
             </LogsQueryParamsProvider>
           </LogsPageStack>
         </AnalyticsArea>
