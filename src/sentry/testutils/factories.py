@@ -2869,7 +2869,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_seer_run(organization, **kwargs) -> SeerRun:
-        kwargs.setdefault("type", SeerRunType.AUTOFIX)
+    def create_seer_run(organization, type: str = SeerRunType.AUTOFIX, **kwargs) -> SeerRun:
         kwargs.setdefault("last_triggered_at", timezone.now())
-        return SeerRun.objects.create(organization=organization, **kwargs)
+        return SeerRun.objects.create(organization=organization, type=type, **kwargs)
