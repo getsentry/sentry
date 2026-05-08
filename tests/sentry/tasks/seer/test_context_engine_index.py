@@ -207,8 +207,6 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         assert org.id in eligible
 
     def test_includes_orgs_with_seer_added_flag(self) -> None:
-        from sentry.utils.hashlib import md5_text
-
         org = self._create_org_with_github()
 
         TOTAL_SLOTS = 24
@@ -226,8 +224,6 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         assert org.id in eligible
 
     def test_does_not_double_include_org_with_multiple_flags(self) -> None:
-        from sentry.utils.hashlib import md5_text
-
         org = self._create_org_with_github()
 
         TOTAL_SLOTS = 24
