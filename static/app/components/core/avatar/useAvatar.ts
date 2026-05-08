@@ -174,8 +174,10 @@ function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
 
   // Use Array.from as slicing and substring() work on ucs2 segments which
   // results in only getting half of any 4+ byte character.
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let initials = Array.from(words[0]!)[0]!;
   if (words.length > 1) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     initials += Array.from(words[words.length - 1]!)[0]!;
   }
   return initials.toUpperCase() as Tagged<string, '__avatar'>;
