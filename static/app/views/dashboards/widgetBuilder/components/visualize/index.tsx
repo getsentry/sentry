@@ -1173,7 +1173,9 @@ export function Visualize({
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>
-              {datasetConfig.enableEquations && (
+              {(datasetConfig.enableEquations ||
+                (state.dataset === WidgetType.TRACEMETRICS &&
+                  canShowTraceMetricEquations)) && (
                 <AddButton
                   variant="link"
                   disabled={disableTransactionWidget}

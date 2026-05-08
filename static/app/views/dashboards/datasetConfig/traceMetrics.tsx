@@ -270,7 +270,7 @@ export const TraceMetricsConfig: DatasetConfig<
   defaultCategoryField: 'project',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: true,
+  enableEquations: false, // TODO: Enable this when equations in dashboards is GA'd
   SearchBar: TraceMetricsSearchBar,
   useSearchBarDataProvider: useTraceMetricsSearchBarDataProvider,
   filterSeriesSortOptions,
