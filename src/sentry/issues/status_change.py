@@ -21,7 +21,11 @@ from sentry.models.project import Project
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import (
+    IGNORED_SUBSTATUS_CHOICES,
+    UNRESOLVED_SUBSTATUS_CHOICES,
+    GroupSubStatus,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
@@ -36,7 +40,11 @@ def infer_substatus(
     group_list: Sequence[Group],
 ) -> int | None:
     if new_substatus is not None:
-        return new_substatus
+        if new_status == GroupStatus.IGNORED and new_substatus in IGNORED_SUBSTATUS_CHOICES:
+            return new_substatus
+        if new_status == GroupStatus.UNRESOLVED and new_substatus in UNRESOLVED_SUBSTATUS_CHOICES:
+            return new_substatus
+        new_substatus = None
 
     if new_status == GroupStatus.IGNORED:
         if status_details.get("untilEscalating"):
