@@ -1536,6 +1536,42 @@ def test_flush_lock_released_after_done_flush(buffer: SpansBuffer) -> None:
     assert_clean(buffer.client)
 
 
+def test_flush_lock_released_when_cleanup_skipped(buffer: SpansBuffer) -> None:
+    process_spans(
+        [
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+            ),
+        ],
+        buffer,
+        now=0,
+    )
+
+    with override_options({"spans.buffer.flusher.flush-lock-ttl": 60}):
+        rv = buffer.flush_segments(now=11)
+        segment_key = next(iter(rv))
+        flushed_segment = rv[segment_key]
+        lock_key = buffer._get_flush_lock_key(segment_key)
+
+        buffer.client.zadd(flushed_segment.queue_key, {segment_key: flushed_segment.score + 10})
+
+        buffer.done_flush_segments(rv)
+
+        assert buffer.client.exists(lock_key) == 0
+        assert buffer.client.zscore(flushed_segment.queue_key, segment_key) is not None
+
+        rv2 = buffer.flush_segments(now=22)
+        buffer.done_flush_segments(rv2)
+
+    assert_clean(buffer.client)
+
+
 @pytest.mark.parametrize(
     "flush_lock_ttl, expected_flushed_segments",
     [
