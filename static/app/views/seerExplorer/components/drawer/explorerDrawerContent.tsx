@@ -62,6 +62,7 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     errorStatusCode,
+    isTimedOut,
     sendMessage,
     startNewSession,
     switchToRun,
@@ -95,8 +96,8 @@ export function ExplorerDrawerContent({
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
-    sendMessage(query);
-  }, [initialQuery, isEmptyState, sendMessage]);
+    sendMessage(query, blocks.length);
+  }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -226,21 +227,21 @@ export function ExplorerDrawerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
+  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
   const handleSend = useCallback(() => {
-    if (readOnly || isPolling || !inputValue.trim()) {
+    if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim());
+    sendMessage(inputValue.trim(), blocks.length);
     setInputValue('');
     userScrolledUpRef.current = false;
-  }, [readOnly, inputValue, isPolling, sendMessage]);
+  }, [canSendMessage, inputValue, sendMessage, blocks.length]);
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (readOnly || e.nativeEvent.isComposing) {
+      if (e.nativeEvent.isComposing) {
         return;
       }
-
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
@@ -249,7 +250,7 @@ export function ExplorerDrawerContent({
         closeDrawer();
       }
     },
-    [readOnly, handleSend, closeDrawer]
+    [handleSend, closeDrawer]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -412,7 +413,9 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
+        canSendMessage={canSendMessage}
         interruptState={interruptState}
+        isTimedOut={isTimedOut}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}

@@ -169,11 +169,18 @@ export const useSeerExplorer = () => {
       setHasSentInterrupt(false);
       const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
           prev?.session
-            ? {...prev, session: {...prev.session, status: 'processing'}}
+            ? {
+                ...prev,
+                session: {
+                  ...prev.session,
+                  status: 'processing',
+                  updated_at: new Date().toISOString(),
+                },
+              }
             : prev
         );
       }
@@ -234,14 +241,21 @@ export const useSeerExplorer = () => {
     mutationFn: async params => {
       setHasSentInterrupt(false);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           prev =>
             prev?.session
-              ? {...prev, session: {...prev.session, status: 'processing'}}
+              ? {
+                  ...prev,
+                  session: {
+                    ...prev.session,
+                    status: 'processing',
+                    updated_at: new Date().toISOString(),
+                  },
+                }
               : prev
         );
       }
@@ -291,14 +305,21 @@ export const useSeerExplorer = () => {
     mutationFn: async params => {
       setHasSentInterrupt(false);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           prev =>
             prev?.session
-              ? {...prev, session: {...prev.session, status: 'processing'}}
+              ? {
+                  ...prev,
+                  session: {
+                    ...prev.session,
+                    status: 'processing',
+                    updated_at: new Date().toISOString(),
+                  },
+                }
               : prev
         );
       }
@@ -357,12 +378,14 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
-
-  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
-    runId,
-    isMutatePending,
-  });
+  const {apiData, isPolling, isError, errorStatusCode, isTimedOut} =
+    useSeerExplorerPolling({
+      runId,
+      shouldPollOverride:
+        isPendingSendMessage || isPendingUserInput || isPendingCreatePR
+          ? true
+          : undefined,
+    });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -433,10 +456,10 @@ export const useSeerExplorer = () => {
 
       // Calculate new insert index
       const blocksLength = apiData?.session?.blocks.length || 0;
-      const newInsertIndex = Math.min(
-        Math.max(explicitInsertIndex ?? blocksLength, 0),
-        blocksLength
-      );
+      const newInsertIndex =
+        explicitInsertIndex === undefined
+          ? blocksLength
+          : Math.min(Math.max(explicitInsertIndex, 0), blocksLength);
 
       // Pick a random placeholder for the next loading block, so it's deterministic per user message
       const texts = getOptimisticAssistantTexts();
@@ -530,7 +553,17 @@ export const useSeerExplorer = () => {
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (lastSentMessage === null || !isPolling) {
+    if (!isPolling) {
+      // filter out incomplete loading blocks (can happen on timeout)
+      return rawSessionData === null
+        ? null
+        : {
+            ...rawSessionData,
+            blocks: rawSessionData?.blocks?.filter(b => !b.loading) ?? [],
+          };
+    }
+
+    if (lastSentMessage === null) {
       return rawSessionData;
     }
 
@@ -601,6 +634,7 @@ export const useSeerExplorer = () => {
     isPolling,
     isError,
     errorStatusCode,
+    isTimedOut,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */
