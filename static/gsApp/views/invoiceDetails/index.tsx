@@ -142,24 +142,26 @@ function InvoiceDetails() {
           </PanelBody>
         ) : (
           <Stack maxWidth="720px" border="primary" radius="lg">
-            <Stack padding="2xl" gap="xl">
-              <Flex justify="between" align="end">
-                <Stack gap="sm" align="start">
-                  <LogoSentry height="20px" />
-                  <Text size="sm" variant="secondary">
-                    {invoice.sender.address.join(', ')}
-                  </Text>
-                  {invoice.sentryTaxIds && (
-                    <div>
-                      {invoice.sentryTaxIds.taxIdName}: {invoice.sentryTaxIds.taxId}
-                    </div>
-                  )}
-                  {invoice.sentryTaxIds?.region && (
-                    <div>
-                      {invoice.sentryTaxIds.region.taxIdName}:{' '}
-                      {invoice.sentryTaxIds.region.taxId}
-                    </div>
-                  )}
+            <Stack padding="2xl" gap="2xl">
+              <Flex justify="between">
+                <Stack gap="lg" align="start">
+                  <LogoSentry height="24px" />
+                  <Stack>
+                    <Text size="sm" variant="secondary">
+                      {invoice.sender.address.join(', ')}
+                    </Text>
+                    {invoice.sentryTaxIds && (
+                      <Text size="sm" variant="secondary">
+                        {invoice.sentryTaxIds.taxIdName}: {invoice.sentryTaxIds.taxId}
+                      </Text>
+                    )}
+                    {invoice.sentryTaxIds?.region && (
+                      <Text>
+                        {invoice.sentryTaxIds.region.taxIdName}:{' '}
+                        {invoice.sentryTaxIds.region.taxId}
+                      </Text>
+                    )}
+                  </Stack>
                 </Stack>
                 <Stack align="end" gap="sm">
                   <Text size="sm" variant="muted" monospace>
@@ -308,6 +310,9 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
                         end: <DateTime date={item.periodEnd} dateOnly year />,
                       })}
                     </small>
+                    <Text size="sm" variant="secondary">
+                      {item.type}
+                    </Text>
                   </td>
                   <td>{displayPriceWithCents({cents: item.amount})} USD</td>
                 </tr>
