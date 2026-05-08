@@ -67,8 +67,7 @@ export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
       rowsFromData={(data: IntegrationRow[]) => {
         const transformedRows: any[] = [];
         data.forEach(row => {
-          transformedRows.push(row);
-          transformedRows.push({
+          transformedRows.push(row, {
             _isExpansionRow: true,
             _parentId: row.id,
             _parentData: row,

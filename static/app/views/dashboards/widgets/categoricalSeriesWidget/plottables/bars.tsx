@@ -93,7 +93,7 @@ export class Bars
         },
         animation: false,
         itemStyle: {
-          opacity: 1.0,
+          opacity: 1,
         },
         data: this.categoricalSeries.values.map(
           item =>
