@@ -1,9 +1,3 @@
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 
 export function getProviderConfigUrl(
@@ -37,25 +31,4 @@ export function getProviderConfigUrl(
   }
 
   return null;
-}
-
-export function ProviderConfigLink({
-  integration,
-}: {
-  integration: OrganizationIntegration;
-}) {
-  const externalConfigUrl = getProviderConfigUrl(integration);
-
-  if (!externalConfigUrl) {
-    return null;
-  }
-  return (
-    <Flex align="center" gap="xs">
-      <Tooltip title={t('External installation settings')} skipWrapper>
-        <ExternalLink href={externalConfigUrl} onClick={e => e.stopPropagation()}>
-          {integration.provider.name} <IconOpen size="xs" />
-        </ExternalLink>
-      </Tooltip>
-    </Flex>
-  );
 }
