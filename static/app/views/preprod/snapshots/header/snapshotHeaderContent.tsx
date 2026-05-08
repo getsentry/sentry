@@ -1,3 +1,5 @@
+import {Global, css} from '@emotion/react';
+
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -11,6 +13,18 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
+
+const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
+
+const topBarShrinkOverride = css`
+  *:has(> [${TITLE_MARKER_ATTR}]) {
+    flex: 1;
+    min-width: 0;
+  }
+  *:has(> [${TITLE_MARKER_ATTR}]) + * {
+    flex-shrink: 0;
+  }
+`;
 
 interface SnapshotHeaderContentProps {
   data: SnapshotDetailsApiResponse;
@@ -67,7 +81,14 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   return (
     <Layout.HeaderContent unified>
       <Layout.Title>
-        <Flex align="center" gap="md" minWidth={0} overflow="hidden">
+        <Global styles={topBarShrinkOverride} />
+        <Flex
+          align="center"
+          gap="md"
+          minWidth={0}
+          overflow="hidden"
+          {...{[TITLE_MARKER_ATTR]: ''}}
+        >
           {t('Snapshots')}
           <Container display={{'2xs': 'none', xs: 'flex'}}>
             <PageHeadingQuestionTooltip
