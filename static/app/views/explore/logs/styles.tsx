@@ -146,7 +146,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 2px ${p => p.theme.space.md};
+    padding: 0 ${p => p.theme.space.md};
   }
 `;
 

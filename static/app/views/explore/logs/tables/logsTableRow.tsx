@@ -401,8 +401,14 @@ export const LogRowContent = memo(function LogRowContent({
             ) : null;
           const value = (dataRow as OurLogsResponseItem)[field];
 
-          if (!defined(value)) {
-            return <LogTableBodyCell key={field}>{pin}</LogTableBodyCell>;
+          if (!defined(value) || (field === 'message' && index === 1)) {
+            return (
+              <LogTableBodyCell key={field}>
+                <Flex position="relative" height="100%" width="100%" justify="end">
+                  {pin}
+                </Flex>
+              </LogTableBodyCell>
+            );
           }
 
           const renderedField = (
