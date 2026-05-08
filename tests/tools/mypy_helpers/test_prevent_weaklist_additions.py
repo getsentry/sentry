@@ -224,6 +224,39 @@ disable_error_code = ["misc"]
     assert out.index("'p.q.r'") < out.index("'x.y.z'")
 
 
+def test_addition_to_both_sections_reports_all(tmp_path, capsys) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disallow_untyped_defs = false
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c", "x.y.z"]
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = ["a.b.c", "p.q.r"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 1
+
+    out = capsys.readouterr().out
+    assert "'x.y.z'" in out
+    assert "module ignores list" in out
+    assert "'p.q.r'" in out
+    assert "weaklist" in out
+
+
 def test_multiple_module_ignores_sections_fails_loudly(tmp_path) -> None:
     src = """\
 [[tool.mypy.overrides]]
