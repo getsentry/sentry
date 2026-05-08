@@ -81,10 +81,14 @@ function computeEquationReferencedLabels(
 
 function dispatchYAxisUpdate(
   yAxis: string,
+  currentAggregate: string,
   displayType: DisplayType | undefined,
   fields: Column[] | undefined,
   dispatch: ReturnType<typeof useWidgetBuilderContext>['dispatch']
 ) {
+  if (yAxis === currentAggregate) {
+    return;
+  }
   const actionType = getTraceMetricAggregateActionType(displayType);
   const aggregate = explodeFieldString(yAxis);
   if (actionType === BuilderStateAction.SET_FIELDS) {
@@ -178,7 +182,13 @@ export function MetricsEquationVisualize({
           setSelectedLabel(firstFunction.label);
           const yAxis = firstFunction.queryParams.visualizes[0]?.yAxis;
           if (yAxis) {
-            dispatchYAxisUpdate(yAxis, state.displayType, state.fields, dispatch);
+            dispatchYAxisUpdate(
+              yAxis,
+              currentAggregate,
+              state.displayType,
+              state.fields,
+              dispatch
+            );
           }
         }
         dispatch({type: BuilderStateAction.SET_QUERY, payload: ['']});
@@ -198,11 +208,24 @@ export function MetricsEquationVisualize({
       if (selected) {
         const yAxis = selected.queryParams.visualizes[0]?.yAxis;
         if (yAxis) {
-          dispatchYAxisUpdate(yAxis, state.displayType, state.fields, dispatch);
+          dispatchYAxisUpdate(
+            yAxis,
+            currentAggregate,
+            state.displayType,
+            state.fields,
+            dispatch
+          );
         }
       }
     },
-    [selectedLabel, state.displayType, state.fields, dispatch, onEquationRemoved]
+    [
+      currentAggregate,
+      selectedLabel,
+      state.displayType,
+      state.fields,
+      dispatch,
+      onEquationRemoved,
+    ]
   );
 
   return (
@@ -231,6 +254,15 @@ function MetricsEquationVisualizeContent({
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({type: 'aggregate'});
 
+  const aggregateSource = getTraceMetricAggregateSource(
+    state.displayType,
+    state.yAxis,
+    state.fields
+  );
+  const currentAggregate = aggregateSource?.[0]
+    ? generateFieldAsString(aggregateSource[0])
+    : '';
+
   const onRowSelection = useCallback(
     (label: string) => {
       setSelectedLabel(label);
@@ -242,11 +274,24 @@ function MetricsEquationVisualizeContent({
         });
         const yAxis = query.queryParams.visualizes[0]?.yAxis;
         if (yAxis) {
-          dispatchYAxisUpdate(yAxis, state.displayType, state.fields, dispatch);
+          dispatchYAxisUpdate(
+            yAxis,
+            currentAggregate,
+            state.displayType,
+            state.fields,
+            dispatch
+          );
         }
       }
     },
-    [metricQueries, setSelectedLabel, state.displayType, state.fields, dispatch]
+    [
+      currentAggregate,
+      metricQueries,
+      setSelectedLabel,
+      state.displayType,
+      state.fields,
+      dispatch,
+    ]
   );
 
   const handleMetricParamsChange = useCallback(
