@@ -78,8 +78,8 @@ export function useReplayInit() {
       return;
     }
 
-    const sessionSampleRate = user.isStaff ? 1.0 : 0.05;
-    const errorSampleRate = 1.0;
+    const sessionSampleRate = user.isStaff ? 1 : 0.05;
+    const errorSampleRate = 1;
 
     init(sessionSampleRate, errorSampleRate);
 
