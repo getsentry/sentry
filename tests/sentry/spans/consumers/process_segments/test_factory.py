@@ -31,6 +31,7 @@ def build_mock_message(data, topic=None):
     {
         "spans.process-segments.consumer.enable": True,
         "spans.process-segments.semantic-partitioning": False,
+        "spans.process-segments.dedupe-ttl": 0,
     }
 )
 @mock.patch(

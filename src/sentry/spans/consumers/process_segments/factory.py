@@ -32,11 +32,14 @@ def _check_span_duplicates(spans: list[CompatibleSpan]) -> None:
     Check for duplicate spans using Redis SETNX. Emits a metric for
     duplicates detected but does not filter them out.
     """
-    dedupe_ttl = options.get("spans.process-segments.dedupe-ttl")
-    if dedupe_ttl <= 0 or not spans:
+    if not spans:
         return
 
     try:
+        dedupe_ttl = options.get("spans.process-segments.dedupe-ttl")
+        if dedupe_ttl <= 0:
+            return
+
         client = redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
         with client.pipeline(transaction=False) as p:
             for span in spans:
