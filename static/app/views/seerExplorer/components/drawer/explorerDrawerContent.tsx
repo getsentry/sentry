@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -39,6 +40,7 @@ export function ExplorerDrawerContent({
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
+  const {closeDrawer} = useDrawer();
 
   const [inputValue, setInputValue] = useState('');
   const [showThinking, setShowThinking] = useState(false);
@@ -243,9 +245,12 @@ export function ExplorerDrawerContent({
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDrawer();
       }
     },
-    [handleSend]
+    [handleSend, closeDrawer]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
