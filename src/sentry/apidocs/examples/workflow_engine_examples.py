@@ -201,6 +201,7 @@ class WorkflowEngineExamples:
                                 "extrapolationMode": "unknown",
                             },
                         },
+                        "health": {"isHealthy": True, "message": None},
                     }
                 ],
                 "conditionGroup": {
@@ -251,6 +252,7 @@ class WorkflowEngineExamples:
                     "lastSeen": "2026-01-12T16:16:26.355334Z",
                 },
                 "openIssues": 0,
+                "hasDataSourceError": False,
             },
             status_codes=["200"],
             response_only=True,
@@ -296,6 +298,7 @@ class WorkflowEngineExamples:
                                 "extrapolationMode": "unknown",
                             },
                         },
+                        "health": {"isHealthy": True, "message": None},
                     }
                 ],
                 "conditionGroup": {
@@ -338,6 +341,7 @@ class WorkflowEngineExamples:
                     "lastSeen": "2026-01-09T18:48:15.250134Z",
                 },
                 "openIssues": 0,
+                "hasDataSourceError": False,
             },
             status_codes=["200"],
             response_only=True,
@@ -395,6 +399,7 @@ class WorkflowEngineExamples:
                         "lastSeen": "2026-01-08T21:23:45.723716Z",
                     },
                     "openIssues": 100,
+                    "hasDataSourceError": False,
                 },
                 {
                     "id": "234567891",
@@ -425,6 +430,7 @@ class WorkflowEngineExamples:
                                 "timeoutMs": 5000,
                                 "traceSampling": False,
                             },
+                            "health": {"isHealthy": True, "message": None},
                         }
                     ],
                     "conditionGroup": {
@@ -456,6 +462,7 @@ class WorkflowEngineExamples:
                     "enabled": True,
                     "latestGroup": None,
                     "openIssues": 0,
+                    "hasDataSourceError": False,
                 },
                 {
                     "id": "1234567",
@@ -494,6 +501,7 @@ class WorkflowEngineExamples:
                                     "extrapolationMode": "unknown",
                                 },
                             },
+                            "health": {"isHealthy": True, "message": None},
                         }
                     ],
                     "conditionGroup": {
@@ -520,6 +528,7 @@ class WorkflowEngineExamples:
                     "enabled": True,
                     "latestGroup": None,
                     "openIssues": 0,
+                    "hasDataSourceError": False,
                 },
             ],
             status_codes=["200"],
@@ -817,6 +826,7 @@ class WorkflowEngineExamples:
                                 "extrapolationMode": "unknown",
                             },
                         },
+                        "health": {"isHealthy": True, "message": None},
                     }
                 ],
                 "conditionGroup": {
@@ -833,6 +843,7 @@ class WorkflowEngineExamples:
                 "enabled": True,
                 "latestGroup": None,
                 "openIssues": 0,
+                "hasDataSourceError": False,
             },
             status_codes=["201"],
             response_only=True,
