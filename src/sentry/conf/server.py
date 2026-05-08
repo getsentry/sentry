@@ -3321,3 +3321,6 @@ CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "c
 SYNAPSE_HMAC_SECRET: list[str] | None = None
 if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:
     SYNAPSE_HMAC_SECRET = [val]
+
+if SILO_DEVSERVER or IS_DEV:
+    SYNAPSE_HMAC_SECRET = ["synapse-dev-secret"]
