@@ -261,7 +261,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         run = SeerRun.objects.get(id=object_identifier)
     except SeerRun.DoesNotExist:
         return
-    if run.seer_run_state_id:
+    if run.seer_run_state_id is not None:
         return
 
     # Validate the payload shape and parse run.type up front. A malformed
@@ -286,8 +286,11 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                 cast(AgentChatRequest, body), viewer_context=viewer_context
             )
         case SeerRunType.PR_REVIEW:
-            # TODO(telkins): support PR review runs
-            raise NotImplementedError("PR_REVIEW dispatch not wired yet")
+            # TODO(telkins): support PR review runs. Until then, mark the
+            # run FAILED rather than raising — the failure is permanent and
+            # raising would stall the org's outbox shard on every drain.
+            _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
+            return
         case SeerRunType.ASSISTED_QUERY:
             response = make_search_agent_start_request(
                 cast(SearchAgentStartRequest, body), viewer_context=viewer_context

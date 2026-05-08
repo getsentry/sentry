@@ -257,3 +257,17 @@ class HandleSeerRunCreateTest(TestCase):
         run.refresh_from_db()
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
         assert run.seer_run_state_id is None
+
+    def test_pr_review_marks_failed_instead_of_raising(self) -> None:
+        run = self.create_seer_run(type=SeerRunType.PR_REVIEW)
+
+        # Must not raise — raising stalls the outbox shard indefinitely.
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=self._make_payload(),
+            shard_identifier=self.organization.id,
+        )
+
+        run.refresh_from_db()
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
+        assert run.seer_run_state_id is None
