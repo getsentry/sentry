@@ -1181,6 +1181,47 @@ class TestCallAutofix(TestCase):
         )
         assert body["options"]["disable_coding_step"] is False
 
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_creates_run_and_returns_run_id(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with self.feature("organizations:seer-run-mirror"):
+            run_id = _call_autofix(
+                user=self.user,
+                group=group,
+                preference=preference,
+                serialized_event={"event_id": "test-event"},
+                profile=None,
+                trace_tree=None,
+                logs=None,
+                tags_overview=None,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            )
+
+        assert run_id == 42
+
+        from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.type == SeerRunType.AUTOFIX
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.seer_run_state_id == 42
+        assert run.user_id == self.user.id
+
+        sent_body = mock_request.call_args[0][0]
+        body = orjson.loads(sent_body)
+        assert body["organization_id"] == group.organization.id
+        assert body["project_id"] == group.project.id
+        assert "external_idempotency_key" in body
+        assert body["external_idempotency_key"] == str(run.uuid)
+
 
 class TestGetGithubUsernameForUser(TestCase):
     def test_get_github_username_for_user_with_github(self) -> None:
