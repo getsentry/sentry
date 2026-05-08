@@ -17,6 +17,13 @@ interface SortSearchedAttributesProps<Value extends SelectKey> {
   searchText: string;
 }
 
+/**
+ * Scores an attribute option for CompactSelect search results in Explore field pickers.
+ *
+ * Use this as a custom search/filter scorer when the menu should keep the existing
+ * substring-only matching behavior, but rank matches with fzf and prefer known Sentry
+ * field definitions over arbitrary custom attributes.
+ */
 export function sortSearchedAttributes<Value extends SelectKey>({
   fieldDefinitionType,
   option,
@@ -71,6 +78,12 @@ function getFieldDefinitionType(
   }
 }
 
+/**
+ * Sorts attribute options for Explore field pickers before the user enters search text.
+ *
+ * Use this for initial option lists where known Sentry field definitions should appear
+ * before custom attributes, with each group sorted alphabetically by label.
+ */
 export function sortKnownAttributes<Value extends SelectOption<string>>(
   a: Value,
   b: Value,
