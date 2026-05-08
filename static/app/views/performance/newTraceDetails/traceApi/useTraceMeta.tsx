@@ -1,21 +1,27 @@
-import {useMemo} from 'react';
 import {useQuery, type QueryStatus} from '@tanstack/react-query';
+import type {QueryFunctionContext} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
-import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 import type {EAPTraceMeta, TraceMeta} from './types';
+
+export type TraceMetaTrace = {
+  timestamp: number | undefined;
+  traceSlug: string;
+};
+
+type UseTraceMetaOptions = TraceMetaTrace | TraceMetaTrace[];
 
 type TraceMetaQueryParams =
   | {
@@ -32,7 +38,7 @@ function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
 }
 
 function getMetaQueryParams(
-  row: ReplayTrace,
+  trace: TraceMetaTrace,
   normalizedParams: any,
   filters: Partial<PageFilters> = {},
   statsPeriodOverride?: string
@@ -41,8 +47,8 @@ function getMetaQueryParams(
 
   return {
     include_uptime: '1',
-    ...(row.timestamp
-      ? {timestamp: row.timestamp}
+    ...(trace.timestamp
+      ? {timestamp: trace.timestamp}
       : {
           statsPeriod:
             statsPeriodOverride ??
@@ -52,35 +58,23 @@ function getMetaQueryParams(
   };
 }
 
-async function fetchSingleTraceMetaNew(
-  type: 'non-eap' | 'eap',
-  api: Client,
-  organization: Organization,
-  replayTrace: ReplayTrace,
-  queryParams: any
-) {
-  const url =
-    type === 'eap'
-      ? `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`
-      : `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`;
-
-  const data = await api.requestPromise(url, {
-    method: 'GET',
-    data: queryParams,
-  });
-  return data;
+export function isEAPTraceMeta(
+  meta: TraceMeta | EAPTraceMeta | undefined
+): meta is EAPTraceMeta {
+  if (!meta) return false;
+  return 'uptime_checks' in meta && !('transactions' in meta);
 }
 
 async function fetchTraceMetaInBatches(
   type: 'non-eap' | 'eap',
-  api: Client,
   organization: Organization,
-  replayTraces: ReplayTrace[],
+  traces: TraceMetaTrace[],
   normalizedParams: any,
+  fetchContext: QueryFunctionContext,
   filters: Partial<PageFilters> = {},
   statsPeriodOverride?: string
 ) {
-  const clonedTraceIds = [...replayTraces];
+  const pendingTraces = [...traces];
   const meta: TraceMeta | EAPTraceMeta =
     type === 'eap'
       ? {
@@ -104,17 +98,37 @@ async function fetchTraceMetaInBatches(
 
   const apiErrors: Error[] = [];
 
-  while (clonedTraceIds.length > 0) {
-    const batch = clonedTraceIds.splice(0, 3);
+  while (pendingTraces.length > 0) {
+    const batch = pendingTraces.splice(0, 3);
     const results = await Promise.allSettled<TraceMeta | EAPTraceMeta>(
-      batch.map(replayTrace => {
-        const queryParams = getMetaQueryParams(
-          replayTrace,
-          normalizedParams,
-          filters,
-          statsPeriodOverride
+      batch.map(trace => {
+        let url = getApiUrl(
+          '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/',
+          {path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug}}
         );
-        return fetchSingleTraceMetaNew(type, api, organization, replayTrace, queryParams);
+
+        if (type === 'eap') {
+          url = getApiUrl('/organizations/$organizationIdOrSlug/trace-meta/$traceId/', {
+            path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug},
+          });
+        }
+
+        return apiFetch<TraceMeta | EAPTraceMeta>({
+          ...fetchContext,
+          queryKey: [
+            url,
+            {
+              method: 'GET',
+              data: getMetaQueryParams(
+                trace,
+                normalizedParams,
+                filters,
+                statsPeriodOverride
+              ),
+            },
+            {infinite: false},
+          ],
+        }).then(response => response.json);
       })
     );
 
@@ -160,44 +174,43 @@ async function fetchTraceMetaInBatches(
 export type TraceMetaQueryResults = {
   data: TraceMeta | EAPTraceMeta | undefined;
   errors: Error[];
+  isLoading: boolean;
   status: QueryStatus;
 };
 
-export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults {
-  const api = useApi();
+function getTraceMetaTraces(options: UseTraceMetaOptions): TraceMetaTrace[] {
+  return Array.isArray(options) ? options : [options];
+}
+
+export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResults {
   const filters = usePageFilters();
   const organization = useOrganization();
   const isEAP = useIsEAPTraceEnabled();
   const maxPickableDays = useDefaultMaxPickableDays();
+  const traces = getTraceMetaTraces(options);
 
-  const normalizedParams = useMemo(() => {
-    const query = qs.parse(location.search);
-    return normalizeDateTimeParams(query, {
-      allowAbsolutePageDatetime: true,
-    });
-  }, []);
+  const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
+    allowAbsolutePageDatetime: true,
+  });
 
   // demo has the format ${projectSlug}:${eventId}
   // used to query a demo transaction event from the backend.
   const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
 
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
-  const query = useQuery({
-    queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
-    queryFn: async (): Promise<{
-      apiErrors: Error[];
-      meta: TraceMeta | EAPTraceMeta;
-    }> => {
+  const {data, isLoading, status} = useQuery({
+    queryKey: ['traceData', traces.map(trace => trace.traceSlug)],
+    queryFn: async context => {
       const result = await fetchTraceMetaInBatches(
         isEAP ? 'eap' : 'non-eap',
-        api,
         organization,
-        replayTraces,
+        traces,
         normalizedParams,
+        context,
         filters.selection
       );
 
-      const hasStatsPeriodTrace = replayTraces.some(t => !t.timestamp);
+      const hasStatsPeriodTrace = traces.some(t => !t.timestamp);
       const defaultStatsDays = parseInt(DEFAULT_STATS_PERIOD, 10);
       if (
         result.apiErrors.length === 0 &&
@@ -207,10 +220,10 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
       ) {
         return fetchTraceMetaInBatches(
           isEAP ? 'eap' : 'non-eap',
-          api,
           organization,
-          replayTraces,
+          traces,
           normalizedParams,
+          context,
           filters.selection,
           `${maxPickableDays}d`
         );
@@ -219,26 +232,23 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
       return result;
     },
     staleTime: 1000 * 60 * 10,
-    enabled: replayTraces.length > 0,
+    enabled: traces.length > 0,
   });
 
-  const results = useMemo(() => {
+  /**
+   * When projects don't have performance set up, we allow them to view a sample
+   * transaction. The backend creates the sample transaction, however the trace is
+   * created async, so when the page loads, we cannot guarantee that querying the trace
+   * will succeed as it may not have been stored yet. When this happens, we assemble a
+   * fake trace response to only include the transaction that had already been created
+   * and stored already so that the users can visualize in the context of a trace. The
+   * trace meta query has to reflect this by returning a single transaction and project.
+   */
+  if (mode === 'demo') {
     return {
-      data: query.data?.meta,
-      errors: query.data?.apiErrors ?? [],
-      status:
-        query.data?.apiErrors?.length === replayTraces.length ? 'error' : query.status,
-    };
-  }, [query.data, query.status, replayTraces.length]);
-
-  // When projects don't have performance set up, we allow them to view a sample transaction.
-  // The backend creates the sample transaction, however the trace is created async, so when the
-  // page loads, we cannot guarantee that querying the trace will succeed as it may not have been stored yet.
-  // When this happens, we assemble a fake trace response to only include the transaction that had already been
-  // created and stored already so that the users can visualize in the context of a trace.
-  // The trace meta query has to reflect this by returning a single transaction and project.
-  const demoResults = useMemo(() => {
-    return {
+      errors: [],
+      status: 'success' as QueryStatus,
+      isLoading: false,
       data: isEAP
         ? {
             errors: 0,
@@ -258,10 +268,13 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
             span_count: 0,
             span_count_map: {},
           },
-      errors: [],
-      status: 'success' as QueryStatus,
     };
-  }, [isEAP]);
+  }
 
-  return mode === 'demo' ? demoResults : results;
+  return {
+    data: data?.meta,
+    errors: data?.apiErrors ?? [],
+    status: data?.apiErrors?.length === traces.length ? 'error' : status,
+    isLoading,
+  };
 }

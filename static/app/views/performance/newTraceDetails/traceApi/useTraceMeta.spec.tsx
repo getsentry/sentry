@@ -3,9 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 
-import {useTraceMeta} from './useTraceMeta';
+import {useTraceMeta, type TraceMetaTrace} from './useTraceMeta';
 
 jest.mock('sentry/utils/useSyncedLocalStorageState', () => ({
   useSyncedLocalStorageState: jest.fn(),
@@ -13,7 +12,7 @@ jest.mock('sentry/utils/useSyncedLocalStorageState', () => ({
 
 const organization = OrganizationFixture();
 
-const mockedReplayTraces: ReplayTrace[] = [
+const mockedTraces: TraceMetaTrace[] = [
   {
     traceSlug: 'slug1',
     timestamp: 1,
@@ -82,13 +81,15 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+    const {result} = renderHookWithProviders(useTraceMeta, {
       organization,
+      initialProps: mockedTraces,
     });
 
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -112,6 +113,7 @@ describe('useTraceMeta', () => {
         },
       },
       errors: [],
+      isLoading: false,
       status: 'success',
     });
   });
@@ -170,13 +172,15 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+    const {result} = renderHookWithProviders(useTraceMeta, {
       organization: org,
+      initialProps: mockedTraces,
     });
 
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -201,6 +205,7 @@ describe('useTraceMeta', () => {
         uptime_checks: 0,
       },
       errors: [],
+      isLoading: false,
       status: 'success',
     });
   });
@@ -222,13 +227,15 @@ describe('useTraceMeta', () => {
       statusCode: 400,
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+    const {result} = renderHookWithProviders(useTraceMeta, {
       organization,
+      initialProps: mockedTraces,
     });
 
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -245,6 +252,7 @@ describe('useTraceMeta', () => {
         span_count_map: {},
       },
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
+      isLoading: false,
       status: 'error',
     });
 
@@ -255,7 +263,7 @@ describe('useTraceMeta', () => {
 
   it('Retries with 90d when initial 14d response has no data', async () => {
     const org = OrganizationFixture({features: ['trace-spans-format']});
-    const tracesWithoutTimestamp: ReplayTrace[] = [
+    const tracesWithoutTimestamp: TraceMetaTrace[] = [
       {traceSlug: 'slug1', timestamp: undefined},
       {traceSlug: 'slug2', timestamp: undefined},
     ];
@@ -324,7 +332,7 @@ describe('useTraceMeta', () => {
 
   it('Does not retry when initial response has data', async () => {
     const org = OrganizationFixture({features: ['trace-spans-format']});
-    const tracesWithoutTimestamp: ReplayTrace[] = [
+    const tracesWithoutTimestamp: TraceMetaTrace[] = [
       {traceSlug: 'slug1', timestamp: undefined},
     ];
 
@@ -372,7 +380,7 @@ describe('useTraceMeta', () => {
 
   it('Does not retry when all traces have timestamps', async () => {
     const org = OrganizationFixture({features: ['trace-spans-format']});
-    const tracesWithTimestamps: ReplayTrace[] = [{traceSlug: 'slug1', timestamp: 123}];
+    const tracesWithTimestamps: TraceMetaTrace[] = [{traceSlug: 'slug1', timestamp: 123}];
 
     const mockSlug1_timestamp = MockApiClient.addMockResponse({
       method: 'GET',
@@ -452,13 +460,15 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+    const {result} = renderHookWithProviders(useTraceMeta, {
       organization,
+      initialProps: mockedTraces,
     });
 
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -478,6 +488,7 @@ describe('useTraceMeta', () => {
         },
       },
       errors: [expect.any(Error)],
+      isLoading: false,
       status: 'success',
     });
 

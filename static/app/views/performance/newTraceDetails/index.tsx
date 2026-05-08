@@ -117,7 +117,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   });
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
