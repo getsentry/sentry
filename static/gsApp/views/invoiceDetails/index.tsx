@@ -321,39 +321,8 @@ function sumAmounts(items: InvoiceItem[]) {
   return items.reduce((sum, item) => sum + item.amount, 0);
 }
 
-// TODO: remove — temporary fake data so we can preview the "Additional usage"
-// section while real ondemand items aren't present on this invoice.
-const FAKE_USAGE_ITEMS: InvoiceItem[] = [
-  {
-    type: 'ondemand_errors',
-    description: '31,414 errors',
-    amount: 7526, // $75.26
-    periodStart: '2022-05-01',
-    periodEnd: '2022-05-31',
-    data: {quantity: 31414},
-  },
-  {
-    type: 'ondemand_spans',
-    description: '80,941,108 spans',
-    amount: 36339, // $363.39
-    periodStart: '2022-05-01',
-    periodEnd: '2022-05-31',
-    data: {quantity: 80941108},
-  },
-  {
-    type: 'ondemand_replays',
-    description: '12,000 replays',
-    amount: 3456, // $34.56
-    periodStart: '2022-05-01',
-    periodEnd: '2022-05-31',
-    data: {quantity: 12000},
-  },
-];
-
 function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
   const groups = groupItems(invoice.items);
-  // TODO: remove — append fake usage items for design preview.
-  groups.usage = [...groups.usage, ...FAKE_USAGE_ITEMS];
   const subtotal = sumAmounts([...groups.subscription, ...groups.usage]);
 
   return (
