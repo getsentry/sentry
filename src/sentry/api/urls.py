@@ -554,6 +554,10 @@ from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeer
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
+from sentry.seer.endpoints.project_seer_repos import (
+    OrganizationSeerProjectRepoDetailsEndpoint,
+    OrganizationSeerProjectReposEndpoint,
+)
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -2461,6 +2465,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",
         OrganizationSeerOnboardingCheck.as_view(),
         name="sentry-api-0-organization-seer-onboarding-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/(?P<project_id>\d+)/repos/$",
+        OrganizationSeerProjectReposEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-project-repos",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/(?P<project_id>\d+)/repos/(?P<repo_id>\d+)/$",
+        OrganizationSeerProjectRepoDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-project-repo-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
