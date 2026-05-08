@@ -302,7 +302,9 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     try:
         data = response.json()
-    except (json.JSONDecodeError, UnicodeDecodeError):
+        if not isinstance(data, dict):
+            raise TypeError("Seer response is not a JSON object")
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
         _mark_seer_run_failed(run, "seer_run_create.invalid_json_body", status=response.status)
         return
 
