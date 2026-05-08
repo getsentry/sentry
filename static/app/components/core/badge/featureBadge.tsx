@@ -19,10 +19,10 @@ const defaultTitles: Record<FeatureBadgeProps['type'], string> = {
 };
 
 const variantMap: Record<FeatureBadgeProps['type'], TagVariant> = {
-  alpha: 'warning',
-  beta: 'success',
-  new: 'info',
-  experimental: 'promotion',
+  alpha: 'promotion',
+  beta: 'warning',
+  new: 'success',
+  experimental: 'muted',
 };
 
 const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
