@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models import AutofixHandoffPoint
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -36,7 +37,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
             "reposCount": 0,
         }
 
-    def test_get_returns_configured_settings(self) -> None:
+    def test_get_returns_configured_project_options(self) -> None:
         """A project with explicit options should reflect them in the response."""
         self.project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
@@ -50,7 +51,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         assert response.data["stoppingPoint"] == "open_pr"
         assert response.data["scannerAutomation"] is False
 
-    def test_get_returns_external_agent(self) -> None:
+    def test_get_returns_external_agent_with_integration_id(self) -> None:
         """A project with an external handoff should return the agent alias and integration ID."""
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
@@ -78,6 +79,18 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["stoppingPoint"] == "off"
 
+    def test_get_stopping_point_when_tuning_on(self) -> None:
+        """When tuning is not OFF, stoppingPoint should reflect the stored value."""
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["stoppingPoint"] == "root_cause"
+
     def test_get_repos_count(self) -> None:
         """reposCount should reflect active SeerProjectRepository rows."""
         repo1 = self.create_repo(project=self.project, name="owner/repo-1")
@@ -89,6 +102,20 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 2
+
+    def test_get_repos_count_excludes_inactive_repos(self) -> None:
+        """Repos with non-active status should not be counted."""
+        active_repo = self.create_repo(project=self.project, name="owner/active")
+        disabled_repo = self.create_repo(project=self.project, name="owner/deleted")
+        disabled_repo.status = ObjectStatus.DISABLED
+        disabled_repo.save()
+        SeerProjectRepository.objects.create(project=self.project, repository=active_repo)
+        SeerProjectRepository.objects.create(project=self.project, repository=disabled_repo)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["reposCount"] == 1
 
     def test_put_returns_updated_settings(self) -> None:
         """PUT response should contain the full updated settings object."""
