@@ -318,12 +318,7 @@ export function SizeCompareMainContent() {
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
           <Flex align="center" justify="between" padding="xl">
-            <Flex align="center" gap="sm">
-              <Heading as="h2">
-                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
-              </Heading>
-            </Flex>
-            <Flex align="center" gap="sm">
+            <Flex align="center">
               <Button
                 variant="transparent"
                 size="sm"
@@ -338,7 +333,24 @@ export function SizeCompareMainContent() {
                   }}
                 />
               </Button>
+              <Heading as="h2">
+                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
+              </Heading>
             </Flex>
+            <Button
+              size="sm"
+              icon={<IconDownload />}
+              disabled={filteredDiffItems.length === 0}
+              onClick={() =>
+                downloadSizeCompareItemsAsCsv(
+                  filteredDiffItems,
+                  t('Size Compare Items Changed')
+                )
+              }
+              aria-label={t('Download CSV')}
+            >
+              {t('Download CSV')}
+            </Button>
           </Flex>
           {isFilesExpanded && (
             <Stack>
@@ -353,35 +365,17 @@ export function SizeCompareMainContent() {
                     onChange={e => setSearchQuery(e.target.value)}
                   />
                 </InputGroup>
-                <Flex align="center" justify="between">
-                  <Flex align="center" gap="lg" wrap="nowrap">
-                    <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
-                    <Switch
-                      checked={hideSmallChanges}
-                      size="sm"
-                      title={t('Hide < 500B')}
-                      onChange={() => setHideSmallChanges(!hideSmallChanges)}
-                      aria-label={
-                        hideSmallChanges
-                          ? t('Show small changes')
-                          : t('Hide small changes')
-                      }
-                    />
-                  </Flex>
-                  <Button
+                <Flex align="center" gap="lg" wrap="nowrap">
+                  <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
+                  <Switch
+                    checked={hideSmallChanges}
                     size="sm"
-                    icon={<IconDownload />}
-                    disabled={filteredDiffItems.length === 0}
-                    onClick={() =>
-                      downloadSizeCompareItemsAsCsv(
-                        filteredDiffItems,
-                        t('Size Compare Items Changed')
-                      )
+                    title={t('Hide < 500B')}
+                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                    aria-label={
+                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
                     }
-                    aria-label={t('Download CSV')}
-                  >
-                    {t('Download CSV')}
-                  </Button>
+                  />
                 </Flex>
               </Stack>
               <SizeCompareItemDiffTable
