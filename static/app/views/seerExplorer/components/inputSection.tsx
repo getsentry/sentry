@@ -47,9 +47,7 @@ interface InputSectionProps {
   canSendMessage?: boolean;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
-  isMinimized?: boolean;
   isTimedOut?: boolean;
-  isVisible?: boolean;
   questionActions?: QuestionActions;
 }
 
@@ -60,8 +58,6 @@ export function InputSection({
   canSendMessage = true,
   interruptState = 'disabled',
   isTimedOut = false,
-  isMinimized = false,
-  isVisible = false,
   onCreatePR,
   onInputChange,
   onInputClick,
@@ -82,7 +78,7 @@ export function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
+    if (!enabled || !fileApprovalActions) {
       return;
     }
 
@@ -106,11 +102,11 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, fileApprovalActions, isVisible, isMinimized]);
+  }, [enabled, fileApprovalActions]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!enabled || !questionActions || !isVisible || isMinimized) {
+    if (!enabled || !questionActions) {
       return;
     }
 
@@ -146,7 +142,7 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, questionActions, isVisible, isMinimized]);
+  }, [enabled, questionActions]);
 
   // Render disabled input element if not enabled
   if (!enabled) {
