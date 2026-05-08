@@ -163,7 +163,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         event_types = data.get("event_types", [])
 
         if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
-            aggregate = data.get("aggregate")
+            aggregate: str = data.get("aggregate", "")
             validate_trace_metrics_aggregate(aggregate)
 
     def validate_deprecated_transactions_datasets(self, data: dict[str, Any]) -> None:
@@ -304,7 +304,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 f"Critical trigger must have an alert threshold {threshold_name} warning trigger"
             )
 
-    def create(self, validated_data: dict[str, Any]) -> AlertRule:
+    def create(self, validated_data: dict[str, Any]) -> AlertRule:  # type: ignore[override]
         org_subscription_count = QuerySubscription.objects.filter(
             project__organization_id=self.context["organization"].id,
             status__in=(
@@ -373,7 +373,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             if are_any_projects_error_upsampled(project_ids):
                 validated_data["aggregate"] = "upsampled_count()"
 
-    def update(self, instance: AlertRule, validated_data: dict[str, Any]) -> AlertRule:
+    def update(self, instance: AlertRule, validated_data: dict[str, Any]) -> AlertRule:  # type: ignore[override]
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")

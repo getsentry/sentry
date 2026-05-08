@@ -24,7 +24,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
 
 
-class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
+class AlertRuleTriggerSerializer(CamelSnakeModelSerializer[AlertRuleTrigger]):
     """
     Serializer for creating/updating an alert rule trigger. Required context:
      - `alert_rule`: The alert_rule related to this trigger.
