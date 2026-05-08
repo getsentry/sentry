@@ -26,7 +26,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
         self.rule_fire_history = RuleFireHistory.objects.create(
             project=self.project, rule=self.rule, group=self.group
         )
-
         self.action = self.create_action()
 
     def test_constraint_allows_action_group_with_open_period_start(self) -> None:

@@ -21,7 +21,7 @@ class NotificationMessage(Model):
     This information will then be leveraged to show the user which notifications are consistently failing.
     An example of this would be if a Slack channel no longer exists.
 
-    The data model hold the singular gateway for both Metric, and Issue, Alerts.
+    The data model hold the singular gateway for both Metric and Issue Alerts.
     Following the specific data relationship, you should be able to find the specific rule, organization, project, and
     incident or group event that this notification message was enacted.
 
@@ -44,6 +44,10 @@ class NotificationMessage(Model):
     # Related information regarding Alert Rules (Metric Alerts)
     incident = FlexibleForeignKey("sentry.Incident", null=True)
     trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction", null=True)
+
+    # Related information regarding Rules (Issue Alerts)
+    rule_fire_history = FlexibleForeignKey("sentry.RuleFireHistory", null=True)
+    rule_action_uuid = CharField(null=True, db_index=True)
 
     date_added = DateTimeField(default=timezone.now)
 
