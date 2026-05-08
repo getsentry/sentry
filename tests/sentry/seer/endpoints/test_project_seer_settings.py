@@ -200,7 +200,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0] == {
-            "projectId": self.project.id,
+            "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
             "agent": "seer",
             "integrationId": None,
@@ -309,7 +309,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         project_ids = [r["projectId"] for r in response.data]
         assert len(project_ids) == 1
-        assert inaccessible_project.id not in project_ids
+        assert str(inaccessible_project.id) not in project_ids
 
     def test_get_paginates_results(self) -> None:
         """Results should be paginated with Link headers indicating next/previous."""
@@ -349,7 +349,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert ids.index(project2.id) < ids.index(project1.id)
+        assert ids.index(str(project2.id)) < ids.index(str(project1.id))
 
     def test_get_sort_by_agent(self) -> None:
         """sortBy=agent should order alphabetically by agent alias."""
@@ -367,8 +367,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert ids.index(project_claude.id) < ids.index(project_cursor.id)
-        assert ids.index(project_cursor.id) < ids.index(project_seer.id)
+        assert ids.index(str(project_claude.id)) < ids.index(str(project_cursor.id))
+        assert ids.index(str(project_cursor.id)) < ids.index(str(project_seer.id))
 
     def test_get_sort_by_stopping_point(self) -> None:
         """sortBy=stoppingPoint should order by hierarchy rank (off < root_cause < code_changes < open_pr)."""
@@ -390,8 +390,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert ids.index(self.project.id) < ids.index(project_root_cause.id)
-        assert ids.index(project_root_cause.id) < ids.index(project_open_pr.id)
+        assert ids.index(str(self.project.id)) < ids.index(str(project_root_cause.id))
+        assert ids.index(str(project_root_cause.id)) < ids.index(str(project_open_pr.id))
 
     def test_get_sort_by_invalid_field_returns_400(self) -> None:
         """An unrecognized sortBy value should return 400."""
@@ -420,9 +420,9 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
         assert len(ids) == 2
-        assert project1.id in ids
-        assert project2.id in ids
-        assert project3.id not in ids
+        assert str(project1.id) in ids
+        assert str(project2.id) in ids
+        assert str(project3.id) not in ids
 
     def test_get_filter_by_id(self) -> None:
         """id:N should return only the project with that ID."""
@@ -433,7 +433,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert ids == [project.id]
+        assert ids == [str(project.id)]
 
     def test_get_filter_by_id_list(self) -> None:
         """id:[N,M] should return only the projects with those IDs."""
@@ -445,7 +445,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert sorted(ids) == sorted([project1.id, project2.id])
+        assert sorted(ids) == sorted([str(project1.id), str(project2.id)])
 
     def test_get_filter_by_repos_count(self) -> None:
         """reposCount with numeric operators."""
@@ -458,13 +458,13 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         response = self.client.get(self.url, {"query": "reposCount:>0"})
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert project1.id in ids
-        assert project2.id not in ids
+        assert str(project1.id) in ids
+        assert str(project2.id) not in ids
 
         response = self.client.get(self.url, {"query": "reposCount:0"})
         ids = [r["projectId"] for r in response.data]
-        assert project2.id in ids
-        assert project1.id not in ids
+        assert str(project2.id) in ids
+        assert str(project1.id) not in ids
 
     def test_get_filter_by_stopping_point(self) -> None:
         """stoppingPoint filter should account for tuning state."""
@@ -477,13 +477,13 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         response = self.client.get(self.url, {"query": "stoppingPoint:off"})
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert self.project.id in ids
-        assert project1.id not in ids
+        assert str(self.project.id) in ids
+        assert str(project1.id) not in ids
 
         response = self.client.get(self.url, {"query": "stoppingPoint:code_changes"})
         ids = [r["projectId"] for r in response.data]
-        assert project1.id in ids
-        assert self.project.id not in ids
+        assert str(project1.id) in ids
+        assert str(self.project.id) not in ids
 
     def test_get_filter_by_agent_seer(self) -> None:
         """agent:seer should return projects with no handoff target (NULL)."""
@@ -494,8 +494,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert self.project.id in ids
-        assert project1.id not in ids
+        assert str(self.project.id) in ids
+        assert str(project1.id) not in ids
 
     def test_get_filter_by_agent_external(self) -> None:
         """agent:cursor_background_agent should return projects with cursor handoff target."""
@@ -506,8 +506,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert project1.id in ids
-        assert self.project.id not in ids
+        assert str(project1.id) in ids
+        assert str(self.project.id) not in ids
 
     def test_get_filter_negation(self) -> None:
         """!agent:seer should exclude projects with no handoff target."""
@@ -518,8 +518,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert project1.id in ids
-        assert self.project.id not in ids
+        assert str(project1.id) in ids
+        assert str(self.project.id) not in ids
 
     def test_get_multiple_filters(self) -> None:
         """Combining multiple filters should intersect the results."""
@@ -537,7 +537,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
-        assert ids == [project1.id]
+        assert ids == [str(project1.id)]
 
     def test_get_invalid_search_query_returns_400(self) -> None:
         """A malformed search query should return 400 with detail."""
