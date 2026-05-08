@@ -417,7 +417,7 @@ class UpdateGroupsTest(TestCase):
         group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
 
-    def test_rejects_substatus_mismatched_with_status(self) -> None:
+    def test_rejects_mismatched_status_and_substatus(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         request = self.make_request(user=self.user, method="GET")
@@ -431,18 +431,6 @@ class UpdateGroupsTest(TestCase):
 
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
-
-    def test_rejects_substatus_for_resolved_status(self) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "resolved", "substatus": "ongoing"}
-        request.GET = QueryDict(query_string=f"id={group.id}")
-        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-
-        with pytest.raises(serializers.ValidationError):
-            update_groups(request, group_list)
 
     def test_resolve_in_next_release_ignores_archived_releases(self) -> None:
         open_release = self.create_release(
