@@ -63,7 +63,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
 
             return datum.incomplete ? colorObject.alpha(0.5).string() : colorValue;
           },
-          opacity: 1.0,
+          opacity: 1,
         },
         data: scaledTimeSeries.values.map(timeSeriesItemToEChartsDataPoint),
       }),

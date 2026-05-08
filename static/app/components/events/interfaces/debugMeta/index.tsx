@@ -13,9 +13,10 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {
   DebugImageDetails,
   modalCss,
@@ -107,6 +108,8 @@ interface DebugMetaProps {
 type FilterSelections = Array<SelectOption<string>>;
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
 
@@ -215,7 +218,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         {modalCss: modalCss(theme)}
       );
     },
-    [event, groupId, organization, projectSlug, theme]
+    [event, groupId, organization, projectSlug, theme, openModal]
   );
 
   if (shouldSkipSection(filteredImages, data.images)) {

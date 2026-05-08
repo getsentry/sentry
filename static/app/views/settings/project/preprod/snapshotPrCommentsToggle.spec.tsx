@@ -3,7 +3,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SnapshotPrCommentsToggle} from 'sentry/views/settings/project/preprod/snapshotPrCommentsToggle';
 
 describe('SnapshotPrCommentsToggle', () => {
@@ -21,6 +20,10 @@ describe('SnapshotPrCommentsToggle', () => {
 
   it('renders default values when the project has no preprod options', async () => {
     const project = ProjectFixture({options: {}});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
     render(<SnapshotPrCommentsToggle />, {
       organization,
       outletContext: {project},
@@ -39,6 +42,10 @@ describe('SnapshotPrCommentsToggle', () => {
     const project = ProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
     });
     render(<SnapshotPrCommentsToggle />, {
       organization,
@@ -72,6 +79,10 @@ describe('SnapshotPrCommentsToggle', () => {
       preprodSnapshotPrCommentsPostOnChanged: false,
       preprodSnapshotPrCommentsPostOnRenamed: true,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
     render(<SnapshotPrCommentsToggle />, {
       organization,
       outletContext: {project},
@@ -98,6 +109,10 @@ describe('SnapshotPrCommentsToggle', () => {
       preprodSnapshotPrCommentsEnabled: true,
     });
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -131,6 +146,10 @@ describe('SnapshotPrCommentsToggle', () => {
       preprodSnapshotPrCommentsEnabled: true,
     });
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -163,8 +182,11 @@ describe('SnapshotPrCommentsToggle', () => {
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
     });
-    ProjectsStore.loadInitialData([project]);
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -175,6 +197,12 @@ describe('SnapshotPrCommentsToggle', () => {
       organization,
       outletContext: {project},
       initialRouterConfig,
+    });
+
+    // Setup mock for after the toggle is switched off
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: {...project, preprodSnapshotPrCommentsEnabled: false},
     });
 
     await userEvent.click(
@@ -202,6 +230,10 @@ describe('SnapshotPrCommentsToggle', () => {
     const project = ProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: false,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
     });
     render(<SnapshotPrCommentsToggle />, {
       organization,

@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -36,6 +36,8 @@ function TransactionThresholdButton({
   projects,
   transactionName,
 }: Props) {
+  const {openModal} = useModal();
+
   const [loadingThreshold, setLoadingThreshold] = useState(false);
   const [transactionThreshold, setTransactionThreshold] = useState<number>();
   const [transactionThresholdMetric, setTransactionThresholdMetric] =
