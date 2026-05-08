@@ -523,7 +523,7 @@ export default function ReleasesList() {
                       >
                         <Flex align="center" gap="sm">
                           {t('Snapshots')}
-                          <FeatureBadge type="alpha" />
+                          <FeatureBadge type="beta" />
                         </Flex>
                       </TabList.Item>
                     </TabList>

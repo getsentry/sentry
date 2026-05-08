@@ -83,15 +83,20 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
         start_time = time.time()
 
         metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
+        extras = {
+            "service": service_name,
+            "method": method_name,
+            "request_type": type(request).__name__,
+        }
+        if organization_id := getattr(request, "organization_id", None):
+            extras["organization_id"] = organization_id
+        if contract_id := getattr(request, "contract_id", None):
+            extras["contract_id"] = contract_id
 
         try:
             logger.info(
                 "billing.service.method.start",
-                extra={
-                    "service": service_name,
-                    "method": method_name,
-                    "request_type": type(request).__name__,
-                },
+                extra=extras,
             )
 
             result = func(self, request)
@@ -113,10 +118,9 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             logger.info(
                 "billing.service.method.success",
                 extra={
-                    "service": service_name,
-                    "method": method_name,
                     "duration_ms": duration_ms,
                     "response_type": type(result).__name__,
+                    **extras,
                 },
             )
 
@@ -137,11 +141,10 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             logger.info(
                 "billing.service.method.error",
                 extra={
-                    "service": service_name,
-                    "method": method_name,
                     "duration_ms": duration_ms,
                     "error": str(e),
                     "error_type": type(e).__name__,
+                    **extras,
                 },
             )
             raise

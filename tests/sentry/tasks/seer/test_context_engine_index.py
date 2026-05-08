@@ -14,6 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.hashlib import md5_text
 
 
 @django_db_all
@@ -180,11 +181,66 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
             {
                 "organizations:seer-explorer": False,
                 "organizations:seer-explorer-index": False,
+                "organizations:seat-based-seer-enabled": False,
+                "organizations:seer-added": False,
             }
         ):
             eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert eligible == []
+
+    def test_includes_orgs_with_seat_based_seer_flag(self) -> None:
+        org = self._create_org_with_github()
+
+        TOTAL_SLOTS = 24
+        target_slot = int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_SLOTS
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
+
+        with freeze_time(frozen_time):
+            with self.feature(
+                {
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                }
+            ):
+                eligible = get_allowed_org_ids_context_engine_indexing()
+
+        assert org.id in eligible
+
+    def test_includes_orgs_with_seer_added_flag(self) -> None:
+        org = self._create_org_with_github()
+
+        TOTAL_SLOTS = 24
+        target_slot = int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_SLOTS
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
+
+        with freeze_time(frozen_time):
+            with self.feature(
+                {
+                    "organizations:seer-added": [org.slug],
+                }
+            ):
+                eligible = get_allowed_org_ids_context_engine_indexing()
+
+        assert org.id in eligible
+
+    def test_does_not_double_include_org_with_multiple_flags(self) -> None:
+        org = self._create_org_with_github()
+
+        TOTAL_SLOTS = 24
+        target_slot = int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_SLOTS
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
+
+        with freeze_time(frozen_time):
+            with self.feature(
+                {
+                    "organizations:seer-explorer-index": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                    "organizations:seer-added": [org.slug],
+                }
+            ):
+                eligible = get_allowed_org_ids_context_engine_indexing()
+
+        assert eligible.count(org.id) == 1
 
     def test_excludes_orgs_without_github_integration(self) -> None:
         from sentry.utils.hashlib import md5_text
