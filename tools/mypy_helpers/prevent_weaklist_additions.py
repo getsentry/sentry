@@ -6,7 +6,7 @@ import tomllib
 from collections.abc import Sequence
 
 
-def _modules_for_override_key(data: dict[str, object], key: str) -> frozenset[str]:
+def _modules_for_override_key(data: dict[str, object], key: str, filename: str) -> frozenset[str]:
     try:
         overrides = data["tool"]["mypy"]["overrides"]  # type: ignore[index]
     except KeyError:
@@ -16,7 +16,7 @@ def _modules_for_override_key(data: dict[str, object], key: str) -> frozenset[st
         return frozenset()
     if len(matching) > 1:
         raise SystemExit(
-            f"pyproject.toml has multiple [tool.mypy.overrides] sections with "
+            f"{filename}: multiple [tool.mypy.overrides] sections with "
             f"{key!r}; expected exactly one."
         )
     return frozenset(matching[0]["module"])  # type: ignore[index]
@@ -50,8 +50,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             staged_data = tomllib.load(f)
 
         for key, list_name, advice in _CHECKS:
-            head_modules = _modules_for_override_key(head_data, key)
-            staged_modules = _modules_for_override_key(staged_data, key)
+            head_modules = _modules_for_override_key(head_data, key, filename)
+            staged_modules = _modules_for_override_key(staged_data, key, filename)
             for mod in sorted(staged_modules - head_modules):
                 print(
                     f"{filename}: '{mod}' was added to the {list_name} — "
