@@ -435,7 +435,7 @@ TEMPLATES = [
 
 SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
-    "REGION": ["sentry.CellOutbox"],
+    "CELL": ["sentry.CellOutbox"],
 }
 
 # Do not modify reordering
