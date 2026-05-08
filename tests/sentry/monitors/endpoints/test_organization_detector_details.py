@@ -80,6 +80,10 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
                     "queryObj": serialize(
                         self.monitor, user=self.user, serializer=MonitorSerializer()
                     ),
+                    "health": {
+                        "isHealthy": True,
+                        "message": None,
+                    },
                 }
             ],
             "conditionGroup": None,
@@ -89,6 +93,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
             "ruleId": None,
             "latestGroup": None,
             "openIssues": 0,
+            "hasDataSourceError": False,
         }
 
     def test_update_monitor_incident_detector(self) -> None:
@@ -127,6 +132,10 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
                 "type": DATA_SOURCE_CRON_MONITOR,
                 "sourceId": str(self.monitor.id),
                 "queryObj": serialize(self.monitor, user=self.user, serializer=MonitorSerializer()),
+                "health": {
+                    "isHealthy": True,
+                    "message": None,
+                },
             }
         ]
         assert response.data["dataSources"] == expected_data_sources

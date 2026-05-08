@@ -30,6 +30,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
+    SUBSCRIPTION_BROKEN_MAX_AGE,
     SUBSCRIPTION_STATUS_MAX_AGE,
     SubscriptionError,
     create_subscription_in_snuba,
@@ -1295,3 +1296,45 @@ class SubscriptionCheckerTest(TestCase):
                 sub_new = QuerySubscription.objects.get(id=sub_new.id)
                 assert sub_new.status == status.value
                 assert sub_new.subscription_id is None
+
+    def test_marks_creating_as_broken(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            date_updated=timezone.now() - SUBSCRIPTION_BROKEN_MAX_AGE * 2,
+        )
+        subscription_checker()
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+
+    def test_marks_updating_as_broken(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            date_updated=timezone.now() - SUBSCRIPTION_BROKEN_MAX_AGE * 2,
+        )
+        subscription_checker()
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+
+    def test_does_not_mark_deleting_as_broken(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            date_updated=timezone.now() - SUBSCRIPTION_BROKEN_MAX_AGE * 2,
+        )
+        with self.tasks():
+            subscription_checker()
+        sub_refreshed = QuerySubscription.objects.filter(id=sub.id).first()
+        # DELETING subscriptions get re-triggered, not marked broken
+        assert (
+            sub_refreshed is None or sub_refreshed.status != QuerySubscription.Status.BROKEN.value
+        )
+
+    def test_does_not_mark_broken_before_threshold(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            date_updated=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE * 2,
+        )
+        with self.tasks():
+            subscription_checker()
+        sub = QuerySubscription.objects.get(id=sub.id)
+        # Should be repaired (retried), not marked broken
+        assert sub.status == QuerySubscription.Status.ACTIVE.value

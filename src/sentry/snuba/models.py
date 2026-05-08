@@ -20,7 +20,7 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.team import Team
 from sentry.users.models.user import User
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler
+from sentry.workflow_engine.types import DataSourceHealth, DataSourceTypeHandler
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -149,6 +149,10 @@ class QuerySubscription(Model):
         UPDATING = 2
         DELETING = 3
         DISABLED = 4
+        # The subscription could not be created or updated after significant
+        # retrying and likely requires user intervention to fix (e.g., editing
+        # the detector's query).
+        BROKEN = 5
 
     # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -239,3 +243,30 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
     @staticmethod
     def get_relocation_model_name() -> str:
         return "sentry.querysubscription"
+
+    @override
+    @staticmethod
+    def bulk_get_health(data_sources: list[DataSource]) -> dict[int, DataSourceHealth]:
+        query_subscription_ids: list[int] = []
+        for ds in data_sources:
+            try:
+                query_subscription_ids.append(int(ds.source_id))
+            except ValueError:
+                pass
+
+        qs_lookup: dict[str, QuerySubscription] = {
+            str(qs.id): qs for qs in QuerySubscription.objects.filter(id__in=query_subscription_ids)
+        }
+
+        results: dict[int, DataSourceHealth] = {}
+        for ds in data_sources:
+            sub = qs_lookup.get(ds.source_id)
+            if sub is None:
+                results[ds.id] = DataSourceHealth(
+                    is_healthy=False, message="Subscription not found"
+                )
+            elif sub.status == QuerySubscription.Status.BROKEN.value:
+                results[ds.id] = DataSourceHealth(is_healthy=False)
+            else:
+                results[ds.id] = DataSourceHealth(is_healthy=True)
+        return results

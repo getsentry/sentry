@@ -47,6 +47,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     config: dict[str, Any]
     enabled: bool
     openIssues: int
+    hasDataSourceError: bool
 
 
 @register(Detector)
@@ -217,4 +218,8 @@ class DetectorSerializer(Serializer):
             "ruleId": alert_rule_mapping.get("rule_id"),
             "latestGroup": attrs.get("latest_group"),
             "openIssues": attrs.get("open_issues_count", 0),
+            "hasDataSourceError": any(
+                ds.get("health", {}).get("isHealthy") is False
+                for ds in (attrs.get("data_sources") or [])
+            ),
         }

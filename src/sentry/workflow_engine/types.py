@@ -316,6 +316,12 @@ class ActionHandler:
         raise NotImplementedError
 
 
+@dataclass(frozen=True)
+class DataSourceHealth:
+    is_healthy: bool
+    message: str | None = None
+
+
 class DataSourceTypeHandler(ABC, Generic[T]):
     @staticmethod
     @abstractmethod
@@ -363,6 +369,14 @@ class DataSourceTypeHandler(ABC, Generic[T]):
         The format is "app_label.model_name" in lowercase.
         """
         raise NotImplementedError
+
+    @staticmethod
+    def bulk_get_health(data_sources: list[DataSource]) -> dict[int, DataSourceHealth]:
+        """
+        Returns health status for each DataSource. Implementations should override
+        this to report source-specific problems (e.g., broken subscriptions).
+        """
+        return {ds.id: DataSourceHealth(is_healthy=True) for ds in data_sources}
 
 
 class DataConditionHandler(Generic[T]):

@@ -56,4 +56,8 @@ class TestDataSourceSerializer(TestCase):
                 "status": 1,
                 "subscription": None,
             },
+            "health": {
+                "isHealthy": True,
+                "message": None,
+            },
         }
