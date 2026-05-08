@@ -4,8 +4,11 @@ import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'ec
 import moment from 'moment-timezone';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
@@ -59,6 +62,7 @@ export function MobileBuildsChart({
   organizationSlug,
 }: MobileBuildsChartProps) {
   const navigate = useNavigate();
+  const renderToString = useRenderToString();
   const [metric, setMetric] = useState(SizeMetric.INSTALL_SIZE);
 
   const {series, seriesBuildLookup, minTime, maxTime, hasTimestamps} = useMemo(() => {
@@ -242,15 +246,44 @@ export function MobileBuildsChart({
                 const timestamp = (firstParam as {axisValue?: number}).axisValue ?? 0;
                 const formattedDate = moment(timestamp).format('MMM D, YYYY h:mm A');
 
-                const rows = params
-                  .map(param => {
-                    const value = (param.value as number[])[1]!;
-                    const marker = typeof param.marker === 'string' ? param.marker : '';
-                    return `<div><span class="tooltip-label">${marker}<strong>${param.seriesName}</strong></span> ${formatBytesBase10(value)}</div>`;
-                  })
-                  .join('');
-
-                return `<div class="tooltip-series">${rows}</div><div class="tooltip-footer">${formattedDate}</div>`;
+                return renderToString(
+                  <Stack gap="lg" padding="lg 0">
+                    <Stack gap="md" padding="0 lg">
+                      {params.map(param => {
+                        const value = (param.value as [number, number])[1];
+                        return (
+                          <Flex key={param.seriesName} justify="between" gap="lg">
+                            <Flex gap="xs" align="center">
+                              <Container
+                                as="span"
+                                width="10px"
+                                height="10px"
+                                radius="full"
+                                display="inline-block"
+                                style={{
+                                  backgroundColor:
+                                    typeof param.color === 'string'
+                                      ? param.color
+                                      : undefined,
+                                }}
+                              />
+                              <Text size="sm">{param.seriesName}</Text>
+                            </Flex>
+                            <Text size="sm" variant="muted">
+                              {formatBytesBase10(value)}
+                            </Text>
+                          </Flex>
+                        );
+                      })}
+                    </Stack>
+                    <Separator orientation="horizontal" padding="0" />
+                    <Flex padding="0 lg">
+                      <Text size="sm" variant="muted">
+                        {formattedDate}
+                      </Text>
+                    </Flex>
+                  </Stack>
+                );
               },
             }}
             onClick={handleClick}

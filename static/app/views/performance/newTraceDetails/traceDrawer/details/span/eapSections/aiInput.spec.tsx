@@ -90,21 +90,22 @@ describe('AIInputSection', () => {
     expect(screen.queryByRole('button', {name: 'System'})).not.toBeInTheDocument();
   });
 
-  it('clips JSON system instructions with show more', () => {
-    window.ResizeObserver = MockResizeObserver;
-
+  it('unwraps structured system instructions to extract text', () => {
     render(
       <AIInputSection
         node={makeAiNodeWithAttributes({
           'gen_ai.system_instructions': JSON.stringify([
-            {content: 'You are Seer, a powerful AI assistant built by Sentry.'},
+            {
+              type: 'text',
+              content: 'You are Seer, a powerful AI assistant built by Sentry.',
+            },
           ]),
         })}
       />
     );
 
-    expect(screen.getByText('content')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'System'})).not.toBeInTheDocument();
+    expect(
+      screen.getByText('You are Seer, a powerful AI assistant built by Sentry.')
+    ).toBeVisible();
   });
 });
