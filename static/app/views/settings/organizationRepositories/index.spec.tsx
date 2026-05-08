@@ -11,7 +11,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {OrganizationRepositoriesV2} from 'sentry/views/settings/organizationRepositoriesV2';
+import OrganizationRepositories from 'sentry/views/settings/organizationRepositories';
 
 // ScmRepositoryTable uses @tanstack/react-virtual, which only renders rows
 // whose bounding rect overlaps the scroll container. Without this stub it
@@ -70,14 +70,14 @@ function setupDefaultMocks() {
   });
 }
 
-describe('OrganizationRepositoriesV2', () => {
+describe('OrganizationRepositories', () => {
   beforeEach(() => {
     stubBoundingClientRect();
   });
 
   it('shows a loading indicator while queries are pending', async () => {
     setupDefaultMocks();
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     await screen.findByRole('searchbox');
@@ -101,7 +101,7 @@ describe('OrganizationRepositoriesV2', () => {
       body: [],
     });
 
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     expect(await screen.findByText('GitHub')).toBeInTheDocument();
     expect(screen.getByText('GitLab')).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('OrganizationRepositoriesV2', () => {
 
   it('shows the connect provider button in the header when integrations are installed', async () => {
     setupDefaultMocks();
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     expect(
       await screen.findByRole('button', {name: 'Connect new provider'})
@@ -121,7 +121,7 @@ describe('OrganizationRepositoriesV2', () => {
 
   it('renders a table for each provider that has an installation', async () => {
     setupDefaultMocks();
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     expect(await screen.findByText('my-org')).toBeInTheDocument();
   });
@@ -152,7 +152,7 @@ describe('OrganizationRepositoriesV2', () => {
       asyncDelay: 10000,
     });
 
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     expect(await screen.findByText('Loading repositories')).toBeInTheDocument();
   });
@@ -166,7 +166,7 @@ describe('OrganizationRepositoriesV2', () => {
       body: {},
     });
 
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Uninstall'}));
@@ -190,7 +190,7 @@ describe('OrganizationRepositoriesV2', () => {
   it('shows the uninstall button as disabled when the user lacks org:integrations access', async () => {
     setupDefaultMocks();
 
-    render(<OrganizationRepositoriesV2 />, {
+    render(<OrganizationRepositories />, {
       organization: OrganizationFixture({access: []}),
     });
 
@@ -220,7 +220,7 @@ describe('OrganizationRepositoriesV2', () => {
       body: [],
     });
 
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     await screen.findByText('my-org');
     expect(screen.getByRole('button', {name: 'Integration settings'})).toBeDisabled();
@@ -229,7 +229,7 @@ describe('OrganizationRepositoriesV2', () => {
   it('enables the settings button once the integration config has loaded', async () => {
     setupDefaultMocks();
 
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     expect(
       await screen.findByRole('button', {name: 'Integration settings'})
@@ -246,7 +246,7 @@ describe('OrganizationRepositoriesV2', () => {
         body: {},
       });
 
-      render(<OrganizationRepositoriesV2 />);
+      render(<OrganizationRepositories />);
 
       await userEvent.hover(await screen.findByText('0 repositories'));
       await userEvent.click(await screen.findByRole('button', {name: 'Sync now'}));
@@ -257,7 +257,7 @@ describe('OrganizationRepositoriesV2', () => {
     it('does not show Sync now when the user lacks org:integrations access', async () => {
       setupDefaultMocks();
 
-      render(<OrganizationRepositoriesV2 />, {
+      render(<OrganizationRepositories />, {
         organization: OrganizationFixture({access: []}),
       });
 
@@ -275,7 +275,7 @@ describe('OrganizationRepositoriesV2', () => {
         body: {},
       });
 
-      render(<OrganizationRepositoriesV2 />);
+      render(<OrganizationRepositories />);
 
       await userEvent.hover(await screen.findByText('0 repositories'));
       await userEvent.click(await screen.findByRole('button', {name: 'Sync now'}));
@@ -329,7 +329,7 @@ describe('OrganizationRepositoriesV2', () => {
       match: [MockApiClient.matchData({sync_enabled: true})],
     });
 
-    render(<OrganizationRepositoriesV2 />);
+    render(<OrganizationRepositories />);
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Integration settings'})
