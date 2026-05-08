@@ -20,6 +20,8 @@ import {
   ToolbarLabel,
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarVisualizeHeader() {
   return (
@@ -93,7 +95,16 @@ export function ToolbarVisualizeDropdown({
         return (
           <FieldCompactSelect
             key={param.name}
-            search={{onChange: onSearch}}
+            search={{
+              onChange: onSearch,
+              filter: (option, searchText) => {
+                return sortSearchedAttributes({
+                  fieldDefinitionType: TraceItemDataset.SPANS,
+                  option,
+                  searchText,
+                });
+              },
+            }}
             options={fieldOptions}
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => onChangeArgument(index, option)}
@@ -105,7 +116,16 @@ export function ToolbarVisualizeDropdown({
       })}
       {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
         <FieldCompactSelect
-          search={{onChange: onSearch}}
+          search={{
+            onChange: onSearch,
+            filter: (option, searchText) => {
+              return sortSearchedAttributes({
+                fieldDefinitionType: TraceItemDataset.SPANS,
+                option,
+                searchText,
+              });
+            },
+          }}
           options={fieldOptions}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => onChangeArgument(0, option)}
