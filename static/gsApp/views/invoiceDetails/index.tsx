@@ -566,7 +566,7 @@ const InvoiceItems = styled('table')`
 
   td,
   th {
-    padding: ${p => p.theme.space['lg']} 0;
+    padding: ${p => p.theme.space.lg} 0;
   }
 
   td {
