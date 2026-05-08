@@ -10,7 +10,6 @@ from sentry_sdk import Scope
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
-    TimeoutException,
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
@@ -236,7 +235,7 @@ class HandleQueryErrorsTest(APITestCase):
             mock_parse_error.assert_not_called()
 
     def test_handle_snuba_rpc_too_many_simultaneous(self) -> None:
-        """ClickHouse 'Too many simultaneous queries' via RPC should return 504, not 500."""
+        """ClickHouse 'Too many simultaneous queries' via RPC should return 429, not 500."""
         from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 
         error_proto = ErrorProto(
@@ -247,7 +246,7 @@ class HandleQueryErrorsTest(APITestCase):
             with handle_query_errors():
                 raise SnubaRPCTooManySimultaneous(error_proto)
         except Exception as e:
-            assert isinstance(e, TimeoutException)
+            assert isinstance(e, Throttled)
 
 
 class ClampDateRangeTest(unittest.TestCase):
