@@ -45,10 +45,6 @@ class NotificationMessage(Model):
     incident = FlexibleForeignKey("sentry.Incident", null=True)
     trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction", null=True)
 
-    # Related information regarding Rules (Issue Alerts)
-    rule_fire_history = FlexibleForeignKey("sentry.RuleFireHistory", null=True)
-    rule_action_uuid = CharField(null=True, db_index=True)
-
     date_added = DateTimeField(default=timezone.now)
 
     # Related information regarding Action (Workflow Engine)
