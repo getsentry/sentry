@@ -448,7 +448,13 @@ export function SentryAppExternalFormNew({
     ]
   );
 
-  // Reset all derived state whenever the resolved schema or reset values change.
+  // Reset all derived state whenever the form's identity changes. `action` is
+  // included even though the body doesn't read it: when create/link share an
+  // identical schema, `resolvedFieldGroups` is reference-stable, so without
+  // `action` here a tab flip would remount BackendJsonSubmitForm via formKey
+  // but leave currentFormValuesRef and the other mirrors holding stale values
+  // from the previous action — which would then poison dependentData on the
+  // next cascade fetch.
   useEffect(() => {
     const nextFieldGroups = cloneFieldGroups(resolvedFieldGroups);
     const nextTriggerFieldNames = new Set(
@@ -467,7 +473,7 @@ export function SentryAppExternalFormNew({
     setExternalDefaultValues({});
     setAsyncOptionsCache({});
     setIsFetchingDependentFields(false);
-  }, [element, normalizedResetValues, resolvedFieldGroups]);
+  }, [action, element, normalizedResetValues, resolvedFieldGroups]);
 
   // After the reset above, prefetch choices for any field whose dependencies
   // already have values.
