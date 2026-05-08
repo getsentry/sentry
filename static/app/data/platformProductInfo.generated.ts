@@ -29,18 +29,21 @@ export const PLATFORM_PRODUCT_INFO: Partial<
     ProductSolution.SESSION_REPLAY,
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.METRICS,
   ],
   'apple-ios': [
     ProductSolution.LOGS,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.METRICS,
   ],
   flutter: [
     ProductSolution.LOGS,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.METRICS,
   ],
   'javascript-nextjs': [
     ProductSolution.LOGS,
