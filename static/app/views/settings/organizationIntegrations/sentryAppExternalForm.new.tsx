@@ -411,9 +411,8 @@ export function SentryAppExternalFormNew({
     ]
   );
 
+  // Reset all derived state whenever the resolved schema or reset values change.
   useEffect(() => {
-    let isCancelled = false;
-    const requestVersion = dependentFetchVersionRef.current + 1;
     const nextFieldGroups = cloneFieldGroups(resolvedFieldGroups);
     const nextTriggerFieldNames = new Set(
       getAllSchemaFields(nextFieldGroups).flatMap(field => field.depends_on ?? [])
@@ -421,9 +420,9 @@ export function SentryAppExternalFormNew({
     const nextInitialValues =
       element === 'alert-rule-action' ? getResetInitialValues(normalizedResetValues) : {};
 
-    dependentFetchVersionRef.current = requestVersion;
-    setFieldGroups(nextFieldGroups);
+    dependentFetchVersionRef.current += 1;
     currentFormValuesRef.current = nextInitialValues;
+    setFieldGroups(nextFieldGroups);
     setDynamicFieldValues(
       getTriggerFieldValues(nextInitialValues, nextTriggerFieldNames)
     );
@@ -431,61 +430,51 @@ export function SentryAppExternalFormNew({
     setExternalDefaultValues({});
     setAsyncOptionsCache({});
     setIsFetchingDependentFields(false);
+  }, [element, normalizedResetValues, resolvedFieldGroups]);
 
-    const initializeDependentFields = async () => {
-      const fieldsToPrefetch = getAllSchemaFields(nextFieldGroups).filter(
-        field =>
-          field.depends_on?.length &&
-          field.depends_on.every(dependentField =>
-            hasValue(
-              getEffectiveFieldValue({
-                currentFormValues: {},
-                externalDefaultValues: {},
-                fieldGroups: nextFieldGroups,
-                fieldName: dependentField,
-                resetValues: normalizedResetValues,
-              })
-            )
+  // After the reset above, prefetch choices for any field whose dependencies
+  // already have values.
+  useEffect(() => {
+    const nextFieldGroups = cloneFieldGroups(resolvedFieldGroups);
+    const fieldsToPrefetch = getAllSchemaFields(nextFieldGroups).filter(
+      field =>
+        field.depends_on?.length &&
+        field.depends_on.every(dependentField =>
+          hasValue(
+            getEffectiveFieldValue({
+              currentFormValues: {},
+              externalDefaultValues: {},
+              fieldGroups: nextFieldGroups,
+              fieldName: dependentField,
+              resetValues: normalizedResetValues,
+            })
           )
+        )
+    );
+
+    if (!fieldsToPrefetch.length) return;
+
+    const nextInitialValues =
+      element === 'alert-rule-action' ? getResetInitialValues(normalizedResetValues) : {};
+
+    const requestVersion = dependentFetchVersionRef.current + 1;
+    dependentFetchVersionRef.current = requestVersion;
+
+    let isCancelled = false;
+
+    const runPrefetch = async () => {
+      const results = await Promise.all(
+        fieldsToPrefetch.map(async field => ({
+          fieldName: field.name,
+          ...(await fetchFieldChoices({
+            currentValues: {},
+            defaultValues: {},
+            field,
+            input: '',
+            nextFieldGroups,
+          })),
+        }))
       );
-
-      if (!fieldsToPrefetch.length) {
-        return;
-      }
-
-      let results: Array<{
-        choices: Choices;
-        fieldName: string;
-        defaultValue?: unknown;
-      }>;
-      try {
-        results = await Promise.all(
-          fieldsToPrefetch.map(async field => ({
-            fieldName: field.name,
-            ...(await fetchFieldChoices({
-              currentValues: {},
-              defaultValues: {},
-              field,
-              input: '',
-              nextFieldGroups,
-            })),
-          }))
-        );
-      } catch (error) {
-        Sentry.captureException(error, {
-          tags: {
-            sentry_app: appName,
-            form_element: element,
-            form_action: action,
-          },
-          extra: {
-            sentryAppInstallationUuid,
-            configUri: config.uri,
-            fieldsToPrefetch: fieldsToPrefetch.map(field => field.name),
-          },
-        });
-        return;
-      }
 
       if (isCancelled || requestVersion !== dependentFetchVersionRef.current) {
         return;
@@ -493,29 +482,37 @@ export function SentryAppExternalFormNew({
 
       let updatedFieldGroups = nextFieldGroups;
       const nextDefaultValues: Record<string, unknown> = {};
-
       for (const result of results) {
         updatedFieldGroups = updateSchemaFieldChoices(
           updatedFieldGroups,
           result.fieldName,
           result.choices
         );
-
         if (result.defaultValue !== undefined) {
           nextDefaultValues[result.fieldName] = result.defaultValue;
         }
       }
 
       setFieldGroups(updatedFieldGroups);
-      setFormInitialValues({
-        ...nextInitialValues,
-        ...nextDefaultValues,
-      });
+      setFormInitialValues({...nextInitialValues, ...nextDefaultValues});
       setExternalDefaultValues(nextDefaultValues);
       setFormVersion(version => version + 1);
     };
 
-    void initializeDependentFields();
+    runPrefetch().catch(error => {
+      Sentry.captureException(error, {
+        tags: {
+          sentry_app: appName,
+          form_element: element,
+          form_action: action,
+        },
+        extra: {
+          sentryAppInstallationUuid,
+          configUri: config.uri,
+          fieldsToPrefetch: fieldsToPrefetch.map(field => field.name),
+        },
+      });
+    });
 
     return () => {
       isCancelled = true;
