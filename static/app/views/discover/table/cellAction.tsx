@@ -359,6 +359,7 @@ export function CellAction({
   if (triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
+        containsPin={!!pin}
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
         {cellActions?.length ? (
