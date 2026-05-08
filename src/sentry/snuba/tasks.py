@@ -367,6 +367,7 @@ def subscription_checker(**kwargs: Any) -> None:
                     QuerySubscription.Status.CREATING.value,
                     QuerySubscription.Status.UPDATING.value,
                 )
+                and subscription.date_updated is not None
                 and subscription.date_updated < broken_cutoff
             ):
                 subscription.update(status=QuerySubscription.Status.BROKEN.value)
