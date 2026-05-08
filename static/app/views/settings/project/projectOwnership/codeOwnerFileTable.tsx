@@ -70,7 +70,7 @@ export function CodeOwnerFileTable({
         `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
         {
           method: 'PUT',
-          data: {raw: codeownerFile.raw, date_updated: new Date().toISOString()},
+          data: {raw: codeownerFile.raw},
         }
       );
       onUpdate({...codeowner, ...data});
@@ -120,7 +120,7 @@ export function CodeOwnerFileTable({
             <code>{codeowner.codeMapping?.sourceRoot}</code>
           </Flex>
           <Flex align="center" gap="md">
-            <TimeSince date={codeowner.dateUpdated} />
+            <TimeSince date={codeowner.dateSynced ?? codeowner.dateUpdated} />
           </Flex>
           <Flex align="center" gap="md">
             {codeowner.codeOwnersUrl === 'unknown' ? null : (
