@@ -75,7 +75,6 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
     _FEATURES = {
         "organizations:event-attachments": True,
-        "organizations:symbol-sources": False,
         "organizations:custom-symbol-sources": False,
     }
 

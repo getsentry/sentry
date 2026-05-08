@@ -57,7 +57,6 @@ class IssueAlertInvocationMixin(TestCase):
             },
             integration_id=integration.id,
         )
-        action.workflow_id = workflow.id
         event = self.store_event(
             data=event_data or {"message": "test event"},
             project_id=self.project.id,
@@ -71,6 +70,7 @@ class IssueAlertInvocationMixin(TestCase):
             action=action,
             detector=detector,
             notification_uuid=notification_uuid,
+            workflow_id=workflow.id,
         )
 
 
@@ -103,7 +103,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == getattr(invocation.action, "workflow_id", None)
+        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -123,7 +123,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.tags is None
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == getattr(invocation.action, "workflow_id", None)
+        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -282,7 +282,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
-            workflow_id=getattr(invocation.action, "workflow_id"),
+            workflow_id=invocation.workflow_id,
             event_id=invocation.event_data.event.event_id,
         )
 
@@ -299,7 +299,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
-            workflow_id=getattr(invocation.action, "workflow_id"),
+            workflow_id=invocation.workflow_id,
             event_id=invocation.event_data.event.event_id,
             notes="important note",
         )
@@ -320,7 +320,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
-            workflow_id=getattr(invocation.action, "workflow_id"),
+            workflow_id=invocation.workflow_id,
             event_id=invocation.event_data.event.event_id,
             title="tagged event",
             tags=["level: `error`  "],

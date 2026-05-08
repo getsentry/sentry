@@ -15,7 +15,6 @@ from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -28,16 +27,8 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.repository import (
-    get_default_metric_alert_repository,
-    get_default_notification_action_repository,
-)
+from sentry.integrations.repository import get_default_notification_action_repository
 from sentry.integrations.repository.base import BaseNewNotificationMessage
-from sentry.integrations.repository.metric_alert import (
-    MetricAlertNotificationMessage,
-    MetricAlertNotificationMessageRepository,
-    NewMetricAlertNotificationMessage,
-)
 from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
     NotificationActionNotificationMessage,
@@ -51,9 +42,7 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.models.group import Group
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
@@ -64,9 +53,7 @@ _logger = logging.getLogger(__name__)
 
 
 def _get_thread_config(
-    parent_notification_message: (
-        NotificationActionNotificationMessage | MetricAlertNotificationMessage | None
-    ),
+    parent_notification_message: (NotificationActionNotificationMessage | None),
     incident_status: IncidentStatus,
 ) -> tuple[bool, str | None]:
     if parent_notification_message is None:
@@ -78,40 +65,6 @@ def _get_thread_config(
         reply_broadcast = True
 
     return reply_broadcast, parent_notification_message.message_identifier
-
-
-def _fetch_parent_notification_message_for_incident(
-    organization: Organization,
-    alert_context: AlertContext,
-    notification_context: NotificationContext,
-    metric_issue_context: MetricIssueContext,
-    repository: MetricAlertNotificationMessageRepository,
-) -> MetricAlertNotificationMessage | None:
-    parent_notification_message = None
-
-    with MessagingInteractionEvent(
-        interaction_type=MessagingInteractionType.GET_PARENT_NOTIFICATION,
-        spec=SlackMessagingSpec(),
-    ).capture() as lifecycle:
-        # Only grab the parent notification message for thread use if the feature is on
-        # Otherwise, leave it empty, and it will not create a thread
-        if OrganizationOption.objects.get_value(
-            organization=organization,
-            key="sentry:metric_alerts_thread_flag",
-            default=METRIC_ALERTS_THREAD_DEFAULT,
-        ):
-            try:
-                parent_notification_message = repository.get_parent_notification_message(
-                    alert_rule_id=alert_context.action_identifier_id,
-                    incident_id=metric_issue_context.id,
-                    trigger_action_id=notification_context.id,
-                )
-            except Exception as e:
-                lifecycle.record_halt(e)
-                # if there's an error trying to grab a parent notification, don't let that error block this flow
-                pass
-
-    return parent_notification_message
 
 
 def _fetch_parent_notification_message_for_notification_action(
@@ -160,25 +113,6 @@ def _build_new_notification_message_payload(
         action_id=notification_context.id,
         group_id=metric_issue_context.id,
         open_period_start=open_period_start,
-    )
-
-    if parent_notification_message is not None:
-        # Make sure we track that this reply will be in relation to the parent row
-        new_notification_message_object.parent_notification_message_id = (
-            parent_notification_message.id
-        )
-
-    return new_notification_message_object
-
-
-def _build_new_metric_alert_notification_message_payload(
-    notification_context: NotificationContext,
-    metric_issue_context: MetricIssueContext,
-    parent_notification_message: MetricAlertNotificationMessage | None,
-) -> NewMetricAlertNotificationMessage:
-    new_notification_message_object = NewMetricAlertNotificationMessage(
-        incident_id=metric_issue_context.id,
-        trigger_action_id=notification_context.id,
     )
 
     if parent_notification_message is not None:
@@ -294,17 +228,6 @@ def _send_notification[Msg: BaseNewNotificationMessage, Repo](
     return True
 
 
-def _save_notification_message_metric_alert(
-    notification_message_object: NewMetricAlertNotificationMessage,
-    repository: MetricAlertNotificationMessageRepository,
-) -> None:
-    try:
-        repository = get_default_metric_alert_repository()
-        repository.create_notification_message(data=notification_message_object)
-    except Exception:
-        pass
-
-
 def _save_notification_message_notification_action(
     notification_message_object: NewNotificationActionNotificationMessage,
     repository: NotificationActionNotificationMessageRepository,
@@ -361,49 +284,6 @@ def _handle_workflow_engine_notification(
     )
 
 
-def _handle_legacy_notification(
-    organization: Organization,
-    alert_context: AlertContext,
-    notification_context: NotificationContext,
-    metric_issue_context: MetricIssueContext,
-    integration: RpcIntegration,
-    attachments: str,
-    text: str,
-    channel: str,
-) -> bool:
-    repository = get_default_metric_alert_repository()
-    parent_notification_message = _fetch_parent_notification_message_for_incident(
-        organization=organization,
-        alert_context=alert_context,
-        notification_context=notification_context,
-        metric_issue_context=metric_issue_context,
-        repository=repository,
-    )
-
-    new_notification_message_object = _build_new_metric_alert_notification_message_payload(
-        notification_context=notification_context,
-        metric_issue_context=metric_issue_context,
-        parent_notification_message=parent_notification_message,
-    )
-
-    reply_broadcast, thread_ts = _get_thread_config(
-        parent_notification_message, metric_issue_context.new_status
-    )
-
-    return _send_notification(
-        integration=integration,
-        metric_issue_context=metric_issue_context,
-        attachments=attachments,
-        text=text,
-        channel=channel,
-        thread_ts=thread_ts,
-        reply_broadcast=reply_broadcast,
-        notification_message_object=new_notification_message_object,
-        save_notification_method=_save_notification_message_metric_alert,
-        repository=repository,
-    )
-
-
 def send_incident_alert_notification(
     organization: Organization,
     alert_context: AlertContext,
@@ -440,30 +320,15 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
         detector_serialized_response=detector_serialized_response,
     )
-
-    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
-    if should_fire_workflow_actions(organization, MetricIssue.type_id):
-        return _handle_workflow_engine_notification(
-            organization=organization,
-            notification_context=notification_context,
-            metric_issue_context=metric_issue_context,
-            integration=integration,
-            attachments=attachments,
-            text=text,
-            channel=channel,
-        )
-    else:
-        # TODO(iamrajjoshi): This needs to be deleted after ACI
-        return _handle_legacy_notification(
-            organization=organization,
-            alert_context=alert_context,
-            notification_context=notification_context,
-            metric_issue_context=metric_issue_context,
-            integration=integration,
-            attachments=attachments,
-            text=text,
-            channel=channel,
-        )
+    return _handle_workflow_engine_notification(
+        organization=organization,
+        notification_context=notification_context,
+        metric_issue_context=metric_issue_context,
+        integration=integration,
+        attachments=attachments,
+        text=text,
+        channel=channel,
+    )
 
 
 @dataclass(frozen=True, eq=True)

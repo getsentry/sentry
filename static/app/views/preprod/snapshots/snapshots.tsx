@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -181,6 +182,8 @@ export default function SnapshotsPage() {
     'snapshot-diff-mode',
     'split'
   );
+  const breakpoints = useBreakpoints();
+  const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)
@@ -659,6 +662,8 @@ export default function SnapshotsPage() {
         flexShrink={0}
         overflow="auto"
         borderRight="primary"
+        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+        maxWidth={{sm: '300px', md: 'none'}}
         style={{
           width: sidebarWidth,
           height: hasPageFrameFeature
@@ -693,7 +698,7 @@ export default function SnapshotsPage() {
           diffImageBaseUrl={diffImageBaseUrl}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
-          diffMode={diffMode}
+          diffMode={effectiveDiffMode}
           onDiffModeChange={setDiffMode}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -768,6 +773,10 @@ const DragHandle = styled('div')`
   position: relative;
   display: grid;
   place-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
