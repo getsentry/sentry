@@ -425,7 +425,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
                 error_message = "Size analysis disabled for this project"
                 logger.info(
-                    "preprod.artifact.size_analysis_filtered",
+                    "preprod.artifact.size_analysis_disabled",
                     extra={
                         "preprod_artifact_id": head_artifact.id,
                         "project_id": project.id,
@@ -441,6 +441,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                         "preprod_artifact_id": head_artifact.id,
                         "project_id": project.id,
                         "organization_id": project.organization_id,
+                        "skip_reason": size_skip_reason,
                     },
                 )
 
@@ -474,7 +475,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 distro_error_code = PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_DISABLED
                 distro_error_message = "Distribution disabled for this project"
                 logger.info(
-                    "preprod.artifact.distribution_filtered",
+                    "preprod.artifact.distribution_disabled",
                     extra={
                         "preprod_artifact_id": head_artifact.id,
                         "project_id": project.id,
@@ -490,6 +491,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                         "preprod_artifact_id": head_artifact.id,
                         "project_id": project.id,
                         "organization_id": project.organization_id,
+                        "skip_reason": distro_skip_reason,
                     },
                 )
 
