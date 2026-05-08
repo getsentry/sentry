@@ -154,6 +154,27 @@ class OrganizationMemberRequestSerializerTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
 
+    def test_team_role_missing_keys(self) -> None:
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        for bad_item in (
+            {"teamSlug": self.team.slug},
+            {"role": "contributor"},
+            {},
+            "not-a-dict",
+        ):
+            data = {
+                "email": "user@example.com",
+                "orgRole": "member",
+                "teamRoles": [bad_item],
+            }
+            serializer = OrganizationMemberRequestSerializer(context=context, data=data)
+            assert not serializer.is_valid()
+            assert serializer.errors == {
+                "teamRoles": [
+                    "Each team-role entry must be an object with 'teamSlug' and 'role' keys"
+                ]
+            }
+
     @with_feature("organizations:invite-billing")
     def test_valid_invite_billing_member(self) -> None:
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
