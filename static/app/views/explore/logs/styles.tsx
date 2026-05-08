@@ -308,7 +308,7 @@ export const LogsFilteredHelperText = styled('span')`
   background-color: ${p => p.theme.colors.gray200};
 `;
 
-export const LogPinButton = styled(Button)<{isPinned: boolean}>`
+export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
   position: absolute;
   right: calc(-1 * var(--logsPinButtonArea));
   opacity: ${p => (p.isPinned ? 1 : 0)};

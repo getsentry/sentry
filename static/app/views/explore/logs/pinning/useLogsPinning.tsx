@@ -10,6 +10,7 @@ import {
 
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning';
 
 const LOGS_PINNED_KEY = 'logsPinned';
 
@@ -90,11 +91,8 @@ export function LogsPinningProvider({children}: {children: ReactNode}) {
 }
 
 export function useLogsPinning() {
+  const logsPinningEnabled = useOurLogsPinningEnabled();
   const context = useContext(LogsPinningContext);
 
-  if (!context) {
-    throw new Error('LogsPinningContext must be used within LogsPinningProvider');
-  }
-
-  return context;
+  return logsPinningEnabled ? context : undefined;
 }

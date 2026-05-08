@@ -58,7 +58,6 @@ import {
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning';
 import {
   DetailsBody,
   DetailsContent,
@@ -171,9 +170,8 @@ export const LogRowContent = memo(function LogRowContent({
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
   const expansionKey = expansionKeyProp ?? rowId;
   const logsPinning = useLogsPinning();
-  const isHoverLinked = logsPinning.hoveringRow === rowId;
-  const isPinned = logsPinning.pinnedRows.has(rowId);
-  const logsPinningEnabled = useOurLogsPinningEnabled();
+  const isHoverLinked = logsPinning?.hoveringRow === rowId;
+  const isPinned = logsPinning?.pinnedRows.has(rowId);
 
   const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(isPinned);
 
@@ -341,11 +339,11 @@ export const LogRowContent = memo(function LogRowContent({
         onMouseEnter={e => {
           setShouldRenderHoverElements(true);
           rowInteractProps.onMouseEnter?.(e);
-          logsPinning.updateHoveringRow(true, rowId);
+          logsPinning?.updateHoveringRow(true, rowId);
         }}
         onMouseLeave={e => {
           rowInteractProps.onMouseLeave?.(e);
-          logsPinning.updateHoveringRow(false, rowId);
+          logsPinning?.updateHoveringRow(false, rowId);
         }}
       >
         <LogsTableBodyFirstCell key="first">
@@ -384,7 +382,7 @@ export const LogRowContent = memo(function LogRowContent({
         </LogsTableBodyFirstCell>
         {fields?.map((field, index) => {
           const pin =
-            logsPinningEnabled && index === fields.length - 1 ? (
+            logsPinning && index === fields.length - 1 ? (
               <LogPinButton
                 aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
                 icon={
