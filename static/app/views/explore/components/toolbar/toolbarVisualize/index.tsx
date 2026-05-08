@@ -13,14 +13,13 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarVisualizeHeader() {
@@ -45,6 +44,7 @@ interface ToolbarVisualizeDropdownProps {
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   parsedFunction: ParsedFunction | null;
   dragColumnId?: number;
+  fieldDefinitionType?: GetFieldDefinitionType;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
@@ -64,6 +64,7 @@ export function ToolbarVisualizeDropdown({
   parsedFunction,
   label,
   loading,
+  fieldDefinitionType = 'span',
 }: ToolbarVisualizeDropdownProps) {
   const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: dragColumnId ?? 0,
@@ -99,7 +100,7 @@ export function ToolbarVisualizeDropdown({
               onChange: onSearch,
               filter: (option, searchText) => {
                 return sortSearchedAttributes({
-                  fieldDefinitionType: TraceItemDataset.SPANS,
+                  fieldDefinitionType,
                   option,
                   searchText,
                 });
@@ -120,7 +121,7 @@ export function ToolbarVisualizeDropdown({
             onChange: onSearch,
             filter: (option, searchText) => {
               return sortSearchedAttributes({
-                fieldDefinitionType: TraceItemDataset.SPANS,
+                fieldDefinitionType,
                 option,
                 searchText,
               });
