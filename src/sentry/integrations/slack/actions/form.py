@@ -11,6 +11,8 @@ from django.utils.translation import gettext_lazy as _
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import (
     get_channel_id,
+    get_prefix_for_slack_id,
+    resolve_channel_name,
     strip_channel_name,
     validate_slack_entity_id,
 )
@@ -23,7 +25,7 @@ logger = logging.getLogger("sentry.rules")
 
 class SlackNotifyServiceForm(forms.Form):
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
-    channel = forms.CharField(widget=forms.TextInput())
+    channel = forms.CharField(required=False, widget=forms.TextInput())
     channel_id = forms.CharField(required=False, widget=forms.TextInput())
     tags = forms.CharField(required=False, widget=forms.TextInput())
 
@@ -52,25 +54,66 @@ class SlackNotifyServiceForm(forms.Form):
             or self.data.get("input_channel_id")
             or self.data.get("channel_id")
         )
+        channel_input = self.data.get("channel", "").strip()
+        resolved_from_id = False
+
+        if not channel_input and not channel_id:
+            raise forms.ValidationError(
+                self._format_slack_error_message(
+                    "Either a channel name or channel ID is required."
+                ),
+                code="invalid",
+            )
+
         if channel_id:
             logger.info(
                 "rule.slack.provide_channel_id",
                 extra={
                     "slack_integration_id": self.data.get("workspace"),
-                    "channel_id": self.data.get("channel_id"),
+                    "channel_id": channel_id,
                 },
             )
-            if not self.data.get("channel"):
-                raise forms.ValidationError(
-                    self._format_slack_error_message("Channel name is a required field."),
-                    code="invalid",
-                )
-            # default to "#" if they have the channel name without the prefix
-            channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
+
+            if not channel_input:
+                workspace = self.data.get("workspace")
+                if not workspace:
+                    raise forms.ValidationError(
+                        self._format_slack_error_message("Workspace is a required field."),
+                        code="invalid",
+                    )
+                try:
+                    resolved_name = resolve_channel_name(
+                        integration_id=int(workspace),
+                        channel_id=channel_id,
+                    )
+                except ApiRateLimitedError:
+                    raise forms.ValidationError(
+                        self._format_slack_error_message(SLACK_RATE_LIMITED_MESSAGE),
+                        code="invalid",
+                    )
+                if not resolved_name:
+                    raise forms.ValidationError(
+                        self._format_slack_error_message(
+                            "Could not resolve channel name from the provided channel ID. "
+                            "The channel may not exist or the integration may not have access."
+                        ),
+                        code="invalid",
+                    )
+                channel_prefix = get_prefix_for_slack_id(channel_id)
+                channel_input = channel_prefix + resolved_name
+                self.data = self.data.copy()
+                self.data["channel"] = channel_input
+                resolved_from_id = True
+            else:
+                # default to "#" if they have the channel name without the prefix
+                channel_prefix = channel_input[0] if channel_input[0] == "@" else "#"
 
         cleaned_data = super().clean()
         if cleaned_data is None:
             return None
+
+        if resolved_from_id:
+            cleaned_data["channel"] = channel_input
 
         workspace = cleaned_data.get("workspace")
         if not workspace:
@@ -78,7 +121,7 @@ class SlackNotifyServiceForm(forms.Form):
                 self._format_slack_error_message("Workspace is a required field."), code="invalid"
             )
 
-        if channel_id:
+        if channel_id and not resolved_from_id:
             try:
                 validate_slack_entity_id(
                     integration_id=workspace,
@@ -88,7 +131,6 @@ class SlackNotifyServiceForm(forms.Form):
             except ValidationError as e:
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
                 raise forms.ValidationError(
-                    # ValidationErrors contain a list of error messages, not just one.
                     self._format_slack_error_message("; ".join(e.messages)),
                     code="invalid",
                     params=params,
@@ -102,12 +144,12 @@ class SlackNotifyServiceForm(forms.Form):
 
         channel = cleaned_data.get("channel", "")
         timed_out = False
-        channel_prefix = ""
 
         # XXX(meredith): If the user is creating/updating a rule via the API and provides
         # the channel_id in the request, we don't need to call the channel_transformer - we
         # are assuming that they passed in the correct channel_id for the channel
         if not channel_id:
+            channel_prefix = ""
             try:
                 channel_data = get_channel_id(integration, channel)
                 channel_prefix, channel_id, timed_out = asdict(channel_data).values()

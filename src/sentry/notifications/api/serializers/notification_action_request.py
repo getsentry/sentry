@@ -9,7 +9,12 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils.channel import get_channel_id, validate_slack_entity_id
+from sentry.integrations.slack.utils.channel import (
+    get_channel_id,
+    get_prefix_for_slack_id,
+    resolve_channel_name,
+    validate_slack_entity_id,
+)
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import (
     ActionService,
@@ -217,10 +222,31 @@ Required if **service_type** is `slack` or `opsgenie`.
 
         channel_name = data.get("target_display")
         channel_id = data.get("target_identifier")
-        if not channel_name:
+
+        if not channel_name and not channel_id:
             raise serializers.ValidationError(
-                {"target_display": "Did not receive a slack user or channel name."}
+                {"target_display": "A Slack channel name or channel ID is required."}
             )
+
+        if not channel_name and channel_id:
+            try:
+                resolved_name = resolve_channel_name(
+                    integration_id=self.integration.id,
+                    channel_id=channel_id,
+                )
+            except Exception:
+                resolved_name = None
+
+            if not resolved_name:
+                raise serializers.ValidationError(
+                    {
+                        "target_identifier": f"Could not resolve channel name from Slack for channel ID '{channel_id}'. "
+                        "The channel may not exist or the integration may not have access."
+                    }
+                )
+            prefix = get_prefix_for_slack_id(channel_id)
+            data["target_display"] = prefix + resolved_name
+            return data
 
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:

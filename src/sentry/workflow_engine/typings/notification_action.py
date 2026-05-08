@@ -312,9 +312,6 @@ class SlackActionTranslator(BaseActionTranslator):
             ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[self.action_type][
-                ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
-            ],
         ]
 
     @property

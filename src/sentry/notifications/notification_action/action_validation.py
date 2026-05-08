@@ -32,7 +32,7 @@ class SlackActionValidatorHandler(BaseActionValidatorHandler):
     def generate_action_form_data(self) -> dict[str, Any]:
         return {
             "workspace": self.validated_data["integration_id"],
-            "channel": self.validated_data["config"]["target_display"],
+            "channel": self.validated_data["config"].get("target_display", ""),
             "channel_id": self.validated_data["config"].get("target_identifier"),
             "tags": self.validated_data["data"].get("tags"),
         }

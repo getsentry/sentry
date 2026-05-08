@@ -17,6 +17,23 @@ MESSAGING_ACTION_CONFIG_SCHEMA = {
 }
 
 
+SLACK_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a Slack Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": ["string"]},
+        "target_display": {"type": ["string"]},
+        "target_type": {
+            "type": ["integer"],
+            "enum": [ActionTarget.SPECIFIC.value],
+        },
+    },
+    "required": ["target_type"],
+    "additionalProperties": False,
+}
+
+
 TAGS_SCHEMA = {
     "type": "string",
     "description": "Tags to add to the message",

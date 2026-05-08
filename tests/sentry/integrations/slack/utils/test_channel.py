@@ -13,6 +13,7 @@ from sentry.integrations.slack.utils.channel import (
     SlackChannelIdData,
     get_channel_id,
     is_input_a_user_id,
+    resolve_channel_name,
     validate_user_id,
 )
 from sentry.shared_integrations.exceptions import (
@@ -412,3 +413,106 @@ class ValidateUserIdTest(TestCase):
                 integration_id=self.integration.id,
             )
             assert mock_client_call.call_count == 1
+
+
+def create_conversations_info_response(*, channel):
+    return SlackResponse(
+        client=None,
+        http_verb="POST",
+        api_url="https://slack.com/api/conversations.info",
+        req_args={},
+        data={"ok": True, "channel": channel},
+        headers={},
+        status_code=200,
+    )
+
+
+def create_conversations_info_error(*, error, status_code: int = 400):
+    return SlackApiError(
+        message=error,
+        response=SlackResponse(
+            client=None,
+            http_verb="POST",
+            api_url="https://slack.com/api/conversations.info",
+            req_args={},
+            data={"ok": False, "error": error},
+            headers={},
+            status_code=status_code,
+        ),
+    )
+
+
+class ResolveChannelNameTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="sentry-workspace",
+            provider="slack",
+            metadata={"access_token": "abc-123"},
+        )
+
+    @patch(
+        "slack_sdk.web.client.WebClient.conversations_info",
+        return_value=create_conversations_info_response(
+            channel={"id": "C12345", "name": "general"}
+        ),
+    )
+    def test_resolve_channel_id(self, mock_call: MagicMock) -> None:
+        result = resolve_channel_name(integration_id=self.integration.id, channel_id="C12345")
+        assert result == "general"
+        assert mock_call.call_count == 1
+
+    @patch(
+        "slack_sdk.web.client.WebClient.users_info",
+        return_value=create_user_response(
+            user={
+                "id": "U12345",
+                "name": "jane.doe",
+                "profile": {"display_name": "Jane Doe"},
+            }
+        ),
+    )
+    def test_resolve_user_id(self, mock_call: MagicMock) -> None:
+        result = resolve_channel_name(integration_id=self.integration.id, channel_id="U12345")
+        assert result == "jane.doe"
+        assert mock_call.call_count == 1
+
+    @patch(
+        "slack_sdk.web.client.WebClient.conversations_info",
+        side_effect=create_conversations_info_error(error="channel_not_found"),
+    )
+    def test_channel_not_found_returns_none(self, mock_call: MagicMock) -> None:
+        result = resolve_channel_name(integration_id=self.integration.id, channel_id="C99999")
+        assert result is None
+
+    @patch(
+        "slack_sdk.web.client.WebClient.users_info",
+        side_effect=create_user_error(error="user_not_found"),
+    )
+    def test_user_not_found_returns_none(self, mock_call: MagicMock) -> None:
+        result = resolve_channel_name(integration_id=self.integration.id, channel_id="U99999")
+        assert result is None
+
+    @patch(
+        "slack_sdk.web.client.WebClient.conversations_info",
+        side_effect=create_conversations_info_error(error="ratelimited", status_code=429),
+    )
+    def test_channel_rate_limited_raises(self, mock_call: MagicMock) -> None:
+        with pytest.raises(ApiRateLimitedError):
+            resolve_channel_name(integration_id=self.integration.id, channel_id="C12345")
+
+    @patch(
+        "slack_sdk.web.client.WebClient.users_info",
+        side_effect=create_user_error(error="ratelimited", status_code=429),
+    )
+    def test_user_rate_limited_raises(self, mock_call: MagicMock) -> None:
+        with pytest.raises(ApiRateLimitedError):
+            resolve_channel_name(integration_id=self.integration.id, channel_id="U12345")
+
+    @patch(
+        "slack_sdk.web.client.WebClient.conversations_info",
+        side_effect=create_conversations_info_error(error="some_unknown_error", status_code=500),
+    )
+    def test_generic_channel_error_returns_none(self, mock_call: MagicMock) -> None:
+        result = resolve_channel_name(integration_id=self.integration.id, channel_id="C12345")
+        assert result is None

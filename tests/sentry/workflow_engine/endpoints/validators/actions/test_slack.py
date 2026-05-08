@@ -89,3 +89,76 @@ class TestSlackActionValidator(TestCase):
                 )
             ]
         }
+
+    @mock.patch("sentry.integrations.slack.actions.form.resolve_channel_name")
+    def test_validate__channel_id_only(self, mock_resolve_channel_name: mock.MagicMock) -> None:
+        mock_resolve_channel_name.return_value = "general"
+
+        validator = BaseActionValidator(
+            data={
+                **self.valid_data,
+                "config": {
+                    "targetType": "specific",
+                    "targetIdentifier": "C1234567890",
+                },
+            },
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is True
+        assert validator.validated_data["config"]["target_display"] == "#general"
+        assert validator.validated_data["config"]["target_identifier"] == "C1234567890"
+
+    @mock.patch("sentry.integrations.slack.actions.form.resolve_channel_name")
+    def test_validate__channel_id_only__resolve_fails(
+        self, mock_resolve_channel_name: mock.MagicMock
+    ) -> None:
+        mock_resolve_channel_name.return_value = None
+
+        validator = BaseActionValidator(
+            data={
+                **self.valid_data,
+                "config": {
+                    "targetType": "specific",
+                    "targetIdentifier": "C1234567890",
+                },
+            },
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is False
+        assert "Could not resolve channel name" in str(validator.errors)
+
+    @mock.patch("sentry.integrations.slack.actions.form.resolve_channel_name")
+    def test_validate__user_id_only(self, mock_resolve_channel_name: mock.MagicMock) -> None:
+        mock_resolve_channel_name.return_value = "jane.doe"
+
+        validator = BaseActionValidator(
+            data={
+                **self.valid_data,
+                "config": {
+                    "targetType": "specific",
+                    "targetIdentifier": "U1234567890",
+                },
+            },
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is True
+        assert validator.validated_data["config"]["target_display"] == "@jane.doe"
+        assert validator.validated_data["config"]["target_identifier"] == "U1234567890"
+
+    def test_validate__neither_channel_nor_id(self) -> None:
+        validator = BaseActionValidator(
+            data={
+                **self.valid_data,
+                "config": {"targetType": "specific"},
+            },
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is False

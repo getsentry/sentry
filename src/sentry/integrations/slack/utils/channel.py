@@ -91,6 +91,74 @@ def is_input_a_user_id(input_id: str) -> bool:
     return input_id.startswith("U") or input_id.startswith("W")
 
 
+def get_prefix_for_slack_id(slack_id: str) -> str:
+    return MEMBER_PREFIX if is_input_a_user_id(slack_id) else CHANNEL_PREFIX
+
+
+def resolve_channel_name(*, integration_id: int, channel_id: str) -> str | None:
+    """
+    Resolve a Slack channel or user display name from its ID.
+    Returns the name string (without prefix) or None on failure.
+    """
+    client = SlackSdkClient(integration_id=integration_id)
+
+    if is_input_a_user_id(channel_id):
+        try:
+            results = client.users_info(user=channel_id).data
+            metrics.incr(
+                SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "users_info_resolve"},
+            )
+        except SlackApiError as e:
+            metrics.incr(
+                SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "users_info_resolve"},
+            )
+            if unpack_slack_api_error(e) == RATE_LIMITED:
+                raise ApiRateLimitedError("Slack rate limited") from e
+            _logger.warning(
+                "rule.slack.resolve_user_name_failed",
+                extra={"integration_id": integration_id, "channel_id": channel_id},
+            )
+            return None
+
+        if not isinstance(results, dict):
+            return None
+        user = results.get("user", {})
+        return (
+            user.get("name")
+            or user.get("profile", {}).get("display_name")
+            or user.get("profile", {}).get("display_name_normalized")
+        )
+    else:
+        try:
+            results = client.conversations_info(channel=channel_id).data
+            metrics.incr(
+                SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "conversations_info_resolve"},
+            )
+        except SlackApiError as e:
+            metrics.incr(
+                SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "conversations_info_resolve"},
+            )
+            if unpack_slack_api_error(e) == RATE_LIMITED:
+                raise ApiRateLimitedError("Slack rate limited") from e
+            _logger.warning(
+                "rule.slack.resolve_channel_name_failed",
+                extra={"integration_id": integration_id, "channel_id": channel_id},
+            )
+            return None
+
+        if not isinstance(results, dict):
+            return None
+        return results.get("channel", {}).get("name")
+
+
 def validate_slack_entity_id(*, integration_id: int, input_name: str, input_id: str) -> None:
     """
     Accepts a name and input ID that could correspond to a user or channel.
