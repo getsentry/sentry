@@ -416,8 +416,6 @@ export function ExplorerDrawerContent({
         canSendMessage={canSendMessage}
         interruptState={interruptState}
         isTimedOut={isTimedOut}
-        isMinimized={false} // Drawer doesn't have a minimized state
-        isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
