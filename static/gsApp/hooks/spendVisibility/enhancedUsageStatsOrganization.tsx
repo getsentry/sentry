@@ -9,7 +9,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import type {Project} from 'sentry/types/project';
+import type {Project, ProjectSummaryWithOptions} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -38,7 +38,6 @@ import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
 import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
-import type {ProjectWithOptions} from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 import SpikeProtectionUsageChart from 'getsentry/views/spikeProtection/spikeProtectionUsageChart';
 import type {
   Spike,
@@ -64,7 +63,7 @@ const SPIKE_TABLE_CURSOR_KEY = 'spikeCursor';
 type ProjectDetailsProps = {
   dataCategoryInfo: DataCategoryInfo;
   loading: boolean;
-  project: ProjectWithOptions;
+  project: ProjectSummaryWithOptions;
   reloadData: () => void;
   storedSpikes: SpikeDetails[];
 } & Pick<EnhancedUsageStatsOrganizationProps, 'spikeCursor'>;
@@ -262,7 +261,7 @@ function EnhancedUsageStatsOrganization({
   const projectWithSpikeProjectionOptionQueryEnabled = isSingleProject && !!project;
   // This endpoint refetches the specific project with an added query for the SP option
   const projectWithSpikeProjectionOption = useQuery({
-    ...apiOptions.as<ProjectWithOptions[]>()(
+    ...apiOptions.as<ProjectSummaryWithOptions[]>()(
       '/organizations/$organizationIdOrSlug/projects/',
       {
         path: {organizationIdOrSlug: organization.slug},

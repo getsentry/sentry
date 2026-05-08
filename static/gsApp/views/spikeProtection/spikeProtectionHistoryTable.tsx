@@ -17,6 +17,7 @@ import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -42,16 +43,13 @@ import {
 import {SpikeProtectionTimeDetails} from 'getsentry/views/spikeProtection/spikeProtectionTimeDetails';
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
-import {
-  isSpikeProtectionEnabled,
-  type ProjectWithOptions,
-} from './spikeProtectionProjectToggle';
+import {isSpikeProtectionEnabled} from './spikeProtectionProjectToggle';
 
 type Props = {
   dataCategoryInfo: DataCategoryInfo;
   onEnableSpikeProtection: () => void;
   organization: Organization;
-  project: ProjectWithOptions;
+  project: ProjectSummaryWithOptions;
   spikes: SpikeDetails[];
   subscription: Subscription;
   isLoading?: boolean;
@@ -64,7 +62,7 @@ function EnableSpikeProtectionButton({
   ...props
 }: {
   onEnableSpikeProtection: () => void;
-  project: ProjectWithOptions;
+  project: ProjectSummaryWithOptions;
   subscription: Subscription;
 }) {
   const api = useApi();

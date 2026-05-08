@@ -19,7 +19,7 @@ import type {
   AvailableNotificationAction,
   NotificationAction,
 } from 'sentry/types/notificationActions';
-import type {DetailedProject} from 'sentry/types/project';
+import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,7 +46,7 @@ interface Props {
 }
 
 function SpikeProtectionProjects({subscription}: Props) {
-  const [projects, setProjects] = useState([] as DetailedProject[]);
+  const [projects, setProjects] = useState([] as ProjectSummaryWithOptions[]);
   const [pageLinks, setPageLinks] = useState<string | null>();
   const [currentCursor, setCurrentCursor] = useState<string | undefined>('');
   const [availableNotificationActions, setAvailableNotificationActions] = useState<
@@ -123,7 +123,7 @@ function SpikeProtectionProjects({subscription}: Props) {
   }, [fetchAvailableNotificationActions]);
 
   const fetchProjectNotificationActions = async (
-    project: DetailedProject,
+    project: ProjectSummaryWithOptions,
     projectNotificationActions: Record<string, NotificationAction[]>
   ) => {
     const projectId = project.id;
@@ -172,7 +172,7 @@ function SpikeProtectionProjects({subscription}: Props) {
   }, [fetchProjects, fetchData]);
 
   function toggleSpikeProtectionOption(
-    project: DetailedProject,
+    project: ProjectSummaryWithOptions,
     isFeatureEnabled: boolean
   ) {
     const updatedProject = {
@@ -228,7 +228,7 @@ function SpikeProtectionProjects({subscription}: Props) {
     );
   }
 
-  const renderAccordionTitle = (project: DetailedProject) => {
+  const renderAccordionTitle = (project: ProjectSummaryWithOptions) => {
     return (
       <Flex justify="between" align="center" width="100%" height="100%">
         <Flex align="center" marginRight="xl">
@@ -238,7 +238,7 @@ function SpikeProtectionProjects({subscription}: Props) {
     );
   };
 
-  const renderAccordionBody = (project: DetailedProject) => {
+  const renderAccordionBody = (project: ProjectSummaryWithOptions) => {
     const projectNotificationActions = notificationActionsById[project.id] ?? [];
 
     // Only render if all of the notification actions have been loaded

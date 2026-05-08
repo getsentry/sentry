@@ -78,6 +78,18 @@ interface ProjectSummary extends AvatarProject {
 }
 
 /**
+ * Matches `ProjectSummarySerializer` when callers request project option
+ * expansion from `GET /api/0/organizations/{org}/projects/` using one or more
+ * `options` query params.
+ *
+ * The `options` field is omitted unless requested and may still be empty when
+ * none of the requested options have been set for the project.
+ */
+export interface ProjectSummaryWithOptions extends ProjectSummary {
+  options?: Record<string, unknown>;
+}
+
+/**
  * Matches the response from `DetailedProjectSerializer` used by
  * `GET /api/0/projects/{org}/{project}/`.
  *
