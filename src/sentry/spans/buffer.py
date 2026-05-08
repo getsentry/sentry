@@ -951,6 +951,8 @@ class SpansBuffer:
                         for payload_key in flushed_segment.payload_keys:
                             p.unlink(payload_key)
 
+                    p.delete(self._get_flush_lock_key(segment_key))
+
                 for queue_key, keys in queue_removals.items():
                     for key_batch in itertools.batched(keys, 100):
                         p.zrem(queue_key, *key_batch)

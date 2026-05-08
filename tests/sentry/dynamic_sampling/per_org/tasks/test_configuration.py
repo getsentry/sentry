@@ -5,6 +5,7 @@ from typing import NamedTuple
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.per_org.tasks.configuration import (
     AutomaticDynamicSamplingConfiguration,
@@ -12,6 +13,10 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     CustomDynamicSamplingProjectConfiguration,
     NoDynamicSamplingConfiguration,
     get_configuration,
+)
+from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    DynamicSamplingException,
+    TelemetryStatus,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.organization import Organization
@@ -50,7 +55,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
             return_value=0.5,
         ) as get_blended_sample_rate:
-            configuration = get_configuration(org)
+            configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.is_enabled
@@ -69,7 +74,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
             return_value=None,
         ):
-            configuration = get_configuration(org)
+            configuration = get_configuration(org.id)
 
         assert isinstance(configuration, NoDynamicSamplingConfiguration)
         assert not configuration.is_enabled
@@ -77,6 +82,20 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             getattr(configuration, "measure")
         with pytest.raises(AttributeError):
             getattr(configuration, "sample_rate")
+
+    def test_subscription_backed_org_without_subscription_bubbles_terminal_status(self) -> None:
+        org = self.create_organization()
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                side_effect=ObjectDoesNotExist,
+            ),
+            pytest.raises(DynamicSamplingException) as exc_info,
+        ):
+            get_configuration(org.id)
+
+        assert exc_info.value.status == TelemetryStatus.NO_SUBSCRIPTION
 
     def test_am2_ignores_project_mode_option(self) -> None:
         org = self.create_organization()
@@ -86,7 +105,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
             return_value=0.5,
         ):
-            configuration = get_configuration(org)
+            configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.sample_rate == 0.5
@@ -111,7 +130,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate"
                     ) as get_blended_sample_rate,
                 ):
-                    configuration = get_configuration(org)
+                    configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
                 assert configuration.is_enabled
@@ -148,7 +167,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate"
                     ) as get_blended_sample_rate,
                 ):
-                    configuration = get_configuration(org)
+                    configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert configuration.is_enabled
@@ -185,7 +204,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         }
                     ),
                 ):
-                    configuration = get_configuration(org)
+                    configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert not configuration.is_enabled
@@ -209,7 +228,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         }
                     ),
                 ):
-                    configuration = get_configuration(org)
+                    configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert not configuration.is_enabled
@@ -235,7 +254,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         return_value=1.0,
                     ),
                 ):
-                    configuration = get_configuration(org)
+                    configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
                 assert configuration.is_enabled

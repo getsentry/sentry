@@ -989,9 +989,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         project.save()
 
         client = SeerAgentClient(self.organization, self.user)
-        with self.options(
-            {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
-        ):
+        with self.options({"seer.explorer_index.killswitch.enable": False}):
             run_id = client.start_run("Why are my errors spiking?")
 
         assert run_id == 123
@@ -1015,7 +1013,6 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {
-                "seer.explorer_index.enable": True,
                 "seer.explorer_index.killswitch.enable": False,
                 "explorer.context_engine_indexing.enable": True,
             }
@@ -1038,9 +1035,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         project_without_txns = self.create_project(organization=self.organization)
 
         client = SeerAgentClient(self.organization, self.user)
-        with self.options(
-            {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
-        ):
+        with self.options({"seer.explorer_index.killswitch.enable": False}):
             client.start_run("Why are my errors spiking?")
 
         projects_batch = list(mock_dispatch.call_args[0][0])
@@ -1055,8 +1050,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         )
 
         client = SeerAgentClient(self.organization, self.user)
-        with self.options({"seer.explorer_index.enable": True}):
-            run_id = client.start_run("Why are my errors spiking?")
+        run_id = client.start_run("Why are my errors spiking?")
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
@@ -1067,35 +1061,10 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_chat.return_value = self._mock_chat_response()
 
         client = SeerAgentClient(self.organization, self.user)
-        with self.options({"seer.explorer_index.enable": True}):
-            run_id = client.start_run("Why are my errors spiking?")
+        run_id = client.start_run("Why are my errors spiking?")
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
-
-    @patch("sentry.seer.agent.client.index_org_project_knowledge")
-    @patch("sentry.seer.agent.client.build_service_map")
-    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
-    def test_skips_indexing_when_enable_option_off(
-        self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
-    ):
-        mock_chat.return_value = self._mock_chat_response(
-            has_explorer_index=False, has_org_project_context=False
-        )
-        project = self.create_project(organization=self.organization)
-        project.flags.has_transactions = True
-        project.save()
-
-        client = SeerAgentClient(self.organization, self.user)
-        with self.options(
-            {"seer.explorer_index.enable": False, "explorer.context_engine_indexing.enable": True}
-        ):
-            client.start_run("Why are my errors spiking?")
-
-        mock_dispatch.assert_not_called()
-        mock_index_knowledge.apply_async.assert_not_called()
-        mock_build_service_map.apply_async.assert_not_called()
 
     @patch("sentry.seer.agent.client.index_org_project_knowledge")
     @patch("sentry.seer.agent.client.build_service_map")
@@ -1114,7 +1083,6 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {
-                "seer.explorer_index.enable": True,
                 "seer.explorer_index.killswitch.enable": True,
                 "explorer.context_engine_indexing.enable": True,
             }
@@ -1132,9 +1100,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         self.create_project(organization=self.organization)
 
         client = SeerAgentClient(self.organization, self.user)
-        with self.options(
-            {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
-        ):
+        with self.options({"seer.explorer_index.killswitch.enable": False}):
             client.start_run("Why are my errors spiking?")
 
         mock_dispatch.assert_not_called()

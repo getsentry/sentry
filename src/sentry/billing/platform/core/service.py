@@ -82,16 +82,21 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
 
         start_time = time.time()
 
-        metrics.incr("billing.service.method.called", tags=metric_tags)
+        metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
+        extras = {
+            "service": service_name,
+            "method": method_name,
+            "request_type": type(request).__name__,
+        }
+        if organization_id := getattr(request, "organization_id", None):
+            extras["organization_id"] = organization_id
+        if contract_id := getattr(request, "contract_id", None):
+            extras["contract_id"] = contract_id
 
         try:
             logger.info(
                 "billing.service.method.start",
-                extra={
-                    "service": service_name,
-                    "method": method_name,
-                    "request_type": type(request).__name__,
-                },
+                extra=extras,
             )
 
             result = func(self, request)
@@ -105,16 +110,17 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
 
             duration_ms = (time.time() - start_time) * 1000
 
-            metrics.timing("billing.service.method.duration", duration_ms, tags=metric_tags)
-            metrics.incr("billing.service.method.success", tags=metric_tags)
+            metrics.timing(
+                "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
+            )
+            metrics.incr("billing.service.method.success", tags=metric_tags, sample_rate=1.0)
 
             logger.info(
                 "billing.service.method.success",
                 extra={
-                    "service": service_name,
-                    "method": method_name,
                     "duration_ms": duration_ms,
                     "response_type": type(result).__name__,
+                    **extras,
                 },
             )
 
@@ -123,20 +129,22 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
 
-            metrics.timing("billing.service.method.duration", duration_ms, tags=metric_tags)
+            metrics.timing(
+                "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
+            )
             metrics.incr(
                 "billing.service.method.error",
                 tags={**metric_tags, "error_type": type(e).__name__},
+                sample_rate=1.0,
             )
 
-            logger.exception(
+            logger.info(
                 "billing.service.method.error",
                 extra={
-                    "service": service_name,
-                    "method": method_name,
                     "duration_ms": duration_ms,
                     "error": str(e),
                     "error_type": type(e).__name__,
+                    **extras,
                 },
             )
             raise

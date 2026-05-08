@@ -391,6 +391,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.suspended.SuspendedUserMiddleware",
     "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
@@ -434,7 +435,7 @@ TEMPLATES = [
 
 SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
-    "REGION": ["sentry.CellOutbox"],
+    "CELL": ["sentry.CellOutbox"],
 }
 
 # Do not modify reordering
@@ -986,7 +987,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
-    "sentry.uptime.autodetect.notifications",
     "sentry.uptime.autodetect.tasks",
     "sentry.uptime.consumers.tasks",
     "sentry.uptime.rdap.tasks",
@@ -994,7 +994,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
-    "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
@@ -1174,8 +1173,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "context-engine-index": {
         "task": "seer:sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
-        # Offset by 30 minutes from seer-explorer-index to spread load
-        "schedule": crontab("30", "*/1", "*", "*", "*"),
+        # Run Sunday, Wednesday. Offset by 30 minutes from seer-explorer-index to spread load
+        "schedule": crontab("30", "*/1", "0,3", "*", "*"),
     },
     "index-sentry-knowledge": {
         "task": "seer:sentry.tasks.seer.context_engine_index.index_sentry_knowledge",

@@ -7,7 +7,6 @@ import orjson
 from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    RCASource,
     SeerViewerContext,
     SupergroupsByGroupIdsResponse,
     make_supergroups_get_by_group_ids_request,
@@ -24,7 +23,6 @@ def get_supergroups_by_group_ids(
         {
             "organization_id": organization.id,
             "group_ids": list(group_ids),
-            "rca_source": RCASource.LIGHTWEIGHT,
         },
         SeerViewerContext(organization_id=organization.id, user_id=user_id),
         timeout=10,

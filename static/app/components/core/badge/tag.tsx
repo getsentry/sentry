@@ -58,6 +58,7 @@ const TagPill = styled('div')<{
   height: 20px;
   font-size: ${p => p.theme.font.size.sm};
   display: inline-flex;
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   border-radius: ${p => p.theme.radius.xs};
   padding: 0 ${p => p.theme.space.md};
@@ -122,14 +123,12 @@ const Text = styled('div')`
 `;
 
 const IconWrapper = styled('span')`
-  margin-right: ${p => p.theme.space.xs};
   display: inline-flex;
   align-items: center;
   gap: inherit;
 `;
 
 const DismissButton = styled(Button)`
-  margin-left: ${p => p.theme.space.xs};
   margin-right: -${p => p.theme.space.xs};
   border: none;
 `;

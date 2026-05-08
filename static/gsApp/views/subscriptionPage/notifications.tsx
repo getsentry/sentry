@@ -2,7 +2,6 @@ import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -194,7 +193,7 @@ function ThresholdsForm({
           </form.AppField>
         )}
         <Flex gap="md" justify="end">
-          <Button onClick={() => form.reset()}>{t('Reset')}</Button>
+          <form.ResetButton>{t('Reset')}</form.ResetButton>
           <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
         </Flex>
       </FieldGroup>

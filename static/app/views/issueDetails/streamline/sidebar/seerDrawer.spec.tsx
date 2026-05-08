@@ -647,7 +647,7 @@ describe('SeerDrawer', () => {
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization: OrganizationFixture({
-        features: ['gen-ai-features', 'integrations-cursor', 'issue-views'],
+        features: ['gen-ai-features', 'issue-views'],
       }),
     });
 
@@ -728,7 +728,7 @@ describe('SeerDrawer', () => {
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization: OrganizationFixture({
-        features: ['gen-ai-features', 'integrations-cursor', 'issue-views'],
+        features: ['gen-ai-features', 'issue-views'],
       }),
     });
 

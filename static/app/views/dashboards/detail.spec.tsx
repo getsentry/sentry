@@ -133,6 +133,10 @@ describe('Dashboards > Detail', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
+      });
       act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({organization});
 
@@ -289,6 +293,10 @@ describe('Dashboards > Detail', () => {
         router: {
           location: LocationFixture(),
         },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
       });
       PageFiltersStore.init();
       PageFiltersStore.onInitializeUrlState({
@@ -866,7 +874,7 @@ describe('Dashboards > Detail', () => {
       const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/123/',
-          route: DASHBOARD_WIDGET_ROUTE,
+          routes: [DASHBOARD_WIDGET_ROUTE, DASHBOARD_ROUTE],
           query: initialData.router.location.query,
         }),
         organization: initialData.organization,
@@ -981,6 +989,33 @@ describe('Dashboards > Detail', () => {
           })
         );
       });
+    });
+
+    it('closes full screen modal when releases drawer is opened from that view', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture(widgets, {id: '1', title: 'Custom Errors'}),
+      });
+
+      const {router} = render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/',
+          route: DASHBOARD_WIDGET_ROUTE,
+          query: {...initialData.router.location.query, rd: 'show', rdRelease: '1.0.0'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/dashboard/1/');
+      });
+
+      // The releases drawer query param is preserved; widget viewer query fields are stripped
+      expect(router.location.query).toEqual(
+        expect.objectContaining({rd: 'show', rdRelease: '1.0.0'})
+      );
+      expect(openWidgetViewerModal).not.toHaveBeenCalled();
     });
 
     it('can save dashboard filters in existing dashboard', async () => {

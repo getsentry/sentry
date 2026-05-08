@@ -3,8 +3,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
+from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    DynamicSamplingException,
+    TelemetryStatus,
+)
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
@@ -16,11 +22,16 @@ TargetSampleRate = float | None
 ProjectTargetSampleRates = Mapping[ProjectId, TargetSampleRate]
 
 
-def get_configuration(organization: Organization) -> BaseDynamicSamplingConfiguration:
+def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return NoDynamicSamplingConfiguration()
+
     if not has_custom_dynamic_sampling(organization):
         configuration = AutomaticDynamicSamplingConfiguration(organization)
         if not configuration.is_enabled:
-            return NoDynamicSamplingConfiguration(organization)
+            return NoDynamicSamplingConfiguration()
         return configuration
 
     if (
@@ -60,6 +71,9 @@ class BaseDynamicSamplingConfiguration(ABC):
 
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
+    def __init__(self) -> None:
+        pass
+
     @property
     def is_enabled(self) -> bool:
         return False
@@ -71,7 +85,12 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
         self.measure = self._get_sampling_measure()
-        self.sample_rate = quotas.backend.get_blended_sample_rate(organization_id=organization.id)
+        try:
+            self.sample_rate = quotas.backend.get_blended_sample_rate(
+                organization_id=organization.id
+            )
+        except ObjectDoesNotExist as exc:
+            raise DynamicSamplingException(TelemetryStatus.NO_SUBSCRIPTION) from exc
 
     @property
     def is_enabled(self) -> bool:

@@ -12,7 +12,7 @@ import type {
   RouteContextInterface,
 } from 'sentry/types/legacyReactRouter';
 import {PermissionDenied} from 'sentry/views/permissionDenied';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 
 interface AsyncComponentProps extends Partial<RouteComponentProps> {}
 

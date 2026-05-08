@@ -4,6 +4,7 @@ import html
 import logging
 import re
 from collections.abc import Callable, Mapping
+from datetime import timedelta
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -30,6 +31,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
+from sentry.utils.dates import parse_stats_period, parse_timestamp
 
 _logger = logging.getLogger(__name__)
 
@@ -37,6 +39,61 @@ DEFAULT_PERIOD = "14d"
 TOP_N = 5
 
 EXPLORE_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
+
+# Mirrors the frontend's MINIMUM_INTERVAL ladder in
+# static/app/utils/useChartInterval.tsx. All Explore views call
+# `useChartInterval()` with the default `USE_SMALLEST` strategy, so the
+# interval the UI picks when none is in the URL is exactly the value this
+# ladder returns for the selected time range. Keep the thresholds and
+# intervals in sync with that file so unfurled charts bucket data the same
+# way as the live Explore UI.
+_DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
+    (timedelta(days=30), "3h"),
+    (timedelta(days=14), "1h"),
+    (timedelta(days=4), "30m"),
+    (timedelta(hours=48), "10m"),
+    (timedelta(hours=12), "5m"),
+    (timedelta(0), "1m"),
+)
+
+
+def _query_time_range(params: QueryDict) -> timedelta:
+    """Return the selected time range, mirroring the frontend's
+    `getDiffInMinutes`: prefer absolute start/end, otherwise parse statsPeriod."""
+    start = params.get("start")
+    end = params.get("end")
+    if start and end:
+        try:
+            return max(parse_timestamp(end) - parse_timestamp(start), timedelta(0))
+        except (ValueError, TypeError):
+            pass
+
+    period = params.get("statsPeriod") or DEFAULT_PERIOD
+    parsed = parse_stats_period(period)
+    return parsed if parsed is not None else timedelta(0)
+
+
+def _default_interval_for_query(params: QueryDict) -> str:
+    diff = _query_time_range(params)
+    for threshold, interval in _DEFAULT_INTERVAL_LADDER:
+        if diff >= threshold:
+            return interval
+    return "1m"
+
+
+def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
+    """Match the frontend's `useChartIntervalImpl`: if the URL's explicit
+    interval is finer than the minimum the ladder allows for the selected
+    time range, fall back to the minimum. Stale URLs (e.g. an `interval=1m`
+    pasted from a 1h view into a 7d view) would otherwise produce thousands
+    of buckets that events-timeseries rejects, so the unfurl renders empty."""
+    url_td = parse_stats_period(url_interval)
+    minimum_td = parse_stats_period(minimum_interval)
+    if url_td is None:
+        return minimum_interval
+    if minimum_td is not None and url_td < minimum_td:
+        return minimum_interval
+    return url_interval
 
 
 def _aggregate_sorts_are_valid(
@@ -111,6 +168,15 @@ def _build_timeseries_query(
     if sort_values:
         out.setlist("sort", sort_values)
 
+    if not out.get("statsPeriod") and not out.get("start"):
+        out["statsPeriod"] = DEFAULT_PERIOD
+
+    minimum_interval = _default_interval_for_query(out)
+    url_interval = out.get("interval")
+    out["interval"] = (
+        _clamp_interval(url_interval, minimum_interval) if url_interval else minimum_interval
+    )
+
     return out
 
 
@@ -134,9 +200,13 @@ def _parse_traces_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryD
 
 
 def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
-    """Logs visualizations live in aggregateField; query/sort use logs-specific keys
-    and sorts target table columns rather than aggregate fields, so they're not
-    validated against yAxes/groupBys."""
+    """Logs visualizations live in aggregateField. The chart's topEvents sort
+    comes from `logsAggregateSortBys` (the aggregate-mode chart sort) — not
+    `logsSortBys`, which is the samples-mode logs table sort (typically
+    `-timestamp`) and would feed events-timeseries a non-aggregate sort field
+    in topEvents mode, returning no data. Validate the aggregate sort against
+    the active yAxes/groupBys like the traces parser, otherwise fall back to
+    the default `-yAxes[0]` topEvents sort."""
     y_axes, group_bys, chart_type = _parse_aggregate_field_entries(
         raw_query.getlist("aggregateField")
     )
@@ -147,39 +217,67 @@ def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDic
     query_values = raw_query.getlist("logsQuery")
     query = query_values[0] if query_values else None
 
-    sort_values = raw_query.getlist("logsSortBys")
+    sort_values = raw_query.getlist("logsAggregateSortBys")
+    if sort_values and not _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+        sort_values = []
 
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
-    """Metrics encodes the entire chart config in a single ``metric`` JSON param,
-    including its own query and aggregateSortBys."""
+def _metric_chart_is_visible(metric_parsed: dict[str, Any]) -> bool:
+    """A metric renders the first aggregateField with `yAxes`. That entry's
+    `visible` flag (defaulting to True) controls whether the chart is shown
+    in the UI; mirror that here so hidden charts are skipped during unfurl."""
+    for agg_field in metric_parsed.get("aggregateFields") or []:
+        if not isinstance(agg_field, dict):
+            continue
+        if isinstance(agg_field.get("yAxes"), list):
+            return agg_field.get("visible", True) is not False
+    # No yAxes entry means we'll fall back to the dataset default, treat as visible.
+    return True
+
+
+def _parse_metrics_url(
+    raw_query: QueryDict, default_y_axis: str
+) -> tuple[QueryDict | None, int | None]:
+    """Metrics encodes each chart in its own `metric` JSON param. Multiple
+    metric params represent multiple charts; pick the first whose visualization
+    is visible (matching the Explore UI's `visible` flag). If none are
+    visible, return `None` to signal no chart should be rendered."""
     metric_list = raw_query.getlist("metric")
     if not metric_list:
         return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
 
-    try:
-        metric_parsed = json.loads(metric_list[0])
-    except (json.JSONDecodeError, TypeError, AttributeError):
-        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+    metric_parsed: dict[str, Any] | None = None
+    for raw_metric in metric_list:
+        try:
+            parsed = json.loads(raw_metric)
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            continue
+        if not isinstance(parsed, dict):
+            continue
+        if _metric_chart_is_visible(parsed):
+            metric_parsed = parsed
+            break
 
-    if not isinstance(metric_parsed, dict):
-        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+    if metric_parsed is None:
+        return None, None
 
     y_axes: list[str] = []
     group_bys: list[str] = []
     chart_type: int | None = None
     # `or []` so a present-but-null aggregateFields/aggregateSortBys field in
     # the user-supplied metric JSON doesn't blow up iteration.
+    # Metrics renders multiple aggregates (e.g. p50 + p95) as multiple series on
+    # a single chart, so accumulate yAxes across every aggregateFields entry.
     for agg_field in metric_parsed.get("aggregateFields") or []:
         if not isinstance(agg_field, dict):
             continue
         if agg_field.get("groupBy"):
             group_bys.append(agg_field["groupBy"])
-        if not y_axes and isinstance(agg_field.get("yAxes"), list):
-            y_axes = list(agg_field["yAxes"])
-            if isinstance(agg_field.get("chartType"), int):
+        if isinstance(agg_field.get("yAxes"), list):
+            y_axes.extend(agg_field["yAxes"])
+            if chart_type is None and isinstance(agg_field.get("chartType"), int):
                 chart_type = agg_field["chartType"]
 
     if not y_axes:
@@ -194,12 +292,19 @@ def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[Query
         if sort_field:
             sort_values.append(f"-{sort_field}" if kind == "desc" else sort_field)
 
+    # A stale aggregateSortBys (e.g. left over from a previous yAxis or referencing
+    # a different metric than the one being visualized) should be dropped so the
+    # unfurl falls back to the default `-yAxes[0]` topEvents sort, matching the
+    # frontend's validateAggregateSort.
+    if sort_values and not _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+        sort_values = []
+
     query = metric_parsed.get("query") or None
 
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict, int | None]]
+ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict | None, int | None]]
 
 
 class ExploreDatasetConfig(TypedDict):
@@ -289,6 +394,10 @@ def _unfurl_explore(
             continue
 
         params = link.args["query"]
+        if params is None:
+            # Parser signaled no chart should be rendered (e.g. all metrics
+            # in the URL are hidden).
+            continue
         chart_type = link.args.get("chart_type")
 
         explore_dataset = link.args.get("dataset", SupportedTraceItemType.SPANS)
@@ -309,18 +418,23 @@ def _unfurl_explore(
                 # defaultAggregateSortBys behavior
                 params.setlist("sort", [f"-{y_axes[0]}"])
 
-        if not params.get("statsPeriod") and not params.get("start"):
-            params["statsPeriod"] = DEFAULT_PERIOD
-
         params["dataset"] = explore_dataset.value
         params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
+
+        # ApiClient iterates params via .items(), which collapses multi-value
+        # QueryDict keys to the last value. Walk lists() and emit a real list
+        # for multi-value keys (e.g. multiple groupBy entries from aggregateField)
+        # so all values reach events-timeseries.
+        api_params: dict[str, str | list[str]] = {
+            key: values if len(values) > 1 else values[0] for key, values in params.lists()
+        }
 
         try:
             resp = client.get(
                 auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                 user=user,
                 path=f"/organizations/{org_slug}/events-timeseries/",
-                params=params,
+                params=api_params,
             )
         except Exception:
             _logger.warning("Failed to load events-timeseries for explore unfurl")
