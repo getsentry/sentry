@@ -90,7 +90,7 @@ export interface RouterConfig {
   routes?: string[];
 }
 
-interface RenderOptions extends rtl.RenderOptions, ProviderOptions {
+export interface RenderOptions extends rtl.RenderOptions, ProviderOptions {
   initialRouterConfig?: RouterConfig;
   outletContext?: Record<string, unknown>;
 }
