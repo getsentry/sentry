@@ -552,10 +552,12 @@ export const useSeerExplorer = () => {
   const processedSessionData = useMemo(() => {
     if (!isPolling) {
       // filter out incomplete loading blocks (can happen on timeout)
-      return {
-        ...rawSessionData,
-        blocks: rawSessionData?.blocks?.filter(b => !b.loading) ?? [],
-      };
+      return rawSessionData === null
+        ? null
+        : {
+            ...rawSessionData,
+            blocks: rawSessionData?.blocks?.filter(b => !b.loading) ?? [],
+          };
     }
 
     if (lastSentMessage === null) {

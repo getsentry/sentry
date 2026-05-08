@@ -221,7 +221,7 @@ describe('ExplorerDrawerContent', () => {
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
-      expect(sendMessage).toHaveBeenCalledWith('Test message');
+      expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
       expect(textarea).toHaveValue('');
     });
 
