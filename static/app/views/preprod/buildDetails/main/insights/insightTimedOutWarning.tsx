@@ -25,7 +25,7 @@ export function InsightTimedOutWarning({insight}: {insight: ProcessedInsight}) {
       title={
         <span>
           {t(
-            'This app has a high amount of images and our analysis timed out before all of them could be processed!'
+            'This app has a high number of images and was not fully analyzed. Only a subset of results are shown.'
           )}
           <br />
           <br />
