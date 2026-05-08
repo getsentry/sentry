@@ -74,6 +74,11 @@ repos:
         entry: python3 -m tools.mypy_helpers.prevent_weaklist_additions
         files: ^pyproject\.toml$
         language: python
+      - id: prevent-mypy-module-ignores-additions
+        name: prevent mypy module ignores additions
+        entry: python3 -m tools.mypy_helpers.prevent_module_ignores_additions
+        files: ^pyproject\.toml$
+        language: python
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
