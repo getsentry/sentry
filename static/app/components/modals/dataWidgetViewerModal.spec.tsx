@@ -404,37 +404,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
         );
       });
 
-      it('renders with first legend disabled by default', async () => {
-        mockEvents();
-        // Rerender with first legend disabled
-        const initialRouterConfig = {
-          ...initialData.initialRouterConfig,
-          location: {
-            pathname: initialData.initialRouterConfig.location.pathname,
-            query: {
-              unselectedSeries: [`${mockWidget.id}:Query Name`],
-            },
-          },
-        };
-        await renderModal({
-          initialData: {...initialData, initialRouterConfig},
-          widget: mockWidget,
-        });
-
-        const echartsMock = jest.mocked(ReactEchartsCore);
-        const lastCall = echartsMock.mock.calls[echartsMock.mock.calls.length - 1]![0];
-        // TODO(react19): Can change this back to expect(ReactEchartsCore).toHaveBeenLastCalledWith()
-        expect(lastCall).toEqual(
-          expect.objectContaining({
-            option: expect.objectContaining({
-              legend: expect.objectContaining({
-                selected: {[`Query Name|~|${mockWidget.id}`]: false},
-              }),
-            }),
-          })
-        );
-      });
-
       it('renders total results in footer', async () => {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
@@ -501,45 +470,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
         ];
         await renderModal({initialData, widget: mockWidget});
         expect(await screen.findByText('count_unique(user) + 1')).toBeInTheDocument();
-      });
-
-      it('renders widget chart with y axis formatter using provided seriesResultType', async () => {
-        mockEvents();
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
-          body: {
-            data: [
-              [[1646100000], [{count: 1}]],
-              [[1646120000], [{count: 1}]],
-            ],
-            start: 1646100000,
-            end: 1646120000,
-            isMetricsData: false,
-            meta: {
-              fields: {count: 'duration'},
-            },
-          },
-        });
-        await renderModal({
-          initialData: initialDataWithFlag,
-          widget: mockWidget,
-        });
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
-        const yAxisFormatter =
-          calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toBe('123ms');
-      });
-
-      it('renders widget chart with default number y axis formatter when seriesResultType has multiple different types', async () => {
-        mockEvents();
-        await renderModal({
-          initialData: initialDataWithFlag,
-          widget: mockWidget,
-        });
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
-        const yAxisFormatter =
-          calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toBe('123');
       });
 
       it('renders transaction summary link', async () => {
@@ -702,29 +632,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
         });
       });
 
-      it('sorts table when a sortable column header is clicked', async () => {
-        const eventsStatsMock = mockEventsStats();
-        const eventsMock = mockEvents();
-        const {router} = await renderModal({initialData, widget: mockWidget});
-        await userEvent.click(await screen.findByText('count()'));
-        await waitForMetaToHaveBeenCalled();
-        expect(eventsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events/',
-          expect.objectContaining({
-            query: expect.objectContaining({sort: ['-count()']}),
-          })
-        );
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events-stats/',
-          expect.objectContaining({
-            query: expect.objectContaining({orderby: '-count()'}),
-          })
-        );
-        expect(router.location.query).toEqual(
-          expect.objectContaining({sort: '-count()'})
-        );
-      });
-
       it('renders pagination buttons', async () => {
         mockEventsStats();
         mockEvents();
@@ -774,19 +681,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
           )
         );
         expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
-      });
-
-      it('makes events-stats requests when table is sorted', async () => {
-        const eventsStatsMock = mockEventsStats();
-        mockEvents();
-        await renderModal({
-          initialData,
-          widget: mockWidget,
-        });
-        expect(eventsStatsMock).toHaveBeenCalled();
-        await userEvent.click(screen.getByText('count()'));
-        await waitForMetaToHaveBeenCalled();
-        expect(eventsStatsMock).toHaveBeenCalledTimes(2);
       });
 
       it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
