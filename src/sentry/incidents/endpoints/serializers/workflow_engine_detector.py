@@ -374,8 +374,14 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         snuba_query_ids = []
         for detector in detectors.values():
-            data_source_detector = dsd_by_detector_id[detector.id]
-            query_subscription = qs_by_id[int(data_source_detector.data_source.source_id)]
+            data_source_detector = dsd_by_detector_id.get(detector.id)
+            if data_source_detector is None:
+                result[detector]["_skip"] = True
+                continue
+            query_subscription = qs_by_id.get(int(data_source_detector.data_source.source_id))
+            if query_subscription is None:
+                result[detector]["_skip"] = True
+                continue
             snuba_query = query_subscription.snuba_query
             snuba_query_ids.append(snuba_query.id)
             result[detector]["query"] = snuba_query.query
@@ -411,7 +417,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
+    def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse | None:
+        if attrs.get("_skip"):
+            return None
         triggers = attrs.get("triggers", [])
         alert_rule_id = None
 

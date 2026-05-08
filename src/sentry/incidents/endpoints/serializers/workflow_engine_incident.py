@@ -72,6 +72,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
                 user,
                 DetailedWorkflowEngineDetectorSerializer(expand=self.expand),
             )
+            if alert_rule is not None
         }
         alert_rule_detectors = AlertRuleDetector.objects.filter(
             detector__in=list(open_periods_to_detectors.values())

@@ -12,6 +12,7 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
+from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
@@ -208,6 +209,12 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         ]
         serializer.add_triggers_and_actions(result, detectors, {}, serialized_data_conditions, {})
         assert self.detector not in result
+
+    def test_deleted_query_subscription(self) -> None:
+        QuerySubscription.objects.filter(snuba_query=self.alert_rule.snuba_query).delete()
+
+        serialized = serialize([self.detector], self.user, WorkflowEngineDetectorSerializer())
+        assert serialized == [None]
 
     def test_new_models_only(self) -> None:
         # test that we can still serialize if objects do not have lookup table entries

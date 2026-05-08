@@ -287,7 +287,11 @@ class AlertRuleFetchMixin(Endpoint):
                 queryset=detectors,
                 order_by="-date_added",
                 paginator_cls=OffsetPaginator,
-                on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
+                on_results=lambda x: [
+                    r
+                    for r in serialize(x, request.user, WorkflowEngineDetectorSerializer())
+                    if r is not None
+                ],
                 default_per_page=25,
                 count_hits=True,
             )

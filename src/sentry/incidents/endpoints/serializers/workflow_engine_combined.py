@@ -63,7 +63,8 @@ class WorkflowEngineCombinedRuleSerializer(Serializer):
 
         # Map by position since serializers return fake IDs that can't be used for lookup
         for detector, serialized in zip(metric_detectors, serialized_metric_detectors):
-            results[detector] = serialized
+            if serialized is not None:
+                results[detector] = serialized
 
         for workflow, serialized in zip(workflows, serialized_workflows):
             results[workflow] = serialized
