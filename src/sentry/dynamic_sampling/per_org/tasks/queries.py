@@ -14,7 +14,6 @@ from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
-from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
@@ -31,14 +30,9 @@ class ProjectVolume:
     drop: int
 
 
-EAP_ORGANIZATION_VOLUME_QUERY_STRINGS = {
-    SamplingMeasure.SEGMENTS: "is_transaction:true",
-    SamplingMeasure.SPANS: "",
-}
-
-
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
-    return int(row.get(column, 0))
+    value = row.get(column)
+    return int(value) if value is not None else 0
 
 
 def run_eap_spans_table_query_in_chunks(
@@ -84,7 +78,7 @@ def get_eap_organization_volume(
             projects=projects,
             organization=organization,
         ),
-        query_string=EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
+        query_string="is_transaction:true",
         selected_columns=["count()", "count_sample()"],
         orderby=None,
         offset=0,
@@ -133,7 +127,7 @@ def get_eap_project_volumes(
                 projects=projects,
                 organization=organization,
             ),
-            "query_string": EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
+            "query_string": "is_transaction:true",
             "selected_columns": ["project.id", "count()", "count_sample()"],
             "orderby": ["project.id"],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,

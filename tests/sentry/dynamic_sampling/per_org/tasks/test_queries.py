@@ -16,7 +16,6 @@ from sentry.dynamic_sampling.per_org.tasks.queries import (
     run_eap_spans_table_query_in_chunks,
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
-from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
@@ -85,21 +84,10 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
     def get_config(
         self,
         organization: Organization,
-        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ) -> BaseDynamicSamplingConfiguration:
-        option_values: dict[str, object] = {"dynamic-sampling.check_span_feature_flag": False}
-        if measure == SamplingMeasure.SPANS:
-            option_values = {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [organization.id],
-            }
-
-        with (
-            self.options(option_values),
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ),
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+            return_value=1.0,
         ):
             return get_configuration(organization.id)
 
@@ -170,23 +158,6 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=1)
 
-    def test_get_eap_organization_volume_with_spans_measure(self) -> None:
-        organization = self.create_organization()
-        self.create_project(organization=organization)
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
-            return_value={"data": [{"count()": 2, "count_sample()": 2}]},
-        ) as run_table_query:
-            org_volume = get_eap_organization_volume(
-                self.get_config(organization, SamplingMeasure.SPANS),
-                time_interval=timedelta(hours=1),
-            )
-
-        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=2, indexed=2)
-        run_table_query.assert_called_once()
-        assert run_table_query.call_args.kwargs["query_string"] == ""
-
     def test_get_eap_organization_volume_without_traffic(self) -> None:
         organization = self.create_organization()
         self.create_project(organization=organization)
@@ -240,23 +211,6 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             other_project,
         ]
         assert run_table_query.call_args.kwargs["query_string"] == "is_transaction:true"
-
-    def test_get_eap_project_volumes_with_spans_measure(self) -> None:
-        organization = self.create_organization()
-        self.create_project(organization=organization)
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
-            return_value={"data": []},
-        ) as run_table_query:
-            project_volumes = get_eap_project_volumes(
-                self.get_config(organization, SamplingMeasure.SPANS),
-                time_interval=timedelta(hours=1),
-            )
-
-        assert project_volumes == []
-        run_table_query.assert_called_once()
-        assert run_table_query.call_args.kwargs["query_string"] == ""
 
     def test_get_eap_project_volumes_without_traffic(self) -> None:
         organization = self.create_organization()
