@@ -7,7 +7,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -57,7 +57,7 @@ export const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCa
     }
 
     if (!hasProjectId || !organizationId) {
-      if ((error as RequestError | null)?.status === 404) {
+      if (error instanceof RequestError && error.status === 404) {
         return (
           <Flex flex={1} padding="2xl">
             <Alert.Container>
