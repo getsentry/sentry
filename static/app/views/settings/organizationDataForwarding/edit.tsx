@@ -149,7 +149,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                     <Alert
                       variant="warning"
                       expand={t(
-                        'If you manage projects that are opted into this data forwarder, you can set their overrides below. All non-overridden fields from the global configuration will be applied to your projects, so work with your Sentry organization owner/manager/admin to ensure your projects get data forwarded correctly, or to opt-in more projects.'
+                        'If you manage projects that are opted into this data forwarder, you can set their overrides below. For all non-overridden fields, the default configuration will be applied. To opt-in more projects, or modify the global default configuration, contact your Sentry organization owner, manager or admin.'
                       )}
                     >
                       {t(
@@ -168,7 +168,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                           variant="muted"
                           system
                           expand={t(
-                            "Only projects that have been opted in to this data forwarder AND that you have access to manage, appear here. To opt in more of your projects, you'll need to contact an owner, manager or admin for your Sentry organization."
+                            "Only projects that have been opted in to this data forwarder AND that you have access to manage, will appear here. To opt in more of your projects, you'll need to contact an owner, manager or admin for your Sentry organization."
                           )}
                         >
                           {t(
