@@ -238,11 +238,13 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
         artifact_url = get_preprod_artifact_url(artifact)
+        install_url = get_preprod_artifact_url(artifact, view_type="install")
 
         return Response(
             {
                 "state": ChunkFileState.CREATED,
                 "missingChunks": [],
                 "artifactUrl": artifact_url,
+                "installUrl": install_url,
             }
         )

@@ -522,6 +522,10 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert set(response.data["missingChunks"]) == set()
         expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
+        expected_install_url = (
+            f"/organizations/{self.organization.slug}/preprod/install/{artifact_id}"
+        )
+        assert expected_install_url in response.data["installUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
@@ -597,6 +601,10 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert set(response.data["missingChunks"]) == set()
         expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
+        expected_install_url = (
+            f"/organizations/{self.organization.slug}/preprod/install/{artifact_id}"
+        )
+        assert expected_install_url in response.data["installUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
@@ -669,6 +677,10 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert set(response.data["missingChunks"]) == set()
         expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
+        expected_install_url = (
+            f"/organizations/{self.organization.slug}/preprod/install/{artifact_id}"
+        )
+        assert expected_install_url in response.data["installUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
