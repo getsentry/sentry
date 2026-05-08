@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -13,7 +14,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -30,6 +30,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
@@ -153,9 +155,14 @@ function IssueListOverviewInner({
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
-    {}
+  const organizationUsersProjectIds = useMemo(
+    () => selection.projects.map(projectId => String(projectId)),
+    [selection.projects]
   );
+  const {data: memberList = {}} = useQuery({
+    ...useProjectMembersQueryOptions(organizationUsersProjectIds),
+    select: resp => indexMembersByProject(resp.json),
+  });
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
@@ -562,30 +569,6 @@ function IssueListOverviewInner({
     previousRequestParams,
     requestParams,
   ]);
-
-  // Fetch members on mount
-  useEffect(() => {
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // If the project selection has changed reload the member list and tag keys
-  // allowing autocomplete and tag sidebar to be more accurate.
-  useEffect(() => {
-    if (isEqual(previousSelection?.projects, selection.projects)) {
-      return;
-    }
-
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug, selection.projects, previousSelection?.projects]);
 
   // Cleanup
   useEffect(() => {
