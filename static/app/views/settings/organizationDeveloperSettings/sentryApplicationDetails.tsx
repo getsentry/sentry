@@ -236,6 +236,7 @@ export default function SentryApplicationDetails() {
     data: app,
     isLoading,
     isError,
+    isPlaceholderData,
     refetch,
   } = useQuery({
     ...sentryAppQueryOptions,
@@ -273,7 +274,7 @@ export default function SentryApplicationDetails() {
         <SettingsPageHeader title={headerTitle} />
       )}
 
-      {isLoading ? (
+      {isLoading || isPlaceholderData ? (
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError onRetry={refetch} />
