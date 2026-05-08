@@ -23,6 +23,7 @@ function hasOrganizationRole(organization: Organization, roleRequired: string): 
   return currentIndex >= requiredIndex;
 }
 
+// Helper function to safely get role from project
 function getProjectRole(
   project: DetailedProject | undefined,
   role: 'debugFilesRole' | 'attachmentsRole'
