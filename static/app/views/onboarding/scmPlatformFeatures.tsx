@@ -183,13 +183,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     });
   }, [detectedPlatformKey, selectedPlatform?.key, organization]);
 
-  // Pick which feature-card variant to render for the selected platform.
-  //   toggleable    — platform has a curated entry in `platformProductAvailability`;
-  //                   render `ScmFeatureSelectionCards` (user can toggle products).
-  //   informational — platform has a generated entry in `PLATFORM_PRODUCT_INFO`
-  //                   (wizard-driven onboarding); render `ScmFeatureInfoCards`
-  //                   (informational, no toggles since the wizard handles config).
-  //   none          — platform isn't covered by either map; render no feature cards.
+  // Wizard-driven platforms render an informational variant since the wizard CLI
+  // owns product configuration and toggles aren't actionable.
   const featureMode = useMemo<'toggleable' | 'informational' | 'none'>(() => {
     if (!currentPlatformKey) {
       return 'none';
@@ -634,8 +629,10 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     disabledProducts={disabledProducts}
                     featureMeta={featureMeta}
                     platformName={
-                      (currentPlatformKey && getPlatformInfo(currentPlatformKey)?.name) ||
-                      ''
+                      currentPlatformKey
+                        ? (getPlatformInfo(currentPlatformKey)?.name ??
+                          currentPlatformKey)
+                        : ''
                     }
                     isVolumeLoading={isFeatureMetaLoading}
                   />
