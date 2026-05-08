@@ -118,9 +118,7 @@ class ExploreLinkSharedEvent(BaseEventTest):
 
     def test_unique_explore_links_with_same_arg_shape(self) -> None:
         """Three explore URLs whose args dicts share the same key set but
-        carry different QueryDicts must each unfurl separately. Pre-fix the
-        dedup hashed only args.keys(), so all three collided and only the
-        first reached the handler."""
+        carry different QueryDicts must each unfurl separately."""
         self.link_identity(slack_user_id=LINK_SHARED_EVENT["user"])
 
         handler_fn = Mock(return_value={"l1": "u1", "l2": "u2", "l3": "u3"})
