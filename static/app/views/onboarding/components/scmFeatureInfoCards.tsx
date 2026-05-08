@@ -24,6 +24,7 @@ interface ScmFeatureInfoCardsProps {
 // designer iterates on this separately.
 export function ScmFeatureInfoCards({
   availableFeatures,
+  disabledProducts,
   featureMeta,
   platformName,
   isVolumeLoading,
@@ -54,48 +55,69 @@ export function ScmFeatureInfoCards({
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];
           const Icon = meta.icon;
+          const disabledProduct = disabledProducts[feature];
+          const isDisabled = !meta.alwaysEnabled && !!disabledProduct;
           return (
-            <Grid
+            <Tooltip
               key={feature}
-              columns="min-content 1fr"
-              rows="min-content min-content"
-              gap={{xs: 'xs md', sm: 'xs lg'}}
-              align="center"
-              areas={`
+              title={disabledProduct?.reason}
+              disabled={!isDisabled}
+              delay={100}
+            >
+              <Grid
+                columns="min-content 1fr"
+                rows="min-content min-content"
+                gap={{xs: 'xs md', sm: 'xs lg'}}
+                align="center"
+                areas={`
                     "icon label"
                     ". description"
                   `}
-            >
-              <Container area="icon">
-                {containerProps => <Icon {...containerProps} size="md" />}
-              </Container>
-              <Container area="label">
-                <Text bold size="md">
-                  {meta.label}
-                </Text>
-              </Container>
-              <Stack gap="md" area="description">
-                <Text variant="secondary" density="comfortable">
-                  {meta.description}
-                </Text>
-                <Container>
-                  {isVolumeLoading ? (
-                    <Placeholder height="20px" width="100px" />
-                  ) : (
-                    <Tooltip title={meta.volumeTooltip} delay={100}>
-                      <Text
-                        variant="muted"
-                        underline="dotted"
-                        size="sm"
-                        density="comfortable"
-                      >
-                        {meta.volume}
-                      </Text>
-                    </Tooltip>
+              >
+                <Container area="icon">
+                  {containerProps => (
+                    <Icon
+                      {...containerProps}
+                      size="md"
+                      variant={isDisabled ? 'muted' : undefined}
+                    />
                   )}
                 </Container>
-              </Stack>
-            </Grid>
+                <Container area="label">
+                  <Text bold size="md" variant={isDisabled ? 'muted' : undefined}>
+                    {meta.label}
+                  </Text>
+                </Container>
+                <Stack gap="md" area="description">
+                  <Text
+                    variant={isDisabled ? 'muted' : 'secondary'}
+                    density="comfortable"
+                  >
+                    {meta.description}
+                  </Text>
+                  <Container>
+                    {isVolumeLoading ? (
+                      <Placeholder height="20px" width="100px" />
+                    ) : (
+                      <Tooltip
+                        title={meta.volumeTooltip}
+                        delay={100}
+                        disabled={isDisabled}
+                      >
+                        <Text
+                          variant="muted"
+                          underline={isDisabled ? undefined : 'dotted'}
+                          size="sm"
+                          density="comfortable"
+                        >
+                          {meta.volume}
+                        </Text>
+                      </Tooltip>
+                    )}
+                  </Container>
+                </Stack>
+              </Grid>
+            </Tooltip>
           );
         })}
       </Grid>
