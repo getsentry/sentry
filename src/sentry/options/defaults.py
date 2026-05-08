@@ -3285,6 +3285,18 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, done_flush_segments uses Lua scripts to conditionally clean up
+# segments only if their state hasn't changed since the flush started: Phase 1
+# ZREMs the queue entry only if the score is unchanged, and Phase 2 deletes the
+# per-segment data keys (hrs, ic, ibc) only if the ingested count is unchanged.
+# When False, both phases unconditionally remove queue entries and delete data
+# keys for every flushed segment.
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",

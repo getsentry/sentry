@@ -128,7 +128,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {
             "channel": slack_request.channel_id,
             "user": slack_request.user_id,
-            "text": "Link your Slack identity to Sentry to unfurl charts.",
+            "text": "Link with Slack to preview charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 

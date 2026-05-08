@@ -7,6 +7,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import ALERTS_API_DEPRECATION_DATE
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     AlertRuleFetchMixin,
     create_metric_alert,
@@ -27,6 +29,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
     }
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rules")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
     def get(self, request: Request, project) -> HttpResponseBase:
         """
         Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
@@ -34,6 +37,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         return self.fetch_metric_alerts(request, project.organization, [project])
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-alert-rules")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
     def post(self, request: Request, project) -> HttpResponseBase:
         """
         Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.

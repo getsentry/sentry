@@ -13,12 +13,10 @@ class RuleDeletionTask(ModelDeletionTask[Rule]):
     def get_child_relations(self, instance: Rule) -> list[BaseRelation]:
         from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.rule import RuleActivity
-        from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
         model_relations: list[BaseRelation] = [
             ModelRelation(GroupRuleStatus, {"rule_id": instance.id}),
-            ModelRelation(RuleFireHistory, {"rule_id": instance.id}),
             ModelRelation(RuleActivity, {"rule_id": instance.id}),
             ModelRelation(
                 AlertRuleDetector,

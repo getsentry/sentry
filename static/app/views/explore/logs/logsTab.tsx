@@ -71,6 +71,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {useOurLogsSchemaHintsRemoval} from 'sentry/views/explore/logs/tables/useOurLogsSchemaHintsRemoval';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -176,6 +177,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const schemaHintsRemoval = useOurLogsSchemaHintsRemoval();
 
   return (
     <SearchQueryBuilderProvider
@@ -218,22 +220,24 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          <ExploreSchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={supportedAggregates}
-              booleanTags={booleanAttributes}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={
-                numberAttributesLoading ||
-                stringAttributesLoading ||
-                booleanAttributesLoading
-              }
-              exploreQuery={logsSearchQuery}
-              source={SchemaHintsSources.LOGS}
-              searchBarWidthOffset={searchBarWidthOffset}
-            />
-          </ExploreSchemaHintsSection>
+          {!schemaHintsRemoval && (
+            <ExploreSchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={supportedAggregates}
+                booleanTags={booleanAttributes}
+                numberTags={numberAttributes}
+                stringTags={stringAttributes}
+                isLoading={
+                  numberAttributesLoading ||
+                  stringAttributesLoading ||
+                  booleanAttributesLoading
+                }
+                exploreQuery={logsSearchQuery}
+                source={SchemaHintsSources.LOGS}
+                searchBarWidthOffset={searchBarWidthOffset}
+              />
+            </ExploreSchemaHintsSection>
+          )}
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
