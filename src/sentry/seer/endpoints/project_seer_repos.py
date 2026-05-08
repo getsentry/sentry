@@ -109,14 +109,15 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
                 queryset = queryset.exclude(repository__name__in=value)
 
         elif key == "provider":
+            normalize = lambda v: v.removeprefix("integrations:")
             if op == "=":
-                queryset = queryset.filter(repository__provider=value)
+                queryset = queryset.filter(provider_normalized=normalize(value))
             elif op == "!=":
-                queryset = queryset.exclude(repository__provider=value)
+                queryset = queryset.exclude(provider_normalized=normalize(value))
             elif op == "IN":
-                queryset = queryset.filter(repository__provider__in=value)
+                queryset = queryset.filter(provider_normalized__in=[normalize(v) for v in value])
             elif op == "NOT IN":
-                queryset = queryset.exclude(repository__provider__in=value)
+                queryset = queryset.exclude(provider_normalized__in=[normalize(v) for v in value])
 
     return queryset
 
@@ -199,7 +200,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request, organization: Organization, project_id: int) -> Response:
-        project = self.get_projects(request, organization, project_ids={project_id})[0]
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         queryset = _get_project_repos_queryset(project).annotate(
             # Strip the provider prefix if present, so we can order by it.
@@ -228,7 +229,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request: Request, organization: Organization, project_id: int) -> Response:
-        project = self.get_projects(request, organization, project_ids={project_id})[0]
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         serializer = SeerProjectReposRequestSerializer(data=request.data)
         if not serializer.is_valid():
@@ -259,7 +260,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
         return Response([_serialize_project_repo(r) for r in result], status=201)
 
     def put(self, request: Request, organization: Organization, project_id: int) -> Response:
-        project = self.get_projects(request, organization, project_ids={project_id})[0]
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         serializer = SeerProjectReposRequestSerializer(data=request.data)
         if not serializer.is_valid():
@@ -299,7 +300,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
     def get(
         self, request: Request, organization: Organization, project_id: int, repo_id: int
     ) -> Response:
-        project = self.get_projects(request, organization, project_ids={project_id})[0]
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         project_repo = self._get_project_repo(project, repo_id)
         if project_repo is None:
@@ -310,7 +311,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
     def put(
         self, request: Request, organization: Organization, project_id: int, repo_id: int
     ) -> Response:
-        project = self.get_projects(request, organization, project_ids={project_id})[0]
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         serializer = SeerProjectRepoUpdateSerializer(data=request.data)
         if not serializer.is_valid():
@@ -333,7 +334,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
     def delete(
         self, request: Request, organization: Organization, project_id: int, repo_id: int
     ) -> Response:
-        project = self.get_projects(request, organization, project_ids={project_id})[0]
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             deleted_count, _ = SeerProjectRepository.objects.filter(
