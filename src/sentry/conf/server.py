@@ -1173,7 +1173,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "context-engine-index": {
         "task": "seer:sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
-        # Tun Sunday, Wednesday. Offset by 30 minutes from seer-explorer-index to spread load
+        # Run Sunday, Wednesday. Offset by 30 minutes from seer-explorer-index to spread load
         "schedule": crontab("30", "*/1", "0,3", "*", "*"),
     },
     "index-sentry-knowledge": {
