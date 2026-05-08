@@ -219,10 +219,13 @@ class RedisBackend(Backend):
                 else:
                     raise
 
+            valid_entries = [
+                (key, value, timestamp) for key, value, timestamp in response if value is not None
+            ]
+            decoded = self.codec.decode_many([value for _, value, _ in valid_entries])
             records = [
-                Record(key.decode(), self.codec.decode(value), float(timestamp))
-                for key, value, timestamp in response
-                if value is not None
+                Record(key.decode(), notification, float(timestamp))
+                for (key, _, timestamp), notification in zip(valid_entries, decoded)
             ]
 
             # If the record value is `None`, this means the record data was

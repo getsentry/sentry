@@ -11,7 +11,6 @@ import pytest
 
 from sentry.digests.codecs import _ZSTD_MAGIC, CompressedJsonCodec, CompressedPickleCodec
 from sentry.digests.types import IdentifierKey, Notification
-from sentry.models.event import GroupEvent
 from sentry.models.group import Group
 from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers.options import override_options
@@ -57,19 +56,19 @@ class TestCompressedJsonCodec:
     @pytest.fixture(autouse=True)
     def _mock_eventstore(self) -> Iterator[None]:
         """Stub eventstore so decode can fetch events without Snuba."""
-        self._events: dict[tuple[int, str], Event | GroupEvent] = {}
+        self._node_data: dict[tuple[int, str], dict[str, object]] = {}
 
-        def fake_get_event_by_id(project_id: int, event_id: str, **kwargs: object) -> Event | None:
-            return self._events.get((project_id, event_id))
+        def fake_bind_nodes(event_list: list[Event]) -> None:
+            for event in event_list:
+                data = self._node_data.get((event.project_id, event.event_id), {})
+                event.data.bind_data(data, ref=event.data.get_ref(event))
 
-        with mock.patch(
-            "sentry.eventstore.backend.get_event_by_id", side_effect=fake_get_event_by_id
-        ):
+        with mock.patch("sentry.eventstore.backend.bind_nodes", side_effect=fake_bind_nodes):
             yield
 
     def _register(self, notification: Notification) -> None:
         e = notification.event
-        self._events[(e.project_id, e.event_id)] = e
+        self._node_data[(e.project_id, e.event_id)] = dict(e.data)
 
     def test_round_trip(self) -> None:
         original = _make_notification()
@@ -126,20 +125,50 @@ class TestCompressedJsonCodec:
         assert decoded.event.group_id == original.event.group_id
         assert decoded.event.datetime == original.event.datetime
 
+    def test_decode_many_batch(self) -> None:
+        notifications = [_make_notification(event_id=f"event-{i}", group_id=i) for i in range(5)]
+        for n in notifications:
+            self._register(n)
+
+        encoded = [self.codec.encode(n) for n in notifications]
+        decoded = self.codec.decode_many(encoded)
+
+        assert len(decoded) == 5
+        for original, result in zip(notifications, decoded):
+            _assert_notifications_equal(result, original)
+
+    def test_decode_many_partial_missing(self) -> None:
+        """Events missing from nodestore get the timestamp fallback."""
+        found = _make_notification(event_id="found-1", group_id=1)
+        missing = _make_notification(event_id="missing-1", group_id=2)
+        self._register(found)
+        # Don't register missing
+
+        encoded = [self.codec.encode(found), self.codec.encode(missing)]
+        decoded = self.codec.decode_many(encoded)
+
+        assert len(decoded) == 2
+        _assert_notifications_equal(decoded[0], found)
+        assert decoded[1].event.event_id == "missing-1"
+        assert decoded[1].event.datetime == missing.event.datetime
+
+    def test_decode_many_empty(self) -> None:
+        assert self.codec.decode_many([]) == []
+
 
 class TestCompressedPickleCodec:
     codec: CompressedPickleCodec = CompressedPickleCodec()
 
     @pytest.fixture(autouse=True)
     def _mock_eventstore(self) -> Iterator[None]:
-        self._events: dict[tuple[int, str], Event | GroupEvent] = {}
+        self._node_data: dict[tuple[int, str], dict[str, object]] = {}
 
-        def fake_get_event_by_id(project_id: int, event_id: str, **kwargs: object) -> Event | None:
-            return self._events.get((project_id, event_id))
+        def fake_bind_nodes(event_list: list[Event]) -> None:
+            for event in event_list:
+                data = self._node_data.get((event.project_id, event.event_id), {})
+                event.data.bind_data(data, ref=event.data.get_ref(event))
 
-        with mock.patch(
-            "sentry.eventstore.backend.get_event_by_id", side_effect=fake_get_event_by_id
-        ):
+        with mock.patch("sentry.eventstore.backend.bind_nodes", side_effect=fake_bind_nodes):
             yield
 
     @pytest.fixture(autouse=True)
@@ -149,7 +178,7 @@ class TestCompressedPickleCodec:
 
     def _register(self, notification: Notification) -> None:
         e = notification.event
-        self._events[(e.project_id, e.event_id)] = e
+        self._node_data[(e.project_id, e.event_id)] = dict(e.data)
 
     def test_round_trip(self) -> None:
         original = _make_notification()
@@ -211,3 +240,33 @@ class TestCompressedPickleCodec:
         json_codec = CompressedJsonCodec()
         decoded = json_codec.decode(encoded)
         assert decoded.event.event_id == original.event.event_id
+
+    def test_decode_many_mixed_formats(self) -> None:
+        """decode_many handles a mix of pickle and JSON payloads, preserving order."""
+        n1 = _make_notification(event_id="json-1", group_id=1)
+        n2 = _make_notification(event_id="pickle-1", group_id=2)
+        n3 = _make_notification(event_id="json-2", group_id=3)
+        self._register(n1)
+        self._register(n3)
+
+        json_encoded_1 = self.codec.encode(n1)
+        with override_options({"digests.encode-json-zstd": False}):
+            pickle_encoded = self.codec.encode(n2)
+        json_encoded_2 = self.codec.encode(n3)
+
+        decoded = self.codec.decode_many([json_encoded_1, pickle_encoded, json_encoded_2])
+
+        assert len(decoded) == 3
+        assert decoded[0].event.event_id == "json-1"
+        assert decoded[1].event.event_id == "pickle-1"
+        assert decoded[2].event.event_id == "json-2"
+
+    def test_decode_many_all_pickle(self) -> None:
+        notifications = [_make_notification(event_id=f"pickle-{i}", group_id=i) for i in range(3)]
+        with override_options({"digests.encode-json-zstd": False}):
+            encoded = [self.codec.encode(n) for n in notifications]
+        decoded = self.codec.decode_many(encoded)
+
+        assert len(decoded) == 3
+        for original, result in zip(notifications, decoded):
+            assert result.event.event_id == original.event.event_id

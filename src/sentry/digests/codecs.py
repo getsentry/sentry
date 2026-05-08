@@ -50,6 +50,9 @@ class Codec:
     def decode(self, value: bytes) -> Any:
         raise NotImplementedError
 
+    def decode_many(self, values: list[bytes]) -> list[Any]:
+        return [self.decode(v) for v in values]
+
 
 class CompressedJsonCodec(Codec):
     """Encodes notifications as JSON compressed with zstd."""
@@ -69,37 +72,51 @@ class CompressedJsonCodec(Codec):
         return _bytes_zstd.encode(payload.json())
 
     def decode(self, value: bytes) -> Notification:
+        return self.decode_many([value])[0]
+
+    def decode_many(self, values: list[bytes]) -> list[Notification]:
         # Deferred imports: this module is loaded during app init (via
         # digests backend config), before the full model graph is ready.
         from sentry import eventstore
         from sentry.services.eventstore.models import Event
 
-        raw = NotificationPayload.parse_raw(_bytes_zstd.decode(value))
+        payloads = [NotificationPayload.parse_raw(_bytes_zstd.decode(v)) for v in values]
 
-        event = eventstore.backend.get_event_by_id(
-            raw.project_id,
-            raw.event_id,
-            group_id=raw.group_id,
-            skip_transaction_groupevent=True,
-        )
-        if event is None:
-            logger.warning(
-                "digests.codec.event_not_found",
-                extra={"project_id": raw.project_id, "event_id": raw.event_id},
-            )
-            event = Event(
+        # Build unfetched Event objects and batch-load node data in one
+        # multi-get call instead of N individual fetches.
+        events = [
+            Event(
                 project_id=raw.project_id,
                 event_id=raw.event_id,
                 group_id=raw.group_id,
-                data={"timestamp": raw.timestamp},
             )
+            for raw in payloads
+        ]
+        eventstore.backend.bind_nodes(events)
 
-        return Notification(
-            event=event,
-            rules=raw.rule_ids,
-            notification_uuid=raw.notification_uuid,
-            identifier_key=IdentifierKey(raw.identifier_key),
-        )
+        notifications: list[Notification] = []
+        for raw, event in zip(payloads, events):
+            if len(event.data) == 0:
+                logger.warning(
+                    "digests.codec.event_not_found",
+                    extra={"project_id": raw.project_id, "event_id": raw.event_id},
+                )
+                event = Event(
+                    project_id=raw.project_id,
+                    event_id=raw.event_id,
+                    group_id=raw.group_id,
+                    data={"timestamp": raw.timestamp},
+                )
+
+            notifications.append(
+                Notification(
+                    event=event,
+                    rules=raw.rule_ids,
+                    notification_uuid=raw.notification_uuid,
+                    identifier_key=IdentifierKey(raw.identifier_key),
+                )
+            )
+        return notifications
 
 
 class CompressedPickleCodec(Codec):
@@ -118,3 +135,22 @@ class CompressedPickleCodec(Codec):
         if value[:4] == _ZSTD_MAGIC:
             return self._json_codec.decode(value)
         return pickle.loads(zlib.decompress(value))
+
+    def decode_many(self, values: list[bytes]) -> list[Notification]:
+        json_indices: list[int] = []
+        json_values: list[bytes] = []
+        results: list[Notification | None] = [None] * len(values)
+
+        for i, value in enumerate(values):
+            if value[:4] == _ZSTD_MAGIC:
+                json_indices.append(i)
+                json_values.append(value)
+            else:
+                results[i] = pickle.loads(zlib.decompress(value))
+
+        if json_values:
+            decoded = self._json_codec.decode_many(json_values)
+            for i, notification in zip(json_indices, decoded):
+                results[i] = notification
+
+        return results  # type: ignore[return-value]
