@@ -42,7 +42,7 @@ export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) 
 
   return (
     <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <SquareTag variant={variantMap[type]} {...props}>
+      <SquareTag variant={variantMap[type]} aria-label={type} {...props}>
         {iconMap[type]}
       </SquareTag>
     </Tooltip>
