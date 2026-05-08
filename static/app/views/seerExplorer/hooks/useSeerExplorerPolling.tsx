@@ -39,11 +39,11 @@ const getPollingState = (
   isStale: boolean,
   override: boolean | undefined
 ): 'polling' | 'not-polling' | 'timed-out' => {
-  if (runId === null) {
-    return 'not-polling';
-  }
   if (override !== undefined) {
     return override ? 'polling' : 'not-polling';
+  }
+  if (runId === null) {
+    return 'not-polling';
   }
   if (isError) {
     return 'not-polling';
