@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import sentry_sdk
 from django.forms import ValidationError
 from django.utils.encoding import force_str
@@ -74,7 +78,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(f"Invalid type, valid values are {valid_slugs!r}")
         return factory.service_type
 
-    def validate_target_type(self, target_type):
+    def validate_target_type(self, target_type: str) -> AlertRuleTriggerAction.TargetType:
         if target_type not in STRING_TO_ACTION_TARGET_TYPE:
             raise serializers.ValidationError(
                 "Invalid targetType, valid values are [%s]"
@@ -82,7 +86,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         return STRING_TO_ACTION_TARGET_TYPE[target_type]
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
             raise serializers.ValidationError(
                 "type, targetType and targetIdentifier must be passed together"
@@ -212,7 +216,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         return attrs
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> AlertRuleTriggerAction:
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
         try:
@@ -238,7 +242,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
         return action
 
-    def update(self, instance, validated_data):
+    def update(
+        self, instance: AlertRuleTriggerAction, validated_data: dict[str, Any]
+    ) -> AlertRuleTriggerAction:
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
 
