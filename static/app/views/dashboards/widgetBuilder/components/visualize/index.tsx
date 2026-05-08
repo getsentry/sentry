@@ -1173,18 +1173,13 @@ export function Visualize({
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>
-              {(datasetConfig.enableEquations ||
-                (state.dataset === WidgetType.TRACEMETRICS &&
-                  canShowTraceMetricEquations)) && (
+              {(datasetConfig.enableEquations || canShowTraceMetricEquations) && (
                 <AddButton
                   variant="link"
                   disabled={disableTransactionWidget}
                   aria-label={t('Add Equation')}
                   onClick={() => {
-                    if (
-                      state.dataset === WidgetType.TRACEMETRICS &&
-                      canShowTraceMetricEquations
-                    ) {
+                    if (canShowTraceMetricEquations) {
                       onSetEquationMode?.(true);
                     } else {
                       dispatch({

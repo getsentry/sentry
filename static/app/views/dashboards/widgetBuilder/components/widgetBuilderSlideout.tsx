@@ -68,13 +68,11 @@ import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useIsEquationMode} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEquationMode';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -151,27 +149,6 @@ function WidgetBuilderSlideoutInner({
   // Tracks whether the user has entered the metrics equation mode since we
   // do not render the filter bar. The metrics equations UI has filters built in.
   const [isInEquationMode, setIsInEquationMode] = useIsEquationMode();
-
-  useEffect(() => {
-    const aggregateSource = getTraceMetricAggregateSource(
-      state.displayType,
-      state.yAxis,
-      state.fields
-    );
-    if (
-      state.dataset === WidgetType.TRACEMETRICS &&
-      (aggregateSource ?? []).some(f => f.kind === FieldValueKind.EQUATION)
-    ) {
-      setIsInEquationMode(true);
-    } else if (isInEquationMode) {
-      // Turn off equation mode when changing to a non-tracemetrics dataset
-      // to ensure the filter bar is shown
-      setIsInEquationMode(false);
-    }
-    // We only run this effect when the dataset changes to tracemetrics to
-    // detect if we show the tracemetrics equations UI when restoring dataset state
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.dataset]);
 
   useEffect(() => {
     if (!openWidgetTemplates) {
