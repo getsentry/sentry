@@ -308,9 +308,8 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     try:
         data = response.json()
-    except json.JSONDecodeError:
-        # 2xx with malformed body (e.g. proxy maintenance page) won't self-heal
-        # on retry — treat as terminal to avoid head-of-line blocking.
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        # 2xx with an undecodable body won't self-heal on retry — terminal.
         _mark_seer_run_failed(run, "seer_run_create.invalid_json_body", status=response.status)
         return
 
