@@ -38,7 +38,7 @@ EAP_ORGANIZATION_VOLUME_QUERY_STRINGS = {
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
-    return int(row.get(column) or 0)
+    return int(row.get(column, 0))
 
 
 def run_eap_spans_table_query_in_chunks(
