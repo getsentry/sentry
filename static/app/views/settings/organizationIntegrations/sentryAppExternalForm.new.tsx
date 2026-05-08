@@ -828,13 +828,26 @@ export function SentryAppExternalFormNew({
       if (field.type !== 'select') {
         continue;
       }
-      lookup[field.name] = mergeFieldChoices(field, normalizedResetValues);
+
+      // Union initial choices with any search results so label lookup at
+      // submit time works for both. asyncOptionsCache only holds the last
+      // non-empty search and is never cleared, so spreading it wholesale
+      // would shadow initial choices the user might pick after clearing
+      // the search input.
+      const baseChoices = mergeFieldChoices(field, normalizedResetValues);
+      const searchedChoices = asyncOptionsCache[field.name] ?? [];
+      const seenValues = new Set<Choice[0]>();
+      const merged: Choice[] = [];
+      for (const choice of [...baseChoices, ...searchedChoices]) {
+        if (!seenValues.has(choice[0])) {
+          seenValues.add(choice[0]);
+          merged.push(choice);
+        }
+      }
+      lookup[field.name] = merged;
     }
 
-    return {
-      ...lookup,
-      ...asyncOptionsCache,
-    };
+    return lookup;
   }, [asyncOptionsCache, fieldGroups, normalizedResetValues]);
 
   const submitDisabled = isFetchingDependentFields;
