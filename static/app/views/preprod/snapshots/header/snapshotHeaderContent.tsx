@@ -80,8 +80,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
           gap="md"
           flexShrink={1}
           minWidth={0}
-          overflow="hidden"
-          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+          display={{'2xs': 'none', xs: 'none', sm: 'none', md: 'flex'}}
         >
           {project && (
             <Container display={{'2xs': 'none', lg: 'block'}}>
