@@ -31,6 +31,9 @@ const StyledPanel = styled(Panel)`
 `;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
+  margin-right: -1rem;
+  padding-right: 1rem;
+
   &:not(thead > &) {
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
@@ -64,11 +67,6 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     &:hover {
       background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
     }
-  }
-
-  &[data-row-pinned='true'] {
-    margin-right: -1rem;
-    padding-right: 1rem;
   }
 
   &[data-row-pinned='true']:not(thead > &) {
