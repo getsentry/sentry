@@ -42,7 +42,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.FOUNDATIONS
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
