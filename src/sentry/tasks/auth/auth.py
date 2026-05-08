@@ -15,7 +15,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization.service import organization_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import auth_control_tasks, auth_tasks
 from sentry.types.cell import CellMappingNotFound
 from sentry.users.services.user import RpcUser
@@ -199,10 +199,10 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     namespace=auth_tasks,
     retry=Retry(
         delay=60 * 5,
+        on=(Exception,),
     ),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address

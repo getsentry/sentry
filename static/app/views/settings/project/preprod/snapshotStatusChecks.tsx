@@ -7,9 +7,8 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {DetailedProject} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -33,32 +32,17 @@ type SnapshotStatusCheckField = {
 
 export function SnapshotStatusChecks() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const {data: project = outletProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: outletProject.slug,
+  });
+  const {mutateAsync: updateProject} = useUpdateProject(outletProject);
   const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
     getSnapshotStatusChecks(project);
 
-  const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-
   const projectMutationOptions = mutationOptions({
-    mutationFn: (data: Partial<Schema>) =>
-      fetchMutation<DetailedProject>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data,
-      }),
-    onMutate: data => {
-      const previous = ProjectsStore.getById(project.id);
-      ProjectsStore.onUpdateSuccess({id: project.id, ...data});
-      return () => {
-        if (previous) {
-          ProjectsStore.onUpdateSuccess(previous);
-        }
-      };
-    },
-    onSuccess: response => ProjectsStore.onUpdateSuccess(response),
-    onError: (_error, _variables, rollback) => {
-      rollback?.();
-    },
+    mutationFn: (data: Partial<Schema>) => updateProject(data),
   });
 
   const failureConditionFields = [

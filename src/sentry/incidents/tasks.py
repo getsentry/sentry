@@ -6,16 +6,14 @@ from typing import Any
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleStatus
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentActivity,
     IncidentStatus,
     IncidentStatusMethod,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
-from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
@@ -56,50 +54,7 @@ def handle_trigger_action(
     metric_value: float | int | None = None,
     **kwargs: Any,
 ) -> None:
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
-    try:
-        action = AlertRuleTriggerAction.objects.select_related(
-            "alert_rule_trigger", "alert_rule_trigger__alert_rule"
-        ).get(id=action_id)
-    except AlertRuleTriggerAction.DoesNotExist:
-        metrics.incr("incidents.alert_rules.action.skipping_missing_action")
-        return
-
-    try:
-        incident = Incident.objects.select_related("organization").get(id=incident_id)
-    except Incident.DoesNotExist:
-        metrics.incr("incidents.alert_rules.action.skipping_missing_incident")
-        return
-
-    try:
-        project = Project.objects.get(id=project_id)
-    except Project.DoesNotExist:
-        metrics.incr("incidents.alert_rules.action.skipping_missing_project")
-        return
-
-    incident_activity = (
-        IncidentActivity.objects.filter(incident=incident, value=new_status).order_by("-id").first()
-    )
-    notification_uuid = str(incident_activity.notification_uuid) if incident_activity else None
-    if notification_uuid is None:
-        metrics.incr("incidents.alert_rules.action.incident_activity_missing")
-
-    # We should only fire using the legacy registry if we are not using the workflow engine
-    if not should_fire_workflow_actions(incident.organization, MetricIssue.type_id):
-        metrics.incr(
-            f"incidents.alert_rules.action.{AlertRuleTriggerAction.Type(action.type).name.lower()}.{method}"
-        )
-
-        getattr(action, method)(
-            action,
-            incident,
-            project,
-            metric_value=metric_value,
-            new_status=IncidentStatus(new_status),
-            notification_uuid=notification_uuid,
-        )
+    pass
 
 
 @instrumented_task(

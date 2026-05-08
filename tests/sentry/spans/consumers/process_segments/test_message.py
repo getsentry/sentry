@@ -140,6 +140,17 @@ class TestSpansTask(TestCase):
         )
         assert release.date_added.timestamp() == spans[0]["end_timestamp"]
 
+    def test_create_models_trim_environment_name(self) -> None:
+        spans = self.generate_basic_spans()
+        spans[1]["attributes"]["sentry.environment"]["value"] = "a" * 100
+        assert process_segment(spans)
+
+        # Environment is trimmed
+        Environment.objects.get(
+            organization_id=self.organization.id,
+            name="a" * 64,
+        )
+
     @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:

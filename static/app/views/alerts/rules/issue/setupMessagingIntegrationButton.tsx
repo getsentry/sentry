@@ -2,8 +2,8 @@ import {useQueries, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
@@ -31,6 +31,8 @@ export function SetupMessagingIntegrationButton({
   analyticsView,
   projectId,
 }: Props) {
+  const {openModal} = useModal();
+
   const providerKeys = ['slack', 'discord', 'msteams'];
   const organization = useOrganization();
 

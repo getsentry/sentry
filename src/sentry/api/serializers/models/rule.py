@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.db.models import Max, Prefetch, Q, prefetch_related_objects
+from django.db.models import Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
@@ -16,7 +16,6 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -227,14 +226,7 @@ class RuleSerializer(Serializer):
                 result[rule]["errors"] = errors
 
         if "lastTriggered" in self.expand:
-            last_triggered_lookup = {
-                rfh["rule_id"]: rfh["date_added"]
-                for rfh in RuleFireHistory.objects.filter(rule__in=item_list)
-                .values("rule_id")
-                .annotate(date_added=Max("date_added"))
-            }
-
-            # Update lastTriggered with WorkflowFireHistory if available
+            last_triggered_lookup: dict[int, datetime] = {}
             if item_list:
                 rule_ids = [rule.id for rule in item_list]
                 workflow_rule_lookup = dict(
@@ -248,12 +240,8 @@ class RuleSerializer(Serializer):
                 for workflow_id, last_fire in workflow_fire_dates.items():
                     rule_id = workflow_rule_lookup.get(workflow_id)
                     if rule_id and last_fire:
-                        # Take the maximum date between RuleFireHistory and WorkflowFireHistory
-                        existing_date = last_triggered_lookup.get(rule_id)
-                        if (existing_date and last_fire > existing_date) or not existing_date:
-                            last_triggered_lookup[rule_id] = last_fire
+                        last_triggered_lookup[rule_id] = last_fire
 
-            # Set the results
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
 

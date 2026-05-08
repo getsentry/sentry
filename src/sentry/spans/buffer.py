@@ -1044,6 +1044,7 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
                     if segment_key in segments_to_skip:
+                        p.delete(self._get_flush_lock_key(segment_key))
                         continue
 
                     # Data keys (set, hrs, ic, ibc) were already deleted
@@ -1060,5 +1061,7 @@ class SpansBuffer:
                         p.delete(mk_key)
                         for payload_key in flushed_segment.payload_keys:
                             p.unlink(payload_key)
+
+                    p.delete(self._get_flush_lock_key(segment_key))
 
                 p.execute()

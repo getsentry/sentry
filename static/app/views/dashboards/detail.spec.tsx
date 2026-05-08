@@ -866,7 +866,7 @@ describe('Dashboards > Detail', () => {
       const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/123/',
-          route: DASHBOARD_WIDGET_ROUTE,
+          routes: [DASHBOARD_WIDGET_ROUTE, DASHBOARD_ROUTE],
           query: initialData.router.location.query,
         }),
         organization: initialData.organization,
