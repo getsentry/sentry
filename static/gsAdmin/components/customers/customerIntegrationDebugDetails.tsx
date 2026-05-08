@@ -41,7 +41,7 @@ function getStatusLabel(status: number): string {
 }
 
 export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState(new Set());
 
   const toggleRow = (id: number) => {
     setExpandedRows(prev => {
@@ -67,8 +67,7 @@ export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
       rowsFromData={(data: IntegrationRow[]) => {
         const transformedRows: any[] = [];
         data.forEach(row => {
-          transformedRows.push(row);
-          transformedRows.push({
+          transformedRows.push(row, {
             _isExpansionRow: true,
             _parentId: row.id,
             _parentData: row,

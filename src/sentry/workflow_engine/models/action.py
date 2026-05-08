@@ -18,7 +18,12 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.utils import metrics
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ActionInvocation,
+    WorkflowEventData,
+    WorkflowId,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +125,12 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, event_data: WorkflowEventData, notification_uuid: str) -> None:
+    def trigger(
+        self,
+        event_data: WorkflowEventData,
+        notification_uuid: str,
+        workflow_id: WorkflowId,
+    ) -> None:
         from sentry.workflow_engine.processors.detector import get_preferred_detector
 
         detector = get_preferred_detector(event_data)
@@ -136,6 +146,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 action=self,
                 detector=detector,
                 notification_uuid=notification_uuid,
+                workflow_id=workflow_id,
             )
             handler.execute(invocation)
 

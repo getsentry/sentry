@@ -10,7 +10,7 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-const HeaderLayout = styled((props: ContainerProps<'div'>) => {
+const HeaderLayout = styled((props: ContainerProps) => {
   const hasPageFrame = useHasPageFrameFeature();
   return (
     <Container
@@ -37,7 +37,7 @@ const HeaderRow = styled('div')`
   }
 `;
 
-function HeaderContent(props: StackProps<'div'>) {
+function HeaderContent(props: StackProps) {
   return <Stack {...props} />;
 }
 

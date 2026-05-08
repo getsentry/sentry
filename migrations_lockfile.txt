@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0008_add_seer_run_models
+seer: 0010_drop_legacy_columns
 
-sentry: 1079_purge_scm_legacy_org_options
+sentry: 1085_add_date_synced_to_projectcodeowners
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0055_backfill_2xx_status_assertion
 
-workflow_engine: 0112_drop_redundant_error_detector_workflows
+workflow_engine: 0113_migrate_data_conditions_categories

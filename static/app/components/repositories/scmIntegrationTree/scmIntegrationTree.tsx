@@ -62,10 +62,8 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
   } = useScmIntegrationTreeData();
 
   // Expansion state
-  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
-  const [expandedIntegrations, setExpandedIntegrations] = useState<Set<string>>(
-    new Set()
-  );
+  const [expandedProviders, setExpandedProviders] = useState(new Set<string>());
+  const [expandedIntegrations, setExpandedIntegrations] = useState(new Set<string>());
 
   // Expand all providers (and disconnected section) once data first loads
   const providersInitialized = useRef(false);
@@ -79,7 +77,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
   }, [scmProviders]);
 
   // In-flight toggle state to disable checkboxes during mutation
-  const [togglingRepos, setTogglingRepos] = useState<Set<string>>(new Set());
+  const [togglingRepos, setTogglingRepos] = useState(new Set<string>());
 
   const toggleProvider = useCallback((providerKey: string) => {
     setExpandedProviders(prev => {

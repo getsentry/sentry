@@ -225,11 +225,21 @@ register(key="sentry:preprod_distribution_enabled_query", default="")
 # Boolean to enable/disable build distribution PR comments for this project.
 register(key="sentry:preprod_distribution_pr_comments_enabled_by_customer", default=True)
 
-# Boolean to enable/disable snapshot PR comments for this project.
+# Boolean to enable/disable snapshot PR comments for this project. When True, the
+# task posts a comment only if the comparison reports a diff.
 register(key="sentry:preprod_snapshot_pr_comments_enabled", default=False)
 
-# When True, only post snapshot PR comments if the comparison reports any diffs.
-register(key="sentry:preprod_snapshot_pr_comments_only_if_diff", default=False)
+# When True, treat snapshot additions as a diff worth posting a PR comment.
+register(key="sentry:preprod_snapshot_pr_comments_post_on_added", default=False)
+
+# When True, treat snapshot removals as a diff worth posting a PR comment.
+register(key="sentry:preprod_snapshot_pr_comments_post_on_removed", default=True)
+
+# When True, treat pixel-level snapshot changes as a diff worth posting a PR comment.
+register(key="sentry:preprod_snapshot_pr_comments_post_on_changed", default=True)
+
+# When True, treat snapshot renames as a diff worth posting a PR comment.
+register(key="sentry:preprod_snapshot_pr_comments_post_on_renamed", default=False)
 
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)

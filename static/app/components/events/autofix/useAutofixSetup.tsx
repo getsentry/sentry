@@ -5,7 +5,6 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
@@ -44,7 +43,7 @@ function makeAutofixSetupQueryKey(
 
 export function useAutofixSetup(
   {groupId, checkWriteAccess}: {groupId: string; checkWriteAccess?: boolean},
-  options: Omit<UseApiQueryOptions<AutofixSetupResponse, RequestError>, 'staleTime'> = {}
+  options: Omit<UseApiQueryOptions<AutofixSetupResponse>, 'staleTime'> = {}
 ) {
   const orgSlug = useOrganization().slug;
 

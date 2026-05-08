@@ -81,11 +81,13 @@ class DatabaseBackedIssueService(IssueService):
             organization = Organization.objects.get(slug=slug)
         except Organization.DoesNotExist:
             return None
-        if organization.flags.disable_shared_issues:
-            return None
         try:
             group = Group.objects.from_share_id(share_id)
         except Group.DoesNotExist:
+            return None
+        if group.project.organization_id != organization.id:
+            return None
+        if group.organization.flags.disable_shared_issues:
             return None
 
         return RpcGroupShareMetadata(title=group.title, message=group.message)

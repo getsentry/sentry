@@ -11,7 +11,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
@@ -100,31 +100,41 @@ class DetectorSerializer(Serializer):
             for mapping in alert_rule_mappings
         }
 
-        latest_detector_groups = (
+        latest_detector_group_values = (
             DetectorGroup.objects.filter(detector__in=item_list)
-            .select_related("group", "group__project")
             .order_by("detector_id", "-date_added")
             .distinct("detector_id")
+            .values_list("detector_id", "group_id")
         )
-        latest_groups_map = {
-            dg.detector_id: (
-                None
-                if dg.group is None
-                else serialize(
-                    dg.group,
-                    user=user,
-                    serializer=SimpleGroupSerializer(),
-                )
+        latest_group_ids_by_detector_id = {
+            detector_id: group_id for detector_id, group_id in latest_detector_group_values
+        }
+        project_ids = {item.project_id for item in item_list}
+        latest_groups = list(
+            Group.objects.filter(
+                id__in=latest_group_ids_by_detector_id.values(),
+                project_id__in=project_ids,
+            ).select_related("project")
+        )
+        serialized_latest_groups = {
+            group.id: serialized
+            for group, serialized in zip(
+                latest_groups,
+                serialize(latest_groups, user=user, serializer=SimpleGroupSerializer()),
             )
-            for dg in latest_detector_groups
+        }
+        latest_groups_map = {
+            detector_id: serialized_latest_groups.get(group_id)
+            for detector_id, group_id in latest_group_ids_by_detector_id.items()
         }
 
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
-        project_ids = [item.project_id for item in filtered_item_list]
+        error_detector_project_ids = [item.project_id for item in filtered_item_list]
 
         project_options_list = list(
             ProjectOption.objects.filter(
-                key__in=Detector.error_detector_project_options.values(), project__in=project_ids
+                key__in=Detector.error_detector_project_options.values(),
+                project__in=error_detector_project_ids,
             )
         )
 

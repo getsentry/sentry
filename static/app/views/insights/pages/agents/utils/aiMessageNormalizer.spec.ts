@@ -306,6 +306,24 @@ describe('normalizeToMessages', () => {
     });
   });
 
+  describe('Python dict format', () => {
+    it('parses Python repr with single-quoted messages', () => {
+      const input = "[{'role': 'user', 'content': 'Hello!'}]";
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([{role: 'user', content: 'Hello!'}]);
+    });
+
+    it('returns null for mixed-quote Python repr (known limitation)', () => {
+      const input = `[{'role': 'user', 'content': "the user's message"}]`;
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toBeNull();
+    });
+  });
+
   describe('cross-format tolerance', () => {
     it('accepts parts format on a field that traditionally held content format', () => {
       // Simulates: gen_ai.request.messages carrying the new parts shape.
@@ -407,6 +425,61 @@ describe('extractAssistantOutput', () => {
       expect(responseText).toBe('the answer');
     });
 
+    it('parses JSON-encoded string content from assistant messages', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: JSON.stringify('the answer')},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('the answer');
+    });
+
+    it('parses JSON-encoded content parts from assistant messages', () => {
+      const input = JSON.stringify([
+        {
+          role: 'assistant',
+          content: JSON.stringify([{type: 'text', text: 'the answer'}]),
+        },
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('the answer');
+    });
+
+    it('ignores empty string content from assistant messages', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: ''},
+        {role: 'assistant', content: 'the answer'},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('the answer');
+    });
+
+    it('preserves JSON primitive content strings from assistant messages', () => {
+      const numeric = extractAssistantOutput(
+        JSON.stringify([{role: 'assistant', content: '42'}]),
+        {
+          defaultRole: 'assistant',
+        }
+      );
+      const boolean = extractAssistantOutput(
+        JSON.stringify([{role: 'assistant', content: 'true'}]),
+        {defaultRole: 'assistant'}
+      );
+      const nullable = extractAssistantOutput(
+        JSON.stringify([{role: 'assistant', content: 'null'}]),
+        {defaultRole: 'assistant'}
+      );
+
+      expect(numeric.responseText).toBe('42');
+      expect(boolean.responseText).toBe('true');
+      expect(nullable.responseText).toBe('null');
+    });
+
     it('treats object content as a response object', () => {
       const input = JSON.stringify([
         {role: 'assistant', content: {schema: 's', data: {k: 1}}},
@@ -466,6 +539,17 @@ describe('extractAssistantOutput', () => {
 
       expect(responseText).toBe('A\nB');
     });
+
+    it('treats declared completion roles as explicit roles', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', completion: 'A'},
+        {role: 'assistant', completion: 'B'},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('A\nB');
+    });
   });
 
   describe('plain strings and non-array inputs', () => {
@@ -485,6 +569,22 @@ describe('extractAssistantOutput', () => {
       const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
 
       expect(responseText).toBe('direct');
+    });
+
+    it('extracts content from a single {content} object', () => {
+      const input = JSON.stringify({content: 'direct without role'});
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('direct without role');
+    });
+
+    it('extracts content from a single {completion} object', () => {
+      const input = JSON.stringify({completion: 'completion text'});
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('completion text');
     });
 
     it('returns all null fields for empty input', () => {

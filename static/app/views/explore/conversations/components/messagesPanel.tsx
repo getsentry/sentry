@@ -121,7 +121,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               )}
               <StyledClippedBox
                 clipHeight={200}
-                buttonProps={{priority: 'default', size: 'xs'}}
+                buttonProps={{variant: 'secondary', size: 'xs'}}
                 collapsible
               >
                 <Container padding="md">

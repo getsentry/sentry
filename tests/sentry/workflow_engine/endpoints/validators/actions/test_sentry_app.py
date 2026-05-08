@@ -135,7 +135,8 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         assert result is True
         action = validator.save()
 
-        setattr(action, "workflow_id", self.workflow.id)
         action.trigger(
-            self.event_data, notification_uuid=str(uuid.uuid4())
+            self.event_data,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )  # action should be triggerable

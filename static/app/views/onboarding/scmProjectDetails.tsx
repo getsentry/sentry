@@ -53,17 +53,13 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
 
   // State tracks user edits. When the user navigates back from setup-docs
   // the persisted projectDetailsForm restores their previous inputs.
-  const [projectName, setProjectName] = useState<string | null>(
-    projectDetailsForm?.projectName ?? null
-  );
-  const [teamSlug, setTeamSlug] = useState<string | null>(
-    projectDetailsForm?.teamSlug ?? null
-  );
+  const [projectName, setProjectName] = useState(projectDetailsForm?.projectName ?? null);
+  const [teamSlug, setTeamSlug] = useState(projectDetailsForm?.teamSlug ?? null);
 
   const projectNameResolved = projectName ?? defaultName;
   const teamSlugResolved = teamSlug ?? firstAdminTeam?.slug ?? '';
 
-  const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>(
+  const [alertRuleConfig, setAlertRuleConfig] = useState(
     projectDetailsForm?.alertRuleConfig ?? DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
   );
 

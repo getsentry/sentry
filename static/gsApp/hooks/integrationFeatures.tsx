@@ -100,7 +100,7 @@ function mapFeatureGroups({
       hasFeatures:
         groupedPlanFeatures[plan.id]!.map(f => f.featureGate)
           .map(f => organization.features.includes(f))
-          .filter(v => v !== true).length === 0,
+          .filter(v => !v).length === 0,
     }));
 
   // Are any features available for the current users plan?
@@ -201,7 +201,7 @@ function FeatureListBase(props: FeatureListProps) {
                 size="xs"
                 subscription={subscription}
                 organization={organization}
-                priority="primary"
+                variant="primary"
                 extraAnalyticsParams={{
                   integration: provider.key,
                   integration_type: getIntegrationType(provider as IntegrationProvider),

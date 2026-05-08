@@ -9,33 +9,6 @@ import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 
 /**
- * Cancel the deletion of a respository
- *
- * @param client ApiClient
- * @param orgSlug Organization Slug
- * @param repositoryId Repository ID
- */
-export function cancelDeleteRepository(
-  client: Client,
-  orgSlug: string,
-  repositoryId: string
-) {
-  addLoadingMessage();
-  const promise = client.requestPromise(
-    `/organizations/${orgSlug}/repos/${repositoryId}/`,
-    {
-      method: 'PUT',
-      data: {status: 'visible'},
-    }
-  );
-  promise.then(
-    () => clearIndicators(),
-    () => addErrorMessage(t('Unable to cancel deletion.'))
-  );
-  return promise;
-}
-
-/**
  * Delete a repository by setting its status to hidden.
  *
  * @param client ApiClient
@@ -66,7 +39,7 @@ function applyRepositoryAddComplete(promise: Promise<Repository>) {
       });
       addSuccessMessage(message);
     },
-    errorData => {
+    (errorData: any) => {
       const text = errorData.responseJSON.errors
         ? errorData.responseJSON.errors.__all__
         : t('Unable to add repository.');

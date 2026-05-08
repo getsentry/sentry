@@ -16,7 +16,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.utils.auth import logger
+from sentry.utils.auth import logger, record_suspended_user_rejection
 from sentry.utils.dates import get_timezone_choices
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
@@ -127,6 +127,7 @@ class AuthenticationForm(forms.Form):
             )
 
         if getattr(self.user_cache, "is_suspended", False):
+            record_suspended_user_rejection("web_login")
             raise forms.ValidationError(self.error_messages["suspended"])
 
         self.check_for_test_cookie()

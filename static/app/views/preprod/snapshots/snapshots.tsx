@@ -17,8 +17,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,7 +31,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {ComparisonState, DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  ComparisonState,
+  DiffStatus,
+  getImageName,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -50,6 +56,10 @@ import {
 
 function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
+}
+
+function imageGroupDisplayName(img: SnapshotImage): string {
+  return img.group ?? getImageName(img);
 }
 
 function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
@@ -135,7 +145,7 @@ export default function SnapshotsPage() {
       // Skip retries on 4xx so error pages render instantly
       retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
-        const state = query.state.data?.[0]?.comparison_run_info?.state;
+        const state = query.state.data?.json?.comparison_run_info?.state;
         return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
           ? 5_000
           : false;
@@ -143,9 +153,27 @@ export default function SnapshotsPage() {
     }
   );
 
+  const viewedArtifactRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isPending || !data || viewedArtifactRef.current === data.head_artifact_id) {
+      return;
+    }
+    viewedArtifactRef.current = data.head_artifact_id;
+    trackAnalytics('preprod.snapshots.details.viewed', {
+      organization,
+      comparison_type: data.comparison_type,
+      image_count: data.image_count,
+      approval_status: data.approval_info?.status ?? null,
+      has_base_build: !!data.base_artifact_id,
+      project_id: data.project_id,
+    });
+  }, [isPending, data, organization]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
     palette.at(-5) ?? palette[0]
@@ -154,6 +182,8 @@ export default function SnapshotsPage() {
     'snapshot-diff-mode',
     'split'
   );
+  const breakpoints = useBreakpoints();
+  const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)
@@ -245,6 +275,7 @@ export default function SnapshotsPage() {
             type,
             key: `${type}:${groupKey}`,
             name: groupKey,
+            displayName: imageGroupDisplayName(groupedPairs[0]!.head_image),
             pairs: groupedPairs,
           });
         }
@@ -255,7 +286,13 @@ export default function SnapshotsPage() {
         type: 'added' | 'removed' | 'unchanged'
       ) => {
         for (const [groupKey, images] of groupByKey(imgs, imageGroupKey)) {
-          items.push({type, key: `${type}:${groupKey}`, name: groupKey, images});
+          items.push({
+            type,
+            key: `${type}:${groupKey}`,
+            name: groupKey,
+            displayName: imageGroupDisplayName(images[0]!),
+            images,
+          });
         }
       };
 
@@ -278,6 +315,7 @@ export default function SnapshotsPage() {
         type: 'solo' as const,
         key: `solo:${groupKey}`,
         name: groupKey,
+        displayName: imageGroupDisplayName(images[0]!),
         images,
       }));
   }, [data, comparisonType]);
@@ -330,7 +368,11 @@ export default function SnapshotsPage() {
 
   const sidebarSections = useMemo<SidebarSection[]>(() => {
     function toGroup(item: SidebarItem) {
-      return {key: item.key, name: item.name, count: itemVariantCount(item)};
+      return {
+        key: item.key,
+        displayName: item.displayName,
+        count: itemVariantCount(item),
+      };
     }
 
     if (comparisonType !== 'diff') {
@@ -347,7 +389,7 @@ export default function SnapshotsPage() {
     ];
     const byType = new Map<
       DiffStatus,
-      Array<{count: number; key: string; name: string}>
+      Array<{count: number; displayName: string; key: string}>
     >();
     for (const type of sectionOrder) {
       byType.set(type, []);
@@ -573,8 +615,22 @@ export default function SnapshotsPage() {
       : deferredItem;
   const singleViewVariantIndex = singleViewPosition?.variantIdx ?? 0;
 
-  const activeItemKey =
-    viewMode === 'list' ? visibleItemKey : (singleViewItem?.key ?? null);
+  const activeItemKey = useMemo(() => {
+    if (viewMode !== 'list') {
+      return singleViewItem?.key ?? null;
+    }
+    if (selectedSnapshotKey && singleViewPosition) {
+      return listItems[singleViewPosition.itemIdx]?.key ?? visibleItemKey;
+    }
+    return visibleItemKey;
+  }, [
+    viewMode,
+    singleViewItem,
+    selectedSnapshotKey,
+    singleViewPosition,
+    listItems,
+    visibleItemKey,
+  ]);
 
   const isComparisonProcessing =
     !!comparisonRunInfo?.state &&
@@ -606,6 +662,8 @@ export default function SnapshotsPage() {
         flexShrink={0}
         overflow="auto"
         borderRight="primary"
+        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+        maxWidth={{sm: '300px', md: 'none'}}
         style={{
           width: sidebarWidth,
           height: hasPageFrameFeature
@@ -640,7 +698,7 @@ export default function SnapshotsPage() {
           diffImageBaseUrl={diffImageBaseUrl}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
-          diffMode={diffMode}
+          diffMode={effectiveDiffMode}
           onDiffModeChange={setDiffMode}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -715,6 +773,10 @@ const DragHandle = styled('div')`
   position: relative;
   display: grid;
   place-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;

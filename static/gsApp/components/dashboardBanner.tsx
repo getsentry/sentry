@@ -27,7 +27,7 @@ export function DashboardBanner({organization}: Props) {
       backgroundComponent={<DashboardBackground />}
       dismissKey="dashboards"
     >
-      <UpsellButton source="custom-dashboards" priority="primary" />
+      <UpsellButton source="custom-dashboards" variant="primary" />
       <LinkButton href="https://docs.sentry.io/product/dashboards/" external>
         {t('Read the docs')}
       </LinkButton>

@@ -631,7 +631,7 @@ describe('CustomerOverview', () => {
   it('renders matching sample rate without comparison string', async () => {
     const organization = OrganizationFixture({
       features: ['dynamic-sampling'],
-      desiredSampleRate: 1.0,
+      desiredSampleRate: 1,
     });
     const subscription = SubscriptionFixture({
       organization,
@@ -639,7 +639,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 1.0},
+      body: {effectiveSampleRate: 1},
     });
 
     render(

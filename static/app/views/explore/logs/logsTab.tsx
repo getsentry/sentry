@@ -71,6 +71,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {useOurLogsSchemaHintsRemoval} from 'sentry/views/explore/logs/tables/useOurLogsSchemaHintsRemoval';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -91,6 +92,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
 // eslint-disable-next-line boundaries/dependencies
@@ -175,6 +177,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const schemaHintsRemoval = useOurLogsSchemaHintsRemoval();
 
   return (
     <SearchQueryBuilderProvider
@@ -202,7 +205,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="primary"
+                    variant="primary"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
@@ -217,22 +220,24 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          <ExploreSchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={supportedAggregates}
-              booleanTags={booleanAttributes}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={
-                numberAttributesLoading ||
-                stringAttributesLoading ||
-                booleanAttributesLoading
-              }
-              exploreQuery={logsSearchQuery}
-              source={SchemaHintsSources.LOGS}
-              searchBarWidthOffset={searchBarWidthOffset}
-            />
-          </ExploreSchemaHintsSection>
+          {!schemaHintsRemoval && (
+            <ExploreSchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={supportedAggregates}
+                booleanTags={booleanAttributes}
+                numberTags={numberAttributes}
+                stringTags={stringAttributes}
+                isLoading={
+                  numberAttributesLoading ||
+                  stringAttributesLoading ||
+                  booleanAttributesLoading
+                }
+                exploreQuery={logsSearchQuery}
+                source={SchemaHintsSources.LOGS}
+                searchBarWidthOffset={searchBarWidthOffset}
+              />
+            </ExploreSchemaHintsSection>
+          )}
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
@@ -252,7 +257,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
-  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();
@@ -356,6 +361,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
           numberTags={numberAttributes}
           booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
+          traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
           }}
@@ -425,7 +431,10 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedPage constrained={tableExpando} hideFooter={tableExpando}>
+      <ViewportConstrainedPage
+        constrained={tableExpando && mode === Mode.SAMPLES}
+        hideFooter={tableExpando}
+      >
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}
@@ -510,7 +519,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                 </TableActionsContainer>
               )}
             </LogsTableActionsContainer>
-            <LogsItemContainer>
+            <LogsItemContainer overflowX="auto">
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
