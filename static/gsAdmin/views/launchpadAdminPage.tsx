@@ -36,7 +36,7 @@ export function LaunchpadAdminPage() {
       const ids = rerunArtifactId
         .split(',')
         .map(id => id.trim())
-        .filter(id => id);
+        .filter(Boolean);
       return fetchMutation({
         url: '/internal/preprod-artifact/batch-rerun-analysis/',
         method: 'POST',
@@ -124,7 +124,7 @@ export function LaunchpadAdminPage() {
           preprod_artifact_ids: batchDeleteArtifactIds
             .split(',')
             .map(id => id.trim())
-            .filter(id => id),
+            .filter(Boolean),
         },
         options: {
           host: region?.url,
@@ -242,7 +242,7 @@ export function LaunchpadAdminPage() {
     const artifactIds = batchDeleteArtifactIds
       .split(',')
       .map(id => id.trim())
-      .filter(id => id);
+      .filter(Boolean);
     const artifactCount = artifactIds.length;
 
     openAdminConfirmModal({

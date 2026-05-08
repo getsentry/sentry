@@ -7,6 +7,7 @@ from typing import Any
 
 import orjson
 import sentry_sdk
+from django.http.request import QueryDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -250,8 +251,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     )
                     return {}
 
-                # Don't unfurl the same thing multiple times
-                seen_marker = hash(orjson.dumps((link_type, list(args))).decode())
+                # `list(args)` only captures keys, so links sharing the same
+                # arg shape (explore URLs, dashboard widgets on the same
+                # dashboard, etc.) all collided to one marker and only the
+                # first survived. Fold each value into the marker — QueryDicts
+                # via .urlencode(), everything else as-is — so unique values
+                # produce unique markers.
+                marker_args = sorted(
+                    (k, v.urlencode() if isinstance(v, QueryDict) else v) for k, v in args.items()
+                )
+                seen_marker = hash(orjson.dumps((link_type, marker_args)).decode())
                 if seen_marker in links_seen:
                     continue
 
