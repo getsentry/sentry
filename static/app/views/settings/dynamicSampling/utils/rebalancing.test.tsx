@@ -66,8 +66,8 @@ describe('balanceSampleRate', () => {
       targetSampleRate: 0.8,
     });
 
-    expect(balancedItems[0]!.sampleRate).toBe(1.0); // Small count item should be capped at 1.0
-    expect(balancedItems[1]!.sampleRate).toBeLessThan(1.0);
+    expect(balancedItems[0]!.sampleRate).toBe(1); // Small count item should be capped at 1
+    expect(balancedItems[1]!.sampleRate).toBeLessThan(1);
   });
 
   it('handles empty items array', () => {
