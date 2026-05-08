@@ -4,7 +4,7 @@ import {LayoutGroup, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -484,14 +484,16 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
         </Heading>
         <LayoutGroup>
           <Stack gap="md" paddingTop="sm">
-            <Heading as="h3" size="xl">
+            <Heading as="h3" size="lg">
               {t('Choose your SDK')}
             </Heading>
-            <Text variant="muted" size="lg" density="comfortable">
-              {t(
-                'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
-              )}
-            </Text>
+            <Container>
+              <Text variant="muted" size="md" density="comfortable">
+                {t(
+                  'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
+                )}
+              </Text>
+            </Container>
           </Stack>
           {showDetectedPlatforms ? (
             <MotionStack

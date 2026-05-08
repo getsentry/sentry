@@ -1,13 +1,11 @@
-import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconInfo} from 'sentry/icons/iconInfo';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import type {FeatureMeta} from './useScmFeatureMeta';
 
@@ -30,36 +28,72 @@ export function ScmFeatureInfoCards({
 }: ScmFeatureInfoCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
-      <Flex justify="between" align="center">
+      <Stack gap="md">
         <Heading as="h3" size="xl">
-          {t('Features available for this platform')}
+          {tct('Available with [bold:platform]', {
+            bold: (
+              <Text as="span" bold variant="accent">
+                {null}
+              </Text>
+            ),
+          })}
         </Heading>
-      </Flex>
-      <Grid gap="md" columns="1fr 1fr">
+        <Text size="lg" variant="secondary" density="comfortable">
+          {t('In the next step, run our setup wizard to choose what to instrument')}
+        </Text>
+      </Stack>
+      <Grid
+        gap="2xl"
+        columns={{xs: '1fr', sm: '1fr 1fr'}}
+        border="secondary"
+        radius="lg"
+        padding="2xl"
+      >
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];
+          const Icon = meta.icon;
           return (
-            <Container key={feature} padding="lg" border="primary" radius="md">
-              <Flex justify="between" align="start" gap="md">
-                <Stack gap="xs">
-                  <Text bold size="md">
-                    {meta.label}
-                  </Text>
-                  <Text variant="secondary">{meta.description}</Text>
-                </Stack>
-                <Flex align="start" gap="sm">
+            <Grid
+              key={feature}
+              columns="min-content 1fr"
+              rows="min-content min-content"
+              gap={{xs: 'xs md', sm: 'xs lg'}}
+              align="center"
+              areas={`
+                    "icon label"
+                    ". description"
+                  `}
+            >
+              <Container area="icon">
+                {containerProps => <Icon {...containerProps} size="md" />}
+              </Container>
+              <Container area="label">
+                <Text bold size="md">
+                  {meta.label}
+                </Text>
+              </Container>
+              <Stack gap="md" area="description">
+                <Text variant="secondary" density="comfortable">
+                  {meta.description}
+                </Text>
+                <Container>
                   {isVolumeLoading ? (
-                    <Placeholder height="22px" width="100px" />
+                    <Placeholder height="20px" width="100px" />
                   ) : (
                     <Tooltip title={meta.volumeTooltip} delay={100}>
-                      <Tag variant="muted" icon={<IconInfo size="sm" />}>
+                      <Text
+                        variant="muted"
+                        underline="dotted"
+                        size="sm"
+                        density="comfortable"
+                      >
                         {meta.volume}
-                      </Tag>
+                      </Text>
                     </Tooltip>
                   )}
-                </Flex>
-              </Flex>
-            </Container>
+                </Container>
+              </Stack>
+            </Grid>
           );
         })}
       </Grid>
