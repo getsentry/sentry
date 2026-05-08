@@ -83,7 +83,7 @@ function dispatchYAxisUpdate(
   yAxis: string,
   displayType: DisplayType | undefined,
   fields: Column[] | undefined,
-  dispatch: (...args: any[]) => void
+  dispatch: ReturnType<typeof useWidgetBuilderContext>['dispatch']
 ) {
   const actionType = getTraceMetricAggregateActionType(displayType);
   const aggregate = explodeFieldString(yAxis);
