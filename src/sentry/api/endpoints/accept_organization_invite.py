@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.contrib.auth import logout
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -25,7 +25,6 @@ def get_invite_state(
     member_id: int,
     organization_id_or_slug: str,
     user_id: int | None,
-    request: HttpRequest,
 ) -> RpcUserInviteContext | None:
     if organization_id_or_slug.isdecimal():
         invite_context = organization_service.get_invite_by_id(
@@ -73,7 +72,6 @@ class AcceptOrganizationInvite(Endpoint):
             member_id=int(member_id),
             organization_id_or_slug=organization_id_or_slug,
             user_id=user_id,
-            request=request,
         )
         if invite_context is None:
             raise ValidationError({"details": "Invalid invite code"})
