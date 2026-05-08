@@ -750,7 +750,7 @@ onSubmit: ({value}) =>
 
 ```tsx
 <Flex gap="md" justify="end">
-  <Button onClick={() => form.reset()}>Reset</Button>
+  <form.ResetButton>Reset</form.ResetButton>
   <form.SubmitButton>Save Changes</form.SubmitButton>
 </Flex>
 ```

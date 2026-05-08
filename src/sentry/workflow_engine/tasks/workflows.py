@@ -6,7 +6,6 @@ from typing import Any
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 from taskbroker_client.retry import Retry, retry_task
-from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
 from sentry.locks import locks
@@ -19,7 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
 from sentry.utils import metrics
-from sentry.utils.exceptions import quiet_redis_noise
+from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
@@ -92,7 +91,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     retry=Retry(
         times=3,
         delay=5,
-        on=(Exception, ProcessingDeadlineExceeded),
+        on=(Exception,),
         ignore=(
             EventNotFoundError,
             Group.DoesNotExist,
@@ -117,6 +116,25 @@ def process_workflows_event(
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
     **kwargs: dict[str, Any],
+) -> None:
+    with quiet_retriable_timeouts():
+        _process_workflows_event(
+            event_id=event_id,
+            group_id=group_id,
+            occurrence_id=occurrence_id,
+            group_state=group_state,
+            has_escalated=has_escalated,
+            start_timestamp_seconds=start_timestamp_seconds,
+        )
+
+
+def _process_workflows_event(
+    event_id: str,
+    group_id: int,
+    occurrence_id: str | None,
+    group_state: GroupState,
+    has_escalated: bool,
+    start_timestamp_seconds: float | None = None,
 ) -> None:
     from sentry.workflow_engine.processors.workflow import process_workflows
 
