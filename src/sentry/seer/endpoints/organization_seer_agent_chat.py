@@ -21,6 +21,7 @@ from sentry.seer.agent.client_utils import (
     snapshot_to_markdown,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -274,6 +275,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     override_ce_enable=override_ce_enable,
                     request=request,
+                    run_type=SeerRunType.EXPLORER,
                 )
 
             return Response({"run_id": result_run_id})

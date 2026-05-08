@@ -8,12 +8,16 @@ from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 from django.utils import timezone as django_timezone
+from django.utils.timezone import now
 from pydantic import BaseModel
 from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
@@ -36,6 +40,7 @@ from sentry.seer.agent.on_completion_hook import (
     extract_hook_definition,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
@@ -254,6 +259,7 @@ class SeerAgentClient:
         request: Request | None = None,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
+        run_type: SeerRunType | None = None,
     ) -> int:
         """
         Start a new Seer Agent session.
@@ -344,6 +350,34 @@ class SeerAgentClient:
             actor=self.user,
         ):
             chat_body["is_context_engine_enabled"] = override_ce_enable
+
+        if run_type and features.has("organizations:seer-run-mirror", self.organization):
+            user_id = (
+                self.user.id
+                if self.user and hasattr(self.user, "id") and self.user.id is not None
+                else None
+            )
+            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+                run = SeerRun.objects.create(
+                    organization=self.organization,
+                    user_id=user_id,
+                    type=run_type,
+                    last_triggered_at=now(),
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                    shard_identifier=self.organization.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": dict(chat_body),
+                        "viewer_context": dict(self.viewer_context),
+                    },
+                ).save()
+            run.refresh_from_db()
+            if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
+                raise SeerApiError("Seer run mirror failed to materialize", 500)
+            return run.seer_run_state_id
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
