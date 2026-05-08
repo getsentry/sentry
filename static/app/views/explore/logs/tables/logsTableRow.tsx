@@ -11,7 +11,7 @@ import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
+import {IconAdd, IconJson, IconPin, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -69,7 +69,7 @@ import {
   LogDetailTableActionsCell,
   LogDetailTableBodyCell,
   LogFirstCellContent,
-  LogIconPin,
+  LogPinButton,
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
@@ -384,16 +384,18 @@ export const LogRowContent = memo(function LogRowContent({
         {fields?.map((field, index) => {
           const pin =
             logsPinningEnabled && index === fields.length - 1 ? (
-              <LogIconPin
+              <LogPinButton
                 aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
+                icon={
+                  <IconPin isSolid={isPinned} variant={isPinned ? 'accent' : 'primary'} />
+                }
                 isPinned={isPinned}
-                isSolid={isPinned}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   logsPinning.togglePinnedRow(rowId);
                 }}
                 size="xs"
-                variant={isPinned ? 'accent' : 'primary'}
+                variant="transparent"
               />
             ) : null;
           const value = (dataRow as OurLogsResponseItem)[field];

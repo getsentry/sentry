@@ -48,7 +48,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
 
           return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
         })}
-      <GridRow>
+      <GridRow role="toolbar">
         <PinnedGridBodyCell>
           <Flex justify="end">
             <Button
@@ -80,6 +80,7 @@ const PinnedTableBody = styled(TableBody)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   height: max-content;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 `;

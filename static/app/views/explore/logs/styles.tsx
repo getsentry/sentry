@@ -9,7 +9,6 @@ import {HighlightComponent} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
-import {IconPin} from 'sentry/icons/iconPin';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
@@ -65,6 +64,11 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     &:hover {
       background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
     }
+  }
+
+  &[data-row-pinned='true'] {
+    margin-right: -1rem;
+    padding-right: 1rem;
   }
 
   &[data-row-pinned='true']:not(thead > &) {
@@ -306,7 +310,7 @@ export const LogsFilteredHelperText = styled('span')`
   background-color: ${p => p.theme.colors.gray200};
 `;
 
-export const LogIconPin = styled(IconPin)<{isPinned: boolean}>`
+export const LogPinButton = styled(Button)<{isPinned: boolean}>`
   position: absolute;
   right: calc(-1 * var(--logsPinButtonArea));
   opacity: ${p => (p.isPinned ? 1 : 0)};
@@ -315,7 +319,13 @@ export const LogIconPin = styled(IconPin)<{isPinned: boolean}>`
 
   ${LogTableRow}:focus-within,
   ${LogTableRow}:hover & {
+    background: none;
     opacity: 1;
+  }
+
+  &:focus-within svg,
+  &:hover svg {
+    fill: ${p => p.theme.tokens.content.accent};
   }
 `;
 
