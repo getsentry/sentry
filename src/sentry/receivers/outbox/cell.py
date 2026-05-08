@@ -249,12 +249,6 @@ def process_relocation_reply_with_export(payload: Any, **kwds):
         )
 
 
-def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:
-    run.mirror_status = SeerRunMirrorStatus.FAILED
-    run.save(update_fields=["mirror_status"])
-    logger.warning(event, extra={"run_id": run.id, **extra})
-
-
 @receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)
 def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) -> None:
     try:
@@ -309,17 +303,20 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     try:
         data = response.json()
     except (json.JSONDecodeError, UnicodeDecodeError):
-        # 2xx with an undecodable body won't self-heal on retry — terminal.
         _mark_seer_run_failed(run, "seer_run_create.invalid_json_body", status=response.status)
         return
 
     run_id = data.get("run_id")
     if run_id is None:
-        # 2xx with structurally valid JSON but no run_id won't self-heal on
-        # retry — same terminal class as the malformed-body case above.
         _mark_seer_run_failed(run, "seer_run_create.missing_run_id", status=response.status)
         return
 
     run.seer_run_state_id = run_id
     run.mirror_status = SeerRunMirrorStatus.LIVE
     run.save(update_fields=["seer_run_state_id", "mirror_status"])
+
+
+def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:
+    run.mirror_status = SeerRunMirrorStatus.FAILED
+    run.save(update_fields=["mirror_status"])
+    logger.warning(event, extra={"run_id": run.id, **extra})
