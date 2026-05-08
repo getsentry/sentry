@@ -121,7 +121,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
                 extra={
                     "duration_ms": duration_ms,
                     "response_type": type(result).__name__,
-                    "repsonse": MessageToDict(result),
+                    "response": MessageToDict(result),
                     **extras,
                 },
             )
