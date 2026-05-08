@@ -326,6 +326,7 @@ export const LogPinButton = styled(Button)<{isPinned: boolean}>`
   &:focus-within svg,
   &:hover svg {
     fill: ${p => p.theme.tokens.content.accent};
+    transition: fill ${p => p.theme.motion.smooth.fast};
   }
 `;
 
