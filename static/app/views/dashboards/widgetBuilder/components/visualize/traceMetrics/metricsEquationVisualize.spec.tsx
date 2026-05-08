@@ -73,7 +73,7 @@ describe('useIsEquationMode', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('returns [false, setter] for non-tracemetrics dataset', () => {
+  it('returns false as initial state for non-tracemetrics dataset', () => {
     const {result} = renderHookWithProviders(() => useIsEquationMode(), {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -113,7 +113,7 @@ describe('useIsEquationMode', () => {
     expect(result.current[0]).toBe(false);
   });
 
-  it('returns [false, setter] when yAxis has no equations', () => {
+  it('returns false as initial state when yAxis has no equations', () => {
     const {result} = renderHookWithProviders(() => useIsEquationMode(), {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -132,7 +132,7 @@ describe('useIsEquationMode', () => {
     expect(result.current[0]).toBe(false);
   });
 
-  it('returns [true, setter] when yAxis contains an equation', () => {
+  it('returns true as initial state when yAxis contains an equation', () => {
     const {result} = renderHookWithProviders(() => useIsEquationMode(), {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -143,27 +143,6 @@ describe('useIsEquationMode', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             yAxis: [
-              'equation|sum(value,alpha_metric,counter,-) + avg(value,beta_metric,counter,-)',
-            ],
-          },
-        },
-      },
-    });
-
-    expect(result.current[0]).toBe(true);
-  });
-
-  it('returns [true, setter] when fields contain an equation (big number)', () => {
-    const {result} = renderHookWithProviders(() => useIsEquationMode(), {
-      organization: OrganizationFixture({features: EQUATION_FEATURES}),
-      additionalWrapper: WidgetBuilderProvider,
-      initialRouterConfig: {
-        location: {
-          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.TABLE,
-            field: [
               'equation|sum(value,alpha_metric,counter,-) + avg(value,beta_metric,counter,-)',
             ],
           },
