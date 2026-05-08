@@ -4,7 +4,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -113,8 +119,9 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    expect(await screen.findByText('Next.js')).toBeInTheDocument();
-    expect(screen.getByText('Django')).toBeInTheDocument();
+    const radioGroup = await screen.findByRole('radiogroup');
+    expect(within(radioGroup).getByText('Next.js')).toBeInTheDocument();
+    expect(within(radioGroup).getByText('Django')).toBeInTheDocument();
   });
 
   it('auto-selects first detected platform', async () => {
@@ -147,7 +154,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     expect(
-      await screen.findByText('Features available for this platform')
+      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'})
     ).toBeInTheDocument();
   });
 
@@ -569,7 +576,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('Features available for this platform');
+      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'});
 
       const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
         ([event, params]) =>
