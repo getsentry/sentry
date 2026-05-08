@@ -774,8 +774,10 @@ function AMCheckout(props: Props) {
                         try {
                           await showIntercom(organization.slug);
                         } catch {
-                          if (hasZendesk()) {
-                            activateZendesk();
+                          // Fall back to mailto
+                          const supportEmail = ConfigStore.get('supportEmail');
+                          if (supportEmail) {
+                            window.location.href = `mailto:${supportEmail}`;
                           }
                         }
                       }}
