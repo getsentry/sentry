@@ -18,7 +18,7 @@ interface LogsPinning {
   hoveringRow: string | undefined;
   pinnedRows: Set<string>;
   togglePinnedRow: (id: string) => void;
-  updateHoveringRow: (hovering: boolean, rowId: string | undefined) => void;
+  updateHoveringRow: (hovering: boolean, rowId: string) => void;
 }
 
 const LogsPinningContext = createContext<LogsPinning | undefined>(undefined);
@@ -32,17 +32,14 @@ export function LogsPinningProvider({children}: {children: ReactNode}) {
 
   const [hoveringRow, setHoveringRow] = useState<string | undefined>(undefined);
 
-  const updateHoveringRow = useCallback(
-    (hovering: boolean, rowId: string | undefined) => {
-      setHoveringRow(previous => {
-        if (rowId || !previous || previous === rowId) {
-          return hovering ? rowId : undefined;
-        }
-        return;
-      });
-    },
-    []
-  );
+  const updateHoveringRow = useCallback((hovering: boolean, rowId: string) => {
+    setHoveringRow(previous => {
+      if (!previous || previous === rowId) {
+        return hovering ? rowId : undefined;
+      }
+      return;
+    });
+  }, []);
 
   const togglePinnedRow = useCallback((id: string) => {
     setPinnedRows(previous => {

@@ -58,7 +58,7 @@ import {
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning.tsx';
+import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning';
 import {
   DetailsBody,
   DetailsContent,
@@ -102,7 +102,6 @@ import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 
 type LogsRowProps = {
   dataRow: LogTableRowItem;
-  expansionKey: string;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
@@ -112,6 +111,7 @@ type LogsRowProps = {
     openWithExpandedIds?: string[];
     replay?: ReplayEmbeddedTableOptions;
   };
+  expansionKey?: string;
   isExpanded?: boolean;
   logEnd?: string;
   logStart?: string;
@@ -151,7 +151,7 @@ export const LogRowContent = memo(function LogRowContent({
   sharedHoverTimeoutRef,
   isExpanded,
   onExpand,
-  expansionKey,
+  expansionKey: expansionKeyProp,
   onCollapse,
   onExpandHeight,
   blockRowExpanding,
@@ -169,6 +169,7 @@ export const LogRowContent = memo(function LogRowContent({
   const measureRef = useRef<HTMLTableRowElement>(null);
 
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
+  const expansionKey = expansionKeyProp ?? rowId;
   const logsPinning = useLogsPinning();
   const isHoverLinked = logsPinning.hoveringRow === rowId;
   const isPinned = logsPinning.pinnedRows.has(rowId);
@@ -235,9 +236,9 @@ export const LogRowContent = memo(function LogRowContent({
 
   useLayoutEffect(() => {
     if (measureRef.current && isExpanded) {
-      onExpandHeight?.(rowId, measureRef.current.clientHeight);
+      onExpandHeight?.(expansionKey, measureRef.current.clientHeight);
     }
-  }, [isExpanded, onExpandHeight, rowId]);
+  }, [expansionKey, isExpanded, onExpandHeight]);
 
   const addSearchFilter = useAddSearchFilter();
   const theme = useTheme();

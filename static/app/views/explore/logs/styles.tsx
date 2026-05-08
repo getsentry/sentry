@@ -317,7 +317,7 @@ export const LogPinButton = styled(Button)<{isPinned: boolean}>`
   transition: opacity 0.1s;
   z-index: 1;
 
-  ${LogTableRow}:focus-within,
+  ${LogTableRow}:focus-within &,
   ${LogTableRow}:hover & {
     background: none;
     opacity: 1;
