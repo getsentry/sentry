@@ -209,6 +209,12 @@ export default function SnapshotsPage() {
   );
   const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
 
+  const availableStatuses = useMemo(
+    () =>
+      new Set((Object.values(DiffStatus) as DiffStatus[]).filter(s => data?.[s]?.length)),
+    [data]
+  );
+
   const handleToggleStatus = useCallback(
     (status: DiffStatus) => {
       startTransition(() => {
@@ -219,13 +225,21 @@ export default function SnapshotsPage() {
           if (prev.length === 1 && prev[0] === status) {
             return [];
           }
-          return prev.includes(status)
+          const next = prev.includes(status)
             ? prev.filter(s => s !== status)
             : [...prev, status];
+          if (
+            availableStatuses.size > 0 &&
+            next.length === availableStatuses.size &&
+            next.every(s => availableStatuses.has(s))
+          ) {
+            return [];
+          }
+          return next;
         });
       });
     },
-    [setActiveStatusList]
+    [setActiveStatusList, availableStatuses]
   );
 
   const {
@@ -346,7 +360,7 @@ export default function SnapshotsPage() {
   }, [sidebarItems, memberSearchKeys, searchQuery]);
 
   const filteredItems = useMemo(() => {
-    const hasStatusFilter = activeStatuses.size > 0;
+    const hasStatusFilter = activeStatuses.size > 0 && comparisonType === 'diff';
     const base = hasStatusFilter
       ? searchFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : searchFilteredItems;
@@ -364,7 +378,7 @@ export default function SnapshotsPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [searchFilteredItems, activeStatuses, sortBy]);
+  }, [searchFilteredItems, activeStatuses, sortBy, comparisonType]);
 
   const sidebarSections = useMemo<SidebarSection[]>(() => {
     function toGroup(item: SidebarItem) {
