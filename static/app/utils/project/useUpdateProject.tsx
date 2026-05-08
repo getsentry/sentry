@@ -8,9 +8,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Variables extends Partial<DetailedProject> {}
 
+type OptimisticProject = Project & {
+  // ProjectSummary does not include options, but cached detailed projects can.
+  options?: DetailedProject['options'];
+};
+
 type Context =
   | {
-      previousProject: DetailedProject;
+      previousProject: OptimisticProject;
       error?: never;
     }
   | {
@@ -33,16 +38,17 @@ export function useUpdateProject(project: Project) {
       const fromStore = ProjectsStore.getById(project.id);
       const fromProp = project;
 
-      const isValidProjectWithOptions = (obj: unknown): obj is DetailedProject =>
+      const isValidProjectWithOptions = (obj: unknown): obj is OptimisticProject =>
         obj !== null &&
         typeof obj === 'object' &&
-        typeof (obj as DetailedProject).options === 'object' &&
-        (obj as DetailedProject).options !== null;
+        'options' in obj &&
+        typeof obj.options === 'object' &&
+        obj.options !== null;
 
       const previousProject =
         (isValidProjectWithOptions(fromCache) ? fromCache : null) ||
         (isValidProjectWithOptions(fromStore) ? fromStore : null) ||
-        (isValidProjectWithOptions(fromProp) ? fromProp : null);
+        fromProp;
 
       if (!previousProject) {
         return {error: new Error('Previous project not found')};
