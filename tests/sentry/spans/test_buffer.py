@@ -12,7 +12,7 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
+from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer, _chunk_subsegment
 from sentry.spans.consumers.process.factory import SPANS_CODEC, validate_span_event
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.segment_key import SegmentKey
@@ -59,6 +59,24 @@ def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
 
 def _payload(span_id: str) -> bytes:
     return orjson.dumps({"span_id": span_id})
+
+
+def _sized_span(
+    span_id: str,
+    parent_span_id: str | None = None,
+    *,
+    is_root: bool = False,
+    size: int = 1000,
+) -> Span:
+    return Span(
+        payload=orjson.dumps({"span_id": span_id, "padding": "x" * size}),
+        trace_id="a" * 32,
+        span_id=span_id,
+        parent_span_id=parent_span_id,
+        segment_id=None,
+        is_segment_span=is_root,
+        project_id=1,
+    )
 
 
 def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> OutputSpan:
@@ -167,6 +185,35 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
 
     for chunk in span_chunks:
         buffer.process_spans(chunk, now)
+
+
+@pytest.mark.parametrize(
+    "span_count, span_size, max_segment_bytes, expected_chunk_sizes",
+    [
+        pytest.param(200, 1_000_000, 20 * 1024 * 1024, [20] * 10, id="200-1mb-spans"),
+        pytest.param(200, 1_000_000, 20_000, [1] * 200, id="200-1mb-spans-over-limit"),
+        pytest.param(1, 1_000_000, 20_000, [1], id="single-span-over-limit"),
+    ],
+)
+def test_subsegments_under_max_segment_bytes(
+    span_count: int,
+    span_size: int,
+    max_segment_bytes: int,
+    expected_chunk_sizes: list[int],
+) -> None:
+    spans = [_sized_span(f"{i:016x}", "a" * 16, size=span_size) for i in range(span_count)]
+
+    chunks = _chunk_subsegment(spans, max_spans_per_evalsha=0, max_segment_bytes=max_segment_bytes)
+
+    assert [len(chunk) for chunk in chunks] == expected_chunk_sizes
+    assert [span for chunk in chunks for span in chunk] == spans
+
+    for chunk in chunks:
+        chunk_bytes = sum(len(span.payload) for span in chunk)
+        if len(chunk) == 1:
+            assert chunk_bytes == len(spans[0].payload)
+        else:
+            assert chunk_bytes <= max_segment_bytes
 
 
 @pytest.mark.parametrize(
@@ -823,6 +870,34 @@ def test_compression_functionality(compression_level) -> None:
         assert_clean(buffer.client)
 
 
+def test_split_large_subsegments_by_bytes(buffer: SpansBuffer) -> None:
+    max_segment_bytes = 2500
+    spans = [
+        _sized_span("a" * 16, is_root=True),
+        _sized_span("b" * 16, "a" * 16),
+        _sized_span("c" * 16, "a" * 16),
+        _sized_span("d" * 16, "a" * 16),
+        _sized_span("e" * 16, "a" * 16),
+    ]
+
+    with override_options({"spans.buffer.max-segment-bytes": max_segment_bytes}):
+        buffer.process_spans(spans, now=0)
+        rv = buffer.flush_segments(now=61)
+
+    assert len(rv) >= 2
+    assert {span.payload["span_id"] for segment in rv.values() for span in segment.spans} == {
+        span.span_id for span in spans
+    }
+    assert sum(len(segment.spans) for segment in rv.values()) == len(spans)
+    for segment_key, segment in rv.items():
+        segment_bytes = sum(len(orjson.dumps(span.payload)) for span in segment.spans)
+        span_ids = [span.payload["span_id"] for span in segment.spans]
+        assert segment_bytes <= max_segment_bytes, (segment_key, segment_bytes, span_ids)
+
+    buffer.done_flush_segments(rv)
+    assert_clean(buffer.client)
+
+
 @mock.patch("sentry.spans.buffer.Project")
 def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: SpansBuffer) -> None:
     """When a segment's cumulative ingested bytes exceed max-segment-bytes, subsequent
@@ -832,10 +907,8 @@ def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: Spans
     mock_project.organization_id = 100
     mock_project_model.objects.get_from_cache.return_value = mock_project
 
-    # Each payload is ~30 bytes. With limit=40, the Lua script detaches on
-    # the 3rd batch (cumulative 60 > 40). The flusher also enforces the limit,
-    # so the normal segment (60 bytes) is dropped, but the detached segment
-    # (30 bytes) is kept.
+    # Each payload is ~30 bytes. With limit=70, the Lua script detaches on
+    # the 3rd batch (cumulative 90 > 70). Both segments are flushed.
     batch1 = [
         Span(
             payload=_payload("b" * 16),

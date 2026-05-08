@@ -181,6 +181,33 @@ def _compute_salt(spans: Sequence[Span]) -> str:
     ).hexdigest()
 
 
+def _chunk_subsegment(
+    subsegment: Sequence[Span], max_spans_per_evalsha: int, max_segment_bytes: int
+) -> list[list[Span]]:
+    chunks: list[list[Span]] = []
+    current: list[Span] = []
+    current_bytes = 0
+
+    for span in subsegment:
+        span_bytes = len(span.payload)
+        exceeds_span_limit = max_spans_per_evalsha > 0 and len(current) >= max_spans_per_evalsha
+        exceeds_byte_limit = (
+            max_segment_bytes > 0 and current and current_bytes + span_bytes > max_segment_bytes
+        )
+        if exceeds_span_limit or exceeds_byte_limit:
+            chunks.append(current)
+            current = []
+            current_bytes = 0
+
+        current.append(span)
+        current_bytes += span_bytes
+
+    if current:
+        chunks.append(current)
+
+    return chunks
+
+
 class OutputSpan(NamedTuple):
     payload: SpanPayload
 
@@ -309,16 +336,14 @@ class SpansBuffer:
             trees = self._group_by_parent(spans)
             pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
 
-            # Split large subsegments into chunks to avoid Lua unpack() limits.
+            # Split large subsegments into chunks to avoid Lua unpack() and segment byte limits.
             # Chunks share the same parent_span_id but are processed separately.
             tree_items: list[Subsegment] = []
             for key, subsegment in trees.items():
-                if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
-                    for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
-                        chunk_list = list(chunk)
-                        tree_items.append(Subsegment(key, _compute_salt(chunk_list), chunk_list))
-                else:
-                    tree_items.append(Subsegment(key, _compute_salt(subsegment), subsegment))
+                for chunk in _chunk_subsegment(
+                    subsegment, max_spans_per_evalsha, max_segment_bytes
+                ):
+                    tree_items.append(Subsegment(key, _compute_salt(chunk), chunk))
 
             tree_batches: Sequence[Sequence[Subsegment]]
             if pipeline_batch_size > 0:
