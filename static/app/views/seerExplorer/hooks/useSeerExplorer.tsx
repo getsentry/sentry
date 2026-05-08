@@ -53,16 +53,15 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
   '/issues/',
+  '/issues/errors-outages/',
+  '/issues/breached-metrics/',
+  '/issues/warnings/',
   '/issues/:groupId/',
   '/issues/:groupId/events/',
   '/issues/:groupId/events/:eventId/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
-  '/issues/errors-outages/',
-  '/issues/breached-metrics/',
-  '/issues/warnings/',
-]);
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
 
 function supportsStructuredContext(
   referrer: string,
