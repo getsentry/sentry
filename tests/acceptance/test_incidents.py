@@ -1,9 +1,14 @@
 from django.utils import timezone
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
@@ -17,6 +22,13 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_incidents_list(self) -> None:
         alert_rule = self.create_alert_rule(name="Alert Rule #1")
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+
+        group = self.create_group(type=MetricIssue.type_id, project=self.project)
+        group.update(priority=PriorityLevel.HIGH.value)
+        self.create_detector_group(detector=detector, group=group)
+        gop = GroupOpenPeriod.objects.get(group=group, project=self.project)
+
         incident = self.create_incident(
             self.organization,
             title="Incident #1",
@@ -24,6 +36,11 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             date_detected=timezone.now(),
             projects=[self.project],
             alert_rule=alert_rule,
+        )
+        IncidentGroupOpenPeriod.objects.create(
+            group_open_period=gop,
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
         )
         update_incident_status(
             incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
