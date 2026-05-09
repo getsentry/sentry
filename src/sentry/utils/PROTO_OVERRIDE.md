@@ -1,10 +1,12 @@
 # Proto Override System
 
-Override pip-installed `sentry_protos` modules with locally-compiled protobuf definitions, without waiting for a `sentry-protos` package release.
+Compile and serve proto definitions directly from the sentry repo, replacing the pip-installed `sentry-protos` package for migrated domains.
 
 ## Why This Exists
 
-The `sentry-protos` pip package provides pre-compiled `_pb2.py` modules for inter-service communication. Iterating on proto definitions requires a release of `sentry-protos` before Sentry can use the changes. This system short-circuits that cycle by compiling `.proto` files locally and serving them at import time.
+Proto definitions used to live exclusively in the `sentry-protos` repo, with a separate pip release cycle. Iterating on protos required publishing a new `sentry-protos` version before sentry could use the changes. This system moves proto source files into the sentry repo itself (`proto/`), compiling them at import time during development and pre-compiling them during CI/deploy for production.
+
+Domains are migrated incrementally. Non-migrated domains (snuba, seer, etc.) continue to be served from the `sentry-protos` pip package as a transparent fallback.
 
 ## Architecture
 
@@ -49,87 +51,47 @@ The system is split into two modules with distinct responsibilities:
 
 ## Quick Start
 
-### In-Repo Protos (Recommended)
+### Day-to-Day Development
 
-The simplest approach: commit `.proto` files directly to `proto/sentry_protos/...` in the sentry repo.
-
-**Sync billing protos from your sentry-protos checkout:**
-
-```bash
-# Sync billing domain (defaults to ../sentry-protos)
-bin/sync-protos
-
-# Or specify the sentry-protos path explicitly
-bin/sync-protos /path/to/sentry-protos billing
-
-# Sync and pre-compile
-bin/sync-protos --compile
-```
-
-**Call `install()` early in app startup:**
+Proto source files live in `proto/sentry_protos/` and are edited directly in the sentry repo. Call `install()` early in app startup:
 
 ```python
 from sentry.utils.proto_loader import install
 install()
 ```
 
-Now `from sentry_protos.billing.v1 import data_category_pb2` automatically compiles from `proto/` and serves the result. No pip release needed.
+Then import as usual:
 
-### Development: Iterate on Protos Without Committing
-
-To test proto changes before committing them to the sentry repo, point to your sentry-protos checkout:
-
-```bash
-export SENTRY_PROTO_DEV_DIR=/path/to/sentry-protos/proto
+```python
+from sentry_protos.billing.v1.data_category_pb2 import DataCategory
 ```
 
-The `SENTRY_PROTO_DEV_DIR` env var is checked after `proto/`, so in-repo protos always win. This lets you iterate on sentry-protos while in-repo protos provide the stable baseline.
+When you edit a `.proto` file, the loader detects the mtime change and recompiles automatically on next import. No restart needed (unless the module was already loaded in the current process).
 
-### Production: Pre-Compiled Overrides
+### Production
 
 Compile during your build/deploy step:
 
 ```bash
-# Compile from in-repo protos
 python -m sentry.utils.proto_compiler compile \
     --source proto \
     --output .proto_cache
-
-# Or from an external source
-python -m sentry.utils.proto_compiler compile \
-    --source /path/to/sentry-protos/proto \
-    --output /app/.proto_cache
-```
-
-Optionally set the override directory (if not using the default `.proto_cache`):
-
-```bash
-export SENTRY_PROTO_OVERRIDE_DIR=/app/.proto_cache
 ```
 
 Call `install()` in app startup. The loader serves pre-compiled files with no compilation at runtime — `grpcio-tools` is not required in the production image.
 
-### Switching Between Sources
-
-The proto system uses a clear priority order:
+### Priority Order
 
 ```
-1. proto/            (in-repo, committed to git)        ← highest priority
-2. SENTRY_PROTO_DEV_DIR  (local sentry-protos checkout) ← for iteration
-3. pip sentry-protos (installed package)                 ← fallback
+1. proto/            (in-repo, committed to git)        ← source of truth
+2. pip sentry-protos (installed package)                 ← fallback for non-migrated domains
 ```
 
-To **use in-repo protos**: just have files in `proto/sentry_protos/`. They're used automatically.
-
-To **use sentry-protos checkout instead**: set `SENTRY_PROTO_DEV_DIR`. For protos that exist in both `proto/` and the checkout, `proto/` wins.
-
-To **use pip only**: remove `proto/sentry_protos/` and unset `SENTRY_PROTO_DEV_DIR`.
-
-To **override a single proto for testing**: copy just that `.proto` file into `proto/sentry_protos/...`. All other protos fall through to pip.
+Migrated domains (e.g., billing) are maintained in `proto/`. Non-migrated domains (snuba, seer, etc.) are served from the pip-installed `sentry-protos` package until they are migrated.
 
 ### getsentry Integration
 
-Since `proto_loader.py` lives in the sentry repo, `REPO_ROOT` resolves to sentry's root — meaning getsentry automatically picks up sentry's `proto/` directory when it imports the loader:
+Since `proto_loader.py` lives in the sentry package, `REPO_ROOT` resolves to sentry's root — meaning getsentry automatically picks up sentry's `proto/` directory when it imports the loader:
 
 ```python
 # In getsentry's startup or conftest:
@@ -141,26 +103,33 @@ install()
 For production getsentry deployments, compile protos during the build step:
 
 ```bash
-# From getsentry's build script:
 python -m sentry.utils.proto_compiler compile \
     --source /path/to/sentry/proto \
     --output .proto_cache
 ```
 
-getsentry developers can also set `SENTRY_PROTO_DEV_DIR` to iterate on protos independently:
+### Migrating a New Domain
+
+To migrate a domain from `sentry-protos` into this repo (one-time):
 
 ```bash
-export SENTRY_PROTO_DEV_DIR=/path/to/sentry-protos/proto
+bin/sync-protos /path/to/sentry-protos <domain>
 ```
+
+After the initial copy, maintain the protos in `proto/` — do not re-sync.
 
 ## Configuration
 
-| Environment Variable        | Purpose                                                              | Default                    |
-| --------------------------- | -------------------------------------------------------------------- | -------------------------- |
-| `SENTRY_PROTO_OVERRIDE_DIR` | Directory with pre-compiled `_pb2.py` files                          | `{repo_root}/.proto_cache` |
-| `SENTRY_PROTO_DEV_DIR`      | Directory with `.proto` source files (enables on-demand compilation) | _(none)_                   |
+Most setups need no environment variables — `proto/` and `.proto_cache/` work by convention.
 
-Additionally, `{repo_root}/proto/` is checked automatically as a proto source directory if it exists.
+| Environment Variable        | Purpose                                                          | Default                    |
+| --------------------------- | ---------------------------------------------------------------- | -------------------------- |
+| `SENTRY_PROTO_OVERRIDE_DIR` | Directory with pre-compiled `_pb2.py` files                      | `{repo_root}/.proto_cache` |
+| `SENTRY_PROTO_DEV_DIR`      | Additional `.proto` source directory (rarely needed — see below) | _(none)_                   |
+
+`{repo_root}/proto/` is the primary proto source directory. It is always checked first.
+
+`SENTRY_PROTO_DEV_DIR` is available for edge cases like testing proto changes from an external checkout without modifying the repo. In normal development, edit protos in `proto/` directly.
 
 ## How the Import Hook Works
 
@@ -265,32 +234,29 @@ The cache mirrors the proto directory structure with `_pb2.py` files:
 
 ## Helper Script: `bin/sync-protos`
 
-A convenience script for syncing proto files from a sentry-protos checkout into the repo:
+A one-time migration tool for copying proto files from a `sentry-protos` checkout into `proto/`. After the initial migration, protos are maintained directly in the sentry repo.
 
 ```bash
-# Sync billing domain (default)
-bin/sync-protos
-
-# Sync from specific checkout
+# One-time migration: copy billing protos from sentry-protos
 bin/sync-protos /path/to/sentry-protos billing
 
-# Sync multiple domains
+# Migrate multiple domains at once
 bin/sync-protos /path/to/sentry-protos billing snuba
 
-# Sync all domains
+# Migrate all domains
 bin/sync-protos --all
 
-# Sync and compile
-bin/sync-protos --compile
-
-# Show status
+# Show current override status
 bin/sync-protos --status
+
+# Compile after migration (optional — loader auto-compiles in dev)
+bin/sync-protos --compile
 
 # Clear compiled cache
 bin/sync-protos --clear
 ```
 
-The script defaults to `../sentry-protos` as the source and `billing` as the domain, since that's the most common workflow.
+Defaults to `../sentry-protos` as the source and `billing` as the domain.
 
 ## CLI Reference
 

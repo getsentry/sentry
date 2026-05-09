@@ -1,10 +1,14 @@
-# In-Repo Proto Sources
+# Proto Sources
 
-This directory contains `.proto` source files that override the pip-installed `sentry-protos` package at import time. Proto files placed here are automatically detected by `proto_loader` and compiled on demand during development, or pre-compiled during CI/deploy for production.
+This directory is the **source of truth** for proto definitions used by sentry. Proto files here are compiled on demand during development and pre-compiled during CI/deploy for production.
+
+Currently migrated domains:
+
+- `billing/` — billing service protos (data categories, usage, contracts, etc.)
+
+Other domains (snuba, seer, taskbroker, etc.) remain in the `sentry-protos` pip package until migrated.
 
 ## Directory Structure
-
-Proto files must follow the `sentry-protos` package convention:
 
 ```
 proto/
@@ -14,32 +18,44 @@ proto/
         data_category.proto
         date.proto
         usage_data.proto
+        common/
+          v1/
+            address.proto
+            ...
         services/
           usage/
             v1/
               endpoint_usage.proto
+          contract/
+            v1/
+              ...
 ```
 
 ## Usage
 
-Once proto files are here, they just work -- no configuration needed:
+Once proto files are here, they just work:
 
 ```python
 from sentry_protos.billing.v1.data_category_pb2 import DataCategory
 ```
 
-## Priority Order
+## Editing Protos
 
-1. **This directory** (`proto/`) -- highest priority, committed to git
-2. **`SENTRY_PROTO_DEV_DIR`** env var -- for iterating on protos before committing
-3. **pip-installed `sentry-protos`** -- fallback for protos not overridden locally
+Edit `.proto` files in this directory directly. On next import, the `proto_loader` detects the change (via mtime) and recompiles automatically. No restart needed unless the module was already imported in the current process.
 
-## Syncing from sentry-protos
+## How Overrides Work
 
-To copy billing protos from a local sentry-protos checkout:
-
-```bash
-bin/sync-protos /path/to/sentry-protos billing
-```
+1. **This directory** (`proto/`) -- highest priority
+2. **pip-installed `sentry-protos`** -- fallback for non-migrated domains
 
 See `src/sentry/utils/PROTO_OVERRIDE.md` for full documentation.
+
+## Initial Migration
+
+To migrate a new domain from `sentry-protos` into this repo:
+
+```bash
+bin/sync-protos /path/to/sentry-protos <domain>
+```
+
+After the initial copy, maintain the protos here -- do not re-sync.
