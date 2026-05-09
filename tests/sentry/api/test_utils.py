@@ -10,6 +10,7 @@ from sentry_sdk import Scope
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
+    TimeoutException,
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
@@ -31,6 +32,7 @@ from sentry.utils.snuba import (
     QueryTooManySimultaneous,
     SchemaValidationError,
     SnubaError,
+    SnubaUpstreamRequestTimeout,
     UnqualifiedQueryError,
 )
 
@@ -195,6 +197,17 @@ class HandleQueryErrorsTest(APITestCase):
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
+
+    def test_handle_snuba_upstream_request_timeout(self) -> None:
+        try:
+            with handle_query_errors():
+                raise SnubaUpstreamRequestTimeout(
+                    "Upstream proxy returned 504: 'upstream request timeout'",
+                    status=504,
+                    body="upstream request timeout",
+                )
+        except Exception as e:
+            assert isinstance(e, TimeoutException)
 
     def test_handle_postgres_timeout(self) -> None:
         class TimeoutError(OperationalError):
