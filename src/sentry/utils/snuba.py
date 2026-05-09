@@ -368,6 +368,27 @@ class UnexpectedResponseError(SnubaError):
     """
 
 
+class InvalidSnubaResponseError(SnubaError):
+    """
+    Exception raised when a non-2xx response from the Snuba API cannot be
+    decoded as JSON. This typically indicates the request never reached
+    Snuba (e.g. it was terminated by an upstream proxy like envoy).
+    """
+
+    def __init__(self, message: str, status: int, body: str) -> None:
+        super().__init__(message)
+        self.status = status
+        self.body = body
+
+
+class SnubaUpstreamRequestTimeout(InvalidSnubaResponseError):
+    """
+    Raised when an upstream proxy (e.g. envoy) returns a 504 Gateway Timeout
+    before the request reaches Snuba. The default envoy 504 body is the
+    literal string "upstream request timeout".
+    """
+
+
 class QueryExecutionError(SnubaError):
     """
     Exception raised when a query failed to execute.
@@ -1298,11 +1319,26 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                         log_snuba_info("{}.err: {}".format(referrer, body["error"]))
             except ValueError:
                 if response.status != 200:
+                    body_text = (response.data or b"").decode("utf-8", errors="replace").strip()
                     logger.warning(
                         "snuba.query.invalid-json",
-                        extra={"response.data": response.data},
+                        extra={
+                            "status": response.status,
+                            "response.data": response.data,
+                        },
                     )
-                    raise SnubaError("Failed to parse snuba error response")
+                    if response.status == 504 or body_text == "upstream request timeout":
+                        raise SnubaUpstreamRequestTimeout(
+                            f"Upstream proxy returned {response.status}: {body_text!r}",
+                            status=response.status,
+                            body=body_text,
+                        )
+                    raise InvalidSnubaResponseError(
+                        f"Snuba returned non-JSON response with status "
+                        f"{response.status}: {body_text!r}",
+                        status=response.status,
+                        body=body_text,
+                    )
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
