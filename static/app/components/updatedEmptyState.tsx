@@ -77,7 +77,7 @@ function WaitingIndicator({project}: {project: Project}) {
       to={`/organizations/${organization.slug}/issues/${
         firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
       }?referrer=onboarding-first-event-indicator`}
-      priority="primary"
+      variant="primary"
     >
       {t('Take me to my error')}
     </LinkButton>

@@ -55,7 +55,7 @@ export function ReleaseHeader({
       <Version version={version} anchor={false} truncate />
       <CopyToClipboardButton
         className="release-copy-button"
-        priority="transparent"
+        variant="transparent"
         size="zero"
         text={version}
         tooltipProps={{title: version}}

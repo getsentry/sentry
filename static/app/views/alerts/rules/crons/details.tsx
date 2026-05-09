@@ -64,8 +64,7 @@ export default function MonitorDetails() {
       if (!query.state.data) {
         return false;
       }
-      const [monitorData] = query.state.data;
-      return getMonitorRefetchInterval(monitorData, new Date());
+      return getMonitorRefetchInterval(query.state.data.json, new Date());
     },
   });
 

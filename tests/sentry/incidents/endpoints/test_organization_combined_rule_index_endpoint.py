@@ -9,7 +9,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import RuleSource
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.monitors.models import MonitorStatus
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -24,6 +23,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_write_alert_rule,
     migrate_alert_rule,
 )
+from sentry.workflow_engine.models import WorkflowFireHistory
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -1252,7 +1252,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] is None
-        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        alert_rule_workflow = self.create_alert_rule_workflow(rule_id=rule.id)
+        WorkflowFireHistory.objects.create(
+            workflow=alert_rule_workflow.workflow, group=self.group, event_id="test-event-id"
+        )
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 

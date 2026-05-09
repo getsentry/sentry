@@ -168,7 +168,6 @@ export default function ProjectKeys() {
             key={key.id}
             projectId={project.slug}
             project={project}
-            organization={organization}
             data={key}
             onToggle={(isActive, data) =>
               handleToggleKeyMutation.mutate({isActive, data})
@@ -212,7 +211,7 @@ export default function ProjectKeys() {
               <Button
                 onClick={() => handleCreateKeyMutation.mutate()}
                 size="md"
-                priority="primary"
+                variant="primary"
                 icon={<IconAdd />}
                 disabled={!hasAccess}
               >
@@ -239,7 +238,7 @@ export default function ProjectKeys() {
             <Button
               onClick={() => handleCreateKeyMutation.mutate()}
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
               disabled={!hasAccess}
             >

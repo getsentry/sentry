@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
@@ -21,11 +20,9 @@ import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
 import {
   makeMonitorBasePathname,
-  makeMonitorDetailsPathname,
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
@@ -169,11 +166,7 @@ export function EditExistingErrorDetectorForm({
                     label: getDetectorTypeLabel(detector.type),
                     to: makeMonitorTypePathname(organization.slug, detector.type),
                   },
-                  {
-                    label: <ProjectBadge disableLink project={project} avatarSize={16} />,
-                    to: makeMonitorDetailsPathname(organization.slug, detector.id),
-                  },
-                  {label: t('Configure')},
+                  {label: detector.name},
                 ]}
               />
             </TopBar.Slot>
@@ -183,7 +176,15 @@ export function EditExistingErrorDetectorForm({
           <EditLayout.Header>
             <EditLayout.HeaderContent>
               <Fragment>
-                <EditDetectorBreadcrumbs detector={detector} />
+                <Breadcrumbs
+                  crumbs={[
+                    {
+                      label: t('Monitors'),
+                      to: makeMonitorBasePathname(organization.slug),
+                    },
+                    {label: detector.name},
+                  ]}
+                />
                 <EditLayout.Title title={detector.name} project={project} />
               </Fragment>
             </EditLayout.HeaderContent>

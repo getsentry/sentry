@@ -47,6 +47,10 @@ describe('StreamlinedActivitySection', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     localStorage.clear();
   });
 
@@ -106,6 +110,42 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
+  });
+
+  it('uses loaded members for mentions in the drawer comment input', async () => {
+    const mentionedUser = UserFixture({id: '42', name: 'Jane Doe'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: mentionedUser}],
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-4',
+        user: UserFixture({id: '2'}),
+        type: 'note',
+        data: {text: '@Jane Doe'},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(<StreamlinedActivitySection group={group} isDrawer />);
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@jane');
+    await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Submit comment'}));
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          text: '**@Jane Doe** ',
+          mentions: ['user:42'],
+        },
+      })
+    );
   });
 
   it('renders note and allows for delete', async () => {
@@ -264,7 +304,7 @@ describe('StreamlinedActivitySection', () => {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', () => {
+  it('does not collapse activity when rendered in the drawer', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -284,14 +324,14 @@ describe('StreamlinedActivitySection', () => {
 
     for (const activity of activities) {
       expect(
-        screen.getByText((activity.data as {text: string}).text)
+        await screen.findByText((activity.data as {text: string}).text)
       ).toBeInTheDocument();
     }
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('filters comments correctly', () => {
+  it('filters comments correctly', async () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -324,7 +364,7 @@ describe('StreamlinedActivitySection', () => {
         expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
       } else {
         expect(
-          screen.getByText((activity.data as {text: string}).text)
+          await screen.findByText((activity.data as {text: string}).text)
         ).toBeInTheDocument();
       }
     }

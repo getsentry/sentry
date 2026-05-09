@@ -7,7 +7,8 @@ import {createMockTraceItemAttributesResponse} from 'sentry-fixture/traceItemAtt
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {GlobalModal} from 'sentry/components/globalModal';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 

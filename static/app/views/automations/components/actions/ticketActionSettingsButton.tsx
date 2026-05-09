@@ -31,7 +31,8 @@ export function TicketActionSettingsButton() {
         // Overwrite the choices because the user's pick is in this list.
         if (
           field.name in formData &&
-          fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+          fetchedFieldOptionsCache &&
+          Object.hasOwn(fetchedFieldOptionsCache, field.name)
         ) {
           field.choices = fetchedFieldOptionsCache[field.name];
         }

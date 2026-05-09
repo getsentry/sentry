@@ -10,7 +10,8 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {Add} from 'sentry/views/settings/components/dataScrubbing/modals/add';

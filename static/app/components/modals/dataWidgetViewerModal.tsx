@@ -249,7 +249,7 @@ function DataWidgetViewerModal(props: Props) {
     [start, end, selection]
   );
 
-  const [modalSelection, setModalSelection] = useState<PageFilters>(locationPageFilter);
+  const [modalSelection, setModalSelection] = useState(locationPageFilter);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
@@ -283,12 +283,16 @@ function DataWidgetViewerModal(props: Props) {
     selectedQueryIndex = 0;
   }
 
-  // Top N widget charts (including widgets with limits) results rely on the sorting of the query
-  // Set the orderby of the widget chart to match the location query params
-  const primaryWidget =
-    widget.displayType === DisplayType.TOP_N || defined(widget.limit)
-      ? {...widget, queries: sortedQueries}
+  const resolvedWidget =
+    widget.displayType === DisplayType.TOP_N
+      ? {...widget, displayType: DisplayType.AREA}
       : widget;
+
+  // Widgets with limits rely on the sorting of the query
+  // Set the orderby of the widget chart to match the location query params
+  const primaryWidget = defined(resolvedWidget.limit)
+    ? {...resolvedWidget, queries: sortedQueries}
+    : resolvedWidget;
   const api = useApi();
 
   // Create Table widget
@@ -925,7 +929,7 @@ function OpenButton({
           <Tooltip
             title={t('Explore does not support multiple queries for this dataset')}
           >
-            <Button priority="primary" disabled>
+            <Button variant="primary" disabled>
               {openLabel}
             </Button>
           </Tooltip>
@@ -957,7 +961,7 @@ function OpenButton({
     <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
-        priority="primary"
+        variant="primary"
         disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {

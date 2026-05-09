@@ -13,7 +13,6 @@ class GroupingVersion(StrEnum):
     """Model version for similarity grouping."""
 
     V1 = "v1"
-    V2 = "v2"
     V2_1 = "v2.1"
 
 

@@ -308,8 +308,8 @@ function OrganizationMembersList() {
   const membersToShow = useMemo(
     () =>
       isDemoModeActive()
-        ? members.filter(m => m).filter(({email}) => email === currentUser.email)
-        : members.filter(m => m),
+        ? members.filter(Boolean).filter(({email}) => email === currentUser.email)
+        : members.filter(Boolean),
     [members, currentUser.email]
   );
 
@@ -461,7 +461,7 @@ function InviteMembersButton({
 }) {
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"

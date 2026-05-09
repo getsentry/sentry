@@ -73,7 +73,11 @@ const DYNAMIC_FORMATS: Partial<Record<ProductSolution, DynamicCategoryFormat>> =
     formatQuantity: gigabytes =>
       formatReservedWithUnits(gigabytes, DataCategory.TRACE_METRIC_BYTE),
     formatVolume: quantity => t('%s / mo', quantity),
-    formatTooltip: quantity => t('Free plan includes %s metrics / month.', quantity),
+    formatTooltip: quantity =>
+      t(
+        'Free plan includes %s metrics / month. Upgrade to Team or Business to send more.',
+        quantity
+      ),
   },
 };
 

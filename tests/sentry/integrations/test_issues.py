@@ -9,6 +9,7 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncI
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.external_issues import GeneratedExternalIssueDetails
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
@@ -591,6 +592,12 @@ class IssueSyncIntegrationWebhookTest(TestCase):
 
 class IssueDefaultTest(TestCase):
     def setUp(self) -> None:
+        event = self.store_event(
+            data={"message": "test error", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.group = event.group
+
         self.group.status = GroupStatus.RESOLVED
         self.group.substatus = None
         self.group.save()
@@ -733,3 +740,61 @@ class IssueDefaultTest(TestCase):
         assert isinstance(installation, ExampleIntegration)
 
         assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}
+
+    @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
+    def test_ai_text_replaces_defaults(self, mock_generate: MagicMock) -> None:
+        mock_generate.return_value = GeneratedExternalIssueDetails(
+            title="LLM Title",
+            description="LLM Description",
+        )
+
+        config = self.installation.get_create_issue_config(self.group, self.user)
+
+        title_field = next(f for f in config if f["name"] == "title")
+        desc_field = next(f for f in config if f["name"] == "description")
+
+        assert title_field["default"] == "LLM Title"
+        assert desc_field["default"].startswith("**")
+        assert "LLM Description" in desc_field["default"]
+
+    @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
+    def test_falls_back_when_ai_returns_empty(self, mock_generate: MagicMock) -> None:
+        mock_generate.return_value = GeneratedExternalIssueDetails(title=None, description=None)
+
+        config = self.installation.get_create_issue_config(self.group, self.user)
+
+        title_field = next(f for f in config if f["name"] == "title")
+        assert title_field["default"] == self.group.get_latest_event().title
+
+    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    def test_feature_flag_disabled_skips_ai(self, mock_request: MagicMock) -> None:
+        config = self.installation.get_create_issue_config(self.group, self.user)
+
+        title_field = next(f for f in config if f["name"] == "title")
+        assert title_field["default"] == self.group.get_latest_event().title
+        mock_request.assert_not_called()
+
+    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    def test_hide_ai_features_skips_ai(self, mock_request: MagicMock) -> None:
+        self.group.organization.update_option("sentry:hide_ai_features", True)
+
+        with self.feature(
+            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
+        ):
+            config = self.installation.get_create_issue_config(self.group, self.user)
+
+        title_field = next(f for f in config if f["name"] == "title")
+        assert title_field["default"] == self.group.get_latest_event().title
+        mock_request.assert_not_called()
+
+    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    def test_ai_exception_falls_back(self, mock_request: MagicMock) -> None:
+        mock_request.side_effect = Exception("Connection error")
+
+        with self.feature(
+            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
+        ):
+            config = self.installation.get_create_issue_config(self.group, self.user)
+
+        title_field = next(f for f in config if f["name"] == "title")
+        assert title_field["default"] == self.group.get_latest_event().title

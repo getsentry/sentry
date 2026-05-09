@@ -517,7 +517,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             reset();
           }}
           aria-label={t('Close Seer Search')}
-          priority="transparent"
+          variant="transparent"
         />
       </ButtonsWrapper>
       {state.isOpen ? (
@@ -564,7 +564,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             </SeerContent>
           )}
           {openForm && (
-            <SeerFooter>
+            <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
                 icon={<IconMegaphone />}

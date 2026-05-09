@@ -109,7 +109,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
   transition: {
-    duration: 1.0,
+    duration: 1,
     height: {
       type: 'spring',
       bounce: 0.2,
@@ -282,7 +282,7 @@ export function AutofixChanges({
               {t('Code Changes')}
               <Button
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 tooltipProps={{title: t('Chat with Seer')}}
                 onClick={handleSelectFirstChange}
                 analyticsEventName="Autofix: Changes Chat"
@@ -375,7 +375,7 @@ export function AutofixChanges({
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
                     size="xs"
-                    priority="primary"
+                    variant="primary"
                     icon={<IconOpen size="xs" />}
                     href={step.changes[0].pull_request.pr_url}
                     external
@@ -390,7 +390,7 @@ export function AutofixChanges({
                           <LinkButton
                             key={`${change.repo_external_id}-${idx}`}
                             size="xs"
-                            priority="primary"
+                            variant="primary"
                             icon={<IconOpen size="xs" />}
                             href={change.pull_request.pr_url}
                             external
@@ -569,7 +569,7 @@ function CreatePRsButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={createPRs}
       icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
@@ -735,7 +735,7 @@ function SetupAndCreatePRsButton({
   ) {
     return (
       <Button
-        priority="primary"
+        variant="primary"
         onClick={() => {
           openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
         }}

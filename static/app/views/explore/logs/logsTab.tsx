@@ -71,7 +71,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import type {TableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
+import {useOurLogsSchemaHintsRemoval} from 'sentry/views/explore/logs/tables/useOurLogsSchemaHintsRemoval';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -92,6 +92,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
 // eslint-disable-next-line boundaries/dependencies
@@ -99,7 +100,7 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
-  tableExpando: TableExpando;
+  tableExpando: boolean;
 };
 
 interface LogsSearchBarProps {
@@ -176,6 +177,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const schemaHintsRemoval = useOurLogsSchemaHintsRemoval();
 
   return (
     <SearchQueryBuilderProvider
@@ -203,7 +205,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="primary"
+                    variant="primary"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
@@ -218,22 +220,24 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          <ExploreSchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={supportedAggregates}
-              booleanTags={booleanAttributes}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={
-                numberAttributesLoading ||
-                stringAttributesLoading ||
-                booleanAttributesLoading
-              }
-              exploreQuery={logsSearchQuery}
-              source={SchemaHintsSources.LOGS}
-              searchBarWidthOffset={searchBarWidthOffset}
-            />
-          </ExploreSchemaHintsSection>
+          {!schemaHintsRemoval && (
+            <ExploreSchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={supportedAggregates}
+                booleanTags={booleanAttributes}
+                numberTags={numberAttributes}
+                stringTags={stringAttributes}
+                isLoading={
+                  numberAttributesLoading ||
+                  stringAttributesLoading ||
+                  booleanAttributesLoading
+                }
+                exploreQuery={logsSearchQuery}
+                source={SchemaHintsSources.LOGS}
+                searchBarWidthOffset={searchBarWidthOffset}
+              />
+            </ExploreSchemaHintsSection>
+          )}
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
@@ -253,7 +257,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
-  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();
@@ -357,6 +361,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
           numberTags={numberAttributes}
           booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
+          traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
           }}
@@ -427,51 +432,47 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
       <ViewportConstrainedPage
-        constrained={tableExpando.enabled}
-        hideFooter={tableExpando.expanded === true}
+        constrained={tableExpando && mode === Mode.SAMPLES}
+        hideFooter={tableExpando}
       >
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}
           </LogsControlSection>
           <ExploreContentSection gap="md">
-            {!tableExpando.expanded && (
-              <OverChartButtonGroup>
-                <LogsSidebarCollapseButton
-                  sidebarOpen={sidebarOpen}
-                  aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                  size="xs"
-                  icon={
-                    <IconChevron
-                      isDouble
-                      direction={sidebarOpen ? 'left' : 'right'}
-                      size="xs"
-                    />
-                  }
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                >
-                  {sidebarOpen ? null : t('Advanced')}
-                </LogsSidebarCollapseButton>
-                <LogsExportSwitch
-                  isLoading={tableData.isPending}
-                  tableData={tableData.data}
-                  error={tableData.error}
-                />
-              </OverChartButtonGroup>
-            )}
+            <OverChartButtonGroup>
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
+                  />
+                }
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? null : t('Advanced')}
+              </LogsSidebarCollapseButton>
+              <LogsExportSwitch
+                isLoading={tableData.isPending}
+                tableData={tableData.data}
+                error={tableData.error}
+              />
+            </OverChartButtonGroup>
             <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             <LogsDownSamplingAlert
               timeseriesResult={timeseriesResult}
               tableResult={infiniteLogsQueryResult}
             />
-            {!tableExpando.expanded && (
-              <LogsGraphContainer>
-                <LogsGraph
-                  rawLogCounts={rawLogCounts}
-                  timeseriesResult={timeseriesResult}
-                />
-              </LogsGraphContainer>
-            )}
+            <LogsGraphContainer>
+              <LogsGraph
+                rawLogCounts={rawLogCounts}
+                timeseriesResult={timeseriesResult}
+              />
+            </LogsGraphContainer>
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
                 <TabList variant="floating">
@@ -515,15 +516,14 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                       </Button>
                     }
                   />
-                  {tableExpando.enabled && tableExpando.button}
                 </TableActionsContainer>
               )}
             </LogsTableActionsContainer>
-            <LogsItemContainer>
+            <LogsItemContainer overflowX="auto">
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  expanded={tableExpando.expanded}
+                  expanded={tableExpando}
                   booleanAttributes={booleanAttributes}
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}

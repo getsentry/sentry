@@ -4,9 +4,9 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -112,9 +112,6 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
       {
         ariaLabel: t('Issue group details'),
         drawerKey: 'supergroup-drawer',
-        shouldCloseOnInteractOutside: el =>
-          !document.getElementById('modal-portal')?.contains(el) &&
-          !el.closest('[data-overlay]'),
         shouldCloseOnLocationChange: nextLocation =>
           !nextLocation.query[SUPERGROUP_DRAWER_QUERY_PARAM],
         onClose: () => stripDrawerParam(),

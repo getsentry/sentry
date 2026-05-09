@@ -39,8 +39,8 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
   const queryClient = useQueryClient();
   const api = useApi();
 
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [cursor, setCursor] = useState<string | undefined>();
   const [sortSelection, setSortSelection] = useState<{
     order: MonitorSortOrder;
@@ -218,7 +218,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <Pagination pageLinks={monitorPageLinks ?? ''} onCursor={setCursor} />
       </Body>
       <Footer>
-        <Button priority="primary" onClick={closeModal} aria-label={t('Done')}>
+        <Button variant="primary" onClick={closeModal} aria-label={t('Done')}>
           {t('Done')}
         </Button>
       </Footer>

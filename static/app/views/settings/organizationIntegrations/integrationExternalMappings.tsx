@@ -70,6 +70,8 @@ export function IntegrationExternalMappings(props: Props) {
   >([]);
 
   const organization = useOrganization();
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const location = useLocation<LocationQuery>();
   const {cursor} = location.query;
   const isFirstPage = cursor ? cursor.split(':')[1] === '0' : true;
@@ -155,7 +157,7 @@ export function IntegrationExternalMappings(props: Props) {
         message={t('Are you sure you want to remove this external %s mapping?', type)}
       >
         <Button
-          priority="transparent"
+          variant="transparent"
           size="sm"
           icon={<IconDelete size="sm" />}
           aria-label={t('Remove user mapping')}

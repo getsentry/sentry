@@ -150,13 +150,13 @@ export class InstalledIntegration extends Component<Props> {
                       onAddIntegration={() => {}}
                       organization={organization}
                       provider={provider}
-                      priority="primary"
+                      variant="primary"
                       size="sm"
                     />
                   )}
                   {!provider.metadata.aspects?.directEnable && (
                     <StyledLinkButton
-                      priority="transparent"
+                      variant="transparent"
                       icon={<IconSettings />}
                       disabled={!allowMemberConfiguration && !canConfigure}
                       to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
@@ -182,7 +182,7 @@ export class InstalledIntegration extends Component<Props> {
                   >
                     <StyledButton
                       disabled={!hasAccess || isPendingDeletion}
-                      priority="transparent"
+                      variant="transparent"
                       icon={<IconDelete />}
                       data-test-id="integration-remove-button"
                     >

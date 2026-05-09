@@ -573,7 +573,7 @@ export function CartDiff({
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
         />

@@ -80,7 +80,7 @@ export default function DetectorNew() {
           )}
           <Text as="p" size="md" variant="muted">
             {tct(
-              'Monitors detect problems in your application and send alerts when they occur. [docsLink:Read the Docs].',
+              'Monitors detect problems in your application and create Sentry Issues. [docsLink:Read the Docs].',
               {
                 docsLink: (
                   <ExternalLink href="https://docs.sentry.io/product/new-monitors-and-alerts/monitors/" />
@@ -99,10 +99,10 @@ export default function DetectorNew() {
       </EditLayoutDeprecated.Body>
 
       <EditLayoutDeprecated.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
-        <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
+        <LinkButton variant="secondary" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
-        <Button priority="primary" type="submit">
+        <Button variant="primary" type="submit">
           {t('Next')}
         </Button>
       </EditLayoutDeprecated.Footer>

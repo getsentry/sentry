@@ -70,7 +70,7 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -127,9 +127,7 @@ function AddToDashboardModal({
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const widget = widgets[0];
-  const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
-    getFallbackWidgetTitle(widget)
-  );
+  const [newWidgetTitle, setNewWidgetTitle] = useState(getFallbackWidgetTitle(widget));
   const [orderBy, setOrderBy] = useState<string>();
   const [tableWidths, setTableWidths] = useState<number[]>();
 
@@ -139,7 +137,7 @@ function AddToDashboardModal({
   const hasMultipleWidgets = widgets.length > 1;
 
   // Check if the widget is a static widget from a widget template
-  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+  const widgetTemplates = getDefaultWidgets(organization);
   const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
   const shouldOpenWidgetLibrary =
     !isWidgetEditable(widget.displayType) || widgetTemplate?.isCustomizable === false;
@@ -560,7 +558,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('add-and-open-dashboard') && (
             <Button
-              priority={hasMultipleWidgets ? 'primary' : 'default'}
+              variant={hasMultipleWidgets ? 'primary' : 'secondary'}
               onClick={handleAddAndOpenDashboard}
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
@@ -570,7 +568,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('open-in-widget-builder') && !hasMultipleWidgets && (
             <Button
-              priority="primary"
+              variant="primary"
               onClick={() => goToDashboard('builder')}
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}

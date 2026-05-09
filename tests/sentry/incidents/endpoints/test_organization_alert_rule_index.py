@@ -1327,6 +1327,71 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             self.get_success_response(self.organization.slug, status_code=201, **alert_rule)
 
     @responses.activate
+    def test_sentry_app_installation_in_different_org(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=202,
+        )
+
+        # Construct a user in another org, with a sentry app/install
+        other_user = self.create_user()
+        other_org = self.create_organization(owner=other_user)
+        self.login_as(other_user)
+        sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=other_org,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        sentry_app_install = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=other_org, user=other_user
+        )
+
+        # As another user, belonging to a different org, try to use the first user/org's app install
+        # uuid.
+        self.login_as(self.user)
+        other_sentry_app = self.create_sentry_app(
+            name="foo2",
+            organization=self.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.create_sentry_app_installation(
+            slug=other_sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        alert_rule = {
+            **self.alert_rule_dict,
+            "triggers": [
+                {
+                    "actions": [
+                        {
+                            "type": "sentry_app",
+                            "targetType": "sentry_app",
+                            "targetIdentifier": other_sentry_app.id,
+                            "hasSchemaFormConfig": True,
+                            "sentryAppId": other_sentry_app.id,
+                            "sentryAppInstallationUuid": sentry_app_install.uuid,
+                            "settings": [
+                                {"name": "title", "value": "test title"},
+                                {"name": "description", "value": "test description"},
+                            ],
+                        }
+                    ],
+                    "alertThreshold": 300,
+                    "label": "critical",
+                }
+            ],
+        }
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            assert (
+                self.get_error_response(
+                    self.organization.slug, status_code=400, **alert_rule
+                ).json()["sentryApp"][0]
+                == "The installation does not exist."
+            )
+
+    @responses.activate
     def test_error_response_from_sentry_app(self) -> None:
         error_message = "Everything is broken!"
         responses.add(

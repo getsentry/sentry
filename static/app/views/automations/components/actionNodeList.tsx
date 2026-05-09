@@ -189,7 +189,7 @@ export function ActionNodeList({
                 <Container padding="md" borderTop="muted">
                   <LinkButton
                     size="xs"
-                    priority="default"
+                    variant="secondary"
                     icon={<IconAdd />}
                     href={`/settings/${organization.slug}/integrations/`}
                     external

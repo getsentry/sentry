@@ -258,7 +258,7 @@ function TagDetailsValue({
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
-          priority="link"
+          variant="link"
           icon={<IconOpen />}
           aria-label="Open link"
           data-test-id="group-tag-url"

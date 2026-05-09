@@ -1,6 +1,6 @@
 export function isEmptyObject(obj = {}): boolean {
   for (const prop in obj) {
-    if (obj.hasOwnProperty(prop)) {
+    if (Object.hasOwn(obj, prop)) {
       return false;
     }
   }

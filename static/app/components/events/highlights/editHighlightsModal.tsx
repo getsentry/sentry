@@ -336,9 +336,8 @@ export function EditHighlightsModal({
   project,
   closeModal,
 }: EditHighlightsModalProps) {
-  const [highlightContext, setHighlightContext] =
-    useState<HighlightContext>(prevHighlightContext);
-  const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
+  const [highlightContext, setHighlightContext] = useState(prevHighlightContext);
+  const [highlightTags, setHighlightTags] = useState(prevHighlightTags);
 
   const organization = useOrganization();
   const theme = useTheme();
@@ -457,7 +456,7 @@ export function EditHighlightsModal({
                 }
               );
             }}
-            priority="primary"
+            variant="primary"
             size="sm"
           >
             {isPending ? t('Saving...') : t('Apply to Project')}

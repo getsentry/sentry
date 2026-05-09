@@ -1,11 +1,9 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -53,23 +51,14 @@ import {
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
-function AutomationBreadcrumbs({
-  automationId,
-  automationName,
-}: {
-  automationId: string;
-  automationName: string;
-}) {
-  const title = useFormField('name');
+function AutomationBreadcrumbs() {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -77,11 +66,7 @@ function AutomationBreadcrumbs({
           label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug),
         },
-        {
-          label: hasPageFrameFeature ? automationName : title,
-          to: makeAutomationDetailsPathname(organization.slug, automationId),
-        },
-        {label: t('Configure')},
+        {label: <EditableAutomationName />},
       ]}
     />
   );
@@ -112,11 +97,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
       return undefined;
@@ -241,43 +223,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       <AutomationFormProvider automation={automation}>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <Layout.Header {...(hasPageFrameFeature ? {} : {background: 'primary'})}>
-            <HeaderInner maxWidth={maxWidth}>
-              <Layout.HeaderContent>
-                {hasPageFrameFeature ? (
-                  <Fragment>
-                    <TopBar.Slot name="title">
-                      <AutomationBreadcrumbs
-                        automationId={params.automationId}
-                        automationName={automation.name}
-                      />
-                    </TopBar.Slot>
-                    <Heading as="h1" ellipsis>
-                      <EditableAutomationName />
-                    </Heading>
-                  </Fragment>
-                ) : (
-                  <Fragment>
-                    <AutomationBreadcrumbs
-                      automationId={params.automationId}
-                      automationName={automation.name}
-                    />
-                    <Layout.Title>
-                      <EditableAutomationName />
-                    </Layout.Title>
-                  </Fragment>
-                )}
-              </Layout.HeaderContent>
-              <div>
-                <AutomationFeedbackButton />
-              </div>
-            </HeaderInner>
-          </Layout.Header>
-          <Layout.Body
-            maxWidth={maxWidth}
-            margin={hasPageFrameFeature ? '0' : {sm: 'xl', md: '2xl 3xl'}}
-            {...(hasPageFrameFeature ? {} : {padding: '0'})}
-          >
+          <TopBar.Slot name="title">
+            <AutomationBreadcrumbs />
+          </TopBar.Slot>
+          <AutomationFeedbackButton />
+          <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
                 value={{
@@ -304,13 +254,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
         <StickyFooter>
           <Flex
             width="100%"
-            maxWidth={
-              // Layout.Body uses `lg xl` page-frame padding, so subtract the left/right `xl`
-              // gutters to align the footer actions with the inner content column.
-              hasPageFrameFeature
-                ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
-                : maxWidth
-            }
+            maxWidth={`calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`}
             align="center"
             gap="md"
             justify="end"
@@ -322,14 +266,3 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     </FullHeightFormDeprecated>
   );
 }
-
-const HeaderInner = styled('div')<{maxWidth?: string}>`
-  display: contents;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    max-width: ${p => p.maxWidth};
-    width: 100%;
-  }
-`;

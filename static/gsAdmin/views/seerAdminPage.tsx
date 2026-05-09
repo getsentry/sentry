@@ -17,11 +17,11 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {PageHeader} from 'admin/components/pageHeader';
 
 export function SeerAdminPage() {
-  const [organizationId, setOrganizationId] = useState<string>('');
-  const [dryRun, setDryRun] = useState<boolean>(false);
-  const [maxCandidates, setMaxCandidates] = useState<string>('');
+  const [organizationId, setOrganizationId] = useState('');
+  const [dryRun, setDryRun] = useState(false);
+  const [maxCandidates, setMaxCandidates] = useState('');
   const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
+  const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate: triggerNightShift, isPending: isNightShiftPending} = useMutation({
     mutationFn: () => {
@@ -144,7 +144,7 @@ export function SeerAdminPage() {
                   <Text>Dry run (triage only, no autofix triggered)</Text>
                 </Flex>
                 <Button
-                  priority="primary"
+                  variant="primary"
                   type="submit"
                   disabled={!region || isNightShiftPending}
                 >

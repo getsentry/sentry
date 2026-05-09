@@ -48,6 +48,15 @@ interface ResolvedPlatform extends DetectedPlatform {
   info: PlatformIntegration;
 }
 
+const FEATURE_DISPLAY_ORDER: ProductSolution[] = [
+  ProductSolution.ERROR_MONITORING,
+  ProductSolution.LOGS,
+  ProductSolution.SESSION_REPLAY,
+  ProductSolution.PERFORMANCE_MONITORING,
+  ProductSolution.PROFILING,
+  ProductSolution.METRICS,
+];
+
 const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
@@ -172,18 +181,16 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     });
   }, [detectedPlatformKey, selectedPlatform?.key, organization]);
 
-  const availableFeatures = useMemo(
-    () =>
-      currentPlatformKey
-        ? [
-            ...new Set([
-              ProductSolution.ERROR_MONITORING,
-              ...(platformProductAvailability[currentPlatformKey] ?? []),
-            ]),
-          ]
-        : [],
-    [currentPlatformKey]
-  );
+  const availableFeatures = useMemo(() => {
+    if (!currentPlatformKey) {
+      return [];
+    }
+    const features = new Set([
+      ProductSolution.ERROR_MONITORING,
+      ...(platformProductAvailability[currentPlatformKey] ?? []),
+    ]);
+    return FEATURE_DISPLAY_ORDER.filter(f => features.has(f));
+  }, [currentPlatformKey]);
 
   const disabledProducts = useMemo(
     () => getDisabledProducts(organization),
@@ -481,7 +488,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     {t('Auto-detected from your repository')}
                   </Text>
                 </Flex>
-                <Button size="xs" priority="link" onClick={handleChangePlatformClick}>
+                <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
                   {isDetecting
                     ? t('Skip detection and select manually')
                     : t("Doesn't look right? Change platform")}
@@ -537,7 +544,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                   </Text>
                 </Flex>
                 {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
-                  <Button size="xs" priority="link" onClick={handleBackToRecommended}>
+                  <Button size="xs" variant="link" onClick={handleBackToRecommended}>
                     {t('Back to recommended platforms')}
                   </Button>
                 )}
@@ -605,7 +612,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
             <Flex align="center">{genBackButton?.()}</Flex>
             <Flex align="center" gap="md">
               <Button
-                priority="primary"
+                variant="primary"
                 analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
                 analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
                 analyticsParams={{

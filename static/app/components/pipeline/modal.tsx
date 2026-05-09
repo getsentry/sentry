@@ -108,7 +108,7 @@ function PipelineModal<
                 {pipeline.stepIndex !== 0 && (
                   <Button
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                     onClick={pipeline.restart}
                     icon={<IconRefresh size="xs" variant="muted" />}
                     tooltipProps={{title: t('Restart flow')}}

@@ -222,12 +222,6 @@ class AppleCrashReport:
         exceptions = self.exceptions or []
         threads = self.threads or []
 
-        if self.prioritized_thread_id is not None:
-            threads = sorted(
-                threads,
-                key=lambda t: str(t.get("id")) != self.prioritized_thread_id,
-            )
-
         # Process threads first, tracking which ones produced output.
         # When an exception's thread_id matches a thread that produced
         # output, we skip the exception to avoid duplication (the thread
@@ -236,19 +230,23 @@ class AppleCrashReport:
         for thread_info in threads:
             thread_string = self.get_thread_apple_string(thread_info)
             if thread_string is not None:
-                rv.append(thread_string)
                 thread_id = thread_info.get("id")
+                rv.append((thread_id, thread_string))
                 if thread_id is not None:
                     output_thread_ids.add(thread_id)
 
         for exception_info in exceptions:
-            if exception_info.get("thread_id") in output_thread_ids:
+            thread_id = exception_info.get("thread_id")
+            if thread_id in output_thread_ids:
                 continue
             thread_string = self.get_thread_apple_string(exception_info)
             if thread_string is not None:
-                rv.append(thread_string)
+                rv.append((thread_id, thread_string))
 
-        return "\n\n".join(rv)
+        if self.prioritized_thread_id is not None:
+            rv.sort(key=lambda output: str(output[0]) != self.prioritized_thread_id)
+
+        return "\n\n".join(thread_string for _, thread_string in rv)
 
     def get_thread_apple_string(self, thread_info):
         rv = []

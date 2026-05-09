@@ -4,12 +4,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import {LearnMoreButton} from 'sentry/components/replays/diff/learnMoreButton';
@@ -41,7 +41,7 @@ export default function ReplayComparisonModal({
 }: Props) {
   // Callbacks set by GlobalModal on-render.
   // We need these to interact with feedback opened while a modal is active.
-  const {focusTrap} = useGlobalModal();
+  const {focusTrap} = useModal();
 
   const isSameTimestamp = initialLeftOffsetMs === initialRightOffsetMs;
 

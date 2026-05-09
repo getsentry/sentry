@@ -51,7 +51,7 @@ export function ExploreExport(props: ExploreExportProps) {
       organization,
       traceItemDataset: props.traceItemDataset,
       ...props.queryInfo,
-      export_type: 'browser_csv',
+      export_type: 'browser_sync',
     });
 
     if (props.downloadAsCsv) {
@@ -98,7 +98,7 @@ export function ExploreExport(props: ExploreExportProps) {
           organization,
           traceItemDataset: props.traceItemDataset,
           ...props.queryInfo,
-          export_type: 'download',
+          export_type: 'export_download',
         });
       }}
     >

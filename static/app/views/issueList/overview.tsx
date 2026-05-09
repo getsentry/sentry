@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -13,7 +14,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -30,6 +30,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
@@ -54,6 +56,8 @@ import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups'
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
@@ -124,7 +128,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   return pageInt;
 };
 
-function IssueListOverview({
+function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
   title = t('Issues'),
@@ -151,9 +155,14 @@ function IssueListOverview({
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
-    {}
+  const organizationUsersProjectIds = useMemo(
+    () => selection.projects.map(String),
+    [selection.projects]
   );
+  const {data: memberList = {}} = useQuery({
+    ...useProjectMembersQueryOptions(organizationUsersProjectIds),
+    select: resp => indexMembersByProject(resp.json),
+  });
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
@@ -502,6 +511,11 @@ function IssueListOverview({
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
+    total_issue_group_count: new Set(
+      Object.values(supergroupLookup)
+        .filter(sg => sg !== null)
+        .map(sg => sg.id)
+    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -555,30 +569,6 @@ function IssueListOverview({
     previousRequestParams,
     requestParams,
   ]);
-
-  // Fetch members on mount
-  useEffect(() => {
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // If the project selection has changed reload the member list and tag keys
-  // allowing autocomplete and tag sidebar to be more accurate.
-  useEffect(() => {
-    if (isEqual(previousSelection?.projects, selection.projects)) {
-      return;
-    }
-
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug, selection.projects, previousSelection?.projects]);
 
   // Cleanup
   useEffect(() => {
@@ -836,7 +826,7 @@ function IssueListOverview({
       }
     }
 
-    if ('inbox' in data && data.inbox === false) {
+    if ('inbox' in data && !data.inbox) {
       onIssueAction({
         itemIds,
         actionType: 'Reviewed',
@@ -879,6 +869,39 @@ function IssueListOverview({
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   const hasPageFrame = useHasPageFrameFeature();
+
+  // Derive from query (URL state) not initialQuery (prop) so the hint
+  // stays accurate if the user edits the search bar.
+  const isTaxonomyView = query.includes('issue.category:');
+
+  useLLMContext({
+    contextHint:
+      (isTaxonomyView
+        ? 'Sentry issue feed — filtered taxonomy view. The query below contains the active category filter. '
+        : 'Sentry issue list page. ') +
+      'Shows a filterable, sortable list of grouped issues. ' +
+      'query is the current search filter (Sentry search syntax). ' +
+      'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
+      'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      'Tools: get_issue_details(issue_id) for issue aggregate stats; ' +
+      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
+      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    query,
+    sort,
+    issueCount: queryCount,
+    projectSlugs: [...new Set(groups.map(g => g.project.slug))],
+    environments: selection.environments,
+    dateRange: selection.datetime,
+    displayedIssues: [
+      'shortId|title|issueType|level|priority|events|users|firstSeen',
+      ...groups
+        .slice(0, MAX_ITEMS)
+        .map(
+          g =>
+            `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
+        ),
+    ].join('\n'),
+  });
 
   return (
     <IssueSelectionProvider visibleGroupIds={groupIds}>
@@ -961,6 +984,8 @@ function IssueListOverview({
     </IssueSelectionProvider>
   );
 }
+
+const IssueListOverview = registerLLMContext('issue-list', IssueListOverviewInner);
 
 export default Sentry.withProfiler(IssueListOverview);
 
