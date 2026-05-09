@@ -6,7 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   AI_QUERY_PARAM,
-  logAiQueryResults,
+  trackAiQueryOutcome,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -149,7 +149,7 @@ function Graph({
     }
     if (!hasLoggedResultCountRef.current) {
       hasLoggedResultCountRef.current = true;
-      logAiQueryResults({
+      trackAiQueryOutcome({
         dataset: 'tracemetrics',
         resultCount: rawMetricCounts.total.count,
         orgSlug: organization.slug,

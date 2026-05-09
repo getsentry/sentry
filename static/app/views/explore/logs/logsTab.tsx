@@ -16,7 +16,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   AI_QUERY_PARAM,
-  logAiQueryResults,
+  trackAiQueryOutcome,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {
   SearchQueryBuilderProvider,
@@ -300,7 +300,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
     }
     if (!hasLoggedResultCountRef.current) {
       hasLoggedResultCountRef.current = true;
-      logAiQueryResults({
+      trackAiQueryOutcome({
         dataset: 'logs',
         resultCount: rawLogCounts.total.count,
         orgSlug: organization.slug,

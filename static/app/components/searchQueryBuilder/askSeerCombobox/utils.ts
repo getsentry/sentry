@@ -9,7 +9,7 @@ import type {
 
 export const AI_QUERY_PARAM = 'aiQueryRunId';
 
-export function logAiQueryResults({
+export function trackAiQueryOutcome({
   dataset,
   resultCount,
   orgSlug,

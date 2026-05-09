@@ -19,7 +19,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
 import {
   AI_QUERY_PARAM,
-  logAiQueryResults,
+  trackAiQueryOutcome,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -454,7 +454,7 @@ function IssueListOverviewInner({
         const aiQueryParam = location.query[AI_QUERY_PARAM];
         const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
         if (aiQueryParam) {
-          logAiQueryResults({
+          trackAiQueryOutcome({
             dataset: 'issues',
             resultCount: newQueryCount,
             orgSlug: organization.slug,

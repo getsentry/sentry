@@ -16,7 +16,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   AI_QUERY_PARAM,
-  logAiQueryResults,
+  trackAiQueryOutcome,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
@@ -249,7 +249,7 @@ function SpanTabContentSectionInner({
     }
     if (!hasLoggedResultCountRef.current) {
       hasLoggedResultCountRef.current = true;
-      logAiQueryResults({
+      trackAiQueryOutcome({
         dataset: 'spans',
         resultCount: rawSpanCounts.total.count,
         orgSlug: organization.slug,
