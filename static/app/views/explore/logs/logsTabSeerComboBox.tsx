@@ -135,7 +135,7 @@ export function LogsTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) return;
       const {
         query: queryToUse,
@@ -227,7 +227,7 @@ export function LogsTabSeerComboBox() {
       const newQuery = {
         ...location.query,
         [LOGS_QUERY_KEY]: queryToUse,
-        [AI_QUERY_PARAM]: '1',
+        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
         // Datetime params from selection

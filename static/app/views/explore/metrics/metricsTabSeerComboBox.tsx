@@ -169,7 +169,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) return;
       const {
         query: queryToUse,
@@ -305,7 +305,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             end: selection.datetime.end,
             statsPeriod: selection.datetime.period,
             utc: selection.datetime.utc,
-            [AI_QUERY_PARAM]: '1',
+            ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
           },
         },
         {replace: true, preventScrollReset: true}

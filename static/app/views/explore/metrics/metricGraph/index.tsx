@@ -134,11 +134,12 @@ function Graph({
     normalModeExtrapolated: true,
   });
 
-  const isAiQuery = location.query[AI_QUERY_PARAM] === '1';
+  const aiQueryParam = location.query[AI_QUERY_PARAM];
+  const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const hasLoggedResultCountRef = useRef(false);
   // AI query analytics
   useEffect(() => {
-    if (!isAiQuery) {
+    if (!aiQueryParam) {
       hasLoggedResultCountRef.current = false;
       return;
     }
@@ -149,13 +150,15 @@ function Graph({
     if (!hasLoggedResultCountRef.current) {
       hasLoggedResultCountRef.current = true;
       logAiQueryResults({
-        dataset: 'metrics',
+        dataset: 'tracemetrics',
         resultCount: rawMetricCounts.total.count,
         orgSlug: organization.slug,
+        runId: aiQueryRunId,
       });
     }
   }, [
-    isAiQuery,
+    aiQueryParam,
+    aiQueryRunId,
     organization.slug,
     rawMetricCounts.total.count,
     rawMetricCounts.total.isLoading,

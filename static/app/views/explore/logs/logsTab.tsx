@@ -285,11 +285,12 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
 
   const location = useLocation();
-  const isAiQuery = location.query[AI_QUERY_PARAM] === '1';
+  const aiQueryParam = location.query[AI_QUERY_PARAM];
+  const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const hasLoggedResultCountRef = useRef(false);
   // AI query analytics
   useEffect(() => {
-    if (!isAiQuery) {
+    if (!aiQueryParam) {
       hasLoggedResultCountRef.current = false;
       return;
     }
@@ -303,10 +304,12 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
         dataset: 'logs',
         resultCount: rawLogCounts.total.count,
         orgSlug: organization.slug,
+        runId: aiQueryRunId,
       });
     }
   }, [
-    isAiQuery,
+    aiQueryParam,
+    aiQueryRunId,
     organization.slug,
     rawLogCounts.total.count,
     rawLogCounts.total.isLoading,

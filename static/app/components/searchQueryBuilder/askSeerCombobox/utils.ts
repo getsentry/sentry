@@ -7,22 +7,25 @@ import type {
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 
-export const AI_QUERY_PARAM = 'aiQuery';
+export const AI_QUERY_PARAM = 'aiQueryRunId';
 
 export function logAiQueryResults({
   dataset,
   resultCount,
   orgSlug,
+  runId,
 }: {
-  dataset: string;
+  dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   orgSlug: string;
   resultCount: number;
+  runId: number | null;
 }) {
   const attributes = {
     dataset,
     outcome: resultCount > 0 ? 'has_results' : 'empty_results',
     referrer: dataset,
     org_slug: orgSlug,
+    run_id: runId,
   };
   Sentry.logger.info('assisted_query.outcome', {
     ...attributes,

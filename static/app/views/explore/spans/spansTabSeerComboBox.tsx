@@ -189,7 +189,7 @@ export function SpansTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) return;
       const {
         query: queryToUse,
@@ -274,7 +274,8 @@ export function SpansTabSeerComboBox() {
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
-      navigate(url + `&${AI_QUERY_PARAM}=1`, {replace: true, preventScrollReset: true});
+      const aiParam = runId ? `&${AI_QUERY_PARAM}=${runId}` : '';
+      navigate(url + aiParam, {replace: true, preventScrollReset: true});
     },
     [
       analyticsArea,

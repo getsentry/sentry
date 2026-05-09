@@ -178,7 +178,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) return;
       const {
         query: queryToUse,
@@ -251,7 +251,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       const newQueryParams: Record<string, string | string[] | null | undefined> = {
         ...location.query,
         query: queryToUse,
-        [AI_QUERY_PARAM]: '1',
+        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
       };
 
       // Apply sort if provided - convert to aliased format for Discover

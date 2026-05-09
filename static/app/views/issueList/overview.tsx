@@ -451,11 +451,14 @@ function IssueListOverviewInner({
 
         const hits = resp.getResponseHeader('X-Hits');
         const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
-        if (location.query[AI_QUERY_PARAM] === '1') {
+        const aiQueryParam = location.query[AI_QUERY_PARAM];
+        const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
+        if (aiQueryParam) {
           logAiQueryResults({
             dataset: 'issues',
             resultCount: newQueryCount,
             orgSlug: organization.slug,
+            runId: aiQueryRunId,
           });
         }
         const maxHits = resp.getResponseHeader('X-Max-Hits');

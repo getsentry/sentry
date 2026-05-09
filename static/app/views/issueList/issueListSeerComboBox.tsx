@@ -166,7 +166,7 @@ export function IssueListSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: IssueAskSeerSearchQuery) => {
+    (result: IssueAskSeerSearchQuery, runId?: number) => {
       if (!result) {
         return;
       }
@@ -223,7 +223,7 @@ export function IssueListSeerComboBox() {
         ...omit(location.query, ['page', 'cursor']),
         referrer: 'issue-list',
         query: queryToUse,
-        [AI_QUERY_PARAM]: '1',
+        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
         ...(sort ? {sort} : {}),
         ...timeParams,
       };
