@@ -1,40 +1,14 @@
 """
 Proto loader: runtime import hook for sentry_protos overrides.
 
-Serves pre-compiled _pb2 modules from a configurable override directory,
-falling back to the pip-installed sentry_protos package for modules not
-found locally. Works in both development and production.
+Intercepts ``sentry_protos.*_pb2`` imports and serves compiled
+overrides from the cache directory, falling back to the pip-installed
+package for non-overridden modules. In dev mode, compiles .proto
+sources on demand when they change.
 
-In development mode (SENTRY_PROTO_DEV_DIR is set), also compiles .proto
-source files on demand when they change.
+    from sentry.utils.proto_loader import install
+    install()
 
-Configuration (environment variables):
-    SENTRY_PROTO_OVERRIDE_DIR: Directory with pre-compiled _pb2 files.
-        Defaults to {repo_root}/.proto_cache
-    SENTRY_PROTO_DEV_DIR: Directory with .proto source files.
-        Enables on-demand compilation (requires grpcio-tools).
-        Can also place files in {repo_root}/proto/.
-
-How it works:
-    The loader installs a MetaPathFinder at the front of sys.meta_path.
-    Python consults meta-path finders for EVERY import, regardless of
-    the parent package's __path__. This is what makes the override work:
-    even though ``sentry_protos`` is installed via pip, our finder gets
-    first crack at resolving any ``sentry_protos.*..*_pb2`` import.
-
-    For _pb2 imports: check the override directory, optionally compile
-    from source (dev mode), return a spec if found or None to fall
-    through to pip.
-
-    For intermediate packages (sentry_protos.billing.v1): return None
-    so pip's finder handles them — UNLESS the package is a new domain
-    not present in pip, in which case we create it.
-
-    This design avoids the "namespace shadowing" bug where claiming
-    intermediate packages would set their __path__ to only the cache
-    directory, making pip-installed sibling modules invisible.
-
-Usage:
     from sentry_protos.billing.v1 import data_category_pb2
 
 See PROTO_OVERRIDE.md for full documentation.
@@ -72,15 +46,7 @@ def _get_override_dir() -> Path:
 
 
 def _get_dev_dirs() -> list[Path]:
-    """Return proto source directories for on-demand compilation.
-
-    Checks two locations in priority order:
-    1. ``{repo_root}/proto/`` — for local proto files checked into the repo
-    2. ``SENTRY_PROTO_DEV_DIR`` env var — typically a sentry-protos checkout
-
-    Returns an empty list when neither is configured, which disables
-    on-demand compilation (prod mode).
-    """
+    """Return proto source directories. Checks proto/ first, then SENTRY_PROTO_DEV_DIR."""
     dirs: list[Path] = []
     if LOCAL_PROTO_DIR.is_dir():
         dirs.append(LOCAL_PROTO_DIR)
@@ -106,21 +72,8 @@ def _cached_pb2_path(module_name: str, override_dir: Path) -> Path:
 def _pip_package_has(fullname: str) -> bool:
     """Check if a package directory exists in the pip-installed sentry_protos.
 
-    This is the key function for avoiding namespace shadowing.  When the
-    loader encounters an intermediate package import like
-    ``sentry_protos.billing.v1``, it calls this to check whether pip
-    already provides that package.  If pip has it, we return None from
-    find_spec so pip's finder handles it with the correct ``__path__``.
-
-    Implementation notes:
-    - Only checks for directories (packages), not leaf modules.
-    - Safe to call from within a MetaPathFinder: it only queries the
-      filesystem via Path.is_dir(), never triggers additional imports.
-    - Checks sys.modules first because sentry_protos is always imported
-      before any of its subpackages (Python imports parents first).
-    - Falls back to importlib.util.find_spec for the cold-start case.
-      This won't recurse because our finder ignores bare "sentry_protos"
-      (it only matches "sentry_protos." with a trailing dot).
+    Used to decide whether an intermediate package import should be
+    handled by pip (exists there) or by us (new domain, not in pip).
     """
     sp = sys.modules.get("sentry_protos")
     if sp is not None:
@@ -146,24 +99,10 @@ def _pip_package_has(fullname: str) -> bool:
 class _ProtoFinder(importlib.abc.MetaPathFinder):
     """Import hook that serves proto overrides with transparent pip fallback.
 
-    Inserted at sys.meta_path[0] so it is consulted before all other
-    finders.  The key design constraint is avoiding "namespace shadowing":
-
-    WRONG (old approach):
-        Claim intermediate packages like sentry_protos.billing with
-        submodule_search_locations=[cache_dir].  This hides ALL pip-installed
-        modules under sentry_protos.billing — any _pb2 NOT in the cache
-        becomes unimportable.
-
-    RIGHT (current approach):
-        Only intercept _pb2 leaf module imports.  Let pip handle intermediate
-        packages so their __path__ includes the pip install directory.
-        MetaPathFinders are always consulted regardless of parent __path__,
-        so our _pb2 overrides still take precedence.
-
-    The one exception: for entirely new proto domains that don't exist in
-    pip (e.g., a new ``sentry_protos.new_service`` package), we DO create
-    the intermediate package because no other finder can.
+    Only intercepts ``_pb2`` leaf module imports.  Intermediate packages
+    (``sentry_protos.billing.v1``) are left to pip so that non-overridden
+    siblings remain importable.  New domains not in pip are handled by
+    creating intermediate packages in the cache directory.
     """
 
     def __init__(
@@ -180,54 +119,33 @@ class _ProtoFinder(importlib.abc.MetaPathFinder):
         path: object = None,
         target: object = None,
     ) -> importlib.machinery.ModuleSpec | None:
-        # Only handle sentry_protos.* imports (with dot — excludes the
-        # bare sentry_protos package itself, which we always let pip handle).
         if not fullname.startswith("sentry_protos."):
             return None
 
-        # Leaf _pb2 module: this is the primary override mechanism.
         if fullname.endswith("_pb2"):
             return self._handle_pb2(fullname)
 
-        # gRPC stubs: not handled by this loader.
         if fullname.endswith("_pb2_grpc"):
             return None
 
-        # Intermediate packages (e.g., sentry_protos.billing.v1):
-        # Only handle if this is a NEW domain not present in pip.
-        # If pip has it, returning None lets pip load it with its own
-        # __path__, preserving access to all pip-installed siblings.
+        # New domains not in pip need intermediate packages created.
         if self._is_local_package(fullname) and not _pip_package_has(fullname):
             return self._make_package_spec(fullname)
 
         return None
 
     def _handle_pb2(self, fullname: str) -> importlib.machinery.ModuleSpec | None:
-        """Resolve a _pb2 module from the override directory.
-
-        In dev mode, triggers on-demand compilation if the .proto source
-        is newer than the cached output.  In prod mode (no dev_dirs),
-        only checks for pre-compiled files.
-        """
         cached = _cached_pb2_path(fullname, self._override_dir)
 
         if self._dev_dirs:
             self._maybe_compile(fullname, cached)
 
         if not cached.exists():
-            # No override found — return None to fall through to pip.
             return None
 
         return importlib.util.spec_from_file_location(fullname, cached)
 
     def _maybe_compile(self, fullname: str, cached: Path) -> None:
-        """Compile a proto on demand if the source is newer than the cache.
-
-        The proto_compiler import is deferred (not at module level) because:
-        1. In prod mode, _maybe_compile is never called (no dev_dirs).
-        2. proto_compiler imports grpcio-tools lazily, so just importing
-           proto_compiler is safe — but we avoid it when unnecessary.
-        """
         from sentry.utils.proto_compiler import (
             compile_lock,
             compile_proto,
@@ -256,12 +174,6 @@ class _ProtoFinder(importlib.abc.MetaPathFinder):
         return False
 
     def _make_package_spec(self, fullname: str) -> importlib.machinery.ModuleSpec | None:
-        """Create a package spec for a new intermediate directory.
-
-        Only called for proto domains that don't exist in pip.  Creates the
-        cache directory structure and an empty __init__.py so Python treats
-        it as a regular package.
-        """
         parts = fullname.split(".")
         rel = os.path.join(*parts)
 
@@ -279,17 +191,7 @@ class _ProtoFinder(importlib.abc.MetaPathFinder):
 
 
 def install() -> bool:
-    """Install the proto loader import hook into ``sys.meta_path``.
-
-    The hook is inserted at position 0 (highest priority) so it is
-    consulted before the default PathFinder.  This ensures overrides
-    take precedence over the pip-installed sentry_protos package.
-
-    Returns True if installed, False if no proto sources are configured
-    (no override dir exists and no dev dirs found).
-
-    Idempotent: safe to call multiple times.
-    """
+    """Install the proto loader import hook. Idempotent."""
     global _installed
     if _installed:
         return True
