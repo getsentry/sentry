@@ -10,44 +10,25 @@ Domains are migrated incrementally. Non-migrated domains (snuba, seer, etc.) con
 
 ## Architecture
 
-The system is split into two modules with distinct responsibilities:
-
 ```
-                          ┌─────────────────────┐
-                          │   .proto sources     │
-                          │ (sentry-protos repo  │
-                          │  or local proto/)    │
-                          └─────────┬───────────┘
-                                    │
-              ┌─────────────────────▼───────────────────────┐
-              │           proto_compiler.py                  │
-              │  Build-time tool (requires grpcio-tools)     │
-              │                                              │
-              │  compile_proto()  – single file              │
-              │  compile_all()   – batch compilation         │
-              │  CLI: python -m sentry.utils.proto_compiler  │
-              └─────────────────────┬───────────────────────┘
-                                    │ writes _pb2.py files
-                                    ▼
-                          ┌─────────────────────┐
-                          │   .proto_cache/      │
-                          │ (override directory) │
-                          └─────────┬───────────┘
-                                    │ served by
-              ┌─────────────────────▼───────────────────────┐
-              │            proto_loader.py                   │
-              │  Runtime import hook (lightweight, no        │
-              │  grpcio-tools dependency in prod mode)       │
-              │                                              │
-              │  MetaPathFinder at sys.meta_path[0]          │
-              │  Intercepts sentry_protos.*_pb2 imports      │
-              │  Falls back to pip for everything else       │
-              └─────────────────────────────────────────────┘
+              proto/sentry_protos/          .proto source files (in git)
+                        │
+                        ▼
+              proto_compiler.py             compiles .proto → _pb2.py
+                        │
+                        ▼
+              .proto_cache/                 compiled _pb2.py files
+                        │
+                        ▼
+              proto_loader.py               import hook, serves overrides
+                        │                   falls back to pip
+                        ▼
+              from sentry_protos.X import Y_pb2
 ```
 
-**proto_compiler.py** handles compilation only. It requires `grpcio-tools` but only imports it lazily, so the module can be imported safely even when `grpcio-tools` isn't installed.
+**proto_compiler.py** — compiles `.proto` files into `_pb2.py` modules. Used as a CLI for production builds or called on demand by the loader during development. Requires `grpcio-tools` but only imports it lazily.
 
-**proto_loader.py** handles import-time resolution only. In development mode it calls the compiler on demand; in production mode it serves pre-compiled files with zero extra dependencies.
+**proto_loader.py** — lightweight import hook. Intercepts `sentry_protos` imports and serves compiled overrides from `.proto_cache/`, falling back to pip for anything not overridden. In dev mode, triggers compilation automatically when sources change.
 
 ## Quick Start
 
@@ -131,105 +112,40 @@ Most setups need no environment variables — `proto/` and `.proto_cache/` work 
 
 `SENTRY_PROTO_DEV_DIR` is available for edge cases like testing proto changes from an external checkout without modifying the repo. In normal development, edit protos in `proto/` directly.
 
-## How the Import Hook Works
+## How It Works
 
-### Import Resolution Flow
+The loader installs a Python import hook that intercepts `sentry_protos.*_pb2` imports. When a `_pb2` module is imported, the hook checks for a compiled override in `.proto_cache/`. If found (and up to date), it serves the override. Otherwise it falls back to the pip-installed version.
 
-When Python encounters `from sentry_protos.billing.v1 import data_category_pb2`:
+In dev mode, if a `.proto` source file is newer than the cached output, the hook compiles it automatically before serving.
 
-```
-1. Python imports sentry_protos
-   └─ Our finder: not "sentry_protos." (no dot suffix) → returns None
-   └─ Pip's finder: loads the pip-installed package ✓
+Intermediate packages (like `sentry_protos.billing.v1`) are always loaded from pip — the hook only overrides the leaf `_pb2` modules. This means you can override individual protos without affecting the rest of the package.
 
-2. Python imports sentry_protos.billing
-   └─ Our finder: intermediate package, pip has it → returns None
-   └─ Pip's finder: loads from pip with correct __path__ ✓
-
-3. Python imports sentry_protos.billing.v1
-   └─ Our finder: intermediate package, pip has it → returns None
-   └─ Pip's finder: loads from pip ✓
-
-4. Python imports sentry_protos.billing.v1.data_category_pb2
-   └─ Our finder: _pb2 module! Check override dir...
-      ├─ Found in cache (and up to date) → return spec from cache ✓
-      ├─ Source newer than cache (dev mode) → compile, return spec ✓
-      └─ Not in cache → return None, pip's version is used ✓
-```
-
-The critical insight: **MetaPathFinders are always consulted for every import**, regardless of the parent package's `__path__`. So even though steps 1-3 load from pip (and pip's `__path__` points to `site-packages`), our finder still gets called for step 4 and can serve the override.
-
-### The Namespace Shadowing Bug (and Fix)
-
-The original implementation had a bug: it claimed intermediate packages (like `sentry_protos.billing`) and set their `submodule_search_locations` to only the cache directory. This meant:
-
-```
-# BUG: If cache has billing/v1/foo_pb2.py but NOT billing/v1/bar_pb2.py,
-# bar_pb2 becomes unimportable — pip's version is shadowed because
-# sentry_protos.billing.__path__ points only to the cache.
-```
-
-**The fix**: only intercept `_pb2` leaf module imports. Intermediate packages are left to pip's finder (which sets `__path__` correctly to include all pip-installed modules). The one exception is **new proto domains** — packages that don't exist in pip at all — where we must create the intermediate package ourselves.
-
-```python
-# In find_spec():
-if self._is_local_package(fullname) and not _pip_package_has(fullname):
-    return self._make_package_spec(fullname)  # new domain
-return None  # let pip handle it
-```
-
-### New Proto Domains
-
-When you add a completely new proto domain (e.g., `sentry_protos.my_new_service.v1.foo_pb2`) that doesn't exist in the pip-installed `sentry-protos` package:
-
-1. The loader detects that `sentry_protos.my_new_service` is a local package but NOT in pip
-2. It creates the intermediate package in the cache directory with an empty `__init__.py`
-3. The leaf `_pb2` module is compiled/served normally
-
-This means you can develop entirely new proto packages locally without any changes to `sentry-protos`.
+New domains that don't exist in pip at all (e.g., a brand-new `sentry_protos.my_new_service`) are handled automatically — the loader creates the necessary intermediate packages in the cache directory.
 
 ## Directory Structure
 
-### Proto Sources
-
-Proto files must follow the `sentry-protos` package convention:
-
 ```
-{proto_source_dir}/
-  sentry_protos/
-    {domain}/
-      v{N}/
-        {name}.proto
-```
-
-Example:
-
-```
-/path/to/sentry-protos/proto/
+proto/                              ← .proto sources (in git)
   sentry_protos/
     billing/
       v1/
         data_category.proto
-        usage.proto
-    snuba/
-      v1/
-        trace_item.proto
-```
+        date.proto
+        services/
+          usage/
+            v1/
+              endpoint_usage.proto
 
-### Compiled Cache
-
-The cache mirrors the proto directory structure with `_pb2.py` files:
-
-```
-.proto_cache/
+.proto_cache/                       ← compiled output (gitignored)
   sentry_protos/
-    __init__.py
     billing/
-      __init__.py
       v1/
-        __init__.py
         data_category_pb2.py
-        usage_pb2.py
+        date_pb2.py
+        services/
+          usage/
+            v1/
+              endpoint_usage_pb2.py
 ```
 
 ## Helper Script: `bin/sync-protos`
@@ -329,29 +245,19 @@ msg = dc_pb2.DataCategory()
 
 ### "ModuleNotFoundError: No module named 'sentry_protos.X'"
 
-- **If X exists in pip**: The loader isn't installed. Call `install()` before the import, or check that `SENTRY_PROTO_OVERRIDE_DIR` / `SENTRY_PROTO_DEV_DIR` is set correctly.
-- **If X is a new domain**: Ensure the `.proto` source directory has the correct structure (`sentry_protos/X/v1/foo.proto`).
+- The loader isn't installed. Call `install()` before the import.
+- If X is a new domain, check the directory structure: `proto/sentry_protos/X/v1/foo.proto`.
 
 ### "ImportError: grpcio-tools is required"
 
-You're in dev mode (on-demand compilation) but `grpcio-tools` is not installed:
-
-```bash
-pip install grpcio-tools
-```
-
-In production, pre-compile during your build step and set `SENTRY_PROTO_OVERRIDE_DIR` instead of `SENTRY_PROTO_DEV_DIR`.
+Install it: `pip install grpcio-tools`. In production, pre-compile during the build step so `grpcio-tools` isn't needed at runtime.
 
 ### Proto changes aren't picked up
 
-- **Dev mode**: The loader checks mtime on every import. If the `.proto` file's mtime hasn't changed, the cached version is served. Touch the file: `touch path/to/file.proto`.
-- **Prod mode**: Re-run the compiler: `python -m sentry.utils.proto_compiler compile --source ... --output ... --force`.
-- **Stale sys.modules cache**: Python caches imported modules in `sys.modules`. If the module was already imported in this process, restart the process or use `importlib.reload()`.
+- The loader checks mtime on every import. If nothing changed, touch the file: `touch proto/sentry_protos/.../foo.proto`.
+- If the module was already imported in this process, restart or `importlib.reload()`.
+- In prod, re-run: `python -m sentry.utils.proto_compiler compile --source proto --output .proto_cache --force`.
 
 ### "Proto file is not under any include path"
 
-The `.proto` file's absolute path doesn't start with any of the configured source directories. Check that `--source` / `SENTRY_PROTO_DEV_DIR` points to the correct root (the directory that contains `sentry_protos/`, not `sentry_protos/` itself).
-
-### Cache directory not writable
-
-In containerized environments, `.proto_cache/` (or the configured override directory) must be writable for compilation. For read-only filesystems, pre-compile during the build step and mount the cache as a read-only volume.
+The `--source` flag should point to `proto/` (the directory containing `sentry_protos/`), not to `proto/sentry_protos/` itself.
