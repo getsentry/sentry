@@ -49,46 +49,109 @@ The system is split into two modules with distinct responsibilities:
 
 ## Quick Start
 
-### Development: Auto-Compile from Source
+### In-Repo Protos (Recommended)
 
-Point to your local `sentry-protos` checkout:
+The simplest approach: commit `.proto` files directly to `proto/sentry_protos/...` in the sentry repo.
+
+**Sync billing protos from your sentry-protos checkout:**
 
 ```bash
-export SENTRY_PROTO_DEV_DIR=/path/to/sentry-protos/proto
+# Sync billing domain (defaults to ../sentry-protos)
+bin/sync-protos
+
+# Or specify the sentry-protos path explicitly
+bin/sync-protos /path/to/sentry-protos billing
+
+# Sync and pre-compile
+bin/sync-protos --compile
 ```
 
-Or place `.proto` files directly in `{repo_root}/proto/sentry_protos/...`.
-
-Then call `install()` early in app startup (e.g., in settings or conftest):
+**Call `install()` early in app startup:**
 
 ```python
 from sentry.utils.proto_loader import install
 install()
 ```
 
-Now imports like `from sentry_protos.billing.v1 import data_category_pb2` will:
+Now `from sentry_protos.billing.v1 import data_category_pb2` automatically compiles from `proto/` and serves the result. No pip release needed.
 
-1. Check if a compiled `_pb2.py` exists in `.proto_cache/`
-2. If the `.proto` source is newer (or no cache exists), compile it automatically
-3. Serve the compiled module — or fall back to the pip package if no local source exists
+### Development: Iterate on Protos Without Committing
+
+To test proto changes before committing them to the sentry repo, point to your sentry-protos checkout:
+
+```bash
+export SENTRY_PROTO_DEV_DIR=/path/to/sentry-protos/proto
+```
+
+The `SENTRY_PROTO_DEV_DIR` env var is checked after `proto/`, so in-repo protos always win. This lets you iterate on sentry-protos while in-repo protos provide the stable baseline.
 
 ### Production: Pre-Compiled Overrides
 
 Compile during your build/deploy step:
 
 ```bash
+# Compile from in-repo protos
+python -m sentry.utils.proto_compiler compile \
+    --source proto \
+    --output .proto_cache
+
+# Or from an external source
 python -m sentry.utils.proto_compiler compile \
     --source /path/to/sentry-protos/proto \
     --output /app/.proto_cache
 ```
 
-Set the override directory at runtime:
+Optionally set the override directory (if not using the default `.proto_cache`):
 
 ```bash
 export SENTRY_PROTO_OVERRIDE_DIR=/app/.proto_cache
 ```
 
 Call `install()` in app startup. The loader serves pre-compiled files with no compilation at runtime — `grpcio-tools` is not required in the production image.
+
+### Switching Between Sources
+
+The proto system uses a clear priority order:
+
+```
+1. proto/            (in-repo, committed to git)        ← highest priority
+2. SENTRY_PROTO_DEV_DIR  (local sentry-protos checkout) ← for iteration
+3. pip sentry-protos (installed package)                 ← fallback
+```
+
+To **use in-repo protos**: just have files in `proto/sentry_protos/`. They're used automatically.
+
+To **use sentry-protos checkout instead**: set `SENTRY_PROTO_DEV_DIR`. For protos that exist in both `proto/` and the checkout, `proto/` wins.
+
+To **use pip only**: remove `proto/sentry_protos/` and unset `SENTRY_PROTO_DEV_DIR`.
+
+To **override a single proto for testing**: copy just that `.proto` file into `proto/sentry_protos/...`. All other protos fall through to pip.
+
+### getsentry Integration
+
+Since `proto_loader.py` lives in the sentry repo, `REPO_ROOT` resolves to sentry's root — meaning getsentry automatically picks up sentry's `proto/` directory when it imports the loader:
+
+```python
+# In getsentry's startup or conftest:
+from sentry.utils.proto_loader import install
+install()
+# → Finds sentry/proto/ as LOCAL_PROTO_DIR automatically
+```
+
+For production getsentry deployments, compile protos during the build step:
+
+```bash
+# From getsentry's build script:
+python -m sentry.utils.proto_compiler compile \
+    --source /path/to/sentry/proto \
+    --output .proto_cache
+```
+
+getsentry developers can also set `SENTRY_PROTO_DEV_DIR` to iterate on protos independently:
+
+```bash
+export SENTRY_PROTO_DEV_DIR=/path/to/sentry-protos/proto
+```
 
 ## Configuration
 
@@ -199,6 +262,35 @@ The cache mirrors the proto directory structure with `_pb2.py` files:
         data_category_pb2.py
         usage_pb2.py
 ```
+
+## Helper Script: `bin/sync-protos`
+
+A convenience script for syncing proto files from a sentry-protos checkout into the repo:
+
+```bash
+# Sync billing domain (default)
+bin/sync-protos
+
+# Sync from specific checkout
+bin/sync-protos /path/to/sentry-protos billing
+
+# Sync multiple domains
+bin/sync-protos /path/to/sentry-protos billing snuba
+
+# Sync all domains
+bin/sync-protos --all
+
+# Sync and compile
+bin/sync-protos --compile
+
+# Show status
+bin/sync-protos --status
+
+# Clear compiled cache
+bin/sync-protos --clear
+```
+
+The script defaults to `../sentry-protos` as the source and `billing` as the domain, since that's the most common workflow.
 
 ## CLI Reference
 
