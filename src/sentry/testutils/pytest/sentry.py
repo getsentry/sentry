@@ -314,6 +314,10 @@ def pytest_configure(config: pytest.Config) -> None:
 
     SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
 
+    from sentry.utils.proto_loader import install as install_proto_loader
+
+    install_proto_loader()
+
     initialize_app(
         {"settings": settings, "options": None},
         skip_service_validation=SENTRY_SKIP_SERVICE_VALIDATION,
