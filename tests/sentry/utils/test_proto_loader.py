@@ -28,6 +28,10 @@ def _clean_proto_loader_state():
     original_installed = loader._installed
     original_meta_path = sys.meta_path[:]
 
+    # Remove any globally-installed finders so tests can install their own.
+    sys.meta_path[:] = [f for f in sys.meta_path if not isinstance(f, _ProtoFinder)]
+    loader._installed = False
+
     yield
 
     loader._installed = original_installed
