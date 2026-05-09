@@ -61,6 +61,16 @@ python -m sentry.utils.proto_compiler compile \
 
 Call `install()` in app startup. The loader serves pre-compiled files with no compilation at runtime — `grpcio-tools` is not required in the production image.
 
+### Existing imports don't change
+
+The override is transparent. Existing code continues to use the same imports:
+
+```python
+from sentry_protos.billing.v1.data_category_pb2 import DataCategory
+```
+
+This works regardless of whether the module comes from `proto/` (override) or the pip-installed `sentry-protos` (fallback). No import changes, no conditional logic, no code migration needed.
+
 ### Priority Order
 
 ```
