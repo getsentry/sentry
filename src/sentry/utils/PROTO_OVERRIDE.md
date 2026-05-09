@@ -70,24 +70,11 @@ Call `install()` in app startup. The loader serves pre-compiled files with no co
 
 Migrated domains (e.g., billing) are maintained in `proto/`. Non-migrated domains (snuba, seer, etc.) are served from the pip-installed `sentry-protos` package until they are migrated.
 
-### getsentry Integration
+### getsentry
 
-Since `proto_loader.py` lives in the sentry package, `REPO_ROOT` resolves to sentry's root — meaning getsentry automatically picks up sentry's `proto/` directory when it imports the loader:
+No setup required. Both repos share one venv with sentry editable-installed, so `REPO_ROOT` in `proto_loader.py` resolves to sentry's repo root where `proto/` lives. The `install()` calls in sentry's initializer and pytest plugin cover getsentry automatically — both at runtime and in tests.
 
-```python
-# In getsentry's startup or conftest:
-from sentry.utils.proto_loader import install
-install()
-# → Finds sentry/proto/ as LOCAL_PROTO_DIR automatically
-```
-
-For production getsentry deployments, compile protos during the build step:
-
-```bash
-python -m sentry.utils.proto_compiler compile \
-    --source /path/to/sentry/proto \
-    --output .proto_cache
-```
+Proto overrides placed in sentry's `proto/sentry_protos/` are picked up by getsentry with no getsentry-side changes.
 
 ### Migrating a New Domain
 
