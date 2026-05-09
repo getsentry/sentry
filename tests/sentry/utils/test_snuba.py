@@ -18,10 +18,12 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
+    InvalidSnubaResponseError,
     RateLimitExceeded,
     RetrySkipTimeout,
     SnubaQueryParams,
     SnubaRequest,
+    SnubaUpstreamRequestTimeout,
     UnqualifiedQueryError,
     _bulk_snuba_query,
     _prepare_query_params,
@@ -628,3 +630,83 @@ class SnubaQueryRateLimitTest(TestCase):
         assert (
             str(exc_info.value) == "Query on could not be run due to allocation policies, info: ..."
         )
+
+
+class SnubaInvalidJsonResponseTest(TestCase):
+    def setUp(self) -> None:
+        mock_request = Request(
+            dataset="events",
+            app_id="test",
+            query=Query(
+                match=Entity("events"),
+                select=[Function("count", parameters=[], alias="count")],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(hours=1)),
+                    Condition(Column("timestamp"), Op.LT, datetime.now()),
+                ],
+            ),
+        )
+        self.snuba_request = SnubaRequest(
+            request=mock_request,
+            referrer="test_referrer",
+            forward=lambda x: x,
+            reverse=lambda x: x,
+        )
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_envoy_504_upstream_request_timeout(self, mock_snuba_query) -> None:
+        """
+        Envoy returns a 504 with the literal body "upstream request timeout"
+        when the upstream snuba-api request times out before reaching snuba.
+        This should surface as SnubaUpstreamRequestTimeout, not as the generic
+        "Failed to parse snuba error response" SnubaError.
+        """
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 504
+        mock_response.data = b"upstream request timeout"
+
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        with pytest.raises(SnubaUpstreamRequestTimeout) as exc_info:
+            _bulk_snuba_query([self.snuba_request])
+
+        assert exc_info.value.status == 504
+        assert exc_info.value.body == "upstream request timeout"
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_upstream_request_timeout_body_with_non_504_status(self, mock_snuba_query) -> None:
+        """
+        Some proxies may return the "upstream request timeout" body with a
+        different status code; classify these as upstream timeouts as well.
+        """
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 503
+        mock_response.data = b"upstream request timeout\n"
+
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        with pytest.raises(SnubaUpstreamRequestTimeout) as exc_info:
+            _bulk_snuba_query([self.snuba_request])
+
+        assert exc_info.value.status == 503
+        assert exc_info.value.body == "upstream request timeout"
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_invalid_json_other_5xx(self, mock_snuba_query) -> None:
+        """
+        Other non-JSON 5xx responses (e.g. 502 from envoy) should surface as
+        InvalidSnubaResponseError with the status and body preserved.
+        """
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 502
+        mock_response.data = b"no healthy upstream"
+
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        with pytest.raises(InvalidSnubaResponseError) as exc_info:
+            _bulk_snuba_query([self.snuba_request])
+
+        assert not isinstance(exc_info.value, SnubaUpstreamRequestTimeout)
+        assert exc_info.value.status == 502
+        assert exc_info.value.body == "no healthy upstream"

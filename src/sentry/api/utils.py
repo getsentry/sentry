@@ -61,6 +61,7 @@ from sentry.utils.snuba import (
     RateLimitExceeded,
     SchemaValidationError,
     SnubaError,
+    SnubaUpstreamRequestTimeout,
     UnqualifiedQueryError,
 )
 from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCRateLimitExceeded
@@ -417,6 +418,7 @@ def handle_query_errors() -> Generator[None]:
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
+                SnubaUpstreamRequestTimeout,
             ),
         ) or isinstance(
             arg,
