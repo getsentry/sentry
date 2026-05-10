@@ -103,14 +103,14 @@ function SentryApplicationDashboard() {
       <SentryDocumentTitle title={t('Integration Dashboard')} />
       <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
       {showInstallData ? (
-        <InstallDataSection app={app} appSlug={appSlug} timeRange={timeRange} />
-      ) : null}
-      {showInstallData ? (
-        <IntegrationViewsSection
-          appSlug={appSlug}
-          organizationSlug={organization.slug}
-          timeRange={timeRange}
-        />
+        <Fragment>
+          <InstallDataSection app={app} appSlug={appSlug} timeRange={timeRange} />
+          <IntegrationViewsSection
+            appSlug={appSlug}
+            organizationSlug={organization.slug}
+            timeRange={timeRange}
+          />
+        </Fragment>
       ) : null}
       {showComponentInteractions ? (
         <ComponentInteractionsSection appSlug={appSlug} timeRange={timeRange} />
