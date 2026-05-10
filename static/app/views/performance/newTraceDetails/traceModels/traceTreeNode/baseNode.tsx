@@ -477,7 +477,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
         result = node;
         return true;
       }
-      return undefined;
+      return;
     });
     return result;
   }

@@ -62,6 +62,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (SentryAppDetailsEndpointPermission,)
+    allow_disabled_sentry_app_for_methods = {"DELETE", "PUT", "GET"}
 
     @extend_schema(
         operation_id="Retrieve a custom integration by ID or slug.",
@@ -167,6 +168,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
                 popularity=result.get("popularity"),
+                is_disabled=result.get("isDisabled"),
             ).run(user=request.user)
 
             return Response(

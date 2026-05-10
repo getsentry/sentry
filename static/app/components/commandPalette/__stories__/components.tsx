@@ -1,3 +1,10 @@
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   CMDKAction,
@@ -29,7 +36,13 @@ export function CommandPaletteDemo() {
           onAction={() => addSuccessMessage('Deselect all')}
         />
       </CMDKAction>
-      <CommandPalette />
+      <CommandPalette
+        Body={ModalBody}
+        Footer={ModalFooter}
+        Header={makeClosableHeader(() => {})}
+        CloseButton={makeCloseButton(() => {})}
+        closeModal={() => {}}
+      />
     </CommandPaletteProvider>
   );
 }

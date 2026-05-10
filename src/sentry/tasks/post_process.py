@@ -650,10 +650,8 @@ def run_post_process_job(job: PostProcessJob) -> None:
         return
 
     if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
-        # specific pipelines for issue types
         pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[issue_category]
     else:
-        # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE
 
     for pipeline_step in pipeline:
@@ -933,12 +931,10 @@ def process_replay_link(job: PostProcessJob) -> None:
 def process_workflow_engine(job: PostProcessJob) -> None:
     """
     Invoke the workflow_engine to process workflows given the job.
-
-    Currently, we do not want to add this to an event in post processing,
-    instead wrap this with a check for a feature flag before invoking.
-
-    Eventually, we'll want to replace `process_rule` with this method.
     """
+    if job["is_reprocessed"]:
+        return
+
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
     from sentry.workflow_engine.tasks.workflows import process_workflows_event
@@ -966,27 +962,6 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     except Exception:
         logger.exception("Could not process workflow task", extra={"job": job})
         return
-
-
-def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
-    """
-    Call for process_workflow_engine with the issue alert feature flag
-    """
-    if job["is_reprocessed"]:
-        return
-
-    # process workflow engine if we are single processing or dual processing for a specific org
-    process_workflow_engine(job)
-
-
-def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
-    """
-    Call for process_workflow_engine for metric alerts
-    """
-    if job["is_reprocessed"]:
-        return
-
-    process_workflow_engine(job)
 
 
 def process_code_mappings(job: PostProcessJob) -> None:
@@ -1150,7 +1125,7 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         )
     if is_new:
         process_resource_change_bound.delay(
-            action="created", sender="Group", instance_id=event.group_id
+            action="created", sender="Group", instance_id=str(event.group_id)
         )
 
 
@@ -1616,7 +1591,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         handle_auto_assignment,
         kick_off_seer_automation,
         kick_off_lightweight_rca_cluster,
-        process_workflow_engine_issue_alerts,
+        process_workflow_engine,
         process_resource_change_bounds,
         process_data_forwarding,
         process_plugins,
@@ -1635,11 +1610,8 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
-        feedback_filter_decorator(process_workflow_engine_issue_alerts),
+        feedback_filter_decorator(process_workflow_engine),
         feedback_filter_decorator(process_resource_change_bounds),
-    ],
-    GroupCategory.METRIC_ALERT: [
-        process_workflow_engine_metric_issues,
     ],
     GroupCategory.INSTRUMENTATION: [
         process_snoozes,
@@ -1652,7 +1624,7 @@ GENERIC_POST_PROCESS_PIPELINE: list[Callable[[PostProcessJob], None]] = [
     process_snoozes,
     process_inbox_adds,
     kick_off_seer_automation,
-    process_workflow_engine_issue_alerts,
+    process_workflow_engine,
     process_resource_change_bounds,
     process_data_forwarding,
 ]

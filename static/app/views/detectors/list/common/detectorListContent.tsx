@@ -1,6 +1,7 @@
 import {useCallback, type ReactNode} from 'react';
 
-import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
+import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';

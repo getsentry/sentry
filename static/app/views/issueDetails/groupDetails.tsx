@@ -36,8 +36,8 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -69,9 +69,9 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -80,6 +80,8 @@ import {
   useEnvironmentsFromUrl,
   useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -175,7 +177,7 @@ function getReprocessingNewRoute({
     };
   }
 
-  return undefined;
+  return;
 }
 
 function useRefetchGroupForReprocessing({
@@ -211,14 +213,13 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
         defined(storeGroup.participants) &&
         defined(storeGroup.activity)
       ) {
-        setApiQueryData(
-          queryClient,
-          makeFetchGroupQueryKey({
+        queryClient.setQueryData(
+          groupApiOptions({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-          }),
-          storeGroup
+          }).queryKey,
+          prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
     }, undefined) as () => void;
@@ -233,7 +234,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const navigate = useNavigate();
   const {projects} = useProjects();
 
-  const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
+  const [allProjectChanged, setAllProjectChanged] = useState(false);
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
@@ -393,7 +394,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [group?.project.id, allProjectChanged, navigate]);
 
-  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
+  const errorType =
+    groupError instanceof RequestError
+      ? getFetchDataRequestErrorType(groupError.status)
+      : null;
   useEffect(() => {
     if (isGroupError) {
       Sentry.captureException(groupError);
@@ -561,7 +565,41 @@ function GroupDetailsContentError({
   }
 }
 
-function GroupDetailsContent({
+function getIssueDetailContextHint(
+  view: 'specific-event' | 'events-list' | 'issue-overview'
+): string {
+  const tools =
+    'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
+    'get_event_details(event_id?, issue_id?) for a specific error event; ' +
+    'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.';
+  const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
+
+  if (view === 'specific-event') {
+    return (
+      'Sentry issue detail page. The user is viewing a specific event — ' +
+      'call get_event_details(event_id) with the eventId below to see what they see. ' +
+      shortIdNote +
+      tools
+    );
+  }
+
+  if (view === 'events-list') {
+    return (
+      'Sentry issue events list. The user is browsing all events for this issue. ' +
+      'Use telemetry_live_search to query events matching this issue. ' +
+      shortIdNote +
+      tools
+    );
+  }
+
+  return (
+    'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
+    shortIdNote +
+    tools
+  );
+}
+
+function GroupDetailsContentInner({
   children,
   group,
   project,
@@ -632,6 +670,31 @@ function GroupDetailsContent({
 
   useEngagedViewTracking({group, project});
 
+  const {eventId: eventIdParam} = useParams<{eventId?: string}>();
+
+  let issueView: 'specific-event' | 'events-list' | 'issue-overview' = 'issue-overview';
+  if (eventIdParam && !RESERVED_EVENT_IDS.has(eventIdParam)) {
+    issueView = 'specific-event';
+  } else if (currentTab === Tab.EVENTS) {
+    issueView = 'events-list';
+  }
+
+  useLLMContext({
+    contextHint: getIssueDetailContextHint(issueView),
+    shortId: group.shortId,
+    title: group.title,
+    level: group.level,
+    status: group.status,
+    priority: group.priority,
+    issueType: group.issueType,
+    count: group.count,
+    userCount: group.userCount,
+    firstSeen: group.firstSeen,
+    lastSeen: group.lastSeen,
+    projectSlug: project.slug,
+    eventId: event?.id,
+  });
+
   const isDisplayingEventDetails = [
     Tab.DETAILS,
     Tab.DISTRIBUTIONS,
@@ -652,6 +715,8 @@ function GroupDetailsContent({
     </GroupDetailsLayout>
   );
 }
+
+const GroupDetailsContent = registerLLMContext('issue-detail', GroupDetailsContentInner);
 
 interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
   children: React.ReactNode;

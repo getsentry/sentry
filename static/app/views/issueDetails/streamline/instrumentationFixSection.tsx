@@ -74,7 +74,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
 
   const handleStartStep = useCallback(
     async (step: Parameters<typeof startStep>[0]) => {
-      await startStep(step, runState?.run_id);
+      await startStep(step, {runId: runState?.run_id});
     },
     [startStep, runState?.run_id]
   );
@@ -128,7 +128,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
       <FoldSection title={t('Fix with Seer')} sectionKey={SectionKey.INSTRUMENTATION_FIX}>
         <Flex justify="start" direction="row">
           <Button
-            priority="primary"
+            variant="primary"
             icon={<IconSeer />}
             onClick={handleStartCodeChanges}
             analyticsEventKey="issue_details.instrumentation_fix_clicked"

@@ -158,7 +158,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <LogsTimestampTooltip
-        timestamp={props.item.value as string | number}
+        timestamp={props.item.value!}
         attributes={props.extra.attributes}
         shouldRender={props.extra.shouldRenderHoverElements}
       >
@@ -205,7 +205,7 @@ function RelativeTimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <LogsTimestampTooltip
-        timestamp={props.item.value as string | number}
+        timestamp={props.item.value!}
         attributes={props.extra.attributes}
         shouldRender={props.extra.shouldRenderHoverElements}
         relativeTimeToReplay={relativeTimestampMs}

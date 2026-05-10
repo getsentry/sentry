@@ -184,7 +184,8 @@ function ProjectPreferenceLoader({
   ) => void;
   project: Project;
 }) {
-  const {preference, isPending, codeMappingRepos} = useProjectSeerPreferences(project);
+  const {data, isPending} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   useEffect(() => {
     onUpdate(project, preference, isPending, codeMappingRepos);
@@ -505,7 +506,7 @@ function AutoTriggerFixesButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableAutoTriggerFixes}
       disabled={fetching || projectsWithRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -579,7 +580,7 @@ function EnableIssueScansButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableIssueScans}
       disabled={fetching || projectsWithoutRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -794,7 +795,7 @@ export function SeerAutomationOnboarding() {
 
             <GuidedSteps.StepButtons>
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => navigate(`/settings/${organization.slug}/seer/`)}
                 size="sm"
               >

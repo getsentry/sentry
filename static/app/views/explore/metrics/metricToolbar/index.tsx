@@ -6,6 +6,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
@@ -19,7 +20,7 @@ import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggr
 import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
 import {GroupBySelector} from 'sentry/views/explore/metrics/metricToolbar/groupBySelector';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
@@ -154,7 +155,13 @@ export function MetricToolbar({
             )}
           </Flex>
         ) : null}
-        {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
+        {canRemoveMetric && (
+          <DeleteMetricButton
+            disabledReason={
+              isReferencedByEquation ? t('This metric is used in an equation') : undefined
+            }
+          />
+        )}
       </Grid>
       {isNarrow && (
         <Filter

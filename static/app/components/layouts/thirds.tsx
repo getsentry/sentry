@@ -158,7 +158,7 @@ export const HeaderTabs = styled(Tabs)`
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled((props: ContainerProps<'div'> & {noRowGap?: boolean}) => {
+export const Body = styled((props: ContainerProps & {noRowGap?: boolean}) => {
   const hasPageFrame = useHasPageFrameFeature();
   return (
     <Container

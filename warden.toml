@@ -2,7 +2,8 @@
 # https://github.com/getsentry/warden
 #
 # Warden reviews code using AI-powered skills triggered by GitHub events.
-# Skills live in .agents/skills/ or .claude/skills/
+# Skills live in .agents/skills/ or .claude/skills/, or are pulled from GitHub
+# via the remote field.
 #
 # Add skills with: warden add <skill-name>
 
@@ -17,15 +18,6 @@ failOn = "high"
 reportOn = "medium"
 
 [[skills]]
-name = "sentry-security"
-paths = ["src/sentry/**/*.py"]
-ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
-
-[[skills.triggers]]
-type = "pull_request"
-actions = ["opened", "synchronize", "reopened"]
-
-[[skills]]
 name = "sentry-backend-bugs"
 paths = ["src/sentry/**/*.py"]
 ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
@@ -35,13 +27,54 @@ type = "pull_request"
 actions = ["opened", "synchronize", "reopened"]
 
 [[skills]]
-name = "gha-security-review"
-remote = "getsentry/skills"
+name = "wrdn-pii"
+remote = "getsentry/warden-skills"
+paths = ["**/*"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "wrdn-authz"
+remote = "getsentry/warden-skills"
+paths = ["src/**/*.py"]
+ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "wrdn-code-execution"
+remote = "getsentry/warden-skills"
+paths = ["src/**/*.py"]
+ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "wrdn-data-exfil"
+remote = "getsentry/warden-skills"
+paths = ["src/**/*.py"]
+ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "wrdn-gha-workflows"
+remote = "getsentry/warden-skills"
 paths = [
   ".github/workflows/*.yml",
   ".github/workflows/*.yaml",
   ".github/actions/**/*.yml",
   ".github/actions/**/*.yaml",
+  "action.yml",
+  "action.yaml",
 ]
 
 [[skills.triggers]]

@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import type {UseMutationOptions} from '@tanstack/react-query';
 
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -21,7 +22,7 @@ type AutofixAutomationTuning =
   | null; // deprecated
 
 // Mirrors the backend SeerRepoDefinition type
-export interface BackendRepository {
+interface BackendRepository {
   external_id: string;
   integration_id: string;
   name: string;
@@ -43,7 +44,7 @@ export type AutofixAutomationSettings = {
   autofixAutomationTuning: AutofixAutomationTuning;
   automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
   automationHandoff: ProjectSeerPreferences['automation_handoff'];
-  projectId: string;
+  projectId: string | number; // Ideally this is a string, but in reality it can be a number.
   reposCount: number;
 };
 
@@ -94,7 +95,7 @@ type AutofixAutomationUpdate =
 
 export function useUpdateBulkAutofixAutomationSettings(
   options?: Omit<
-    UseMutationOptions<unknown, Error, AutofixAutomationUpdate, unknown>,
+    UseMutationOptions<unknown, Error, AutofixAutomationUpdate>,
     'mutationFn'
   >
 ) {
@@ -107,7 +108,7 @@ export function useUpdateBulkAutofixAutomationSettings(
     [projects]
   );
 
-  return useMutation<unknown, Error, AutofixAutomationUpdate, unknown>({
+  return useMutation<unknown, Error, AutofixAutomationUpdate>({
     mutationFn: (data: AutofixAutomationUpdate) => {
       return fetchMutation({
         method: 'POST',
@@ -144,19 +145,9 @@ export function useUpdateBulkAutofixAutomationSettings(
           }),
         });
         // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
-        queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl(
-              '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
-              {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }
-            ),
-          ],
-        });
+        queryClient.invalidateQueries(
+          projectSeerPreferencesApiOptions(organization.slug, project.slug)
+        );
       });
 
       options?.onSettled?.(...args);

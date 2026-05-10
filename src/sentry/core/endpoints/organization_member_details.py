@@ -312,7 +312,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
         if team_roles:
-            diff = save_team_assignments(member, None, team_roles)
+            diff = save_team_assignments(member, None, team_roles)  # type: ignore[arg-type]
         else:
             diff = save_team_assignments(member, teams)
 

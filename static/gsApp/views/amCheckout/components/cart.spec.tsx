@@ -338,10 +338,10 @@ describe('Cart', () => {
     );
 
     const dueToday = await screen.findByTestId('summary-item-due-today');
-    expect(mockResponse).toHaveBeenCalled();
 
     // wait for preview to be loaded
     await waitFor(() => expect(dueToday).toHaveTextContent('$91')); // original price
+    expect(mockResponse).toHaveBeenCalled();
     expect(dueToday).toHaveTextContent('$80'); // price after credits + additional fees
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
     expect(screen.getByTestId('summary-item-sales_tax')).toHaveTextContent('$2');

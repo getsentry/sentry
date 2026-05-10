@@ -22,7 +22,6 @@ class SendTestNotification(GroupType):
     slug = "send-test-notification"
     description = "Send test notification"
     category = GroupCategory.TEST_NOTIFICATION.value
-    category_v2 = GroupCategory.TEST_NOTIFICATION.value
     released = False
     in_default_search = False
     enable_auto_resolve = True

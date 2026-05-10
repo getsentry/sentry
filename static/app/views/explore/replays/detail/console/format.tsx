@@ -140,8 +140,8 @@ export function Format({onExpand, expandPaths, args}: FormatProps) {
     if (x === null || typeof x !== 'object') {
       pieces.push(' ' + x);
     } else {
-      pieces.push(' ');
       pieces.push(
+        ' ',
         <Wrapper key={i}>
           <StructuredEventData
             key={i}

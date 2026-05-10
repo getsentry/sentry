@@ -22,7 +22,7 @@ class SlackStagingIntegrationProvider(SlackIntegrationProvider):
     setup_url_path = "/extensions/slack-staging/setup/"
 
     def _get_oauth_scopes(self) -> frozenset[str]:
-        return self.identity_oauth_scopes | self.extended_oauth_scopes
+        return self.identity_oauth_scopes | self.staging_oauth_scopes
 
     def _make_identity_provider(self) -> SlackStagingIdentityProvider:
         return SlackStagingIdentityProvider(

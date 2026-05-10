@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
 import {useMatches} from 'react-router-dom';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
@@ -102,7 +109,7 @@ function useBreadcrumbTitleEffect(props: ExplicitTitleProps) {
   const context = useContext(BreadcrumbContext);
   const setExplicitTitle = context?.setExplicitTitle;
 
-  useEffect(() => setExplicitTitle?.(props), [setExplicitTitle, props]);
+  useLayoutEffect(() => setExplicitTitle?.(props), [setExplicitTitle, props]);
 }
 
 export {BreadcrumbProvider, useBreadcrumbsPathmap, useBreadcrumbTitleEffect};

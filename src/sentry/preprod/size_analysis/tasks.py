@@ -8,7 +8,6 @@ from typing import Any
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import features
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.preprod.artifact_search import get_sequential_base_artifact
@@ -581,16 +580,6 @@ def _maybe_emit_issues_from_diff_size_results(
     project = artifact.project
     project_id = project.id
 
-    if not features.has("organizations:preprod-issues", project.organization):
-        logger.info(
-            "preprod.size_analysis.diff_results.issues.disabled",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-            },
-        )
-        return
-
     detectors = list(
         Detector.objects.filter(
             project_id=project_id,
@@ -739,17 +728,6 @@ def _maybe_emit_issues_from_absolute_size_results(
 ) -> None:
     project = head_metric.preprod_artifact.project
     project_id = project.id
-    organization_id = project.organization.id
-
-    if not features.has("organizations:preprod-issues", project.organization):
-        logger.info(
-            "preprod.size_analysis.size_results.issues.disabled",
-            extra={
-                "project_id": project_id,
-                "organization_id": organization_id,
-            },
-        )
-        return
 
     detectors = list(
         Detector.objects.filter(

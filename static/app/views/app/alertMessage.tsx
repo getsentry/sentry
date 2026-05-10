@@ -26,7 +26,7 @@ export function AlertMessage({alert, system}: Props) {
           aria-label={t('Close')}
           onClick={alert.onClose ?? handleClose}
           size="zero"
-          priority="transparent"
+          variant="transparent"
         />
       }
     >

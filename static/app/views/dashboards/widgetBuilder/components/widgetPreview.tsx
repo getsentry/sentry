@@ -89,7 +89,7 @@ export function WidgetPreview({
   }
 
   function handleWidgetTableResizeColumn(columns: TabularColumn[]) {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   }
 

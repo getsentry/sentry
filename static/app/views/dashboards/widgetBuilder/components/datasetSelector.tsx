@@ -65,7 +65,7 @@ export function WidgetBuilderDatasetSelector() {
   if (organization.features.includes('tracemetrics-enabled')) {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
-      label: t('Metrics'),
+      label: t('Application Metrics'),
       details: t('Counters, gauges, and distributions'),
     });
   }

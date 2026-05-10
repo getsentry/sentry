@@ -12,6 +12,8 @@ from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClie
 from sentry.integrations.github_enterprise.integration import (
     GitHubEnterpriseIntegration,
     GitHubEnterpriseIntegrationProvider,
+    _api_base_url,
+    get_user_info,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -22,11 +24,45 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+
+
+class ApiBaseUrlTest(TestCase):
+    def test_ghes_url(self) -> None:
+        assert _api_base_url("github.example.org") == "https://github.example.org/api/v3"
+
+    def test_ghe_cloud_url(self) -> None:
+        assert _api_base_url("acme-corp.ghe.com") == "https://api.acme-corp.ghe.com"
+
+    @responses.activate
+    def test_get_user_info_ghe_cloud_calls_api_subdomain(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.acme-corp.ghe.com/user",
+            json={"login": "testuser", "id": 1},
+            status=200,
+        )
+        result = get_user_info("acme-corp.ghe.com", "mytoken")
+        assert result == {"login": "testuser", "id": 1}
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://api.acme-corp.ghe.com/user"
+
+    @responses.activate
+    def test_get_user_info_ghes_calls_api_v3(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://github.example.org/api/v3/user",
+            json={"login": "testuser", "id": 1},
+            status=200,
+        )
+        result = get_user_info("github.example.org", "mytoken")
+        assert result == {"login": "testuser", "id": 1}
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://github.example.org/api/v3/user"
 
 
 @control_silo_test

@@ -25,6 +25,7 @@ class NotificationCategory(StrEnum):
     SEER = "seer"
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
+    SENTRY_APP = "sentry-app"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -68,6 +69,9 @@ class NotificationSource(StrEnum):
     SEER_AGENT_RESPONSE = "seer-agent-response"
     SEER_AGENT_ERROR = "seer-agent-error"
 
+    # SENTRY_APP
+    SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
+
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
     NotificationCategory.DEBUG: [
@@ -101,6 +105,9 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+    ],
+    NotificationCategory.SENTRY_APP: [
+        NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
 }
 

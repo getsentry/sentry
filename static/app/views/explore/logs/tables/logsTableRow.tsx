@@ -199,7 +199,7 @@ export const LogRowContent = memo(function LogRowContent({
   }
 
   const analyticsPageSource = useLogsAnalyticsPageSource();
-  const [_expanded, setExpanded] = useState<boolean>(false);
+  const [_expanded, setExpanded] = useState(false);
   const expanded = isExpanded ?? _expanded;
   const isPseudoRow = isPseudoLogResponseItem(dataRow);
 
@@ -346,7 +346,7 @@ export const LogRowContent = memo(function LogRowContent({
                 aria-label={t('Toggle trace details')}
                 aria-expanded={expanded}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 onClick={() => toggleExpanded()}
               />
             ) : (
@@ -614,7 +614,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
   return (
     <LogDetailTableActionsButtonBar>
       <Button
-        priority="transparent"
+        variant="transparent"
         size="sm"
         icon={<IconAdd />}
         onClick={() => {
@@ -627,7 +627,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
         {t('Add to filter')}
       </Button>
       <Button
-        priority="transparent"
+        variant="transparent"
         size="sm"
         icon={<IconSubtract />}
         onClick={() => {
@@ -685,7 +685,7 @@ function LogRowDetailsActions({
       )}
       <LogDetailTableActionsButtonBar>
         <Button
-          priority="transparent"
+          variant="transparent"
           size="sm"
           icon={<IconJson />}
           onClick={betterCopyToClipboard}

@@ -45,7 +45,7 @@ export function Toolbar({
               size="xs"
               aria-label={t('Drag Widget')}
               icon={<IconGrabbable />}
-              priority="transparent"
+              variant="transparent"
               className={DRAG_HANDLE_CLASS}
               disabled={disableDrag}
             />
@@ -61,7 +61,7 @@ export function Toolbar({
               data-test-id="widget-edit"
               aria-label={t('Edit Widget')}
               size="xs"
-              priority="transparent"
+              variant="transparent"
               onClick={onEdit}
               icon={<IconEdit />}
               disabled={disableEdit}
@@ -77,7 +77,7 @@ export function Toolbar({
             <Button
               aria-label={t('Duplicate Widget')}
               size="xs"
-              priority="transparent"
+              variant="transparent"
               onClick={onDuplicate}
               icon={<IconCopy />}
               disabled={disableDuplicate}
@@ -93,7 +93,7 @@ export function Toolbar({
             <Button
               data-test-id="widget-delete"
               aria-label={t('Delete Widget')}
-              priority="transparent"
+              variant="transparent"
               size="xs"
               onClick={onDelete}
               icon={<IconDelete />}

@@ -2,7 +2,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {
   StepType,
-  type BasePlatformOptions,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -26,7 +25,7 @@ Sentry.metrics().gauge("queue_size", 42.0)
 // Distribution metric - track a value distribution
 Sentry.metrics().distribution("response_time", 150.0)`;
 
-export const metrics: OnboardingConfig<BasePlatformOptions> = {
+export const metrics: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -47,7 +46,7 @@ export const metrics: OnboardingConfig<BasePlatformOptions> = {
     },
   ],
   configure: () => [],
-  verify: (params: DocsParams<BasePlatformOptions>) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [

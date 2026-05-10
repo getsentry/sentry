@@ -42,6 +42,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiError,
+    ApiPaginationTruncated,
     ApiRateLimitedError,
     UnknownHostError,
 )
@@ -207,6 +208,15 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
+    def request(self, *args: Any, **kwargs: Any):
+        credentials_set = kwargs.pop("credentials_set", None)
+        if credentials_set == "application":
+            if "headers" not in kwargs:
+                kwargs["headers"] = {}
+            kwargs["headers"]["X-Sentry-Credentials-Set"] = "application"
+
+        return super().request(*args, **kwargs)
+
     class AccessTokenData(TypedDict):
         access_token: str
         permissions: dict[str, str] | None
@@ -313,8 +323,12 @@ class GithubProxyClient(IntegrationProxyClient):
             "integration_id": getattr(self.integration, "id", "unknown"),
         }
 
+        credentials_set = prepared_request.headers.pop("X-Sentry-Credentials-Set", None)
         # Only certain routes are authenticated with JWTs....
-        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
+        if (
+            any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES)
+            or credentials_set == "application"
+        ):
             jwt = self._get_jwt()
             logger.info("token.jwt", extra=logger_extra)
             return jwt
@@ -407,7 +421,7 @@ class GitHubBaseClient(
     base_url = "https://api.github.com"
     integration_name = IntegrationProviderSlug.GITHUB.value
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
-    page_number_limit = 50  # With a default of 100 per page -> 5,000 items
+    page_number_limit = 200  # With a default of 100 per page -> 20,000 items
 
     def get_last_commits(self, repo: str, end_sha: str, per_page: int = 20) -> Sequence[Any]:
         """
@@ -642,26 +656,42 @@ class GitHubBaseClient(
 
         return should_count_error
 
-    def get_repos(self, page_number_limit: int | None = None) -> list[dict[str, Any]]:
+    def get_repos(
+        self,
+        page_number_limit: int | None = None,
+        raise_on_page_limit: bool = False,
+    ) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
+
+        When ``raise_on_page_limit`` is True, raises ``ApiPaginationTruncated`` if the
+        pagination loop exits because it hit the cap while there were still
+        more pages available.
         """
         with SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
             provider_key=self.integration_name,
             integration_id=self.integration.id,
             organization_id=self.organization_id,
-        ).capture():
-            return self._get_with_pagination(
-                "/installation/repositories",
-                response_key="repositories",
-                page_number_limit=page_number_limit,
-                api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
-            )
+        ).capture() as lifecycle:
+            try:
+                return self._get_with_pagination(
+                    "/installation/repositories",
+                    response_key="repositories",
+                    page_number_limit=page_number_limit,
+                    api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
+                    raise_on_page_limit=raise_on_page_limit,
+                )
+            except ApiPaginationTruncated as e:
+                # Hitting the pagination cap is an expected signal.
+                # Record as halt so the lifecycle doesn't create a
+                # Sentry every time this is called.
+                lifecycle.record_halt(e, create_issue=False)
+                raise
 
     def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
         """
@@ -718,6 +748,7 @@ class GitHubBaseClient(
         response_key: str | None = None,
         page_number_limit: int | None = None,
         api_request_type: GitHubApiRequestType | None = None,
+        raise_on_page_limit: bool = False,
     ) -> list[Any]:
         """
         Github uses the Link header to provide pagination links. Github
@@ -726,7 +757,11 @@ class GitHubBaseClient(
         https://docs.github.com/en/rest/guides/traversing-with-pagination
 
         Use response_key when the API stores the results within a key.
-        For instance, the repositories API returns the list of repos under the "repositories" key
+        For instance, the repositories API returns the list of repos under the "repositories" key.
+
+        When ``raise_on_page_limit`` is True and the loop exits because it hit
+        ``page_number_limit`` while Github was still advertising a next page,
+        raises ``ApiPaginationTruncated`` with the partial result attached.
         """
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
@@ -754,6 +789,12 @@ class GitHubBaseClient(
 
                 next_link = get_next_link(resp)
                 page_number += 1
+
+            if next_link and raise_on_page_limit:
+                raise ApiPaginationTruncated(
+                    output,
+                    f"pagination stopped at page_number_limit={page_number_limit}",
+                )
             return output
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:

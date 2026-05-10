@@ -112,7 +112,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
         <StoryTypesTableDefinitionCell colSpan={2}>
           <Flex align="center">
             <Button
-              priority="transparent"
+              variant="transparent"
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
               onClick={() => {
                 props.node.expanded = !expanded;

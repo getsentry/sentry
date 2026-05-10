@@ -87,11 +87,13 @@ STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
+ARRAY = AttributeKey.TYPE_ARRAY
 TYPE_TO_STRING_MAP = {
     STRING: "string",
     BOOLEAN: "boolean",
     DOUBLE: "double",
     INT: "integer",
+    ARRAY: "array",
 }
 
 # TODO: we need a datetime type

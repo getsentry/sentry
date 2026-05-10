@@ -20,7 +20,8 @@ export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
   const selectedProjects = getSelectedProjectList(projects, allProjects);
   const project = selectedProject ?? selectedProjects[0]; // By default, use the first selected project if no project is provided
 
-  const {preference, codeMappingRepos} = useProjectSeerPreferences(project!);
+  const {data} = useProjectSeerPreferences(project!);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
   const hasConfiguredRepos = Boolean(
     preference?.repositories?.length || codeMappingRepos?.length
   );

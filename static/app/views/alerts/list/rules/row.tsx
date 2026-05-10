@@ -59,7 +59,7 @@ export function RuleListRow({
   hasMetricAlerts,
 }: Props) {
   const {teams: userTeams} = useUserTeams();
-  const [assignee, setAssignee] = useState<string>('');
+  const [assignee, setAssignee] = useState('');
 
   const isUptime = rule.type === CombinedAlertType.UPTIME;
   const isCron = rule.type === CombinedAlertType.CRONS;
@@ -339,7 +339,7 @@ export function RuleListRow({
                       assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
                     }
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                   >
                     {avatarElement}
                   </OverlayTrigger.Button>

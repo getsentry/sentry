@@ -12,9 +12,9 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import (
-    StatusCheckErrorType,
     create_preprod_status_check_task,
 )
+from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories

@@ -187,7 +187,8 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
-  const {preference} = useProjectSeerPreferences(project);
+  const {data} = useProjectSeerPreferences(project);
+  const preference = data?.preference;
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
@@ -225,9 +226,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     [project.slug, queryClient, organization.slug]
   );
 
-  const hasCursorIntegration = Boolean(
-    organization.features.includes('integrations-cursor') && cursorIntegration
-  );
+  const hasCursorIntegration = Boolean(cursorIntegration);
 
   const hasClaudeIntegration = Boolean(
     organization.features.includes('integrations-claude-code') && claudeIntegration
@@ -556,7 +555,7 @@ function ProjectSeer({
       <Flex justify="center" marginTop="lg">
         <LinkButton
           to={`/settings/${organization.slug}/seer/onboarding/`}
-          priority="primary"
+          variant="primary"
         >
           {t('Set up my other projects')}
         </LinkButton>

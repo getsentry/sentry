@@ -64,7 +64,7 @@ export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
     'layout.casing': props.initialData?.layout.casing ?? 'default',
   };
 
-  const [data, setData] = useState<Data>(initialData);
+  const [data, setData] = useState(initialData);
 
   function isFormInvalid() {
     return !data.name || !data.url;
@@ -196,7 +196,7 @@ export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               size="xs"
               tooltipProps={{title: t('Clear password')}}
               aria-label={t('Clear password')}
-              priority="transparent"
+              variant="transparent"
             />
           )}
         </FieldGroup>
@@ -245,7 +245,7 @@ export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
       <Footer>
         <Button
           onClick={handleSubmit}
-          priority="primary"
+          variant="primary"
           disabled={isFormInvalid() || formUnchanged()}
         >
           {t('Save changes')}

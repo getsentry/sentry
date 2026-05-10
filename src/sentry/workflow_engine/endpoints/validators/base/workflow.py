@@ -83,6 +83,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
     action_filters = serializers.ListField(
+        child=serializers.DictField(),
         required=False,
         help_text=ACTION_FILTERS_HELP_TEXT,
     )
@@ -350,7 +351,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
-                config=validated_value["config"],
+                config=validated_value.get("config", {}),
                 organization_id=organization.id,
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,

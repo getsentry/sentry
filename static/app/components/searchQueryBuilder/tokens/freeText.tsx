@@ -122,6 +122,8 @@ function countPreviousItemsOfType({
   }
   const currentIndex = itemKeys.indexOf(focusedKey);
 
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
       return count + 1;
@@ -269,6 +271,8 @@ function SearchQueryBuilderInputInternal({
     searchSource,
     recentSearches,
     currentInputValueRef,
+    consumeReopenDropdownOnQueryClear,
+    reopenDropdownOnQueryClear,
   } = useSearchQueryBuilder();
 
   const resetInputValue = useCallback(() => {
@@ -288,6 +292,15 @@ function SearchQueryBuilderInputInternal({
     });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
+  const shouldReopenDropdownOnFocus =
+    reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
+
+  useEffect(() => {
+    if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
+      consumeReopenDropdownOnQueryClear();
+      setIsOpen(true);
+    }
+  }, [shouldReopenDropdownOnFocus, consumeReopenDropdownOnQueryClear]);
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -660,6 +673,13 @@ function SearchQueryBuilderInputInternal({
         onKeyDown={onKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
+        onSearchQueryClear={() => setInputValue('')}
+        openOnFocus={shouldReopenDropdownOnFocus}
+        onFocus={() => {
+          if (shouldReopenDropdownOnFocus) {
+            consumeReopenDropdownOnQueryClear();
+          }
+        }}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         maxOptions={maxOptions}
         onPaste={onPaste}

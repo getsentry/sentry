@@ -61,7 +61,7 @@ describe('Hotkey', () => {
 
     it('renders shift as ⇧ icon', () => {
       render(<Hotkey value="shift+up" />);
-      expect(screen.getByLabelText('\u21e7')).toBeInTheDocument();
+      expect(screen.getByLabelText('\u21E7')).toBeInTheDocument();
       expect(screen.getByLabelText('\u2191')).toBeInTheDocument();
     });
   });
@@ -86,7 +86,7 @@ describe('Hotkey', () => {
     it('uses first combo from array', () => {
       render(<Hotkey value={['command+backspace', 'delete']} />);
       expect(screen.getByLabelText('\u2318')).toBeInTheDocument();
-      expect(screen.getByText('\u232b')).toBeInTheDocument();
+      expect(screen.getByText('\u232B')).toBeInTheDocument();
     });
   });
 

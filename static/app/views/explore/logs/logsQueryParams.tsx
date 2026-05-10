@@ -54,6 +54,7 @@ export function isDefaultFields(location: Location): boolean {
 }
 
 export function getReadableQueryParamsFromLocation(
+  defaultVisible: boolean,
   location: Location
 ): ReadableQueryParams {
   const mode = getModeFromLocation(location, LOGS_MODE_KEY);
@@ -65,7 +66,7 @@ export function getReadableQueryParamsFromLocation(
     getSortBysFromLocation(location, LOGS_SORT_BYS_KEY, fields) ?? defaultSortBys(fields);
 
   const aggregateCursor = getCursorFromLocation(location, LOGS_AGGREGATE_CURSOR_KEY);
-  const aggregateFields = getLogsAggregateFieldsFromLocation(location);
+  const aggregateFields = getLogsAggregateFieldsFromLocation(defaultVisible, location);
   const aggregateSortBys =
     getAggregateSortBysFromLocation(
       location,
@@ -176,9 +177,11 @@ function defaultSortBys(fields: string[]) {
   return [];
 }
 
-export function defaultVisualizes() {
+export function defaultVisualizes(defaultVisible: boolean) {
   return [
-    new VisualizeFunction(`${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`),
+    new VisualizeFunction(`${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`, {
+      visible: defaultVisible,
+    }),
   ];
 }
 
@@ -198,7 +201,10 @@ function getVisualizesFromLocation(location: Location): Visualize[] | null {
   return [new VisualizeFunction(`${aggregateFn}(${aggregateParam})`)];
 }
 
-function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[] {
+function getLogsAggregateFieldsFromLocation(
+  defaultVisible: boolean,
+  location: Location
+): AggregateField[] {
   const aggregateFields = getAggregateFieldsFromLocation(
     location,
     LOGS_AGGREGATE_FIELD_KEY
@@ -223,7 +229,7 @@ function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[
     }
 
     if (!hasVisualize) {
-      aggregateFields.push(...defaultVisualizes());
+      aggregateFields.push(...defaultVisualizes(defaultVisible));
     }
 
     return aggregateFields;
@@ -233,7 +239,7 @@ function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[
   // needed for re-ordering columns in aggregate mode
   return [
     ...(getGroupBysFromLocation(location, LOGS_GROUP_BY_KEY) ?? defaultGroupBys()),
-    ...(getVisualizesFromLocation(location) ?? defaultVisualizes()),
+    ...(getVisualizesFromLocation(location) ?? defaultVisualizes(defaultVisible)),
   ];
 }
 

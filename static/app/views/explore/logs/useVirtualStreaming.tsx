@@ -3,7 +3,7 @@ import {logger} from '@sentry/react';
 import type {InfiniteData} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
-import type {ApiResult} from 'sentry/api';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {
@@ -21,7 +21,7 @@ import type {
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
 /**
  * Virtual Streaming
  *
@@ -56,7 +56,7 @@ export function useVirtualStreaming({
   data,
   highFidelity,
 }: {
-  data: InfiniteData<ApiResult<EventsLogsResult>> | undefined;
+  data: InfiniteData<ApiResponse<EventsLogsResult>> | undefined;
   highFidelity?: boolean;
 }) {
   const organization = useOrganization();
@@ -67,11 +67,12 @@ export function useVirtualStreaming({
   const refreshInterval = useLogsRefreshInterval();
   const rafOn = useRef(false);
   const [virtualTimestamp, setVirtualTimestamp] = useState<number | undefined>(undefined);
-  const logsQueryKey = useLogsQueryKeyWithInfinite({
+  const {infiniteApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: false,
     highFidelity,
   });
+  const logsQueryKey = infiniteApiOptions.queryKey;
   const warnRef = useRef(() => {});
   const hasWarnedRef = useRef(false);
   const queryKeyString = JSON.stringify(logsQueryKey);
@@ -95,8 +96,8 @@ export function useVirtualStreaming({
       return;
     }
 
-    const firstPageWithData = data.pages.find(page => page?.[0]?.data?.length > 0);
-    const pageData = firstPageWithData?.[0]?.data;
+    const firstPageWithData = data.pages.find(page => (page.json?.data?.length ?? 0) > 0);
+    const pageData = firstPageWithData?.json?.data;
 
     if (!pageData || pageData.length === 0) {
       return;
@@ -200,7 +201,7 @@ export function useVirtualStreaming({
     }
 
     const latestPage = data.pages[data.pages.length - 1];
-    const latestPageData = latestPage?.[0]?.data;
+    const latestPageData = latestPage?.json?.data;
     const rawTimestamp = latestPageData?.[0]?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
     if (!rawTimestamp) {
@@ -222,9 +223,9 @@ export function useVirtualStreaming({
       'No most recent page data timestamp found, skipping virtual streaming update',
       {
         logId:
-          data?.pages?.[data.pages.length - 1]?.[0]?.data?.[0]?.[OurLogKnownFieldKey.ID],
+          data?.pages?.[data.pages.length - 1]?.json?.data?.[0]?.[OurLogKnownFieldKey.ID],
         traceId:
-          data?.pages?.[data.pages.length - 1]?.[0]?.data?.[0]?.[
+          data?.pages?.[data.pages.length - 1]?.json?.data?.[0]?.[
             OurLogKnownFieldKey.TRACE_ID
           ],
         organization: organization.slug,

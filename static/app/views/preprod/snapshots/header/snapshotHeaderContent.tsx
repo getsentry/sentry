@@ -1,147 +1,146 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {Global, css} from '@emotion/react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {
-  IconCommit,
-  IconPullRequest,
-  IconSliders,
-  IconShow,
-  IconStack,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Theme} from 'sentry/utils/theme';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
-interface VcsItemConfig {
-  icon: React.ComponentType<SVGIconProps>;
-  key: string;
-  label: string;
-  href?: string | null;
-  monospace?: boolean;
-  requiresHref?: boolean;
-}
+const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
+
+const topBarShrinkOverride = css`
+  *:has(> [${TITLE_MARKER_ATTR}]) {
+    flex: 1;
+    min-width: 0;
+  }
+  *:has(> [${TITLE_MARKER_ATTR}]) + * {
+    flex-shrink: 0;
+  }
+`;
 
 interface SnapshotHeaderContentProps {
   data: SnapshotDetailsApiResponse;
-  isSoloView: boolean;
-  onToggleView: () => void;
 }
 
-export function SnapshotHeaderContent({
-  data,
-  isSoloView,
-  onToggleView,
-}: SnapshotHeaderContentProps) {
-  const {vcs_info} = data;
+export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
+  const organization = useOrganization();
+  const {vcs_info, app_id: appId} = data;
   const shortSha = vcs_info.head_sha?.slice(0, 7);
+  const project = ProjectsStore.getById(data.project_id);
+  const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
+  const prUrl = getPrUrl(vcs_info);
+  const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
 
-  const vcsItems: VcsItemConfig[] = [
-    {
-      key: 'pr',
-      icon: IconPullRequest,
-      label: vcs_info.pr_number ? `#${vcs_info.pr_number}` : '',
-      href: getPrUrl(vcs_info),
-      requiresHref: true,
-    },
-    {
-      key: 'sha',
-      icon: IconCommit,
-      label: shortSha ?? '',
-      href: getShaUrl(vcs_info, vcs_info.head_sha),
-      monospace: true,
-      requiresHref: true,
-    },
-    {
-      key: 'branch',
-      icon: IconStack,
-      label: vcs_info.head_ref ?? '',
-      href: getBranchUrl(vcs_info, vcs_info.head_ref),
-    },
-  ].filter(item => item.label && (!item.requiresHref || item.href));
+  function renderVcsRef() {
+    if (vcs_info.pr_number && prUrl) {
+      return (
+        <Flex align="center" gap="xs" flexShrink={0}>
+          <IconPullRequest size="xs" />
+          <ExternalLink href={prUrl}>
+            <Text size="sm" variant="accent" wrap="nowrap">
+              #{vcs_info.pr_number}
+              {vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}
+            </Text>
+          </ExternalLink>
+        </Flex>
+      );
+    }
+
+    if (vcs_info.head_ref) {
+      const branchLabel = branchUrl ? (
+        <ExternalLink href={branchUrl}>
+          <Text size="sm" variant="accent" wrap="nowrap">
+            {vcs_info.head_ref}
+          </Text>
+        </ExternalLink>
+      ) : (
+        <Text size="sm" wrap="nowrap">
+          {vcs_info.head_ref}
+        </Text>
+      );
+
+      return (
+        <Flex align="center" gap="xs" flexShrink={0}>
+          <IconStack size="xs" />
+          {branchLabel}
+        </Flex>
+      );
+    }
+
+    return null;
+  }
 
   return (
-    <Layout.HeaderContent>
-      <Layout.Title>{t('Snapshot')}</Layout.Title>
+    <Layout.HeaderContent unified>
+      <Layout.Title>
+        <Global styles={topBarShrinkOverride} />
+        <Flex
+          align="center"
+          gap="md"
+          minWidth={0}
+          overflow="hidden"
+          {...{[TITLE_MARKER_ATTR]: ''}}
+        >
+          {t('Snapshots')}
+          <Container display={{'2xs': 'none', xs: 'flex'}}>
+            <PageHeadingQuestionTooltip
+              docsUrl="https://docs.sentry.io/product/preprod/snapshots/"
+              title={t('Catch visual regressions before they reach users.')}
+            />
+          </Container>
 
-      {(vcsItems.length > 0 ||
-        (data.diff_threshold !== null && data.diff_threshold !== undefined)) && (
-        <Flex align="center" gap="lg" wrap="wrap">
-          {vcsItems.map(item => (
-            <Flex align="center" gap="xs" key={item.key}>
-              <item.icon size="xs" />
-              {item.href ? (
-                <ExternalLink href={item.href}>
-                  <Text size="sm" variant="accent" monospace={item.monospace}>
-                    {item.label}
+          {project && (
+            <Container display={{'2xs': 'none', lg: 'block'}}>
+              <Text as="div" size="sm">
+                <IdBadge project={project} avatarSize={16} />
+              </Text>
+            </Container>
+          )}
+
+          <Flex
+            align="center"
+            gap="md"
+            flexShrink={1}
+            minWidth={0}
+            overflow="hidden"
+            display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+          >
+            {shortSha && shaUrl && (
+              <Flex align="center" gap="xs" flexShrink={0}>
+                <IconCommit size="xs" />
+                <ExternalLink href={shaUrl}>
+                  <Text size="sm" variant="accent" monospace wrap="nowrap">
+                    {shortSha}
                   </Text>
                 </ExternalLink>
-              ) : (
-                <Text size="sm">{item.label}</Text>
-              )}
-            </Flex>
-          ))}
-          {data.diff_threshold !== null && data.diff_threshold !== undefined && (
-            <Flex align="center" gap="xs">
-              <IconSliders size="xs" />
-              <Text size="sm" variant="muted">
-                {t(
-                  'Specified minimum diff: %s%%',
-                  parseFloat((data.diff_threshold * 100).toPrecision(10))
-                )}
-              </Text>
-            </Flex>
-          )}
-        </Flex>
-      )}
+              </Flex>
+            )}
 
-      {data.comparison_type === 'diff' && data.base_artifact_id && (
-        <Flex align="center" gap="sm" padding="sm 0">
-          <Text size="sm" variant="muted" bold>
-            {t('Comparing:')}
-          </Text>
-          <PillButton
-            size="xs"
-            icon={<IconShow variant={isSoloView ? undefined : 'accent'} />}
-            priority={isSoloView ? 'primary' : 'default'}
-            onClick={onToggleView}
-            aria-pressed={isSoloView}
-          >
-            {t('Head')}
-          </PillButton>
-          <Text size="sm" variant="muted" bold>
-            {t('vs')}
-          </Text>
-          <PillLinkButton
-            size="xs"
-            icon={<IconShow variant="accent" />}
-            priority="default"
-            to={normalizeUrl(`/preprod/snapshots/${data.base_artifact_id}/`)}
-          >
-            {t('Base')}
-          </PillLinkButton>
+            {renderVcsRef()}
+
+            {appId && (
+              <Flex align="center" gap="xs" minWidth={0}>
+                <IconCode size="xs" style={{flexShrink: 0}} />
+                <Link
+                  to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
+                >
+                  <Text size="sm" variant="accent" monospace ellipsis>
+                    {appId}
+                  </Text>
+                </Link>
+              </Flex>
+            )}
+          </Flex>
         </Flex>
-      )}
+      </Layout.Title>
     </Layout.HeaderContent>
   );
 }
-
-const pillStyle = (p: {theme: Theme}) => css`
-  border-radius: ${p.theme.radius.full};
-`;
-
-const PillButton = styled(Button)`
-  ${pillStyle}
-`;
-
-const PillLinkButton = styled(LinkButton)`
-  ${pillStyle}
-`;
