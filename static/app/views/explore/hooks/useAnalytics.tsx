@@ -21,7 +21,7 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
@@ -586,7 +586,7 @@ export function useLogAnalytics({
   aggregateSortBys: readonly Sort[];
   interval: string;
   isTopN: boolean;
-  logsAggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
+  logsAggregatesTableResult: LogsAggregatesTableResult;
   logsTableResult: UseInfiniteLogsQueryResult;
   logsTimeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   mode: Mode;

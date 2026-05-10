@@ -12,6 +12,13 @@ import {
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
+// TODO: covers the legacy (non-EAP) path. useTransactionSummaryEAP now
+// always returns true after the flag graduated; mock back to false until
+// the legacy paths are deleted.
+jest.mock('sentry/views/performance/eap/useTransactionSummaryEAP', () => ({
+  useTransactionSummaryEAP: () => false,
+}));
+
 const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
   return render(<TransactionSummaryLayout />, {
     organization: data.organization,
@@ -214,40 +221,5 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
     expect(router.location.query).toEqual(
       expect.objectContaining({showTransactions: 'p50'})
     );
-  });
-
-  it('should render legacy component when EAP feature is not enabled', async () => {
-    const data = initializeData();
-
-    renderWithLayout(data);
-
-    expect(await screen.findByText('event id')).toBeInTheDocument();
-    expect(screen.queryByText('Span ID')).not.toBeInTheDocument();
-  });
-
-  it('should render EAP component when performance-transaction-summary-eap feature is enabled', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [{span_id: 'abc123'}],
-        meta: {
-          fields: {},
-        },
-      },
-      match: [(_, options) => options.query?.field?.includes('span_id')],
-    });
-
-    const data = initializeData({
-      features: ['performance-view', 'performance-transaction-summary-eap'],
-    });
-
-    renderWithLayout(data);
-
-    expect(await screen.findByText('Span ID')).toBeInTheDocument();
-    expect(screen.queryByText('event id')).not.toBeInTheDocument();
   });
 });

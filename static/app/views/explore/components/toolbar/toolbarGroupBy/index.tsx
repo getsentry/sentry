@@ -14,6 +14,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {fzf} from 'sentry/utils/search/fzf';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -96,14 +97,20 @@ export function ToolbarGroupByDropdown({
               option.textValue ?? (typeof option.label === 'string' ? option.label : '');
             const normalizedText = text.toLowerCase();
             const normalizedSearch = search.toLowerCase();
+            // Keep Group By's existing substring filtering behavior while using fzf
+            // only to rank the matched options.
             if (!normalizedText.includes(normalizedSearch)) {
               return {score: 0};
             }
-            const isExact = normalizedText === normalizedSearch;
+            const result = fzf(text, normalizedSearch, false);
+            if (result.end === -1) {
+              return {score: 0};
+            }
             const isKnown =
               getFieldDefinition(String(option.value), fieldDefinitionType) !== null;
-            // exact+known=4, exact+unknown=3, partial+known=2, partial+unknown=1
-            return {score: (isExact ? 2 : 0) + (isKnown ? 2 : 1)};
+            const prefixBoost =
+              result.start === 0 && result.end === normalizedSearch.length ? 8 : 0;
+            return {score: Math.max(1, result.score) + prefixBoost + (isKnown ? 2 : 1)};
           },
         }}
         trigger={triggerProps => (

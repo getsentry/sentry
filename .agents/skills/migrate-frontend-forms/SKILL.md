@@ -483,7 +483,7 @@ function SlugForm({project}: {project: Project}) {
       </Alert>
 
       <Flex gap="sm" justify="end">
-        <Button onClick={() => form.reset()}>Cancel</Button>
+        <form.ResetButton>Reset</form.ResetButton>
         <form.SubmitButton>Save</form.SubmitButton>
       </Flex>
     </form.AppForm>

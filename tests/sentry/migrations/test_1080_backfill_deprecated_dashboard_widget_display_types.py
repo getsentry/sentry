@@ -1,6 +1,10 @@
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetDisplayTypes
 from sentry.testutils.cases import TestMigrations
 
+# Display type IDs that existed before the 1080 backfill removed them.
+_LEGACY_STACKED_AREA_CHART = 2
+_LEGACY_TOP_N = 7
+
 
 class BackfillDeprecatedDashboardWidgetDisplayTypesTest(TestMigrations):
     migrate_from = "1079_purge_scm_legacy_org_options"
@@ -15,28 +19,28 @@ class BackfillDeprecatedDashboardWidgetDisplayTypesTest(TestMigrations):
         self.top_n_null_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="top_n null limit",
-            display_type=DashboardWidgetDisplayTypes.TOP_N,
+            display_type=_LEGACY_TOP_N,
             order=0,
             limit=None,
         )
         self.top_n_explicit_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="top_n explicit limit",
-            display_type=DashboardWidgetDisplayTypes.TOP_N,
+            display_type=_LEGACY_TOP_N,
             order=1,
             limit=3,
         )
         self.stacked_area_null_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="stacked_area null limit",
-            display_type=DashboardWidgetDisplayTypes.STACKED_AREA_CHART,
+            display_type=_LEGACY_STACKED_AREA_CHART,
             order=2,
             limit=None,
         )
         self.stacked_area_explicit_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="stacked_area explicit limit",
-            display_type=DashboardWidgetDisplayTypes.STACKED_AREA_CHART,
+            display_type=_LEGACY_STACKED_AREA_CHART,
             order=3,
             limit=8,
         )

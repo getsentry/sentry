@@ -564,7 +564,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             </SeerContent>
           )}
           {openForm && (
-            <SeerFooter>
+            <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
                 icon={<IconMegaphone />}

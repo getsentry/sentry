@@ -402,8 +402,16 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
 
         <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
+          {hasPrebuiltDashboards && (
+            <CMDKAction
+              display={{label: t('All Dashboards')}}
+              to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
+            />
+          )}
           <CMDKAction
-            display={{label: t('All Dashboards')}}
+            display={{
+              label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
+            }}
             to={`${prefix}/dashboards/`}
           />
           {hasPrebuiltDashboards && (
@@ -500,16 +508,13 @@ export function GlobalCommandPaletteActions() {
               display={{label: t('My Monitors')}}
               to={`${prefix}/monitors/my-monitors/`}
             />
+            <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
             <CMDKAction
-              display={{label: t('Errors')}}
-              to={`${prefix}/monitors/errors/`}
-            />
-            <CMDKAction
-              display={{label: t('Metrics')}}
+              display={{label: t('Metric')}}
               to={`${prefix}/monitors/metrics/`}
             />
             <CMDKAction
-              display={{label: t('Crons')}}
+              display={{label: t('Cron')}}
               keywords={[t('jobs'), t('cron jobs')]}
               to={`${prefix}/monitors/crons/`}
             />
@@ -522,7 +527,7 @@ export function GlobalCommandPaletteActions() {
             )}
             {organization.features.includes('preprod-size-monitors-frontend') && (
               <CMDKAction
-                display={{label: t('Mobile Builds')}}
+                display={{label: t('Mobile Build')}}
                 to={`${prefix}/monitors/mobile-builds/`}
               />
             )}
@@ -993,6 +998,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction display={{label: t('Change Color Theme'), icon: <IconSettings />}}>
           <CMDKAction
             display={{label: t('System')}}
+            keywords={['default theme', 'system theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
@@ -1001,6 +1007,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Light')}}
+            keywords={['light mode', 'light theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
@@ -1009,6 +1016,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Dark')}}
+            keywords={['dark mode', 'dark theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});

@@ -36,7 +36,12 @@ from sentry.shared_integrations.exceptions import (
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
-from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionInvocation,
+    DetectorPriorityLevel,
+    WorkflowEventData,
+    WorkflowId,
+)
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -202,12 +207,14 @@ class BaseIssueAlertHandler(ABC):
         action: Action,
         detector: Detector,
         event_data: WorkflowEventData,
+        workflow_id: WorkflowId | None,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
         :param action: Action
         :param detector: Detector
         :param event_data: WorkflowEventData
+        :param workflow_id: The workflow ID that triggered this action
         :return: Rule instance
         """
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
@@ -215,8 +222,6 @@ class BaseIssueAlertHandler(ABC):
         data: RuleData = {
             "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
         }
-
-        workflow_id = getattr(action, "workflow_id", None)
         rule_id = None
 
         label = None
@@ -343,7 +348,10 @@ class BaseIssueAlertHandler(ABC):
         """
         # Create a rule
         rule = cls.create_rule_instance_from_action(
-            invocation.action, invocation.detector, invocation.event_data
+            invocation.action,
+            invocation.detector,
+            invocation.event_data,
+            workflow_id=invocation.workflow_id,
         )
 
         logger.info(

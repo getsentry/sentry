@@ -2,8 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebugQuery,
@@ -20,6 +20,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function IssueSourceMapsDebuggerAction() {
+  const {openModal} = useModal();
+
   const {frame, event, frameIndex} = useStackTraceFrameContext();
   const {exceptionIndex, hideSourceMapDebugger, project} = useStackTraceContext();
   const organization = useOrganization({allowNull: true});

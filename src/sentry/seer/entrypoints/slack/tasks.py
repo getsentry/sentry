@@ -4,13 +4,13 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
-from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
+from slack_sdk.models.blocks import MarkdownBlock
 from taskbroker_client.retry import Retry
 
 from sentry import analytics
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.seer.entrypoints.metrics import (
@@ -31,6 +31,7 @@ from sentry.seer.entrypoints.slack.mention import (
     extract_slack_message_links,
     find_message_in_attachments,
 )
+from sentry.seer.entrypoints.slack.messaging import send_halt_message
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
@@ -121,9 +122,12 @@ def process_mention_for_slack(
         if not user:
             lifecycle.record_halt(ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
             # In a thread, show the prompt in the thread; top-level, show in the channel.
-            _send_link_identity_prompt(
-                entrypoint=entrypoint,
+            send_halt_message(
+                integration=entrypoint.integration,
+                slack_user_id=entrypoint.slack_user_id,
+                channel_id=entrypoint.channel_id,
                 thread_ts=thread_ts if thread_ts else "",
+                halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED,
             )
             entrypoint.install.set_thread_status(
                 channel_id=channel_id,
@@ -287,47 +291,6 @@ def _count_linked_users(
         }
     )
     return len(identities)
-
-
-def _send_link_identity_prompt(
-    *,
-    entrypoint: SlackAgentEntrypoint,
-    thread_ts: str,
-) -> None:
-    """Send an ephemeral message prompting the user to link their Slack identity to Sentry."""
-    associate_url = build_linking_url(
-        integration=entrypoint.integration,
-        slack_id=entrypoint.slack_user_id,
-        channel_id=entrypoint.channel_id,
-        response_url=None,
-    )
-    renderable = _build_link_identity_renderable(associate_url)
-    try:
-        entrypoint.install.send_threaded_ephemeral_message(
-            slack_user_id=entrypoint.slack_user_id,
-            channel_id=entrypoint.channel_id,
-            renderable=renderable,
-            thread_ts=thread_ts,
-        )
-    except Exception as e:
-        _logger.warning("seer.slack.process_mention.send_link_identity_prompt_failed", exc_info=e)
-
-
-def _build_link_identity_renderable(associate_url: str) -> SlackRenderable:
-    """Build a SlackRenderable prompting the user to link their Slack identity to Sentry."""
-    message = "Link your Slack identity to Sentry to use Seer Agent in Slack."
-    return SlackRenderable(
-        blocks=[
-            MarkdownBlock(text=message),
-            ActionsBlock(
-                elements=[
-                    LinkButtonElement(text="Link", url=associate_url),
-                    ButtonElement(text="Cancel", value="ignore"),
-                ]
-            ),
-        ],
-        text=message,
-    )
 
 
 def _send_not_org_member_message(
