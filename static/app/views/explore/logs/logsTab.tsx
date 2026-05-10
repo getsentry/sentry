@@ -298,6 +298,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
       aiQueryRunIdRef.current = aiQueryRunId;
       trackAiQueryOutcome({
         dataset: 'logs',
+        referrer: 'logs',
         resultCount: rawLogCounts.total.count,
         orgSlug: organization.slug,
         runId: aiQueryRunId,

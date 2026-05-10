@@ -456,6 +456,7 @@ function IssueListOverviewInner({
         if (aiQueryRunId !== null) {
           trackAiQueryOutcome({
             dataset: 'issues',
+            referrer: 'issues',
             resultCount: newQueryCount,
             orgSlug: organization.slug,
             runId: aiQueryRunId,

@@ -382,6 +382,7 @@ export class Results extends Component<Props, State> {
       if (aiQueryRunId !== null) {
         trackAiQueryOutcome({
           dataset: 'errors',
+          referrer: 'errors',
           resultCount: totals,
           orgSlug: organization.slug,
           runId: aiQueryRunId,

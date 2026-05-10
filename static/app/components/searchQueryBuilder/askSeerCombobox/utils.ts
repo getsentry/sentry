@@ -11,19 +11,21 @@ export const AI_QUERY_PARAM = 'aiQueryRunId';
 
 export function trackAiQueryOutcome({
   dataset,
+  referrer,
   resultCount,
   orgSlug,
   runId,
 }: {
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   orgSlug: string;
+  referrer: string;
   resultCount: number;
   runId: number;
 }) {
   const attributes = {
     dataset,
     outcome: resultCount > 0 ? 'has_results' : 'empty_results',
-    referrer: dataset,
+    referrer,
     org_slug: orgSlug,
     run_id: runId,
   };

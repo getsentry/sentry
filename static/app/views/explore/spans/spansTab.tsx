@@ -247,6 +247,7 @@ function SpanTabContentSectionInner({
       aiQueryRunIdRef.current = aiQueryRunId;
       trackAiQueryOutcome({
         dataset: 'spans',
+        referrer: 'spans',
         resultCount: rawSpanCounts.total.count,
         orgSlug: organization.slug,
         runId: aiQueryRunId,

@@ -147,6 +147,7 @@ function Graph({
       aiQueryRunIdRef.current = aiQueryRunId;
       trackAiQueryOutcome({
         dataset: 'tracemetrics',
+        referrer: 'tracemetrics',
         resultCount: rawMetricCounts.total.count,
         orgSlug: organization.slug,
         runId: aiQueryRunId,
