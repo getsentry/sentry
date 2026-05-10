@@ -453,7 +453,7 @@ function IssueListOverviewInner({
         const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
         const aiQueryParam = location.query[AI_QUERY_PARAM];
         const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-        if (aiQueryParam) {
+        if (aiQueryRunId !== null) {
           trackAiQueryOutcome({
             dataset: 'issues',
             resultCount: newQueryCount,

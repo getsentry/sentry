@@ -18,7 +18,7 @@ export function trackAiQueryOutcome({
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   orgSlug: string;
   resultCount: number;
-  runId: number | null;
+  runId: number;
 }) {
   const attributes = {
     dataset,

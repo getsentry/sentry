@@ -38,7 +38,10 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
+  AI_QUERY_PARAM,
+  trackAiQueryOutcome,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -373,6 +376,17 @@ export class Results extends Component<Props, State> {
         eventView.getEventsAPIPayload(location)
       );
       this.setState({totalValues: totals});
+
+      const aiQueryParam = location.query[AI_QUERY_PARAM];
+      const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'errors',
+          resultCount: totals,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+        });
+      }
     } catch (err) {
       Sentry.captureException(err);
     }

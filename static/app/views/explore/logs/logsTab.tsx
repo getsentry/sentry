@@ -294,7 +294,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
       aiQueryRunIdRef.current = null;
       return;
     }
-    if (aiQueryRunIdRef.current !== aiQueryRunId) {
+    if (aiQueryRunId !== null && aiQueryRunIdRef.current !== aiQueryRunId) {
       aiQueryRunIdRef.current = aiQueryRunId;
       trackAiQueryOutcome({
         dataset: 'logs',
