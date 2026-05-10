@@ -237,7 +237,6 @@ function SpanTabContentSectionInner({
   const aiQueryParam = location.query[AI_QUERY_PARAM];
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const aiQueryRunIdRef = useRef<number | null>(null);
-  // AI query analytics
   useEffect(() => {
     if (rawSpanCounts.total.isLoading || rawSpanCounts.total.count === null) {
       aiQueryRunIdRef.current = null;

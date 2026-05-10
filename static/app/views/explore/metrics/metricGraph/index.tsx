@@ -137,7 +137,6 @@ function Graph({
   const aiQueryParam = location.query[AI_QUERY_PARAM];
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const aiQueryRunIdRef = useRef<number | null>(null);
-  // AI query analytics
   useEffect(() => {
     if (rawMetricCounts.total.isLoading || rawMetricCounts.total.count === null) {
       aiQueryRunIdRef.current = null;

@@ -390,6 +390,8 @@ export class Results extends Component<Props, State> {
       }
     } catch (err) {
       Sentry.captureException(err);
+
+      // TODO: followup pr
     }
   }
 

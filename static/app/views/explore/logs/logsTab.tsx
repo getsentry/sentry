@@ -288,7 +288,6 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const aiQueryParam = location.query[AI_QUERY_PARAM];
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const aiQueryRunIdRef = useRef<number | null>(null);
-  // For AI query analytics
   useEffect(() => {
     if (rawLogCounts.total.isLoading || rawLogCounts.total.count === null) {
       aiQueryRunIdRef.current = null;

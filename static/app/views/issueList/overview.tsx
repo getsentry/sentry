@@ -451,17 +451,6 @@ function IssueListOverviewInner({
 
         const hits = resp.getResponseHeader('X-Hits');
         const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
-        const aiQueryParam = location.query[AI_QUERY_PARAM];
-        const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-        if (aiQueryRunId !== null) {
-          trackAiQueryOutcome({
-            dataset: 'issues',
-            referrer: 'issues',
-            resultCount: newQueryCount,
-            orgSlug: organization.slug,
-            runId: aiQueryRunId,
-          });
-        }
         const maxHits = resp.getResponseHeader('X-Max-Hits');
         const newQueryMaxCount =
           maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
@@ -473,6 +462,19 @@ function IssueListOverviewInner({
         setQueryCount(newQueryCount);
         setQueryMaxCount(newQueryMaxCount);
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
+
+        // AI query analytics
+        const aiQueryParam = location.query[AI_QUERY_PARAM];
+        const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
+        if (aiQueryRunId !== null) {
+          trackAiQueryOutcome({
+            dataset: 'issues',
+            referrer: 'issues',
+            resultCount: newQueryCount,
+            orgSlug: organization.slug,
+            runId: aiQueryRunId,
+          });
+        }
 
         // Need to wait for stats request to finish before saving to cache
         await fetchStats(data.map((group: BaseGroup) => group.id));
@@ -490,6 +492,20 @@ function IssueListOverviewInner({
           search_source: 'main_search',
           error: parseApiError(err),
         });
+
+        // TODO: followup pr
+        // const aiQueryParam = location.query[AI_QUERY_PARAM];
+        // const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
+        // if (aiQueryRunId !== null) {
+        //   trackAiQueryOutcome({
+        //     dataset: 'issues',
+        //     referrer: 'issues',
+        //     resultCount: 0,
+        //     outcome: 'error_on_load',
+        //     orgSlug: organization.slug,
+        //     runId: aiQueryRunId,
+        //   });
+        // }
 
         setError(parseApiError(err));
         setIssuesLoading(false);
