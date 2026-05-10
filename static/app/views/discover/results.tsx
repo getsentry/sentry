@@ -38,6 +38,7 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -458,7 +459,7 @@ export class Results extends Component<Props, State> {
     });
 
     // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
+    const searchQueryParams = omit(queryParams, ['cursor', AI_QUERY_PARAM]);
 
     navigate({
       pathname: location.pathname,

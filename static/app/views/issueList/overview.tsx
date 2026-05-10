@@ -639,7 +639,7 @@ function IssueListOverviewInner({
 
   const transitionTo = (newParams: Partial<EndpointParams> = {}) => {
     const queryData = {
-      ...omit(location.query, ['page', 'cursor']),
+      ...omit(location.query, ['page', 'cursor', AI_QUERY_PARAM]),
       referrer: 'issue-list',
       ...getEndpointParams(),
       ...newParams,
