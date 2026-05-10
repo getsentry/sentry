@@ -236,19 +236,15 @@ function SpanTabContentSectionInner({
 
   const aiQueryParam = location.query[AI_QUERY_PARAM];
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-  const hasLoggedResultCountRef = useRef(false);
+  const aiQueryRunIdRef = useRef<number | null>(null);
   // AI query analytics
   useEffect(() => {
-    if (!aiQueryParam) {
-      hasLoggedResultCountRef.current = false;
-      return;
-    }
     if (rawSpanCounts.total.isLoading || rawSpanCounts.total.count === null) {
-      hasLoggedResultCountRef.current = false;
+      aiQueryRunIdRef.current = null;
       return;
     }
-    if (!hasLoggedResultCountRef.current) {
-      hasLoggedResultCountRef.current = true;
+    if (aiQueryRunIdRef.current !== aiQueryRunId) {
+      aiQueryRunIdRef.current = aiQueryRunId;
       trackAiQueryOutcome({
         dataset: 'spans',
         resultCount: rawSpanCounts.total.count,

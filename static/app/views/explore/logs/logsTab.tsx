@@ -287,19 +287,15 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const location = useLocation();
   const aiQueryParam = location.query[AI_QUERY_PARAM];
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-  const hasLoggedResultCountRef = useRef(false);
-  // AI query analytics
+  const aiQueryRunIdRef = useRef<number | null>(null);
+  // For AI query analytics
   useEffect(() => {
-    if (!aiQueryParam) {
-      hasLoggedResultCountRef.current = false;
-      return;
-    }
     if (rawLogCounts.total.isLoading || rawLogCounts.total.count === null) {
-      hasLoggedResultCountRef.current = false;
+      aiQueryRunIdRef.current = null;
       return;
     }
-    if (!hasLoggedResultCountRef.current) {
-      hasLoggedResultCountRef.current = true;
+    if (aiQueryRunIdRef.current !== aiQueryRunId) {
+      aiQueryRunIdRef.current = aiQueryRunId;
       trackAiQueryOutcome({
         dataset: 'logs',
         resultCount: rawLogCounts.total.count,
