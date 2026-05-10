@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -148,21 +149,21 @@ function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) 
   return (
     <Fragment>
       <h5>{t('Installation & Interaction Data')}</h5>
-      <Flex gap="3xl">
+      <Flex>
         {app.datePublished ? (
-          <Container>
+          <StatsSection>
             <StatsHeader>{t('Date published')}</StatsHeader>
             <DateTime dateOnly date={app.datePublished} />
-          </Container>
+          </StatsSection>
         ) : null}
-        <Container data-test-id="installs">
+        <StatsSection data-test-id="installs">
           <StatsHeader>{t('Total installs')}</StatsHeader>
           <p>{totalInstalls}</p>
-        </Container>
-        <Container data-test-id="uninstalls">
+        </StatsSection>
+        <StatsSection data-test-id="uninstalls">
           <StatsHeader>{t('Total uninstalls')}</StatsHeader>
           <p>{totalUninstalls}</p>
-        </Container>
+        </StatsSection>
       </Flex>
       <InstallCharts installStats={installStats} uninstallStats={uninstallStats} />
     </Fragment>
@@ -364,9 +365,16 @@ function InteractionsChart({data}: InteractionsChartProps) {
   );
 }
 
-const StatsHeader = styled('h6')`
-  margin-bottom: ${p => p.theme.space.md};
-  font-size: 12px;
-  text-transform: uppercase;
-  color: ${p => p.theme.tokens.content.secondary};
+const StatsSection = styled('div')`
+  margin-right: ${p => p.theme.space['3xl']};
 `;
+
+function StatsHeader({children}: {children: React.ReactNode}) {
+  return (
+    <Container paddingBottom="md">
+      <Text as="div" size="xs" variant="muted" uppercase>
+        {children}
+      </Text>
+    </Container>
+  );
+}
