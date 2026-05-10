@@ -233,6 +233,92 @@ class SearchResolverQueryTest(TestCase):
         assert where is None
         assert having is None
 
+    def test_id_query_normalizes_dashes(self) -> None:
+        """Dashed UUIDs in id: filters are normalized to dashless hex before sending to Snuba."""
+        where, having, _ = self.resolver.resolve_query("id:f13343d4-6625-40d0-946f-f5b4d564c642")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="f13343d4662540d0946ff5b4d564c642"),
+            )
+        )
+        assert having is None
+
+    def test_id_query_dashless_unchanged(self) -> None:
+        """Already-dashless hex IDs pass through normalization unchanged."""
+        where, having, _ = self.resolver.resolve_query("id:f13343d4662540d0946ff5b4d564c642")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="f13343d4662540d0946ff5b4d564c642"),
+            )
+        )
+        assert having is None
+
+    def test_trace_query_normalizes_dashes(self) -> None:
+        """Dashed UUIDs in trace: filters are normalized to dashless hex."""
+        where, having, _ = self.resolver.resolve_query("trace:f13343d4-6625-40d0-946f-f5b4d564c642")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="f13343d4662540d0946ff5b4d564c642"),
+            )
+        )
+        assert having is None
+
+    def test_id_in_filter_normalizes_dashes(self) -> None:
+        """Dashed UUIDs in id:[...] IN filters are normalized."""
+        where, having, _ = self.resolver.resolve_query(
+            "id:[f13343d4-6625-40d0-946f-f5b4d564c642,b802415f-7531-431c-aa27-f5c0bf923302]"
+        )
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(
+                    val_str_array=StrArray(
+                        values=[
+                            "f13343d4662540d0946ff5b4d564c642",
+                            "b802415f7531431caa27f5c0bf923302",
+                        ]
+                    )
+                ),
+            )
+        )
+        assert having is None
+
+    def test_internal_name_resolves_with_normalizer(self) -> None:
+        """Using the internal name 'sentry.item_id' resolves to the same definition as 'id'
+        with the correct validator and normalizer, so dashed UUIDs are normalized."""
+        where, having, _ = self.resolver.resolve_query(
+            "sentry.item_id:f13343d4-6625-40d0-946f-f5b4d564c642"
+        )
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="f13343d4662540d0946ff5b4d564c642"),
+            )
+        )
+        assert having is None
+
+    def test_internal_trace_id_resolves_with_normalizer(self) -> None:
+        """Using the internal name 'sentry.trace_id' resolves with normalizer."""
+        where, having, _ = self.resolver.resolve_query(
+            "sentry.trace_id:f13343d4-6625-40d0-946f-f5b4d564c642"
+        )
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="f13343d4662540d0946ff5b4d564c642"),
+            )
+        )
+        assert having is None
+
 
 def test_count_default_argument() -> None:
     resolver = SearchResolver(

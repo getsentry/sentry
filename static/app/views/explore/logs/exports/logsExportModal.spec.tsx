@@ -131,7 +131,7 @@ describe('LogsExportModal', () => {
     });
 
     expect(mockDownloadLogs).toHaveBeenCalledWith({
-      rows: tableData.slice(0, 100),
+      rows: tableData.slice(0, 500),
       fields: queryInfo.field,
       filename: 'logs',
       format: 'csv',

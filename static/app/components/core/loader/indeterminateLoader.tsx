@@ -35,7 +35,7 @@ const indeterminateFast = keyframes`
 // Small (~128px): 2.0s duration, 1.0s delay
 // Large (~400px+): 3.2s duration, 1.6s delay
 const WIDTH = {MIN: 128, MAX: 400};
-const DURATION = {MIN: 2.0, MAX: 2.8};
+const DURATION = {MIN: 2, MAX: 2.8};
 const DELAY = {MIN: 0.8, MAX: 1.2};
 
 function lerp(min: number, max: number, t: number): number {

@@ -52,6 +52,14 @@ class TestGetFirstInputMessage:
         row = {"gen_ai.input.messages": "[Filtered]"}
         assert _get_first_input_message(row) == "[Filtered]"
 
+    def test_python_repr_single_quotes(self) -> None:
+        row = {"gen_ai.input.messages": "[{'role': 'user', 'content': 'Hello'}]"}
+        assert _get_first_input_message(row) == "Hello"
+
+    def test_python_repr_mixed_quotes(self) -> None:
+        row = {"gen_ai.input.messages": """[{'role': 'user', 'content': "the user's message"}]"""}
+        assert _get_first_input_message(row) == "the user's message"
+
     def test_returns_filtered_for_request_messages(self) -> None:
         row = {"gen_ai.request.messages": "[Filtered]"}
         assert _get_first_input_message(row) == "[Filtered]"
@@ -94,6 +102,10 @@ class TestGetLastOutput:
     def test_returns_filtered(self) -> None:
         row = {"gen_ai.output.messages": "[Filtered]"}
         assert _get_last_output(row) == "[Filtered]"
+
+    def test_python_repr_output(self) -> None:
+        row = {"gen_ai.output.messages": "[{'role': 'assistant', 'content': 'Hello!'}]"}
+        assert _get_last_output(row) == "Hello!"
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):

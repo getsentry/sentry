@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -44,6 +44,8 @@ interface StacktraceLinkProps {
 }
 
 export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLinkProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = useMemo(

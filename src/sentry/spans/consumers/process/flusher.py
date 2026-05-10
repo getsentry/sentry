@@ -441,7 +441,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self.process_restarts[process_index] += 1
 
             try:
-                if isinstance(process, multiprocessing.Process):
+                if isinstance(process, multiprocessing.process.BaseProcess):
+                    if process.is_alive():
+                        metrics.incr("spans.buffer.flusher.killed_live_process")
                     process.kill()
             except (ValueError, AttributeError):
                 pass  # Process already closed, ignore
@@ -539,6 +541,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 time.sleep(0.1)
 
             if isinstance(process, multiprocessing.process.BaseProcess):
-                if process.is_alive():
-                    metrics.incr("spans.buffer.flusher.killed_live_process")
-                process.kill()
+                try:
+                    if process.is_alive():
+                        metrics.incr("spans.buffer.flusher.killed_live_process")
+                    process.kill()
+                except (ValueError, AttributeError):
+                    pass  # Process already closed, ignore

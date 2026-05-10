@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry.integrations.github.status_check import GitHubCheckStatus
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
@@ -48,8 +50,9 @@ FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_rena
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
+    retry=Retry(times=3, delay=60),
 )
 def create_preprod_snapshot_status_check_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
@@ -272,63 +275,17 @@ def create_preprod_snapshot_status_check_task(
     )
     target_url = get_preprod_artifact_url(url_artifact, view_type="snapshots")
 
-    try:
-        check_id = provider.create_status_check(
-            repo=commit_comparison.head_repo_name,
-            sha=commit_comparison.head_sha,
-            status=status,
-            title=title,
-            subtitle=subtitle,
-            text=None,
-            summary=summary,
-            external_id=str(preprod_artifact.id),
-            target_url=target_url,
-            started_at=preprod_artifact.date_added,
-            completed_at=completed_at,
-            approve_action_identifier=approve_action_identifier,
-        )
-    except Exception as e:
-        extra: dict[str, Any] = {
-            "artifact_id": preprod_artifact.id,
-            "organization_id": preprod_artifact.project.organization_id,
-            "organization_slug": preprod_artifact.project.organization.slug,
-            "error_type": type(e).__name__,
-        }
-        if isinstance(e, ApiError):
-            extra["status_code"] = e.code
-        logger.exception(
-            "preprod.snapshot_status_checks.create.failed",
-            extra=extra,
-        )
-        update_posted_status_check(preprod_artifact, check_type="snapshots", success=False, error=e)
-        raise
-
-    if check_id is None:
-        logger.error(
-            "preprod.snapshot_status_checks.create.failed",
-            extra={
-                "artifact_id": preprod_artifact.id,
-                "organization_id": preprod_artifact.project.organization_id,
-                "organization_slug": preprod_artifact.project.organization.slug,
-                "error_type": "null_check_id",
-            },
-        )
-        update_posted_status_check(preprod_artifact, check_type="snapshots", success=False)
-        return
-
-    update_posted_status_check(
-        preprod_artifact, check_type="snapshots", success=True, check_id=check_id
-    )
-
-    logger.info(
-        "preprod.snapshot_status_checks.create.success",
-        extra={
-            "artifact_id": preprod_artifact.id,
-            "status": status.value,
-            "check_id": check_id,
-            "organization_id": preprod_artifact.project.organization_id,
-            "organization_slug": preprod_artifact.project.organization.slug,
-        },
+    post_snapshot_status_check_task.delay(
+        preprod_artifact_id=preprod_artifact.id,
+        status=status.value,
+        title=title,
+        subtitle=subtitle,
+        summary=summary,
+        external_id=str(preprod_artifact.id),
+        started_at_iso=preprod_artifact.date_added.isoformat(),
+        completed_at_iso=completed_at.isoformat() if completed_at else None,
+        target_url=target_url,
+        approve_action_identifier=approve_action_identifier,
     )
 
 
@@ -364,3 +321,109 @@ def _compute_snapshot_status(
         return StatusCheckStatus.IN_PROGRESS
 
     return StatusCheckStatus.SUCCESS
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.post_snapshot_status_check",
+    namespace=preprod_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.CELL,
+    retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),
+)
+def post_snapshot_status_check_task(
+    *,
+    preprod_artifact_id: int,
+    status: str,
+    title: str,
+    subtitle: str,
+    summary: str,
+    external_id: str,
+    started_at_iso: str,
+    completed_at_iso: str | None,
+    target_url: str | None,
+    approve_action_identifier: str | None,
+    **kwargs: Any,
+) -> None:
+    try:
+        preprod_artifact = PreprodArtifact.objects.select_related(
+            "commit_comparison",
+            "project",
+            "project__organization",
+        ).get(id=preprod_artifact_id)
+    except PreprodArtifact.DoesNotExist:
+        logger.info(
+            "preprod.snapshot_status_checks.post.artifact_not_found",
+            extra={"artifact_id": preprod_artifact_id},
+        )
+        return
+
+    commit_comparison = preprod_artifact.commit_comparison
+    if not commit_comparison:
+        logger.info(
+            "preprod.snapshot_status_checks.post.no_commit_comparison",
+            extra={"artifact_id": preprod_artifact_id},
+        )
+        return
+
+    client, repository = get_status_check_client(preprod_artifact.project, commit_comparison)
+    if not client or not repository:
+        return
+
+    provider = get_status_check_provider(
+        client,
+        commit_comparison.provider,
+        preprod_artifact.project.organization_id,
+        preprod_artifact.project.organization.slug,
+        repository.integration_id,
+    )
+    if not provider:
+        logger.info(
+            "preprod.snapshot_status_checks.post.not_supported_provider",
+            extra={"provider": commit_comparison.provider},
+        )
+        return
+
+    started_at = datetime.fromisoformat(started_at_iso)
+    completed_at = datetime.fromisoformat(completed_at_iso) if completed_at_iso else None
+    status_enum = StatusCheckStatus(status)
+
+    try:
+        check_id = provider.create_status_check(
+            repo=commit_comparison.head_repo_name,
+            sha=commit_comparison.head_sha,
+            status=status_enum,
+            title=title,
+            subtitle=subtitle,
+            text=None,
+            summary=summary,
+            external_id=external_id,
+            target_url=target_url,
+            started_at=started_at,
+            completed_at=completed_at,
+            approve_action_identifier=approve_action_identifier,
+        )
+    except Exception as e:
+        extra: dict[str, Any] = {
+            "artifact_id": preprod_artifact.id,
+            "organization_id": preprod_artifact.project.organization_id,
+            "error_type": type(e).__name__,
+        }
+        if isinstance(e, ApiError):
+            extra["status_code"] = e.code
+        logger.exception("preprod.snapshot_status_checks.post.failed", extra=extra)
+        update_posted_status_check(preprod_artifact, check_type="snapshots", success=False, error=e)
+        if isinstance(e, ApiError) and e.code and 400 <= e.code < 500 and e.code != 429:
+            return
+        raise
+
+    if check_id is None:
+        logger.error(
+            "preprod.snapshot_status_checks.post.null_check_id",
+            extra={"artifact_id": preprod_artifact.id},
+        )
+        update_posted_status_check(preprod_artifact, check_type="snapshots", success=False)
+        return
+
+    update_posted_status_check(
+        preprod_artifact, check_type="snapshots", success=True, check_id=check_id
+    )

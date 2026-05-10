@@ -72,7 +72,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             (LinkType.DISCOVER, {"arg1": "value1"}),
-            (LinkType.DISCOVER, {"arg1", "value2"}),
+            (LinkType.DISCOVER, {"arg2": "value2"}),
             (LinkType.DISCOVER, {"arg1": "value1"}),
         ],
     )
@@ -103,7 +103,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             (LinkType.DISCOVER, {"arg1": "value1"}),
-            (LinkType.DISCOVER, {"arg1", "value2"}),
+            (LinkType.DISCOVER, {"arg2": "value2"}),
             (LinkType.DISCOVER, {"arg1": "value1"}),
         ],
     )
@@ -130,7 +130,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             (LinkType.DISCOVER, {"arg1": "value1"}),
-            (LinkType.DISCOVER, {"arg1", "value2"}),
+            (LinkType.DISCOVER, {"arg2": "value2"}),
             (LinkType.DISCOVER, {"arg1": "value1"}),
         ],
     )
@@ -158,7 +158,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         blocks = orjson.loads(data["blocks"])
 
         assert blocks[0]["type"] == "section"
-        assert blocks[0]["text"]["text"] == "Link your Slack identity to Sentry to unfurl charts."
+        assert blocks[0]["text"]["text"] == "Link with Slack to preview charts."
 
         assert blocks[1]["type"] == "actions"
         assert len(blocks[1]["elements"]) == 2

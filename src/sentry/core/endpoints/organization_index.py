@@ -40,7 +40,6 @@ from sentry.services.organization import (
     PostProvisionOptions,
 )
 from sentry.services.organization.provisioning import organization_provisioning_service
-from sentry.signals import org_setup_complete
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -408,10 +407,6 @@ class OrganizationIndexEndpoint(Endpoint):
                 provisioning_options=provision_args,
             )
             org = Organization.objects.get(id=rpc_org.id)
-
-            org_setup_complete.send_robust(
-                instance=org, user=request.user, sender="in-app", referrer="in-app"
-            )
 
         # TODO(hybrid-cloud): We'll need to catch a more generic error
         # when the internal RPC is implemented.

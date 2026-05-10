@@ -9,7 +9,6 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 
@@ -30,6 +29,10 @@ describe('OrganizationMembershipSettings', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [{user: UserFixture()}],
     });
   });
 
@@ -268,7 +271,6 @@ describe('OrganizationMembershipSettings', () => {
   });
 
   it('saves replayAccessMembers when a member is selected', async () => {
-    MemberListStore.loadInitialData([UserFixture()]);
     const putMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
