@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -149,21 +148,21 @@ function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) 
   return (
     <Fragment>
       <h5>{t('Installation & Interaction Data')}</h5>
-      <Flex>
+      <Flex gap="3xl">
         {app.datePublished ? (
-          <StatsSection>
+          <Container>
             <StatsHeader>{t('Date published')}</StatsHeader>
             <DateTime dateOnly date={app.datePublished} />
-          </StatsSection>
+          </Container>
         ) : null}
-        <StatsSection data-test-id="installs">
+        <Container data-test-id="installs">
           <StatsHeader>{t('Total installs')}</StatsHeader>
           <p>{totalInstalls}</p>
-        </StatsSection>
-        <StatsSection data-test-id="uninstalls">
+        </Container>
+        <Container data-test-id="uninstalls">
           <StatsHeader>{t('Total uninstalls')}</StatsHeader>
           <p>{totalUninstalls}</p>
-        </StatsSection>
+        </Container>
       </Flex>
       <InstallCharts installStats={installStats} uninstallStats={uninstallStats} />
     </Fragment>
@@ -248,7 +247,6 @@ function IntegrationViewsSection({
       <PanelBody>
         <InteractionsChart data={{Views: interactions.views}} />
       </PanelBody>
-
       <PanelFooter>
         <Container padding="lg">
           {tct(
@@ -302,11 +300,9 @@ function ComponentInteractionsSection({
   return (
     <Panel>
       <PanelHeader>{t('Component Interactions')}</PanelHeader>
-
       <PanelBody>
         <InteractionsChart data={componentInteractions} />
       </PanelBody>
-
       <PanelFooter>
         <Container padding="lg">
           {Object.keys(componentInteractions).map(
@@ -365,14 +361,10 @@ function InteractionsChart({data}: InteractionsChartProps) {
   );
 }
 
-const StatsSection = styled('div')`
-  margin-right: ${p => p.theme.space['3xl']};
-`;
-
 function StatsHeader({children}: {children: React.ReactNode}) {
   return (
     <Container paddingBottom="md">
-      <Text as="div" size="xs" variant="muted" uppercase>
+      <Text size="xs" variant="muted" uppercase bold>
         {children}
       </Text>
     </Container>
