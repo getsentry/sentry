@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
@@ -18,7 +18,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -148,21 +148,21 @@ function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) 
   return (
     <Fragment>
       <h5>{t('Installation & Interaction Data')}</h5>
-      <Flex>
+      <Flex gap="3xl">
         {app.datePublished ? (
-          <StatsSection>
+          <Container>
             <StatsHeader>{t('Date published')}</StatsHeader>
             <DateTime dateOnly date={app.datePublished} />
-          </StatsSection>
+          </Container>
         ) : null}
-        <StatsSection data-test-id="installs">
+        <Container data-test-id="installs">
           <StatsHeader>{t('Total installs')}</StatsHeader>
           <p>{totalInstalls}</p>
-        </StatsSection>
-        <StatsSection data-test-id="uninstalls">
+        </Container>
+        <Container data-test-id="uninstalls">
           <StatsHeader>{t('Total uninstalls')}</StatsHeader>
           <p>{totalUninstalls}</p>
-        </StatsSection>
+        </Container>
       </Flex>
       <InstallCharts installStats={installStats} uninstallStats={uninstallStats} />
     </Fragment>
@@ -195,7 +195,7 @@ function InstallCharts({installStats, uninstallStats}: InstallChartsProps) {
   return (
     <Panel>
       <PanelHeader>{t('Installations/Uninstallations over Last 90 Days')}</PanelHeader>
-      <ChartWrapper>
+      <Container paddingTop="2xl">
         <BarChart
           series={[installSeries, uninstallSeries]}
           height={150}
@@ -211,7 +211,7 @@ function InstallCharts({installStats, uninstallStats}: InstallChartsProps) {
           xAxis={{type: 'time'}}
           grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
         />
-      </ChartWrapper>
+      </Container>
     </Panel>
   );
 }
@@ -249,16 +249,19 @@ function IntegrationViewsSection({
       </PanelBody>
 
       <PanelFooter>
-        <StyledFooter>
-          {t('Integration views are measured through views on the ')}
-          <Link to={`/sentry-apps/${appSlug}/external-install/`}>
-            {t('external installation page')}
-          </Link>
-          {t(' and views on the Learn More/Install modal on the ')}
-          <Link to={`/settings/${organizationSlug}/integrations/`}>
-            {t('integrations page')}
-          </Link>
-        </StyledFooter>
+        <Container padding="lg">
+          {tct(
+            'Integration views are measured through views on the [externalInstallPage:external installation page] and views on the Learn More/Install modal on the [integrationsPage:integrations page]',
+            {
+              externalInstallPage: (
+                <Link to={`/sentry-apps/${appSlug}/external-install/`} />
+              ),
+              integrationsPage: (
+                <Link to={`/settings/${organizationSlug}/integrations/`} />
+              ),
+            }
+          )}
+        </Container>
       </PanelFooter>
     </Panel>
   );
@@ -304,7 +307,7 @@ function ComponentInteractionsSection({
       </PanelBody>
 
       <PanelFooter>
-        <StyledFooter>
+        <Container padding="lg">
           {Object.keys(componentInteractions).map(
             (component, idx) =>
               componentInteractionsDetails[
@@ -321,7 +324,7 @@ function ComponentInteractionsSection({
                 </Fragment>
               )
           )}
-        </StyledFooter>
+        </Container>
       </PanelFooter>
     </Panel>
   );
@@ -346,7 +349,7 @@ function InteractionsChart({data}: InteractionsChartProps) {
   );
 
   return (
-    <ChartWrapper>
+    <Container paddingTop="2xl">
       <LineChart
         isGroupedByDate
         series={elementInteractionsSeries}
@@ -357,24 +360,13 @@ function InteractionsChart({data}: InteractionsChartProps) {
           data: Object.keys(data),
         }}
       />
-    </ChartWrapper>
+    </Container>
   );
 }
 
-const StatsSection = styled('div')`
-  margin-right: ${p => p.theme.space['3xl']};
-`;
 const StatsHeader = styled('h6')`
   margin-bottom: ${p => p.theme.space.md};
   font-size: 12px;
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const StyledFooter = styled('div')`
-  padding: ${p => p.theme.space.lg};
-`;
-
-const ChartWrapper = styled('div')`
-  padding-top: ${p => p.theme.space['2xl']};
 `;
