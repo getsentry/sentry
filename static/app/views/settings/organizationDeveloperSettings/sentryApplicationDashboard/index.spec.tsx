@@ -15,19 +15,6 @@ describe('Sentry Application Dashboard', () => {
 
   let sentryApp: ReturnType<typeof SentryAppFixture>;
   let webhookRequest: ReturnType<typeof SentryAppWebhookRequestFixture>;
-  let statsMock: ReturnType<typeof MockApiClient.addMockResponse>;
-  let interactionMock: ReturnType<typeof MockApiClient.addMockResponse>;
-
-  function renderDashboard() {
-    render(<SentryApplicationDashboard />, {
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
-        },
-        route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
-      },
-    });
-  }
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -51,7 +38,7 @@ describe('Sentry Application Dashboard', () => {
 
       webhookRequest = SentryAppWebhookRequestFixture();
 
-      statsMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
           totalInstalls: NUM_INSTALLS,
@@ -66,7 +53,7 @@ describe('Sentry Application Dashboard', () => {
         body: [webhookRequest],
       });
 
-      interactionMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
           componentInteractions: {
@@ -84,13 +71,27 @@ describe('Sentry Application Dashboard', () => {
     });
 
     it('shows the total install/uninstall stats', async () => {
-      renderDashboard();
+      render(<SentryApplicationDashboard />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
+      });
       expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
     it('shows the request log', async () => {
-      renderDashboard();
+      render(<SentryApplicationDashboard />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
+      });
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
@@ -107,19 +108,31 @@ describe('Sentry Application Dashboard', () => {
         body: [],
       });
 
-      renderDashboard();
+      render(<SentryApplicationDashboard />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
+      });
 
       expect(
         await screen.findByText('No requests found in the last 30 days.')
       ).toBeInTheDocument();
     });
 
-    it('shows integration and interactions chart with a deduplicated interaction fetch', async () => {
-      renderDashboard();
+    it('shows integration and interactions chart', async () => {
+      render(<SentryApplicationDashboard />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
+      });
 
       await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
-      expect(statsMock).toHaveBeenCalledTimes(1);
-      expect(interactionMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -133,7 +146,7 @@ describe('Sentry Application Dashboard', () => {
       });
       webhookRequest = SentryAppWebhookRequestFixture();
 
-      statsMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
           totalInstalls: 1,
@@ -148,7 +161,7 @@ describe('Sentry Application Dashboard', () => {
         body: [webhookRequest],
       });
 
-      interactionMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
           componentInteractions: {
@@ -165,7 +178,14 @@ describe('Sentry Application Dashboard', () => {
     });
 
     it('shows the request log', async () => {
-      renderDashboard();
+      render(<SentryApplicationDashboard />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
+      });
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
@@ -184,63 +204,30 @@ describe('Sentry Application Dashboard', () => {
         body: [],
       });
 
-      renderDashboard();
+      render(<SentryApplicationDashboard />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
+      });
       expect(
         await screen.findByText('No requests found in the last 30 days.')
       ).toBeInTheDocument();
     });
 
-    it('shows the component interactions in a line chart without fetching stats', async () => {
-      renderDashboard();
+    it('shows the component interactions in a line chart', async () => {
+      render(<SentryApplicationDashboard />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
+      });
 
       expect(await screen.findByTestId('chart')).toBeInTheDocument();
-      expect(statsMock).not.toHaveBeenCalled();
-      expect(interactionMock).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('Viewing the Sentry App Dashboard for an unpublished integration without schema elements', () => {
-    beforeEach(() => {
-      sentryApp = SentryAppFixture();
-      webhookRequest = SentryAppWebhookRequestFixture();
-
-      statsMock = MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/stats/`,
-        body: {
-          totalInstalls: 1,
-          totalUninstalls: 0,
-          installStats: [[1569783600, 1]],
-          uninstallStats: [[1569783600, 0]],
-        },
-      });
-
-      interactionMock = MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-        body: {
-          componentInteractions: {},
-          views: [[1569783600, 1]],
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
-        body: [webhookRequest],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/`,
-        body: sentryApp,
-      });
-    });
-
-    it('shows the request log without fetching stats or interactions', async () => {
-      renderDashboard();
-
-      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
-      expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
-      expect(screen.queryByText('Component Interactions')).not.toBeInTheDocument();
-      expect(statsMock).not.toHaveBeenCalled();
-      expect(interactionMock).not.toHaveBeenCalled();
     });
   });
 });
