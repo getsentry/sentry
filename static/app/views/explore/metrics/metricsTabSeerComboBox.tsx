@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -299,7 +300,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         {
           ...location,
           query: {
-            ...location.query,
+            ...omit(location.query, [AI_QUERY_PARAM]),
             metric: newEncodedMetrics,
             start: selection.datetime.start,
             end: selection.datetime.end,

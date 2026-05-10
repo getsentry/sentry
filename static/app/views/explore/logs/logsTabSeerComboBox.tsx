@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -225,9 +226,8 @@ export function LogsTabSeerComboBox() {
       // Build complete URL with all params (query, mode, aggregateFields, datetime)
       // This matches the Trace Explorer pattern of single navigation
       const newQuery = {
-        ...location.query,
+        ...omit(location.query, [AI_QUERY_PARAM]),
         [LOGS_QUERY_KEY]: queryToUse,
-        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
         // Datetime params from selection
@@ -235,6 +235,7 @@ export function LogsTabSeerComboBox() {
         end: selection.datetime.end,
         statsPeriod: selection.datetime.period,
         utc: selection.datetime.utc,
+        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({

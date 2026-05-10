@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -249,9 +250,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
       // Build the new query params
       const newQueryParams: Record<string, string | string[] | null | undefined> = {
-        ...location.query,
+        ...omit(location.query, [AI_QUERY_PARAM]),
         query: queryToUse,
-        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
       };
 
       // Apply sort if provided - convert to aliased format for Discover
@@ -282,6 +282,11 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.statsPeriod = statsPeriod;
         newQueryParams.start = undefined;
         newQueryParams.end = undefined;
+      }
+
+      // Ensure aiQueryRunId appears last in the URL
+      if (runId) {
+        newQueryParams[AI_QUERY_PARAM] = String(runId);
       }
 
       // Navigate with all params

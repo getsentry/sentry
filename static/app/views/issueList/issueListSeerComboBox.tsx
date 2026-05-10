@@ -220,12 +220,12 @@ export function IssueListSeerComboBox() {
       }
 
       const queryParams = {
-        ...omit(location.query, ['page', 'cursor']),
+        ...omit(location.query, ['page', 'cursor', AI_QUERY_PARAM]),
         referrer: 'issue-list',
         query: queryToUse,
-        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
         ...(sort ? {sort} : {}),
         ...timeParams,
+        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
       };
 
       navigate(
