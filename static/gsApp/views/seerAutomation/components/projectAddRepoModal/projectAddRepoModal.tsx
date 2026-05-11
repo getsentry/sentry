@@ -8,7 +8,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -123,7 +123,9 @@ export function ProjectAddRepoModal({
               {tct(
                 "Autofix requires you to attach one or more repositories to your project in order to run. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
                 {
-                  manage_repositories_link: <Link to="/settings/organization/repos/" />,
+                  manage_repositories_link: (
+                    <ExternalLink href={`/settings/${organization.slug}/repos/`} />
+                  ),
                 }
               )}
             </Text>
