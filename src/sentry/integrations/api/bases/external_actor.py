@@ -1,4 +1,4 @@
-from collections.abc import Mapping, MutableMapping
+from collections.abc import MutableMapping
 from typing import Any, TypedDict
 
 from django.db import IntegrityError
@@ -95,7 +95,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
         return int(provider.value)
 
-    def get_actor_params(self, validated_data: MutableMapping[str, Any]) -> Mapping[str, int]:
+    def get_actor_params(self, validated_data: MutableMapping[str, Any]) -> dict[str, Any]:
         actor_model = validated_data.pop(self._actor_key)
         if isinstance(actor_model, Team):
             return dict(team_id=actor_model.id)
