@@ -160,12 +160,12 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   ];
 
   const handleSetupCursorHandoff = async () => {
-    if (!cursorIntegration?.id) {
+    if (!cursorIntegration?.id || !projectDetails) {
       return;
     }
 
     const isAutomationDisabled =
-      projectDetails?.seerScannerAutomation === false ||
+      projectDetails.seerScannerAutomation === false ||
       projectDetails.autofixAutomationTuning === 'off';
 
     if (isAutomationDisabled) {
