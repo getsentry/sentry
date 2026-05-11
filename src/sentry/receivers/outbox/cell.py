@@ -257,6 +257,8 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         return
     if run.seer_run_state_id is not None:
         return
+    if run.mirror_status == SeerRunMirrorStatus.FAILED:
+        return
 
     # Validate the payload shape and parse run.type up front. A malformed
     # outbox payload or out-of-band run.type value can't self-heal on retry,

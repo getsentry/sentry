@@ -21,7 +21,7 @@ from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     SearchAgentStartRequest,
@@ -126,6 +126,9 @@ def send_search_agent_start_request(
                     "seer_run_uuid": str(run.uuid),
                 },
             )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise SeerApiError("Outbox flush failed", 500)
         run.refresh_from_db()
         return run
 
