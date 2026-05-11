@@ -1,7 +1,3 @@
-// Use a synchronous passthrough for debounce so command palette search results
-// render immediately without the real 300ms delay, avoiding timing-sensitive flakiness.
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
-
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
