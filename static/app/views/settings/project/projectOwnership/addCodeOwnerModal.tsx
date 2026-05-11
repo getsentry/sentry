@@ -237,7 +237,7 @@ function CodeownersFileStatus({
 
   return (
     <Fragment>
-      <Container border="primary" radius="md" padding="md">
+      <Container border="primary" radius="md" padding="lg">
         {codeownersFile ? (
           <SourceFile codeownersFile={codeownersFile} />
         ) : (
