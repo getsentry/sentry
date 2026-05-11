@@ -61,10 +61,11 @@ class OrganizationEventsTraceMetaEndpointTest(
 
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 0
-        assert data["performance_issues"] == 0
-        assert data["span_count"] == 0
-        assert data["span_count_map"] == {}
+        assert data["errorsCount"] == 0
+        assert data["performanceIssuesCount"] == 0
+        assert data["spansCount"] == 0
+        assert data["spansCountMap"] == {}
+        assert data["metricsCount"] == 0
         assert "uptime_checks" not in data  # Should not be present without include_uptime param
 
         # Invalid trace id
@@ -87,10 +88,10 @@ class OrganizationEventsTraceMetaEndpointTest(
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 0
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["errorsCount"] == 0
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
+        assert data["spansCountMap"]["http.server"] == 19
 
     def test_simple_with_eap_as_source_of_truth(self) -> None:
         self.load_trace()
@@ -128,10 +129,10 @@ class OrganizationEventsTraceMetaEndpointTest(
                 )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 0
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["errorsCount"] == 0
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
+        assert data["spansCountMap"]["http.server"] == 19
 
     def test_no_team(self) -> None:
         self.load_trace()
@@ -143,10 +144,10 @@ class OrganizationEventsTraceMetaEndpointTest(
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 0
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["errorsCount"] == 0
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
+        assert data["spansCountMap"]["http.server"] == 19
 
     def test_with_errors(self) -> None:
         self.load_trace()
@@ -159,10 +160,10 @@ class OrganizationEventsTraceMetaEndpointTest(
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 3
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["errorsCount"] == 3
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
+        assert data["spansCountMap"]["http.server"] == 19
 
     def test_with_errors_eap_eval_not_allowlisted_uses_snuba(self) -> None:
         self.load_trace()
@@ -191,10 +192,10 @@ class OrganizationEventsTraceMetaEndpointTest(
                 )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 3
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["errorsCount"] == 3
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
+        assert data["spansCountMap"]["http.server"] == 19
 
     def test_with_errors_eap_allowlisted_uses_eap(self) -> None:
         self.load_trace()
@@ -225,10 +226,10 @@ class OrganizationEventsTraceMetaEndpointTest(
                 )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 1
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["errorsCount"] == 1
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
+        assert data["spansCountMap"]["http.server"] == 19
 
     def test_with_default(self) -> None:
         self.load_trace()
@@ -241,11 +242,11 @@ class OrganizationEventsTraceMetaEndpointTest(
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["errors"] == 1
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
-        assert len(data["transaction_child_count_map"]) == 8
+        assert data["errorsCount"] == 1
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
+        assert data["spansCountMap"]["http.server"] == 19
+        assert len(data["transactionChildCountMap"]) == 8
 
     def test_with_invalid_date(self) -> None:
         self.load_trace()
@@ -292,7 +293,7 @@ class OrganizationEventsTraceMetaEndpointTest(
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["metrics_count"] == 3
+        assert data["metricsCount"] == 3
 
 
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):

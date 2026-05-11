@@ -34,11 +34,21 @@ logger = logging.getLogger(__name__)
 
 
 class SerializedResponse(TypedDict, total=False):
+    errorsCount: int
+    logsCount: int
+    metricsCount: int
+    performanceIssuesCount: int
+    spansCount: int
+    uptimeCount: int
+
+    transactionChildCountMap: SnubaData
+    spansCountMap: dict[str, int]
+
+    # These are deprecated
     logs: int
     errors: int
     performance_issues: int
     span_count: int
-    metrics_count: int
     transaction_child_count_map: SnubaData
     span_count_map: dict[str, int]
     uptime_checks: int  # Only present when include_uptime is True
@@ -261,13 +271,22 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         perf_issues: int,
         uptime_count: int | None = None,
     ) -> SerializedResponse:
+        # Values can be null if there's no result
         response: SerializedResponse = {
-            # Values can be null if there's no result
+            "errorsCount": errors_count,
+            "logsCount": results["logs_meta"]["data"][0].get("count()") or 0,
+            "metricsCount": results["metrics_meta"]["data"][0].get("count(value)") or 0,
+            "performanceIssuesCount": perf_issues,
+            "spansCount": results["spans_meta"]["data"][0].get("count()") or 0,
+            "transactionChildCountMap": results["transaction_children"]["data"],
+            "spansCountMap": {
+                row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
+            },
+            # these are deprecated
             "logs": results["logs_meta"]["data"][0].get("count()") or 0,
             "errors": errors_count,
             "performance_issues": perf_issues,
             "span_count": results["spans_meta"]["data"][0].get("count()") or 0,
-            "metrics_count": results["metrics_meta"]["data"][0].get("count(value)") or 0,
             "transaction_child_count_map": results["transaction_children"]["data"],
             "span_count_map": {
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
@@ -289,4 +308,5 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
 
         if uptime_count is not None:
             response["uptime_checks"] = uptime_count
+            response["uptimeCount"] = uptime_count
         return response
