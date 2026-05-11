@@ -816,7 +816,6 @@ module = [
     "sentry.incidents.logic",
     "sentry.incidents.models.*",
     "sentry.incidents.receivers",
-    "sentry.incidents.serializers.*",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
     "sentry.incidents.typings.*",

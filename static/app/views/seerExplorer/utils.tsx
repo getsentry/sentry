@@ -32,6 +32,7 @@ import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
   Block,
   ToolCall,
@@ -642,12 +643,14 @@ function buildMetricsQueryParam(params: Record<string, any>): string[] | undefin
  */
 export function buildToolLinkUrl(
   toolLink: ToolLink | undefined,
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   if (!toolLink) {
     return null;
   }
+
+  const orgSlug = organization.slug;
 
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
@@ -862,7 +865,10 @@ export function buildToolLinkUrl(
       }
 
       return {
-        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+        pathname: makeReplaysPathname({
+          path: `/${replay_id}/`,
+          organization,
+        }),
       };
     }
     case 'get_profile_flamegraph': {
@@ -938,7 +944,7 @@ export function getValidToolLinks(
   tool_links: Array<ToolLink | null>,
   tool_results: Array<ToolResult | null>,
   tool_calls: ToolCall[],
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ) {
   // Get valid tool links sorted by their corresponding tool call indices
@@ -957,7 +963,7 @@ export function getValidToolLinks(
       // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
       const toolCallId = tool_results[idx]?.tool_call_id;
       const toolCallIndex = tool_calls.findIndex(call => call.id === toolCallId);
-      const canBuildUrl = buildToolLinkUrl(link, orgSlug, projects) !== null;
+      const canBuildUrl = buildToolLinkUrl(link, organization, projects) !== null;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
         return {link, toolCallIndex};
@@ -1021,7 +1027,7 @@ export function useCopySessionDataToClipboard({
     setIsError(false);
     try {
       const text = blocks
-        ? formatSessionData(blocks, organization.slug, projects)
+        ? formatSessionData(blocks, organization, projects)
         : `No data available. Status: ${status ?? 'unknown'}`;
       await navigator.clipboard.writeText(text);
       addSuccessMessage('Copied conversation to clipboard');
@@ -1038,7 +1044,7 @@ export function useCopySessionDataToClipboard({
 
 function formatSessionData(
   blocks: Block[],
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): string {
   const formatBlock = (block: Block): string => {
@@ -1050,7 +1056,7 @@ function formatSessionData(
       tool_links || [],
       tool_results || [],
       tool_calls || [],
-      orgSlug,
+      organization,
       projects
     );
 
@@ -1063,7 +1069,9 @@ function formatSessionData(
       const validLinkIdx = toolCallToLinkIndexMap.get(idx);
       const validLink =
         validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
-      const location = validLink ? buildToolLinkUrl(validLink, orgSlug, projects) : null;
+      const location = validLink
+        ? buildToolLinkUrl(validLink, organization, projects)
+        : null;
       const url = location ? locationToUrl(location) : null;
 
       // Get metadata from raw tool_links array.

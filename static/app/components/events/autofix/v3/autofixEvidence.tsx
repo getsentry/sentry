@@ -111,7 +111,7 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -157,7 +157,7 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -192,7 +192,7 @@ function getIssueDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -219,7 +219,7 @@ function getReplayDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -246,7 +246,7 @@ function getProfileFlamegraphEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
