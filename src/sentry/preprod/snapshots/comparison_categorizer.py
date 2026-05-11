@@ -41,7 +41,12 @@ def _build_base_images(
     result: dict[str, SnapshotImageResponse] = {}
     for key, meta in base_images.items():
         result[key] = SnapshotImageResponse(
-            **{k: v for k, v in meta.dict().items() if k not in first_class},
+            **{
+                k: v
+                for k, v in meta.dict().items()
+                if k not in first_class
+                and k not in ("diff_threshold", "content_hash", "description", "tags")
+            },
             key=meta.content_hash,
             display_name=meta.display_name,
             image_file_name=key,
