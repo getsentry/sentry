@@ -244,6 +244,7 @@ export function App() {
                       <LLMContextProvider>
                         <GlobalModal />
                         <Indicators className="indicators-container" />
+                        <Hook name="component:app-init" />
                         <ErrorBoundary>{renderBody()}</ErrorBoundary>
                       </LLMContextProvider>
                     </DemoToursProvider>

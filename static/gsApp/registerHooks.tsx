@@ -9,6 +9,7 @@ import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupConfiguration} from 'getsentry/components/ai/aiSetupConfiguration';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
+import {AppInit} from 'getsentry/components/appInit';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
@@ -173,6 +174,13 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'settings:organization-navigation': organization => (
     <GSBillingNavigationConfig organization={organization} />
   ),
+
+  /**
+   * Top-level init for getsentry-only SDK integrations (Replay).
+   * Mounted at the App root so non-org routes like `/onboarding/*` are
+   * covered too.
+   */
+  'component:app-init': AppInit,
 
   /**
    * Augment the header with the getsentry banners. This includes banners
