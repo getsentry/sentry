@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import datetime
-
 from django.db import models
-from django.db.models import DateTimeField, IntegerField, Q, Value
-from django.db.models.constraints import CheckConstraint, UniqueConstraint
-from django.db.models.functions import Coalesce
+from django.db.models import DateTimeField, IntegerField, Q
+from django.db.models.constraints import UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -24,7 +21,7 @@ class NotificationMessage(Model):
     This information will then be leveraged to show the user which notifications are consistently failing.
     An example of this would be if a Slack channel no longer exists.
 
-    The data model hold the singular gateway for both Metric, and Issue, Alerts.
+    The data model hold the singular gateway for both Metric and Issue Alerts.
     Following the specific data relationship, you should be able to find the specific rule, organization, project, and
     incident or group event that this notification message was enacted.
 
@@ -70,38 +67,7 @@ class NotificationMessage(Model):
                 name="idx_notifmsg_group_action_date",
             ),
         ]
-        # A notification message should exist for either issue or metric alert, but never both
         constraints = [
-            # A notification message should only exist for one of the following conditions:
-            # 1. Metric Alert
-            # 2. Issue Alert (with or without an open period)
-            # 3. Action/Group (with or without an open period)
-            CheckConstraint(
-                condition=(
-                    # Metric Alert condition
-                    (
-                        Q(incident__isnull=False, trigger_action__isnull=False)
-                        & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)
-                        & Q(action__isnull=True, group__isnull=True)
-                        & Q(open_period_start__isnull=True)
-                    )
-                    # Issue Alert condition
-                    | (
-                        Q(incident__isnull=True, trigger_action__isnull=True)
-                        & Q(rule_fire_history__isnull=False, rule_action_uuid__isnull=False)
-                        & Q(action__isnull=True, group__isnull=True)
-                        # open_period_start can exist with issue alerts
-                    )
-                    # Action/Group condition
-                    | (
-                        Q(incident__isnull=True, trigger_action__isnull=True)
-                        & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)
-                        & Q(action__isnull=False, group__isnull=False)
-                        # open_period_start can exist with action/group
-                    )
-                ),
-                name="notification_type_mutual_exclusivity",
-            ),
             # 1 parent message per incident and trigger action
             UniqueConstraint(
                 fields=("incident", "trigger_action"),
@@ -113,16 +79,24 @@ class NotificationMessage(Model):
                 ),
                 name="singular_parent_message_per_incident_and_trigger_action",
             ),
-            # 1 parent message per rule fire history and rule action (open_period_start null not distinct)
-            UniqueConstraint(
-                "rule_fire_history",
-                "rule_action_uuid",
-                Coalesce("open_period_start", Value(timezone.make_aware(datetime.datetime.min))),
-                condition=Q(
-                    error_code__isnull=True,
-                    parent_notification_message__isnull=True,
+            # A row is either a metric-alert message (incident + trigger_action)
+            # or a workflow-action message (action + group), never both.
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        incident__isnull=False,
+                        trigger_action__isnull=False,
+                        action__isnull=True,
+                        group__isnull=True,
+                    )
+                    | Q(
+                        incident__isnull=True,
+                        trigger_action__isnull=True,
+                        action__isnull=False,
+                        group__isnull=False,
+                    )
                 ),
-                name="singular_parent_message_per_rule_fire_history_rule_action_open_",
+                name="notifmsg_metric_or_workflow_exclusive",
             ),
         ]
 
