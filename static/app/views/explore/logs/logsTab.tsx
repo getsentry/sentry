@@ -519,7 +519,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                 </TableActionsContainer>
               )}
             </LogsTableActionsContainer>
-            <LogsItemContainer overflowX="auto">
+            <LogsItemContainer minHeight="max(25vh, 20rem)" overflowX="auto">
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
