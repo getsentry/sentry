@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from snuba_sdk import (
@@ -37,6 +38,31 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
+
+
+def _coerce_timestamp_value(value: Any) -> Any:
+    """Coerce a top-event timestamp value into a naive UTC datetime.
+
+    Snuba returns timestamp values for ``timestamp`` and ``timestamp.to_*``
+    fields as ISO8601 strings that may include a ``+00:00`` timezone offset.
+    Passing those strings straight through to a SnQL ``Condition`` causes the
+    serializer to emit a ``toDateTime('...+00:00')`` literal, which ClickHouse
+    rejects. Convert to a naive UTC datetime so SnQL emits a valid literal.
+    Non-string / unparseable values are returned unchanged.
+    """
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return value
+    elif isinstance(value, datetime):
+        parsed = value
+    else:
+        return value
+
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 class DiscoverQueryBuilder(BaseQueryBuilder):
@@ -427,17 +453,23 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     else:
                         # Needs to be a big AND when negated
                         function, operator = And, Op.NEQ
-                    if len(values_list) > 1:
+                    # Snuba returns timestamp values as ISO8601 strings that may include
+                    # a timezone offset (e.g. '2026-04-14T00:00:00+00:00'). The SnQL
+                    # serializer would emit these verbatim, but ClickHouse's
+                    # toDateTime parser rejects the offset suffix. Convert to naive
+                    # UTC datetimes so a valid DateTime literal is produced.
+                    parsed_values = [_coerce_timestamp_value(value) for value in values_list]
+                    if len(parsed_values) > 1:
                         conditions.append(
                             function(
                                 conditions=[
                                     Condition(resolved_field, operator, value)
-                                    for value in sorted(values_list)
+                                    for value in sorted(parsed_values)
                                 ]
                             )
                         )
                     else:
-                        conditions.append(Condition(resolved_field, operator, values_list[0]))
+                        conditions.append(Condition(resolved_field, operator, parsed_values[0]))
                 elif None in values_list:
                     # one of the values was null, but we can't do an in with null values, so split into two conditions
                     non_none_values = [value for value in values_list if value is not None]
