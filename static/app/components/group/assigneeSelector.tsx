@@ -25,9 +25,13 @@ type HandleAssignOptions = {
   assignedBy?: AssignedBy;
 };
 
+type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
+  project: Pick<Group['project'], 'id' | 'slug'>;
+};
+
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
-  group: Group;
+  group: AssigneeGroup;
   handleAssigneeChange: (
     assignedActor: AssignableEntity | null,
     options?: HandleAssignOptions
@@ -51,7 +55,7 @@ export function useHandleAssigneeChange({
   onSuccess,
   onError,
 }: {
-  group: Group;
+  group: AssigneeGroup;
   organization: Organization;
   onAssign?: OnAssignCallback;
   onError?: (error: Error) => void;

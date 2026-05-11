@@ -93,7 +93,15 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   assignee: {
     sortField: null,
-    renderFunc: data => <IssueAssignee groupId={data.id} />,
+    renderFunc: data => (
+      <IssueAssignee
+        groupId={data.id}
+        projectId={data.projectId}
+        projectSlug={data.project}
+        assignedTo={data.assignedTo}
+        owners={data.owners}
+      />
+    ),
   },
   lifetimeEvents: {
     sortField: null,

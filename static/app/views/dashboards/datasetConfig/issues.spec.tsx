@@ -21,6 +21,12 @@ describe('transformIssuesResponseToTable', () => {
               id: '3',
             }),
             status: GroupStatus.UNRESOLVED,
+            assignedTo: {
+              email: 'test@sentry.io',
+              type: 'user',
+              id: '2',
+              name: 'Test User',
+            },
             owners: [
               {
                 type: 'ownershipRule',
@@ -50,12 +56,25 @@ describe('transformIssuesResponseToTable', () => {
         data: [
           expect.objectContaining({
             discoverSearchQuery: ' assigned_or_suggested:#visibility timesSeen:>100',
+            assignedTo: {
+              email: 'test@sentry.io',
+              type: 'user',
+              id: '2',
+              name: 'Test User',
+            },
             events: '6',
             firstSeen: '2022-01-01T13:04:02Z',
             id: '1',
             'issue.id': '1',
             lifetimeUsers: 5,
             links: [],
+            owners: [
+              {
+                type: 'ownershipRule',
+                owner: 'user:2',
+                date_added: '2022-01-01T13:04:02Z',
+              },
+            ],
             period: '',
             projectId: '3',
             status: 'unresolved',

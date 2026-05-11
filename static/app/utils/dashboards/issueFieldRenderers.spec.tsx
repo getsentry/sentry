@@ -55,6 +55,7 @@ describe('getIssueFieldRenderer', () => {
       filteredEvents: 3000,
       events: 6000,
       period: '7d',
+      projectId: project.id,
       links: [{url: 'sentry.io', displayName: 'ANNO-123'}],
     };
 
@@ -86,18 +87,16 @@ describe('getIssueFieldRenderer', () => {
         },
       });
 
-      const group = GroupFixture({
-        project,
-        assignedTo: {
-          email: 'test@sentry.io',
-          type: 'user',
-          id: '1',
-          name: 'Test User',
-        },
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/`,
-        body: group,
+      const assignedTo = {
+        email: 'test@sentry.io',
+        type: 'user',
+        id: '1',
+        name: 'Test User',
+      } as const;
+      const issueDetailMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
+        body: GroupFixture({id: data.id, project, assignedTo}),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
@@ -110,13 +109,20 @@ describe('getIssueFieldRenderer', () => {
       const renderer = getIssueFieldRenderer('assignee', {});
 
       render(
-        renderer(data, {
-          location,
-          organization,
-          theme,
-        }) as React.ReactElement
+        renderer(
+          {
+            ...data,
+            assignedTo,
+          },
+          {
+            location,
+            organization,
+            theme,
+          }
+        ) as React.ReactElement
       );
       expect(await screen.findByText('TU')).toBeInTheDocument();
+      expect(issueDetailMock).not.toHaveBeenCalled();
     });
 
     it('updates assignee when changed', async () => {
@@ -133,20 +139,17 @@ describe('getIssueFieldRenderer', () => {
         }),
       ];
 
-      const group = GroupFixture({
-        id: data.id,
-        project,
-        assignedTo: {
-          email: 'test@sentry.io',
-          type: 'user',
-          id: '1',
-          name: 'Test User',
-        },
-      });
+      const assignedTo = {
+        email: 'test@sentry.io',
+        type: 'user',
+        id: '1',
+        name: 'Test User',
+      } as const;
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/`,
-        body: group,
+      const issueDetailMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
+        body: GroupFixture({id: data.id, project, assignedTo}),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
@@ -159,9 +162,9 @@ describe('getIssueFieldRenderer', () => {
 
       const assignMock = MockApiClient.addMockResponse({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
         body: {
-          ...group,
+          ...GroupFixture({id: data.id, project, assignedTo}),
           assignedTo: {
             email: 'next@sentry.io',
             type: 'user',
@@ -174,11 +177,17 @@ describe('getIssueFieldRenderer', () => {
       const renderer = getIssueFieldRenderer('assignee', {});
 
       render(
-        renderer(data, {
-          location,
-          organization,
-          theme,
-        }) as React.ReactElement
+        renderer(
+          {
+            ...data,
+            assignedTo,
+          },
+          {
+            location,
+            organization,
+            theme,
+          }
+        ) as React.ReactElement
       );
 
       await userEvent.click(
@@ -188,7 +197,7 @@ describe('getIssueFieldRenderer', () => {
 
       await waitFor(() =>
         expect(assignMock).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/issues/${group.id}/`,
+          `/organizations/${organization.slug}/issues/${data.id}/`,
           expect.objectContaining({
             data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
           })
@@ -196,6 +205,7 @@ describe('getIssueFieldRenderer', () => {
       );
 
       expect(await screen.findByText('NU')).toBeInTheDocument();
+      expect(issueDetailMock).not.toHaveBeenCalled();
     });
 
     it('can render counts', async () => {

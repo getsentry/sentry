@@ -139,6 +139,8 @@ export function transformIssuesResponseToTable(
       userCount,
       project,
       annotations,
+      assignedTo,
+      owners,
       ...resultProps
     }) => {
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
@@ -159,6 +161,8 @@ export function transformIssuesResponseToTable(
         issue: shortId,
         title,
         project: project.slug,
+        assignedTo,
+        owners,
         links: (annotations ?? []) as any,
       };
 
