@@ -5,10 +5,11 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortKnownAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface UseGroupByFieldsProps {
   booleanTags: TagCollection;
@@ -46,18 +47,7 @@ export function useGroupByFields({
         seen.add(option.value);
         return true;
       })
-      .toSorted((a, b) => {
-        const aKnown =
-          getFieldDefinition(a.value, TRACE_ITEM_FIELD_DEFINITION_TYPE[traceItemType]) !==
-          null;
-        const bKnown =
-          getFieldDefinition(b.value, TRACE_ITEM_FIELD_DEFINITION_TYPE[traceItemType]) !==
-          null;
-        if (aKnown !== bKnown) return aKnown ? -1 : 1;
-        const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
-        const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
-        return aLabel.localeCompare(bLabel);
-      });
+      .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
 
     return [
       // hard code in an empty option
@@ -74,14 +64,6 @@ export function useGroupByFields({
     ];
   }, [booleanTags, groupBys, hideEmptyOption, numberTags, stringTags, traceItemType]);
 }
-
-const TRACE_ITEM_FIELD_DEFINITION_TYPE: Partial<
-  Record<TraceItemDataset, 'span' | 'log' | 'tracemetric'>
-> = {
-  [TraceItemDataset.SPANS]: 'span',
-  [TraceItemDataset.LOGS]: 'log',
-  [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
-};
 
 // Some fields don't make sense to allow users to group by as they create
 // very high cardinality groupings and is not useful.

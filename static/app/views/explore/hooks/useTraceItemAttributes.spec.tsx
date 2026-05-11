@@ -7,7 +7,7 @@ import {
   extractBaseKey,
   shouldRemoveAttributeKey,
   useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('extractBaseKey', () => {
@@ -19,6 +19,10 @@ describe('extractBaseKey', () => {
     {input: 'span.duration', expected: 'span.duration'},
     {input: 'tags[my.tag.name,boolean]', expected: 'my.tag.name'},
     {input: 'tags[my-tag,number]', expected: 'my-tag'},
+    {
+      input: 'tags[custom.metric@primary,number]',
+      expected: 'custom.metric@primary',
+    },
     {input: 'tags[my:tag,string]', expected: 'my:tag'},
   ];
 
@@ -39,6 +43,11 @@ describe('shouldRemoveNumberKey', () => {
     },
     {input: 'span.duration', booleanBaseKeys: ['is_transaction'], expected: false},
     {input: 'tags[my-tag,number]', booleanBaseKeys: ['is_transaction'], expected: false},
+    {
+      input: 'tags[custom.metric@primary,number]',
+      booleanBaseKeys: ['custom.metric@primary'],
+      expected: true,
+    },
     {input: 'tags[my:tag,string]', booleanBaseKeys: ['is_transaction'], expected: false},
   ];
 

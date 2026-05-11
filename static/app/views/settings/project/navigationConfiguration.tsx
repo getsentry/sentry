@@ -159,7 +159,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/snapshots/`,
           title: t('Snapshots'),
-          badge: () => 'alpha',
+          badge: () => 'beta',
           show: () => !!organization?.features?.includes('preprod-snapshots'),
           description: t('Configure snapshot status checks and PR comments.'),
         },

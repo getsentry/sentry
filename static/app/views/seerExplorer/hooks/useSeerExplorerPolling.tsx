@@ -86,7 +86,7 @@ export const useSeerExplorerPolling = ({
   } = useApiQuery<SeerExplorerResponse>(makeSeerExplorerQueryKey(orgSlug || '', runId), {
     staleTime: 0,
     retry: false,
-    enabled: !!runId && !!orgSlug && isSeerExplorerEnabled(organization),
+    enabled: !!runId && isSeerExplorerEnabled(organization),
     refetchInterval: query => {
       if (
         getPollingState(
