@@ -230,6 +230,42 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
+      it('displays wildcard footer for fields with null valueType', async () => {
+        const getNullableStringFieldDefinition: FieldDefinitionGetter = key => {
+          if (key !== 'nullable_string') {
+            return getFieldDefinition(key);
+          }
+
+          return {
+            kind: FieldKind.FIELD,
+            valueType: null,
+          };
+        };
+
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            fieldDefinitionGetter={getNullableStringFieldDefinition}
+            filterKeys={{
+              ...defaultProps.filterKeys,
+              nullable_string: {
+                key: 'nullable_string',
+                name: 'Nullable String',
+                kind: FieldKind.FIELD,
+              },
+            }}
+            initialQuery="nullable_string:hello"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: nullable_string'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+      });
+
       it('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
@@ -1090,10 +1126,17 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('a:b{enter}');
 
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
-      expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('row', {
+          name: `a:${WildcardOperators.CONTAINS}b`,
+        })
+      ).toBeInTheDocument();
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
-      expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
+      expect(mockOnChange).toHaveBeenCalledWith(
+        `foo a:${WildcardOperators.CONTAINS}b`,
+        expect.anything()
+      );
     });
 
     it('adds default value for filter when typing <filter>:', async () => {
@@ -1164,6 +1207,19 @@ describe('SearchQueryBuilder', () => {
         'browser.name:Firefox',
         expect.anything()
       );
+    });
+
+    it('defaults to contains when adding a default-string filter', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
+
+      expect(
+        screen.getByRole('row', {
+          name: `custom_tag_name:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
     });
 
     it('does not switch operator to "is" when filter already has a value', async () => {
@@ -1322,7 +1378,7 @@ describe('SearchQueryBuilder', () => {
       );
 
       const browserNameFilter = await screen.findByRole('row', {
-        name: '!browser.name:""',
+        name: `!browser.name:${WildcardOperators.CONTAINS}""`,
       });
       expect(browserNameFilter).toBeInTheDocument();
     });
@@ -3445,6 +3501,22 @@ describe('SearchQueryBuilder', () => {
           name: 'does not end with',
         });
         expect(doesNotEndWithOption).toBeInTheDocument();
+      });
+
+      it('default-string filters have wildcard operator options', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="custom_tag_name:hello" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {
+            name: 'Edit operator for filter: custom_tag_name',
+          })
+        );
+
+        expect(await screen.findByRole('option', {name: 'contains'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
       });
 
       it('replaces the value for fields that do not allow multiple values', async () => {

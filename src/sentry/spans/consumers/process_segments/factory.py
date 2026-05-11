@@ -12,17 +12,47 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
+from django.conf import settings
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.utils import metrics, redis
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
+
+
+def _check_span_duplicates(spans: list[CompatibleSpan]) -> None:
+    """
+    Check for duplicate spans using Redis SETNX. Emits a metric for
+    duplicates detected but does not filter them out.
+    """
+    if not spans:
+        return
+
+    try:
+        dedupe_ttl = options.get("spans.process-segments.dedupe-ttl")
+        if dedupe_ttl <= 0:
+            return
+
+        client = redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
+        with client.pipeline(transaction=False) as p:
+            for span in spans:
+                dedupe_key = f"segments-consumer:dedupe:{span['project_id']}:{span['trace_id']}:{span['span_id']}"
+                p.set(dedupe_key, b"1", ex=dedupe_ttl, nx=True)
+            results = p.execute()
+
+        duplicates = sum(1 for is_new in results if not is_new)
+        if duplicates:
+            metrics.incr("spans.process-segments.duplicate_span", amount=duplicates)
+    except Exception:
+        logger.exception("Failed to check span duplicates")
+
 
 # An amortized ceiling of spans per segment used to compute the size of the
 # produce buffer. If that buffer fills up, the consumer exercises backpressure.
@@ -121,6 +151,7 @@ def _process_message(
         processed = process_segment(
             segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
         )
+        _check_span_duplicates(processed)
         return [
             _serialize_payload(span, message.timestamp, use_semantic_partitioning)
             for span in processed

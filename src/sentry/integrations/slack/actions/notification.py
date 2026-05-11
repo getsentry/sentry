@@ -9,15 +9,12 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.repository import get_default_issue_alert_repository
-from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.issue_alert import NewIssueAlertNotificationMessage
 from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
@@ -31,8 +28,6 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.utils.open_period import open_period_start_for_group
@@ -158,80 +153,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             record_lifecycle_termination_level(lifecycle, e)
             return None
 
-    @classmethod
-    def _save_issue_alert_notification_message(
-        cls,
-        data: NewIssueAlertNotificationMessage,
-    ) -> None:
-        """Save an issue alert notification message to the repository."""
-        try:
-            issue_repository = get_default_issue_alert_repository()
-            issue_repository.create_notification_message(data=data)
-        except NotificationMessageValidationError as err:
-            extra = data.__dict__ if data else None
-            _default_logger.info(
-                "Validation error for new issue alert notification message",
-                exc_info=err,
-                extra=extra,
-            )
-        except Exception:
-            # if there's an error trying to save a notification message, don't let that error block this flow
-            # we already log at the repository layer, no need to log again here
-            pass
-
-    @classmethod
-    def _get_issue_alert_thread_ts(
-        cls,
-        organization: Organization,
-        lifecycle: EventLifecycle,
-        rule_id: int | None,
-        rule_action_uuid: str | None,
-        event: GroupEvent,
-        open_period_start: datetime | None,
-        new_notification_message_object: NewIssueAlertNotificationMessage,
-    ) -> str | None:
-        """Find the thread in which to post an issue alert notification as a reply.
-
-        Return None to post the notification as a top-level message.
-        """
-        # We need to search by rule action uuid and rule id, so only search if they exist
-        if not (
-            rule_action_uuid
-            and rule_id
-            and OrganizationOption.objects.get_value(
-                organization=organization,
-                key="sentry:issue_alerts_thread_flag",
-                default=ISSUE_ALERTS_THREAD_DEFAULT,
-            )
-        ):
-            return None
-
-        try:
-            issue_repository = get_default_issue_alert_repository()
-            parent_notification_message = issue_repository.get_parent_notification_message(
-                rule_id=rule_id,
-                group_id=event.group.id,
-                rule_action_uuid=rule_action_uuid,
-                open_period_start=open_period_start,
-            )
-        except Exception as e:
-            lifecycle.record_halt(e)
-            # if there's an error trying to grab a parent notification, don't let that error block this flow
-            # we already log at the repository layer, no need to log again here
-            return None
-
-        if parent_notification_message is None:
-            return None
-
-        # If a parent notification exists for this rule and action, then we can reply in a thread
-        # Make sure we track that this reply will be in relation to the parent row
-        new_notification_message_object.parent_notification_message_id = (
-            parent_notification_message.id
-        )
-        # To reply to a thread, use the specific key in the payload as referenced by the docs
-        # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
-        return parent_notification_message.message_identifier
-
     def _send_notification(
         self,
         event: GroupEvent,
@@ -296,74 +217,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 integration_id=integration.id,
             )
 
-    def _send_issue_alert_notification(
-        self,
-        event: GroupEvent,
-        futures: Sequence[RuleFuture],
-        tags: set,
-        integration: RpcIntegration,
-        channel: str,
-        notification_uuid: str | None = None,
-    ) -> None:
-        """Send an issue alert notification to Slack."""
-        rules = [f.rule for f in futures]
-        rule = rules[0] if rules else None
-        rule_to_use = self.rule if self.rule else rule
-        rule_id = rule_to_use.id if rule_to_use else None
-        rule_action_uuid = self.data.get(ACTION_UUID_KEY, None)
-
-        if not rule_action_uuid:
-            # We are logging because this should never happen, all actions should have an uuid
-            # We can monitor for this, and create an alert if this ever appears
-            _default_logger.info(
-                "No action uuid",
-                extra={
-                    "rule_id": rule_id,
-                    "notification_uuid": notification_uuid,
-                },
-            )
-
-        new_notification_message_object = NewIssueAlertNotificationMessage(
-            rule_fire_history_id=self.rule_fire_history.id if self.rule_fire_history else None,
-            rule_action_uuid=rule_action_uuid,
-        )
-
-        open_period_start: datetime | None = None
-        if event.group.issue_type.type_id == UptimeDomainCheckFailure.type_id:
-            open_period_start = open_period_start_for_group(event.group)
-            new_notification_message_object.open_period_start = open_period_start
-
-        # Get thread timestamp using the provided method and args
-        with MessagingInteractionEvent(
-            MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
-        ).capture() as lifecycle:
-            thread_ts = SlackNotifyServiceAction._get_issue_alert_thread_ts(
-                lifecycle=lifecycle,
-                event=event,
-                new_notification_message_object=new_notification_message_object,
-                organization=self.project.organization,
-                rule_id=rule_id,
-                rule_action_uuid=rule_action_uuid,
-                open_period_start=open_period_start,
-            )
-
-        save_method = None
-        if rule_action_uuid and rule_id:
-            save_method = SlackNotifyServiceAction._save_issue_alert_notification_message
-
-        self._send_notification(
-            event=event,
-            futures=futures,
-            tags=tags,
-            integration=integration,
-            channel=channel,
-            notification_uuid=notification_uuid,
-            notification_message_object=new_notification_message_object,
-            save_notification_method=save_method,
-            thread_ts=thread_ts,
-        )
-        self.record_notification_sent(event, channel, rule, notification_uuid)
-
     def _send_notification_action_notification(
         self,
         event: GroupEvent,
@@ -396,6 +249,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 integration=integration,
                 channel=channel,
             )
+            self.record_notification_sent(event, channel, rule, notification_uuid)
+            return
 
         try:
             action = Action.objects.get(id=action_id)
@@ -458,8 +313,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture]:
-        from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -470,16 +323,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         # integration is captured in a closure, type assert the None case is handled.
         integration: RpcIntegration = i
-
-        def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            self._send_issue_alert_notification(
-                event=event,
-                futures=futures,
-                tags=tags,
-                integration=integration,
-                channel=channel,
-                notification_uuid=notification_uuid,
-            )
 
         def send_notification_noa(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             self._send_notification_action_notification(
@@ -501,10 +344,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             },
             skip_internal=False,
         )
-        if should_fire_workflow_actions(self.project.organization, event.group.type):
-            yield self.future(send_notification_noa, key=key)
-        else:
-            yield self.future(send_notification, key=key)
+        yield self.future(send_notification_noa, key=key)
 
     def render_label(self) -> str:
         tags = self.get_tags_list()

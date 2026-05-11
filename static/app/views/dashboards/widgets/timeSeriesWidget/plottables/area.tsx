@@ -83,7 +83,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
             stack: `complete-${index}`,
             areaStyle: {
               color,
-              opacity: 1.0,
+              opacity: 1,
             },
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
