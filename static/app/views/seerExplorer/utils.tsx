@@ -32,6 +32,7 @@ import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
   Block,
   ToolCall,
