@@ -15,7 +15,6 @@ EVENTS = {}
 PROJECT_ID = 1
 
 for dirpath, dirnames, filenames in os.walk(_fixture_path):
-
     for filename in filenames:
         [name, extension] = filename.split(".")
 

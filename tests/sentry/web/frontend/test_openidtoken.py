@@ -92,7 +92,8 @@ class OpenIDTokenTest(TestCase):
         assert decrypted_id_token["aud"] == "ex_client_id"
         assert decrypted_id_token["iss"] == "https://sentry.io"
         assert decrypted_id_token["nonce"] == "abcd"
-        assert isinstance(decrypted_id_token["sub"], int)
+        assert isinstance(decrypted_id_token["sub"], str)
+        assert decrypted_id_token["sub"] == str(self.user.id)
         assert decrypted_id_token["exp"] > current_timestamp
         assert decrypted_id_token["iat"] < current_timestamp
 
@@ -117,7 +118,8 @@ class OpenIDTokenTest(TestCase):
         assert decrypted_id_token["aud"] == "ex_client_id"
         assert decrypted_id_token["iss"] == "https://sentry.io"
         assert decrypted_id_token["nonce"] == "abcd"
-        assert isinstance(decrypted_id_token["sub"], int)
+        assert isinstance(decrypted_id_token["sub"], str)
+        assert decrypted_id_token["sub"] == str(self.user.id)
         assert decrypted_id_token["exp"] > current_timestamp
         assert decrypted_id_token["iat"] < current_timestamp
         assert decrypted_id_token["email"] == "admin@localhost"

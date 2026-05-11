@@ -14,7 +14,7 @@ from sentry import analytics, audit_log
 from sentry.analytics.events.rule_snooze import RuleSnoozed, RuleUnSnoozed
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.api.serializers import Serializer, register, serialize
@@ -28,6 +28,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.receivers.rule_snooze import _update_workflow_engine_models
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -91,12 +92,15 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
     permission_classes = (ProjectAlertRulePermission,)
     rule_field: str  # abstract, value comes from child class
 
-    def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
+    def convert_args(
+        self, request: Request, rule_id: str | int, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         (args, kwargs) = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
+        validated_rule_id = to_valid_int_id("rule_id", rule_id, raise_404=True)
         try:
             queryset = self.fetch_rule_list(project=project)
-            rule = queryset.get(id=rule_id)
+            rule = queryset.get(id=validated_rule_id)
         except ObjectDoesNotExist:
             raise NotFound(detail="Rule does not exist")
 
@@ -232,7 +236,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
         raise NotImplementedError()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -241,19 +245,35 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     }
     rule_field = "rule"
 
+    @track_alert_endpoint_execution("POST", "sentry-api-0-rule-snooze")
+    def post(self, request: Request, project: Project, rule: Rule) -> Response:
+        # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
+        return super().post(request, project, rule)
+
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-rule-snooze")
+    def delete(self, request: Request, project: Project, rule: Rule) -> Response:
+        # Tracking happens in fetch_rule_list and fetch_instance
+        return super().delete(request, project, rule)
+
     def fetch_rule_list(self, project: Project) -> BaseQuerySet[Rule]:
         queryset = Rule.objects.filter(project=project)
+        # Mark that we're using legacy Rule models
+        report_used_legacy_models()
 
         return queryset
 
     def fetch_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.get(user_id=user_id, rule=rule, **kwargs)
+        # Mark that we're using legacy Rule models (before query to track failures too)
+        report_used_legacy_models()
 
+        rule_snooze = RuleSnooze.objects.get(user_id=user_id, rule=rule, **kwargs)
         return rule_snooze
 
     def create_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
         with transaction.atomic(router.db_for_write(RuleSnooze)):
             rule_snooze = RuleSnooze.objects.create(user_id=user_id, rule=rule, **kwargs)
+            # Mark that we're using legacy Rule models (creating foreign key relationship)
+            report_used_legacy_models()
             _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze
@@ -271,7 +291,7 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -282,29 +302,33 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
     def post(self, request: Request, project: Project, rule: AlertRule) -> Response:
-        # Mark that we're using legacy AlertRule models
-        report_used_legacy_models()
+        # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
     def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:
-        # Mark that we're using legacy AlertRule models
-        report_used_legacy_models()
+        # Tracking happens in fetch_rule_list and fetch_instance
         return super().delete(request, project, rule)
 
     def fetch_rule_list(self, project: Project) -> BaseQuerySet[AlertRule]:
         queryset = AlertRule.objects.fetch_for_project(project=project)
+        # Mark that we're using legacy AlertRule models
+        report_used_legacy_models()
 
         return queryset
 
     def fetch_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.get(user_id=user_id, alert_rule=rule, **kwargs)
+        # Mark that we're using legacy AlertRule models (before query to track failures too)
+        report_used_legacy_models()
 
+        rule_snooze = RuleSnooze.objects.get(user_id=user_id, alert_rule=rule, **kwargs)
         return rule_snooze
 
     def create_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
         with transaction.atomic(router.db_for_write(RuleSnooze)):
             rule_snooze = RuleSnooze.objects.create(user_id=user_id, alert_rule=rule, **kwargs)
+            # Mark that we're using legacy AlertRule models (creating foreign key relationship)
+            report_used_legacy_models()
             _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze

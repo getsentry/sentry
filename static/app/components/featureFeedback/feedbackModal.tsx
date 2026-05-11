@@ -11,25 +11,25 @@ import {
 } from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TextArea} from 'sentry/components/core/textarea';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useProjects from 'sentry/utils/useProjects';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
 export const feedbackClient = new BrowserClient({
@@ -103,7 +103,7 @@ export function FeedbackModal<T extends Data>({
   const theme = useTheme();
   const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const [state, setState] = useState<T>(
+  const [state, setState] = useState(
     props.children === undefined
       ? ({subject: undefined, additionalInfo: undefined} as unknown as T)
       : props.initialData
@@ -114,7 +114,7 @@ export function FeedbackModal<T extends Data>({
     if (projectsLoaded && location.query.project) {
       return projects.find(p => p.id === location.query.project);
     }
-    return undefined;
+    return;
   }, [projectsLoaded, projects, location.query.project]);
 
   const handleSubmit = useCallback(
@@ -224,17 +224,18 @@ export function FeedbackModal<T extends Data>({
               <Button onClick={onBack}>{t('Back')}</Button>
             </BackButtonWrapper>
           )}
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
-              priority="primary"
-              title={
-                props.children === undefined
-                  ? defined(state.subject)
-                    ? undefined
-                    : t('Required fields must be filled out')
-                  : primaryDisabledReason
-              }
+              variant="primary"
+              tooltipProps={{
+                title:
+                  props.children === undefined
+                    ? defined(state.subject)
+                      ? undefined
+                      : t('Required fields must be filled out')
+                    : primaryDisabledReason,
+              }}
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
               disabled={
                 props.children === undefined
@@ -244,7 +245,7 @@ export function FeedbackModal<T extends Data>({
             >
               {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Footer>
       );
     },
@@ -351,7 +352,7 @@ export const modalCss = css`
 `;
 
 const BackButtonWrapper = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   width: 100%;
 `;
 

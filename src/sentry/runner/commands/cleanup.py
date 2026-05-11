@@ -74,6 +74,7 @@ _WorkQueue: TypeAlias = (
     "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...], int | None]]"
 )
 
+
 API_TOKEN_TTL_IN_DAYS = 30
 
 
@@ -235,6 +236,24 @@ def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | No
 )
 @click.option("--model", "-m", multiple=True)
 @click.option("--router", "-r", default=None, help="Database router")
+@click.option(
+    "--partition-bucket",
+    type=int,
+    default=None,
+    help="Bucket index for partitioned deletion (0-based). Must be used with --partition-total.",
+)
+@click.option(
+    "--partition-total",
+    type=int,
+    default=None,
+    help="Total number of partition buckets. Must be used with --partition-bucket.",
+)
+@click.option(
+    "--partition-key",
+    default="id",
+    show_default=True,
+    help="Column to use for partition modulo.",
+)
 @log_options()
 def cleanup(
     days: int,
@@ -244,14 +263,23 @@ def cleanup(
     silent: bool,
     model: tuple[str, ...],
     router: str | None,
+    partition_bucket: int | None,
+    partition_total: int | None,
+    partition_key: str,
 ) -> None:
-    """Delete a portion of trailing data based on creation date.
+    """Delete a portion of trailing data based on a model's configured datetime column.
 
-    All data that is older than `--days` will be deleted.  The default for
-    this is 30 days.  In the default setting all projects will be truncated
-    but if you have a specific project or organization you want to limit this to,
-    this can be done with the `--project` or `--organization` flags respectively,
-    which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
+    Each model has a configured datetime column that will determine which records should
+    be deleted. If the datetime in the configured datetime column passed more than `--days`
+    days ago, the record will be deleted. By default, `--days` is 30 days. Models may
+    choose their `date_added` column to delete records with a uniform expiration policy or
+    they may choose an `date_expires` column and rely on the application to set the expiry
+    based on the owner's plan.
+
+    In the default setting all projects will be truncated but if you have a specific project
+    or organization you want to limit this to, this can be done with the `--project` or
+    `--organization` flags respectively, which accept a project/organization ID or a string
+    with the form `org/project` where both are slugs.
     """
     _cleanup(
         model=model,
@@ -261,6 +289,9 @@ def cleanup(
         router=router,
         project=project,
         organization=organization,
+        partition_bucket=partition_bucket,
+        partition_total=partition_total,
+        partition_key=partition_key,
     )
 
 
@@ -273,7 +304,31 @@ def _cleanup(
     project: str | None = None,
     organization: str | None = None,
     start_from_project_id: int | None = None,
+    partition_bucket: int | None = None,
+    partition_total: int | None = None,
+    partition_key: str = "id",
 ) -> None:
+    # Validate partition flags before modifying environment
+    parsed_partition: tuple[int, int, str] | None = None
+    if partition_bucket is not None or partition_total is not None:
+        if partition_bucket is None or partition_total is None:
+            raise click.ClickException(
+                "--partition-bucket and --partition-total must be used together."
+            )
+        if partition_total <= 0:
+            raise click.ClickException(
+                f"Invalid --partition-total: must be greater than 0, got {partition_total}."
+            )
+        if partition_bucket < 0:
+            raise click.ClickException(
+                f"Invalid --partition-bucket: must be non-negative, got {partition_bucket}."
+            )
+        if partition_bucket >= partition_total:
+            raise click.ClickException(
+                f"Invalid --partition-bucket: {partition_bucket} must be less than --partition-total {partition_total}."
+            )
+        parsed_partition = (partition_bucket, partition_total, partition_key)
+
     start_time = time.time()
     _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
@@ -320,12 +375,14 @@ def _cleanup(
                 return model.__name__.lower() not in model_list
 
             deletes = models_which_use_deletions_code_path()
+            expiry_deletes = models_which_use_expiry_deletions()
+            bulk_query_deletes = generate_bulk_query_deletes()
 
             _run_specialized_cleanups(is_filtered, days, models_attempted)
 
             # Handle project/organization specific logic
             project_id, organization_id = _handle_project_organization_cleanup(
-                project, organization, days, deletes
+                project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
                 transaction.set_tag("organization_id", organization_id)
@@ -333,11 +390,13 @@ def _cleanup(
                 transaction.set_tag("project_id", project_id)
 
             run_bulk_query_deletes(
+                bulk_query_deletes,
                 is_filtered,
                 days,
                 project,
                 project_id,
                 models_attempted,
+                partition=parsed_partition,
             )
 
             run_bulk_deletes_in_deletes(
@@ -345,6 +404,18 @@ def _cleanup(
                 deletes,
                 is_filtered,
                 days,
+                project,
+                project_id,
+                models_attempted,
+            )
+
+            # Expiry-based models always use days=0 so records are deleted exactly
+            # when they expire, regardless of the --days flag.
+            run_bulk_deletes_in_deletes(
+                task_queue,
+                expiry_deletes,
+                is_filtered,
+                0,
                 project,
                 project_id,
                 models_attempted,
@@ -462,6 +533,7 @@ def _handle_project_organization_cleanup(
     organization: str | None,
     days: int,
     deletes: list[tuple[type[BaseModel], str, str]],
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
 ) -> tuple[int | None, int | None]:
     """Handle project/organization specific cleanup logic."""
     project_id = None
@@ -470,6 +542,7 @@ def _handle_project_organization_cleanup(
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         if project:
             remove_cross_project_models(deletes)
+            remove_cross_project_bulk_query_models(bulk_query_deletes)
             project_id = get_project_id_or_fail(project)
         elif organization:
             organization_id = get_organization_id_or_fail(organization)
@@ -606,30 +679,40 @@ def exported_data(
 def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.commit import Commit
-    from sentry.models.eventattachment import EventAttachment
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.pullrequest import PullRequest
     from sentry.models.release import Release
-    from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
+    from sentry.uptime.models import UptimeResponseCapture
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
     return [
-        (EventAttachment, "date_added", "date_added"),
+        # Delete based on a record's age (universal retention policies)
         (ReplayRecordingSegment, "date_added", "date_added"),
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
         (GroupRuleStatus, "date_added", "date_added"),
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
-        (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
+        (UptimeResponseCapture, "date_added", "date_added"),
+    ]
+
+
+def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]]:
+    from sentry.models.eventattachment import EventAttachment
+
+    # Models deleted based on their per-record expiry date, independent of --days.
+    # Always run with days=0 so records are deleted exactly when they expire,
+    # regardless of the --days value passed to the cleanup command.
+    return [
+        (EventAttachment, "date_expires", "date_expires"),
     ]
 
 
@@ -638,10 +721,12 @@ def remove_cross_project_models(
 ) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
+    from sentry.uptime.models import UptimeResponseCapture
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
     deletes.remove((File, "timestamp", "id"))
+    deletes.remove((UptimeResponseCapture, "date_added", "date_added"))
     return deletes
 
 
@@ -679,11 +764,24 @@ def remove_old_nodestore_values(days: int) -> None:
         click.echo("NodeStore backend does not support cleanup operation", err=True)
 
 
+def remove_cross_project_bulk_query_models(
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
+) -> list[tuple[type[BaseModel], str, str | None]]:
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+    from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+
+    bulk_query_deletes.remove((GroupOpenPeriodActivity, "date_added", None))
+    bulk_query_deletes.remove((WorkflowFireHistory, "date_added", None))
+    return bulk_query_deletes
+
+
 def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None]]:
     from django.apps import apps
 
     from sentry.models.groupemailthread import GroupEmailThread
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.models.userreport import UserReport
+    from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
@@ -696,17 +794,21 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     BULK_QUERY_DELETES = [
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
+        (GroupOpenPeriodActivity, "date_added", None),
+        (WorkflowFireHistory, "date_added", None),
     ] + additional_bulk_query_deletes
 
     return BULK_QUERY_DELETES
 
 
 def run_bulk_query_deletes(
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     project: str | None,
     project_id: int | None,
     models_attempted: set[str],
+    partition: tuple[int, int, str] | None = None,
 ) -> None:
     from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
@@ -716,7 +818,6 @@ def run_bulk_query_deletes(
         raise CleanupExecutionAborted()
 
     debug_output("Running bulk query deletes in bulk_query_deletes")
-    bulk_query_deletes = generate_bulk_query_deletes()
     for model_tp, dtfield, order_by in bulk_query_deletes:
         chunk_size = 10000
 
@@ -732,6 +833,7 @@ def run_bulk_query_deletes(
                     days=days,
                     project_id=project_id,
                     order_by=order_by,
+                    partition=partition,
                 ).execute(chunk_size=chunk_size)
             except Exception:
                 capture_exception(tags={"model": model_tp.__name__})

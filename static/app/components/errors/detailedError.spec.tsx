@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import DetailedError from 'sentry/components/errors/detailedError';
+import {DetailedError} from 'sentry/components/errors/detailedError';
 
 describe('DetailedError', () => {
   it('renders', () => {

@@ -1,10 +1,14 @@
-from .custom_rule import CustomRuleSamplesFulfilledTemplate
 from .data_export import DataExportFailureTemplate, DataExportSuccessTemplate
+from .issue import IssueNotificationTemplate
+from .metric_alert import MetricAlertNotificationTemplate
+from .sentry_app_webhook_disabled import SentryAppWebhookDisabledTemplate
 
 __all__ = (
-    "CustomRuleSamplesFulfilledTemplate",
     "DataExportSuccessTemplate",
     "DataExportFailureTemplate",
+    "IssueNotificationTemplate",
+    "MetricAlertNotificationTemplate",
+    "SentryAppWebhookDisabledTemplate",
 )
 # All templates should be imported here so they are registered in the notifications Django app.
 # See sentry/notifications/apps.py

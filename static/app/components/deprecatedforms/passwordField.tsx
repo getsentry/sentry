@@ -1,6 +1,6 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
-import FormState from 'sentry/components/forms/state';
+import {InputField} from 'sentry/components/deprecatedforms/inputField';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
+import {FormState} from 'sentry/components/forms/state';
 
 type Props = InputField['props'] & {
   formState?: (typeof FormState)[keyof typeof FormState];
@@ -75,7 +75,8 @@ class PasswordField extends InputField<Props, State> {
     return (
       <div className="form-password saved">
         <span>
-          {this.props.prefix + new Array(21 - this.props.prefix!.length).join('*')}
+          {this.props.prefix +
+            Array.from({length: 21 - this.props.prefix!.length}).join('*')}
         </span>
         {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
       </div>

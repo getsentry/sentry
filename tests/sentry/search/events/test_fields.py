@@ -173,6 +173,22 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected) -> None
             ("to_other", ["release", r'"asdf @ \"qwer: (3,2)"'], None),
         ),
         ("identity(sessions)", ("identity", ["sessions"], None)),
+        (
+            r'to_other(release,"asdf @ \"`qwer: (3,2)")',
+            ("to_other", ["release", r'"asdf @ \"`qwer: (3,2)"'], None),
+        ),
+        (
+            "count_if(`p50(test, test, test):>test`, sessions)",
+            ("count_if", ["`p50(test, test, test):>test`", "sessions"], None),
+        ),
+        (
+            "count_if(`p50(test, test, test):>test thing:\"blah\" tags[foo]:'bar'`, sessions)",
+            (
+                "count_if",
+                ["`p50(test, test, test):>test thing:\"blah\" tags[foo]:'bar'`", "sessions"],
+                None,
+            ),
+        ),
     ],
 )
 def test_parse_function(function, expected) -> None:
@@ -285,9 +301,9 @@ def test_range_funtions(field, expected) -> None:
 def test_combinator_names_are_reserved(combinator) -> None:
     fields = UnresolvedQuery(dataset=Dataset.Discover, params={})
     for function in fields.function_converter:
-        assert not function.endswith(
-            combinator.kind
-        ), f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"
+        assert not function.endswith(combinator.kind), (
+            f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"
+        )
 
 
 @pytest.mark.parametrize(

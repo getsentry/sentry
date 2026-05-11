@@ -1,7 +1,7 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+import {makeAnalyticsFunction} from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {AddOnCategory, CheckoutType, Subscription} from 'getsentry/types';
@@ -131,9 +131,6 @@ type GetsentryEventParameters = {
   'growth.clicked_enter_sandbox': {
     scenario: string;
   };
-  'growth.codecov_promotion_accept': HasSub;
-  'growth.codecov_promotion_decline': HasSub;
-  'growth.codecov_promotion_opened': HasSub;
   'growth.disabled_dashboard.viewed': Record<PropertyKey, unknown>;
   'growth.issue_open_in_discover_upsell_clicked': Record<PropertyKey, unknown>;
   'growth.metric_alert_banner.clicked': HasSub;
@@ -155,6 +152,8 @@ type GetsentryEventParameters = {
   'growth.upsell_feature.cancelled': UpsellProvider;
   'growth.upsell_feature.clicked': UpsellProvider;
   'growth.upsell_feature.confirmed': UpsellProvider;
+  'intercom_link.clicked': {source?: string};
+  'intercom_link.viewed': {source?: string};
   'learn_more_link.clicked': {source?: string};
   'ondemand_budget_modal.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'ondemand_budget_modal.ondemand_budget.update': OnDemandBudgetUpdate;
@@ -289,9 +288,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'growth.promo_reminder_modal_keep': 'Growth: Promo Reminder Modal Keep',
   'growth.promo_reminder_modal_continue_downgrade':
     'Growth: Promo Reminder Modal Continue Downgrade',
-  'growth.codecov_promotion_accept': 'Growth: Codecov Promotion Accept',
-  'growth.codecov_promotion_decline': 'Growth: Codecov Promotion Decline',
-  'growth.codecov_promotion_opened': 'Growth: Codecov Promotion Opened',
   'quota_alert.shown': 'Quota Alert: Shown',
   'quota_alert.clicked_snooze': 'Quota Alert: Clicked Snooze',
   'quota_alert.clicked_unsnooze': 'Quota Alert: Clicked Unsnooze',
@@ -374,9 +370,11 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'upgrade_now.modal.sent_email': 'Upgrade Now Modal: Sent Email',
   'upgrade_now.modal.update_now': 'Upgrade Now Modal: Clicked Update Now',
   'upgrade_now.modal.viewed': 'Upgrade Now Modal: Viewed Modal',
-  'zendesk_link.viewed': 'Zendesk Link Viewed',
-  'zendesk_link.clicked': 'Zendesk Link Clicked',
+  'intercom_link.clicked': 'Intercom Link Clicked',
+  'intercom_link.viewed': 'Intercom Link Viewed',
   'learn_more_link.clicked': 'Learn More Link Clicked',
+  'zendesk_link.clicked': 'Zendesk Link Clicked',
+  'zendesk_link.viewed': 'Zendesk Link Viewed',
   'spend_allocations.open_form': 'Spend Allocations: Form Opened',
   'spend_allocations.submit': 'Spend Allocations: Form Submitted',
   'data_consent_modal.learn_more': 'Data Consent Modal: Learn More',
@@ -400,9 +398,7 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
     'Subscription Page: Usage Overview Add On Toggled',
 };
 
-const trackGetsentryAnalytics = makeAnalyticsFunction<
+export const trackGetsentryAnalytics = makeAnalyticsFunction<
   GetsentryEventParameters,
   {organization: Organization}
 >(GETSENTRY_EVENT_MAP);
-
-export default trackGetsentryAnalytics;

@@ -1,10 +1,10 @@
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
-import errorHandler from 'sentry/utils/errorHandler';
+import {errorHandler} from 'sentry/utils/errorHandler';
 
-import SubscriptionContext from 'getsentry/views/subscriptionContext';
+import {SubscriptionContext} from 'getsentry/views/subscriptionContext';
 
-const settingsRoutes = (): SentryRouteObject => ({
+export const settingsRoutes = (): SentryRouteObject => ({
   children: [
     {
       path: 'billing/history/',
@@ -110,11 +110,9 @@ const settingsRoutes = (): SentryRouteObject => ({
       name: 'Support',
       path: 'support/',
       component: () => {
-        window.location.replace('https://sentry.zendesk.com/hc/en-us');
+        window.location.replace('https://www.sentry.help');
         return null;
       },
     },
   ],
 });
-
-export default settingsRoutes;

@@ -10,12 +10,12 @@ import {
   type Plan,
   type Subscription,
 } from 'getsentry/types';
-import CartDiff from 'getsentry/views/amCheckout/components/cartDiff';
+import {CartDiff} from 'getsentry/views/amCheckout/components/cartDiff';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CartDiff', () => {
-  const bizPlan = PlanDetailsLookupFixture('am3_business')!;
-  const teamAnnualPlan = PlanDetailsLookupFixture('am3_team_auf')!;
+  const bizPlan = PlanDetailsLookupFixture('am3_business');
+  const teamAnnualPlan = PlanDetailsLookupFixture('am3_team_auf');
   const org = OrganizationFixture();
   const sub = SubscriptionFixture({
     organization: org,

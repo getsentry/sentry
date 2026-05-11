@@ -2,23 +2,18 @@ import type {Location} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {
   Aggregation,
   Column,
@@ -43,6 +38,7 @@ import {
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -54,7 +50,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {
   getAllViews,
   getTransactionViews,
@@ -64,6 +60,27 @@ import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
 import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+/**
+ * @returns whether `widgetType` is one that stores a {@link DisplayType} directly
+ * in `eventView.display`, rather than a {@link DisplayModes} value that needs conversion.
+ */
+function widgetTypeUsesDisplayTypeDirectly(widgetType: WidgetType | undefined) {
+  return (
+    widgetType === WidgetType.SPANS ||
+    widgetType === WidgetType.LOGS ||
+    widgetType === WidgetType.TRACEMETRICS
+  );
+}
+
+function resolveDisplayType(
+  widgetType: WidgetType | undefined,
+  eventViewDisplay: string | undefined
+) {
+  return widgetTypeUsesDisplayTypeDirectly(widgetType)
+    ? (eventViewDisplay as DisplayType)
+    : displayModeToDisplayType(eventViewDisplay as DisplayModes);
+}
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
@@ -170,7 +187,7 @@ export function getPrebuiltQueries(organization: Organization) {
 function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[=+\-@]/;
 
-  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+  if (typeof value === 'string' && value.match(unsafeCharacterRegex)) {
     return `'${value}`;
   }
 
@@ -195,12 +212,8 @@ export function downloadAsCsv(tableData: any, columnOrder: any, filename: any) {
   const encodedDataUrl = `data:text/csv;charset=utf8,${encodeURIComponent(csvContent)}`;
 
   // Create a download link then click it, this is so we can get a filename
-  const link = document.createElement('a');
   const now = new Date();
-  link.setAttribute('href', encodedDataUrl);
-  link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
-  link.click();
-  link.remove();
+  downloadFromHref(`${filename} ${getUtcDateString(now)}.csv`, encodedDataUrl);
 
   // Make testing easier
   return encodedDataUrl;
@@ -223,7 +236,7 @@ function drilldownAggregate(
   const aggregation = AGGREGATIONS[key];
   let column = func.function[1];
 
-  if (ALIASED_AGGREGATES_COLUMN.hasOwnProperty(key)) {
+  if (Object.hasOwn(ALIASED_AGGREGATES_COLUMN, key)) {
     // Some aggregates are just shortcuts to other aggregates with
     // predefined arguments so we can directly map them to the result.
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -329,7 +342,7 @@ function generateAdditionalConditions(
     // Or is a simple key in the event. More complex deeply nested fields are
     // more challenging to get at as their location in the structure does not
     // match their name.
-    if (dataRow.hasOwnProperty(dataKey)) {
+    if (Object.hasOwn(dataRow, dataKey)) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       let value = dataRow[dataKey];
 
@@ -347,7 +360,7 @@ function generateAdditionalConditions(
       const shouldQuote =
         value === null || value === undefined
           ? false
-          : /[\s()\\"]/g.test(String(value).trim());
+          : /[\s()\\"]/.test(String(value).trim());
       const nextValue =
         value === null || value === undefined
           ? ''
@@ -441,7 +454,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: OrganizationSummary;
+  organization: Organization;
   aggregations?: Record<string, Aggregation>;
   customMeasurements?: Array<{functions: string[]; key: string}> | null;
   fieldKeys?: string[];
@@ -481,7 +494,7 @@ export function generateFieldOptions({
     const ellipsis = aggregations[func]!.parameters.length ? '\u2026' : '';
     const parameters = aggregations[func]!.parameters.map(param => {
       const overrides = aggregations[func]!.getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {
@@ -569,7 +582,7 @@ export function generateFieldOptions({
     tagKeys.sort();
     tagKeys.forEach(tag => {
       const tagValue =
-        fieldKeys.includes(tag) || aggregations.hasOwnProperty(tag)
+        fieldKeys.includes(tag) || Object.hasOwn(aggregations, tag)
           ? `tags[${tag}]`
           : tag;
       fieldOptions[`tag:${tag}`] = {
@@ -650,10 +663,7 @@ export function handleAddQueryToDashboard({
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
-  const displayType =
-    widgetType === WidgetType.SPANS || widgetType === WidgetType.TRACEMETRICS
-      ? (eventView.display as DisplayType)
-      : displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType = resolveDisplayType(widgetType, eventView.display);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -736,10 +746,7 @@ export function handleAddMultipleQueriesToDashboard({
   }
 
   const widgets = eventViews.map(eventView => {
-    const displayType =
-      widgetType === WidgetType.SPANS || widgetType === WidgetType.TRACEMETRICS
-        ? (eventView.display as DisplayType)
-        : displayModeToDisplayType(eventView.display as DisplayModes);
+    const displayType = resolveDisplayType(widgetType, eventView.display);
 
     const defaultWidgetQuery = eventViewToWidgetQuery({
       eventView,
@@ -773,7 +780,7 @@ export function handleAddMultipleQueriesToDashboard({
       interval: eventView.interval!,
       limit: widgetAsQueryParams?.limit,
       widgetType,
-    } as Widget;
+    };
   });
 
   openAddToDashboardModal({
@@ -840,10 +847,7 @@ export function constructAddQueryToDashboardLink({
   widgetType?: WidgetType;
   yAxis?: string | string[];
 }) {
-  const displayType =
-    widgetType === WidgetType.SPANS
-      ? (eventView.display as DisplayType)
-      : displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType = resolveDisplayType(widgetType, eventView.display);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -870,8 +874,7 @@ export function constructAddQueryToDashboardLink({
         aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
         fields: eventView.getFields(),
         columns:
-          widgetType === WidgetType.SPANS ||
-          widgetType === WidgetType.TRACEMETRICS ||
+          widgetTypeUsesDisplayTypeDirectly(widgetType) ||
           displayType === DisplayType.TOP_N ||
           eventView.display === DisplayModes.DAILYTOP5
             ? eventView
@@ -888,7 +891,7 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      ...convertWidgetToBuilderStateParams(widget),
+      ...convertWidgetToQueryParams(widget),
       source,
     },
   };

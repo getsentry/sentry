@@ -8,22 +8,20 @@ from django.utils import timezone
 from slack_sdk.errors import SlackApiError
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessage
 from sentry.integrations.repository.notification_action import NotificationActionNotificationMessage
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.service import ActionDataError, RuleDataError, SlackService
+from sentry.integrations.slack.service import ActionDataError, SlackService
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -83,31 +81,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         self.channel_id = "C0123456789"
         self.message_identifier = "1a2s3d"
 
-        self.rule_action_uuid = str(uuid4())
-        self.notify_issue_owners_action = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-                "uuid": self.rule_action_uuid,
-            }
-        ]
-        self.rule = self.create_project_rule(
-            project=self.project, action_data=self.notify_issue_owners_action
-        )
-        self.rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.rule,
-            group=self.group,
-            event_id=456,
-            notification_uuid=str(uuid4()),
-        )
-        self.parent_notification = NotificationMessage.objects.create(
-            rule_fire_history_id=self.rule_fire_history.id,
-            rule_action_uuid=self.rule_action_uuid,
-            message_identifier=self.message_identifier,
-        )
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_integration(
                 organization=self.organization,
@@ -124,15 +97,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
             action=self.action,
             group=self.group,
         )
-
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with override_options(
-            {
-                "workflow_engine.issue_alert.group.type_id.ga": [1, 7001],
-            }
-        ):
-            yield
 
     def test_none_group(self) -> None:
         self.activity.update(group=None)
@@ -221,7 +185,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
     def test_calls_handle_parent_notification(
         self, mock_get_channel_id, mock_send_notification, mock_record
     ):
-        IssueAlertNotificationMessage.from_model(instance=self.parent_notification)
         self.service.notify_all_threads_for_activity(activity=self.activity)
 
         mock_get_channel_id.assert_called()
@@ -274,7 +237,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             group=group,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1
@@ -325,7 +294,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             group=group,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1
@@ -373,7 +348,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             group=group,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1
@@ -385,7 +366,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     def test_no_parent_notification(self, mock_send: mock.MagicMock) -> None:
-        self.parent_notification.delete()
         self.parent_notification_action.delete()
         self.service.notify_all_threads_for_activity(activity=self.activity)
         assert not mock_send.called
@@ -402,7 +382,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_notify.assert_called_once()
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -451,8 +430,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         )
 
     @with_feature("organizations:slack-threads-refactor-uptime")
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [7001]})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -498,7 +475,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             notification_2
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1
@@ -513,18 +496,8 @@ class TestNotifyAllThreadsForActivity(TestCase):
 class TestSlackServiceMethods(TestCase):
     def setUp(self) -> None:
         self.service = SlackService.default()
-        self.rule_action_uuid = str(uuid4())
         self.channel_id = "C0123456789"
         self.message_identifier = "1a2s3d"
-        self.notify_issue_owners_action = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-                "uuid": self.rule_action_uuid,
-            }
-        ]
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_integration(
                 organization=self.organization,
@@ -533,42 +506,6 @@ class TestSlackServiceMethods(TestCase):
                 external_id="slack:1",
                 metadata={"access_token": "xoxb-access-token"},
             )
-        self.slack_action = {
-            "workspace": str(self.integration.id),
-            "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-            "channel_id": self.channel_id,
-            "tags": "",
-            "channel": "test-notifications",
-            "uuid": self.rule_action_uuid,
-        }
-        self.rule = self.create_project_rule(
-            project=self.project, action_data=self.notify_issue_owners_action
-        )
-        self.rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.rule,
-            group=self.group,
-            event_id=456,
-            notification_uuid=str(uuid4()),
-        )
-
-        self.slack_rule = self.create_project_rule(
-            project=self.project, action_data=[self.slack_action]
-        )
-        self.slack_rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.slack_rule,
-            group=self.group,
-            event_id=543,
-            notification_uuid=str(uuid4()),
-        )
-        self.parent_notification = IssueAlertNotificationMessage(
-            id=123,
-            date_added=datetime.now(),
-            message_identifier=self.message_identifier,
-            rule_action_uuid=self.rule_action_uuid,
-            rule_fire_history=self.slack_rule_fire_history,
-        )
 
         self.action = self.create_action(
             type=Action.Type.SLACK,
@@ -585,106 +522,6 @@ class TestSlackServiceMethods(TestCase):
             message_identifier=self.message_identifier,
             action=self.action,
             group=self.group,
-        )
-
-    def test_get_channel_id_from_parent_notification(self) -> None:
-        # Test the channel ID extraction logic
-        channel_id = self.service._get_channel_id_from_parent_notification(self.parent_notification)
-        assert channel_id == self.channel_id
-
-    def test_get_channel_id_no_rule_fire_history(self) -> None:
-        """
-        Test that an exception is raised when parent notification does not have rule_fire_history
-        """
-        parent_notification = IssueAlertNotificationMessage(
-            id=123,
-            date_added=datetime.now(),
-            message_identifier=self.message_identifier,
-            rule_action_uuid=str(uuid4()),
-        )
-        with pytest.raises(RuleDataError) as err:
-            self.service._get_channel_id_from_parent_notification(
-                parent_notification=parent_notification,
-            )
-        assert (
-            str(err.value)
-            == f"parent notification {parent_notification.id} does not have a rule_fire_history"
-        )
-
-    def test_get_channel_id_no_rule_action_uuid(self) -> None:
-        """
-        Test that an exception is raised when parent notification does not have rule_action_uuid
-        """
-        parent_notification = IssueAlertNotificationMessage(
-            id=123,
-            date_added=datetime.now(),
-            message_identifier=self.message_identifier,
-            rule_fire_history=self.rule_fire_history,
-        )
-        with pytest.raises(RuleDataError) as err:
-            self.service._get_channel_id_from_parent_notification(
-                parent_notification=parent_notification,
-            )
-        assert (
-            str(err.value)
-            == f"parent notification {parent_notification.id} does not have a rule_action_uuid"
-        )
-
-    def test_get_channel_id_no_rule_action(self) -> None:
-        """
-        Test that an exception is raised when rule action does not exist
-        """
-        notify_issue_owners_action = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-                "uuid": str(uuid4()),
-            }
-        ]
-        rule = self.create_project_rule(
-            project=self.project, action_data=notify_issue_owners_action
-        )
-        rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=rule,
-            group=self.group,
-            event_id=456,
-            notification_uuid=str(uuid4()),
-        )
-        parent_notification_message = NotificationMessage.objects.create(
-            rule_fire_history=rule_fire_history,
-            rule_action_uuid=str(uuid4()),
-            message_identifier="123abc",
-        )
-        parent_notification = IssueAlertNotificationMessage.from_model(parent_notification_message)
-        with pytest.raises(RuleDataError) as err:
-            self.service._get_channel_id_from_parent_notification(
-                parent_notification=parent_notification,
-            )
-        assert (
-            str(err.value)
-            == f"failed to find rule action {parent_notification.rule_action_uuid} for rule {rule.id}"
-        )
-
-    def test_get_channel_id_no_channel_id(self) -> None:
-        """
-        Test that an exception is raised when rule action does not have channel_id
-        """
-        parent_notification_message = NotificationMessage.objects.create(
-            rule_fire_history=self.rule_fire_history,
-            rule_action_uuid=self.rule_action_uuid,
-            message_identifier="123abc",
-        )
-        parent_notification = IssueAlertNotificationMessage.from_model(parent_notification_message)
-        with pytest.raises(RuleDataError) as err:
-            self.service._get_channel_id_from_parent_notification(
-                parent_notification=parent_notification,
-            )
-        assert (
-            str(err.value)
-            == f"failed to get channel_id for rule {self.rule.id} and rule action {parent_notification.rule_action_uuid}"
         )
 
     @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")

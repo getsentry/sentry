@@ -1,19 +1,17 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
+import {FieldKind} from 'sentry/utils/fields';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {usePrebuiltDashboardUrl} from 'sentry/views/dashboards/utils/usePrebuiltDashboardUrl';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {ModuleName} from 'sentry/views/insights/types';
-import {
-  querySummaryRouteWithQuery,
-  resourceSummaryRouteWithQuery,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/utils';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
   category: string | undefined;
@@ -23,10 +21,30 @@ interface Props {
   project_id: string | undefined;
 }
 
-function SpanSummaryLink(props: Props) {
-  const location = useLocation();
-  const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
-  const queryBaseUrl = useModuleURL(ModuleName.DB);
+export function SpanSummaryLink(props: Props) {
+  const spanGroupFilter = props.group
+    ? {
+        globalFilter: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {
+              key: SpanFields.SPAN_GROUP,
+              name: SpanFields.SPAN_GROUP,
+              kind: FieldKind.TAG,
+            },
+            value: `${SpanFields.SPAN_GROUP}:[${props.group}]`,
+          },
+        ],
+      }
+    : undefined;
+  const platformizedResourceUrl = usePrebuiltDashboardUrl(
+    PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+    {filters: spanGroupFilter}
+  );
+  const platformizedQueryUrl = usePrebuiltDashboardUrl(
+    PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+    {filters: spanGroupFilter}
+  );
 
   if (!props.group) {
     return null;
@@ -38,14 +56,13 @@ function SpanSummaryLink(props: Props) {
     props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
+    if (!platformizedQueryUrl) {
+      return null;
+    }
+
     return (
       <Link
-        to={querySummaryRouteWithQuery({
-          base: queryBaseUrl,
-          query: location.query,
-          group: props.group,
-          projectID: props.project_id,
-        })}
+        to={platformizedQueryUrl}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
             organization: props.organization,
@@ -64,14 +81,13 @@ function SpanSummaryLink(props: Props) {
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(props.op)
   ) {
+    if (!platformizedResourceUrl) {
+      return null;
+    }
+
     return (
       <Link
-        to={resourceSummaryRouteWithQuery({
-          baseUrl: resourceBaseUrl,
-          query: location.query,
-          group: props.group,
-          projectID: props.project_id,
-        })}
+        to={platformizedResourceUrl}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
             organization: props.organization,
@@ -89,10 +105,8 @@ function SpanSummaryLink(props: Props) {
 }
 
 const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const resourceSummaryAvailable = (op = '') =>
   ['resource.script', 'resource.css'].includes(op);
-
-export default SpanSummaryLink;

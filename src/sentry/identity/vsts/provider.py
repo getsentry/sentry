@@ -93,9 +93,9 @@ class VSTSIdentityProvider(OAuth2Provider):
         # the token.
 
         # TODO(ecosystem): We should not use scopes to determine which client_secret to use
-        assert isinstance(
-            identity, Identity
-        ), "Legacy VSTS identity provider only supports Identity"
+        assert isinstance(identity, Identity), (
+            "Legacy VSTS identity provider only supports Identity"
+        )
         if "vso.code" not in identity.scopes:
             client_secret = options.get("vsts-limited.client-secret")
 
@@ -121,7 +121,6 @@ class VSTSIdentityProvider(OAuth2Provider):
             "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
             "id": user["id"],
             "email": user["emailAddress"],
-            "email_verified": True,
             "name": user["displayName"],
             "scopes": sorted(self.oauth_scopes),
             "data": self.get_oauth_data(data),
@@ -208,7 +207,6 @@ class VSTSNewIdentityProvider(OAuth2Provider):
             "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
             "id": user["id"],
             "email": user["emailAddress"],
-            "email_verified": True,
             "name": user["displayName"],
             "scopes": sorted(self.oauth_scopes),
             "data": self.get_oauth_data(data),

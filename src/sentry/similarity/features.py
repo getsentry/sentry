@@ -106,16 +106,16 @@ class FeatureSet:
                 if scope is None:
                     scope = self.__get_scope(event.project)
                 else:
-                    assert (
-                        self.__get_scope(event.project) == scope
-                    ), "all events must be associated with the same project"
+                    assert self.__get_scope(event.project) == scope, (
+                        "all events must be associated with the same project"
+                    )
 
                 if key is None:
                     key = self.__get_key(event.group)
                 else:
-                    assert (
-                        self.__get_key(event.group) == key
-                    ), "all events must be associated with the same group"
+                    assert self.__get_key(event.group) == key, (
+                        "all events must be associated with the same group"
+                    )
 
                 try:
                     features = [self.encoder.dumps(feature) for feature in features]
@@ -154,9 +154,9 @@ class FeatureSet:
                 if scope is None:
                     scope = self.__get_scope(event.project)
                 else:
-                    assert (
-                        self.__get_scope(event.project) == scope
-                    ), "all events must be associated with the same project"
+                    assert self.__get_scope(event.project) == scope, (
+                        "all events must be associated with the same project"
+                    )
 
                 try:
                     features = [self.encoder.dumps(feature) for feature in features]

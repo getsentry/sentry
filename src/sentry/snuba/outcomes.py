@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, Generic, TypeVar
+from datetime import datetime
+from typing import Any, Generic, NotRequired, TypeVar
+from typing import TypedDict as TypingTypedDict
 
 from django.http import QueryDict
 from snuba_sdk import Request
@@ -14,13 +17,14 @@ from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
 from sentry.constants import DataCategory
+from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
     InvalidField,
     SimpleGroupBy,
     get_constrained_date_range,
-    massage_sessions_result,
+    isoformat_z,
 )
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
@@ -448,6 +452,122 @@ def _outcomes_dataset(rollup: int) -> tuple[Dataset, str]:
     return dataset, match
 
 
+dropped_outcomes = [
+    Outcome.INVALID.api_name(),
+    Outcome.RATE_LIMITED.api_name(),
+    Outcome.CARDINALITY_LIMITED.api_name(),
+]
+
+
+def _split_rows_groupby(rows, groupby):
+    groups: dict[frozenset[str], list[object]] = {}
+    if rows is None:
+        return groups
+    for row in rows:
+        key_parts = (group.get_keys_for_row(row) for group in groupby)
+        keys = itertools.product(*key_parts)
+
+        for key_tup in keys:
+            key = frozenset(key_tup)
+
+            groups.setdefault(key, []).append(row)
+
+    return groups
+
+
+def massage_sessions_result(
+    query, result_totals, result_timeseries, ts_col="bucketed_started"
+) -> dict[str, list[Any]]:
+    """
+    Post-processes the query result.
+
+    Given the `query` as defined by [`QueryDefinition`] and its totals and
+    timeseries results from snuba, groups and transforms the result into the
+    expected format.
+
+    For example:
+    ```json
+    {
+      "intervals": [
+        "2020-12-16T00:00:00Z",
+        "2020-12-16T12:00:00Z",
+        "2020-12-17T00:00:00Z"
+      ],
+      "groups": [
+        {
+          "by": { "release": "99b8edc5a3bb49d01d16426d7bb9c511ec41f81e" },
+          "series": { "sum(session)": [0, 1, 0] },
+          "totals": { "sum(session)": 1 }
+        },
+        {
+          "by": { "release": "test-example-release" },
+          "series": { "sum(session)": [0, 10, 20] },
+          "totals": { "sum(session)": 30 }
+        }
+      ]
+    }
+    ```
+    """
+    timestamps = get_timestamps(query)
+
+    total_groups = _split_rows_groupby(result_totals, query.groupby)
+    timeseries_groups = _split_rows_groupby(result_timeseries, query.groupby)
+
+    def make_timeseries(rows, group):
+        for row in rows:
+            row[ts_col] = row[ts_col][:19] + "Z"
+
+        rows.sort(key=lambda row: row[ts_col])
+        fields: list[tuple[str, Field, list[float | None]]]
+        fields = [(name, field, []) for name, field in query.fields.items()]
+        group_index = 0
+
+        while group_index < len(rows):
+            row = rows[group_index]
+            if row[ts_col] < timestamps[0]:
+                group_index += 1
+            else:
+                break
+
+        for ts in timestamps:
+            row = rows[group_index] if group_index < len(rows) else None
+            if row is not None and row[ts_col] == ts:
+                group_index += 1
+            else:
+                row = None
+
+            for name, field, series in fields:
+                series.append(field.extract_from_row(row, group))
+
+        return {name: series for (name, field, series) in fields}
+
+    def make_totals(totals, group):
+        return {
+            name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
+        }
+
+    groups = []
+    keys = set(total_groups.keys()) | set(timeseries_groups.keys())
+    for key in keys:
+        by = dict(key)
+        group = {
+            "by": by,
+            "totals": make_totals(total_groups.get(key, [None]), by),
+        }
+        if result_timeseries is not None:
+            group["series"] = make_timeseries(timeseries_groups.get(key, []), by)
+
+        groups.append(group)
+
+    return {
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
+        "query": query.query,
+        "intervals": timestamps,
+        "groups": groups,
+    }
+
+
 def massage_outcomes_result(
     query: QueryDefinition,
     result_totals: ResultSet,
@@ -460,3 +580,161 @@ def massage_outcomes_result(
         del result["intervals"]
     del result["query"]
     return result
+
+
+class _CategoryStats(TypingTypedDict):
+    category: str
+    outcomes: dict[str, int]
+    totals: dict[str, int]
+    reason: NotRequired[str]
+
+
+class _Project(TypingTypedDict):
+    id: int
+    slug: str
+    stats: list[_CategoryStats]
+
+
+class _Period(TypingTypedDict):
+    start: str
+    end: str
+    projects: list[_Project]
+
+
+def massage_sessions_result_summary(
+    query, result_totals, outcome_query=None
+) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], _Period]:
+    """
+    Post-processes the query result.
+
+    Given the `query` as defined by [`QueryDefinition`] and its totals and
+    timeseries results from snuba, groups and transforms the result into the
+    expected format.
+
+    For example:
+    ```json
+    {
+      "start": "2020-12-16T00:00:00Z",
+      "end": "2020-12-16T12:00:00Z",
+      "projects": [
+        {
+          "id": 1,
+          "stats": [
+            {
+              "category": "error",
+              "outcomes": {
+                "accepted": 6,
+                "filtered": 0,
+                "rate_limited": 1,
+                "invalid": 0,
+                "abuse": 0,
+                "client_discard": 0,
+                "cardinality_limited": 0,
+              },
+              "totals": {
+                "dropped": 1,
+                "sum(quantity)": 7,
+              },
+            }
+          ]
+        }
+      ]
+    }
+    ```
+    """
+    total_groups = _split_rows_groupby(result_totals, query.groupby)
+
+    def make_totals(totals, group):
+        return {
+            name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
+        }
+
+    def get_category_stats(
+        reason, totals, outcome, category, category_stats: _CategoryStats | None = None
+    ) -> _CategoryStats:
+        if not category_stats:
+            category_stats = {
+                "category": category,
+                "outcomes": (
+                    {o.api_name(): 0 for o in Outcome}
+                    if not outcome_query
+                    else {o: 0 for o in outcome_query}
+                ),
+                "totals": {},
+            }
+            if not outcome_query or any([o in dropped_outcomes for o in outcome_query]):
+                category_stats["totals"] = {"dropped": 0}
+            if reason:
+                category_stats["reason"] = reason
+
+        for k, v in totals.items():
+            if k in category_stats["totals"]:
+                category_stats["totals"][k] += v
+            else:
+                category_stats["totals"][k] = v
+
+            category_stats["outcomes"][outcome] += v
+            if outcome in dropped_outcomes:
+                category_stats["totals"]["dropped"] += v
+
+        return category_stats
+
+    keys = set(total_groups.keys())
+    projects: dict[int, dict[str, dict[str, _CategoryStats]]] = {}
+
+    for key in keys:
+        by = dict(key)
+        project_id = by["project"]
+        outcome = by["outcome"]
+        category = by["category"]
+        reason = by.get("reason")  # optional
+
+        totals = make_totals(total_groups.get(key, [None]), by)
+
+        projects.setdefault(project_id, {"categories": {}})
+
+        if category in projects[project_id]["categories"]:
+            # update stats dict for category
+            projects[project_id]["categories"][category] = get_category_stats(
+                reason, totals, outcome, category, projects[project_id]["categories"][category]
+            )
+        else:
+            # create stats dict for category
+            projects[project_id]["categories"][category] = get_category_stats(
+                reason, totals, outcome, category
+            )
+
+    projects = dict(sorted(projects.items()))
+    ids = projects.keys()
+    project_id_to_slug = dict(Project.objects.filter(id__in=ids).values_list("id", "slug"))
+    formatted_projects = []
+
+    # format stats for each project
+    for key, values in projects.items():
+        categories = values["categories"]
+        project_dict: _Project = {"id": key, "slug": project_id_to_slug[key], "stats": []}
+
+        for key, stats in categories.items():
+            project_dict["stats"].append(stats)
+
+        project_dict["stats"].sort(key=lambda d: d["category"])
+
+        formatted_projects.append(project_dict)
+
+    return projects, {
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
+        "projects": formatted_projects,
+    }
+
+
+def get_timestamps(query):
+    """
+    Generates a list of timestamps according to `query`.
+    The timestamps are returned as ISO strings for now.
+    """
+    rollup = query.rollup
+    start = int(query.start.timestamp())
+    end = int(query.end.timestamp())
+
+    return [datetime.fromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]

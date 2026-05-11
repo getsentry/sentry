@@ -742,12 +742,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_dashboard_widget_ondemand_multiple_fields(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {
-            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
-        }, [
-            "sometag",
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]},
+            [
+                "sometag",
+                "someothertag",
+            ],
+        )
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -859,12 +860,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_warnings_show_up_with_error(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {
-            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
-        }, [
-            "sometag",
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]},
+            [
+                "sometag",
+                "someothertag",
+            ],
+        )
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -1330,6 +1332,37 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "limit": "limit is required. The maximum limit is 5."
         }
 
+    def test_wheel_widget_allows_null_limit(self) -> None:
+        data = {
+            "title": "Performance Score",
+            "widgetType": "spans",
+            "displayType": "wheel",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "performance_score(measurements.score.lcp)",
+                        "performance_score(measurements.score.total)",
+                    ],
+                    "columns": [
+                        "performance_score(measurements.score.lcp)",
+                        "performance_score(measurements.score.total)",
+                    ],
+                    "aggregates": [],
+                    "orderby": "",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 200, response.data
+
     def test_valid_widget_is_filters(self) -> None:
         data = {
             "title": "Errors over time",
@@ -1428,3 +1461,100 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_text_widget_without_feature_flag(self) -> None:
+        data = {
+            "title": "Text Widget Title",
+            "displayType": "text",
+            "description": "This is a text widget description",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "displayType" in response.data, response.data
+        assert response.data["displayType"][0] == "Text widgets are not enabled"
+
+    def test_text_widget_with_feature_flag(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Text Widget Title",
+                "displayType": "text",
+                "description": "This is a text widget description",
+                "datasetSource": "user",
+            }
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+            assert response.status_code == 200, response.data
+
+    def test_text_widget_without_queries(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Text Widget Title",
+                "displayType": "text",
+                "description": "Text widgets don't need queries",
+            }
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+            assert response.status_code == 200, response.data
+
+    def test_text_widget_requires_title(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "displayType": "text",
+                "description": "This is a text widget description",
+            }
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+            assert response.status_code == 400, response.data
+            assert "title" in response.data, response.data
+
+    def test_text_widget_description_exceeds_max_length(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Text Widget Title",
+                "displayType": "text",
+                "description": "x" * 15001,
+            }
+            response = self.do_request("post", self.url(), data=data)
+            assert response.status_code == 400, response.data
+            assert "description" in response.data, response.data
+            assert (
+                response.data["description"][0] == "Description must not exceed 15,000 characters"
+            )
+
+    def test_widget_with_invalid_dataset_source(self) -> None:
+        data = {
+            "title": "Errors over time",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "is:unresolved",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                },
+            ],
+            "widgetType": "error-events",
+            "datasetSource": "invalid",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "datasetSource" in response.data, response.data
+        assert response.data["datasetSource"][0] == "Invalid dataset source"

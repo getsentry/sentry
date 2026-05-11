@@ -4,19 +4,28 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestCommit
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.types.activity import ActivityType
 
 
 class FindReferencedGroupsTest(TestCase):
     def test_resolve_in_commit(self) -> None:
+        """
+        Legacy behavior (defer-commit-resolution flag OFF): commits with
+        "Fixes ISSUE-123" immediately resolve the referenced issue. Kept until
+        the new behavior is fully shipped.
+        """
         group = self.create_group()
 
         repo = Repository.objects.create(name="example", organization_id=group.organization.id)
@@ -25,25 +34,118 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            # It makes reference to the first group
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
 
         groups = commit.find_referenced_groups()
         assert len(groups) == 1
         assert group in groups
-        # These are created in resolved_in_commit
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+        ).exists()
+        assert Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
+        ).exists()
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+        ).exists()
         assert GroupHistory.objects.filter(
             group=group,
             status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
         ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+    @with_feature("organizations:defer-commit-resolution")
+    def test_resolve_in_commit_deferred(self) -> None:
+        """
+        With defer-commit-resolution ON: commits create GroupLinks and referenced
+        activity but do NOT immediately resolve issues. Resolution happens when a
+        release is created that includes these commits, via update_group_resolutions().
+        """
+        group = self.create_group()
+
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+        ).exists()
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+        )
+        assert activity.data == {"commit": commit.id}
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
+        ).exists()
+        assert not GroupHistory.objects.filter(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+    @with_feature("organizations:defer-commit-resolution")
+    def test_resolve_in_commit_resolved_via_release(self) -> None:
+        """
+        With defer-commit-resolution ON: a commit referencing a group on a
+        feature branch leaves the group unresolved. Once that commit lands in a
+        release (i.e. is merged to the default branch and shipped), the release
+        creation flow resolves the group via update_group_resolutions().
+        """
+        group = self.create_group()
+
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+        )
+
+        # Feature-branch commit: GroupLink exists but group is still unresolved.
         assert GroupLink.objects.filter(
             group=group,
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
         ).exists()
         group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        # Commit lands in a release; resolution should now fire.
+        release = self.create_release(project=group.project, version="1.0.0")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        )
+        assert activity.data == {"version": release.version}
+        assert activity.ident == str(resolution.id)
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()
@@ -75,9 +177,78 @@ class FindReferencedGroupsTest(TestCase):
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
 
+    @with_feature("organizations:defer-commit-resolution")
+    def test_resolve_in_pull_request_resolved_via_release(self) -> None:
+        group = self.create_group()
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+
+        pr = PullRequest.objects.create(
+            key="1",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="very cool PR to fix the thing",
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+            merge_commit_sha=merge_commit_sha,
+        )
+
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        release = self.create_release(project=group.project, version="1.0.0")
+        release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        )
+        assert activity.data == {"version": release.version}
+        assert activity.ident == str(resolution.id)
+
+    def test_resolve_in_pull_request_resolved_via_release_with_defer_flag_off(self) -> None:
+        group = self.create_group()
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+
+        PullRequest.objects.create(
+            key="1",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="very cool PR to fix the thing",
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+            merge_commit_sha=merge_commit_sha,
+        )
+
+        release = self.create_release(project=group.project, version="1.0.0")
+        release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        ).exists()
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        ).exists()
+
 
 class PullRequestRetentionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
         self.old_date = self.now - timedelta(days=100)
@@ -109,17 +280,17 @@ class PullRequestRetentionTest(TestCase):
         pr.refresh_from_db()
         return pr
 
-    def test_old_pr_with_no_references_is_unused(self):
+    def test_old_pr_with_no_references_is_unused(self) -> None:
         """An old PR with no references should be marked as unused"""
         pr = self.create_pr(date_added=self.old_date)
         assert pr.is_unused(self.cutoff_date)
 
-    def test_recent_pr_is_not_unused(self):
+    def test_recent_pr_is_not_unused(self) -> None:
         """A PR created after cutoff date should not be unused (though this shouldn't be queried)"""
         pr = self.create_pr(date_added=self.recent_date)
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_recent_comment_is_not_unused(self):
+    def test_pr_with_recent_comment_is_not_unused(self) -> None:
         """PR with a comment created after cutoff should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
 
@@ -131,7 +302,7 @@ class PullRequestRetentionTest(TestCase):
 
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_recently_updated_comment_is_not_unused(self):
+    def test_pr_with_recently_updated_comment_is_not_unused(self) -> None:
         """PR with a comment updated after cutoff should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
 
@@ -143,7 +314,7 @@ class PullRequestRetentionTest(TestCase):
 
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_old_commit_only_is_unused(self):
+    def test_pr_with_old_commit_only_is_unused(self) -> None:
         """PR with only an old commit (not in release) should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -155,7 +326,7 @@ class PullRequestRetentionTest(TestCase):
         self.create_pull_request_commit(pr, commit)
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_recent_commit_is_not_unused(self):
+    def test_pr_with_recent_commit_is_not_unused(self) -> None:
         """PR with a commit created after cutoff should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -169,7 +340,7 @@ class PullRequestRetentionTest(TestCase):
         self.create_pull_request_commit(pr, commit)
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_in_release_is_not_unused(self):
+    def test_pr_with_commit_in_release_is_not_unused(self) -> None:
         """PR with a commit that's part of a release should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -188,7 +359,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_as_release_head_is_not_unused(self):
+    def test_pr_with_commit_as_release_head_is_not_unused(self) -> None:
         """PR with a commit that's a release head should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -207,7 +378,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_linked_to_existing_group_is_not_unused(self):
+    def test_pr_linked_to_existing_group_is_not_unused(self) -> None:
         """PR linked to an existing group via GroupLink should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         group = self.create_group(project=self.project)
@@ -220,7 +391,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_linked_to_deleted_group_is_unused(self):
+    def test_pr_linked_to_deleted_group_is_unused(self) -> None:
         """PR linked to a non-existent group should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         GroupLink.objects.create(
@@ -232,7 +403,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_existing_group_is_not_unused(self):
+    def test_pr_comment_with_existing_group_is_not_unused(self) -> None:
         """PR with a comment referencing an existing group should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         group = self.create_group(project=self.project)
@@ -244,7 +415,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_deleted_group_is_unused(self):
+    def test_pr_comment_with_deleted_group_is_unused(self) -> None:
         """PR with a comment referencing only non-existent groups should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         self.create_pull_request_comment(
@@ -255,7 +426,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_mixed_groups_is_not_unused(self):
+    def test_pr_comment_with_mixed_groups_is_not_unused(self) -> None:
         """PR with comment referencing both existing and non-existent groups should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         group = self.create_group(project=self.project)
@@ -267,7 +438,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_empty_groups_is_unused(self):
+    def test_pr_comment_with_empty_groups_is_unused(self) -> None:
         """PR with comment that has empty group_ids should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         self.create_pull_request_comment(
@@ -278,7 +449,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_deleted_commit_is_unused(self):
+    def test_pr_with_deleted_commit_is_unused(self) -> None:
         """PR with a PullRequestCommit pointing to non-existent commit should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         # Create PullRequestCommit with non-existent commit_id. This simulates a commit that was deleted
@@ -288,7 +459,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_complex_pr_with_multiple_references(self):
+    def test_complex_pr_with_multiple_references(self) -> None:
         """Test a complex scenario with multiple types of references"""
         pr = self.create_pr(date_added=self.old_date)
         # Add old comment with deleted group

@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {
   AskSeerPollingResponse,
@@ -22,7 +23,11 @@ const makeAskSeerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey | nul
   if (!runId) {
     return null;
   }
-  return [`/organizations/${orgSlug}/search-agent/state/${runId}/`, {}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/search-agent/state/$runId/', {
+      path: {organizationIdOrSlug: orgSlug, runId},
+    }),
+  ];
 };
 
 /**
@@ -55,6 +60,7 @@ interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
   strategy: string;
   onError?: (error: Error) => void;
   onSuccess?: (result: T) => void;
+  options?: Record<string, unknown>;
 }
 
 /**
@@ -81,19 +87,19 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   // Poll for state
   const {data: apiData, isPending} = useApiQuery<AskSeerPollingResponse<T>>(
-    queryKey ?? ['__disabled__', {}],
+    queryKey ?? (['__disabled__', {}] as unknown as ApiQueryKey),
     {
       staleTime: 0,
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        const sessionData = query.state.data?.[0]?.session ?? null;
+        const sessionData = query.state.data?.json?.session ?? null;
         if (isPolling(sessionData, waitingForResponse)) {
           return POLL_INTERVAL;
         }
         return false;
       },
-    } as UseApiQueryOptions<AskSeerPollingResponse<T>, RequestError>
+    }
   );
 
   const sessionData = apiData?.session ?? null;
@@ -112,6 +118,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
+              ...(options.options ? {options: options.options} : {}),
             },
           }
         )) as AskSeerStartResponse;
@@ -155,6 +162,8 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     setWaitingForResponse(false);
     setStartFailed(false);
     if (queryKey) {
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<AskSeerPollingResponse<T>>(
         queryClient,
         queryKey,

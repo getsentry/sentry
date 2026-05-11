@@ -25,13 +25,13 @@ variants:
     hint: ignored because custom server fingerprint takes precedence
     key: app_exception_message
     type: component
-  custom_fingerprint:
+  custom_server_fingerprint:
     client_values:
     - my-route
     - '{{ default }}'
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: sdk:"sentry.java" type:"DatabaseUnavailable" -> "database-unavailable"
     type: custom_fingerprint
     values:

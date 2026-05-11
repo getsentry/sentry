@@ -17,7 +17,7 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     name: 'Test App',
     version: '1.0.0',
     build_number: '100',
-    platform: 'ios',
+    platform: 'apple',
     artifact_type: 0,
     build_configuration: 'Release',
     date_built: '2023-01-01T00:00:00Z',
@@ -243,14 +243,14 @@ describe('BuildDetailsSidebarContent', () => {
       const baseBuildLink = screen.getByRole('link', {name: 'v1.0 (2)'});
       expect(baseBuildLink).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/preprod/size/base-artifact-id/?project=${defaultProps.projectId}`
+        `/organizations/${organization.slug}/preprod/size/base-artifact-id/`
       );
 
       // Should be an internal link (not opening in a new tab)
       expect(baseBuildLink).not.toHaveAttribute('target', '_blank');
     });
 
-    it('renders Base Build row with dash when projectId is null', async () => {
+    it('renders Base Build row with link even when projectId is null', async () => {
       const buildDetailsData: BuildDetailsApiResponse = {
         ...mockBuildDetailsData,
         vcs_info: {
@@ -279,17 +279,12 @@ describe('BuildDetailsSidebarContent', () => {
         expect(screen.getByText('Build Metadata')).toBeInTheDocument();
       });
 
-      // Base Build row should be present with label
-      const baseBuildLabel = screen.getByText('Base Build');
-      expect(baseBuildLabel).toBeInTheDocument();
-
-      // Get the parent ContentWrapper and verify the build name is within it
-      const contentWrapper = baseBuildLabel.parentElement!;
-      expect(contentWrapper).toBeInTheDocument();
-      expect(contentWrapper).toHaveTextContent('-');
-
-      // Should NOT have a link (no projectId to build URL)
-      expect(screen.queryByRole('link', {name: 'v1.0 (2)'})).not.toBeInTheDocument();
+      // Base Build row should be present with label and link
+      const baseBuildLink = screen.getByRole('link', {name: 'v1.0 (2)'});
+      expect(baseBuildLink).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/preprod/size/base-artifact-id/`
+      );
     });
   });
 });

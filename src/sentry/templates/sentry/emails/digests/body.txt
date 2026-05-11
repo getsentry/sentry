@@ -1,7 +1,7 @@
 {% load timezone from tz %}
 {% load sentry_helpers %}
 {% load sentry_features %}Notifications for {{ project.slug }}
-{% if timezone %}{{ start|timezone:timezone|date:"N j, Y, P e" }} to {{ end|timezone:timezone|date:"N j, Y, P e" }}{% else %}{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}{% endif %}
+{% if clock_24_hours %}{% if timezone %}{{ start|timezone:timezone|date:"N j, Y, H:i e" }} to {{ end|timezone:timezone|date:"N j, Y, H:i e" }}{% else %}{{ start|date:"N j, Y, H:i e" }} to {{ end|date:"N j, Y, H:i e" }}{% endif %}{% else %}{% if timezone %}{{ start|timezone:timezone|date:"N j, Y, P e" }} to {{ end|timezone:timezone|date:"N j, Y, P e" }}{% else %}{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}{% endif %}{% endif %}
 
 {% for rule, groups in digest.items %}{{ rule.label }}
 {% for group, records in groups.items %}{% with event_count=event_counts|get_item:group.id user_count=user_counts|get_item:group.id %}

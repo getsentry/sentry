@@ -45,7 +45,7 @@ interface UseResizableOptions {
  *
  * Currently only supports resizing width and not height.
  */
-const useResizable = ({
+export const useResizable = ({
   ref,
   initialSize = RESIZABLE_DEFAULT_WIDTH,
   maxWidth = RESIZABLE_MAX_WIDTH,
@@ -69,9 +69,9 @@ const useResizable = ({
 } => {
   const [isHeld, setIsHeld] = useState(false);
 
-  const isDraggingRef = useRef<boolean>(false);
-  const startXRef = useRef<number>(0);
-  const startWidthRef = useRef<number>(0);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
 
   useEffect(() => {
     if (ref.current) {
@@ -146,5 +146,3 @@ const useResizable = ({
     onMouseDown: handleMouseDown,
   };
 };
-
-export default useResizable;

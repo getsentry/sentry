@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
     namespace=demomode_tasks,
 )
 def sync_debug_artifacts() -> None:
-
     if (
         not options.get("sentry.demo_mode.sync_debug_artifacts.enable")
         or not is_demo_mode_enabled()

@@ -1,44 +1,41 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ContextPickerModal from 'sentry/components/contextPickerModal';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
   PluginProjectItem,
   PluginWithProjectList,
 } from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {
   INSTALLED,
   NOT_INSTALLED,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
-import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
+import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+import {PluginDeprecationAlert} from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
 
 // TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
 const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
@@ -50,10 +47,17 @@ function makePluginQueryKey({
   orgSlug: string;
   pluginSlug: string;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/plugins/configs/`, {query: {plugins: pluginSlug}}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {plugins: pluginSlug}},
+  ];
 }
 
 function PluginDetailedView() {
+  const {openModal} = useModal();
+
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
   const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
     initialTab: 'overview',
@@ -217,7 +221,7 @@ function PluginDetailedView() {
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [integrationSlug, installationStatus, navigate, organization, plugin]);
+  }, [integrationSlug, installationStatus, navigate, organization, plugin, openModal]);
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
@@ -228,7 +232,7 @@ function PluginDetailedView() {
             disabled={disabledFromFeatures}
             onClick={handleAddToProject}
             size="sm"
-            priority="primary"
+            variant="primary"
           >
             {t('Add to Project')}
           </AddButton>
@@ -362,7 +366,7 @@ function PluginDetailedView() {
 }
 
 const AddButton = styled(Button)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 export default withOrganization(PluginDetailedView);

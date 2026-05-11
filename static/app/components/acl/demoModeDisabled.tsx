@@ -1,4 +1,5 @@
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
@@ -6,13 +7,13 @@ type Props = {
   children?: React.ReactNode;
 };
 
-function DisableInDemoMode({children}: Props) {
+export function DisableInDemoMode({children}: Props) {
   if (!isDemoModeActive()) {
     return children;
   }
 
   return (
-    <Tooltip title={t('This action is disabled in demo mode.')} delay={500}>
+    <Tooltip title={t('This action is disabled in demo mode.')}>
       <div
         data-test-id="demo-mode-disabled-wrapper"
         style={{
@@ -31,5 +32,3 @@ function DisableInDemoMode({children}: Props) {
     </Tooltip>
   );
 }
-
-export default DisableInDemoMode;

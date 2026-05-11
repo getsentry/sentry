@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('javascript-solid onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
@@ -134,6 +134,6 @@ describe('javascript-solid onboarding docs', () => {
       ],
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 });

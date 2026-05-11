@@ -1,13 +1,17 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import CreditCardForm from 'getsentry/components/creditCardEdit/form';
+import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics, {
+import {
+  trackGetsentryAnalytics,
   type GetsentryEventKey,
 } from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -23,7 +27,7 @@ export interface CreditCardSetupProps {
   referrer?: string;
 }
 
-function CreditCardSetup({
+export function CreditCardSetup({
   organization,
   referrer,
   onSuccess,
@@ -50,7 +54,13 @@ function CreditCardSetup({
         buttonText={buttonText ?? t('Save Changes')}
         referrer={referrer}
         cardMode="setup"
-        intentDataEndpoint={`/organizations/${organization.slug}/payments/setup/`}
+        intentDataQueryKey={
+          [
+            getApiUrl('/organizations/$organizationIdOrSlug/payments/setup/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+          ] satisfies ApiQueryKey
+        }
         onCancel={onCancel ?? (() => {})}
         onSuccess={() => {
           onSuccess?.();
@@ -66,5 +76,3 @@ function CreditCardSetup({
     </Fragment>
   );
 }
-
-export default CreditCardSetup;

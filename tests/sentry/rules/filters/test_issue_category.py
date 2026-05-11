@@ -45,6 +45,53 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), event)
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), group_event)
 
+    def test_exclude(self) -> None:
+        event = self.get_event()
+        assert event.group is not None
+        group_event = event.for_group(event.group)
+
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "false"}),
+            event,
+        )
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "false"}),
+            group_event,
+        )
+
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "false"}),
+            event,
+        )
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "false"}),
+            group_event,
+        )
+
+    def test_include_defaults_to_true(self) -> None:
+        event = self.get_event()
+
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.ERROR.value}),
+            event,
+        )
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value}),
+            event,
+        )
+
+    def test_include_explicit_true(self) -> None:
+        event = self.get_event()
+
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "true"}),
+            event,
+        )
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "true"}),
+            event,
+        )
+
 
 class IssueCategoryFilterPerformanceTest(
     RuleTestCase,
@@ -54,6 +101,8 @@ class IssueCategoryFilterPerformanceTest(
     rule_cls = IssueCategoryFilter
 
     def test_transaction_category(self) -> None:
+        # Rule data stored before PERFORMANCE was split still uses GroupCategory.PERFORMANCE (2).
+        # Ensure those rules continue to match until the data is migrated.
         tx_event = self.create_performance_issue()
         assert tx_event.group
         self.assertPasses(self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), tx_event)

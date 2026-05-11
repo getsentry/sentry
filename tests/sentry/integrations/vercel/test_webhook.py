@@ -27,7 +27,8 @@ class SignatureVercelTest(APITestCase):
 
     def test_get(self) -> None:
         response = self.client.get(self.webhook_url)
-        assert response.status_code == 405
+        # This will fail the signature verification
+        assert response.status_code == 401
 
     def test_invalid_signature(self) -> None:
         with override_options({"vercel.client-secret": SECRET}):

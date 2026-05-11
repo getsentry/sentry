@@ -1,9 +1,10 @@
 import {Fragment, useCallback} from 'react';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
-import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
-import useOrganization from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default Storybook.story('useFetchParallelPages', story => {
   story('WARNING!', () => (
@@ -32,13 +33,16 @@ export default Storybook.story('useFetchParallelPages', story => {
     const {pages, isFetching} = useFetchParallelPages<{data: unknown}>({
       enabled: true,
       hits,
-      getQueryKey: useCallback(
-        ({cursor, per_page}) => {
-          return [
-            `/organizations/${organization.slug}/projects/`,
-            {query: {cursor, per_page}},
-          ];
-        },
+      getQueryOptions: useCallback(
+        ({cursor, per_page}) =>
+          apiOptions.as<{data: unknown}>()(
+            '/organizations/$organizationIdOrSlug/projects/',
+            {
+              path: {organizationIdOrSlug: organization.slug},
+              query: {cursor, per_page},
+              staleTime: Infinity,
+            }
+          ),
         [organization.slug]
       ),
       perPage: 20,
@@ -60,8 +64,8 @@ export default Storybook.story('useFetchParallelPages', story => {
           both callsites to leverage the query cache.
         </p>
         <p>
-          Note that <code>getQueryKey</code> needs to be a stable reference, so wrap it
-          with <code>useCallback</code>.
+          Note that <code>getQueryOptions</code> needs to be a stable reference, so wrap
+          it with <code>useCallback</code>.
         </p>
         <StructuredEventData data={{pages: pages.length, isFetching}} />
       </Fragment>

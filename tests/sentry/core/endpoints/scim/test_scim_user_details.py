@@ -1,15 +1,22 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 
+from sentry import audit_log
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.scim.utils import SCIMFilterError, parse_filter_conditions
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
+from sentry.users.services.user.model import RpcUser
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -232,17 +239,22 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.unrestricted_default_role_member.flags["idp:role-restricted"]
 
         # current Unrestricted custom role + default sentryOrgRole -> restricted default role
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.unrestricted_custom_role_member.id,
-            **generate_put_data(
-                self.unrestricted_custom_role_member, role=self.organization.default_role
-            ),
-        )
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.unrestricted_custom_role_member.id,
+                **generate_put_data(
+                    self.unrestricted_custom_role_member, role=self.organization.default_role
+                ),
+            )
         self.unrestricted_custom_role_member.refresh_from_db()
         assert resp.data["sentryOrgRole"] == self.organization.default_role
         assert self.unrestricted_custom_role_member.role == self.organization.default_role
         assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_EDIT"),
+        )
 
         # current restricted default role + default sentryOrgRole -> restricted default role (no change)
         resp = self.get_success_response(
@@ -708,6 +720,264 @@ class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
             "meta": {"resourceType": "User"},
             "sentryOrgRole": self.organization.default_role,
         }
+
+
+@override_settings(SENTRY_MODE=SentryMode.SAAS)
+class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
+    """
+    Tests for SCIM member deletion in SaaS mode with the default organization.
+    When deleting members with superuser/staff privileges, those privileges should
+    be revoked in addition to deleting the membership.
+    """
+
+    endpoint = "sentry-api-0-organization-scim-member-details"
+
+    @patch("sentry.core.endpoints.scim.members.user_service")
+    def test_delete_superuser_in_saas_default_org_revokes_privileges_and_deletes_membership(
+        self, mock_user_service
+    ) -> None:
+        """
+        In SaaS mode with default org, deleting a superuser should revoke
+        superuser privileges and delete the membership.
+        """
+        superuser = self.create_user(is_superuser=True, is_staff=False)
+        member = self.create_member(user=superuser, organization=self.organization)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
+            )
+
+        # Mock user_service to return the superuser
+        mock_user_service.get_user.return_value = RpcUser(
+            id=superuser.id,
+            is_superuser=True,
+            is_staff=False,
+        )
+
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
+            self.get_success_response(self.organization.slug, member.id, method="delete")
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+        # Verify user_service.update_user was called to revoke privileges
+        mock_user_service.update_user.assert_called_once_with(
+            user_id=superuser.id,
+            attrs={
+                "is_superuser": False,
+                "is_staff": False,
+            },
+        )
+
+    @patch("sentry.core.endpoints.scim.members.user_service")
+    def test_delete_staff_in_saas_default_org_revokes_privileges_and_deletes_membership(
+        self, mock_user_service
+    ) -> None:
+        """
+        In SaaS mode with default org, deleting a staff member should revoke
+        staff privileges and delete the membership.
+        """
+        staff_user = self.create_user(is_superuser=False, is_staff=True)
+        member = self.create_member(user=staff_user, organization=self.organization)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
+            )
+
+        # Mock user_service to return the staff user
+        mock_user_service.get_user.return_value = RpcUser(
+            id=staff_user.id,
+            is_superuser=False,
+            is_staff=True,
+        )
+
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
+            self.get_success_response(self.organization.slug, member.id, method="delete")
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+        # Verify user_service.update_user was called to revoke privileges
+        mock_user_service.update_user.assert_called_once_with(
+            user_id=staff_user.id,
+            attrs={
+                "is_superuser": False,
+                "is_staff": False,
+            },
+        )
+
+    @patch("sentry.core.endpoints.scim.members.user_service")
+    def test_delete_user_with_both_privileges_in_saas_default_org_revokes_both_and_deletes_membership(
+        self, mock_user_service
+    ) -> None:
+        """
+        In SaaS mode with default org, deleting a user with both superuser and
+        staff privileges should revoke both and delete the membership.
+        """
+        admin_user = self.create_user(is_superuser=True, is_staff=True)
+        member = self.create_member(user=admin_user, organization=self.organization)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
+            )
+
+        # Mock user_service to return the admin user
+        mock_user_service.get_user.return_value = RpcUser(
+            id=admin_user.id,
+            is_superuser=True,
+            is_staff=True,
+        )
+
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
+            self.get_success_response(self.organization.slug, member.id, method="delete")
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+        # Verify user_service.update_user was called to revoke both privileges
+        mock_user_service.update_user.assert_called_once_with(
+            user_id=admin_user.id,
+            attrs={
+                "is_superuser": False,
+                "is_staff": False,
+            },
+        )
+
+    def test_delete_regular_user_in_non_default_org_deletes_membership_only(self) -> None:
+        """
+        In SaaS mode with default org, deleting a regular user (no elevated privileges)
+        should proceed with normal deletion.
+        """
+        regular_user = self.create_user(is_superuser=False, is_staff=False)
+        member = self.create_member(user=regular_user, organization=self.organization)
+
+        # Regular user deletion should proceed normally (not matching default org ID)
+        with self.settings(SUPERUSER_ORG_ID=999999):
+            self.get_success_response(self.organization.slug, member.id, method="delete")
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+    @patch("sentry.core.endpoints.scim.members.user_service")
+    def test_patch_inactive_superuser_in_saas_default_org_revokes_privileges_and_deletes_membership(
+        self, mock_user_service
+    ) -> None:
+        """
+        In SaaS mode with default org, PATCH with active=false for a superuser
+        should revoke superuser privileges and delete the membership.
+        """
+        superuser = self.create_user(is_superuser=True, is_staff=False)
+        member = self.create_member(user=superuser, organization=self.organization)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
+            )
+
+        # Mock user_service to return the superuser
+        mock_user_service.get_user.return_value = RpcUser(
+            id=superuser.id,
+            is_superuser=True,
+            is_staff=False,
+        )
+
+        patch_req = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "Replace", "path": "active", "value": False}],
+        }
+
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
+            self.get_success_response(
+                self.organization.slug, member.id, raw_data=patch_req, method="patch"
+            )
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+        # Verify user_service.update_user was called to revoke privileges
+        mock_user_service.update_user.assert_called_once_with(
+            user_id=superuser.id,
+            attrs={
+                "is_superuser": False,
+                "is_staff": False,
+            },
+        )
+
+    @patch("sentry.core.endpoints.scim.members.user_service")
+    def test_patch_inactive_staff_in_saas_default_org_revokes_privileges_and_deletes_membership(
+        self, mock_user_service
+    ) -> None:
+        """
+        In SaaS mode with default org, PATCH with active=false for a staff member
+        should revoke staff privileges and delete the membership.
+        """
+        staff_user = self.create_user(is_superuser=False, is_staff=True)
+        member = self.create_member(user=staff_user, organization=self.organization)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
+            )
+
+        # Mock user_service to return the staff user
+        mock_user_service.get_user.return_value = RpcUser(
+            id=staff_user.id,
+            is_superuser=False,
+            is_staff=True,
+        )
+
+        patch_req = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "Replace", "value": {"active": False}}],
+        }
+
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
+            self.get_success_response(
+                self.organization.slug, member.id, raw_data=patch_req, method="patch"
+            )
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+        # Verify user_service.update_user was called to revoke privileges
+        mock_user_service.update_user.assert_called_once_with(
+            user_id=staff_user.id,
+            attrs={
+                "is_superuser": False,
+                "is_staff": False,
+            },
+        )
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @patch("sentry.core.endpoints.scim.members.user_service")
+    def test_delete_staff_without_superuser_org_configured_preserves_privileges(
+        self, mock_user_service: MagicMock
+    ) -> None:
+        """When SUPERUSER_ORG_ID is None (not configured), SCIM deletion doesn't revoke privileges"""
+        staff_user = self.create_user(
+            email="staff_user@example.com", is_superuser=False, is_staff=True
+        )
+        member = self.create_member(user=staff_user, organization=self.organization)
+
+        # SUPERUSER_ORG_ID defaults to None, don't override it
+        # Even though we're in SaaS mode, privileges should NOT be revoked
+        self.get_success_response(self.organization.slug, member.id, method="delete")
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+        # Verify user_service.update_user was NOT called (privileges preserved)
+        mock_user_service.update_user.assert_not_called()
 
 
 @no_silo_test

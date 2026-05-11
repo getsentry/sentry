@@ -1,5 +1,9 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -8,16 +12,11 @@ import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
-import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
 import {CheckInStatus, type MonitorBucket} from 'sentry/views/insights/crons/types';
@@ -30,7 +29,7 @@ import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckIn
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
-import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
+import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
 export function useCronIssueAlertId({groupId}: {groupId: string}): string | undefined {
   /**
@@ -45,19 +44,17 @@ export function useCronIssueAlertId({groupId}: {groupId: string}): string | unde
 
   const hasCronDetector = detectorId && detectorType === 'cron_monitor';
 
-  const {data: event} = useApiQuery<Event>(
-    getGroupEventQueryKey({
+  const {data: event} = useQuery({
+    ...groupEventApiOptions({
       orgSlug: organization.slug,
       groupId,
       eventId: user.options.defaultIssueEvent,
       environments: [],
     }),
-    {
-      staleTime: Infinity,
-      enabled: !hasCronDetector,
-      retry: false,
-    }
-  );
+    staleTime: Infinity,
+    enabled: !hasCronDetector,
+    retry: false,
+  });
 
   // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
   return hasCronDetector
@@ -83,8 +80,7 @@ function useCronLegendStatuses({
       [CheckInStatus.UNKNOWN]: false,
     };
     bucketStats?.forEach(([_timestamp, bucketEnvMapping]) => {
-      const bucketEnvMappingEntries: Array<StatsBucket<CheckInStatus>> =
-        Object.values(bucketEnvMapping);
+      const bucketEnvMappingEntries = Object.values(bucketEnvMapping);
       for (const statBucket of bucketEnvMappingEntries) {
         const statBucketEntries = Object.entries(statBucket) as Array<
           [CheckInStatus, number]
@@ -104,7 +100,7 @@ function useCronLegendStatuses({
 
 export function IssueCronCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 

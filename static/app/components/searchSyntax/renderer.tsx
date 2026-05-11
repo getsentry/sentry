@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, keyframes, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import modifyColor from 'color';
 import {useReducedMotion} from 'framer-motion';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ParseResult, TokenResult} from './parser';
 import {Token} from './parser';
@@ -26,7 +26,7 @@ type Props = {
 /**
  * Renders the parsed query with syntax highlighting.
  */
-export default function HighlightQuery({parsedQuery, cursorPosition}: Props) {
+export function HighlightQuery({parsedQuery, cursorPosition}: Props) {
   const result = renderResult(parsedQuery, cursorPosition ?? -1);
 
   return <Fragment>{result}</Fragment>;
@@ -81,7 +81,7 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
 // inline elements cannot be transformed. The filter _must_ be inline to
 // support text wrapping.
 const shakeAnimation = keyframes`
-  ${new Array(4)
+  ${Array.from({length: 4})
     .fill(0)
     .map((_, i) => `${i * (100 / 4)}% { left: ${3 * (i % 2 === 0 ? 1 : -1)}px; }`)
     .join('\n')}
@@ -311,7 +311,7 @@ function makeSearchTokenVariants(theme: Theme) {
     searchTokenBackground: {
       valid: theme.tokens.background.transparent.accent.muted,
       validActive: modifyColor(theme.tokens.background.transparent.accent.muted)
-        .opaquer(1.0)
+        .opaquer(1)
         .string(),
       invalid: theme.tokens.background.transparent.danger.muted,
       invalidActive: modifyColor(theme.tokens.background.transparent.danger.muted)
@@ -335,7 +335,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
       ? p.theme.colors.red500
       : p.warning
         ? p.theme.colors.gray500
-        : p.theme.tokens.content.accent};
+        : p.theme.colors.blue500};
 
   position: relative;
   animation-name: ${shakeAnimation};
@@ -351,10 +351,10 @@ const FreeTextTokenGroup = styled(TokenGroup)`
     `}
 `;
 
-const filterCss = css`
+const filterCss = (p: {theme: Theme}) => css`
   background: var(--token-bg);
   border: 0.5px solid var(--token-border);
-  padding: ${space(0.25)} 0;
+  padding: ${p.theme.space['2xs']} 0;
 `;
 
 const Negation = styled('span')`

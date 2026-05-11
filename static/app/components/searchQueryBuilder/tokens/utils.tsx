@@ -6,7 +6,8 @@ import type {Key, Node} from '@react-types/shared';
 import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
+
 import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   WildcardOperators,
@@ -36,7 +37,7 @@ export function useShiftFocusToChild(
   state: ListState<ParseResultToken>
 ) {
   const onFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement, Element>) => {
+    (e: React.FocusEvent<HTMLDivElement>) => {
       shiftFocusToChild(e.currentTarget, item, state);
     },
     [item, state]
@@ -54,6 +55,8 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
       return '100';
+    case FieldValueType.CURRENCY:
+      return '10';
     case FieldValueType.DATE:
       return '-24h';
     case FieldValueType.DURATION:
@@ -127,12 +130,13 @@ export function getInitialFilterText(
   switch (valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING: {
-      return areWildcardOperatorsAllowed(fieldDefinition)
+      return areWildcardOperatorsAllowed(fieldDefinition, valueType)
         ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
         : `${keyText}:${defaultValue}`;
     }

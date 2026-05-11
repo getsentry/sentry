@@ -127,9 +127,9 @@ class RepositoryTokensEndpointTest(APITestCase):
         serializer_fields = set(NodeSerializer().fields.keys())
         response_keys = set(response.data["results"][0].keys())
 
-        assert (
-            response_keys == serializer_fields
-        ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
+        assert response_keys == serializer_fields, (
+            f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
+        )
 
     @patch("sentry.codecov.endpoints.repository_tokens.repository_tokens.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class: MagicMock) -> None:

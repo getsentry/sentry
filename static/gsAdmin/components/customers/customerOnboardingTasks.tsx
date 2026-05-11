@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+
 import {getOnboardingTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {IconCheckmark, IconClock, IconNot} from 'sentry/icons';
 
@@ -23,7 +24,7 @@ const tagPriority: Record<Status, StatusTag> = {
   complete: {icon: <IconCheckmark size="xs" />, tagType: 'success'},
 };
 
-function CustomerOnboardingTasks({orgId, ...props}: Props) {
+export function CustomerOnboardingTasks({orgId, ...props}: Props) {
   const allTasks = getOnboardingTasks({organization: {slug: orgId, features: []} as any});
 
   return (
@@ -67,5 +68,3 @@ function CustomerOnboardingTasks({orgId, ...props}: Props) {
     />
   );
 }
-
-export default CustomerOnboardingTasks;

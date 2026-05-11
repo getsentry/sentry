@@ -1,19 +1,19 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type DetailsProps = {
   api: Client;
@@ -54,8 +54,12 @@ class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
     const {orgId, projectSlug} = this.props;
 
     try {
+      // TODO: Convert this class component to a functional one and use
+      // `useDetailedProject` so this request shares the same cache and the
+      // `collapse=organization` query option is applied automatically.
       const project = await this.props.api.requestPromise(
-        `/projects/${orgId}/${projectSlug}/`
+        `/projects/${orgId}/${projectSlug}/`,
+        {query: {collapse: 'organization'}}
       );
 
       this.setState({
@@ -112,7 +116,7 @@ type RedirectOptions = {
 
 type RedirectCallback = (options: RedirectOptions) => string;
 
-const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
+export const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
   function RedirectDeprecatedProjectRoute() {
     const params = useParams<{orgId: string; projectId: string}>();
     const location = useLocation();
@@ -142,7 +146,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
             }
 
             if (!hasProjectId || !organizationId) {
-              if (error && error.status === 404) {
+              if (error?.status === 404) {
                 return (
                   <Alert.Container>
                     <Alert variant="danger" showIcon={false}>
@@ -171,9 +175,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
     );
   };
 
-export default redirectDeprecatedProjectRoute;
-
 const Wrapper = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;

@@ -1,18 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Grid} from '@sentry/scraps/layout';
+import type {TabListItemProps} from '@sentry/scraps/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {TabListItemProps} from 'sentry/components/core/tabs';
-import {TabList} from 'sentry/components/core/tabs';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconBusiness} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   useModuleURLBuilder,
@@ -29,6 +30,8 @@ import {
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export type Props = {
   domainBaseUrl: string;
@@ -60,6 +63,7 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
   const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
@@ -133,12 +137,29 @@ export function DomainViewHeader({
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar>
-            <FeedbackButton feedbackOptions={feedbackOptions} />
-            {additonalHeaderActions}
-          </ButtonBar>
-        </Layout.HeaderActions>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            {additonalHeaderActions && (
+              <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
+            )}
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                feedbackOptions={feedbackOptions}
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton feedbackOptions={feedbackOptions} />
+              {additonalHeaderActions}
+            </Grid>
+          </Layout.HeaderActions>
+        )}
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList>
@@ -184,5 +205,5 @@ const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

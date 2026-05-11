@@ -1,14 +1,14 @@
 import type {ReactNode} from 'react';
 import {createContext, useContext} from 'react';
 
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
 
 interface Props {
   children: ReactNode;
   replay: ReplayReader | null;
 }
 
-const Context = createContext<ReplayReader | null>(
+const Context = createContext(
   ReplayReader.factory({
     attachments: [],
     errors: [],

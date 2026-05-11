@@ -1,4 +1,4 @@
-import {useButtonTracking} from 'sentry/components/core/trackingContext';
+import {useButtonTracking} from '@sentry/scraps/trackingContext';
 
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
@@ -17,7 +17,7 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
     analyticsEventName: props.analyticsEventName,
     analyticsEventKey: props.analyticsEventKey,
     analyticsParams: {
-      priority: props.priority,
+      variant: props.variant,
       href: 'href' in props ? props.href : undefined,
       ...props.analyticsParams,
     },

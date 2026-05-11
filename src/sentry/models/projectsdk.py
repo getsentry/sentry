@@ -11,7 +11,7 @@ from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.locks import locks
 from sentry.models.project import Project
@@ -36,7 +36,7 @@ class EventType(Enum):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectSDK(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 

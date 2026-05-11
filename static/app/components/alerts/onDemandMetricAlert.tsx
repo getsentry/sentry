@@ -1,13 +1,14 @@
 import type React from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconClose, IconWarning} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 const EXTRAPOLATED_AREA_STRIPE_IMG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkAQMAAACFAjPUAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFpKy5SVlzL3npZAAAAA9JREFUeJxjsD/AMIqIQwBIyGOd43jaDwAAAABJRU5ErkJggg==';
@@ -19,7 +20,7 @@ export const extrapolatedAreaStyle = {
     rotation: 0.785,
     scaleX: 0.5,
   },
-  opacity: 1.0,
+  opacity: 1,
 };
 
 export function OnDemandWarningIcon({
@@ -60,7 +61,7 @@ export function OnDemandMetricAlert({
         {dismissable && (
           <Button
             size="sm"
-            priority="transparent"
+            variant="transparent"
             icon={<IconClose />}
             aria-label={t('Close Alert')}
             onClick={dismiss}

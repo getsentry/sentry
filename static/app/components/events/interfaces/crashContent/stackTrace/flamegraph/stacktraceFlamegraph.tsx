@@ -1,0 +1,124 @@
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
+import {t} from 'sentry/locale';
+import type {Frame} from 'sentry/types/event';
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
+
+import {
+  buildFrameTree,
+  createStacktraceFrameIndex,
+  treeToSampledProfileData,
+} from './utils';
+
+interface StacktraceFlamegraphProps {
+  frames: Frame[];
+}
+
+export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
+  const flamegraph = useMemo(() => {
+    // Build tree from frames using parent_frame_index
+    const roots = buildFrameTree(frames);
+
+    // Convert tree to samples/weights format
+    const {samples, weights} = treeToSampledProfileData(roots);
+
+    // If no samples, return empty flamegraph
+    if (samples.length === 0) {
+      return Flamegraph.Empty();
+    }
+
+    // Create frame index for profiling
+    const frameIndex = createStacktraceFrameIndex(frames);
+
+    // Calculate total weight for duration
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+    // Create sampled profile data
+    const sampledProfileData: Profiling.SampledProfile = {
+      type: 'sampled',
+      name: 'Stacktrace',
+      unit: 'count',
+      threadID: 0,
+      startValue: 0,
+      endValue: totalWeight,
+      samples,
+      weights,
+    };
+
+    // Create profile from sampled data
+    const profile = SampledProfile.FromProfile(sampledProfileData, frameIndex, {
+      type: 'flamegraph',
+    });
+
+    // Create flamegraph model with left-heavy sorting
+    return new Flamegraph(profile, {
+      inverted: false,
+      sort: 'left heavy',
+    });
+  }, [frames]);
+
+  // Calculate duration for preview
+  const duration = flamegraph.configSpace.width || 1;
+
+  return (
+    <FlamegraphThemeProvider>
+      <Flex direction="column" gap="md">
+        <FlamegraphLegend />
+        <FlamegraphContainer>
+          <FlamegraphPreview
+            flamegraph={flamegraph}
+            relativeStartTimestamp={0}
+            relativeStopTimestamp={duration}
+          />
+        </FlamegraphContainer>
+      </Flex>
+    </FlamegraphThemeProvider>
+  );
+}
+
+function FlamegraphLegend() {
+  const theme = useFlamegraphTheme();
+  const applicationFrameColor = colorComponentsToRGBA(
+    theme.COLORS.FRAME_APPLICATION_COLOR
+  );
+  const systemFrameColor = colorComponentsToRGBA(theme.COLORS.FRAME_SYSTEM_COLOR);
+
+  return (
+    <Flex gap="lg">
+      <Flex align="center" gap="xs">
+        <LegendMarker color={applicationFrameColor} />
+        <Text size="sm" variant="muted">
+          {t('Application Function')}
+        </Text>
+      </Flex>
+      <Flex align="center" gap="xs">
+        <LegendMarker color={systemFrameColor} />
+        <Text size="sm" variant="muted">
+          {t('System Function')}
+        </Text>
+      </Flex>
+    </Flex>
+  );
+}
+
+const FlamegraphContainer = styled('div')`
+  height: 300px;
+  position: relative;
+`;
+
+const LegendMarker = styled('span')<{color: string}>`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 1px;
+  background-color: ${p => p.color};
+`;

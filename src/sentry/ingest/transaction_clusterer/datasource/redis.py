@@ -177,8 +177,7 @@ def _should_store_segment_name_inner(
         # (see https://github.com/getsentry/relay/blob/2d07bef86415cc0ae8af01d16baecde10cdb23a6/relay-general/src/store/transactions/processor.rs#L369-L373).
         #
         # Our data shows that a majority of these `None` source transactions contain slashes, so treat them as URL transactions:
-        source is None
-        and "/" in name
+        source is None and "/" in name
     )
     if not source_matches:
         return None

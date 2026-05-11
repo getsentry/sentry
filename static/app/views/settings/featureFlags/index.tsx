@@ -1,20 +1,19 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 function OrganizationFeatureFlagsIndex() {
   const organization = useOrganization();
@@ -23,9 +22,9 @@ function OrganizationFeatureFlagsIndex() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Feature Flags')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Feature Flags')} />
-      <TextBlock>
-        {tct(
+      <SettingsPageHeader
+        title={t('Feature Flags')}
+        subtitle={tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. To learn more about our feature flag features, [link:read our docs].',
           {
             link: (
@@ -33,7 +32,7 @@ function OrganizationFeatureFlagsIndex() {
             ),
           }
         )}
-      </TextBlock>
+      />
 
       <Panel>
         <PanelHeader>{t('Features')}</PanelHeader>
@@ -41,7 +40,7 @@ function OrganizationFeatureFlagsIndex() {
           <FieldGroup
             alignRight
             flexibleControlStateSize
-            label={<Large>{t('Evaluation Tracking')}</Large>}
+            label={<Text size="lg">{t('Evaluation Tracking')}</Text>}
             help={t(
               'Evaluation tracking enables Sentry to capture flag values on your error events. Flag evaluations will appear in the "Feature Flags" section of the Issue Details page.'
             )}
@@ -58,7 +57,7 @@ function OrganizationFeatureFlagsIndex() {
           <FieldGroup
             alignRight
             flexibleControlStateSize
-            label={<Large>{t('Change Tracking')}</Large>}
+            label={<Text size="lg">{t('Change Tracking')}</Text>}
             help={t(
               'Change tracking enables Sentry to listen for additions, removals, and modifications to your feature flags.'
             )}
@@ -82,7 +81,3 @@ export default function OrganizationFeatureFlagsIndexRoute() {
     </AnalyticsArea>
   );
 }
-
-const Large = styled('span')`
-  font-size: ${p => p.theme.font.size.lg};
-`;

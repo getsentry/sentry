@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import {space} from 'sentry/styles/space';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
@@ -98,7 +97,7 @@ function BoundTooltip({
     canvas.physicalToLogicalSpace
   );
 
-  const containerBoundsRef = useRef<Rect>(DEFAULT_BOUNDS);
+  const containerBoundsRef = useRef(DEFAULT_BOUNDS);
 
   if (containerBoundsRef.current.isEmpty()) {
     // using the innerWidth and innerHeight here because we only want the size of the visible portions
@@ -158,7 +157,7 @@ const Tooltip = styled('div')`
   pointer-events: none;
   user-select: none;
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 24px;

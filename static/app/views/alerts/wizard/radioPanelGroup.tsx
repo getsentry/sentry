@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 
 type RadioPanelGroupProps<C extends string> = {
   /**
@@ -22,7 +21,7 @@ type RadioPanelGroupProps<C extends string> = {
 type Props<C extends string> = RadioPanelGroupProps<C> &
   Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioPanelGroupProps<C>>;
 
-function RadioPanelGroup<C extends string>({
+export function RadioPanelGroup<C extends string>({
   value,
   choices,
   label,
@@ -52,11 +51,9 @@ function RadioPanelGroup<C extends string>({
   );
 }
 
-export default RadioPanelGroup;
-
 const Container = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: row;
   grid-auto-rows: max-content;
   grid-auto-columns: auto;

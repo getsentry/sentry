@@ -3,8 +3,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {useUserTeams} from './useUserTeams';
@@ -28,7 +28,7 @@ describe('useUserTeams', () => {
     const userTeams = [TeamFixture({id: '1', isMember: true})];
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     const mockapi = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/user-teams/`,
+      url: '/organizations/org-slug/user-teams/',
       body: userTeams,
     });
 

@@ -2,13 +2,12 @@ from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import action_service
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 class TestActionService(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
@@ -53,7 +52,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Action.objects.filter(id=action.id).exists()
 
     def test_delete_actions_for_organization_integration_multiple_actions(self) -> None:
@@ -96,7 +95,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Action.objects.filter(id=action_1.id).exists()
             assert not Action.objects.filter(id=action_2.id).exists()
             assert Action.objects.filter(id=action_3.id).exists()
@@ -120,7 +119,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert Action.objects.filter(id=action.id).exists()
 
     def test_delete_actions_for_organization_integration_mixed_types(self) -> None:
@@ -140,7 +139,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -156,7 +154,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Action.objects.filter(id=integration_action.id).exists()
             assert Action.objects.filter(id=sentry_app_action.id).exists()
 
@@ -177,7 +175,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -195,7 +192,7 @@ class TestActionService(TestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action = Action.objects.filter(id=integration_action.id).first()
             assert action is not None
             assert action.status == ObjectStatus.DISABLED
@@ -222,7 +219,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
             status=ObjectStatus.DISABLED,
@@ -241,7 +237,7 @@ class TestActionService(TestCase):
             status=ObjectStatus.ACTIVE,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action = Action.objects.filter(id=integration_action.id).first()
             assert action is not None
             assert action.status == ObjectStatus.ACTIVE
@@ -250,70 +246,81 @@ class TestActionService(TestCase):
             assert action is not None
             assert action.status == ObjectStatus.DISABLED
 
-    def test_update_action_status_for_sentry_app__installation_uuid(self) -> None:
+    def test_update_action_status_for_sentry_app_installation(self) -> None:
         sentry_app_installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug,
             organization=self.organization,
         )
-        action = self.create_action(
+        sentry_app_id_action = self.create_action(
             type=Action.Type.SENTRY_APP,
             config={
-                "target_identifier": sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_identifier": str(self.sentry_app.id),
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        dcg = self.create_data_condition_group()
+        self.create_data_condition_group_action(action=sentry_app_id_action, condition_group=dcg)
 
-        action_service.update_action_status_for_sentry_app_via_uuid(
+        # make a new org to ensure we are not disabling actions related to the same sentry app based on a different installation being removed
+        org2 = self.create_organization()
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug,
+            organization=org2,
+        )
+        sentry_app_id_action2 = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(self.sentry_app.id),
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+        dcg = self.create_data_condition_group(organization=org2)
+        self.create_data_condition_group_action(action=sentry_app_id_action2, condition_group=dcg)
+
+        action_service.update_action_status_for_sentry_app_installation(
+            cell_name="us",
             organization_id=self.organization.id,
-            sentry_app_install_uuid=sentry_app_installation.uuid,
+            sentry_app_id=sentry_app_installation.sentry_app.id,
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            action.refresh_from_db()
-            assert action.status == ObjectStatus.DISABLED
-
-    def test_update_action_status_for_sentry_app__installation_uuid__region(self) -> None:
-        sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug,
-            organization=self.organization,
-        )
-        action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            config={
-                "target_identifier": sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                "target_type": ActionTarget.SENTRY_APP,
-            },
-        )
-        action_service.update_action_status_for_sentry_app_via_uuid__region(
-            region_name="us",
-            sentry_app_install_uuid=sentry_app_installation.uuid,
-            status=ObjectStatus.DISABLED,
-        )
-        with assume_test_silo_mode(SiloMode.REGION):
-            action.refresh_from_db()
-            assert action.status == ObjectStatus.DISABLED
+        with assume_test_silo_mode(SiloMode.CELL):
+            sentry_app_id_action.refresh_from_db()
+            sentry_app_id_action2.refresh_from_db()
+            assert sentry_app_id_action.status == ObjectStatus.DISABLED
+            assert sentry_app_id_action2.status == ObjectStatus.ACTIVE
 
     def test_update_action_status_for_sentry_app__via_sentry_app_id(self) -> None:
+        self.create_sentry_app_installation(
+            slug=self.sentry_app_2.slug,
+            organization=self.organization,
+        )
+
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+        other_sentry_app_action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(self.sentry_app_2.id),
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
         action_service.update_action_status_for_sentry_app_via_sentry_app_id(
-            region_name="us",
+            cell_name="us",
             sentry_app_id=self.sentry_app.id,
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action.refresh_from_db()
+            other_sentry_app_action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED
+            assert other_sentry_app_action.status == ObjectStatus.ACTIVE
 
     def test_update_action_status_for_webhook_via_sentry_app_slug(self) -> None:
         action = self.create_action(
@@ -323,11 +330,11 @@ class TestActionService(TestCase):
             },
         )
         action_service.update_action_status_for_webhook_via_sentry_app_slug(
-            region_name="us",
+            cell_name="us",
             sentry_app_slug=self.sentry_app.slug,
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED

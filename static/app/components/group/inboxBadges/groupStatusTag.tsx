@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import TimeSince from 'sentry/components/timeSince';
+import {Tag} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {TimeSince} from 'sentry/components/timeSince';
 import type {TagVariant} from 'sentry/utils/theme';
 
 interface GroupStatusBadgeProps {

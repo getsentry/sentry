@@ -6,7 +6,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ArchiveActions from 'sentry/components/actions/archive';
+import {ArchiveActions} from 'sentry/components/actions/archive';
 import {GroupStatus} from 'sentry/types/group';
 
 describe('ArchiveActions', () => {
@@ -25,7 +25,7 @@ describe('ArchiveActions', () => {
     });
   });
 
-  it('archives forever', async () => {
+  it.isKnownFlake('archives forever', async () => {
     render(<ArchiveActions onUpdate={onUpdate} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));

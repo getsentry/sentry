@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 export default Storybook.story('QuestionTooltip', story => {
   story('Basics', () => {
@@ -15,8 +14,7 @@ export default Storybook.story('QuestionTooltip', story => {
           The <Storybook.JSXNode name="QuestionTooltip" /> component is a small{' '}
           <Storybook.JSXNode name="IconQuestion" /> where you can specify a tooltip to go
           with it. It is useful for placing after headers and titles to include additional
-          information. You'll see it often at the top of Sentry's pages, near the page
-          titles.
+          information. Prefer <Storybook.JSXNode name="InfoTip" /> for new usages.
         </p>
         <p>
           An example <Storybook.JSXNode name="QuestionTooltip" /> looks like this:
@@ -101,5 +99,5 @@ export default Storybook.story('QuestionTooltip', story => {
 
 const IconExamples = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

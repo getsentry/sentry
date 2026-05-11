@@ -105,7 +105,7 @@ export async function loadPrismLanguage(
   }
 ) {
   try {
-    const language: string | undefined = getPrismLanguage(lang);
+    const language = getPrismLanguage(lang);
 
     // Short-circuit if language already loaded
     if (Prism.languages[language!]) {
@@ -121,7 +121,8 @@ export async function loadPrismLanguage(
           `No Prism grammar file for \`${lang}\` exists. Check the \`lang\` argument passed to \`loadPrismLanguage()\`.`
         );
       }
-
+      // to make sure the async call gets resolved and unformatted text shows up instead of hanging
+      onError?.(new Error(`No Prism grammar file for \`${lang}\` exists.`));
       return;
     }
 

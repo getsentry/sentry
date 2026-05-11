@@ -367,9 +367,9 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             rollup=3600,
         )
         assert len(result.data["data"]) == 4, "Should have empty results"
-        assert [2, 1] == [
-            val["count"] for val in result.data["data"] if "count" in val
-        ], result.data["data"]
+        assert [2, 1] == [val["count"] for val in result.data["data"] if "count" in val], (
+            result.data["data"]
+        )
 
     def test_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)

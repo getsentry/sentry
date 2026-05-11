@@ -1,12 +1,14 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 
 type PromptsUpdateParams = {
   /**
@@ -25,7 +27,9 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
+    path: {organizationIdOrSlug: params.organization.slug},
+  });
   return api.requestPromise(url, {
     method: 'PUT',
     data: {
@@ -118,7 +122,9 @@ export const makePromptsCheckQueryKey = ({
   organization,
   projectId,
 }: PromptCheckHookParams): ApiQueryKey => {
-  const url = `/organizations/${organization?.slug}/prompts-activity/`;
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
+    path: {organizationIdOrSlug: organization?.slug!},
+  });
   return [url, {query: {feature, project_id: projectId}}];
 };
 
@@ -158,19 +164,16 @@ export function usePrompts({
   const api = useApi({persistInFlight: true});
   const prompts = usePromptsCheck({feature: features, organization, projectId}, options);
   const queryClient = useQueryClient();
-  const isPromptDismissed: Record<string, boolean> = useMemo(() => {
+  const isPromptDismissed = useMemo(() => {
     if (prompts.isSuccess) {
-      return features.reduce(
-        (acc, feature) => {
-          const prompt = prompts.data.features?.[feature];
-          acc[feature] = isDismissed(
-            {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
-            daysToSnooze
-          );
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
+      return features.reduce<Record<string, boolean>>((acc, feature) => {
+        const prompt = prompts.data.features?.[feature];
+        acc[feature] = isDismissed(
+          {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
+          daysToSnooze
+        );
+        return acc;
+      }, {});
     }
     return {};
   }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze, isDismissed]);

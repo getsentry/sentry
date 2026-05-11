@@ -3,12 +3,12 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 
 
-@region_silo_model
+@cell_silo_model
 class PromptsActivity(Model):
     """Records user interaction with various feature prompts in product"""
 

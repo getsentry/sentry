@@ -2,20 +2,24 @@ from __future__ import annotations
 
 import logging
 
-import orjson
-import requests
 from django.conf import settings
 from rest_framework import status
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    CreateCacheRequest,
+    SeerViewerContext,
+    make_create_cache_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,29 +33,19 @@ class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     }
 
 
-def fire_setup_request(org_id: int, project_ids: list[int]) -> None:
+def fire_setup_request(
+    org_id: int, project_ids: list[int], viewer_context: SeerViewerContext | None = None
+) -> None:
     """
     Sends a request to seer to create the initial cached prompt / setup the AI models
     """
-    body = orjson.dumps(
-        {
-            "org_id": org_id,
-            "project_ids": project_ids,
-        }
-    )
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/create-cache",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
-    response.raise_for_status()
+    body = CreateCacheRequest(org_id=org_id, project_ids=project_ids)
+    response = make_create_cache_request(body, viewer_context=viewer_context)
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class TraceExplorerAISetup(OrganizationEndpoint):
     """
     This endpoint is called when a user visits the trace explorer with the correct flags enabled.
@@ -64,15 +58,25 @@ class TraceExplorerAISetup(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        raw_project_ids = request.data.get("project_ids", [])
+        if raw_project_ids:
+            try:
+                project_ids = {int(x) for x in raw_project_ids}
+            except (ValueError, TypeError):
+                raise ParseError("Invalid project_id value")
+            if any(pid <= 0 for pid in project_ids):
+                raise ParseError("Invalid project_id value")
+            projects = self.get_projects(request, organization, project_ids=project_ids)
+            validated_project_ids = [p.id for p in projects]
+        else:
+            validated_project_ids = []
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(
@@ -93,6 +97,7 @@ class TraceExplorerAISetup(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        fire_setup_request(organization.id, project_ids)
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        fire_setup_request(organization.id, validated_project_ids, viewer_context=viewer_context)
 
         return Response({"status": "ok"})

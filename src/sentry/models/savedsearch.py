@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.text import CharField
 from sentry.models.search_common import SearchType
@@ -27,6 +27,7 @@ class SortOptions(StrEnum):
     FREQ = "freq"
     USER = "user"
     INBOX = "inbox"
+    RECOMMENDED = "recommended"
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[SortOptions, _StrPromise], ...]:
@@ -37,10 +38,11 @@ class SortOptions(StrEnum):
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
             (cls.INBOX, _("Date Added")),
+            (cls.RECOMMENDED, _("Recommended")),
         )
 
 
-SORT_LITERALS = Literal["date", "new", "trends", "freq", "user", "inbox"]
+SORT_LITERALS = Literal["date", "new", "trends", "freq", "user", "inbox", "recommended"]
 
 
 class Visibility:
@@ -60,7 +62,7 @@ class Visibility:
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class SavedSearch(Model):
     """
     A saved search query.

@@ -2,11 +2,11 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -15,7 +15,7 @@ import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraph
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface FlamegraphThreadSelectorProps {
   onThreadIdChange: (threadId: Profile['threadId']) => void;
@@ -121,7 +121,7 @@ function FlamegraphThreadSelector({
       ]}
       value={threadId ?? 0}
       onChange={handleChange}
-      searchable
+      search
     />
   );
 }

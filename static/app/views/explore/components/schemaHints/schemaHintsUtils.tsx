@@ -34,16 +34,6 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.SERVER_ADDRESS,
 ];
 
-const AI_GENERATIONS_HINT_KEYS = [
-  SpanFields.GEN_AI_REQUEST_MODEL,
-  SpanFields.GEN_AI_AGENT_NAME,
-  SpanFields.GEN_AI_REQUEST_MESSAGES,
-  SpanFields.GEN_AI_RESPONSE_TEXT,
-  SpanFields.GEN_AI_RESPONSE_OBJECT,
-  SpanFields.TRANSACTION,
-  SpanFields.RELEASE,
-];
-
 const CONVERSATIONS_HINT_KEYS = [
   SpanFields.GEN_AI_CONVERSATION_ID,
   SpanFields.GEN_AI_REQUEST_MODEL,
@@ -52,10 +42,6 @@ const CONVERSATIONS_HINT_KEYS = [
 ];
 
 const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [...new Set([...LOGS_HINT_KEYS])];
-
-const SCHEMA_HINTS_LIST_ORDER_KEYS_AI_GENERATIONS = [
-  ...new Set([...AI_GENERATIONS_HINT_KEYS]),
-];
 
 const SCHEMA_HINTS_LIST_ORDER_KEYS_CONVERSATIONS = [
   ...new Set([...CONVERSATIONS_HINT_KEYS]),
@@ -77,21 +63,24 @@ const SCHEMA_HINTS_HIDDEN_KEYS: string[] = [
 ];
 
 export enum SchemaHintsSources {
+  // TODO: change Explore to Spans because Explore is too broad and confusing here
   EXPLORE = 'explore',
   LOGS = 'logs',
-  AI_GENERATIONS = 'ai_generations',
   CONVERSATIONS = 'conversations',
+  ERRORS = 'errors',
 }
 
 export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
   if (source === SchemaHintsSources.LOGS) {
     return SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS;
   }
-  if (source === SchemaHintsSources.AI_GENERATIONS) {
-    return SCHEMA_HINTS_LIST_ORDER_KEYS_AI_GENERATIONS;
-  }
   if (source === SchemaHintsSources.CONVERSATIONS) {
     return SCHEMA_HINTS_LIST_ORDER_KEYS_CONVERSATIONS;
+  }
+
+  if (source === SchemaHintsSources.ERRORS) {
+    // TODO: check to see which keys we want to display for errors
+    return [];
   }
 
   return SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE;

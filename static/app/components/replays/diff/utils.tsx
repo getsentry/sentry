@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
+import {Flex} from '@sentry/scraps/layout';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface BeforeAfterProps {
   offset: number;
@@ -67,6 +67,6 @@ export function After({children, offset, startTimestampMs}: BeforeAfterProps) {
 const LeftAligned = styled('div')`
   text-align: left;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-direction: column;
 `;

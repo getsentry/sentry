@@ -1,6 +1,8 @@
 import logging
 import time
 
+from taskbroker_client.retry import Retry
+
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import build_digest, split_key
@@ -11,6 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import digests_tasks
 from sentry.utils import snuba
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +21,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.digests.schedule_digests",
     namespace=digests_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_digests() -> None:
     from sentry import digests
@@ -44,7 +47,8 @@ def schedule_digests() -> None:
     name="sentry.tasks.digests.deliver_digest",
     namespace=digests_tasks,
     processing_deadline_duration=20 * 60,
-    silo_mode=SiloMode.REGION,
+    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
+    silo_mode=SiloMode.CELL,
 )
 def deliver_digest(
     key: str,

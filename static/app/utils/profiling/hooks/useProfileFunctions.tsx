@@ -1,8 +1,10 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {useQuery} from '@tanstack/react-query';
+
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {EventsResults, Sort} from './types';
 
@@ -19,39 +21,52 @@ interface UseProfileFunctionsOptions<F extends string> {
   refetchOnMount?: boolean;
 }
 
-export function useProfileFunctions<F extends string>({
+export function useProfileFunctionsOptions<F extends string>({
   fields,
   referrer,
   sort,
   cursor,
   datetime,
-  enabled,
   limit,
   projects,
   query,
-  refetchOnMount,
-}: UseProfileFunctionsOptions<F>) {
+}: Pick<
+  UseProfileFunctionsOptions<F>,
+  'fields' | 'referrer' | 'sort' | 'cursor' | 'datetime' | 'limit' | 'projects' | 'query'
+>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/events/`;
-  const endpointOptions = {
-    query: {
-      dataset: 'profileFunctions',
-      referrer,
-      project: projects || selection.projects,
-      environment: selection.environments,
-      ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      field: fields,
-      per_page: limit,
-      query,
-      sort: sort.order === 'asc' ? sort.key : `-${sort.key}`,
-      cursor,
-    },
-  };
+  return apiOptions.as<EventsResults<F>>()(
+    '/organizations/$organizationIdOrSlug/events/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        dataset: 'profileFunctions',
+        referrer,
+        project: projects || selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        field: fields,
+        per_page: limit,
+        query,
+        sort: sort.order === 'asc' ? sort.key : `-${sort.key}`,
+        cursor,
+      },
+      staleTime: 0,
+    }
+  );
+}
 
-  return useApiQuery<EventsResults<F>>([path, endpointOptions], {
-    staleTime: 0,
+export function useProfileFunctions<F extends string>({
+  enabled,
+  refetchOnMount,
+  ...rest
+}: UseProfileFunctionsOptions<F>) {
+  const options = useProfileFunctionsOptions(rest);
+
+  return useQuery({
+    ...options,
     refetchOnWindowFocus: false,
     refetchOnMount,
     retry: false,

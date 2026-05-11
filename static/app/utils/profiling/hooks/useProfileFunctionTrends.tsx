@@ -1,13 +1,15 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {useQuery} from '@tanstack/react-query';
+
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {FunctionTrend, TrendType} from './types';
 
-interface UseProfileFunctionTrendsOptions<F extends string> {
-  trendFunction: F;
+interface UseProfileFunctionTrendsOptions {
+  trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
   cursor?: string;
   datetime?: PageFilters['datetime'];
@@ -18,7 +20,7 @@ interface UseProfileFunctionTrendsOptions<F extends string> {
   refetchOnMount?: boolean;
 }
 
-export function useProfileFunctionTrends<F extends string>({
+export function useProfileFunctionTrends({
   cursor,
   datetime,
   projects,
@@ -28,26 +30,29 @@ export function useProfileFunctionTrends<F extends string>({
   refetchOnMount,
   trendFunction,
   trendType,
-}: UseProfileFunctionTrendsOptions<F>) {
+}: UseProfileFunctionTrendsOptions) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/profiling/function-trends/`;
-  const endpointOptions = {
-    query: {
-      project: projects || selection.projects,
-      environment: selection.environments,
-      ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      function: trendFunction,
-      trend: trendType,
-      query,
-      per_page: limit,
-      cursor,
-    },
-  };
-
-  return useApiQuery<FunctionTrend[]>([path, endpointOptions], {
-    staleTime: 0,
+  return useQuery({
+    ...apiOptions.as<FunctionTrend[]>()(
+      '/organizations/$organizationIdOrSlug/profiling/function-trends/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          project: projects || selection.projects,
+          environment: selection.environments,
+          ...normalizeDateTimeParams(datetime ?? selection.datetime),
+          function: trendFunction,
+          trend: trendType,
+          query,
+          per_page: limit,
+          cursor,
+        },
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
     refetchOnWindowFocus: false,
     refetchOnMount,
     retry: false,

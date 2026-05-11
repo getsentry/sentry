@@ -219,7 +219,8 @@ def get_latest_threshold(project: Project) -> float:
     ]
     client = get_redis_client()
     cache_results = client.mget(keys)  # returns None if key is nonexistent
-    threshold = cache_results[0]
+    # Redis stores values as strings, so convert to float for downstream comparisons
+    threshold = float(cache_results[0]) if cache_results[0] is not None else None
     stale_date = None
     if cache_results[1] is not None:
         stale_date = datetime.fromisoformat(cache_results[1])
@@ -243,10 +244,7 @@ def get_latest_threshold(project: Project) -> float:
                 exc_info=True,
                 extra={"org_id": project.organization.id, "project_id": project.id},
             )
-            threshold = float(threshold) if threshold else 0  # use stale value if possible
-    else:
-        # redis stores as strings, so convert back to a float if using the value from the cache
-        threshold = float(threshold)
+            threshold = threshold if threshold else 0  # use stale value if possible
     return threshold
 
 

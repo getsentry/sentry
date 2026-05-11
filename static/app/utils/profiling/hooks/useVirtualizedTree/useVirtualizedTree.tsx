@@ -156,14 +156,14 @@ export function useVirtualizedTree<T extends TreeLike>(
   );
 
   const flattenedHistory = useRef<ReadonlyArray<VirtualizedTreeNode<T>>>(tree.flattened);
-  const expandedHistory = useRef<Set<T>>(new Set());
+  const expandedHistory = useRef(new Set<T>());
 
   // Keep a ref to latest state to avoid re-rendering
-  const latestStateRef = useRef<typeof state>(state);
+  const latestStateRef = useRef(state);
   latestStateRef.current = state;
-  const latestTreeRef = useRef<typeof tree>(tree);
+  const latestTreeRef = useRef(tree);
   latestTreeRef.current = tree;
-  const latestItemsRef = useRef<typeof items>(items);
+  const latestItemsRef = useRef(items);
   latestItemsRef.current = items;
 
   // On scroll, we update scrollTop position.
@@ -230,7 +230,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     const scrollContainer = props.scrollContainer;
 
     if (!scrollContainer) {
-      return undefined;
+      return;
     }
 
     let raf: number;
@@ -348,7 +348,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     const scrollContainer = props.scrollContainer;
 
     if (!scrollContainer) {
-      return undefined;
+      return;
     }
 
     // Because nodes dont span the full width, it's possible for users to
@@ -418,7 +418,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   useEffect(() => {
     const container = props.scrollContainer;
     if (!container) {
-      return undefined;
+      return;
     }
 
     function onMouseLeave() {
@@ -707,7 +707,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       // for all node children when they are expanded. Since stack size is capped, this should never
       // exceed a couple hundred iterations and **should** be a reasonable tradeoff in performance.
       const edges: Array<VirtualizedTreeNode<T>> = [];
-      let path: VirtualizedTreeNode<T> | null = node.parent;
+      let path = node.parent;
 
       while (path && !path.expanded) {
         edges.push(path);
@@ -832,7 +832,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   const renderRow = props.renderRow;
 
-  const renderedItems: React.ReactNode[] = useMemo(() => {
+  const renderedItems = useMemo(() => {
     if (!renderRow) {
       return [];
     }
@@ -868,7 +868,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   // Similarly to handleScroll, we use requestAnimationFrame to avoid overupdating the UI
   useEffect(() => {
     if (!props.scrollContainer) {
-      return undefined;
+      return;
     }
     let rafId: number | undefined;
     const resizeObserver = new window.ResizeObserver(elements => {

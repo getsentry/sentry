@@ -1,3 +1,4 @@
+import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
@@ -11,12 +12,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
@@ -46,6 +47,10 @@ describe('StreamlinedActivitySection', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     localStorage.clear();
   });
 
@@ -105,6 +110,42 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
+  });
+
+  it('uses loaded members for mentions in the drawer comment input', async () => {
+    const mentionedUser = UserFixture({id: '42', name: 'Jane Doe'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: mentionedUser}],
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-4',
+        user: UserFixture({id: '2'}),
+        type: 'note',
+        data: {text: '@Jane Doe'},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(<StreamlinedActivitySection group={group} isDrawer />);
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@jane');
+    await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Submit comment'}));
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          text: '**@Jane Doe** ',
+          mentions: ['user:42'],
+        },
+      })
+    );
   });
 
   it('renders note and allows for delete', async () => {
@@ -211,8 +252,7 @@ describe('StreamlinedActivitySection', () => {
     expect(
       await screen.findByText('This note came from my sentry app')
     ).toBeInTheDocument();
-    const icon = screen.getByTestId('upload-avatar');
-    expect(icon).toHaveAttribute('title', sentryApp.name);
+    expect(screen.getByTestId('upload-avatar')).toBeInTheDocument();
     expect(screen.getByText(sentryApp.name)).toBeInTheDocument();
     // We should not show the user, if a sentry app is attached
     expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();
@@ -264,7 +304,7 @@ describe('StreamlinedActivitySection', () => {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', () => {
+  it('does not collapse activity when rendered in the drawer', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -284,14 +324,14 @@ describe('StreamlinedActivitySection', () => {
 
     for (const activity of activities) {
       expect(
-        screen.getByText((activity.data as {text: string}).text)
+        await screen.findByText((activity.data as {text: string}).text)
       ).toBeInTheDocument();
     }
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('filters comments correctly', () => {
+  it('filters comments correctly', async () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -324,7 +364,7 @@ describe('StreamlinedActivitySection', () => {
         expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
       } else {
         expect(
-          screen.getByText((activity.data as {text: string}).text)
+          await screen.findByText((activity.data as {text: string}).text)
         ).toBeInTheDocument();
       }
     }
@@ -376,5 +416,29 @@ describe('StreamlinedActivitySection', () => {
     render(<StreamlinedActivitySection group={resolvedGroup} />);
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
+  });
+
+  it('renders referenced in commit activity', async () => {
+    const referencedGroup = GroupFixture({
+      id: '1341',
+      activity: [
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={referencedGroup} />);
+    expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
+    expect(screen.getByText('f7f395d')).toBeInTheDocument();
   });
 });

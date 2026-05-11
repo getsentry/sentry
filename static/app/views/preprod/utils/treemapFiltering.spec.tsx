@@ -14,6 +14,7 @@ describe('filterTreemapElement', () => {
     type: TreemapType.FILES,
     children,
     path: name,
+    flagged_insights: [],
   });
 
   it('returns original element when no search query', () => {

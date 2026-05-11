@@ -70,7 +70,7 @@ def apply_processor_args_overrides(
 
             # Validate the type matches what we expect
             # Allow int->float coercion since JSON parses as int
-            if param_type == float and isinstance(value, int):
+            if param_type is float and isinstance(value, int):
                 value = float(value)
             elif not isinstance(value, param_type):
                 raise ValueError(f"Expected {param_type}, got {type(value)}")

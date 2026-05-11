@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import TypedDict
+
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -5,15 +10,39 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.parameters import GlobalParams, ReplayParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.tasks import run_bulk_replay_delete_job
+
+
+class ReplayDeletionJobResponseData(TypedDict):
+    id: int
+    dateCreated: str
+    dateUpdated: str
+    rangeStart: str
+    rangeEnd: str
+    environments: list[str]
+    status: str
+    query: str
+    countDeleted: int
+
+
+class ReplayDeletionJobListResponse(TypedDict):
+    data: list[ReplayDeletionJobResponseData]
+
+
+class ReplayDeletionJobDetailResponse(TypedDict):
+    data: ReplayDeletionJobResponseData
 
 
 class ReplayDeletionJobPermission(ProjectPermission):
@@ -56,15 +85,30 @@ class ReplayDeletionJobCreateSerializer(serializers.Serializer):
     data = ReplayDeletionJobCreateDataSerializer(required=True)  # type: ignore[assignment]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
+@extend_schema(tags=["Replays"])
 class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
-    owner = ApiOwner.REPLAY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ReplayDeletionJobPermission,)
 
+    @extend_schema(
+        operation_id="List Replay Batch-Deletion Jobs",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListReplayDeletionJobs", ReplayDeletionJobListResponse
+            ),
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=ReplayExamples.GET_REPLAY_DELETION_JOBS,
+    )
     def get(self, request: Request, project) -> Response:
         """
         Retrieve a collection of replay delete jobs.
@@ -86,6 +130,22 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
+    @extend_schema(
+        operation_id="Create Replay Batch Deletion Job",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        request=ReplayDeletionJobCreateSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "CreateReplayDeletionJob", ReplayDeletionJobDetailResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=ReplayExamples.CREATE_REPLAY_DELETION_JOB,
+    )
     def post(self, request: Request, project) -> Response:
         """
         Create a new replay deletion job.
@@ -131,14 +191,30 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         return Response(response, status=201)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
+@extend_schema(tags=["Replays"])
 class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ReplayDeletionJobPermission,)
 
+    @extend_schema(
+        operation_id="Retrieve a Replay Batch-Deletion Job",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReplayParams.JOB_ID,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "GetReplayDeletionJob", ReplayDeletionJobDetailResponse
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ReplayExamples.GET_REPLAY_DELETION_JOB,
+    )
     def get(self, request: Request, project, job_id: int) -> Response:
         """
         Fetch a replay delete job instance.
@@ -147,7 +223,9 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
 
         try:
             job = ReplayDeletionJobModel.objects.get(
-                id=job_id, organization_id=project.organization_id, project_id=project.id
+                id=job_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
             )
         except ReplayDeletionJobModel.DoesNotExist:
             raise ResourceDoesNotExist

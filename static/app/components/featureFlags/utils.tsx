@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+import {Container} from '@sentry/scraps/layout';
 
 export type RawFlag = {
   action: string;
@@ -40,7 +39,7 @@ export function getFlagActionLabel(action: string) {
   const capitalized = action.charAt(0).toUpperCase() + action.slice(1);
 
   return (
-    <ActionLabel>
+    <Container alignSelf="flex-start">
       <Tag
         variant={
           action === 'created' ? 'info' : action === 'deleted' ? 'danger' : 'muted'
@@ -48,10 +47,6 @@ export function getFlagActionLabel(action: string) {
       >
         {capitalized}
       </Tag>
-    </ActionLabel>
+    </Container>
   );
 }
-
-const ActionLabel = styled('div')`
-  align-self: flex-start;
-`;

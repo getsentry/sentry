@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
+import {useMutation} from '@tanstack/react-query';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
@@ -8,14 +9,13 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
   BillingDetails,
@@ -37,8 +37,8 @@ import {
   isTeamPlanFamily,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import type {
   CheckoutAPIData,

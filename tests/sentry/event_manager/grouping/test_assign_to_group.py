@@ -190,12 +190,12 @@ def get_results_from_saving_event(
         if primary_grouphash_existed_already:
             existing_primary_hash_group_id = existing_grouphashes.get(primary_hash)
             post_save_primary_hash_group_id = post_save_grouphashes.get(primary_hash)
-            assert (
-                post_save_primary_hash_group_id == existing_primary_hash_group_id
-            ), "Existing primary hash's group id changed"
-            assert (
-                existing_group_id
-            ), "Primary grouphash already exists. Either something's wrong or you forgot to pass an existing group id"
+            assert post_save_primary_hash_group_id == existing_primary_hash_group_id, (
+                "Existing primary hash's group id changed"
+            )
+            assert existing_group_id, (
+                "Primary grouphash already exists. Either something's wrong or you forgot to pass an existing group id"
+            )
 
         if existing_group_id:
             event_assigned_to_given_existing_group = (
@@ -215,12 +215,12 @@ def get_results_from_saving_event(
             if secondary_grouphash_existed_already:
                 existing_secondary_hash_group_id = existing_grouphashes.get(secondary_hash)
                 post_save_secondary_hash_group_id = post_save_grouphashes.get(secondary_hash)
-                assert (
-                    post_save_secondary_hash_group_id == existing_secondary_hash_group_id
-                ), "Existing secondary hash's group id changed"
-                assert (
-                    existing_group_id
-                ), "Secondary grouphash already exists. Either something's wrong or you forgot to pass an existing group id"
+                assert post_save_secondary_hash_group_id == existing_secondary_hash_group_id, (
+                    "Existing secondary hash's group id changed"
+                )
+                assert existing_group_id, (
+                    "Secondary grouphash already exists. Either something's wrong or you forgot to pass an existing group id"
+                )
 
         result_tag_value_for_metrics = record_calculation_metrics_spy.call_args.args[5]
 

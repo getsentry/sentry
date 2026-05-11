@@ -2,28 +2,31 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
+import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
@@ -31,8 +34,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface EventTagTreeRowConfig {
   // Omits the dropdown of actions applicable to this tag
@@ -53,7 +55,7 @@ export interface EventTagsTreeRowProps {
   spacerCount?: number;
 }
 
-export default function EventTagsTreeRow({
+export function EventTagsTreeRow({
   event,
   content,
   tagKey,
@@ -140,7 +142,7 @@ function EventTagsTreeRowDropdown({
   }
 
   const referrer = 'event-tags-table';
-  const highlightTagSet = new Set(project?.highlightTags ?? []);
+  const highlightTagSet = new Set(project?.highlightTags);
   const hideAddHighlightsOption =
     // Check for existing highlight record to prevent replacing all with a single tag if we receive a project summary (instead of a detailed project)
     project?.highlightTags &&
@@ -153,6 +155,7 @@ function EventTagsTreeRowDropdown({
       key: escapeIssueTagKey(originalTag.key),
     }
   );
+  const globalSelectionParams = extractSelectionParameters(location.query);
 
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
@@ -177,7 +180,7 @@ function EventTagsTreeRowDropdown({
       hidden: !event.groupID || isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -186,7 +189,7 @@ function EventTagsTreeRowDropdown({
       hidden: isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -194,8 +197,8 @@ function EventTagsTreeRowDropdown({
       label: t('Search feedback with this tag value'),
       hidden: !isFeedback,
       to: {
-        pathname: `/organizations/${organization.slug}/feedback/`,
-        query,
+        pathname: `/organizations/${organization.slug}/issues/feedback/`,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -238,14 +241,14 @@ function EventTagsTreeRowDropdown({
           {
             onError: () => {
               addErrorMessage(
-                tct(`Failed to update '[projectName]' project`, {
+                tct("Failed to update '[projectName]' project", {
                   projectName: project.name,
                 })
               );
             },
             onSuccess: () => {
               addSuccessMessage(
-                tct(`Successfully updated '[projectName]' project`, {
+                tct("Successfully updated '[projectName]' project", {
                   projectName: project.name,
                 })
               );
@@ -396,6 +399,21 @@ function EventTagsTreeValue({
       );
       break;
     }
+    case 'head.artifact_id':
+    case 'base.artifact_id': {
+      const buildPath = getSizeBuildPath({
+        organizationSlug: organization.slug,
+        baseArtifactId: content.value,
+      });
+      if (buildPath) {
+        tagValue = (
+          <TagLinkText>
+            <Link to={buildPath}>{content.value}</Link>
+          </TagLinkText>
+        );
+      }
+      break;
+    }
     default:
       tagValue = defaultValue;
   }
@@ -417,13 +435,13 @@ function EventTagsTreeValue({
 }
 
 const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${space(0.5)};
-  padding-left: ${space(1)};
+  border-radius: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.md};
   position: relative;
   display: grid;
   align-items: center;
   grid-column: span 2;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
@@ -463,7 +481,7 @@ const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
   grid-column: span 1;
   height: 12px;
   align-self: start;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
@@ -471,7 +489,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   display: grid;
   height: 100%;
   align-items: center;
-  grid-template-columns: ${p => (p.spacerCount > 0 ? `auto 1rem 1fr` : '1fr')};
+  grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
 `;
 
 const TreeValueTrunk = styled('div')`
@@ -481,11 +499,11 @@ const TreeValueTrunk = styled('div')`
   align-items: center;
   min-height: 22px;
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
 const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${space(0.25)} 0;
+  padding: ${p => p.theme.space['2xs']} 0;
   align-self: start;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
@@ -513,15 +531,15 @@ const TreeValueDropdown = styled(DropdownMenu)`
   .tag-button {
     height: 20px;
     min-height: 20px;
-    padding: 0 ${space(0.75)};
-    border-radius: ${space(0.5)};
+    padding: 0 ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.space.xs};
     z-index: 0;
   }
 `;
 
 const TreeValueErrors = styled('div')`
   height: 20px;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
 `;
 
 const TagLinkText = styled('span')`

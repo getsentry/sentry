@@ -2,7 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import get_first_last_release
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -11,7 +11,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupFirstLastReleaseEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

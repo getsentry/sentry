@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useVisitQuery() {
   const api = useApi();

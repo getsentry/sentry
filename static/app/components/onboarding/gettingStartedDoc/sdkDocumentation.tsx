@@ -1,5 +1,5 @@
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import type {
@@ -17,7 +17,9 @@ type SdkDocumentationProps = {
   platform: PlatformIntegration;
   project: Project;
   configType?: ConfigType;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
+  onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
 
 // Loads the component containing the documentation for the specified platform
@@ -28,6 +30,8 @@ export function SdkDocumentation({
   newOrg,
   configType,
   organization,
+  onProductSelectionSync,
+  hasScmOnboarding,
 }: SdkDocumentationProps) {
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: organization.slug,
@@ -91,10 +95,12 @@ export function SdkDocumentation({
       dsn={dsn}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
+      hasScmOnboarding={hasScmOnboarding}
       platformKey={platform.id}
       project={project}
       configType={configType}
       projectKeyId={projectKeyId}
+      onProductSelectionSync={onProductSelectionSync}
     />
   );
 }

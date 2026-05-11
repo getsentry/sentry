@@ -26,7 +26,7 @@ const getVerifySnippet = (params: DocsParams, isVersion5: boolean) => {
   const errorCode =
     logsCode || metricsCode
       ? `${logsCode}${metricsCode}    throw new Error("This is your first error!");`
-      : `throw new Error("This is your first error!")`;
+      : 'throw new Error("This is your first error!")';
 
   return isVersion5
     ? `
@@ -151,7 +151,7 @@ export const onboarding: OnboardingConfig = {
     if (params.isMetricsSelected) {
       steps.push({
         id: 'metrics',
-        name: t('Metrics'),
+        name: t('Application Metrics'),
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),

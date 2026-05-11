@@ -5,7 +5,8 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 
 describe('SentryAppDetailsModal', () => {

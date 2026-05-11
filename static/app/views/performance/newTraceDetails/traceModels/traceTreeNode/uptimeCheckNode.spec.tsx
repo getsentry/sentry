@@ -43,6 +43,7 @@ describe('UptimeCheckNode', () => {
       // All children should be UptimeCheckTimingNode instances
       node.children.forEach(child => {
         expect(child).toBeInstanceOf(UptimeCheckTimingNode);
+        expect(child.id).toBe(`uptime-check-1-${child.op}`);
         expect(child.parent).toBe(node);
       });
     });
@@ -140,24 +141,7 @@ describe('UptimeCheckNode', () => {
   });
 
   describe('description getter', () => {
-    it('should return name when otel-friendly UI is enabled', () => {
-      const extraWithOtel = {
-        organization: OrganizationFixture({
-          features: ['performance-otel-friendly-ui'],
-        }),
-      };
-      const uptimeValue = makeUptimeCheck({
-        name: 'Health Check API',
-        description: 'Monitors API endpoint health',
-      });
-
-      const parentNode = new RootNode(null, null, extraWithOtel);
-      const node = new UptimeCheckNode(parentNode, uptimeValue, extraWithOtel);
-
-      expect(node.description).toBe('Health Check API');
-    });
-
-    it('should return description when otel-friendly UI is disabled', () => {
+    it('should return name', () => {
       const extra = createMockExtra();
       const uptimeValue = makeUptimeCheck({
         name: 'Health Check API',
@@ -167,7 +151,7 @@ describe('UptimeCheckNode', () => {
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
 
-      expect(node.description).toBe('Monitors API endpoint health');
+      expect(node.description).toBe('Health Check API');
     });
   });
 
@@ -286,10 +270,10 @@ describe('UptimeCheckNode', () => {
       expect(node.matchWithFreeText('check')).toBe(true);
     });
 
-    it('should match by description', () => {
+    it('should match by name', () => {
       const extra = createMockExtra();
       const uptimeValue = makeUptimeCheck({
-        description: 'API Health Monitor',
+        name: 'API Health Monitor',
       });
 
       const parentNode = new RootNode(null, null, extra);

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import CustomerInvoices from 'admin/components/customers/customerInvoices';
+import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
 
 describe('CustomerInvoices', () => {
   const mockOrg = OrganizationFixture();

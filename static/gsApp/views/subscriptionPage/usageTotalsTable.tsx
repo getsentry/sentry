@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -224,7 +224,12 @@ type Props = {
   isEventBreakdown?: boolean;
 };
 
-function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+export function UsageTotalsTable({
+  category,
+  isEventBreakdown,
+  totals,
+  subscription,
+}: Props) {
   const categoryInfo = getCategoryInfoFromPlural(category);
   const theme = useTheme();
   const colorPalette = theme.chart.getColorPalette(6);
@@ -342,8 +347,6 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
   );
 }
 
-export default UsageTotalsTable;
-
 const OutcomeType = styled(TextOverflow)<{indent?: boolean}>`
   display: grid;
   grid-template-columns: max-content min-content;
@@ -360,7 +363,7 @@ const TextWithQuestionTooltip = styled('div')`
   display: grid;
   grid-template-columns: max-content min-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledTable = styled(StripedTable)`
@@ -369,7 +372,7 @@ const StyledTable = styled(StripedTable)`
 
   th,
   td {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
     text-align: right;
   }
   th:first-child,

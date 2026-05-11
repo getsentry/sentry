@@ -14,6 +14,6 @@ def gitroot() -> str:
         root = abspath(proc.stdout.decode().strip())
     except CalledProcessError:
         raise SystemExit(
-            "git failed. Is it installed, and are you in a Git repository " "directory?",
+            "git failed. Is it installed, and are you in a Git repository directory?",
         )
     return root

@@ -4,13 +4,13 @@ from typing import Any
 
 from django.conf import settings
 
-from sentry import options
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
-    AI_MODEL_COSTS_CACHE_KEY,
-    AI_MODEL_COSTS_CACHE_TTL,
-    AIModelCosts,
-    AIModelCostV2,
+    AI_MODEL_METADATA_CACHE_KEY,
+    AI_MODEL_METADATA_CACHE_TTL,
+    AIModelCost,
+    AIModelMetadata,
+    AIModelMetadataConfig,
     ModelId,
 )
 from sentry.silo.base import SiloMode
@@ -71,7 +71,7 @@ def _create_prefix_glob_model_name(model_id: str) -> str:
     return f"*{model_id}"
 
 
-def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
+def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
     """
     Add glob versions of model names to the models dictionary.
 
@@ -98,26 +98,25 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+    name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
     namespace=ai_agent_monitoring_tasks,
     processing_deadline_duration=35,
     expires=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
-def fetch_ai_model_costs() -> None:
+def fetch_ai_model_metadata() -> None:
     """
-    Fetch AI model costs from OpenRouter and models.dev APIs and store them in cache.
+    Fetch AI model metadata (costs, context size) from OpenRouter and models.dev APIs
+    and store them in cache.
 
-    This task fetches model pricing data from both sources and converts it to
-    the AIModelCostV2 format for use by Sentry's LLM cost tracking.
-    OpenRouter prices take precedence over models.dev prices.
+    This task fetches model pricing and context size data from both sources and
+    converts it to the AIModelMetadata format.
+    OpenRouter data takes precedence over models.dev data.
     """
-
-    # this task shouldn't be run in an air gap environment
     if settings.SENTRY_AIR_GAP:
         return
 
-    models_dict: dict[ModelId, AIModelCostV2] = {}
+    models_dict: dict[ModelId, AIModelMetadata] = {}
 
     # Fetch from OpenRouter API (takes precedence)
     try:
@@ -125,46 +124,32 @@ def fetch_ai_model_costs() -> None:
         models_dict.update(openrouter_models)
     except Exception as e:
         logger.warning(
-            "Failed to fetch AI model costs from OpenRouter API", extra={"error": str(e)}
+            "Failed to fetch AI model metadata from OpenRouter API", extra={"error": str(e)}
         )
-        # re-raise to fail the task
         raise
 
     # Fetch from models.dev API (only add models not already present)
     try:
         models_dev_models = _fetch_models_dev_models()
-        # Only add models that don't already exist (OpenRouter takes precedence)
-        for model_id, model_cost in models_dev_models.items():
+        for model_id, model_metadata in models_dev_models.items():
             if model_id not in models_dict:
-                models_dict[model_id] = model_cost
-
+                models_dict[model_id] = model_metadata
     except Exception as e:
         logger.warning(
-            "Failed to fetch AI model costs from models.dev API", extra={"error": str(e)}
+            "Failed to fetch AI model metadata from models.dev API", extra={"error": str(e)}
         )
-        # re-raise to fail the task
         raise
-
-    # Custom model mapping for models pricing - often times the same models are named differently
-    # in different hosting providers. This allows us to map the alternative model id to the existing model id.
-    for model_mapping in options.get("ai-agent-monitoring.custom-model-mapping"):
-        alternative_model_id = model_mapping.get("alternative_model_id")
-        existing_model_id = model_mapping.get("existing_model_id")
-
-        if existing_model_id not in models_dict or alternative_model_id in models_dict:
-            continue
-
-        models_dict[alternative_model_id] = models_dict[existing_model_id]
 
     # Add glob versions of model names for flexible matching
     _add_glob_model_names(models_dict)
 
-    ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
-    cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
+    metadata_config: AIModelMetadataConfig = {"version": 1, "models": models_dict}
+    cache.set(AI_MODEL_METADATA_CACHE_KEY, metadata_config, AI_MODEL_METADATA_CACHE_TTL)
 
 
-def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
-    """Fetch model costs from OpenRouter API
+def _fetch_openrouter_models() -> dict[ModelId, AIModelMetadata]:
+    """Fetch model metadata from OpenRouter API.
+
     Example response:
     {
         "data": [
@@ -186,7 +171,6 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
     response = safe_urlopen(OPENROUTER_MODELS_API_URL)
     response.raise_for_status()
 
-    # Parse the response
     data = response.json()
 
     if not isinstance(data, dict) or "data" not in data:
@@ -196,8 +180,7 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
     if not isinstance(models_data, list):
         raise ValueError("Invalid OpenRouter response format: 'data' field is not a list")
 
-    # Convert to AIModelCostV2 format
-    models_dict: dict[ModelId, AIModelCostV2] = {}
+    models_dict: dict[ModelId, AIModelMetadata] = {}
 
     for model_data in models_data:
         if not isinstance(model_data, dict):
@@ -215,10 +198,9 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
 
         pricing = model_data.get("pricing", {})
 
-        # Convert pricing data to AIModelCostV2 format
         # OpenRouter provides costs as strings, we need to convert to float
         try:
-            ai_model_cost = AIModelCostV2(
+            model_cost = AIModelCost(
                 inputPerToken=safe_float_conversion(pricing.get("prompt")),
                 outputPerToken=safe_float_conversion(pricing.get("completion")),
                 outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
@@ -226,11 +208,17 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
                 inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
             )
 
-            models_dict[model_id] = ai_model_cost
+            metadata = AIModelMetadata(costs=model_cost)
+
+            context_length = model_data.get("context_length")
+            if isinstance(context_length, int) and context_length > 0:
+                metadata["contextSize"] = context_length
+
+            models_dict[model_id] = metadata
 
         except (ValueError, TypeError) as e:
             logger.warning(
-                "fetch_ai_model_costs.openrouter_model_parse_error",
+                "fetch_ai_model_metadata.openrouter_model_parse_error",
                 extra={"model_id": model_id, "error": str(e)},
             )
             continue
@@ -238,8 +226,9 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
     return models_dict
 
 
-def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
-    """Fetch model costs from models.dev API
+def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
+    """Fetch model metadata from models.dev API.
+
     Example response:
     {
         "openai": {
@@ -250,23 +239,25 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                         "output": 0.00000165,
                         "cache_read": 0.0000003,
                         "cache_write": 0.00000125,
+                    },
+                    "limit": {
+                        "context": 128000,
+                        "output": 16384,
                     }
                 }
             }
         }
     }
-
     """
     response = safe_urlopen(MODELS_DEV_API_URL)
     response.raise_for_status()
 
-    # Parse the response
     data = response.json()
 
     if not isinstance(data, dict):
         raise ValueError("Invalid models.dev response format: expected dict")
 
-    models_dict: dict[ModelId, AIModelCostV2] = {}
+    models_dict: dict[ModelId, AIModelMetadata] = {}
 
     for provider_name, provider_data in data.items():
         if not isinstance(provider_data, dict):
@@ -291,10 +282,9 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
             if "/" in model_id:
                 model_id = model_id.split("/", maxsplit=1)[1]
 
-            # Convert pricing data to AIModelCostV2 format
             # models.dev provides costs as numbers, but for extra safety convert to our format
             try:
-                ai_model_cost = AIModelCostV2(
+                model_cost = AIModelCost(
                     inputPerToken=safe_float_conversion(cost_data.get("input"))
                     / 1000000,  # models.dev have prices per 1M tokens
                     outputPerToken=safe_float_conversion(cost_data.get("output"))
@@ -306,11 +296,19 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                     / 1000000,  # models.dev have price per 1M tokens
                 )
 
-                models_dict[model_id] = ai_model_cost
+                metadata = AIModelMetadata(costs=model_cost)
+
+                limit_data = model_data.get("limit", {})
+                if isinstance(limit_data, dict):
+                    context_size = limit_data.get("context")
+                    if isinstance(context_size, int) and context_size > 0:
+                        metadata["contextSize"] = context_size
+
+                models_dict[model_id] = metadata
 
             except (ValueError, TypeError) as e:
                 logger.warning(
-                    "fetch_ai_model_costs.models_dev_model_parse_error",
+                    "fetch_ai_model_metadata.models_dev_model_parse_error",
                     extra={"model_id": model_id, "provider": provider_name, "error": str(e)},
                 )
                 continue

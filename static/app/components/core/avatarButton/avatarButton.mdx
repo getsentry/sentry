@@ -1,0 +1,199 @@
+---
+title: AvatarButton
+description: AvatarButton is a button variant that renders an avatar edge-to-edge. It accepts a typed avatar definition and resolves it to either a letter avatar or an image avatar using the useAvatar hook.
+category: buttons
+source: '@sentry/scraps/button'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/avatarButton/avatarButton.tsx
+---
+
+import {AvatarButton} from '@sentry/scraps/avatarButton';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation =
+  import('!!type-loader!@sentry/scraps/avatarButton/avatarButton');
+
+Use `AvatarButton` when the avatar itself should be the clickable control.
+
+## Basic Usage
+
+```jsx
+<AvatarButton
+  aria-label="Open profile"
+  onClick={() => {}}
+  avatar={{type: 'letter_avatar', identifier: 'user-1', name: 'Jane Doe'}}
+/>
+```
+
+## Avatar Definitions
+
+The `avatar` prop accepts a typed avatar descriptor. Only the data fields are used —
+`type`, `identifier`, `name`, and any type-specific fields (`uploadUrl`, `gravatarId`).
+Style props such as `suggested` or `round` are controlled by the button itself.
+
+<Storybook.Demo>
+  <AvatarButton
+    aria-label="Open Jane Doe profile"
+    avatar={{type: 'letter_avatar', identifier: 'user-1', name: 'Jane Doe'}}
+  />
+  <AvatarButton
+    aria-label="Open upload avatar profile"
+    avatar={{
+      type: 'upload',
+      identifier: 'upload-user',
+      name: 'Upload User',
+      uploadUrl: 'https://avatars.githubusercontent.com/u/1396951?v=4',
+    }}
+  />
+  <AvatarButton
+    aria-label="Open gravatar profile"
+    avatar={{
+      type: 'gravatar',
+      identifier: 'gravatar-user',
+      name: 'Gravatar User',
+      gravatarId: 'jonas.badalic@sentry.io',
+    }}
+  />
+</Storybook.Demo>
+```jsx
+<AvatarButton
+  aria-label="Open Jane Doe profile"
+  avatar={{type: 'letter_avatar', identifier: 'user-1', name: 'Jane Doe'}}
+/>
+<AvatarButton
+  aria-label="Open upload avatar profile"
+  avatar={{
+    type: 'upload',
+    identifier: 'upload-user',
+    name: 'Upload User',
+    uploadUrl: 'https://avatars.githubusercontent.com/u/1396951?v=4',
+  }}
+/>
+<AvatarButton
+  aria-label="Open gravatar profile"
+  avatar={{
+    type: 'gravatar',
+    identifier: 'gravatar-user',
+    name: 'Gravatar User',
+    gravatarId: 'jonas.badalic@sentry.io',
+  }}
+/>
+```
+
+## Sizes and Priorities
+
+You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
+
+<Storybook.Demo>
+  <AvatarButton
+    size="md"
+    aria-label="Primary avatar button"
+    avatar={{type: 'letter_avatar', identifier: 'primary', name: 'Primary User'}}
+  />
+  <AvatarButton
+    size="sm"
+    aria-label="Small avatar button"
+    avatar={{type: 'letter_avatar', identifier: 'small', name: 'Small User'}}
+  />
+  <AvatarButton
+    size="xs"
+    disabled
+    aria-label="Disabled avatar button"
+    avatar={{type: 'letter_avatar', identifier: 'disabled', name: 'Disabled User'}}
+  />
+</Storybook.Demo>
+```jsx
+<AvatarButton
+  size="md"
+  aria-label="Primary avatar button"
+  avatar={{type: 'letter_avatar', identifier: 'primary', name: 'Primary User'}}
+/>
+<AvatarButton
+  size="sm"
+  aria-label="Small avatar button"
+  avatar={{type: 'letter_avatar', identifier: 'small', name: 'Small User'}}
+/>
+<AvatarButton
+  size="xs"
+  disabled
+  aria-label="Disabled avatar button"
+  avatar={{type: 'letter_avatar', identifier: 'disabled', name: 'Disabled User'}}
+/>
+```
+
+## Image Avatars
+
+Colorful logos pick up their brand color; neutral logos (white, black, grayscale)
+fall back to default button styling. Logos that don't fill the button frame are
+automatically inset with padding.
+
+<Storybook.Demo>
+  {[
+    {
+      key: 'firefox',
+      name: 'Firefox',
+      uploadUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Mozilla_Firefox_0.8_logo.svg/250px-Mozilla_Firefox_0.8_logo.svg.png',
+    },
+    {
+      key: 'spotify',
+      name: 'Spotify',
+      uploadUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/250px-Spotify_icon.svg.png',
+    },
+    {
+      key: 'gitlab',
+      name: 'GitLab',
+      uploadUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/GitLab_logo.svg/250px-GitLab_logo.svg.png',
+    },
+    {
+      key: 'stripe',
+      name: 'Stripe',
+      uploadUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/250px-Stripe_Logo%2C_revised_2016.svg.png',
+    },
+    {
+      key: 'shopify',
+      name: 'Shopify',
+      uploadUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Shopify_logo_2018.svg/250px-Shopify_logo_2018.svg.png',
+    },
+    {
+      key: 'slack',
+      name: 'Slack',
+      uploadUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Slack_Technologies_Logo.svg/250px-Slack_Technologies_Logo.svg.png',
+    },
+    {
+      key: 'vercel',
+      name: 'Vercel',
+      uploadUrl:
+        'https://vercel.com/vc-ap-vercel-marketing/_next/static/media/vercel-logotype-light.e2cdcb0f.svg?dpl=dpl_AzS8aAkE4oTYDGQfdAVd1r9cdWGL',
+    },
+    {
+      key: 'nvidia',
+      name: 'NVIDIA',
+      uploadUrl:
+        'https://s3.amazonaws.com/cms.ipressroom.com/219/files/202512/692f56b83d6332f881bbc58b_nvidia-logo-horiz-blk-16x9+1/nvidia-logo-horiz-blk-16x9+1_3b6e36c5-dc74-4a75-86f4-5faefc2a7f7d-prv.png',
+    },
+    {
+      key: 'mcmaster',
+      name: 'McMaster-Carr',
+      uploadUrl:
+        'https://en.wikipedia.org/wiki/McMaster-Carr#/media/File:McMaster-Carr_logo.svg',
+    },
+  ].map(img => (
+    <AvatarButton
+      key={img.key}
+      aria-label={img.name}
+      avatar={{
+        type: 'upload',
+        identifier: img.key,
+        name: img.name,
+        uploadUrl: img.uploadUrl,
+      }}
+    />
+  ))}
+</Storybook.Demo>

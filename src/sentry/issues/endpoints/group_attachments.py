@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
 
 from django.utils import timezone
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
@@ -16,7 +15,6 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.models.group import Group
@@ -68,7 +66,7 @@ def get_event_ids_from_filters(
     return [evt["id"] for evt in results["data"]]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupAttachmentsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -103,10 +101,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint):
         event_ids = request.GET.getlist("event_id") or None
         screenshot = "screenshot" in request.GET
 
-        try:
-            start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_params(request.GET, optional=True)
 
         if start:
             attachments = attachments.filter(date_added__gte=start)

@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -17,16 +16,12 @@ import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import rehypeExpressiveCode from 'rehype-expressive-code';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
-import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
+import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -59,8 +54,8 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
 // features in the Sentry UI.
-// React query devtools are disabled by default, but can be enabled by setting the USE_REACT_QUERY_DEVTOOL env var to 'true'
-const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
+// TanStack devtools are disabled by default, but can be enabled by setting the USE_TANSTACK_DEVTOOL env var to 'true'
+const USE_TANSTACK_DEVTOOL = !!env.USE_TANSTACK_DEVTOOL;
 // Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
 const ENABLE_SENTRY_TOOLBAR =
   env.ENABLE_SENTRY_TOOLBAR === undefined
@@ -75,6 +70,7 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
+const SENTRY_DEVSERVER_NGROK = env.SENTRY_DEVSERVER_NGROK;
 
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -110,9 +106,6 @@ const SENTRY_EXPERIMENTAL_SPA =
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
-const CODECOV_TOKEN = env.CODECOV_TOKEN;
-// value should come back as either 'true' or 'false' or undefined
-const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true';
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
@@ -262,11 +255,6 @@ const appConfig: Configuration = {
      */
     app: ['sentry/utils/statics-setup', 'sentry'],
 
-    /**
-     * Pipeline View for integrations
-     */
-    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
-
     // admin interface
     gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
 
@@ -291,11 +279,19 @@ const appConfig: Configuration = {
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
   },
-  // Disable lazy compilation for now to avoid crashes when new modules are loaded
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
-    imports: SHOULD_LAZY_COMPILATION,
+    imports: true,
     entries: false,
+    // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
+    test(module) {
+      if ('request' in module && typeof module.request === 'string') {
+        if (module.request.includes('type-loader')) {
+          return true;
+        }
+      }
+      return SHOULD_LAZY_COMPILATION;
+    },
   },
   module: {
     /**
@@ -304,9 +300,24 @@ const appConfig: Configuration = {
      */
     rules: [
       {
+        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: path.resolve(
+              import.meta.dirname,
+              './build-utils/frontmatter-index-loader.ts'
+            ),
+          },
+        ],
+      },
+      {
         test: /\.(js|jsx|ts|tsx)$/,
-        // Avoids recompiling core-js based on usage imports
-        exclude: /node_modules[\\/]core-js/,
+        // core-js: Avoids recompiling core-js based on usage imports
+        // react-select: Ships pre-compiled ESM with emotion's keyframes already
+        // compiled via swc. Re-processing with @swc/plugin-emotion causes
+        // "illegal escape sequence" warnings in dev mode.
+        exclude: /node_modules[\\/](core-js|react-select)/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
@@ -320,36 +331,8 @@ const appConfig: Configuration = {
           {
             loader: '@mdx-js/loader',
             options: {
-              remarkPlugins: [
-                remarkUnwrapMdxParagraphs,
-                remarkFrontmatter,
-                remarkMdxFrontmatter,
-                remarkGfm,
-                [
-                  remarkCallout,
-                  {
-                    root: (callout: Callout) => {
-                      return {
-                        tagName: 'Callout',
-                        properties: {
-                          title: callout.title,
-                          type: callout.type.toLowerCase(),
-                          isFoldable: callout.isFoldable ?? false,
-                          defaultFolded: callout.defaultFolded ?? false,
-                        },
-                      };
-                    },
-                  },
-                ],
-              ],
-              rehypePlugins: [
-                [
-                  rehypeExpressiveCode,
-                  {
-                    useDarkModeMediaQuery: false,
-                  },
-                ],
-              ],
+              remarkPlugins,
+              rehypePlugins,
             },
           },
         ],
@@ -459,7 +442,7 @@ const appConfig: Configuration = {
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
-      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+      'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
       'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
     }),
 
@@ -477,6 +460,7 @@ const appConfig: Configuration = {
                   'node_modules/**/*',
                   'tests/**/*',
                   '**/*.spec.*',
+                  '**/*.snapshots.*',
                   'static/eslint/**/*',
                   'scripts/**/*',
                 ],
@@ -580,8 +564,8 @@ const appConfig: Configuration = {
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
-    chunkIds: 'named',
-    moduleIds: 'named',
+    chunkIds: IS_PRODUCTION ? 'deterministic' : 'named',
+    moduleIds: IS_PRODUCTION ? 'deterministic' : 'named',
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
@@ -645,19 +629,27 @@ if (
       // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
       // since ngrok urls are public and can be accessed by anyone.
       // '.ngrok.io',
+
+      // Needed if you want to use ngrok w/ backend
+      ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
     ],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
     },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: SHOULD_HOT_MODULE_RELOAD,
+    hot: SHOULD_HOT_MODULE_RELOAD ? 'only' : false,
+    liveReload: !SENTRY_DEVSERVER_NGROK,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
     devMiddleware: {
       stats: 'errors-only',
     },
     client: {
       overlay: false,
+      // When behind a reverse proxy (ngrok/Coder), the WebSocket client must
+      // derive its URL from window.location instead of the dev server's host.
+      // Without this, HMR tries ws://127.0.0.1:8000/ws which is unreachable.
+      ...(SENTRY_DEVSERVER_NGROK && {webSocketURL: 'auto://0.0.0.0:0/ws'}),
     },
   };
 
@@ -739,8 +731,7 @@ if (IS_UI_DEV_ONLY) {
   // XXX: If you change this also change its sibiling in:
   // - static/index.ejs
   // - static/app/utils/extractSlug.tsx
-  const KNOWN_DOMAINS =
-    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
+  const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
     const match = hostname.match(KNOWN_DOMAINS);
@@ -852,7 +843,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
@@ -862,15 +853,18 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
 }
 
 if (IS_PRODUCTION) {
-  // This compression-webpack-plugin generates pre-compressed files
-  // ending in .gz, to be picked up and served by our internal static media
-  // server as well as nginx when paired with the gzip_static module.
-  appConfig.plugins?.push(
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-    })
-  );
+  if (!IS_DEPLOY_PREVIEW) {
+    // This compression-webpack-plugin generates pre-compressed files
+    // ending in .gz, to be picked up and served by our internal static media
+    // server as well as nginx when paired with the gzip_static module.
+    // Skipped for deploy previews since Vercel handles compression itself.
+    appConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+  }
 
   // Enable sentry-webpack-plugin for production builds
   appConfig.plugins?.push(
@@ -892,26 +886,6 @@ if (IS_PRODUCTION) {
         excludeDebugStatements: false,
         excludeReplayIframe: true,
         excludeReplayShadowDom: true,
-      },
-    })
-  );
-}
-
-if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
-  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
-  // defaulting to an empty string which in turn will fallback to env var or
-  // determine merge commit sha from git
-  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
-
-  appConfig.plugins?.push(
-    codecovWebpackPlugin({
-      enableBundleAnalysis: true,
-      bundleName: 'app-webpack-bundle',
-      uploadToken: CODECOV_TOKEN,
-      debug: true,
-      gitService: 'github',
-      uploadOverrides: {
-        sha: GH_COMMIT_SHA,
       },
     })
   );

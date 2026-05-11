@@ -1,18 +1,18 @@
+import {QueryClientProvider, type InfiniteData} from '@tanstack/react-query';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResult} from 'sentry/api';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import type {InfiniteData} from 'sentry/utils/queryClient';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   LOGS_AUTO_REFRESH_KEY,
   LOGS_REFRESH_INTERVAL_KEY,
@@ -34,13 +34,13 @@ import {
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 const mockUsePageFilters = jest.mocked(usePageFilters);
 
 jest.mock('sentry/utils/useNavigate');
 const mockUseNavigate = jest.mocked(useNavigate);
 
-type CachedQueryData = InfiniteData<ApiResult<EventsLogsResult>, LogPageParam>;
+type CachedQueryData = InfiniteData<ApiResponse<EventsLogsResult>, LogPageParam>;
 
 const linkHeaders = {
   Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/teams/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/teams/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
@@ -66,13 +66,19 @@ describe('useInfiniteLogsQuery', () => {
     };
   }
 
+  let mockNow: jest.SpyInstance;
+
+  afterEach(() => {
+    mockNow.mockRestore();
+  });
+
   beforeEach(() => {
     jest.resetAllMocks();
+    mockNow = jest.spyOn(Date, 'now');
     MockApiClient.clearMockResponses();
     mockLocation.mockReturnValue(LocationFixture());
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture(),
@@ -141,11 +147,11 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(
-      key => Array.isArray(key) && key[key.length - 1] === 'infinite'
-    );
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.isInfinite)!;
 
-    let cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+    let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
 
     expect(cachedData.pageParams).toHaveLength(2);
 
@@ -153,7 +159,7 @@ describe('useInfiniteLogsQuery', () => {
 
     expect(mocks.previousPageMock).toHaveBeenCalled();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey)!;
 
     expect(cachedData.pageParams).toHaveLength(3);
 
@@ -224,17 +230,17 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(
-      key => Array.isArray(key) && key[key.length - 1] === 'infinite'
-    );
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.isInfinite)!;
 
-    let cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+    let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(2);
     expect(cachedData.pageParams).toHaveLength(2);
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey)!;
     expect(cachedData.pages).toHaveLength(1); // Only the initial page should remain
     expect(cachedData.pageParams).toHaveLength(1);
 
@@ -246,7 +252,7 @@ describe('useInfiniteLogsQuery', () => {
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey)!;
     expect(cachedData.pages).toHaveLength(1);
     expect(cachedData.pageParams).toHaveLength(1);
 
@@ -315,6 +321,26 @@ describe('useInfiniteLogsQuery', () => {
     );
   });
 
+  it('passes highFidelity in the request data so the cache key reflects the mode', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+    const mockRequest = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+      headers: linkHeaders,
+    });
+
+    renderHookWithProviders(() => useInfiniteLogsQuery({highFidelity: true}), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      eventsEndpoint,
+      expect.objectContaining({data: {highFidelity: true}})
+    );
+  });
+
   describe('high fidelity', () => {
     function makeLinkHeader(cursor: string, hasNext = true) {
       const url =
@@ -335,7 +361,6 @@ describe('useInfiniteLogsQuery', () => {
       ].join(', ');
     }
 
-    // function makeMockEventsResponse(cursor: string, nextCursor: string, data = []) {
     function makeMockEventsResponse({
       cursor,
       nextCursor,
@@ -370,41 +395,61 @@ describe('useInfiniteLogsQuery', () => {
       };
     }
 
-    it('auto fetches only empty pages pages and end when signaled', async () => {
+    it('auto fetches empty pages while within the budget and stops when the server has no more', async () => {
       const mockFlextTimeRequests = [
         makeMockEventsResponse({cursor: '', nextCursor: 'page2'}),
         makeMockEventsResponse({cursor: 'page2', nextCursor: 'page3'}),
-        makeMockEventsResponse({cursor: 'page3', nextCursor: 'page4'}),
-        makeMockEventsResponse({cursor: 'page4', nextCursor: 'page5'}),
-        makeMockEventsResponse({cursor: 'page5', nextCursor: 'page6', hasNext: false}),
-        makeMockEventsResponse({cursor: 'page6', nextCursor: 'page7', hasNext: false}),
+        makeMockEventsResponse({cursor: 'page3', nextCursor: 'page4', hasNext: false}),
+        makeMockEventsResponse({cursor: 'page4', nextCursor: 'page5', hasNext: false}),
       ].map(response => MockApiClient.addMockResponse(response));
 
       const {result} = renderHookWithProviders(
-        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        () => useInfiniteLogsQuery({highFidelity: true}),
         {
           additionalWrapper: createWrapper(),
         }
       );
 
-      // the first 3 requests should have been called
+      // Within the default 10s budget the loop drains through all pages that
+      // advertise a next link, including the one whose response flips
+      // hasNext=false.
       await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockFlextTimeRequests[1]).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockFlextTimeRequests[2]).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(mockFlextTimeRequests[3]).not.toHaveBeenCalled());
 
-      // should be allowed to resume autofetching
-      expect(result.current.canResumeAutoFetch).toBe(true);
-      act(() => result.current.resumeAutoFetch());
-
-      // the next 3 requests should have been called
-      await waitFor(() => expect(mockFlextTimeRequests[3]).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(mockFlextTimeRequests[4]).toHaveBeenCalledTimes(1));
-
-      // should not be allowed to resume autofetching
+      // The next link on mock[2] reports results=false, so auto-fetch stops.
       expect(result.current.canResumeAutoFetch).toBe(false);
+      await waitFor(() => expect(mockFlextTimeRequests[3]).not.toHaveBeenCalled());
+    });
 
-      await waitFor(() => expect(mockFlextTimeRequests[5]).not.toHaveBeenCalled());
+    it('stops auto-fetching once the wall-clock budget expires', async () => {
+      let now = 0;
+      mockNow.mockImplementation(() => {
+        const current = now;
+        now += 15_000;
+        return current;
+      });
+
+      const mockFlextTimeRequests = [
+        makeMockEventsResponse({cursor: '', nextCursor: 'page2'}),
+        makeMockEventsResponse({cursor: 'page2', nextCursor: 'page3'}),
+        makeMockEventsResponse({cursor: 'page3', nextCursor: 'page4', hasNext: false}),
+      ].map(response => MockApiClient.addMockResponse(response));
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.isPending).toBe(false));
+
+      expect(mockFlextTimeRequests[1]).not.toHaveBeenCalled();
+
+      // allowed to resume autofetching because the row limit has not been reached
+      expect(result.current.canResumeAutoFetch).toBe(true);
     });
 
     it('auto fetches until limit', async () => {
@@ -419,22 +464,28 @@ describe('useInfiniteLogsQuery', () => {
         makeMockEventsResponse({
           cursor: '',
           nextCursor: 'page2',
-          data: new Array(500).fill(0).map((_, i) => fakeRow(i)),
+          data: Array.from({length: 500})
+            .fill(0)
+            .map((_, i) => fakeRow(i)),
         }),
         makeMockEventsResponse({
           cursor: 'page2',
           nextCursor: 'page3',
-          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 500)),
+          data: Array.from({length: 500})
+            .fill(0)
+            .map((_, i) => fakeRow(i + 500)),
         }),
         makeMockEventsResponse({
           cursor: 'page3',
           nextCursor: 'page4',
-          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 1000)),
+          data: Array.from({length: 500})
+            .fill(0)
+            .map((_, i) => fakeRow(i + 1000)),
         }),
       ].map(response => MockApiClient.addMockResponse(response));
 
       const {result} = renderHookWithProviders(
-        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        () => useInfiniteLogsQuery({highFidelity: true}),
         {
           additionalWrapper: createWrapper(),
         }
@@ -445,7 +496,7 @@ describe('useInfiniteLogsQuery', () => {
       await waitFor(() => expect(mockFlextTimeRequests[1]).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockFlextTimeRequests[2]).not.toHaveBeenCalled());
 
-      // should not be allowed to resume autofetching
+      // should not be allowed to resume autofetching because the row limit is reached
       expect(result.current.canResumeAutoFetch).toBe(false);
 
       await result.current.fetchNextPage();
@@ -653,19 +704,28 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     };
   }
 
+  let mockNowInner: jest.SpyInstance;
+
   beforeEach(() => {
     jest.resetAllMocks();
+    // jest.resetAllMocks() clears any outer Date.now spy, so we need to re-mock it here
+    // with a realistic timestamp so that initializeVirtualTimestamp computes a sane
+    // targetTimestamp and correctly filters far-future log rows.
+    mockNowInner = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
     mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
 
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture(),
     });
+  });
+
+  afterEach(() => {
+    mockNowInner.mockRestore();
   });
 
   it('should integrate with virtual streaming when auto refresh is enabled', async () => {
@@ -693,7 +753,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
     // With auto refresh enabled, virtual streaming should be active
     // All data should be visible initially since all the mocked timestamps are well behind `now()`
-    expect(result.current.data).toHaveLength(3);
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(3);
+    });
   });
 
   it('should not apply virtual streaming when auto refresh is disabled', async () => {
@@ -740,7 +802,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
         (_, options) => {
           const query = options?.query || {};
           // TODO: Fix space in query
-          return query.query === ' timestamp_precise:<=1508208040000000000';
+          return query.query === ' timestamp_precise:<=1699999960000000000';
         },
       ],
       headers: linkHeaders,
@@ -776,7 +838,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       expect(result.current.isPending).toBe(false);
     });
 
-    expect(result.current.data).toHaveLength(3);
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(3);
+    });
     expect(initialMock).toHaveBeenCalled();
 
     // Fetch next page

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import Prism from 'prismjs';
 
-import {Alert} from 'sentry/components/core/alert';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import List from 'sentry/components/list';
+import {Alert} from '@sentry/scraps/alert';
+
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {List} from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -98,7 +98,6 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
-    // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
     import('prismjs/plugins/line-highlight/prism-line-highlight');
   }, []);
 
@@ -140,5 +139,5 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-top: -${space(1)};
+  margin-top: -${p => p.theme.space.md};
 `;

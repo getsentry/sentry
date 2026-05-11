@@ -14,9 +14,9 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {DataCategory} from 'sentry/types/core';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, type Subscription} from 'getsentry/types';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 
 describe('ProductBreakdownPanel', () => {
   const organization = OrganizationFixture();
@@ -319,8 +319,9 @@ describe('ProductBreakdownPanel', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       body: {},
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     render(
       <ProductBreakdownPanel
@@ -480,7 +481,7 @@ describe('ProductBreakdownPanel', () => {
 
   it('renders for Seer add-on', async () => {
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -516,6 +517,7 @@ describe('ProductBreakdownPanel', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     subscription.categories.seerUsers = MetricHistoryFixture({
       category: DataCategory.SEER_USER,
@@ -537,7 +539,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
     expect(screen.getByText('Gifted')).toBeInTheDocument();
@@ -558,7 +560,7 @@ describe('ProductBreakdownPanel', () => {
       organization,
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -594,6 +596,7 @@ describe('ProductBreakdownPanel', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     enterpriseSubscription.categories.seerUsers = MetricHistoryFixture({
       category: DataCategory.SEER_USER,
@@ -616,7 +619,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.getByText('Enterprise (Business) plan')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
@@ -633,9 +636,10 @@ describe('ProductBreakdownPanel', () => {
 
   it('renders for add-on with missing metric history', async () => {
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     subscription.addOns!.seer = {
       ...subscription.addOns!.seer!,
@@ -663,6 +667,96 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.queryByText('Active contributors spend')).not.toBeInTheDocument();
 
     await screen.findByText('Active Contributors (0)'); // wait for billed seats to be loaded
+  });
+
+  it('does not show Upgrade required for gifted-only monitors', async () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.MONITOR_SEATS}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
+  });
+
+  it('does not show Upgrade required for gifted-only uptime monitors', async () => {
+    subscription.categories.uptime = {
+      ...subscription.categories.uptime!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.UPTIME}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Uptime Monitors'});
+    expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
+  });
+
+  it('does not show Upgrade required for soft cap monitors with no prepaid quota', async () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    subscription.hasSoftCap = true;
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.MONITOR_SEATS}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
+  });
+
+  it('does not show Upgrade required when hasSoftCap=true but category softCapType is null', async () => {
+    // Legacy soft cap orgs can have hasSoftCap=true on the subscription but
+    // softCapType=null on newer categories (e.g. MONITOR_SEAT, UPTIME)
+    // because create_new_category_histories does not inherit soft_cap_type
+    // from siblings or from the subscription-level soft_cap flag.
+    subscription.hasSoftCap = true;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.MONITOR_SEATS}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
   });
 
   it('renders for data category with missing metric history', async () => {

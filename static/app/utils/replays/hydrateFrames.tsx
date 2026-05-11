@@ -13,7 +13,7 @@ import {
   isVideoFrameEvent,
 } from 'sentry/utils/replays/types';
 
-export default function hydrateFrames(attachments: unknown[]) {
+export function hydrateFrames(attachments: unknown[]) {
   const rrwebFrames: RecordingFrame[] = [];
   const breadcrumbFrames: RawBreadcrumbFrame[] = [];
   const spanFrames: RawSpanFrame[] = [];

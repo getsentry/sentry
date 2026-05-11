@@ -106,7 +106,9 @@ export enum Level {
 export enum Interval {
   ONE_MINUTE = '1m',
   FIVE_MINUTES = '5m',
+  TEN_MINUTES = '10m',
   FIFTEEN_MINUTES = '15m',
+  THIRTY_MINUTES = '30m',
   ONE_HOUR = '1h',
   ONE_DAY = '1d',
   ONE_WEEK = '1w',
@@ -172,13 +174,19 @@ export const LEVEL_CHOICES = [
 ];
 
 export const INTERVAL_CHOICES = [
-  {value: Interval.ONE_MINUTE, label: t('in one minute')},
   {value: Interval.FIVE_MINUTES, label: t('in 5 minutes')},
   {value: Interval.FIFTEEN_MINUTES, label: t('in 15 minutes')},
   {value: Interval.ONE_HOUR, label: t('in one hour')},
   {value: Interval.ONE_DAY, label: t('in one day')},
   {value: Interval.ONE_WEEK, label: t('in one week')},
   {value: Interval.THIRTY_DAYS, label: t('in 30 days')},
+];
+
+export const PERCENT_INTERVAL_CHOICES = [
+  {value: Interval.FIVE_MINUTES, label: t('in 5 minutes')},
+  {value: Interval.TEN_MINUTES, label: t('in 10 minutes')},
+  {value: Interval.THIRTY_MINUTES, label: t('in 30 minutes')},
+  {value: Interval.ONE_HOUR, label: t('in one hour')},
 ];
 
 export const COMPARISON_INTERVAL_CHOICES = [

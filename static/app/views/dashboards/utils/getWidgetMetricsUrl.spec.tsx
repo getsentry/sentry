@@ -1,5 +1,6 @@
 import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -198,6 +199,72 @@ describe('getWidgetMetricsUrl', () => {
       expect(metricQuery.aggregateSortBys[0].field).toBe('avg(value,duration,d,-)');
       expect(metricQuery.aggregateSortBys[0].kind).toBe('desc');
     });
+
+    it('handles the unit of the metric', () => {
+      const widget = WidgetFixture({
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: '',
+            fields: [],
+            aggregates: ['avg(value,test-metric,distribution,second)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      });
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      expect(params.metric).toBeDefined();
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      const metricQuery = JSON.parse(metrics[0]!);
+      expect(metricQuery.metric.unit).toBe('second');
+    });
+
+    it('reads the tracemetric from each aggregate', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Multi Aggregate',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: [
+              'avg(value,test_metric_a,duration,-)',
+              'p95(value,test_metric_b,gauge,-)',
+              'count(value,test_metric_c,counter,-)',
+            ],
+            columns: [],
+            conditions: 'transaction:"/api/users"',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      // Should have 3 metric query parameters (one for each aggregate)
+      expect(params.metric).toBeDefined();
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
+      expect(parsedMetrics).toHaveLength(3);
+      expect(parsedMetrics.map(m => m.metric)).toEqual([
+        {name: 'test_metric_a', type: 'duration'},
+        {name: 'test_metric_b', type: 'gauge'},
+        {name: 'test_metric_c', type: 'counter'},
+      ]);
+    });
   });
 
   describe('multiple queries', () => {
@@ -239,7 +306,7 @@ describe('getWidgetMetricsUrl', () => {
       expect(metrics).toHaveLength(4);
 
       // Should be grouped by aggregate (all avg together, then all p95 together)
-      const parsedMetrics = metrics.map(metric => JSON.parse(metric as string));
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
       const avgMetrics = parsedMetrics.filter(m =>
         m.aggregateFields[0].yAxes[0].includes('avg')
       );
@@ -287,7 +354,7 @@ describe('getWidgetMetricsUrl', () => {
       const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
       expect(metrics).toHaveLength(2);
 
-      const parsedMetrics = metrics.map(metric => JSON.parse(metric as string));
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
       expect(parsedMetrics[0].query).toContain('http.status_code:200');
       expect(parsedMetrics[1].query).toContain('http.status_code:500');
     });

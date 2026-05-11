@@ -1,3 +1,4 @@
+import type {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -12,10 +13,8 @@ import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
 import type {Relay} from './relay';
+import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
-
-// Matches `PrReviewTrigger` in Seer
-type CodeReviewTriggers = 'on_ready_for_review' | 'on_new_commit';
 
 /**
  * Organization summaries are sent when you request a list of all organizations
@@ -24,10 +23,6 @@ export interface OrganizationSummary {
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
-  features: string[];
-  githubNudgeInvite: boolean;
-  githubPRBot: boolean;
-  gitlabPRBot: boolean;
   hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
@@ -53,7 +48,6 @@ export interface Organization extends OrganizationSummary {
   access: Scope[];
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
-  allowBackgroundAgentDelegation: boolean;
   allowJoinRequests: boolean;
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
@@ -67,10 +61,14 @@ export interface Organization extends OrganizationSummary {
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
-  defaultCodeReviewTriggers: CodeReviewTriggers[];
+  defaultAutomatedRunStoppingPoint: AutofixStoppingPoint;
+  defaultCodeReviewTriggers: CodeReviewTrigger[];
+  defaultCodingAgent: string | null;
+  defaultCodingAgentIntegrationId: string | number | null;
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
+  features: string[];
   hasGranularReplayPermissions: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
@@ -102,6 +100,7 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   consoleSdkInviteQuota?: number;
+  dashboardsAsyncQueueParallelLimit?: number;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'
@@ -113,14 +112,15 @@ export interface Organization extends OrganizationSummary {
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   enableSeerCoding?: boolean;
-  enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
+  experiments?: Record<string, string>;
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;
       spansExtractionDate: number;
     };
   };
+  ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
 }
@@ -238,12 +238,14 @@ export interface MissingMember {
 }
 
 /**
- * Minimal organization shape used on shared issue views.
+ * Minimal organization shape from SharedProjectSerializer.
+ * Backend provides {slug, name}. Features is added client-side
+ * for compatibility with OrganizationContext.
  */
 export type SharedViewOrganization = {
   slug: string;
   features?: string[];
-  id?: string;
+  name?: string;
 };
 
 export type AuditLog = {
@@ -412,29 +414,4 @@ export enum SessionStatus {
   ERRORED = 'errored',
   UNHANDLED = 'unhandled',
   CRASHED = 'crashed',
-}
-
-interface IssuesMetricsTimeseries {
-  axis: 'new_issues_count' | 'resolved_issues_count' | 'new_issues_count_by_release';
-  groupBy: string[];
-  meta: {
-    interval: number;
-    isOther: boolean;
-    order: number;
-    valueType: string;
-    valueUnit: null | string;
-  };
-  values: Array<{
-    timestamp: number;
-    value: number;
-  }>;
-}
-
-export interface IssuesMetricsApiResponse {
-  meta: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
-  timeseries: IssuesMetricsTimeseries[];
 }

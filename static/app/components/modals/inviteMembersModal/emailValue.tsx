@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {
   MultiValueProps,
   OptionTypeBase,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import type {InviteStatus} from './types';
 
-function EmailValue<Option extends OptionTypeBase>({
+export function EmailValue<Option extends OptionTypeBase>({
   status,
   valueProps,
 }: {
@@ -43,7 +43,7 @@ function EmailValue<Option extends OptionTypeBase>({
 const EmailLabel = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;
 
@@ -53,5 +53,3 @@ const SendingIndicator = styled(LoadingIndicator)`
     border-width: 2px;
   }
 `;
-
-export default EmailValue;

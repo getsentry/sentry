@@ -1,12 +1,12 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -18,9 +18,9 @@ import {
   isTransactionProfileReference,
 } from 'sentry/utils/profiling/guards/profile';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
 
 interface AggregateFlamegraphSidePanelProps {
   scheduler: CanvasScheduler;
@@ -33,13 +33,10 @@ export function AggregateFlamegraphSidePanel({
   const {projects} = useProjects();
 
   const projectsLookupTable = useMemo(() => {
-    return projects.reduce(
-      (acc, project) => {
-        acc[project.id] = project;
-        return acc;
-      },
-      {} as Record<string, Project>
-    );
+    return projects.reduce<Record<string, Project>>((acc, project) => {
+      acc[project.id] = project;
+      return acc;
+    }, {});
   }, [projects]);
 
   const flamegraph = useFlamegraph();
@@ -66,7 +63,7 @@ export function AggregateFlamegraphSidePanel({
   const examples = useMemo(() => {
     const referenceNodes = frame ? [frame] : flamegraph.root.children;
 
-    const seen: Set<Profiling.ProfileReference> = new Set();
+    const seen = new Set<Profiling.ProfileReference>();
 
     const allExamples = [];
 
@@ -228,18 +225,18 @@ function getReferenceStart(reference: Profiling.ProfileReference): number {
 const AggregateFlamegraphSidePanelContainer = styled('div')`
   flex-direction: column;
   width: 360px;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const RowContainer = styled('div')`
-  border-radius: ${space(0.5)};
-  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   :nth-child(even) {
     background-color: ${p => p.theme.tokens.background.secondary};
   }
@@ -251,7 +248,7 @@ const RowContainer = styled('div')`
 const FunctionContainer = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const FunctionRowContainer = styled(RowContainer)`

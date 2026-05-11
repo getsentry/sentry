@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   StepType,
   type DocsParams,
@@ -59,11 +60,11 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
             code: <code />,
           }),
         },
-        getPythonInstallCodeBlock({packageName: 'sentry-sdk[django]'}),
+        getPythonInstallCodeBlock({additionalPackage: 'django'}),
       ],
     },
   ],

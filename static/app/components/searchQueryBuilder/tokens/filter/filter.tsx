@@ -5,9 +5,9 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {DateTime} from 'sentry/components/dateTime';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
@@ -22,6 +22,7 @@ import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
   formatFilterValue,
+  getFilterValueType,
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
@@ -50,7 +51,8 @@ interface FilterValueProps extends SearchQueryTokenProps {
 }
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
-  const {size} = useSearchQueryBuilder();
+  const {size, getFieldDefinition} = useSearchQueryBuilder();
+  const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -64,11 +66,12 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
       const items = token.value.items;
+      const multiValueJoiner = token.negated ? 'and' : 'or';
 
       if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue({token: items[0]!.value})}
+            {formatFilterValue({token: items[0]!.value, valueType})}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -80,10 +83,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {formatFilterValue({token: item.value!})}
+                {formatFilterValue({token: item.value!, valueType})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueOr> or </FilterValueOr>
+                <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
               ) : null}
             </Fragment>
           ))}
@@ -101,7 +104,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     default: {
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue({token: token.value})}
+          {formatFilterValue({token: token.value, valueType})}
         </FilterValueSingleTruncatedValue>
       );
     }
@@ -202,7 +205,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, invalidFilterKeys} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -226,12 +229,19 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
+  const isInvalidFilterKey = invalidFilterKeys.includes(getKeyName(token.key));
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
+      state={
+        tokenHasWarning || isInvalidFilterKey
+          ? 'warning'
+          : tokenHasError
+            ? 'invalid'
+            : 'valid'
+      }
       ref={ref}
       {...modifiedRowProps}
     >
@@ -242,6 +252,11 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         columnCount={4}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
+        warning={
+          isInvalidFilterKey
+            ? t('Invalid key. "%s" is not a supported search key.', getKeyName(token.key))
+            : undefined
+        }
       >
         {token.filter === FilterType.IS || token.filter === FilterType.HAS ? null : (
           <BaseGridCell {...gridCellProps}>
@@ -334,7 +349,7 @@ const DeleteButton = styled(UnstyledButton)`
   }
 `;
 
-const FilterValueOr = styled('span')`
+const FilterValueJoiner = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

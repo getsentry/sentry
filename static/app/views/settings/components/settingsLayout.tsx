@@ -1,35 +1,55 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-import SettingsBreadcrumb from './settingsBreadcrumb';
-import SettingsHeader from './settingsHeader';
-import SettingsSearch from './settingsSearch';
+import {SettingsBreadcrumb} from './settingsBreadcrumb';
+import {SettingsHeader} from './settingsHeader';
+import {SettingsSearch} from './settingsSearch';
 
 interface Props {
   children: React.ReactNode;
 }
 
-export default function SettingsLayout({children}: Props) {
+export function SettingsLayout({children}: Props) {
   const params = useParams();
   const routes = useRoutes();
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <SettingsColumn>
-      <SettingsHeader>
-        <Flex align="center" justify="between">
-          <StyledSettingsBreadcrumb params={params} routes={routes} />
-          <SettingsSearch />
-        </Flex>
-      </SettingsHeader>
+      {hasPageFrame ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+          </TopBar.Slot>
+          <TopBar.Slot name="actions">
+            <SettingsSearch />
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <SettingsHeader>
+          <Flex align="center" justify="between">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <SettingsSearch />
+          </Flex>
+        </SettingsHeader>
+      )}
 
-      <Flex flex="1" maxWidth="1440px">
-        <Content>{children}</Content>
+      <Flex flex="1" maxWidth={hasPageFrame ? undefined : '1440px'}>
+        <Container
+          flex="1"
+          padding={hasPageFrame ? {sm: 'xl', md: 'md xl'} : {xs: 'xl', md: '3xl'}}
+          minWidth="0"
+        >
+          {children}
+        </Container>
       </Flex>
     </SettingsColumn>
   );
@@ -47,26 +67,4 @@ const SettingsColumn = styled('div')`
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
   flex: 1;
-`;
-
-/**
- * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to be cut off because it has negative margin.
- * Will also cut off tooltips.
- */
-const Content = styled('div')`
-  flex: 1;
-  padding: ${space(4)};
-  min-width: 0; /* keep children from stretching container */
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
-  }
-
-  /**
-   * Layout.Page is not normally used in settings but <PermissionDenied /> uses
-   * it under the hood. This prevents double padding.
-   */
-  ${Layout.Page} {
-    padding: 0;
-  }
 `;

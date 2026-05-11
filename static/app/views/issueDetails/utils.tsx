@@ -1,26 +1,26 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {
   bulkUpdate,
-  useFetchIssueTag,
-  useFetchIssueTagValues,
+  fetchIssueTagApiOptions,
+  issueTagValuesApiOptions,
 } from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
   api: Client,
@@ -73,7 +73,7 @@ export function mergeAndSortTagValues(
       tagValueCollection[tagValue.value] = tagValue;
     }
   });
-  const allTagValues: TagValue[] = Object.values(tagValueCollection);
+  const allTagValues = Object.values(tagValueCollection);
   if (sort === 'count') {
     allTagValues.sort((a, b) => b.count - a.count);
   } else {
@@ -133,7 +133,7 @@ export function getSubscriptionReason(group: Group) {
       );
     }
 
-    if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+    if (reason && Object.hasOwn(SUBSCRIPTION_REASONS, reason)) {
       return SUBSCRIPTION_REASONS[reason as keyof typeof SUBSCRIPTION_REASONS];
     }
   }
@@ -237,7 +237,7 @@ function getGroupEventDetailsQueryData({
   return params;
 }
 
-export function getGroupEventQueryKey({
+export function groupEventApiOptions<T = Event>({
   orgSlug,
   groupId,
   eventId,
@@ -255,10 +255,15 @@ export function getGroupEventQueryKey({
   query?: string;
   start?: string;
   statsPeriod?: string;
-}): ApiQueryKey {
-  return [
-    `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
+}) {
+  return apiOptions.as<T>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
     {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        issueId: groupId,
+        eventId,
+      },
       query: getGroupEventDetailsQueryData({
         environments,
         query,
@@ -266,30 +271,9 @@ export function getGroupEventQueryKey({
         end,
         statsPeriod,
       }),
-    },
-  ];
-}
-
-export function useHasStreamlinedUI() {
-  const user = useUser();
-  const organization = useOrganization();
-  const userStreamlinedUIOption = user?.options?.prefersIssueDetailsStreamlinedUI;
-
-  // If the organzation option is set to true, the new UI is used.
-  if (organization.streamlineOnly) {
-    return true;
-  }
-
-  // If the enforce flag is set for the organization, ignore user preferences and enable the UI
-  if (
-    userStreamlinedUIOption !== false &&
-    organization.features.includes('issue-details-streamline-enforce')
-  ) {
-    return true;
-  }
-
-  // Apply the UI based on user preferences
-  return userStreamlinedUIOption ?? false;
+      staleTime: 30_000,
+    }
+  );
 }
 
 export function useIsSampleEvent(): boolean {
@@ -300,7 +284,7 @@ export function useIsSampleEvent(): boolean {
 
   const group = GroupStore.get(groupId);
 
-  const {data} = useGroupTagsReadable(
+  const {data} = useGroupTags(
     {
       groupId,
       environment: environments,
@@ -317,36 +301,35 @@ const DEFAULT_SORT: TagSort = 'count';
 export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
   const organization = useOrganization();
   const location = useLocation();
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
-  useFetchIssueTagValues(
-    {
-      orgSlug: organization.slug,
+  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+
+  useQuery({
+    ...issueTagValuesApiOptions({
+      organization,
       groupId,
       tagKey,
       sort,
-      cursor: location.query.tagDrawerCursor as string | undefined,
-    },
-    {enabled}
-  );
-  useFetchIssueTag(
-    {
-      orgSlug: organization.slug,
+      cursor: location.query.tagDrawerCursor,
+    }),
+    enabled,
+  });
+
+  useQuery({
+    ...fetchIssueTagApiOptions({
+      organization,
       groupId,
       tagKey,
-    },
-    {enabled}
-  );
+    }),
+    enabled,
+  });
 }
 
 export function getUserTagValue(tagValue: TagValue): {
   subtitle: string | null;
-  subtitleType: string | null;
-  title: string | null;
+  title: string;
 } {
   let title: string | null = null;
   let subtitle: string | null = null;
-  let subtitleType: string | null = null;
   if (defined(tagValue?.name)) {
     title = tagValue?.name;
   } else if (defined(tagValue?.email)) {
@@ -361,7 +344,6 @@ export function getUserTagValue(tagValue: TagValue): {
     title = title ? title : tagValue?.id;
     if (tagValue?.id && tagValue?.id !== 'None') {
       subtitle = tagValue?.id;
-      subtitleType = t('ID');
     }
   }
 
@@ -369,5 +351,6 @@ export function getUserTagValue(tagValue: TagValue): {
     subtitle = null;
   }
 
-  return {title, subtitle, subtitleType};
+  // Fall back to the raw tag value if no user-specific fields are available
+  return {title: title || tagValue.value, subtitle};
 }

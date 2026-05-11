@@ -1,14 +1,16 @@
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/core/button';
-import {Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -280,7 +282,7 @@ function OnDemandDiff({
   );
 }
 
-function CartDiff({
+export function CartDiff({
   activePlan,
   formData,
   subscription,
@@ -571,7 +573,7 @@ function CartDiff({
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
-          borderless
+          variant="transparent"
           size="zero"
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
         />
@@ -614,8 +616,6 @@ function CartDiff({
   );
 }
 
-export default CartDiff;
-
 const Change = styled('div')`
   display: flex;
   align-items: center;
@@ -639,7 +639,7 @@ const Added = styled(Change)<{prefersDarkMode?: boolean}>`
   span {
     background: ${p =>
       p.prefersDarkMode
-        ? Color(p.theme.colors.green500).lighten(0.08).alpha(0.5).string()
+        ? color(p.theme.colors.green500).lighten(0.08).alpha(0.5).string()
         : '#a8ecaa'};
   }
 `;

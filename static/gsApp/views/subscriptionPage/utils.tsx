@@ -2,11 +2,7 @@ import type {DataCategory, Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
-import {
-  type BillingMetricHistory,
-  type EventBucket,
-  type Subscription,
-} from 'getsentry/types';
+import {type Subscription} from 'getsentry/types';
 import {isPartOfReservedBudget} from 'getsentry/utils/dataCategory';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 
@@ -23,10 +19,8 @@ export function calculateCategorySpend(
   prepaidSpent: number;
   unitPrice: number;
 } {
-  const categoryInfo: BillingMetricHistory | undefined =
-    subscription.categories[category];
-  const slots: EventBucket[] | undefined =
-    subscription.planDetails.planCategories[category];
+  const categoryInfo = subscription.categories[category];
+  const slots = subscription.planDetails.planCategories[category];
   if (!defined(categoryInfo?.reserved) || !slots) {
     return {
       prepaidSpent: 0,

@@ -10,13 +10,10 @@ from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
-from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_URL
-from sentry.ingest.transaction_clusterer.datasource.redis import record_segment_name
-from sentry.ingest.transaction_clusterer.normalization import normalize_segment_name
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
 from sentry.issue_detection.performance_detection import detect_performance_problems
@@ -41,7 +38,6 @@ from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +46,7 @@ outcome_aggregator = OutcomeAggregator()
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool = False
+    unprocessed_spans: list[SpanEvent], skip_produce: bool = False, skip_enrichment: bool = False
 ) -> list[CompatibleSpan]:
     sample_rate = (
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
@@ -62,13 +58,22 @@ def process_segment(
             "sample_rate": sample_rate,
         },
     ):
-        return _process_segment(unprocessed_spans, skip_produce)
+        return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
 
 
 def _process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool
+    unprocessed_spans: list[SpanEvent], skip_produce: bool, skip_enrichment: bool
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
+
+    if skip_enrichment:
+        return [make_compatible(span) for span in unprocessed_spans]
+
+    if unprocessed_spans:
+        project_id = unprocessed_spans[0].get("project_id")
+        if project_id in options.get("spans.process-segments.skip-enrichment-projects"):
+            return [make_compatible(span) for span in unprocessed_spans]
+
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -94,7 +99,6 @@ def _process_segment(
     ):
         return []
 
-    safe_execute(_normalize_segment_name, segment_span, project)
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
@@ -174,29 +178,6 @@ def _enrich_spans(
     return segment, spans
 
 
-@metrics.wraps("spans.consumers.process_segments.normalize_segment_name")
-@sentry_sdk.trace
-def _normalize_segment_name(segment_span: CompatibleSpan, project: Project) -> None:
-    if not features.has(
-        "organizations:normalize_segment_names_in_span_enrichment", project.organization
-    ):
-        return
-
-    segment_name = attribute_value(
-        segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME
-    ) or segment_span.get("name")
-    if not segment_name:
-        return
-
-    source = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE)
-    unknown_if_parameterized = not source
-    known_to_be_unparameterized = source == TRANSACTION_SOURCE_URL
-    if unknown_if_parameterized or known_to_be_unparameterized:
-        normalize_segment_name(project, segment_span)
-
-    record_segment_name(project, segment_span)
-
-
 @metrics.wraps("spans.consumers.process_segments.add_segment_name")
 def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) -> None:
     segment_name = segment.get("name")
@@ -217,7 +198,8 @@ def _compute_breakdowns(
     segment: CompatibleSpan, spans: Sequence[CompatibleSpan], project: Project
 ) -> None:
     config = project.get_option("sentry:breakdowns")
-    breakdowns = compute_breakdowns(spans, config)
+    child_spans = [s for s in spans if not s.get("is_segment")]
+    breakdowns = compute_breakdowns(child_spans, config)
     segment["attributes"] = segment.get("attributes") or {}
     segment["attributes"].update(breakdowns)  # type: ignore[union-attr]
 

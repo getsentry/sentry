@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -20,6 +20,7 @@ from sentry.models.release_threshold.constants import (
 )
 from sentry.models.release_threshold.constants import TriggerType as ReleaseThresholdTriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class ReleaseThresholdPUTData(TypedDict):
@@ -49,7 +50,7 @@ class ReleaseThresholdPUTSerializer(serializers.Serializer[ReleaseThresholdPUTDa
         return TRIGGER_TYPE_STRING_TO_INT[trigger_type]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
     owner: ApiOwner = ApiOwner.ENTERPRISE
@@ -66,9 +67,12 @@ class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
+        validated_id = to_valid_int_id(
+            "release_threshold", kwargs["release_threshold"], raise_404=True
+        )
         try:
             parsed_kwargs["release_threshold"] = ReleaseThreshold.objects.get(
-                id=kwargs["release_threshold"],
+                id=validated_id,
                 project=parsed_kwargs["project"],
             )
         except ReleaseThreshold.DoesNotExist:

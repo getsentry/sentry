@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AppIconProps {
   appName: string;
@@ -13,7 +13,7 @@ export function AppIcon({appName, appIconId, projectId}: AppIconProps) {
   const organization = useOrganization();
   const [imageError, setImageError] = useState(false);
 
-  let iconUrl = undefined;
+  let iconUrl: string | undefined;
   if (appIconId && projectId) {
     iconUrl = `/api/0/projects/${organization.slug}/${projectId}/files/images/${appIconId}/`;
   }

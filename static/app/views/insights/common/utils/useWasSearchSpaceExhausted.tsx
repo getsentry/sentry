@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 interface Props {
   isLoading: boolean;
@@ -16,7 +16,7 @@ interface Props {
  * entire data set at some point and a cache is full.
  */
 export function useWasSearchSpaceExhausted({query, isLoading, pageLinks}: Props) {
-  const [wasSearchSpaceExhausted, setWasSearchSpaceExhausted] = useState<boolean>(false);
+  const [wasSearchSpaceExhausted, setWasSearchSpaceExhausted] = useState(false);
 
   useEffect(() => {
     if (query === '' && !isLoading) {

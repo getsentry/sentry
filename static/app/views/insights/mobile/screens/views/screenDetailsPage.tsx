@@ -2,26 +2,23 @@ import type React from 'react';
 import {useState} from 'react';
 import omit from 'lodash/omit';
 
-import {
-  FeatureBadge,
-  type FeatureBadgeProps,
-} from 'sentry/components/core/badge/featureBadge';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {ScreenSummaryContentPage as AppStartPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
-import {ScreenLoadSpansContent as ScreenLoadPage} from 'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage';
-import {ScreenSummaryContent as UiPage} from 'sentry/views/insights/mobile/ui/views/screenSummaryPage';
+import {PlatformizedAppStartsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedAppStartsOverview';
+import {PlatformizedScreenLoadsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenLoadsOverview';
+import {PlatformizedScreenRenderingOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenRenderingOverview';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -45,7 +42,6 @@ function ScreenDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation<Query>();
   const organization = useOrganization();
-  const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const {transaction: transactionName} = location.query;
   const moduleName = ModuleName.MOBILE_VITALS;
@@ -54,24 +50,18 @@ function ScreenDetailsPage() {
     {
       key: 'app_start',
       label: t('App Start'),
-      content: () => {
-        return <AppStartPage key="app_start" />;
-      },
+      content: () => <PlatformizedAppStartsOverview key="app_start" />,
     },
     {
       key: 'screen_load',
       label: t('Screen Load'),
-      content: () => {
-        return <ScreenLoadPage key="screen_load" />;
-      },
+      content: () => <PlatformizedScreenLoadsOverview key="screen_load" />,
     },
     {
       key: 'screen_rendering',
       label: t('Screen Rendering'),
       featureBadge: 'experimental',
-      content: () => {
-        return <UiPage key="screen_rendering" />;
-      },
+      content: () => <PlatformizedScreenRenderingOverview key="screen_rendering" />,
     },
   ];
 
@@ -113,14 +103,13 @@ function ScreenDetailsPage() {
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
-      <Layout.Page>
+      <Stack flex={1}>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
             <MobileHeader
               module={moduleName}
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
-              headerActions={isProjectCrossPlatform && <PlatformSelector />}
               headerTitle={transactionName}
               breadcrumbs={[
                 {
@@ -140,7 +129,7 @@ function ScreenDetailsPage() {
             </Layout.Body>
           </Tabs>
         </PageAlertProvider>
-      </Layout.Page>
+      </Stack>
     </PageFiltersContainer>
   );
 }

@@ -1,7 +1,7 @@
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Project} from 'sentry/types/project';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 export function useOnboardingProject({
   property,
@@ -21,7 +21,7 @@ export function useOnboardingProject({
     pageFilters.selection.projects.length === 0 ||
     pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS
   ) {
-    const filtered = projects.filter(p => p[projectOnboardingProperty] === false);
+    const filtered = projects.filter(p => !p[projectOnboardingProperty]);
     if (filtered.length === projects.length) {
       return filtered[0];
     }
@@ -31,7 +31,7 @@ export function useOnboardingProject({
   const filtered = projects.filter(
     p =>
       pageFilters.selection.projects.includes(parseInt(p.id, 10)) &&
-      p[projectOnboardingProperty] === false
+      !p[projectOnboardingProperty]
   );
   if (filtered.length === pageFilters.selection.projects.length) {
     return filtered[0];

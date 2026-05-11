@@ -228,6 +228,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="sentryWrapped",
                 ),
+                # The fetch instrumentation wraps globalThis.fetch as a pass-through.
+                # When a user's fetch call fails (e.g., "Failed to fetch" network errors),
+                # the SDK wrapper frame appears in the stack but is not the cause.
+                # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
+                FunctionAndModulePattern(
+                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    function_pattern="fetch",
+                ),
             },
         )
         configs.append(react_native_config)
@@ -316,6 +324,27 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="io.sentry.graphql.SentryGraphqlInstrumentation",
                     function_pattern="instrumentExecutionResultComplete",
+                ),
+                # WindowCallbackAdapter just forwards the calls to the next callback in the chain.
+                # It does not cause crashes/ANRs itself.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.core.internal.gestures.WindowCallbackAdapter",
+                    function_pattern="*",
+                ),
+                # All functions that we delegate to are inside lambdas, so we ignore them.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteStatement$*",
+                    function_pattern="invoke",
+                ),
+                # Our wrapper class does not override beginTransaction, so we ignore it.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+                    function_pattern="beginTransaction*",
+                ),
+                # Our wrapper class does not override any move* methods, so we ignore it.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentryCrossProcessCursor",
+                    function_pattern="move*",
                 ),
             },
         )

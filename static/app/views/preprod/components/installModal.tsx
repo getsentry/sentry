@@ -12,10 +12,10 @@ import {InstallDetailsContent} from 'sentry/views/preprod/components/installDeta
 interface InstallModalProps {
   artifactId: string;
   closeModal: () => void;
-  projectId: string;
+  projectSlug: string;
 }
 
-function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
+function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) {
   return (
     <Flex direction="column">
       <Grid display="grid" columns="1fr auto 1fr" align="center">
@@ -26,7 +26,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
         <Container justifySelf="end">
           <Button
             onClick={closeModal}
-            priority="transparent"
+            variant="transparent"
             icon={<IconClose />}
             size="sm"
             aria-label={t('Close')}
@@ -34,19 +34,23 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
         </Container>
       </Grid>
       <Container padding="xl">
-        <InstallDetailsContent projectId={projectId} artifactId={artifactId} size="sm" />
+        <InstallDetailsContent
+          artifactId={artifactId}
+          size="sm"
+          projectSlug={projectSlug}
+        />
       </Container>
     </Flex>
   );
 }
 
-export function openInstallModal(projectId: string, artifactId: string) {
+export function openInstallModal(artifactId: string, projectSlug: string) {
   openModal(
     ({closeModal}) => (
       <InstallModal
-        projectId={projectId}
         artifactId={artifactId}
         closeModal={closeModal}
+        projectSlug={projectSlug}
       />
     ),
     {

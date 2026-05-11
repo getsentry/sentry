@@ -8,7 +8,10 @@ from ..constants import METRIC_PREFIX
 
 
 def create_repository(
-    repo_name: str, org_integration: RpcOrganizationIntegration, tags: Mapping[str, str | bool]
+    repo_name: str,
+    org_integration: RpcOrganizationIntegration,
+    tags: Mapping[str, str | bool],
+    external_id: str,
 ) -> Repository | None:
     organization_id = org_integration.organization_id
     created = False
@@ -23,6 +26,9 @@ def create_repository(
                 name=repo_name,
                 organization_id=organization_id,
                 integration_id=org_integration.integration_id,
+                defaults={
+                    "external_id": external_id,
+                },
             )
         if created or tags["dry_run"]:
             metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)

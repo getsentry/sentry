@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const instrumentationConfig: IssueCategoryConfigMapping = {
+export const instrumentationConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     usesIssuePlatform: true,
     evidence: {title: t('Details')},
@@ -20,6 +20,7 @@ const instrumentationConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
       graph: {enabled: true, type: 'discover-events'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },
@@ -39,5 +40,3 @@ const instrumentationConfig: IssueCategoryConfigMapping = {
     instrumentationFixSection: {enabled: true},
   },
 };
-
-export default instrumentationConfig;

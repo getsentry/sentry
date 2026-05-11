@@ -2,7 +2,7 @@ import {Item as _Item} from '@react-stately/collections';
 import type {ItemProps} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import type {TooltipProps} from 'sentry/components/core/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
 
 export interface TabListItemProps extends ItemProps<any> {
   key: string | number;

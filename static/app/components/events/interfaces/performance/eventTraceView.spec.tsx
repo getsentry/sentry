@@ -13,6 +13,10 @@ import {
 
 import {EventTraceView} from './eventTraceView';
 
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
+
 describe('EventTraceView', () => {
   const traceId = 'this-is-a-good-trace-id';
   const {organization} = initializeData({
@@ -42,7 +46,7 @@ describe('EventTraceView', () => {
   it('renders a trace', async () => {
     const size = 20;
     MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
+      url: '/customers/org-slug/',
       method: 'GET',
       body: {},
     });
@@ -54,7 +58,7 @@ describe('EventTraceView', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
-        transaction_child_count_map: new Array(size)
+        transaction_child_count_map: Array.from({length: size})
           .fill(0)
           .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
         span_count: 0,
@@ -90,7 +94,7 @@ describe('EventTraceView', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-facets/`,
+      url: '/organizations/org-slug/events-facets/',
       method: 'GET',
       asyncDelay: 1,
       body: {},
@@ -117,7 +121,7 @@ describe('EventTraceView', () => {
 
   it('does not render the trace preview if it has no transactions', async () => {
     MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
+      url: '/customers/org-slug/',
       method: 'GET',
       body: {},
     });

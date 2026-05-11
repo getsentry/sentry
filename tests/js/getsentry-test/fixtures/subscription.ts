@@ -1,5 +1,8 @@
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {
+  PlanDetailsLookupFixture,
+  type PlanIds,
+} from 'getsentry-test/fixtures/planDetailsLookup';
 import {
   DynamicSamplingReservedBudgetFixture,
   ReservedBudgetMetricHistoryFixture,
@@ -22,7 +25,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
 
   // Use planDetails from params if provided, otherwise look it up
   const planDetails = (planData.planDetails ||
-    PlanDetailsLookupFixture(planData.plan)) as Plan;
+    PlanDetailsLookupFixture(planData.plan as PlanIds)) as Plan;
 
   const hasPerformance = planDetails?.categories?.includes(DataCategory.TRANSACTIONS);
   const hasReplays = planDetails?.categories?.includes(DataCategory.REPLAYS);
@@ -38,6 +41,10 @@ export function SubscriptionFixture(props: Props): TSubscription {
   );
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
   const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
+  const hasSizeAnalyses = planDetails?.categories?.includes(DataCategory.SIZE_ANALYSIS);
+  const hasInstallableBuilds = planDetails?.categories?.includes(
+    DataCategory.INSTALLABLE_BUILD
+  );
   const hasLegacySeer = AddOnCategory.LEGACY_SEER in planDetails.addOnCategories;
   const hasSeer = AddOnCategory.SEER in planDetails.addOnCategories;
 
@@ -242,6 +249,22 @@ export function SubscriptionFixture(props: Props): TSubscription {
           order: 11,
         }),
       }),
+      ...(hasSizeAnalyses && {
+        sizeAnalyses: MetricHistoryFixture({
+          category: DataCategory.SIZE_ANALYSIS,
+          reserved: safeCategories.sizeAnalyses?.[0]?.events || 100,
+          prepaid: safeCategories.sizeAnalyses?.[0]?.events || 100,
+          order: 17,
+        }),
+      }),
+      ...(hasInstallableBuilds && {
+        installableBuilds: MetricHistoryFixture({
+          category: DataCategory.INSTALLABLE_BUILD,
+          reserved: safeCategories.installableBuilds?.[0]?.events || 0,
+          prepaid: safeCategories.installableBuilds?.[0]?.events || 0,
+          order: 18,
+        }),
+      }),
       ...(hasLegacySeer && {
         seerAutofix: MetricHistoryFixture({
           category: DataCategory.SEER_AUTOFIX,
@@ -317,7 +340,7 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
 
 export function InvoicedSubscriptionFixture(props: Props): TSubscription {
   const planData = {plan: 'am2_business_ent_auf', planTier: 'am2', ...props};
-  const planDetails = PlanDetailsLookupFixture(planData.plan);
+  const planDetails = PlanDetailsLookupFixture(planData.plan as PlanIds);
   const subscription = SubscriptionFixture({
     ...props,
     planDetails,

@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import type AutoComplete from 'sentry/components/autoComplete';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {AutoComplete} from 'sentry/components/autoComplete';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
 import type {Result} from './sources/types';
-import SearchResult from './searchResult';
-import SearchResultWrapper from './searchResultWrapper';
+import {SearchResult} from './searchResult';
+import {SearchResultWrapper} from './searchResultWrapper';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
 
@@ -44,7 +44,7 @@ function defaultItemRenderer({item, highlighted, itemProps, matches}: RenderItem
   );
 }
 
-function List({
+export function List({
   dropdownClassName,
   allLoaded,
   results,
@@ -134,13 +134,11 @@ const ResultRow = memo(
   }
 );
 
-export default List;
-
 const DropdownBox = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.shadow.high};
   position: absolute;
   top: 36px;
   right: 0;

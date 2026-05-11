@@ -26,13 +26,13 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
     IntegrationResourceNotFoundError,
 )
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 
 
-@region_silo_function
+@cell_silo_function
 def create_link(
     integration: RpcIntegration,
     installation: IntegrationInstallation,
@@ -50,9 +50,9 @@ def create_link(
         - metadata: Optional Object. Can contain `display_name`.
     """
 
-    assert isinstance(
-        installation, IssueBasicIntegration
-    ), "Installation must be an IssueBasicIntegration to create a link"
+    assert isinstance(installation, IssueBasicIntegration), (
+        "Installation must be an IssueBasicIntegration to create a link"
+    )
     external_issue_key = installation.make_external_key(response)
 
     external_issue = ExternalIssue.objects.create(
@@ -98,7 +98,9 @@ def build_description(
     Format the description of the ticket/work item
     """
     project = event.group.project
-    rule_url = f"/organizations/{project.organization.slug}/alerts/rules/{project.slug}/{rule_id}/"
+    rule_url = (
+        f"/organizations/{project.organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/"
+    )
 
     description: str = installation.get_group_description(event.group, event) + generate_footer(
         rule_url
@@ -107,8 +109,6 @@ def build_description(
 
 
 def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     """Create an issue for a given event"""
     organization = event.group.project.organization
 
@@ -120,11 +120,9 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         generate_footer = future.kwargs.get("generate_footer")
 
         # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
-        action_id = None
-        if should_fire_workflow_actions(organization, event.group.type):
-            # In the Notification Action, we store the rule_id in the action_id field
-            action_id = rule_id
-            rule_id = data.get("legacy_rule_id")
+        # In the Notification Action, we store the rule_id in the action_id field
+        action_id = rule_id
+        rule_id = data.get("legacy_rule_id")
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
@@ -138,9 +136,9 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         installation = integration.get_installation(organization.id)
 
-        assert isinstance(
-            installation, IssueBasicIntegration
-        ), "Installation must be an IssueBasicIntegration to create a ticket"
+        assert isinstance(installation, IssueBasicIntegration), (
+            "Installation must be an IssueBasicIntegration to create a ticket"
+        )
         data["title"] = installation.get_group_title(event.group, event)
 
         workflow_id = data.get("workflow_id")

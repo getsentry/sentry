@@ -1,28 +1,30 @@
 import styled from '@emotion/styled';
 
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Relay} from 'sentry/types/relay';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 type Props = Relay & {
   disabled: boolean;
   onDelete: (publicKey: Relay['publicKey']) => () => void;
   onEdit: (publicKey: Relay['publicKey']) => () => void;
+  extraAction?: React.ReactNode;
 };
 
-function CardHeader({
+export function CardHeader({
   publicKey,
   name,
   description,
   created,
   disabled,
+  extraAction,
   onEdit,
   onDelete,
 }: Props) {
@@ -34,7 +36,9 @@ function CardHeader({
       icon={<IconDelete />}
       aria-label={t('Delete Key')}
       disabled={disabled}
-      title={disabled ? t('You do not have permission to delete keys') : undefined}
+      tooltipProps={{
+        title: disabled ? t('You do not have permission to delete keys') : undefined,
+      }}
     />
   );
   return (
@@ -60,7 +64,9 @@ function CardHeader({
           icon={<IconEdit />}
           aria-label={t('Edit Key')}
           disabled={disabled}
-          title={disabled ? t('You do not have permission to edit keys') : undefined}
+          tooltipProps={{
+            title: disabled ? t('You do not have permission to edit keys') : undefined,
+          }}
         />
         {disabled ? (
           deleteButton
@@ -75,18 +81,17 @@ function CardHeader({
             {deleteButton}
           </ConfirmDelete>
         )}
+        {extraAction}
       </StyledButtonBar>
     </Header>
   );
 }
 
-export default CardHeader;
-
 const KeyName = styled('div')`
   grid-row: 1/2;
   grid-template-columns: repeat(2, max-content);
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
@@ -96,7 +101,9 @@ const DateCreated = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-row: 1/3;
   }
@@ -104,8 +111,8 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const Header = styled('div')`
   display: grid;
-  grid-row-gap: ${space(0.25)};
-  margin-bottom: ${space(1)};
+  grid-row-gap: ${p => p.theme.space['2xs']};
+  margin-bottom: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr max-content;

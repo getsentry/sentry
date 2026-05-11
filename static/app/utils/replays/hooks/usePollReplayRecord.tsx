@@ -1,6 +1,7 @@
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type Props = {
   enabled: boolean;
@@ -10,14 +11,21 @@ type Props = {
 };
 
 // A react hook to poll for replay record on the backend every POLL_INTERVAL
-function usePollReplayRecord({
+export function usePollReplayRecord({
   enabled,
   orgSlug,
   replayId,
   pollInterval = 30_000, // Default to every 30 seconds
 }: Props): ReplayRecord | undefined {
-  // we use {} to avoid colliding with the queryKey used by useReplayData
-  const queryKey: ApiQueryKey = [`/organizations/${orgSlug}/replays/${replayId}/`, {}];
+  const queryKey: ApiQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
+      path: {organizationIdOrSlug: orgSlug, replayId},
+    }),
+    {
+      // we use { isPolling: true } to avoid colliding with the queryKey used by useReplayData
+      query: {isPolling: true},
+    },
+  ];
 
   const {data} = useApiQuery<{data: ReplayRecord}>(queryKey, {
     refetchInterval: pollInterval,
@@ -28,5 +36,3 @@ function usePollReplayRecord({
 
   return data?.data ? mapResponseToReplayRecord(data.data) : undefined;
 }
-
-export default usePollReplayRecord;

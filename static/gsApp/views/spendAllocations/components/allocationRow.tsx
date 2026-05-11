@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -20,7 +21,7 @@ type AllocationRowProps = {
   openForm: (e: React.MouseEvent) => void;
 };
 
-function AllocationRow({
+export function AllocationRow({
   allocation,
   deleteAction,
   metricUnit,
@@ -125,7 +126,7 @@ function AllocationRow({
             icon={<IconDelete />}
             size="xs"
             onClick={deleteAction}
-            priority="danger"
+            variant="danger"
             style={deleteHovered ? {color: theme.colors.red500} : {}}
             onMouseEnter={() => setDeleteHovered(true)}
             onMouseLeave={() => setDeleteHovered(false)}
@@ -136,5 +137,3 @@ function AllocationRow({
     </tr>
   );
 }
-
-export default AllocationRow;

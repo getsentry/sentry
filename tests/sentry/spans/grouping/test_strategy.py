@@ -414,8 +414,9 @@ def test_basic_span_grouping_strategy(spans: list[Span], expected: Mapping[str, 
                 "b" * 16: ["GET", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
                 "c" * 16: ["GET", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
                 "d" * 16: ["POST", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
-                "e"
-                * 16: ["GET https://sentry.io/api/0/organization/sentry/projects/?all_projects=0"],
+                "e" * 16: [
+                    "GET https://sentry.io/api/0/organization/sentry/projects/?all_projects=0"
+                ],
                 "f" * 16: [""],
             },
         ),

@@ -7,6 +7,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
+    BaseDetectorHandler,
     DataPacketEvaluationType,
     DetectorHandler,
     DetectorOccurrence,
@@ -27,7 +28,7 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
 def build_mock_occurrence_and_event(
-    handler: DetectorHandler[Any, Any],
+    handler: DetectorHandler[Any],
     value: DataPacketEvaluationType,
     priority: PriorityLevel,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -96,10 +97,9 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type_id = 1
             slug = "no_handler"
             description = "no handler"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC_ALERT.value
+            category = GroupCategory.METRIC.value
 
-        class MockDetectorHandler(DetectorHandler[dict[str, Any], int]):
+        class MockDetectorHandler(BaseDetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
@@ -123,7 +123,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("dedupe", 0)
 
-        class MockDetectorWithUpdateHandler(DetectorHandler[dict[str, Any], int]):
+        class MockDetectorWithUpdateHandler(BaseDetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
@@ -162,24 +162,21 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type_id = 2
             slug = "handler"
             description = "handler"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
 
         class HandlerStateGroupType(GroupType):
             type_id = 3
             slug = "handler_with_state"
             description = "handler with state"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorStateHandler)
 
         class HandlerUpdateGroupType(GroupType):
             type_id = 4
             slug = "handler_update"
             description = "handler update"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
 
         self.no_handler_type = NoHandlerGroupType
@@ -281,7 +278,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             event_data = (
                 detector_occurrence.event_data.copy() if detector_occurrence.event_data else {}
             )
-        event_data["environment"] = detector.config.get("environment")
+        event_data.setdefault("environment", detector.config.get("environment"))
         event_data["timestamp"] = issue_occurrence.detection_time
         event_data["project_id"] = detector.project_id
         event_data["event_id"] = occurrence_id

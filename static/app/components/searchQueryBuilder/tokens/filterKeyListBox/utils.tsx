@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {getEscapedKey} from '@sentry/scraps/compactSelect';
+
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
-  AskSeerConsentItem,
   AskSeerItem,
   FilterValueItem,
   KeyItem,
@@ -106,15 +106,17 @@ export function createSection(
 export function createItem(
   tag: Tag,
   fieldDefinition: FieldDefinition | null,
-  section?: FilterKeySection
+  section?: FilterKeySection,
+  highlightQuery?: string
 ): KeyItem {
   const description = fieldDefinition?.desc;
+  const label = getKeyLabel(tag, fieldDefinition);
 
   const key = section ? `${section.value}:${tag.key}` : tag.key;
 
   return {
     key: getEscapedKey(key),
-    label: getKeyLabel(tag, fieldDefinition),
+    label: highlightQuery ? <HighlightText text={label} query={highlightQuery} /> : label,
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,
@@ -264,17 +266,6 @@ export function createAskSeerItem(): AskSeerItem {
     textValue: 'Ask AI to build your query',
     type: 'ask-seer' as const,
     label: t('Ask AI to build your query'),
-    hideCheck: true,
-  };
-}
-
-export function createAskSeerConsentItem(): AskSeerConsentItem {
-  return {
-    key: getEscapedKey(ASK_SEER_CONSENT_ITEM_KEY),
-    value: ASK_SEER_CONSENT_ITEM_KEY,
-    textValue: 'Enable Gen AI',
-    type: 'ask-seer-consent' as const,
-    label: t('Enable Gen AI'),
     hideCheck: true,
   };
 }

@@ -1,7 +1,8 @@
 import {useMemo, type ReactNode} from 'react';
 
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {t} from 'sentry/locale';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import type {MaxPickableDaysOptions} from 'sentry/utils/useMaxPickableDays';
@@ -44,7 +45,7 @@ export function useDatePageFilterProps({
     );
 
     const isOptionDisabled = (option: SelectOptionWithKey<string>): boolean => {
-      return disabledOptions.hasOwnProperty(option.value);
+      return Object.hasOwn(disabledOptions, option.value);
     };
 
     const menuFooter = isEmptyObject(disabledOptions) ? null : (upsellFooter ?? null);

@@ -44,7 +44,7 @@ class OpenIDToken:
     ):
         self.shared_secret = shared_secret
         self.aud = aud
-        self.sub = sub
+        self.sub = str(sub)  # Convert to string per OpenID Connect spec
         self.iss = iss
         self.nonce = nonce
         self.exp = exp if exp else default_expiration()

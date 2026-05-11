@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {
@@ -23,10 +23,12 @@ export function LogsPageDataProvider({
   children,
   allowHighFidelity,
   disabled,
+  staleTime,
 }: {
   children: React.ReactNode;
   allowHighFidelity?: boolean;
   disabled?: boolean;
+  staleTime?: number;
 }) {
   const organization = useOrganization();
   const feature = isLogsEnabled(organization);
@@ -34,6 +36,7 @@ export function LogsPageDataProvider({
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
     disabled: disabled || !feature,
     highFidelity: allowHighFidelity && highFidelity,
+    staleTime,
   });
   const value = useMemo(() => {
     return {

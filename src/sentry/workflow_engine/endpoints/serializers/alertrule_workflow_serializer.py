@@ -14,7 +14,7 @@ class ActionHandlerSerializerResponse(TypedDict):
 @register(AlertRuleWorkflow)
 class AlertRuleWorkflowSerializer(Serializer):
     def serialize(
-        self, obj: AlertRuleWorkflow, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: AlertRuleWorkflow, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> ActionHandlerSerializerResponse:
         return {
             "ruleId": str(obj.rule_id) if obj.rule_id else None,

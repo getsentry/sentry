@@ -2,9 +2,10 @@ import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {Alert} from '@sentry/scraps/alert';
+
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {useRendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
 import type {
   BlockRenderers,

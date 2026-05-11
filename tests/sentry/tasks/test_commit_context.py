@@ -12,6 +12,7 @@ from sentry.analytics.events.integration_commit_context_all_frames import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
@@ -24,7 +25,6 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
@@ -835,7 +835,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         mock_process_suspect_commits.assert_not_called()
 
-    @patch("sentry.integrations.utils.commit_context.logger.exception")
+    @patch("sentry.integrations.utils.commit_context.logger.warning")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
@@ -845,7 +845,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         self,
         mock_get_commit_context,
         mock_process_suspect_commits,
-        mock_logger_exception,
+        mock_logger_warning,
     ):
         """
         A failure case where the integration returned an API error.
@@ -866,7 +866,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         mock_process_suspect_commits.assert_not_called()
 
-        mock_logger_exception.assert_any_call(
+        mock_logger_warning.assert_any_call(
             "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
             extra={
                 "organization": self.organization.id,
@@ -1024,9 +1024,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 commitAuthorEmail="admin@localhost",
             ),
         )
-        OrganizationOption.objects.set_value(
-            organization=self.project.organization, key="sentry:github_pr_bot", value=True
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            oi = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id,
+                organization_id=self.project.organization.id,
+            )
+            oi.config = {"pr_comments": True}
+            oi.save(update_fields=["config"])
 
     def add_responses(self):
         responses.add(
@@ -1054,14 +1058,16 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             )
             assert not mock_comment_workflow.called
 
-    def test_gh_comment_org_option(
+    def test_gh_comment_oi_config_disabled_no_comment(
         self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
     ) -> None:
-        """No comments on org with organization option disabled"""
+        """No comments when the install's pr_comments config is disabled."""
         mock_get_commit_context.return_value = [self.blame]
-        OrganizationOption.objects.set_value(
-            organization=self.project.organization, key="sentry:github_pr_bot", value=False
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id,
+                organization_id=self.project.organization.id,
+            ).update(config={"pr_comments": False})
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)

@@ -1,13 +1,15 @@
 import {Fragment} from 'react';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type OptionControlProps = {
   onChange: (selectedOption: SelectOption<string>) => void;
@@ -28,11 +30,15 @@ type PlatformOptionsControlProps = {
 };
 
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
+  const selectedItem = option.items.find(v => v.value === value) ?? option.items[0]!;
   return (
     <CompactSelect
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>
-          {option.items.find(v => v.value === value)?.label ?? option.items[0]!.label}
+          <Flex align="center" gap="sm">
+            {selectedItem.leadingItems}
+            {selectedItem.label}
+          </Flex>
         </OverlayTrigger.Button>
       )}
       value={value}
@@ -48,17 +54,21 @@ export function PlatformOptionDropdown({
   platformOptions,
   disabled,
 }: PlatformOptionsControlProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
-    router.replace({
-      ...router.location,
-      query: {
-        ...router.location.query,
-        [key]: value,
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          [key]: value,
+        },
       },
-    });
+      {replace: true}
+    );
   };
 
   if (Object.keys(platformOptions).length === 0) {

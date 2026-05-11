@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -337,7 +337,10 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         error_group_ids = category_group_ids[GroupCategory.ERROR]
         assert self.event.group_id in error_group_ids
         assert self.event2.group_id in error_group_ids
-        assert self.perf_event.group_id in category_group_ids[GroupCategory.PERFORMANCE]
+        assert (
+            self.perf_event.group_id
+            in category_group_ids[GroupCategory(PerformanceNPlusOneGroupType.category)]
+        )
 
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
@@ -462,7 +465,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
         assert batch_query == {self.event3.group_id: percent_of_sessions}
 
     def test_batch_query_percent_decimal(self) -> None:
-        self._make_sessions(600, self.environment.name)
+        self._make_sessions(60, self.environment.name)
 
         assert self.event.group_id
         groups = list(
@@ -480,7 +483,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             end=self.end,
             environment_id=self.environment.id,
         )
-        assert round(batch_query[self.event.group_id], 4) == 0.17
+        assert round(batch_query[self.event.group_id], 4) == 1.67
 
     @patch(
         "sentry.workflow_engine.handlers.condition.event_frequency_query_handlers.MIN_SESSIONS_TO_FIRE",

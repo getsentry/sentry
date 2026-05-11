@@ -13,6 +13,7 @@ from sentry.issue_detection.performance_detection import (
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import PROJECT_ID, create_span, get_event
@@ -47,7 +48,9 @@ class UncompressedAssetsDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = UncompressedAssetSpanDetector(self._settings, event)
+        detector = UncompressedAssetSpanDetector(
+            self._settings[UncompressedAssetSpanDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -400,14 +403,20 @@ class UncompressedAssetsDetectorTest(TestCase):
                 type=PerformanceUncompressedAssetsGroupType,
                 parent_span_ids=[],
                 cause_span_ids=[],
-                offender_span_ids=["b66a5642da1edb52"],
+                offender_span_ids=["c77b6753eb2fec63"],
                 evidence_data={
                     "op": "resource.script",
                     "parent_span_ids": [],
                     "cause_span_ids": [],
-                    "offender_span_ids": ["b66a5642da1edb52"],
+                    "offender_span_ids": ["c77b6753eb2fec63"],
                 },
-                evidence_display=[],
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="resource.script - https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
+                        important=True,
+                    ),
+                ],
             ),
         ]
 
@@ -416,8 +425,10 @@ class UncompressedAssetsDetectorTest(TestCase):
         event = get_event("uncompressed-assets/uncompressed-script-asset")
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
-        detector = UncompressedAssetSpanDetector(settings, event)
+        settings = get_detection_settings(project)
+        detector = UncompressedAssetSpanDetector(
+            settings[UncompressedAssetSpanDetector.settings_key], event
+        )
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -427,7 +438,9 @@ class UncompressedAssetsDetectorTest(TestCase):
             value={"uncompressed_assets_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
-        detector = UncompressedAssetSpanDetector(settings, event)
+        settings = get_detection_settings(project)
+        detector = UncompressedAssetSpanDetector(
+            settings[UncompressedAssetSpanDetector.settings_key], event
+        )
 
         assert not detector.is_creation_allowed_for_project(project)

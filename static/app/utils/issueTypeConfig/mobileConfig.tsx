@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const mobileConfig: IssueCategoryConfigMapping = {
+export const mobileConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -139,5 +139,3 @@ const mobileConfig: IssueCategoryConfigMapping = {
     },
   },
 };
-
-export default mobileConfig;

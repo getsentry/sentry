@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 

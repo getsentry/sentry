@@ -19,7 +19,7 @@ export function makeTrace(
     transactions: [],
     orphan_errors: [],
     ...overrides,
-  } as TraceSplitResults<TraceTree.Transaction>;
+  };
 }
 
 export function makeEAPTrace(overrides: Partial<TraceTree.EAPTrace>): TraceTree.EAPTrace {
@@ -110,7 +110,7 @@ export function makeEAPError(
     issue_id: 1,
     transaction: 'test error transaction',
     ...overrides,
-  } as TraceTree.EAPError;
+  };
 }
 
 export function makeEAPOccurrence(
@@ -122,13 +122,13 @@ export function makeEAPOccurrence(
     start_timestamp: 0,
     project_id: 1,
     project_slug: 'project_slug',
-    transaction: 'occurence.transaction',
+    transaction: 'occurrence.transaction',
     event_type: 'occurrence',
     issue_id: 1,
+    issue_type: 0,
     level: 'info',
     culprit: 'code',
     short_id: 'short_id',
-    type: 0,
     ...overrides,
   };
 }
@@ -258,14 +258,14 @@ export function makeUptimeCheckTiming(
     end_timestamp: 0.05,
     duration: 0.05,
     ...overrides,
-  } as TraceTree.UptimeCheckTiming;
+  };
 }
 
 export function mockSpansResponse(
   spans: TraceTree.Span[],
   project_slug: string,
   event_id: string
-): jest.Mock<any, any> {
+): jest.Mock {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore MockApiClient is not defined in the global scope
   return MockApiClient.addMockResponse({

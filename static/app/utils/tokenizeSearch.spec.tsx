@@ -205,7 +205,7 @@ describe('utils/tokenizeSearch', () => {
       },
       {
         name: 'should handle contains filter',
-        string: 'message:\uf00dContains\uf00d"test value"',
+        string: 'message:\uF00DContains\uF00D"test value"',
         object: {
           tokens: [
             {type: TokenType.CONTAINS_FILTER, key: 'message', value: 'test value'},
@@ -214,7 +214,7 @@ describe('utils/tokenizeSearch', () => {
       },
       {
         name: 'should handle starts with filter',
-        string: 'message:\uf00dStartsWith\uf00d"test value"',
+        string: 'message:\uF00DStartsWith\uF00D"test value"',
         object: {
           tokens: [
             {type: TokenType.STARTS_WITH_FILTER, key: 'message', value: 'test value'},
@@ -223,7 +223,7 @@ describe('utils/tokenizeSearch', () => {
       },
       {
         name: 'should handle ends with filter',
-        string: 'message:\uf00dEndsWith\uf00d"test value"',
+        string: 'message:\uF00DEndsWith\uF00D"test value"',
         object: {
           tokens: [
             {type: TokenType.ENDS_WITH_FILTER, key: 'message', value: 'test value'},
@@ -260,7 +260,9 @@ describe('utils/tokenizeSearch', () => {
     ];
 
     for (const {name, string, object} of cases) {
-      it(`${name}`, () => expect(new MutableSearch(string)).toEqual(object));
+      // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+      // eslint-disable-next-line jest/valid-title
+      it(name, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
 
@@ -435,15 +437,15 @@ describe('utils/tokenizeSearch', () => {
       results.removeFilter('b');
       expect(results.formatString()).toBe('a:a c:c');
 
-      results = new MutableSearch(['a:a', 'message:\uf00dContains\uf00d"test value"']);
+      results = new MutableSearch(['a:a', 'message:\uF00DContains\uF00D"test value"']);
       results.removeFilter('message');
       expect(results.formatString()).toBe('a:a');
 
-      results = new MutableSearch(['a:a', 'message:\uf00dStartsWith\uf00d"test value"']);
+      results = new MutableSearch(['a:a', 'message:\uF00DStartsWith\uF00D"test value"']);
       results.removeFilter('message');
       expect(results.formatString()).toBe('a:a');
 
-      results = new MutableSearch(['a:a', 'message:\uf00dEndsWith\uf00d"test value"']);
+      results = new MutableSearch(['a:a', 'message:\uF00DEndsWith\uF00D"test value"']);
       results.removeFilter('message');
       expect(results.formatString()).toBe('a:a');
     });
@@ -470,16 +472,16 @@ describe('utils/tokenizeSearch', () => {
       const results = new MutableSearch(['a:a']);
 
       results.addContainsFilterValue('b', 'b');
-      expect(results.formatString()).toBe('a:a b:\uf00dContains\uf00db');
+      expect(results.formatString()).toBe('a:a b:\uF00DContains\uF00Db');
 
       results.addStartsWithFilterValue('c', 'c');
       expect(results.formatString()).toBe(
-        'a:a b:\uf00dContains\uf00db c:\uf00dStartsWith\uf00dc'
+        'a:a b:\uF00DContains\uF00Db c:\uF00DStartsWith\uF00Dc'
       );
 
       results.addEndsWithFilterValue('d', 'd');
       expect(results.formatString()).toBe(
-        'a:a b:\uf00dContains\uf00db c:\uf00dStartsWith\uf00dc d:\uf00dEndsWith\uf00dd'
+        'a:a b:\uF00DContains\uF00Db c:\uF00DStartsWith\uF00Dc d:\uF00DEndsWith\uF00Dd'
       );
     });
   });
@@ -665,18 +667,18 @@ describe('utils/tokenizeSearch', () => {
       },
       {
         name: 'handles contains filter',
-        object: new MutableSearch(['message:\uf00dContains\uf00d"test value"']),
-        string: 'message:\uf00dContains\uf00d"test value"',
+        object: new MutableSearch(['message:\uF00DContains\uF00D"test value"']),
+        string: 'message:\uF00DContains\uF00D"test value"',
       },
       {
         name: 'handles starts with filter',
-        object: new MutableSearch(['message:\uf00dStartsWith\uf00d"test value"']),
-        string: 'message:\uf00dStartsWith\uf00d"test value"',
+        object: new MutableSearch(['message:\uF00DStartsWith\uF00D"test value"']),
+        string: 'message:\uF00DStartsWith\uF00D"test value"',
       },
       {
         name: 'handles ends with filter',
-        object: new MutableSearch(['message:\uf00dEndsWith\uf00d"test value"']),
-        string: 'message:\uf00dEndsWith\uf00d"test value"',
+        object: new MutableSearch(['message:\uF00DEndsWith\uF00D"test value"']),
+        string: 'message:\uF00DEndsWith\uF00D"test value"',
       },
       {
         name: 'should preserve grouping parens when quoted value contains parens',
@@ -695,7 +697,41 @@ describe('utils/tokenizeSearch', () => {
     ];
 
     for (const {name, string, object} of cases) {
-      it(`${name}`, () => expect(object.formatString()).toEqual(string));
+      // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+      // eslint-disable-next-line jest/valid-title
+      it(name, () => expect(object.formatString()).toEqual(string));
     }
+  });
+
+  describe('renameFilter', () => {
+    it('renames a simple filter key', () => {
+      const search = new MutableSearch('request.method:GET');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('http.method:GET');
+    });
+
+    it('renames negated filter keys', () => {
+      const search = new MutableSearch('!request.method:GET');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('!http.method:GET');
+    });
+
+    it('preserves OR grouping', () => {
+      const search = new MutableSearch('(request.method:GET OR request.method:POST)');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('( http.method:GET OR http.method:POST )');
+    });
+
+    it('does not rename unrelated keys', () => {
+      const search = new MutableSearch('request.method:GET browser:Chrome');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('http.method:GET browser:Chrome');
+    });
+
+    it('is a no-op when key is not present', () => {
+      const search = new MutableSearch('browser:Chrome');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('browser:Chrome');
+    });
   });
 });

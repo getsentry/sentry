@@ -22,7 +22,7 @@ _TASK_QUEUED_METRIC = (
     name="sentry.integrations.slack.tasks.send_activity_notifications_to_slack_threads",
     namespace=integrations_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def send_activity_notifications_to_slack_threads(activity_id) -> None:
     log_params = {"activity_id": activity_id}

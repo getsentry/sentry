@@ -86,11 +86,37 @@ class GroupedDetectorEvaluationResult:
     tainted: bool
 
 
-# TODO - @saponifi3d - Change this class to be a pure ABC and remove the `__init__` method.
-# TODO - @saponifi3d - Once the change is made, we should introduce a `BaseDetector` class to evaluate simple cases
-class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
+class DetectorHandler(abc.ABC, Generic[DataPacketType]):
+    """
+    Abstract base class defining the public interface for detector handlers.
+    """
+
     def __init__(self, detector: Detector):
         self.detector = detector
+
+    @abc.abstractmethod
+    def evaluate(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+        pass
+
+
+class BaseDetectorHandler(
+    DetectorHandler[DataPacketType],
+    Generic[DataPacketType, DataPacketEvaluationType],
+):
+    """
+    Base implementation class providing shared infrastructure for detector handlers.
+    Includes metrics tracking, condition group loading, and defines abstract methods
+    that concrete handlers must implement.
+
+    DataPacketType is what we've embedded within the data packet.
+    DataPacketEvaluationType is the type of the value to be extracted from the data packet and
+    used to evaluate the conditions on the detector.
+    """
+
+    def __init__(self, detector: Detector):
+        super().__init__(detector)
         if detector.workflow_condition_group_id is not None:
             try:
                 # Check if workflow_condition_group is already prefetched

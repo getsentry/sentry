@@ -14,8 +14,29 @@ import {
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {ImageStatus} from 'sentry/types/debugImage';
 
+jest.mock('@tanstack/react-virtual', () => {
+  return {
+    useVirtualizer: jest.fn(({count}: {count: number}) => {
+      const virtualItems = Array.from({length: count}, (_, index) => ({
+        key: index,
+        index,
+        start: index * 60,
+        size: 60,
+      }));
+
+      return {
+        getVirtualItems: jest.fn(() => virtualItems),
+        getTotalSize: jest.fn(() => count * 60),
+        measureElement: jest.fn(),
+        measure: jest.fn(),
+      };
+    }),
+  };
+});
+
 describe('DebugMeta', () => {
   const {organization, project} = initializeOrg();
+  const groupId = undefined;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -39,13 +60,14 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
     renderGlobalModal();
 
     expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
-    const imageName = image?.debug_file as string;
+    const imageName = image?.debug_file!;
     expect(screen.queryByText(imageName)).not.toBeInTheDocument();
 
     await userEvent.click(
@@ -59,7 +81,7 @@ describe('DebugMeta', () => {
     expect(screen.getByText('Symbolication')).toBeInTheDocument();
     expect(mockGetDebug).not.toHaveBeenCalled();
 
-    const codeFile = image?.code_file as string;
+    const codeFile = image?.code_file!;
     expect(screen.queryByText(codeFile)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'View'}));
     expect(screen.getByText(codeFile)).toBeInTheDocument();
@@ -89,6 +111,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -114,13 +137,16 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
-    const imageName = image?.debug_file as string;
-    const codeFile = image?.code_file as string;
+    const imageName = image?.debug_file!;
+    const codeFile = image?.code_file!;
 
-    expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('region', {name: 'Images Loaded'})
+    ).toBeInTheDocument();
     const imageNode = screen.getByText(imageName);
     expect(imageNode).toBeInTheDocument();
 
@@ -156,19 +182,20 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
 
     expect(screen.getByText('Images Loaded')).toBeInTheDocument();
-    expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
+    expect(screen.getByText(firstImage?.debug_file!)).toBeInTheDocument();
     expect(screen.getByText(secondImage?.debug_file)).toBeInTheDocument();
 
     const filterButton = screen.getByRole('button', {name: '2 Active Filters'});
     expect(filterButton).toBeInTheDocument();
     await userEvent.click(filterButton);
     await userEvent.click(screen.getByRole('option', {name: 'Missing'}));
-    expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
+    expect(screen.getByText(firstImage?.debug_file!)).toBeInTheDocument();
     expect(screen.queryByText(secondImage?.debug_file)).not.toBeInTheDocument();
   });
 
@@ -188,6 +215,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );

@@ -5,7 +5,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
+import {InstanceLevelOAuth} from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 
 describe('create instance level OAuth client', () => {
   let mockPostRequest: jest.Mock;

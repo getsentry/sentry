@@ -1,7 +1,7 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
@@ -13,7 +13,13 @@ async function changeReactMentionsInput(value: string) {
 }
 
 describe('NoteInputWithStorage', () => {
+  let membersRequest: jest.Mock;
+
   beforeEach(() => {
+    membersRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     jest.clearAllMocks();
   });
 
@@ -25,15 +31,16 @@ describe('NoteInputWithStorage', () => {
     teams: [],
   };
 
-  it('loads draft item from local storage when mounting', () => {
+  it('loads draft item from local storage when mounting', async () => {
     jest
-      .mocked(localStorage.getItem)
+      .mocked(localStorageWrapper.getItem)
       .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
 
     render(<NoteInputWithStorage {...defaultProps} />);
 
-    expect(localStorage.getItem).toHaveBeenCalledWith('storage');
+    expect(localStorageWrapper.getItem).toHaveBeenCalledWith('storage');
     expect(screen.getByRole('textbox')).toHaveValue('saved item');
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
   });
 
   it('saves draft when input changes', async () => {
@@ -42,7 +49,7 @@ describe('NoteInputWithStorage', () => {
     await userEvent.clear(screen.getByRole('textbox'));
     await changeReactMentionsInput('WIP COMMENT');
 
-    expect(localStorage.setItem).toHaveBeenLastCalledWith(
+    expect(localStorageWrapper.setItem).toHaveBeenLastCalledWith(
       'storage',
       JSON.stringify({item1: 'WIP COMMENT'})
     );
@@ -50,7 +57,7 @@ describe('NoteInputWithStorage', () => {
 
   it('removes draft item after submitting', async () => {
     jest
-      .mocked(localStorage.getItem)
+      .mocked(localStorageWrapper.getItem)
       .mockImplementation(() =>
         JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
       );
@@ -60,7 +67,7 @@ describe('NoteInputWithStorage', () => {
     await changeReactMentionsInput('new comment');
     await userEvent.type(screen.getByRole('textbox'), '{Control>}{enter}{/Control}');
 
-    expect(localStorage.setItem).toHaveBeenLastCalledWith(
+    expect(localStorageWrapper.setItem).toHaveBeenLastCalledWith(
       'storage',
       JSON.stringify({item2: 'item2', item3: 'item3'})
     );

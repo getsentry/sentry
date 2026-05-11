@@ -30,7 +30,9 @@ class ConsecutiveDbDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = ConsecutiveDBSpanDetector(self._settings, event)
+        detector = ConsecutiveDBSpanDetector(
+            self._settings[ConsecutiveDBSpanDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -246,8 +248,10 @@ class ConsecutiveDbDetectorTest(TestCase):
         event = self.create_issue_event()
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
-        detector = ConsecutiveDBSpanDetector(settings, event)
+        settings = get_detection_settings(project)
+        detector = ConsecutiveDBSpanDetector(
+            settings[ConsecutiveDBSpanDetector.settings_key], event
+        )
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -257,8 +261,10 @@ class ConsecutiveDbDetectorTest(TestCase):
             value={"consecutive_db_queries_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
-        detector = ConsecutiveDBSpanDetector(settings, event)
+        settings = get_detection_settings(project)
+        detector = ConsecutiveDBSpanDetector(
+            settings[ConsecutiveDBSpanDetector.settings_key], event
+        )
 
         assert not detector.is_creation_allowed_for_project(project)
 

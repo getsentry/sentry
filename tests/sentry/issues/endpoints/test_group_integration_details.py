@@ -57,7 +57,6 @@ class GroupIntegrationDetailsTest(APITestCase):
     def assert_metric_recorded(
         self, mock_metric_method: Any, expected_exc: type[Exception], exc_args: Any | None = None
     ) -> None:
-
         assert mock_metric_method.call_count == 1
         mock_metric_method.assert_called_with(mock.ANY)
         call_arg = mock_metric_method.call_args_list[0][0][0]
@@ -73,7 +72,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=link"
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=link"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -116,7 +115,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         group = self.group
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -183,7 +182,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature("organizations:integrations-issue-basic"):
             with mock.patch.object(
@@ -201,7 +200,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature(
             {
@@ -227,7 +226,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             linked_id=external_issue.id,
         ).exists()
 
-        activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value)[0]
+        activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value).order_by("id")[0]
         assert activity.project_id == group.project_id
         assert activity.group_id == group.id
         assert activity.ident is None
@@ -249,7 +248,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
@@ -271,7 +270,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             # Test with IntegrationFormError
             mock_get_issue.side_effect = raise_integration_form_error
@@ -303,7 +302,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
@@ -331,7 +330,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             # Test with IntegrationFormError
             mock_after_link_issue.side_effect = raise_integration_form_error
@@ -359,7 +358,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature(
             {
@@ -380,7 +379,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(path, data={})
@@ -409,7 +408,9 @@ class GroupIntegrationDetailsTest(APITestCase):
                 linked_id=external_issue.id,
             ).exists()
 
-            activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value)[0]
+            activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value).order_by("id")[
+                0
+            ]
             assert activity.project_id == group.project_id
             assert activity.group_id == group.id
             assert activity.ident is None
@@ -437,7 +438,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             mock_create_issue.side_effect = raise_integration_error
             response = self.client.post(path, data={})
@@ -471,7 +472,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             mock_create_issue.side_effect = raise_integration_installation_configuration_error
 
@@ -492,7 +493,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=org, provider="example", name="Example", external_id="example:1"
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature(
             {
@@ -524,7 +525,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.delete(path)
@@ -553,7 +554,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
         with self.feature(
             {
@@ -598,8 +599,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             external_id="example:1",
             oi_params={"config": {"project_issue_defaults": {group.project_id: {"project": "2"}}}},
         )
-        create_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
-        link_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=link"
+        create_path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/?action=create"
+        link_path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/?action=link"
         project_field = {
             "name": "project",
             "label": "Project",

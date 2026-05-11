@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   source: string;
@@ -45,7 +45,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <div>{tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}</div>
     </ActiveTrialWrapper>
   ) : (
-    <NeedHelpLink href="https://sentry.zendesk.com/hc/en-us" onClick={trackClickNeedHelp}>
+    <NeedHelpLink href="https://www.sentry.help" onClick={trackClickNeedHelp}>
       {t('Need help?')}
     </NeedHelpLink>
   );
@@ -59,7 +59,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
         external
         size="sm"
         icon={<IconBusiness />}
-        priority="default"
+        variant="secondary"
       >
         {t('Upgrade Now')}
       </LinkButton>
@@ -71,8 +71,10 @@ export default withSubscription(TargetedOnboardingHeader, {
   noLoader: true,
 });
 
-const HeaderActionBar = styled(ButtonBar)`
-  margin-left: ${space(2)};
+const HeaderActionBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const SecondaryCTAWrapper = styled('div')`
@@ -89,6 +91,7 @@ const ActiveTrialHeader = styled('div')`
   font-size: 14px;
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.accent};
+  white-space: nowrap;
 `;
 
 const ActiveTrialWrapper = styled('div')`

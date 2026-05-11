@@ -1,21 +1,16 @@
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';
 import {
   useWrappedDiscoverQuery,
   useWrappedDiscoverQueryWithoutPageFilters,
 } from 'sentry/views/insights/common/queries/useSpansQuery';
-import type {
-  ErrorProperty,
-  ErrorResponse,
-  SpanProperty,
-  SpanResponse,
-} from 'sentry/views/insights/types';
+import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
@@ -57,13 +52,6 @@ export const useSpans = <Fields extends SpanProperty[]>(
   return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
-export const useErrors = <Fields extends ErrorProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  return useDiscover<Fields, ErrorResponse>(options, DiscoverDatasets.ERRORS, referrer);
-};
-
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
@@ -71,7 +59,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
 ) => {
   const {
     fields = [],
-    search = undefined,
+    search,
     sorts = [],
     limit,
     cursor,

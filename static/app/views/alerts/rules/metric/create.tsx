@@ -4,9 +4,9 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   createDefaultRule,
@@ -18,11 +18,6 @@ import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 
-type RouteParams = {
-  projectId?: string;
-  ruleId?: string;
-};
-
 type Props = {
   eventView: EventView | undefined;
   organization: Organization;
@@ -30,18 +25,16 @@ type Props = {
   userTeamIds: string[];
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
-} & RouteComponentProps<RouteParams>;
+} & RouteComponentProps;
 
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
-function MetricRulesCreate(props: Props) {
+export function MetricRulesCreate(props: Props) {
   const theme = useTheme();
   function handleSubmitSuccess(data: any) {
     const {organization, project, router} = props;
-    const alertRuleId: string | undefined = data
-      ? (data.id as string | undefined)
-      : undefined;
+    const alertRuleId = data ? (data.id as string | undefined) : undefined;
 
     metric.endSpan({name: 'saveAlertRule'});
     const target = alertRuleId
@@ -53,7 +46,7 @@ function MetricRulesCreate(props: Props) {
         }
       : {
           pathname: makeAlertsPathname({
-            path: `/rules/`,
+            path: '/rules/',
             organization,
           }),
           query: {project: project.id},
@@ -97,5 +90,3 @@ function MetricRulesCreate(props: Props) {
     />
   );
 }
-
-export default MetricRulesCreate;

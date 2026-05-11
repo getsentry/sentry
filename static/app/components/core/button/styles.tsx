@@ -1,40 +1,22 @@
-import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
-// eslint-disable-next-line boundaries/element-types
+import type {ButtonProps} from '@sentry/scraps/button';
+
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-// eslint-disable-next-line boundaries/element-types
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
-import type {DO_NOT_USE_CommonButtonProps as CommonButtonProps} from './types';
+import {
+  type ButtonVariant,
+  type DO_NOT_USE_CommonButtonProps as CommonButtonProps,
+} from './types';
 
 export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
   NonNullable<CommonButtonProps['size']>,
   SVGIconProps['size']
 > = {
-  zero: undefined,
+  zero: 'xs',
   xs: 'xs',
   sm: 'sm',
   md: 'sm',
 };
-
-// @TODO: remove Link type in the future
-type ButtonType = 'default' | 'transparent' | 'accent' | 'warning' | 'danger' | 'link';
-
-function priorityToType(priority: ButtonProps['priority']): ButtonType {
-  switch (priority) {
-    case 'primary':
-      return 'accent';
-    case 'danger':
-      return 'danger';
-    case 'warning':
-      return 'warning';
-    case 'transparent':
-      return 'transparent';
-    case 'link':
-      return 'link';
-    default:
-      return 'default';
-  }
-}
 
 const elevation = {
   md: '2px',
@@ -46,12 +28,14 @@ const elevation = {
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
-  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
-    size: NonNullable<ButtonProps['size']>;
-    theme: Theme;
-  }
+  p: Pick<CommonButtonProps, 'variant' | 'busy'> &
+    Pick<ButtonProps, 'disabled'> & {
+      shapeVariant: 'rectangular' | 'square';
+      size: NonNullable<ButtonProps['size']>;
+      theme: Theme;
+    }
 ): StrictCSSObject {
-  const type = priorityToType(p.priority);
+  const variant = p.variant ?? 'secondary';
 
   const buttonSizes = {
     ...p.theme.form,
@@ -63,7 +47,7 @@ export function DO_NOT_USE_getButtonStyles(
     },
   } as const;
 
-  const buttonTheme = getButtonTheme(type, p.theme);
+  const buttonTheme = getButtonTheme(variant, p.theme);
   const buttonElevation = elevation[p.size];
 
   return {
@@ -71,17 +55,19 @@ export function DO_NOT_USE_getButtonStyles(
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
+    whiteSpace: 'nowrap',
 
     fontWeight: p.theme.font.weight.sans.medium,
 
-    opacity: p.busy || p.disabled ? 0.6 : undefined,
+    opacity: p.disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
     '&[disabled]': {
       cursor: 'not-allowed',
     },
 
-    padding: getButtonSizeTheme(p.size, p.theme).padding,
+    padding:
+      p.shapeVariant === 'square' ? '0' : getButtonSizeTheme(p.size, p.theme).padding,
     borderRadius: getButtonSizeTheme(p.size, p.theme).borderRadius,
     border: 'none',
     color: buttonTheme.color,
@@ -89,6 +75,11 @@ export function DO_NOT_USE_getButtonStyles(
     background: 'none',
 
     height: buttonSizes[p.size].height,
+    // Use min width as a progressive enhancement for square buttons.
+    // We can't yet swap to width because I'm not entirely condifent that
+    // that would not break existing buttons.
+    minWidth: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
+
     minHeight: buttonSizes[p.size].minHeight,
     fontSize: buttonSizes[p.size].fontSize,
     lineHeight: buttonSizes[p.size].lineHeight,
@@ -99,7 +90,7 @@ export function DO_NOT_USE_getButtonStyles(
       position: 'absolute',
       inset: '0',
       height: `calc(100% - ${buttonElevation})`,
-      top: `${buttonElevation}`,
+      top: buttonElevation,
       transform: `translateY(-${buttonElevation})`,
       boxShadow: `0 ${buttonElevation} 0 0px ${buttonTheme.background}`,
       background: buttonTheme.background,
@@ -126,6 +117,10 @@ export function DO_NOT_USE_getButtonStyles(
         border: `1px solid ${p.theme.tokens.focus.default}`,
         boxShadow: `0 0 0 1px ${p.theme.tokens.focus.default}`,
       },
+    },
+
+    '&[aria-busy="true"] > span:last-child': {
+      overflow: 'visible',
     },
 
     '> span:last-child': {
@@ -173,7 +168,7 @@ export function DO_NOT_USE_getButtonStyles(
       },
     },
 
-    '&:disabled, &[aria-disabled="true"]': {
+    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
       '&::after': {
         transform: 'translateY(0px)',
       },
@@ -182,18 +177,12 @@ export function DO_NOT_USE_getButtonStyles(
       },
     },
 
-    // Hides the interaction state layer
-    '> span:first-child': {
-      display: 'none',
+    '&[aria-busy="true"]': {
+      cursor: 'progress',
     },
 
-    // Link buttons do not have interaction state layer
-    ...(p.priority === 'link' && {
+    ...(variant === 'link' && {
       transform: 'translateY(0px)',
-
-      '> span:first-child': {
-        transform: 'translateY(0px)',
-      },
 
       '&::before': {
         display: 'none',
@@ -205,7 +194,7 @@ export function DO_NOT_USE_getButtonStyles(
     }),
 
     // Borderless buttons are not chonky
-    ...((p.borderless || type === 'transparent' || type === 'link') && {
+    ...((variant === 'transparent' || variant === 'link') && {
       border: 'none',
       transform: 'translateY(0px)',
 
@@ -229,7 +218,7 @@ export function DO_NOT_USE_getButtonStyles(
           transform: 'translateY(0px)',
         },
         backgroundColor:
-          p.busy || p.disabled || type === 'link' ? 'inherit' : p.theme.colors.gray100,
+          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
@@ -238,14 +227,15 @@ export function DO_NOT_USE_getButtonStyles(
         },
 
         backgroundColor:
-          p.busy || p.disabled || type === 'link' ? 'inherit' : p.theme.colors.gray200,
+          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
       },
     }),
 
-    ...(p.priority === 'link' && {
+    ...(variant === 'link' && {
       padding: '0',
       height: 'auto',
       minHeight: 'auto',
+      minWidth: 'auto',
       border: 'none',
       transform: 'translateY(0px)',
 
@@ -262,19 +252,19 @@ export function DO_NOT_USE_getButtonStyles(
   };
 }
 
-function getButtonTheme(type: ButtonType, theme: Theme) {
-  switch (type) {
-    case 'default':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.neutral.background,
-        background: theme.tokens.interactive.chonky.embossed.neutral.chonk,
-        color: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
-      };
-    case 'accent':
+function getButtonTheme(variant: ButtonVariant, theme: Theme) {
+  switch (variant) {
+    case 'primary':
       return {
         surface: theme.tokens.interactive.chonky.embossed.accent.background,
         background: theme.tokens.interactive.chonky.embossed.accent.chonk,
         color: theme.tokens.interactive.chonky.embossed.accent.content,
+      };
+    case 'secondary':
+      return {
+        surface: theme.tokens.interactive.chonky.embossed.neutral.background,
+        background: theme.tokens.interactive.chonky.embossed.neutral.chonk,
+        color: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
       };
     case 'warning':
       return {

@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
@@ -23,7 +23,7 @@ export const useTraceAverageTransactionDuration = ({
 
   const eventView = EventView.fromSavedQuery({
     id: undefined,
-    name: `Average durations of transactions in the trace`,
+    name: 'Average durations of transactions in the trace',
     fields: ['title', 'avg(transaction.duration)'],
     orderby: '-title',
     query: conditions.formatString(),

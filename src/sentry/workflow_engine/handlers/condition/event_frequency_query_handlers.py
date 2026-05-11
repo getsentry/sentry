@@ -69,6 +69,11 @@ class InvalidFilter(Exception):
 
 class BaseEventFrequencyQueryHandler(ABC):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
+    label_template = ""
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        return cls.label_template.format(**condition_data)
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
@@ -326,6 +331,8 @@ slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHan
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    label_template = "The issue is seen more than {value} times in {interval}"
+
     def batch_query(
         self,
         groups: list[GroupValues],
@@ -372,6 +379,21 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    label_template = "The issue is seen by more than {value} users in {interval}"
+    label_template_with_conditions = (
+        "The issue is seen by more than {value} users in {interval} with conditions"
+    )
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        from sentry.rules.conditions.event_frequency import (
+            EventUniqueUserFrequencyConditionWithConditions,
+        )
+
+        if condition_data.get("id") == EventUniqueUserFrequencyConditionWithConditions.id:
+            return cls.label_template_with_conditions.format(**condition_data)
+        return cls.label_template.format(**condition_data)
+
     def batch_query(
         self,
         groups: list[GroupValues],
@@ -415,6 +437,15 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.PERCENT_SESSIONS_PERCENT)
 class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = PERCENT_INTERVALS
+    label_template = "The issue affects more than {value} percent of sessions in {interval}"
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        data = dict(condition_data)
+        value = data.get("value")
+        if isinstance(value, float) and value.is_integer():
+            data["value"] = int(value)
+        return cls.label_template.format(**data)
 
     def get_session_count(
         self, project_id: int, environment_id: int | None, start: datetime, end: datetime

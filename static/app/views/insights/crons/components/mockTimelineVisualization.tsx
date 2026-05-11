@@ -8,15 +8,16 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/model';
-import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Panel} from 'sentry/components/panels/panel';
+import {Placeholder} from 'sentry/components/placeholder';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {CheckInStatus, ScheduleType} from 'sentry/views/insights/crons/types';
 import {
   checkInStatusPrecedent,
@@ -62,10 +63,12 @@ export function MockTimelineVisualization({schedule}: Props) {
   };
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: timelineWidth} = useDimensions({elementRef});
 
   const sampleDataQueryKey = [
-    `/organizations/${organization.slug}/monitors-schedule-data/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/monitors-schedule-data/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {query},
   ] as const;
   const {data, isPending, isError, error} = useApiQuery<number[]>(sampleDataQueryKey, {

@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
+  makeSpan,
   makeTraceError,
   makeTracePerformanceIssue,
   makeTransaction,
@@ -409,6 +410,118 @@ describe('TransactionNode', () => {
 
       expect(node.resolveValueFromSearchKey('unknown.key')).toBeNull();
       expect(node.resolveValueFromSearchKey('span.duration')).toBeNull();
+    });
+  });
+
+  describe('appendSpans cycle detection', () => {
+    it('should handle simple cycle (A -> B -> A) without infinite loop', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create spans with a cycle: A's parent is B, B's parent is A
+      const spanA = makeSpan({
+        span_id: 'span-a',
+        parent_span_id: 'span-b', // A's parent is B
+      });
+      const spanB = makeSpan({
+        span_id: 'span-b',
+        parent_span_id: 'span-a', // B's parent is A (creates cycle)
+      });
+
+      // This should not cause infinite loop
+      const bounds = node.appendSpans([spanA, spanB], null);
+
+      // Should complete without error and return valid bounds
+      expect(bounds).toBeDefined();
+      expect(Array.isArray(bounds)).toBe(true);
+
+      // Both spans should be attached to root since both form a cycle
+      expect(node.children).toHaveLength(2);
+      const childIds = node.children.map(c => c.id);
+      expect(childIds).toContain('span-a');
+      expect(childIds).toContain('span-b');
+    });
+
+    it('should handle longer cycle (A -> B -> C -> A) without infinite loop', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create spans with a longer cycle: A -> B -> C -> A
+      const spanA = makeSpan({
+        span_id: 'span-a',
+        parent_span_id: 'span-c', // A's parent is C
+      });
+      const spanB = makeSpan({
+        span_id: 'span-b',
+        parent_span_id: 'span-a', // B's parent is A
+      });
+      const spanC = makeSpan({
+        span_id: 'span-c',
+        parent_span_id: 'span-b', // C's parent is B (creates cycle back to A)
+      });
+
+      // This should not cause infinite loop
+      const bounds = node.appendSpans([spanA, spanB, spanC], null);
+
+      // Should complete without error
+      expect(bounds).toBeDefined();
+      expect(Array.isArray(bounds)).toBe(true);
+    });
+
+    it('should still build valid tree when no cycles exist', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create normal span hierarchy without cycles
+      const spanA = makeSpan({
+        span_id: 'span-a',
+        parent_span_id: 'root-span', // A's parent is root
+      });
+      const spanB = makeSpan({
+        span_id: 'span-b',
+        parent_span_id: 'span-a', // B's parent is A
+      });
+      const spanC = makeSpan({
+        span_id: 'span-c',
+        parent_span_id: 'span-b', // C's parent is B
+      });
+
+      const bounds = node.appendSpans([spanA, spanB, spanC], null);
+
+      expect(bounds).toBeDefined();
+      // All spans should be properly nested
+      expect(node.children).toHaveLength(1); // Only A is direct child of root
+      expect(node.children[0]?.id).toBe('span-a');
+    });
+
+    it('should handle self-referencing span', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create a span that references itself as parent
+      const selfRefSpan = makeSpan({
+        span_id: 'self-ref',
+        parent_span_id: 'self-ref', // Points to itself
+      });
+
+      // This should not cause infinite loop
+      const bounds = node.appendSpans([selfRefSpan], null);
+
+      expect(bounds).toBeDefined();
+      // The span should be attached to root since its parent creates a cycle
+      expect(node.children).toHaveLength(1);
     });
   });
 });

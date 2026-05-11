@@ -74,7 +74,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             json={"id": 99},
         )
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def get_repository(self, **kwargs) -> Repository:
         return Repository.objects.get(**kwargs)
 

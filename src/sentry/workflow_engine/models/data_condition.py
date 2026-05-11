@@ -4,12 +4,10 @@ from enum import StrEnum
 from typing import Any, TypedDict, TypeVar, cast
 
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
@@ -44,19 +42,20 @@ class Condition(StrEnum):
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
     ISSUE_OCCURRENCES = "issue_occurrences"
+    ISSUE_OPEN_DURATION = "issue_open_duration"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
+    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
+    ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
+    ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
     ISSUE_TYPE = "issue_type"
     LATEST_ADOPTED_RELEASE = "latest_adopted_release"
     LATEST_RELEASE = "latest_release"
     LEVEL = "level"
     NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
-    REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
+    REGRESSION_EVENT = "regression_event"
     TAGGED_EVENT = "tagged_event"
-    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
-    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
-    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
-    ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
-    ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
@@ -69,6 +68,13 @@ class Condition(StrEnum):
     # Migration Only
     EVERY_EVENT = "every_event"
 
+
+TRIGGER_CONDITIONS = [
+    Condition.FIRST_SEEN_EVENT,
+    Condition.ISSUE_RESOLVED_TRIGGER,
+    Condition.REAPPEARED_EVENT,
+    Condition.REGRESSION_EVENT,
+]
 
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
@@ -112,7 +118,7 @@ class DataConditionSnapshot(TypedDict):
     condition_result: DataConditionResult
 
 
-@region_silo_model
+@cell_silo_model
 class DataCondition(DefaultFieldsModel):
     """
     A data condition is a way to specify a logic condition, if the condition is met, the condition_result is returned.
@@ -267,8 +273,3 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
         validate(data_condition.comparison, schema)
     except ValidationError as e:
         raise ValidationError(f"Invalid config: {e.message}")
-
-
-@receiver(pre_save, sender=DataCondition)
-def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
-    enforce_data_condition_json_schema(instance)

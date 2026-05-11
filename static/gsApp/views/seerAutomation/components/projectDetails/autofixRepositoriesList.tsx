@@ -1,29 +1,33 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Link} from '@sentry/scraps/link/link';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {
   ProjectSeerPreferences,
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 
 import {AutofixRepositoriesItem} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItem';
@@ -56,42 +60,43 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   null,
 ];
 
-export default function AutofixRepositories({canWrite, preference, project}: Props) {
+export function AutofixRepositories({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
+    select: selectUniqueRepos,
+  });
+  useFetchAllPages({result: repositoriesQuery});
+  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
 
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   const tableHeaders = getTableHeaders(organization);
 
   const repoMap = useMemo(
-    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo]) ?? []),
+    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo])),
     [preference]
   );
 
-  const handleSaveRepoList = useCallback(
-    (updatedRepositories: SeerRepoDefinition[]) => {
-      updateProjectSeerPreferences(
-        {
-          repositories: updatedRepositories,
-          automated_run_stopping_point: preference?.automated_run_stopping_point,
-          automation_handoff: preference?.automation_handoff,
-        },
-        {
-          onError: () => addErrorMessage(t('Failed to connect repositories')),
-          onSuccess: () =>
-            addSuccessMessage(
-              t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
-            ),
-        }
-      );
-    },
-    [updateProjectSeerPreferences, preference, project.slug]
-  );
+  const handleSaveRepoList = (updatedRepositories: SeerRepoDefinition[]) => {
+    updateProjectSeerPreferences(
+      {
+        repositories: updatedRepositories,
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: preference?.automation_handoff,
+      },
+      {
+        onError: () => addErrorMessage(t('Failed to connect repositories')),
+        onSuccess: () =>
+          addSuccessMessage(
+            t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
+          ),
+      }
+    );
+  };
 
-  const handleAddRepoClick = useCallback(() => {
+  const handleAddRepoClick = () => {
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
@@ -106,13 +111,13 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 
             // Create new entry with defaults for newly added repos
             const orgRepo = repositories?.find(r => r.externalId === repoId);
-            const [owner] = (orgRepo?.name ?? '').split('/');
+            const [owner, name] = (orgRepo?.name || '/').split('/');
             return {
               organization_id: organization.id,
               external_id: repoId,
-              name: orgRepo?.name ?? '',
+              name: name ?? orgRepo?.name ?? '',
               owner: owner ?? '',
-              provider: orgRepo?.provider.id ?? '',
+              provider: orgRepo?.provider?.name?.toLowerCase() ?? '',
               integration_id: orgRepo?.integrationId,
               branch_name: '',
               instructions: '',
@@ -124,7 +129,7 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
         }}
       />
     ));
-  }, [repoMap, handleSaveRepoList, repositories, organization.id]);
+  };
 
   if (isFetchingRepositories) {
     return <LoadingIndicator />;
@@ -136,7 +141,7 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
         <Flex padding="2xl" align="center" justify="center" gap="xl">
           <img src={seerConfigBug1} alt="" width="130px" height="130px" />
           <Stack gap="lg">
-            <Heading as="h4">{t('Get the most out of Seer')}</Heading>
+            <Heading as="h4">{t('Connect a repository')}</Heading>
             <Flex maxWidth="250px">
               {t(
                 'Connect at least one repository so Seer can gather more insights from your code.'
@@ -144,7 +149,7 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
             </Flex>
             <Button
               disabled={!canWrite}
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
               onClick={handleAddRepoClick}
             >
@@ -160,7 +165,7 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
       <Flex justify="end">
         <Button
           disabled={!canWrite}
-          priority="primary"
+          variant="primary"
           icon={<IconAdd />}
           onClick={handleAddRepoClick}
         >
@@ -203,5 +208,6 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 }
 
 const StyledPanelTable = styled(PanelTable)`
+  margin-bottom: 0;
   grid-template-columns: 1fr repeat(2, max-content);
 `;

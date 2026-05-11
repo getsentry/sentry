@@ -1,9 +1,14 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {Observer} from 'mobx-react-lite';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
+import {FormContext} from 'sentry/components/forms/formContext';
+import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
+import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
@@ -13,17 +18,19 @@ import {
   DeleteDetectorAction,
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
-import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   children: React.ReactNode;
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
-  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
+  extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
@@ -39,10 +46,13 @@ export function EditDetectorLayout<
   formDataToEndpointPayload,
   savedDetectorToFormData,
   mapFormErrors,
-  environment,
+  extraFooterButton,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const hasPageFrame = useHasPageFrameFeature();
+  const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
@@ -54,39 +64,66 @@ export function EditDetectorLayout<
   }, [detector, savedDetectorToFormData]);
 
   const formProps = {
+    model: formModel,
     initialData,
     onSubmit: handleFormSubmit,
+    onFieldChange,
     mapFormErrors,
   };
 
   return (
-    <EditLayout formProps={formProps}>
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
-          <EditDetectorBreadcrumbs detector={detector} />
-        </EditLayout.HeaderContent>
+    <EditLayoutDeprecated formProps={formProps}>
+      <EditLayoutDeprecated.Header maxWidth={maxWidth}>
+        <EditLayoutDeprecated.HeaderContent>
+          {hasPageFrame ? (
+            <TopBar.Slot name="title">
+              <DetectorFormBreadcrumbs />
+            </TopBar.Slot>
+          ) : (
+            <DetectorFormBreadcrumbs />
+          )}
+        </EditLayoutDeprecated.HeaderContent>
 
         <div>
-          <EditLayout.Actions>
+          <EditLayoutDeprecated.Actions>
             <MonitorFeedbackButton />
-          </EditLayout.Actions>
+          </EditLayoutDeprecated.Actions>
         </div>
 
-        <EditLayout.HeaderFields>
-          <DetectorBaseFields environment={environment} />
-          {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
-      </EditLayout.Header>
+        {previewChart && (
+          <EditLayoutDeprecated.HeaderFields>
+            {previewChart}
+          </EditLayoutDeprecated.HeaderFields>
+        )}
+      </EditLayoutDeprecated.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
+        {children}
+      </EditLayoutDeprecated.Body>
 
-      <EditLayout.Footer maxWidth={maxWidth}>
-        <DisableDetectorAction detector={detector} />
-        <DeleteDetectorAction detector={detector} />
-        <Button type="submit" priority="primary" size="sm">
-          {t('Save')}
-        </Button>
-      </EditLayout.Footer>
-    </EditLayout>
+      <FormContext.Consumer>
+        {({form}) => (
+          <EditLayoutDeprecated.Footer maxWidth={maxWidth}>
+            <DisableDetectorAction detector={detector} />
+            <DeleteDetectorAction detector={detector} />
+            {extraFooterButton}
+            <Observer>
+              {() => (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  busy={form?.isSaving}
+                  disabled={form?.isFormIncomplete || form?.isError}
+                  tooltipProps={{title: form ? getSubmitButtonTitle(form) : undefined}}
+                >
+                  {t('Save')}
+                </Button>
+              )}
+            </Observer>
+          </EditLayoutDeprecated.Footer>
+        )}
+      </FormContext.Consumer>
+    </EditLayoutDeprecated>
   );
 }

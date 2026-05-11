@@ -1,11 +1,11 @@
 import {useEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseTeamsById {
   ids: string[] | undefined;
@@ -28,22 +28,17 @@ interface UseTeamsResult {
   teams: Team[];
 }
 
-function buildTeamsQueryKey(
-  orgSlug: string,
-  property: 'id' | 'slug',
-  values: string[]
-): ApiQueryKey {
-  if (property === 'id') {
-    return [
-      `/organizations/${orgSlug}/teams/`,
-      {query: {query: values.map(id => `id:${id}`).join(' ')}},
-    ];
-  }
+function teamsApiOptions(orgSlug: string, property: 'id' | 'slug', values: string[]) {
+  const query =
+    property === 'id'
+      ? values.map(id => `id:${id}`).join(' ')
+      : `slug:${values.join(',')}`;
 
-  return [
-    `/organizations/${orgSlug}/teams/`,
-    {query: {query: `slug:${values.join(',')}`}},
-  ];
+  return apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: {query},
+    staleTime: 0,
+  });
 }
 
 /**
@@ -83,20 +78,17 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
   const hasMissing = missingValues.length > 0;
   const queryEnabled = shouldConsiderFetching && hasMissing;
 
-  const queryKey = teamQueryValues
-    ? buildTeamsQueryKey(
-        organization?.slug ?? '',
-        teamQueryValues.property,
-        missingValues ?? []
-      )
-    : ([`/organizations/${organization?.slug}/teams/`] as const);
-
   const {
     data: additionalTeams = [],
     isPending,
     isError,
-  } = useApiQuery<Team[]>(queryKey, {
-    staleTime: 0,
+  } = useQuery({
+    ...(teamQueryValues
+      ? teamsApiOptions(organization?.slug ?? '', teamQueryValues.property, missingValues)
+      : apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+          path: {organizationIdOrSlug: organization?.slug ?? ''},
+          staleTime: 0,
+        })),
     enabled: queryEnabled,
   });
 

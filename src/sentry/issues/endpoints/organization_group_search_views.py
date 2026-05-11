@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.expressions import Combinable
@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
@@ -30,7 +30,6 @@ class MemberPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
-
         if isinstance(obj, Organization):
             return super().has_object_permission(request, view, obj)
 
@@ -73,7 +72,7 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
         return value.strip() if value else None
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -100,7 +99,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             organization=organization, user_id=request.user.id
         ).values_list("group_search_view_id", flat=True)
 
-        createdBy = serializer.validated_data.get("createdBy", "me")
+        createdBy: Literal["me", "others"] = serializer.validated_data.get("createdBy", "me")
         sorts = [SORT_MAP[sort] for sort in serializer.validated_data["sort"]]
         query = serializer.validated_data.get("query")
         base_queryset = (
@@ -161,6 +160,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
             )
+        else:
+            raise ValueError(f"Unexpected createdBy value: {createdBy}")
 
         return self.paginate(
             request=request,

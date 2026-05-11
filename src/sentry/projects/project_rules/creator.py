@@ -9,8 +9,9 @@ from rest_framework.request import Request
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.types.actor import Actor
+from sentry.workflow_engine.defaults.detectors import ensure_default_detectors
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
-from sentry.workflow_engine.processors.detector import ensure_default_detectors
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,8 @@ class ProjectRuleCreator:
     def _create_rule(self) -> Rule:
         kwargs = self._get_kwargs()
         rule = Rule.objects.create(**kwargs)
+        # Mark that we're using legacy Rule models
+        report_used_legacy_models()
 
         return rule
 

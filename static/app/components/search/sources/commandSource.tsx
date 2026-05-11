@@ -1,12 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {ProjectKey} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -80,19 +79,10 @@ const ACTIONS: Action[] = [
       window.location.reload();
     },
   },
-
-  {
-    title: t('Search Documentation and FAQ'),
-    description: t('Open the Documentation and FAQ search modal.'),
-    requiresSuperuser: false,
-    action: () => {
-      openHelpSearchModal();
-    },
-  },
 ];
 
 // Add a command palette option for opening in production when using dev-ui
-if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false) {
+if (NODE_ENV === 'development' && !window?.__initialData?.isSelfHosted) {
   const customerUrl = new URL(
     USING_CUSTOMER_DOMAIN && window?.__initialData?.customerDomain?.organizationUrl
       ? window.__initialData.customerDomain.organizationUrl
@@ -162,7 +152,7 @@ type Props = {
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-function CommandSource({searchOptions, query, children}: Props) {
+export function CommandSource({searchOptions, query, children}: Props) {
   const {isSuperuser} = useUser();
   const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
   const params = useParams();
@@ -200,5 +190,3 @@ function CommandSource({searchOptions, query, children}: Props) {
 
   return children({isLoading: fuzzy === null, results});
 }
-
-export default CommandSource;

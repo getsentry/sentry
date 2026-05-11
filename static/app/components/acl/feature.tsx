@@ -1,15 +1,14 @@
 import {useMemo} from 'react';
 
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
-import withConfig from 'sentry/utils/withConfig';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProject from 'sentry/utils/withProject';
+import {withConfig} from 'sentry/utils/withConfig';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
-import ComingSoon from './comingSoon';
+import {ComingSoon} from './comingSoon';
 
 const renderComingSoon = () => <ComingSoon />;
 
@@ -199,4 +198,4 @@ function Feature({
   return hasFeatureEnabled && children ? children : null;
 }
 
-export default withOrganization(withProject(withConfig(Feature)));
+export default withOrganization(withConfig(Feature));

@@ -12,7 +12,7 @@ export function Card({
       border="primary"
       radius="md"
       background="primary"
-      style={{boxShadow: theme.tokens.shadow.elevationMedium}}
+      style={{boxShadow: theme.shadow.medium}}
       margin="xl 0"
       padding="xl"
       {...props}
@@ -48,7 +48,7 @@ export function Divider() {
   return <Container borderRight="primary" margin="0 md" height="20px" />;
 }
 
-export function Centered(props: FlexProps<'div'>) {
+export function Centered(props: FlexProps) {
   return <Flex justify="center" align="center" {...props} />;
 }
 

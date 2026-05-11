@@ -1,3 +1,5 @@
+from taskbroker_client.retry import Retry
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -7,19 +9,27 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.integrations.tasks.migrate_repo",
     namespace=integrations_control_tasks,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(
+        times=5,
+        delay=60 * 5,
+        on=(Exception,),
+        ignore=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist),
+    ),
     processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(
+        Integration.DoesNotExist,
+        Repository.DoesNotExist,
+        Organization.DoesNotExist,
+    ),
 )
-@retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
     from sentry.plugins.migrator import Migrator
 

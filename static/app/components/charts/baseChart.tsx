@@ -2,6 +2,7 @@ import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
+import 'echarts/lib/component/visualMap';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
@@ -28,8 +29,7 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {space} from 'sentry/styles/space';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -49,16 +49,16 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
-import Grid from './components/grid';
-import Legend from './components/legend';
+import {Grid} from './components/grid';
+import {Legend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
   type TooltipSubLabel,
 } from './components/tooltip';
-import XAxis from './components/xAxis';
-import YAxis from './components/yAxis';
-import LineSeries from './series/lineSeries';
+import {XAxis} from './components/xAxis';
+import {YAxis} from './components/yAxis';
+import {LineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -98,8 +98,7 @@ type Truncateable = {
 };
 
 export interface TooltipOption
-  extends Omit<TooltipComponentOption, 'valueFormatter'>,
-    Truncateable {
+  extends Omit<TooltipComponentOption, 'valueFormatter'>, Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
   formatAxisLabel?: (
     value: number,
@@ -334,7 +333,7 @@ const DEFAULT_ADDITIONAL_SERIES: LineSeriesOption[] = [];
 const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
-function BaseChart({
+export function BaseChart({
   animation,
   brush,
   colors,
@@ -344,6 +343,7 @@ function BaseChart({
   dataZoom,
   toolBox,
   graphic,
+  visualMap,
   axisPointer,
   previousPeriod,
   echartsTheme,
@@ -577,6 +577,7 @@ function BaseChart({
       axisPointer,
       dataZoom,
       graphic,
+      visualMap,
       aria,
       brush,
     };
@@ -600,6 +601,7 @@ function BaseChart({
     axisPointer,
     dataZoom,
     graphic,
+    visualMap,
     isGroupedByDate,
     useShortDate,
     useMultilineDate,
@@ -619,31 +621,30 @@ function BaseChart({
   // We use React.useMemo to keep the value across renders
   //
   const eventsMap = useMemo(
-    () =>
-      ({
-        click: (props: any, instance: ECharts) => {
-          handleClick(props, instance);
-          onClick?.(props, instance);
-        },
+    () => ({
+      click: (props: any, instance: ECharts) => {
+        handleClick(props, instance);
+        onClick?.(props, instance);
+      },
 
-        highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
-        downplay: (props: any, instance: ECharts) => onDownplay?.(props, instance),
-        mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
-        mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
-        datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
-        restore: (props: any, instance: ECharts) => onRestore?.(props, instance),
-        finished: (props: any, instance: ECharts) => onFinished?.(props, instance),
-        rendered: (props: any, instance: ECharts) => onRendered?.(props, instance),
+      highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
+      downplay: (props: any, instance: ECharts) => onDownplay?.(props, instance),
+      mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
+      mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
+      datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
+      restore: (props: any, instance: ECharts) => onRestore?.(props, instance),
+      finished: (props: any, instance: ECharts) => onFinished?.(props, instance),
+      rendered: (props: any, instance: ECharts) => onRendered?.(props, instance),
 
-        legendselectchanged: (props: any, instance: ECharts) =>
-          onLegendSelectChanged?.(props, instance),
+      legendselectchanged: (props: any, instance: ECharts) =>
+        onLegendSelectChanged?.(props, instance),
 
-        brush: (props: any, instance: ECharts) => onBrushStart?.(props, instance),
-        brushend: (props: any, instance: ECharts) => onBrushEnd?.(props, instance),
+      brush: (props: any, instance: ECharts) => onBrushStart?.(props, instance),
+      brushend: (props: any, instance: ECharts) => onBrushEnd?.(props, instance),
 
-        brushselected: (props: any, instance: ECharts) =>
-          onBrushSelected?.(props, instance),
-      }) as ReactEchartProps['onEvents'],
+      brushselected: (props: any, instance: ECharts) =>
+        onBrushSelected?.(props, instance),
+    }),
     [
       onClick,
       onHighlight,
@@ -709,7 +710,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.tokens.content.secondary};
     font-family: ${p.theme.font.family.sans};
     font-variant-numeric: tabular-nums;
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
     border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
     font-size: ${p.theme.font.size.sm};
@@ -733,7 +734,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
-    margin-right: ${space(1)};
+    margin-right: ${p.theme.space.md};
     display: block;
     width: 100%;
     white-space: nowrap;
@@ -773,7 +774,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
-    gap: ${space(3)};
+    gap: ${p.theme.space['2xl']};
   }
 
   .tooltip-footer-centered {
@@ -785,6 +786,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
@@ -801,6 +803,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {
@@ -868,5 +871,3 @@ const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
     ${getTooltipStyles(p)};
   }
 `;
-
-export default BaseChart;

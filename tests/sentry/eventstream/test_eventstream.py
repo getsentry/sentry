@@ -1,7 +1,7 @@
 import logging
 import time
 import uuid
-from collections.abc import Generator
+from collections.abc import Generator, MutableSequence
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -64,16 +64,16 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
         if event_type == EventStreamEventType.Transaction:
-            assert produce_kwargs["topic"] == "transactions"
-            assert produce_kwargs["key"] is None
+            assert produce_kwargs["destination"].name == "transactions"
+            assert produce_kwargs["payload"].key is None
         elif event_type == EventStreamEventType.Generic:
-            assert produce_kwargs["topic"] == "generic-events"
-            assert produce_kwargs["key"] is None
+            assert produce_kwargs["destination"].name == "generic-events"
+            assert produce_kwargs["payload"].key is None
         else:
-            assert produce_kwargs["topic"] == "events"
-            assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
+            assert produce_kwargs["destination"].name == "events"
+            assert produce_kwargs["payload"].key == str(self.project.id).encode("utf-8")
 
-        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["payload"].value)
         assert version == 2
         assert type_ == "insert"
 
@@ -89,7 +89,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def __produce_payload(
         self, *insert_args: Any, **insert_kwargs: Any
-    ) -> tuple[list[tuple[str, str | None]] | dict[str, str | None], Any]:
+    ) -> tuple[MutableSequence[tuple[str, bytes]], Any]:
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
@@ -98,10 +98,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
 
-        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["payload"].value)
 
         # only return headers and body payload
-        return produce_kwargs["headers"], payload2
+        return produce_kwargs["payload"].headers, payload2
 
     def test_init_options(self) -> None:
         # options in the constructor shouldn't cause errors
@@ -251,9 +251,9 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         self.__produce_event(*insert_args, **insert_kwargs)
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
-        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
-        assert produce_kwargs["topic"] == "generic-events"
-        assert produce_kwargs["key"] is None
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["payload"].value)
+        assert produce_kwargs["destination"].name == "generic-events"
+        assert produce_kwargs["payload"].key is None
         assert version == 2
         assert type_ == "insert"
         occurrence_data = group_event.occurrence.to_dict()

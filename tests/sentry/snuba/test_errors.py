@@ -1595,10 +1595,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
 
         results = errors.query(
             selected_columns=["transaction", "count()"],
-            query="event.type:error AND (timestamp:<{} OR timestamp:>{})".format(
-                (self.now - timedelta(seconds=5)).isoformat(),
-                (self.now - timedelta(seconds=3)).isoformat(),
-            ),
+            query=f"event.type:error AND (timestamp:<{(self.now - timedelta(seconds=5)).isoformat()} OR timestamp:>{(self.now - timedelta(seconds=3)).isoformat()})",
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,

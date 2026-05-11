@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface ColorGroup {
   tokens: Record<string, string>;
@@ -131,7 +132,7 @@ function ColorToken({
 function formatSnippet({token, scale}: {scale: string; token: string}) {
   const parts = token.split('.');
   const accessor = parts
-    .map(part => (/^[0-9]/.test(part) ? `["${part}"]` : `.${part}`))
+    .map(part => (/^\d/.test(part) ? `["${part}"]` : `.${part}`))
     .join('');
   return `\${p => p.theme.tokens.${scale}${accessor}}`;
 }

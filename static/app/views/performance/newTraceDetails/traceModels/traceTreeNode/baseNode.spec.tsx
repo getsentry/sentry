@@ -825,6 +825,33 @@ describe('BaseNode', () => {
         const found = root.findChild(node => node.id === 'target');
         expect(found).toBe(target);
       });
+
+      it('should handle cycle and not cause infinite loop (A -> B -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        // This should not cause infinite recursion
+        const found = nodeA.findChild(node => node.id === 'nonexistent');
+        expect(found).toBeNull();
+      });
+
+      it('should find target in cyclic graph before completing traversal', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'target'}), extra);
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        const found = nodeA.findChild(node => node.id === 'target');
+        expect(found).toBe(nodeB);
+      });
     });
 
     describe('findAllChildren', () => {
@@ -917,6 +944,59 @@ describe('BaseNode', () => {
         const found = parent.findAllChildren(node => node.op === 'nonexistent');
         expect(found).toHaveLength(0);
       });
+
+      it('should handle cycle and not cause infinite loop (A -> B -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'a'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'b'}),
+          extra
+        );
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        // This should not cause infinite recursion
+        // nodeA is the starting node (added to visited first), so only nodeB is found
+        const found = nodeA.findAllChildren(() => true);
+        expect(found).toHaveLength(1);
+        expect(found).toContain(nodeB);
+      });
+
+      it('should find all matching nodes in cyclic graph exactly once', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'target'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'target'}),
+          extra
+        );
+        const nodeC = new TestNode(
+          nodeB,
+          createMockValue({event_id: 'nodeC', op: 'other'}),
+          extra
+        );
+
+        // Create a cycle: A -> B -> C -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeC];
+        nodeC.children = [nodeA];
+
+        // nodeA is the starting node (added to visited first), so only nodeB matches 'target'
+        const found = nodeA.findAllChildren(node => node.op === 'target');
+        expect(found).toHaveLength(1);
+        expect(found).toContain(nodeB);
+      });
     });
 
     describe('forEachChild', () => {
@@ -981,6 +1061,49 @@ describe('BaseNode', () => {
         expect(parent.depth).toBeUndefined();
         expect(child2.depth).toBe(1);
         expect(child1.depth).toBe(2);
+      });
+
+      it('should handle cycle and not cause infinite loop (A -> B -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        const visitedIds: string[] = [];
+        nodeA.forEachChild(node => {
+          if (node.id) visitedIds.push(node.id);
+        });
+
+        // Should visit B but not A (A is the starting node, marked visited first)
+        // The key is it doesn't infinitely loop
+        expect(visitedIds).toHaveLength(1);
+        expect(visitedIds).toContain('nodeB');
+      });
+
+      it('should handle longer cycle and not cause infinite loop (A -> B -> C -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+        const nodeC = new TestNode(nodeB, createMockValue({event_id: 'nodeC'}), extra);
+
+        // Create a longer cycle: A -> B -> C -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeC];
+        nodeC.children = [nodeA];
+
+        const visitedIds: string[] = [];
+        nodeA.forEachChild(node => {
+          if (node.id) visitedIds.push(node.id);
+        });
+
+        // Should visit B and C but not A (A is the starting node, marked visited first)
+        // The key is it doesn't infinitely loop
+        expect(visitedIds).toHaveLength(2);
+        expect(visitedIds).toContain('nodeB');
+        expect(visitedIds).toContain('nodeC');
       });
     });
 
@@ -1185,6 +1308,54 @@ describe('BaseNode', () => {
         // From the deepest node, find the root
         const foundRoot = current.findParent(node => node.op === 'root');
         expect(foundRoot).toBe(root);
+      });
+
+      it('should handle upward cycle and not cause infinite loop', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'a'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'b'}),
+          extra
+        );
+
+        // Create an upward cycle: A.parent = B, B.parent = A
+        nodeA.parent = nodeB;
+        nodeB.parent = nodeA;
+
+        // This should not cause infinite recursion
+        const found = nodeA.findParent(node => node.op === 'nonexistent');
+        expect(found).toBeNull();
+      });
+
+      it('should find parent before hitting cycle', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'target'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'b'}),
+          extra
+        );
+        const nodeC = new TestNode(
+          nodeB,
+          createMockValue({event_id: 'nodeC', op: 'c'}),
+          extra
+        );
+
+        // Create an upward cycle: A.parent = C (creating C -> B -> A -> C)
+        nodeA.parent = nodeC;
+
+        // Should find nodeA before the cycle causes issues
+        const found = nodeC.findParent(node => node.op === 'target');
+        expect(found).toBe(nodeA);
       });
     });
   });
@@ -1499,6 +1670,46 @@ describe('BaseNode', () => {
       const visibleChildren = parent.visibleChildren;
       expect(visibleChildren).toHaveLength(1);
       expect(visibleChildren[0]).toBe(child);
+    });
+
+    it('should handle actual cycle in visibleChildren (A -> B -> A)', () => {
+      const extra = createMockExtra();
+      const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+      const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+
+      // Create a cycle: A -> B -> A
+      nodeA.children = [nodeB];
+      nodeB.children = [nodeA]; // This creates a cycle
+      nodeA.expanded = true;
+      nodeB.expanded = true;
+
+      // This should not cause infinite recursion
+      // nodeA is the starting node (added to visited first), so when encountered as B's child, it's skipped
+      const visibleChildren = nodeA.visibleChildren;
+      expect(visibleChildren).toHaveLength(1); // Only B, A is skipped as already visited
+      expect(visibleChildren).toContain(nodeB);
+    });
+
+    it('should handle longer cycle in visibleChildren (A -> B -> C -> A)', () => {
+      const extra = createMockExtra();
+      const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+      const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+      const nodeC = new TestNode(nodeB, createMockValue({event_id: 'nodeC'}), extra);
+
+      // Create a longer cycle: A -> B -> C -> A
+      nodeA.children = [nodeB];
+      nodeB.children = [nodeC];
+      nodeC.children = [nodeA]; // This creates a cycle back to A
+      nodeA.expanded = true;
+      nodeB.expanded = true;
+      nodeC.expanded = true;
+
+      // This should not cause infinite recursion
+      // nodeA is the starting node (added to visited first), so when encountered as C's child, it's skipped
+      const visibleChildren = nodeA.visibleChildren;
+      expect(visibleChildren).toHaveLength(2); // B and C, A is skipped as already visited
+      expect(visibleChildren).toContain(nodeB);
+      expect(visibleChildren).toContain(nodeC);
     });
 
     it('should correctly calculate visible children with multiple branches', () => {

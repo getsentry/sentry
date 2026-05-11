@@ -574,8 +574,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 type_id = 1
                 slug = "test"
                 description = "Test"
-                category = GroupCategory.PROFILE.value
-                category_v2 = GroupCategory.MOBILE.value
+                category = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
             event = self.store_event(data={}, project_id=project_id)
@@ -715,6 +714,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert len(activity_updates) == 1
         assert activity_updates[0].type == OpenPeriodActivityType.OPENED
         assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
 
     def test_update_group_priority_open_period_activity_entry(self) -> None:
         fingerprint = ["some-fingerprint"]
@@ -748,9 +748,11 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert len(activity_updates) == 2
         assert activity_updates[0].type == OpenPeriodActivityType.OPENED
         assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
 
         assert activity_updates[1].type == OpenPeriodActivityType.STATUS_CHANGE
         assert activity_updates[1].value == PriorityLevel.HIGH
+        assert activity_updates[1].event_id == new_occurrence.event_id
 
     @mock.patch("sentry.issues.ingest._process_existing_aggregate")
     def test_update_group_priority_and_unresolve(self, mock_is_regression: mock.MagicMock) -> None:
@@ -807,7 +809,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
             # Should truncate the culprit to max allowable length
-            "culprit": f"{culprit[:MAX_CULPRIT_LENGTH-3]}...",
+            "culprit": f"{culprit[: MAX_CULPRIT_LENGTH - 3]}...",
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,

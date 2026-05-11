@@ -20,11 +20,11 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     databases = {"default", "control"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_issue_filter_keys_success(self):
+    def test_get_issue_filter_keys_success(self) -> None:
         """Test that get_issue_filter_keys returns tags and feature flags"""
         # Create an error event with custom tags
         self.store_event(
@@ -68,6 +68,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -102,19 +103,21 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "feature_a" in flag_keys
             assert "feature_b" in flag_keys
 
-    def test_get_issue_filter_keys_nonexistent_organization(self):
+    def test_get_issue_filter_keys_nonexistent_organization(self) -> None:
         """Test that nonexistent organization returns None"""
         result = get_issue_filter_keys(
             org_id=99999,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
         assert result is None
 
-    def test_get_issue_filter_keys_empty_projects(self):
+    def test_get_issue_filter_keys_empty_projects(self) -> None:
         """Test with empty project list"""
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[],
+            stats_period="7d",
         )
         assert result is not None
         assert "tags" in result
@@ -123,7 +126,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert isinstance(result["tags"], list)
         assert isinstance(result["feature_flags"], list)
 
-    def test_get_issue_filter_keys_multiple_projects(self):
+    def test_get_issue_filter_keys_multiple_projects(self) -> None:
         """Test with multiple projects"""
         project2 = self.create_project(organization=self.organization)
 
@@ -149,6 +152,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id, project2.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -165,11 +169,11 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     databases = {"default", "control"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_filter_key_values_events_dataset(self):
+    def test_get_filter_key_values_events_dataset(self) -> None:
         """Test getting values for a filter key in the events dataset"""
         # Create events with the same tag key but different values
         self.store_event(
@@ -201,6 +205,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="environment",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -226,7 +231,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert value_counts["production"] == 2
         assert value_counts["staging"] == 1
 
-    def test_get_filter_key_values_search_issues_dataset(self):
+    def test_get_filter_key_values_search_issues_dataset(self) -> None:
         """Test getting values for a filter key in the search_issues dataset (automatically detected)"""
         # Create issue platform events with tags
         self.process_occurrence(
@@ -256,6 +261,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="issue_type",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -267,7 +273,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 assert "value" in item
                 assert "count" in item
 
-    def test_get_filter_key_values_with_flags_backend(self):
+    def test_get_filter_key_values_with_flags_backend(self) -> None:
         """Test getting feature flag values (automatically detected by 'feature.' prefix)"""
         # Create events with feature flags
         self.store_event(
@@ -302,6 +308,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="feature.organizations:test-feature",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -313,26 +320,28 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 assert "value" in item
                 assert "count" in item
 
-    def test_get_filter_key_values_nonexistent_organization(self):
+    def test_get_filter_key_values_nonexistent_organization(self) -> None:
         """Test that nonexistent organization returns None"""
         result = get_filter_key_values(
             org_id=99999,
             project_ids=[self.project.id],
             attribute_key="environment",
+            stats_period="7d",
         )
         assert result is None
 
-    def test_get_filter_key_values_nonexistent_attribute(self):
+    def test_get_filter_key_values_nonexistent_attribute(self) -> None:
         """Test that nonexistent filter key returns empty list"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="nonexistent_attribute_key_12345",
+            stats_period="7d",
         )
         # Should return empty list, not None
         assert result == []
 
-    def test_get_filter_key_values_multiple_projects(self):
+    def test_get_filter_key_values_multiple_projects(self) -> None:
         """Test getting filter key values across multiple projects"""
         project2 = self.create_project(organization=self.organization)
 
@@ -358,6 +367,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id, project2.id],
             attribute_key="region",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -369,7 +379,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "us-east" in values
         assert "us-west" in values
 
-    def test_get_filter_key_values_merges_across_datasets(self):
+    def test_get_filter_key_values_merges_across_datasets(self) -> None:
         """Test that values from multiple datasets are merged correctly"""
         # Create the same tag value in both events and issue platform
         # to test that counts are summed
@@ -415,6 +425,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="category",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -434,11 +445,11 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         # Verify results are sorted by count (descending)
         counts = [item["count"] for item in result]
-        assert counts == sorted(
-            counts, reverse=True
-        ), "Results should be sorted by count descending"
+        assert counts == sorted(counts, reverse=True), (
+            "Results should be sorted by count descending"
+        )
 
-    def test_get_filter_key_values_with_substring_filter(self):
+    def test_get_filter_key_values_with_substring_filter(self) -> None:
         """Test substring filtering of filter key values"""
         # Create events with different environment values
         self.store_event(
@@ -480,6 +491,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_ids=[self.project.id],
             attribute_key="environment",
             substring="prod",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -498,11 +510,11 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
     databases = {"default", "control"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_execute_issues_query_basic(self):
+    def test_execute_issues_query_basic(self) -> None:
         """Test basic issues query"""
         # Create some issues
         self.store_event(
@@ -545,7 +557,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
             assert "status" in issue
             assert "project" in issue
 
-    def test_execute_issues_query_with_filter(self):
+    def test_execute_issues_query_with_filter(self) -> None:
         """Test issues query with specific filter"""
         # Create an error event
         self.store_event(
@@ -570,7 +582,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         # Should have at least our error event
         assert len(result) >= 1
 
-    def test_execute_issues_query_with_sort(self):
+    def test_execute_issues_query_with_sort(self) -> None:
         """Test issues query with sorting"""
         # Create multiple issues
         for i in range(3):
@@ -596,7 +608,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         assert isinstance(result, list)
         assert len(result) >= 3
 
-    def test_execute_issues_query_with_limit(self):
+    def test_execute_issues_query_with_limit(self) -> None:
         """Test issues query with limit"""
         # Create multiple issues
         for i in range(5):
@@ -622,7 +634,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         # Should respect limit
         assert len(result) <= 2
 
-    def test_execute_issues_query_nonexistent_organization(self):
+    def test_execute_issues_query_nonexistent_organization(self) -> None:
         """Test that nonexistent organization returns None"""
         result = execute_issues_query(
             org_id=99999,
@@ -632,7 +644,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
         assert result is None
 
-    def test_execute_issues_query_multiple_projects(self):
+    def test_execute_issues_query_multiple_projects(self) -> None:
         """Test issues query across multiple projects"""
         project2 = self.create_project(organization=self.organization)
 
@@ -674,11 +686,11 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
 class TestGetIssuesStats(APITestCase, SnubaTestCase):
     databases = {"default", "control"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_issues_stats_success(self):
+    def test_get_issues_stats_success(self) -> None:
         """Test that get_issues_stats returns stats for issues"""
         # Store two events to create issues
         event1 = self.store_event(
@@ -757,7 +769,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
                 stat["lifetime"]["lastSeen"], datetime
             )
 
-    def test_get_issues_stats_with_multiple_projects(self):
+    def test_get_issues_stats_with_multiple_projects(self) -> None:
         """Test that get_issues_stats works with multiple project IDs"""
         project2 = self.create_project(organization=self.organization)
 
@@ -796,7 +808,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
         assert str(event1.group_id) in returned_issue_ids
         assert str(event2.group_id) in returned_issue_ids
 
-    def test_get_issues_stats_nonexistent_org(self):
+    def test_get_issues_stats_nonexistent_org(self) -> None:
         """Test that get_issues_stats returns None for nonexistent org"""
         result = get_issues_stats(
             org_id=999999,
@@ -808,7 +820,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
 
         assert result is None
 
-    def test_get_issues_stats_empty_issue_ids(self):
+    def test_get_issues_stats_empty_issue_ids(self) -> None:
         """Test that get_issues_stats handles empty issue IDs"""
         result = get_issues_stats(
             org_id=self.organization.id,
@@ -822,7 +834,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
         assert isinstance(result, list)
         assert len(result) == 0
 
-    def test_get_issues_stats_stats_and_lifetime_structure(self):
+    def test_get_issues_stats_stats_and_lifetime_structure(self) -> None:
         """Test that stats and lifetime fields have the correct structure"""
         # Create an issue
         event = self.store_event(
@@ -901,7 +913,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
 class TestGetStaticValues(APITestCase):
     """Tests for _get_static_values() function"""
 
-    def test_boolean_field_returns_true_false(self):
+    def test_boolean_field_returns_true_false(self) -> None:
         """Test that boolean fields return true/false values"""
         # Test all boolean fields
         boolean_fields = [
@@ -918,7 +930,7 @@ class TestGetStaticValues(APITestCase):
             values = {item["value"] for item in result}
             assert values == {"true", "false"}
 
-    def test_device_class_returns_enum_values(self):
+    def test_device_class_returns_enum_values(self) -> None:
         """Test that device.class returns high/medium/low values"""
         result = _get_static_values("device.class")
         assert result is not None
@@ -929,7 +941,7 @@ class TestGetStaticValues(APITestCase):
         assert "medium" in values
         assert "low" in values
 
-    def test_datetime_fields_return_empty_list(self):
+    def test_datetime_fields_return_empty_list(self) -> None:
         """Test that datetime fields return empty list (no suggested values)"""
         datetime_fields = [
             "lastSeen",
@@ -942,29 +954,29 @@ class TestGetStaticValues(APITestCase):
             result = _get_static_values(field)
             assert result == []
 
-    def test_uuid_field_returns_empty_list(self):
+    def test_uuid_field_returns_empty_list(self) -> None:
         """Test that uuid field returns empty list"""
         result = _get_static_values("id")
         assert result == []
 
-    def test_issue_short_id_returns_empty_list(self):
+    def test_issue_short_id_returns_empty_list(self) -> None:
         """Test that issue short id field returns empty list"""
         result = _get_static_values("issue")
         assert result == []
 
-    def test_integer_field_returns_empty_list(self):
+    def test_integer_field_returns_empty_list(self) -> None:
         """Test that integer field returns empty list"""
         result = _get_static_values("timesSeen")
         assert result == []
 
-    def test_text_fields_return_none(self):
+    def test_text_fields_return_none(self) -> None:
         """Test that text fields return None (fall through to API query)"""
         text_fields = ["message", "title", "location"]
         for field in text_fields:
             result = _get_static_values(field)
             assert result is None
 
-    def test_unknown_field_returns_none(self):
+    def test_unknown_field_returns_none(self) -> None:
         """Test that unknown fields return None (fall through to API query)"""
         result = _get_static_values("unknown_field")
         assert result is None
@@ -976,11 +988,12 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
 
     databases = {"default", "control"}
 
-    def test_event_context_fields_included_in_built_in_fields(self):
+    def test_event_context_fields_included_in_built_in_fields(self) -> None:
         """Test that event context fields are included in get_issue_filter_keys"""
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1025,7 +1038,7 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
         for field in expected_event_context_fields:
             assert field in built_in_keys, f"Expected '{field}' to be in built_in_fields"
 
-    def test_event_context_fields_list_completeness(self):
+    def test_event_context_fields_list_completeness(self) -> None:
         """Test that _EVENT_CONTEXT_FIELDS contains expected fields"""
         # Check that the list contains key categories of fields
         assert "device.class" in _EVENT_CONTEXT_FIELDS
@@ -1039,11 +1052,12 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
         assert "os.build" in _EVENT_CONTEXT_FIELDS
         assert "transaction" in _EVENT_CONTEXT_FIELDS
 
-    def test_boolean_event_fields_have_values(self):
+    def test_boolean_event_fields_have_values(self) -> None:
         """Test that boolean event context fields have true/false values in built-in fields"""
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1063,11 +1077,12 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
         assert error_unhandled_field is not None
         assert error_unhandled_field["values"] == ["true", "false"]
 
-    def test_device_class_field_has_enum_values(self):
+    def test_device_class_field_has_enum_values(self) -> None:
         """Test that device.class field has high/medium/low values in built-in fields"""
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1085,12 +1100,13 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
 
     databases = {"default", "control"}
 
-    def test_get_filter_key_values_boolean_field(self):
+    def test_get_filter_key_values_boolean_field(self) -> None:
         """Test that boolean fields return true/false values"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="error.handled",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1098,12 +1114,13 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
         values = {item["value"] for item in result}
         assert values == {"true", "false"}
 
-    def test_get_filter_key_values_device_class(self):
+    def test_get_filter_key_values_device_class(self) -> None:
         """Test that device.class returns enum values"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="device.class",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1111,33 +1128,36 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
         values = [item["value"] for item in result]
         assert values == DEVICE_CLASS_VALUES
 
-    def test_get_filter_key_values_datetime_field(self):
+    def test_get_filter_key_values_datetime_field(self) -> None:
         """Test that datetime fields return empty list"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="lastSeen",
+            stats_period="7d",
         )
 
         assert result == []
 
-    def test_get_filter_key_values_uuid_field(self):
+    def test_get_filter_key_values_uuid_field(self) -> None:
         """Test that uuid field returns empty list"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="id",
+            stats_period="7d",
         )
 
         assert result == []
 
-    def test_get_filter_key_values_boolean_with_substring_filter(self):
+    def test_get_filter_key_values_boolean_with_substring_filter(self) -> None:
         """Test that substring filtering works on boolean fields"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="error.handled",
             substring="tr",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1151,11 +1171,11 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
 
     databases = {"default", "control"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_filter_key_values_message_field(self):
+    def test_get_filter_key_values_message_field(self) -> None:
         """Test that message field queries the API and returns actual event messages"""
         # Store events with different messages
         self.store_event(
@@ -1188,6 +1208,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="message",
+            stats_period="7d",
         )
 
         # Should return actual message values from events, not empty or None
@@ -1196,7 +1217,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
         # The API should return values (may be empty if message isn't indexed as a tag)
         # At minimum, verify we got a list back (not None which would indicate built-in handling)
 
-    def test_get_filter_key_values_message_with_substring(self):
+    def test_get_filter_key_values_message_with_substring(self) -> None:
         """Test that message field supports substring filtering via API"""
         # Store events with different messages
         self.store_event(
@@ -1230,13 +1251,14 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             project_ids=[self.project.id],
             attribute_key="message",
             substring="Database",
+            stats_period="7d",
         )
 
         # Should return a list (API was queried, not short-circuited)
         assert result is not None
         assert isinstance(result, list)
 
-    def test_get_filter_key_values_title_field(self):
+    def test_get_filter_key_values_title_field(self) -> None:
         """Test that title field queries the API and returns actual event titles"""
         # Store events - title is derived from the event
         self.store_event(
@@ -1261,13 +1283,14 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="title",
+            stats_period="7d",
         )
 
         # Should return a list (API was queried)
         assert result is not None
         assert isinstance(result, list)
 
-    def test_get_filter_key_values_location_field(self):
+    def test_get_filter_key_values_location_field(self) -> None:
         """Test that location field queries the API"""
         # Store events with stack traces that have locations
         self.store_event(
@@ -1301,13 +1324,14 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="location",
+            stats_period="7d",
         )
 
         # Should return a list (API was queried)
         assert result is not None
         assert isinstance(result, list)
 
-    def test_text_fields_not_in_field_value_types(self):
+    def test_text_fields_not_in_field_value_types(self) -> None:
         """Verify text fields are not in _FIELD_VALUE_TYPES so they fall through to API query"""
         from sentry.seer.assisted_query.issues_tools import _FIELD_VALUE_TYPES
 
@@ -1316,7 +1340,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
         assert "title" not in _FIELD_VALUE_TYPES
         assert "location" not in _FIELD_VALUE_TYPES
 
-    def test_release_fields_query_api(self):
+    def test_release_fields_query_api(self) -> None:
         """Test that release fields fall through to API query"""
         # Store event with release
         self.store_event(
@@ -1343,6 +1367,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="release",
+            stats_period="7d",
         )
 
         # Should return a list with actual release values
@@ -1360,7 +1385,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
 
     databases = {"default", "control"}
 
-    def test_get_filter_key_values_assigned_field(self):
+    def test_get_filter_key_values_assigned_field(self) -> None:
         """Test that assigned field returns assignee values including special values and team slugs"""
         # Create a team in the organization
         team = self.create_team(organization=self.organization, slug="backend-team")
@@ -1369,6 +1394,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1385,12 +1411,13 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         # Should include team slug prefixed with #
         assert f"#{team.slug}" in values
 
-    def test_get_filter_key_values_assigned_or_suggested_field(self):
+    def test_get_filter_key_values_assigned_or_suggested_field(self) -> None:
         """Test that assigned_or_suggested field returns same values as assigned"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned_or_suggested",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1402,13 +1429,14 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         assert "my_teams" in values
         assert "none" in values
 
-    def test_get_filter_key_values_assigned_includes_member_usernames(self):
+    def test_get_filter_key_values_assigned_includes_member_usernames(self) -> None:
         """Test that assigned field includes organization member usernames"""
         # The test user is automatically a member of the organization
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1418,36 +1446,39 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         # The test user from APITestCase should be included
         assert len(values) > 3  # More than just special values (me, my_teams, none)
 
-    def test_get_filter_key_values_bookmarks_field(self):
+    def test_get_filter_key_values_bookmarks_field(self) -> None:
         """Test that bookmarks field returns usernames"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="bookmarks",
+            stats_period="7d",
         )
 
         assert result is not None
         assert isinstance(result, list)
         # Should have usernames (at least the test user)
 
-    def test_get_filter_key_values_subscribed_field(self):
+    def test_get_filter_key_values_subscribed_field(self) -> None:
         """Test that subscribed field returns usernames"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="subscribed",
+            stats_period="7d",
         )
 
         assert result is not None
         assert isinstance(result, list)
 
-    def test_get_filter_key_values_assigned_with_substring_filter(self):
+    def test_get_filter_key_values_assigned_with_substring_filter(self) -> None:
         """Test that substring filtering works on assigned field"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned",
             substring="my_",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1456,7 +1487,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         for item in result:
             assert "my_" in item["value"].lower()
 
-    def test_get_issue_filter_keys_includes_assignee_values(self):
+    def test_get_issue_filter_keys_includes_assignee_values(self) -> None:
         """Test that get_issue_filter_keys includes assignee values in built_in_fields"""
         # Create a team
         team = self.create_team(organization=self.organization, slug="test-team")
@@ -1464,6 +1495,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1496,7 +1528,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         assert subscribed_field is not None
         assert "values" in subscribed_field
 
-    def test_format_username_uuid_username_uses_email(self):
+    def test_format_username_uuid_username_uses_email(self) -> None:
         """Test that users with UUID usernames (32 hex chars) return email instead"""
         # Create a user with a UUID username (SAML users get UUID usernames)
         uuid_username = "01e2eb9a75174388a63daa4afcf782de"  # 32 hex characters
@@ -1508,6 +1540,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1523,7 +1556,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
 
     databases = {"default", "control"}
 
-    def test_get_filter_key_values_release_field(self):
+    def test_get_filter_key_values_release_field(self) -> None:
         """Test that release field returns actual release versions"""
         # Create releases
         release1 = self.create_release(
@@ -1537,6 +1570,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="release",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1545,7 +1579,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         assert release1.version in values
         assert release2.version in values
 
-    def test_get_filter_key_values_first_release_field(self):
+    def test_get_filter_key_values_first_release_field(self) -> None:
         """Test that firstRelease field returns actual release versions"""
         # Create releases
         release1 = self.create_release(project=self.project, version="myapp@1.0.0")
@@ -1554,6 +1588,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="firstRelease",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1561,12 +1596,13 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         values = [item["value"] for item in result]
         assert release1.version in values
 
-    def test_get_filter_key_values_release_stage_field(self):
+    def test_get_filter_key_values_release_stage_field(self) -> None:
         """Test that release.stage field returns static enum values"""
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="release.stage",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1576,7 +1612,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         assert "low_adoption" in values
         assert "replaced" in values
 
-    def test_get_filter_key_values_release_with_substring(self):
+    def test_get_filter_key_values_release_with_substring(self) -> None:
         """Test that release field supports substring filtering"""
         self.create_release(project=self.project, version="myapp@1.0.0")
         self.create_release(project=self.project, version="myapp@2.0.0")
@@ -1587,6 +1623,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
             project_ids=[self.project.id],
             attribute_key="release",
             substring="myapp",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1594,13 +1631,14 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         for item in result:
             assert "myapp" in item["value"]
 
-    def test_get_issue_filter_keys_includes_release_values(self):
+    def test_get_issue_filter_keys_includes_release_values(self) -> None:
         """Test that get_issue_filter_keys includes actual release values"""
         release = self.create_release(project=self.project, version="myapp@3.0.0")
 
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None

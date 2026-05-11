@@ -12,6 +12,7 @@ __all__ = [
     "PluginIssueAlertHandler",
     "SentryAppIssueAlertHandler",
     "SlackIssueAlertHandler",
+    "SlackStagingIssueAlertHandler",
     "WebhookIssueAlertHandler",
     "PagerDutyIssueAlertHandler",
 ]
@@ -28,5 +29,8 @@ from .handlers.opsgenie_issue_alert_handler import OpsgenieIssueAlertHandler
 from .handlers.pagerduty_issue_alert_handler import PagerDutyIssueAlertHandler
 from .handlers.plugin_issue_alert_handler import PluginIssueAlertHandler
 from .handlers.sentry_app_issue_alert_handler import SentryAppIssueAlertHandler
-from .handlers.slack_issue_alert_handler import SlackIssueAlertHandler
+from .handlers.slack_issue_alert_handler import (
+    SlackIssueAlertHandler,
+    SlackStagingIssueAlertHandler,
+)
 from .handlers.webhook_issue_alert_handler import WebhookIssueAlertHandler

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.apidocs.constants import (
@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
@@ -30,7 +30,7 @@ class ShortIdLookupResponse(TypedDict):
 
 
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ShortIdLookupEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -48,6 +48,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                 type=str,
                 location="path",
             ),
+            IssueParams.GROUP_INDEX_COLLAPSE,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -106,6 +107,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                         "priorityLockedAt": None,
                         "seerFixabilityScore": 0.5,
                         "seerAutofixLastTriggered": None,
+                        "seerExplorerAutofixLastTriggered": None,
                         "substatus": "ongoing",
                     },
                     "groupId": "1",

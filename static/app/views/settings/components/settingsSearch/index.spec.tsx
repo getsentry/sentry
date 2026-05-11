@@ -3,13 +3,13 @@ import {OrganizationsFixture} from 'sentry-fixture/organizations';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {setSearchMap} from 'sentry/components/search/sources/formSource';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
 
 jest.mock('sentry/actionCreators/navigation');
 
@@ -59,9 +59,9 @@ describe('SettingsSearch', () => {
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('can focus when hotkey is pressed', () => {
+  it('can focus when hotkey is pressed', async () => {
     render(<SettingsSearch />);
-    fireEvent.keyDown(document.body, {key: 'Slash', code: 'Slash', keyCode: 191});
+    await userEvent.keyboard('/');
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
@@ -71,6 +71,10 @@ describe('SettingsSearch', () => {
     await userEvent.type(screen.getByPlaceholderText('Search'), 'test');
     await userEvent.click(await screen.findByText(textWithMarkupMatcher('test-1')));
 
-    expect(navigateTo).toHaveBeenCalledWith('/test-1/', expect.anything(), undefined);
+    expect(navigateTo).toHaveBeenCalledWith(
+      '/test-1/',
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

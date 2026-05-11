@@ -2,9 +2,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import ChartFooter from 'sentry/views/discover/results/chartFooter';
+import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
 
 describe('Discover > ChartFooter', () => {
   const yAxisValue = ['count()', 'failure_count()'];
@@ -29,12 +29,12 @@ describe('Discover > ChartFooter', () => {
         total={100}
         yAxisValue={yAxisValue}
         yAxisOptions={yAxisOptions}
-        onAxisChange={() => undefined}
+        onAxisChange={() => {}}
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        onIntervalChange={() => undefined}
+        onDisplayChange={() => {}}
+        onTopEventsChange={() => {}}
+        onIntervalChange={() => {}}
         topEvents="5"
         eventView={eventView}
       />
@@ -59,12 +59,12 @@ describe('Discover > ChartFooter', () => {
         total={100}
         yAxisValue={yAxisValue}
         yAxisOptions={yAxisOptions}
-        onAxisChange={() => undefined}
+        onAxisChange={() => {}}
         displayMode={DisplayModes.TOP5}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        onIntervalChange={() => undefined}
+        onDisplayChange={() => {}}
+        onTopEventsChange={() => {}}
+        onIntervalChange={() => {}}
         topEvents={limit}
         eventView={eventView}
       />
@@ -88,9 +88,9 @@ describe('Discover > ChartFooter', () => {
         onAxisChange={newYAxis => (yAxis = newYAxis)}
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        onIntervalChange={() => undefined}
+        onDisplayChange={() => {}}
+        onTopEventsChange={() => {}}
+        onIntervalChange={() => {}}
         topEvents="5"
         eventView={eventView}
       />

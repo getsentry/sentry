@@ -74,8 +74,8 @@ class LazyServiceWrapper(Generic[T]):
         if backend in self._dangerous:
             warnings.warn(
                 warnings.UnsupportedBackend(
-                    "The {!r} backend for {} is not recommended "
-                    "for production use.".format(self._backend, self._base)
+                    f"The {self._backend!r} backend for {self._base} is not recommended "
+                    "for production use."
                 )
             )
         instance = backend(**self._options)

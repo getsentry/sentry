@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CommandLine from 'sentry/components/commandLine';
+import {CommandLine} from 'sentry/components/commandLine';
 
 describe('CommandLine', () => {
   it('renders', () => {

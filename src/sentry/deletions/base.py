@@ -96,12 +96,7 @@ class BaseDeletionTask(Generic[ModelT]):
         self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
 
     def __repr__(self) -> str:
-        return "<{}: skip_models={} transaction_id={} actor_id={}>".format(
-            type(self),
-            self.skip_models,
-            self.transaction_id,
-            self.actor_id,
-        )
+        return f"<{type(self)}: skip_models={self.skip_models} transaction_id={self.transaction_id} actor_id={self.actor_id}>"
 
     def chunk(self, apply_filter: bool = False) -> bool:
         """
@@ -199,14 +194,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         self.order_by = order_by
 
     def __repr__(self) -> str:
-        return "<{}: model={} query={} order_by={} transaction_id={} actor_id={}>".format(
-            type(self),
-            self.model,
-            self.query,
-            self.order_by,
-            self.transaction_id,
-            self.actor_id,
-        )
+        return f"<{type(self)}: model={self.model} query={self.query} order_by={self.order_by} transaction_id={self.transaction_id} actor_id={self.actor_id}>"
 
     def get_query_filter(self) -> None | Q:
         """

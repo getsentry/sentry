@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getFriendlyPlanName} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface UpsellFooterProps {
   onCloseModal: () => void;
@@ -19,7 +19,7 @@ interface UpsellFooterProps {
   source?: string;
 }
 
-function Footer({
+export function Footer({
   subscription,
   organization,
   source,
@@ -42,12 +42,12 @@ function Footer({
       {canTrial && !showTrialResetContent ? (
         <UpgradeOrTrialButton
           data-test-id="upgrade-plan"
-          priority="default"
+          variant="secondary"
           action="upgrade"
           {...buttonProps}
         />
       ) : (
-        <Button data-test-id="maybe-later" priority="default" onClick={onCloseModal}>
+        <Button data-test-id="maybe-later" variant="secondary" onClick={onCloseModal}>
           {t('Maybe Later')}
         </Button>
       )}
@@ -91,5 +91,3 @@ const SidebarFooter = styled('div')`
     margin-bottom: 0.5rem;
   }
 `;
-
-export default Footer;

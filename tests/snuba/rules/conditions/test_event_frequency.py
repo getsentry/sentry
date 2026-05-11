@@ -28,7 +28,6 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -499,8 +498,9 @@ class EventFrequencyPercentConditionQueryTest(
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_batch_query_percent(self) -> None:
-        self._make_sessions(60, self.environment2.name)
-        self._make_sessions(60, self.environment.name)
+        received = self.end.timestamp()
+        self._make_sessions(60, self.environment2.name, received=received)
+        self._make_sessions(60, self.environment.name, received=received)
         batch_query = self.condition_inst.batch_query_hook(
             group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
             start=self.start,
@@ -831,7 +831,6 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-@with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
 class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTestBase):
     __test__ = Abstract(__module__, __qualname__)
 
@@ -1004,7 +1003,6 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
 
 
 def test_convert_rule_condition_to_snuba_condition() -> None:
-
     # Test non-TaggedEventFilter condition
     condition = {"id": "some.other.condition"}
     assert (

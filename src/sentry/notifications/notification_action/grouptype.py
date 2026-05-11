@@ -22,7 +22,6 @@ class SendTestNotification(GroupType):
     slug = "send-test-notification"
     description = "Send test notification"
     category = GroupCategory.TEST_NOTIFICATION.value
-    category_v2 = GroupCategory.TEST_NOTIFICATION.value
     released = False
     in_default_search = False
     enable_auto_resolve = True
@@ -40,7 +39,6 @@ class SendTestNotification(GroupType):
 
 
 def get_test_notification_event_data(project) -> GroupEvent | None:
-
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         project_id=project.id,
@@ -80,4 +78,6 @@ def get_test_notification_event_data(project) -> GroupEvent | None:
     if event is None:
         return None
 
-    return GroupEvent.from_event(event, generic_group)
+    group_event = GroupEvent.from_event(event, generic_group)
+    group_event.occurrence = occurrence
+    return group_event

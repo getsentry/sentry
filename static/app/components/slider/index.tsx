@@ -7,14 +7,13 @@ import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
 import {Flex} from '@sentry/scraps/layout';
-
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SliderThumb} from './thumb';
 
 export interface SliderProps
-  extends Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
+  extends
+    Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
     Pick<AriaSliderThumbOptions, 'autoFocus' | 'onFocus' | 'onBlur' | 'onFocusChange'> {
   /**
    * (This prop is now deprecated - slider ranges need to have consistent, evenly
@@ -164,7 +163,9 @@ export function Slider({
 
     if (ticks) {
       const range = max - min;
-      return [...new Array(ticks)].map((_, i) => min + i * (range / (ticks - 1)));
+      return [...Array.from({length: ticks})].map(
+        (_, i) => min + i * (range / (ticks - 1))
+      );
     }
 
     return [];
@@ -267,7 +268,7 @@ export function Slider({
             </SliderTick>
           ))}
 
-          {[...new Array(nThumbs)].map((_, index) => (
+          {[...Array.from({length: nThumbs})].map((_, index) => (
             <SliderThumb
               ref={node => {
                 if (!node) {
@@ -333,13 +334,14 @@ const SliderTrack = styled('div', {
   width: calc(100% - 2px);
   height: 3px;
   border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   margin-left: 1px; /* to better align track with label */
 
   margin-bottom: ${p => (p.hasTickLabels ? '2em' : '0.5rem')};
   margin-top: ${p => (p.hasThumbLabels ? '2em' : '0.5rem')};
 
-  ${p => p.disabled && `pointer-events: none;`}
+  ${p => p.disabled && 'pointer-events: none;'}
 
   /* Users can click on the track to quickly jump to a value. We should extend the click
   area to make the action easier. */
@@ -359,11 +361,11 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   position: absolute;
   height: inherit;
   border-radius: inherit;
-  background: ${p => p.theme.tokens.interactive.link.accent.active};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   pointer-events: none;
 
-  ${p => p.error && `background: ${p.theme.tokens.content.danger};`}
-  ${p => p.disabled && `background: ${p.theme.tokens.content.disabled};`}
+  ${p => p.error && `background: ${p.theme.tokens.background.danger.vibrant};`}
+  ${p => p.disabled && `background: ${p.theme.tokens.background.secondary};`}
 `;
 
 const SliderTick = styled('div')<{
@@ -380,6 +382,7 @@ const SliderTick = styled('div')<{
   width: 2px;
   height: 6px;
   border-radius: 2px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   ${p =>
@@ -396,7 +399,7 @@ const SliderTick = styled('div')<{
 const SliderTickLabel = styled('small')`
   display: inline-block;
   position: absolute;
-  top: calc(100% + ${space(1)});
+  top: calc(100% + ${p => p.theme.space.md});
   margin: 0 -1px;
 
   color: ${p => p.theme.tokens.content.secondary};

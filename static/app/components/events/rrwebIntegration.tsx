@@ -1,16 +1,16 @@
 import {lazy} from 'react';
 import styled from '@emotion/styled';
 
-import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingError from 'sentry/components/loadingError';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -36,7 +36,16 @@ function EventRRWebIntegrationContent({
     refetch,
   } = useApiQuery<IssueAttachment[]>(
     [
-      `/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
+        {
+          path: {
+            organizationIdOrSlug: orgId,
+            projectIdOrSlug: projectSlug,
+            eventId: event.id,
+          },
+        }
+      ),
       // This was changed from `rrweb.json`, so that we can instead
       // support incremental rrweb events as attachments. This is to avoid
       // having clients uploading a single, large sized replay.
@@ -98,5 +107,5 @@ export function EventRRWebIntegration(props: Props) {
 
 const StyledReplayEventDataSection = styled(InterimSection)`
   overflow: hidden;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;

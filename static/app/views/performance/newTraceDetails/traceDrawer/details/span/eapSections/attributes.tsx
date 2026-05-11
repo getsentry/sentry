@@ -4,12 +4,14 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {Link} from 'sentry/components/core/link';
-import BaseSearchBar from 'sentry/components/searchBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,9 +22,12 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
+import {useLocation} from 'sentry/utils/useLocation';
+import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -31,37 +36,20 @@ import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
   sortAttributes,
+  tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text', 'gen_ai.embeddings.input'];
 
-function tryParseJson(value: unknown) {
-  if (typeof value !== 'string') {
-    return value;
-  }
-  try {
-    const parsedValue = JSON.parse(value);
-    // Some arrays are double stringified, so we need to unwrap them
-    // This needs to be fixed on the SDK side
-    // TODO: Remove this once the SDK is fixed
-    if (!Array.isArray(parsedValue)) {
-      return parsedValue;
-    }
-    return parsedValue.map((item: any): any => tryParseJson(item));
-  } catch (error) {
-    return value;
-  }
-}
-
 const jsonRenderer = (props: CustomRenderersProps) => {
-  const value = tryParseJson(props.item.value);
+  const value = tryParseJsonRecursive(props.item.value);
   return <StructuredData value={value} withAnnotatedText maxDefaultDepth={0} />;
 };
 
@@ -88,6 +76,8 @@ export function Attributes({
   theme: Theme;
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const {selection} = usePageFilters();
+  const currentLocation = useLocation();
   const traceState = useTraceState();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
@@ -146,6 +136,21 @@ export function Attributes({
         </StyledLink>
       );
     },
+    [FieldKey.TRACE]: (props: CustomRenderersProps) => {
+      const traceSlug = String(props.item.value);
+      const target = getTraceDetailsUrl({
+        organization,
+        traceSlug,
+        spanId: node.value.event_id,
+        timestamp: node.value.start_timestamp,
+        dateSelection: normalizeDateTimeParams(selection.datetime),
+        location: {
+          ...currentLocation,
+          query: {},
+        },
+      });
+      return <StyledLink to={target}>{props.item.value}</StyledLink>;
+    },
     [FieldKey.REPLAY_ID]: (props: CustomRenderersProps) => {
       const target: LocationDescriptorObject = {
         pathname: makeReplaysPathname({
@@ -167,6 +172,13 @@ export function Attributes({
     },
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    assertion_failure_data: (props: CustomRenderersProps) => {
+      if (props.item.value === null) {
+        return <Text variant="muted">null</Text>;
+      }
+
+      return <AssertionFailureTree assertion={props.item.value.toString()} />;
     },
   };
 
@@ -245,6 +257,6 @@ const NoAttributesMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;

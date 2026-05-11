@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import OrganizationApiKeysList from 'sentry/views/settings/organizationApiKeys/organizationApiKeysList';
+import {OrganizationApiKeysList} from 'sentry/views/settings/organizationApiKeys/organizationApiKeysList';
 
 describe('OrganizationApiKeysList', () => {
   it('opens a modal when trying to delete a key', async () => {

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import Indicators from 'sentry/components/indicators';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useSetupWizardViewedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
 import {useOrganizationsWithRegion} from 'sentry/views/setupWizard/utils/useOrganizationsWithRegion';
@@ -15,11 +15,11 @@ type Props = {
 };
 
 function SetupWizard({hash, enableProjectSelection = false}: Props) {
-  const {data: organizations, isError, isLoading} = useOrganizationsWithRegion();
+  const {data: organizations, isError, isPending} = useOrganizationsWithRegion();
 
   useSetupWizardViewedAnalytics(organizations);
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

@@ -17,7 +17,7 @@ type GroupPreviewTooltipProps = {
   query?: string;
 };
 
-function GroupPreviewTooltip({
+export function GroupPreviewTooltip({
   children,
   groupId,
   groupingCurrentLevel,
@@ -66,5 +66,3 @@ function GroupPreviewTooltip({
     </StackTracePreview>
   );
 }
-
-export default GroupPreviewTooltip;

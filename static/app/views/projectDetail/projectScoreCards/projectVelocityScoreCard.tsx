@@ -1,16 +1,19 @@
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {Button} from 'sentry/components/core/button';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 
 import {ActionWrapper} from './actionWrapper';
 
@@ -25,15 +28,10 @@ const useReleaseCount = (props: Props) => {
   const {projects, environments, datetime} = selection;
   const {period} = datetime;
 
-  const {start: previousStart} = parseStatsPeriod(
-    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
-      .statsPeriod!
-  );
-
-  const {start: previousEnd} = parseStatsPeriod(
-    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
-      .statsPeriod!
-  );
+  const doubledPeriod = getPeriod(
+    {period, start: undefined, end: undefined},
+    {shouldDoublePeriod: true}
+  ).statsPeriod;
 
   const commonQuery = {
     environment: environments,
@@ -43,7 +41,9 @@ const useReleaseCount = (props: Props) => {
 
   const currentQuery = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/stats/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...commonQuery,
@@ -62,12 +62,14 @@ const useReleaseCount = (props: Props) => {
 
   const previousQuery = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/stats/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...commonQuery,
-          start: previousStart,
-          end: previousEnd,
+          statsPeriodStart: doubledPeriod,
+          statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
         },
       },
     ],
@@ -88,7 +90,9 @@ const useReleaseCount = (props: Props) => {
 
   const allTimeQuery = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/stats/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...commonQuery,
@@ -127,7 +131,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectVelocityScoreCard(props: Props) {
+export function ProjectVelocityScoreCard(props: Props) {
   const {organization} = props;
 
   const {
@@ -187,7 +191,11 @@ function ProjectVelocityScoreCard(props: Props) {
             </Button>
           </Widget.WidgetToolbar>
         }
-        Visualization={<Widget.WidgetError error={error} />}
+        Visualization={
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        }
       />
     );
   }
@@ -214,5 +222,3 @@ function ProjectVelocityScoreCard(props: Props) {
     />
   );
 }
-
-export default ProjectVelocityScoreCard;

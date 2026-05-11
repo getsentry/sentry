@@ -4,7 +4,7 @@ import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
+import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 
 describe('BillingInfoCard', () => {
   const organization = OrganizationFixture({access: ['org:billing']});

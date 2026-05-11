@@ -70,7 +70,7 @@ def _fetch_release_registry_data(**kwargs):
     name="sentry.tasks.release_registry.fetch_release_registry_data",
     namespace=sdk_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def fetch_release_registry_data(**kwargs):
     _fetch_release_registry_data(**kwargs)

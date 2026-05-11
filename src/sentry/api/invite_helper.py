@@ -163,9 +163,17 @@ class ApiInviteHelper:
     def handle_invite_not_approved(self) -> None:
         if not self.invite_approved:
             assert self.invite_context.member
+            member = self.invite_context.member
             organization_service.delete_organization_member(
-                organization_member_id=self.invite_context.member.id,
+                organization_member_id=member.id,
                 organization_id=self.invite_context.organization.id,
+            )
+            create_audit_entry(
+                self.request,
+                organization_id=self.invite_context.organization.id,
+                target_object=member.id,
+                event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
+                data={"email": member.email},
             )
 
     @property
@@ -199,7 +207,9 @@ class ApiInviteHelper:
     def member_already_exists(self) -> bool:
         if not self.user_authenticated:
             return False
-        return self.invite_context.user_id is not None
+        # Must match the authenticated request user — not merely "the resolved
+        # member has some user_id".
+        return self.invite_context.user_id == self.request.user.id
 
     @property
     def valid_request(self) -> bool:
@@ -217,7 +227,7 @@ class ApiInviteHelper:
 
         if self.member_already_exists:
             self.handle_member_already_exists()
-            if self.invite_context.invite_organization_member_id is not None:
+            if self._valid_cleanup_target():
                 organization_service.delete_organization_member(
                     organization_member_id=self.invite_context.invite_organization_member_id,
                     organization_id=self.invite_context.organization.id,
@@ -265,6 +275,41 @@ class ApiInviteHelper:
         )
 
         return member
+
+    def _valid_cleanup_target(self) -> bool:
+        """
+        Authorize the stale-invite cleanup-delete branch of ``accept_invite``.
+
+        When the authenticated user is already a member of the org, the helper
+        may delete the OrganizationMember referenced by the URL (a stale
+        pending invite). To prevent a logged-in user from using this path to
+        delete arbitrary members, require that the caller holds a token
+        matching that specific pending invite.
+
+        ``self.invite_context.member`` is the current user's own OM in this
+        branch — not the invite — so we re-fetch the OM at
+        ``invite_organization_member_id`` (no user_id scoping) to read the
+        invite's own token.
+        """
+        if self.token is None:
+            return False
+        invite_om_id = self.invite_context.invite_organization_member_id
+        if invite_om_id is None:
+            return False
+
+        invite_context = organization_service.get_invite_by_id(
+            organization_id=self.invite_context.organization.id,
+            organization_member_id=invite_om_id,
+        )
+        if invite_context is None or invite_context.member is None:
+            return False
+        invite_om = invite_context.member
+        if not invite_om.is_pending or invite_om.token_expired:
+            return False
+        return constant_time_compare(
+            invite_om.token or invite_om.legacy_token,
+            self.token,
+        )
 
     def _needs_2fa(self) -> bool:
         org_requires_2fa = self.invite_context.organization.flags.require_2fa

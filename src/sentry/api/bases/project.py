@@ -90,6 +90,15 @@ class ProjectDistributionPermission(ProjectPermission):
     }
 
 
+class ProjectDistributionOrProjectPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:distribution", "project:read", "project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
+        "PUT": ["project:write", "project:admin"],
+        "DELETE": ["project:admin"],
+    }
+
+
 class ProjectEventPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
@@ -199,7 +208,9 @@ class ProjectEndpoint(Endpoint):
 
         bind_organization_context(project.organization)
 
-        request._request.organization = project.organization  # type: ignore[attr-defined]  # XXX: we should not be stuffing random attributes into HttpRequest
+        request._request.organization = (
+            project.organization
+        )  # XXX: we should not be stuffing random attributes into HttpRequest
 
         kwargs["project"] = project
         return (args, kwargs)

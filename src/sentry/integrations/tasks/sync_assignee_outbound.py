@@ -1,5 +1,7 @@
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
 from sentry.integrations.analytics import IntegrationIssueAssigneeSyncedEvent
@@ -19,9 +21,8 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
@@ -30,17 +31,26 @@ from sentry.users.services.user.service import user_service
     name="sentry.integrations.tasks.sync_assignee_outbound",
     namespace=integrations_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
-)
-@retry(
-    exclude=(
+    retry=Retry(
+        times=5,
+        delay=60 * 5,
+        on=(Exception,),
+        ignore=(
+            ExternalIssue.DoesNotExist,
+            Integration.DoesNotExist,
+            User.DoesNotExist,
+            Organization.DoesNotExist,
+            IntegrationError,
+        ),
+    ),
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=(
         ExternalIssue.DoesNotExist,
         Integration.DoesNotExist,
         User.DoesNotExist,
         Organization.DoesNotExist,
         IntegrationError,
-    )
+    ),
 )
 def sync_assignee_outbound(
     external_issue_id: int,

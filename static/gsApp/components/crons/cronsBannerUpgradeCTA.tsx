@@ -1,10 +1,10 @@
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
+
 import {t} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import type {Subscription} from 'getsentry/types';
@@ -56,6 +56,8 @@ export function CronsBannerOnDemandCTA({
   hasBillingAccess,
   subscription,
 }: OnDemandCTAProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const openOnDemandBudgetEditModal = () => {

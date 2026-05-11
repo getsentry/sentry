@@ -55,9 +55,9 @@ class DataSourceTest(BaseWorkflowTest):
             pk_map, ImportScope.Organization, ImportFlags()
         )
 
-        assert (
-            old_data_source_pk == old_data_source_id
-        ), f"Expected {old_data_source_id}, got {old_data_source_pk}"
+        assert old_data_source_pk == old_data_source_id, (
+            f"Expected {old_data_source_id}, got {old_data_source_pk}"
+        )
         assert data_source.source_id == str(new_monitor_pk)
         assert data_source.pk is None
 

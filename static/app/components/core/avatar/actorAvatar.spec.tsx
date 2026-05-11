@@ -4,21 +4,13 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
-import type {Team as TeamType} from 'sentry/types/organization';
-import type {User as UserType} from 'sentry/types/user';
+import {ActorAvatar} from '@sentry/scraps/avatar';
 
-import {ActorAvatar} from './actorAvatar';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {Team as TeamType} from 'sentry/types/organization';
 
 describe('ActorAvatar', () => {
-  const user: UserType = {
-    ...UserFixture(),
-    id: '1',
-    name: 'JanActore Bloggs',
-    email: 'janebloggs@example.com',
-  };
   const team1: TeamType = {
     ...TeamFixture(),
     id: '3',
@@ -27,11 +19,15 @@ describe('ActorAvatar', () => {
   };
 
   beforeEach(() => {
-    MemberListStore.loadInitialData([user]);
     TeamStore.loadInitialData([team1]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      method: 'GET',
+      body: [],
+    });
   });
 
-  it('should show a gravatar when actor type is a user', () => {
+  it('should show a gravatar when actor type is a user', async () => {
     render(
       <ActorAvatar
         actor={{
@@ -41,6 +37,8 @@ describe('ActorAvatar', () => {
         }}
       />
     );
+
+    expect(await screen.findByText('JB')).toBeInTheDocument();
   });
 
   it('should not show a gravatar when actor type is a team', () => {
@@ -57,7 +55,7 @@ describe('ActorAvatar', () => {
     expect(screen.getByText('CT')).toBeInTheDocument();
   });
 
-  it('should show an avatar even if the user is not in the memberlist', () => {
+  it('should show an avatar even if the user is not in the memberlist', async () => {
     render(
       <ActorAvatar
         actor={{
@@ -68,7 +66,7 @@ describe('ActorAvatar', () => {
       />
     );
 
-    expect(screen.getByText('JV')).toBeInTheDocument();
+    expect(await screen.findByText('JV')).toBeInTheDocument();
   });
 
   it('should return null when actor type is a unknown', () => {
@@ -130,8 +128,6 @@ describe('ActorAvatar', () => {
       <ActorAvatar
         actor={{
           id: user2.id,
-          name: user2.name,
-          email: user2.email,
           type: 'user',
         }}
       />

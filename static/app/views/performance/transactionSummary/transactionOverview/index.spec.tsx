@@ -12,15 +12,23 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
+
+// TODO: this suite covers the legacy (non-EAP) component path. The
+// useTransactionSummaryEAP hook now always returns true after the
+// performance-transaction-summary-eap flag was graduated; mock it back
+// to false here until the legacy paths are deleted.
+jest.mock('sentry/views/performance/eap/useTransactionSummaryEAP', () => ({
+  useTransactionSummaryEAP: () => false,
+}));
 
 const teams = [
   TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -327,6 +335,16 @@ describe('Performance > TransactionSummary', () => {
         },
       ],
     });
+    // Replay count from useSpans (TransactionHeader)
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      match: [
+        (_url, options) => {
+          return options.query?.dataset === 'spans';
+        },
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets/',
       body: [
@@ -400,7 +418,7 @@ describe('Performance > TransactionSummary', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/key-transactions-list/`,
+      url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
         count: 0,
@@ -431,7 +449,7 @@ describe('Performance > TransactionSummary', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility/`,
+      url: '/organizations/org-slug/metrics-compatibility/',
       body: {
         compatible_projects: [],
         incompatible_projecs: [],
@@ -440,7 +458,7 @@ describe('Performance > TransactionSummary', () => {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility-sums/`,
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
       body: {
         sum: {
           metrics: 100,
@@ -677,6 +695,10 @@ describe('Performance > TransactionSummary', () => {
           name: 'Project Name 2',
         }),
       ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: projects,
+      });
       OrganizationStore.onUpdate(OrganizationFixture({slug: 'org-slug'}), {
         replace: true,
       });
@@ -797,7 +819,7 @@ describe('Performance > TransactionSummary', () => {
       renderWithLayout(data);
 
       const mockUpdate = MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/key-transactions/`,
+        url: '/organizations/org-slug/key-transactions/',
         method: 'POST',
         body: {},
       });
@@ -1019,7 +1041,7 @@ describe('Performance > TransactionSummary', () => {
     it('uses MEP dataset for stats query', async () => {
       const data = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
-        features: ['dynamic-sampling', 'mep-rollout-flag'],
+        features: ['dynamic-sampling'],
       });
 
       renderWithLayout(data);
@@ -1054,7 +1076,7 @@ describe('Performance > TransactionSummary', () => {
     it('does not use MEP dataset for stats query if cardinality fallback fails', async () => {
       MockApiClient.addMockResponse({
         method: 'GET',
-        url: `/organizations/org-slug/metrics-compatibility-sums/`,
+        url: '/organizations/org-slug/metrics-compatibility-sums/',
         body: {
           sum: {
             metrics: 100,
@@ -1065,7 +1087,7 @@ describe('Performance > TransactionSummary', () => {
       });
       const data = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
-        features: ['dynamic-sampling', 'mep-rollout-flag'],
+        features: ['dynamic-sampling'],
       });
 
       renderWithLayout(data);
@@ -1138,7 +1160,7 @@ describe('Performance > TransactionSummary', () => {
       });
       const data = initializeData({
         query: {query: 'transaction.op:pageload has:not-compatible'}, // Adds incompatible w/ metrics tag
-        features: ['dynamic-sampling', 'mep-rollout-flag'],
+        features: ['dynamic-sampling'],
       });
 
       renderWithLayout(data);

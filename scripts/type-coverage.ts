@@ -8,13 +8,13 @@ import * as ts from 'typescript';
 
 // Terminal color codes
 const colors = {
-  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
-  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
-  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
-  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
-  magenta: (text: string) => `\x1b[35m${text}\x1b[0m`,
-  bold: (text: string) => `\x1b[1m${text}\x1b[0m`,
-  dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
+  red: (text: string) => `\x1B[31m${text}\x1B[0m`,
+  green: (text: string) => `\x1B[32m${text}\x1B[0m`,
+  yellow: (text: string) => `\x1B[33m${text}\x1B[0m`,
+  cyan: (text: string) => `\x1B[36m${text}\x1B[0m`,
+  magenta: (text: string) => `\x1B[35m${text}\x1B[0m`,
+  bold: (text: string) => `\x1B[1m${text}\x1B[0m`,
+  dim: (text: string) => `\x1B[2m${text}\x1B[0m`,
 };
 
 type Options = {
@@ -475,7 +475,7 @@ function main() {
     try {
       return fs.readFileSync(filename, 'utf8');
     } catch {
-      return undefined;
+      return;
     }
   });
 
@@ -498,7 +498,7 @@ function main() {
       try {
         return fs.readFileSync(filename, 'utf8');
       } catch {
-        return undefined;
+        return;
       }
     },
     useCaseSensitiveFileNames: true,
@@ -597,6 +597,7 @@ function main() {
       summary: {
         total: totals.total,
         typed: totals.typed,
+        untyped: totals.total - totals.typed,
         coverage: Number(pct.toFixed(2)),
         filesScanned: files.length,
       },
@@ -680,15 +681,17 @@ function main() {
 
     console.log(colors.bold('Summary'));
     console.log(`Files scanned: ${files.length}`);
-    console.log(`Items total : ${totals.total}`);
-    console.log(`Items typed : ${totals.typed}`);
-    console.log(`Coverage    : ${colors.green(pct.toFixed(2) + '%')}\n`);
+    console.log(`Items total  : ${totals.total}`);
+    console.log(`Items typed  : ${totals.typed}`);
+    console.log(`Items untyped: ${totals.total - totals.typed}`);
+    console.log(`Coverage     : ${colors.green(pct.toFixed(2) + '%')}\n`);
   } else {
     console.log(colors.bold('\nType Coverage Report (tsconfig-aware)'));
     console.log(`Files scanned: ${files.length}`);
-    console.log(`Items total : ${totals.total}`);
-    console.log(`Items typed : ${totals.typed}`);
-    console.log(`Coverage    : ${colors.green(pct.toFixed(2) + '%')}\n`);
+    console.log(`Items total  : ${totals.total}`);
+    console.log(`Items typed  : ${totals.typed}`);
+    console.log(`Items untyped: ${totals.total - totals.typed}`);
+    console.log(`Coverage     : ${colors.green(pct.toFixed(2) + '%')}\n`);
 
     const worst = Object.entries(perFile)
       .map(([file, c]) => ({

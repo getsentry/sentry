@@ -1,18 +1,17 @@
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
-import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
+import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
+import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 
-type WidgetTemplate = Widget & {
-  description: string;
-};
-
-const getDefaultWidgets = (organization: Organization) => {
+export const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-  const transactionsWidgets = [
+  const transactionsWidgets: WidgetTemplate[] = [
     {
       id: 'duration-distribution',
       title: t('Duration Distribution'),
@@ -20,6 +19,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.LINE,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -43,9 +43,11 @@ const getDefaultWidgets = (organization: Organization) => {
       id: 'high-throughput-transactions',
       title: t('High Throughput Transactions'),
       description: t('Top 5 transactions with the largest volume.'),
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.AREA,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      limit: TOP_N,
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -65,6 +67,7 @@ const getDefaultWidgets = (organization: Organization) => {
       widgetType: WidgetType.RELEASE,
       interval: '5m',
       limit: 8,
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -83,6 +86,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -101,6 +105,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -119,6 +124,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -139,6 +145,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.BAR,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -157,7 +164,7 @@ const getDefaultWidgets = (organization: Organization) => {
       ],
     },
   ];
-  const spanWidgets = [
+  const spanWidgets: WidgetTemplate[] = [
     {
       id: 'duration-distribution',
       title: t('Duration Distribution'),
@@ -165,6 +172,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -180,9 +188,11 @@ const getDefaultWidgets = (organization: Organization) => {
       id: 'high-throughput-transactions',
       title: t('High Throughput Transactions'),
       description: t('Top 5 transactions with the largest volume.'),
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      limit: TOP_N,
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -202,6 +212,7 @@ const getDefaultWidgets = (organization: Organization) => {
       widgetType: WidgetType.RELEASE,
       interval: '5m',
       limit: 8,
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -220,6 +231,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -238,6 +250,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -256,6 +269,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: 'Slow Transactions',
@@ -277,8 +291,12 @@ const getDefaultWidgets = (organization: Organization) => {
         },
       ],
     },
+    SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
-  const errorsWidgets = [
+
+  spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE, RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
+
+  const errorsWidgets: WidgetTemplate[] = [
     {
       id: 'issue-for-review',
       title: t('Issues For Review'),
@@ -286,6 +304,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.ISSUE,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -301,9 +320,11 @@ const getDefaultWidgets = (organization: Organization) => {
       id: 'top-unhandled',
       title: t('Top Unhandled Error Types'),
       description: t('Most frequently encountered unhandled errors.'),
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.AREA,
       widgetType: WidgetType.ERRORS,
       interval: '5m',
+      limit: TOP_N,
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -322,6 +343,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.LINE,
       widgetType: WidgetType.ERRORS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -333,6 +355,26 @@ const getDefaultWidgets = (organization: Organization) => {
         },
       ],
     },
+    {
+      id: 'error-count-by-transaction',
+      title: t('Error Count By Transaction'),
+      description: t('Compare error volume across your top transactions.'),
+      displayType: DisplayType.CATEGORICAL_BAR,
+      widgetType: WidgetType.ERRORS,
+      interval: '5m',
+      isCustomizable: true,
+      limit: 20,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['transaction', 'count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          orderby: '-count()',
+        },
+      ],
+    },
   ];
 
   return isSelfHostedErrorsOnly
@@ -341,18 +383,3 @@ const getDefaultWidgets = (organization: Organization) => {
       ? [...spanWidgets, ...errorsWidgets]
       : [...transactionsWidgets, ...errorsWidgets];
 };
-
-export function getTopNConvertedDefaultWidgets(
-  organization: Organization
-): readonly WidgetTemplate[] {
-  return getDefaultWidgets(organization).map(widget => {
-    if (widget.displayType === DisplayType.TOP_N) {
-      return {
-        ...widget,
-        displayType: DisplayType.AREA,
-        limit: TOP_N,
-      };
-    }
-    return widget;
-  });
-}

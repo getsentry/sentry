@@ -1,17 +1,20 @@
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
-import {Switch} from '@sentry/scraps/switch/switch';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ProjectList} from 'sentry/components/projectList';
-import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
+import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
@@ -20,47 +23,45 @@ import {
   RepositoryStatus,
   type RepositoryWithSettings,
 } from 'sentry/types/integrations';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {setApiQueryData} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
-import useRepositoryWithSettings, {
-  getRepositoryWithSettingsQueryKey,
-} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  gridColumns: string;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
-  mutationData: Record<string, RepositoryWithSettings>;
   repository: RepositoryWithSettings;
+  style?: React.CSSProperties;
 }
 
-export default function SeerRepoTableRow({
+export function SeerRepoTableRow({
+  gridColumns,
   mutateRepositorySettings,
-  mutationData,
-  repository: initialRepository,
+  repository,
+  style,
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const location = useLocation();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  // We're defaulting to read from the list data, which is passed in as `initialRepository`
-  // But if an update has been made to one record, we're going to enable reading
-  // from `useRepositoryWithSettings` which will have the latest data, letting us
-  // do optimistic updates, without re-rendering the entire table.
-  // `initialRepository` will become stale at that point, but we'll have fresh data
-  // in the cache to override it.
-  const {data, isError, isPending} = useRepositoryWithSettings({
-    repositoryId: initialRepository.id,
-    initialData: [initialRepository, undefined, undefined],
-    enabled: mutationData[initialRepository.id] !== undefined,
-  });
-  const repository = isError || isPending ? initialRepository : data;
-
   return (
-    <SimpleTable.Row key={repository.id}>
+    <Grid
+      columns={gridColumns}
+      align="center"
+      style={style}
+      role="row"
+      position="absolute"
+      top="0"
+      left="0"
+      width="100%"
+      borderBottom="muted"
+    >
       <SimpleTable.RowCell>
         <CheckboxClickTarget htmlFor={`replay-table-select-${repository.id}`}>
           <Checkbox
@@ -75,7 +76,12 @@ export default function SeerRepoTableRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack gap="xs">
-          <Link to={`/settings/${organization.slug}/seer/repos/${repository.id}/`}>
+          <Link
+            to={{
+              pathname: `/settings/${organization.slug}/seer/repos/${repository.id}/`,
+              query: location.query,
+            }}
+          >
             <Flex align="center">
               <strong>{repository.name}</strong>
               {repository.status !== RepositoryStatus.ACTIVE && (
@@ -98,9 +104,6 @@ export default function SeerRepoTableRow({
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        <ProjectList projectSlugs={[]} />
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
         <Switch
           disabled={!canWrite}
           checked={repository.settings?.enabledCodeReview ?? false}
@@ -117,9 +120,10 @@ export default function SeerRepoTableRow({
                 enabledCodeReview: e.target.checked,
               },
             };
-            queryClient.setQueryData(
+            setApiQueryData<RepositoryWithSettings>(
+              queryClient,
               getRepositoryWithSettingsQueryKey(organization, repository.id),
-              [optimisticData, undefined, undefined]
+              optimisticData
             );
             addLoadingMessage(t('Updating code review for %s', repository.name));
             mutateRepositorySettings(
@@ -131,7 +135,12 @@ export default function SeerRepoTableRow({
               },
               {
                 onError: () => {
-                  queryClient.setQueryData(queryKey, [repository, undefined, undefined]);
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+                  setApiQueryData<RepositoryWithSettings>(
+                    queryClient,
+                    queryKey,
+                    repository
+                  );
                   addErrorMessage(
                     t('Failed to update code review for %s', repository.name)
                   );
@@ -147,8 +156,32 @@ export default function SeerRepoTableRow({
           }}
         />
       </SimpleTable.RowCell>
-    </SimpleTable.Row>
+      <SimpleTable.RowCell justify="end">
+        <Text size="sm">
+          {repository.settings?.codeReviewTriggers
+            .sort()
+            .map(triggerToLabel)
+            .map((label, index, array) => (
+              <div key={label}>
+                {label}
+                {index === array.length - 1 ? '' : ', '}
+              </div>
+            ))}
+        </Text>
+      </SimpleTable.RowCell>
+    </Grid>
   );
+}
+
+function triggerToLabel(trigger: CodeReviewTrigger) {
+  switch (trigger) {
+    case 'on_new_commit':
+      return t('On New Commit');
+    case 'on_ready_for_review':
+      return t('On Ready for Review');
+    default:
+      return trigger;
+  }
 }
 
 const CheckboxClickTarget = styled('label')`

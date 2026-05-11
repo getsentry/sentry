@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import Any, DefaultDict
+from typing import Any
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.logic import (
@@ -24,10 +24,10 @@ from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 
 
-@region_silo_function
+@cell_silo_function
 def build_action_response(
     registered_factory: ActionHandlerFactory,
     integration: RpcIntegration | None = None,
@@ -86,7 +86,7 @@ def build_action_response(
     return action_response
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -103,7 +103,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions = []
 
         # Cache Integration objects in this data structure to save DB calls.
-        provider_integrations: DefaultDict[str, list[RpcIntegration]] = defaultdict(list)
+        provider_integrations: defaultdict[str, list[RpcIntegration]] = defaultdict(list)
         for integration in get_available_action_integrations_for_org(organization):
             provider_integrations[integration.provider].append(integration)
 

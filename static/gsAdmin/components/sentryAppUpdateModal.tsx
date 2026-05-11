@@ -1,16 +1,18 @@
 import {Fragment, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {IntegrationFeature} from 'sentry/types/integrations';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
 const fieldProps = {
   stacked: true,
@@ -36,7 +38,7 @@ type SubmitQueryResponse = Record<string, any>;
 const POPULARITY_MIN = 0;
 const POPULARITY_MAX = 32767;
 
-function SentryAppUpdateModal(props: Props) {
+export function SentryAppUpdateModal(props: Props) {
   const api = useApi({persistInFlight: true});
   const {sentryAppData, closeModal, Header, Body} = props;
   const [popularityError, setPopularityError] = useState(false);
@@ -80,7 +82,7 @@ function SentryAppUpdateModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([`/integration-features/`], {
+  } = useApiQuery<IntegrationFeature[]>([getApiUrl('/integration-features/')], {
     staleTime: 0,
   });
 
@@ -145,5 +147,3 @@ function SentryAppUpdateModal(props: Props) {
     </Fragment>
   );
 }
-
-export default SentryAppUpdateModal;

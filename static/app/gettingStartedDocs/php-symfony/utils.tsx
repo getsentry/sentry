@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   ContentBlock,
   DocsParams,
@@ -35,7 +36,11 @@ export const getExcimerInstallSteps = (params: DocsParams): ContentBlock[] => {
 };
 
 export const getConfigureSnippet = (params: DocsParams): ContentBlock[] => {
-  if (!params.isPerformanceSelected && !params.isProfilingSelected) {
+  if (
+    !params.isPerformanceSelected &&
+    !params.isProfilingSelected &&
+    !params.isLogsSelected
+  ) {
     return [];
   }
 
@@ -53,7 +58,9 @@ export const getConfigureSnippet = (params: DocsParams): ContentBlock[] => {
       code: `when@prod:
       sentry:
           dsn: '%env(SENTRY_DSN)%'${
-            params.isPerformanceSelected || params.isProfilingSelected
+            params.isPerformanceSelected ||
+            params.isProfilingSelected ||
+            params.isLogsSelected
               ? `
           options:`
               : ''
@@ -68,6 +75,12 @@ export const getConfigureSnippet = (params: DocsParams): ContentBlock[] => {
               ? `
               # Set a sampling rate for profiling - this is relative to traces_sample_rate
               profiles_sample_rate: 1.0`
+              : ''
+          }${
+            params.isLogsSelected
+              ? `
+              # Enable logs to be sent to Sentry
+              enable_logs: true`
               : ''
           }`,
     },

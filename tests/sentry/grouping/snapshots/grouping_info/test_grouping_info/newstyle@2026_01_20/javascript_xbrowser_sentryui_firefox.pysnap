@@ -32,7 +32,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "id": "value",
                 "name": null,
                 "values": [
-                  "GET /issues/<int>/events/latest/ <int>"
+                  "GET /issues/<hex>/events/latest/ <int>"
                 ]
               },
               {
@@ -874,7 +874,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "id": "value",
                 "name": null,
                 "values": [
-                  "GET /issues/<int>/events/latest/ <int>"
+                  "GET /issues/<hex>/events/latest/ <int>"
                 ]
               },
               {

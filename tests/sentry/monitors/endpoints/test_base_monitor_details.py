@@ -5,7 +5,7 @@ from uuid import UUID
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.monitors.constants import TIMEOUT
@@ -695,9 +695,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             status_code=400,
             **{"config": {"schedule": "0 0 0 * * *"}},
         )
-        assert (
-            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
-        ), resp.content
+        assert resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported", (
+            resp.content
+        )
 
         resp = self.get_error_response(
             self.organization.slug,
@@ -707,9 +707,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             # Using a \u3000 ideographic space
             **{"config": {"schedule": "0 0 0 * *　*"}},
         )
-        assert (
-            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
-        ), resp.content
+        assert resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported", (
+            resp.content
+        )
 
     def test_cronjob_interval(self) -> None:
         monitor = self._create_monitor()
@@ -923,7 +923,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.PENDING_DELETION
         # Slug should update on deletion
         assert monitor.slug != old_slug
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=monitor.id, model_name="Monitor"
         ).exists()
         mock_update_monitor_slug.assert_called_once()
@@ -950,7 +950,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
 
@@ -972,13 +972,13 @@ class BaseDeleteMonitorTest(MonitorTestCase):
 
         monitor_environment_a = MonitorEnvironment.objects.get(id=monitor_environment_a.id)
         assert monitor_environment_a.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=monitor_environment_a.id, model_name="MonitorEnvironment"
         ).exists()
 
         monitor_environment_b = MonitorEnvironment.objects.get(id=monitor_environment_b.id)
         assert monitor_environment_b.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
         ).exists()
 

@@ -27,6 +27,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
         feature: Feature,
         actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
+        skip_experiment_exposure: bool = False,
     ) -> bool:
         return True
 
@@ -124,7 +125,13 @@ class FeatureManagerTest(TestCase):
                 self.true_set = frozenset(true_set)
                 self.false_set = frozenset(false_set)
 
-            def has(self, feature, actor, skip_entity: bool | None = False):
+            def has(
+                self,
+                feature,
+                actor,
+                skip_entity: bool | None = False,
+                skip_experiment_exposure: bool = False,
+            ):
                 assert actor == test_user
 
                 if feature.project in self.true_set:
@@ -376,7 +383,13 @@ class FeatureManagerTest(TestCase):
         class NoBatchOrgHandler(features.BatchFeatureHandler):
             features = {"organizations:feature"}
 
-            def has(self, feature, actor, skip_entity: bool | None = False):
+            def has(
+                self,
+                feature,
+                actor,
+                skip_entity: bool | None = False,
+                skip_experiment_exposure: bool = False,
+            ):
                 return feature.name in self.features
 
             def batch_has(
@@ -447,3 +460,95 @@ class FeatureManagerTest(TestCase):
 
         assert list(manager.all().keys()) == ["feat:org", "feat:project", "feat:system"]
         assert list(manager.all(OrganizationFeature).keys()) == ["feat:org"]
+
+    def test_get_experiment_assignments_delegates_to_entity_handler(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.get_experiment_assignments.return_value = {"experiment-test": "active"}
+
+        manager = features.FeatureManager()
+        manager.add_entity_handler(handler)
+
+        result = manager.get_experiment_assignments(test_org, actor=None)
+
+        assert result == {"experiment-test": "active"}
+        handler.get_experiment_assignments.assert_called_once_with(test_org, None)
+
+    def test_get_experiment_assignments_returns_empty_without_entity_handler(self) -> None:
+        test_org = self.create_organization()
+
+        manager = features.FeatureManager()
+        result = manager.get_experiment_assignments(test_org)
+
+        assert result == {}
+
+    def test_get_experiment_assignments_handles_exception(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.get_experiment_assignments.side_effect = Exception("boom")
+
+        manager = features.FeatureManager()
+        manager.add_entity_handler(handler)
+
+        with override_options({"features.error.capture_rate": 1.0}):
+            result = manager.get_experiment_assignments(test_org)
+
+        assert result == {}
+
+    def test_has_passes_skip_experiment_exposure_to_entity_handler(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.has.return_value = True
+
+        manager = features.FeatureManager()
+        manager.add("organizations:feature", OrganizationFeature)
+        manager.add_entity_handler(handler)
+
+        manager.has("organizations:feature", test_org, skip_experiment_exposure=True)
+        handler.has.assert_called_once()
+        assert handler.has.call_args.kwargs == {"skip_experiment_exposure": True}
+
+    def test_has_default_does_not_skip_experiment_exposure(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.has.return_value = True
+
+        manager = features.FeatureManager()
+        manager.add("organizations:feature", OrganizationFeature)
+        manager.add_entity_handler(handler)
+
+        manager.has("organizations:feature", test_org)
+        handler.has.assert_called_once()
+        assert handler.has.call_args.kwargs == {"skip_experiment_exposure": False}
+
+    def test_batch_has_passes_skip_experiment_exposure_to_entity_handler(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.batch_has.return_value = {}
+
+        manager = features.FeatureManager()
+        manager.add_entity_handler(handler)
+
+        manager.batch_has(
+            ["organizations:feature"], organization=test_org, skip_experiment_exposure=True
+        )
+        handler.batch_has.assert_called_once()
+        assert handler.batch_has.call_args.kwargs["skip_experiment_exposure"] is True
+
+    def test_batch_has_default_does_not_skip_experiment_exposure(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.batch_has.return_value = {}
+
+        manager = features.FeatureManager()
+        manager.add_entity_handler(handler)
+
+        manager.batch_has(["organizations:feature"], organization=test_org)
+        handler.batch_has.assert_called_once()
+        assert handler.batch_has.call_args.kwargs["skip_experiment_exposure"] is False

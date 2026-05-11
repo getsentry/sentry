@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
+import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 const options: NonNullable<

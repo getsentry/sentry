@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 from unittest import mock
 
@@ -43,9 +44,10 @@ def test_save_event_feedback_with_associated_event(
     default_project, mock_create_feedback_issue, timestamp_format: str
 ):
     environment = Factories.create_environment(default_project, name="production")
+    event_id = uuid.uuid4().hex
     assoc_event = Factories.store_event(
         {
-            "event_id": "ff1c2e3d4b5a6978899abbccddeeff00",
+            "event_id": event_id,
             "environment": environment.name,
         },
         default_project.id,

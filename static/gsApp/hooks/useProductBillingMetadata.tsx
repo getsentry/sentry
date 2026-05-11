@@ -1,6 +1,6 @@
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AddOn, AddOnCategory, ProductTrial, Subscription} from 'getsentry/types';
 import {

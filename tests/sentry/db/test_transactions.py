@@ -37,13 +37,12 @@ class CaseMixin:
                 Organization.objects.create(name="org3")
 
             with transaction.atomic(using=router.db_for_write(User)):
-                User.objects.create(username="user2")
-                User.objects.create(username="user3")
+                User.objects.create(username="user2", email="user2.email")
+                User.objects.create(username="user3", email="user3.email")
 
         assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
 
     def test_bad_transaction_boundaries(self) -> None:
-
         org = Factories.create_organization()
         Factories.create_project(organization=org)
         Factories.create_user()
@@ -174,7 +173,7 @@ class TestDelegatedByOpenTransaction(TestCase):
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),
-                SiloMode.REGION: lambda: FakeRegionService(),
+                SiloMode.CELL: lambda: FakeRegionService(),
                 SiloMode.MONOLITH: lambda: FakeRegionService(),
             }
         )
@@ -184,7 +183,7 @@ class TestDelegatedByOpenTransaction(TestCase):
             with transaction.atomic(router.db_for_write(User)):
                 assert service.a() == FakeControlService().a()
 
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             assert service.a() == FakeRegionService().a()
             with transaction.atomic(router.db_for_write(Organization)):
                 assert service.a() == FakeRegionService().a()
@@ -202,7 +201,7 @@ class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),
-                SiloMode.REGION: lambda: FakeRegionService(),
+                SiloMode.CELL: lambda: FakeRegionService(),
                 SiloMode.MONOLITH: lambda: FakeRegionService(),
             }
         )
@@ -212,7 +211,7 @@ class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
             with transaction.atomic(router.db_for_write(User)):
                 assert service.a() == FakeControlService().a()
 
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             assert service.a() == FakeRegionService().a()
             with transaction.atomic(router.db_for_write(Organization)):
                 assert service.a() == FakeRegionService().a()

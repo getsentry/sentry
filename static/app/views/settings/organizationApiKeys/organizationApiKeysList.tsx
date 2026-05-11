@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 
+import {AlertLink} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import Confirm from 'sentry/components/confirm';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Confirm} from 'sentry/components/confirm';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import type {DeprecatedApiKey} from './types';
 
@@ -34,7 +34,7 @@ type Props = {
   organization: Organization;
 };
 
-function OrganizationApiKeysList({
+export function OrganizationApiKeysList({
   organization,
   keys,
   busy,
@@ -46,7 +46,7 @@ function OrganizationApiKeysList({
 
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       icon={<IconAdd />}
       busy={busy}
@@ -104,7 +104,7 @@ function OrganizationApiKeysList({
                   onConfirm={() => onRemove(id)}
                   message={t('Are you sure you want to remove this API key?')}
                 >
-                  <Button priority="danger" size="sm" icon={<IconDelete />}>
+                  <Button variant="danger" size="sm" icon={<IconDelete />}>
                     {t('Remove API Key')}
                   </Button>
                 </Confirm>
@@ -116,5 +116,3 @@ function OrganizationApiKeysList({
     </div>
   );
 }
-
-export default OrganizationApiKeysList;

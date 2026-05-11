@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.organization import Organization
@@ -15,7 +15,7 @@ class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseFileDetailsEndpoint(
     OrganizationReleasesBaseEndpoint, ReleaseFileDetailsMixin
 ):
@@ -76,7 +76,9 @@ class OrganizationReleaseFileDetailsEndpoint(
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         return self.update_releasefile(request, release, file_id)
@@ -101,7 +103,9 @@ class OrganizationReleaseFileDetailsEndpoint(
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         return self.delete_releasefile(release, file_id)

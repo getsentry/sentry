@@ -89,10 +89,7 @@ describe('Discover > QueryList', () => {
         renderPrebuilt={false}
         location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();

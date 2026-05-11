@@ -6,12 +6,10 @@ from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -46,7 +44,7 @@ class WorkflowManager(BaseManager["Workflow"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
     A workflow is a way to execute actions in a specified order.
@@ -56,7 +54,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[WorkflowManager] = WorkflowManager()
-    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+    objects_for_deletion: ClassVar[BaseManager[Workflow]] = BaseManager()
 
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
@@ -168,8 +166,3 @@ def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
         if is_slow_condition(condition)
     ]
     return slow_conditions
-
-
-@receiver(pre_save, sender=Workflow)
-def enforce_config_schema(sender, instance: Workflow, **kwargs):
-    instance.validate_config(instance.config_schema)

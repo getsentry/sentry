@@ -3,13 +3,13 @@ import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {APIRequestMethod} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
-import FormState from 'sentry/components/forms/state';
+import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 export const fieldIsRequiredMessage = t('Field is required');
@@ -40,7 +40,7 @@ export type FormOptions = {
   /**
    * API method used to save the form model
    */
-  apiMethod?: APIRequestMethod;
+  apiMethod?: RequestMethod;
   /**
    * Options passed to the API Client
    */
@@ -84,7 +84,7 @@ export type FormOptions = {
   transformData?: (data: Record<string, any>, instance: FormModel) => Record<string, any>;
 };
 
-class FormModel {
+export class FormModel {
   /**
    * Map of field name -> value
    */
@@ -258,10 +258,7 @@ class FormModel {
     // Set default value if initialData for field is undefined
     // This must take place before checking for `props.setValue` so that it can
     // be applied to `defaultValue`
-    if (
-      typeof props.defaultValue !== 'undefined' &&
-      typeof this.initialData[id] === 'undefined'
-    ) {
+    if (props.defaultValue !== undefined && this.initialData[id] === undefined) {
       this.initialData[id] =
         typeof props.defaultValue === 'function'
           ? props.defaultValue()
@@ -403,7 +400,7 @@ class FormModel {
     }
 
     if (typeof value === 'boolean') {
-      return value === true;
+      return value;
     }
 
     return value !== '' && defined(value);
@@ -420,7 +417,7 @@ class FormModel {
   }: {
     data: Record<PropertyKey, unknown>;
     apiEndpoint?: string;
-    apiMethod?: APIRequestMethod;
+    apiMethod?: RequestMethod;
   }) {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
@@ -430,6 +427,7 @@ class FormModel {
         method,
         data,
         success: response => resolve(response),
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         error: error => reject(error),
       })
     );
@@ -475,7 +473,6 @@ class FormModel {
     errors = errors.length === 0 ? [[id, null]] : errors;
 
     errors.forEach(([field, errorMessage]) => this.setError(field, errorMessage));
-    return undefined;
   }
 
   updateShowSaveState(id: string, value: FieldValue) {
@@ -483,7 +480,7 @@ class FormModel {
     // Update field state to "show save" if save on blur is disabled for this field
     // (only if contents of field differs from initial value)
     const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
-    if (typeof saveOnBlurFieldOverride === 'undefined' || saveOnBlurFieldOverride) {
+    if (saveOnBlurFieldOverride === undefined || saveOnBlurFieldOverride) {
       return;
     }
     if (this.getFieldState(id, 'showSave') === isValueChanged) {
@@ -535,7 +532,7 @@ class FormModel {
           this.options.onSubmitSuccess(resp, this);
         }
       })
-      .catch(resp => {
+      .catch((resp: any) => {
         // should we revert field value to last known state?
         saveSnapshot = null;
         if (this.options.resetOnError) {
@@ -569,7 +566,7 @@ class FormModel {
         const change = {old: oldValue, new: newValue};
 
         // Only use `allowUndo` option if explicitly defined
-        if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
+        if (this.options.allowUndo === undefined || this.options.allowUndo) {
           addUndoableFormChangeMessage(change, this, id);
         }
 
@@ -651,7 +648,7 @@ class FormModel {
 
         return data;
       })
-      .catch(resp => {
+      .catch((resp: any) => {
         // should we revert field value to last known state?
         saveSnapshot = null;
 
@@ -713,7 +710,7 @@ class FormModel {
 
     // Fields can individually set `saveOnBlur` to `false` (note this is ignored when `undefined`)
     const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
-    if (typeof saveOnBlurFieldOverride !== 'undefined' && !saveOnBlurFieldOverride) {
+    if (saveOnBlurFieldOverride !== undefined && !saveOnBlurFieldOverride) {
       return null;
     }
 
@@ -788,7 +785,7 @@ class FormModel {
    * Returns true if there are no errors
    */
   validateForm(): boolean {
-    Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
+    Array.from(this.fieldDescriptor.keys()).forEach(id => this.validateField(id));
 
     return !this.isError;
   }
@@ -892,5 +889,3 @@ export class MockModel {
     return false;
   }
 }
-
-export default FormModel;

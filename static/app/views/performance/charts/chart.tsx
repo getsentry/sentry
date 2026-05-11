@@ -43,7 +43,7 @@ function computeAxisMax(data: Series[]) {
   }
 
   const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]);
 
   let scale: number;
   if (magnitude <= 2.5) {
@@ -51,16 +51,16 @@ function computeAxisMax(data: Series[]) {
   } else if (magnitude <= 5) {
     scale = 0.5;
   } else if (magnitude <= 7.5) {
-    scale = 1.0;
+    scale = 1;
   } else {
-    scale = 2.0;
+    scale = 2;
   }
 
   const step = 10 ** Math.floor(power) * scale;
   return Math.round(Math.ceil(maxValue / step) * step);
 }
 
-function Chart({
+export function Chart({
   data,
   previousData,
   statsPeriod,
@@ -264,5 +264,3 @@ function Chart({
     </ChartZoom>
   );
 }
-
-export default Chart;

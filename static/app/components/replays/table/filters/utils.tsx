@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {useNavigate} from 'sentry/utils/useNavigate';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 export function generateAction({
   key,
@@ -14,7 +14,7 @@ export function generateAction({
   navigate,
 }: {
   key: string;
-  location: Location<ReplayListLocationQuery>;
+  location: Location;
   navigate: ReturnType<typeof useNavigate>;
   value: string;
 }) {

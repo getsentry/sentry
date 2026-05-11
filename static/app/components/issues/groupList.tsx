@@ -1,37 +1,34 @@
-import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import Placeholder from 'sentry/components/placeholder';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
-import StreamGroup, {
+import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  StreamGroup,
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, PriorityLevel} from 'sentry/types/group';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
-import GroupListHeader from './groupListHeader';
+import {GroupListHeader} from './groupListHeader';
 
 export type GroupListColumn =
   | 'graph'
@@ -52,9 +49,16 @@ type Props = {
   canSelectGroups?: boolean;
   customStatsPeriod?: TimePeriodType;
   /**
-   * Defaults to `/organizations/${orgSlug}/issues/`
+   * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
-  endpointPath?: string;
+  endpoint?:
+    | {
+        path: '/organizations/$organizationIdOrSlug/issues/';
+      }
+    | {
+        path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/';
+        version: string;
+      };
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -91,9 +95,9 @@ type State = {
 
 const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
 
-function GroupList({
+export function GroupList({
   queryParams,
-  endpointPath,
+  endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
   renderEmptyMessage,
   renderErrorMessage,
@@ -109,14 +113,14 @@ function GroupList({
   useFilteredStats = true,
   useTintRow = true,
 }: Props) {
-  const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [memberList, setMemberList] = useState<
-    ReturnType<typeof indexMembersByProject> | undefined
-  >(undefined);
+  const {data: memberList} = useQuery({
+    ...useProjectMembersQueryOptions(),
+    select: resp => indexMembersByProject(resp.json),
+  });
 
   const getQueryParams = useCallback(() => {
     const queryParamsFromLocation = {...location.query};
@@ -160,12 +164,6 @@ function GroupList({
     [navigate]
   );
 
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug]);
-
   const parsedQuery = useMemo(
     () => parseSearch(String(computedQueryParams.query ?? '')),
     [computedQueryParams.query]
@@ -175,7 +173,7 @@ function GroupList({
   const hasLogicBoolean = useMemo(
     () =>
       parsedQuery
-        ? treeResultLocator<boolean>({
+        ? treeResultLocator({
             tree: parsedQuery,
             noResultValue: false,
             visitorTest: ({token, returnResult}) => {
@@ -187,62 +185,82 @@ function GroupList({
   );
 
   const queryClient = useQueryClient();
-  const queryKey: ApiQueryKey = [
-    endpointPath ?? `/organizations/${organization.slug}/issues/`,
-    {query: computedQueryParams},
-  ];
+
+  const issuesQueryOptions =
+    endpoint.path === '/organizations/$organizationIdOrSlug/issues/'
+      ? apiOptions.as<Group[]>()(endpoint.path, {
+          path: {organizationIdOrSlug: organization.slug},
+          query: computedQueryParams,
+          staleTime: 0,
+        })
+      : apiOptions.as<Group[]>()(endpoint.path, {
+          path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
+          query: computedQueryParams,
+          staleTime: 0,
+        });
   const {
-    data: groupsData,
+    data,
     dataUpdatedAt,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
     error: queryError,
-    getResponseHeader,
     refetch,
-  } = useApiQuery<Group[]>(queryKey, {
-    staleTime: 0,
+  } = useQuery({
+    ...issuesQueryOptions,
+    select: selectJsonWithHeaders,
     enabled: !hasLogicBoolean,
   });
+  const groupsData = data?.json;
 
   const updateQueryCacheAssigneeChange = (
     groupId: string,
     newAssignee: AssignableEntity | null
   ) => {
-    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
-      return oldData?.map(group => {
-        if (group.id === groupId) {
-          return {
-            ...group,
-            assignedTo: newAssignee
-              ? {
-                  id: newAssignee.id,
-                  name: newAssignee.assignee.name,
-                  type: newAssignee.type,
-                }
-              : null,
-          };
-        }
-        return group;
-      });
-    });
+    queryClient.setQueryData(issuesQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(group => {
+              if (group.id === groupId) {
+                return {
+                  ...group,
+                  assignedTo: newAssignee
+                    ? {
+                        id: newAssignee.id,
+                        name: newAssignee.assignee.name,
+                        type: newAssignee.type,
+                      }
+                    : null,
+                };
+              }
+              return group;
+            }),
+          }
+        : prevData
+    );
   };
 
   const updateQueryCachePriorityChange = (
     groupId: string,
     newPriority: PriorityLevel
   ) => {
-    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
-      return oldData?.map(group => {
-        if (group.id === groupId) {
-          return {...group, priority: newPriority};
-        }
-        return group;
-      });
-    });
+    queryClient.setQueryData(issuesQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(group => {
+              if (group.id === groupId) {
+                return {...group, priority: newPriority};
+              }
+              return group;
+            }),
+          }
+        : prevData
+    );
   };
 
-  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
   const errorDetail = hasLogicBoolean
     ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
@@ -285,8 +303,8 @@ function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns: GroupListColumn[] = useMemo(
-    () => [...withColumns, 'firstSeen', 'lastSeen'],
+  const columns = useMemo(
+    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
     [withColumns]
   );
 
@@ -324,20 +342,20 @@ function GroupList({
         <GroupListHeader withChart={!!withChart} withColumns={columns} />
         <PanelBody>
           {loading
-            ? [...new Array(numPlaceholderRows)].map((_, i) => (
+            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />
                 </GroupPlaceholder>
               ))
             : groups.map(group => {
-                const members = memberList?.hasOwnProperty(group.project.slug)
-                  ? memberList[group.project.slug]
-                  : undefined;
+                const members =
+                  memberList && Object.hasOwn(memberList, group.project.slug)
+                    ? memberList[group.project.slug]
+                    : undefined;
 
                 return (
                   <StreamGroup
                     key={group.id}
-                    id={group.id}
                     group={group}
                     canSelect={canSelectGroups}
                     withChart={withChart}
@@ -368,10 +386,8 @@ function GroupList({
   );
 }
 
-export default GroupList;
-
 const GroupPlaceholder = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};

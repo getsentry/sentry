@@ -1,5 +1,5 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {InputField} from 'sentry/components/deprecatedforms/inputField';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 
 type Props = {
   max?: number;
@@ -11,6 +11,8 @@ type Props = {
 /**
  * @deprecated Do not use this
  */
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 export class NumberField extends InputField<Props> {
   coerceValue(value: any) {
     const intValue = parseInt(value, 10);

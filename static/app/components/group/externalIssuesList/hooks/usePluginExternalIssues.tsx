@@ -1,14 +1,14 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openPluginActionModal} from 'sentry/components/group/pluginActionsModal';
 import {t} from 'sentry/locale';
-import plugins from 'sentry/plugins';
-import GroupStore from 'sentry/stores/groupStore';
+import {plugins} from 'sentry/plugins';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {uniqueId} from 'sentry/utils/guid';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {GroupIntegrationIssueResult} from './types';
 

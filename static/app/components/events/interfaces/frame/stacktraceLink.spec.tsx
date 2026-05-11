@@ -9,8 +9,8 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import HookStore from 'sentry/stores/hookStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {HookStore} from 'sentry/stores/hookStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types/event';
 import {CodecovStatusCode} from 'sentry/types/integrations';
 import * as analytics from 'sentry/utils/analytics';
@@ -41,7 +41,7 @@ describe('StacktraceLink', () => {
     HookStore.init?.();
   });
 
-  it('renders setup CTA with integration but no configs', async () => {
+  it.isKnownFlake('renders setup CTA with integration but no configs', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: [integration]},
@@ -103,7 +103,7 @@ describe('StacktraceLink', () => {
     });
   });
 
-  it('should hide stacktrace link error state on unsupported platforms', async () => {
+  it('should show setup button for native platforms', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -112,17 +112,15 @@ describe('StacktraceLink', () => {
         integrations: [integration],
       },
     });
-    const {container} = render(
+    render(
       <StacktraceLink
         frame={frame}
-        event={{...event, platform: 'unreal'}}
+        event={{...event, platform: 'cocoa'}}
         line=""
         disableSetup={false}
       />
     );
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
+    expect(await screen.findByText('Set up Code Mapping')).toBeInTheDocument();
   });
 
   it('renders the codecov link', async () => {

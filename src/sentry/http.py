@@ -14,7 +14,7 @@ from requests.exceptions import ReadTimeout, RequestException, Timeout
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.net.http import SafeSession
 
 # Importing for backwards compatible API
@@ -41,7 +41,7 @@ class UrlResult(NamedTuple):
 
 
 class BadSource(Exception):
-    error_type = EventError.UNKNOWN_ERROR
+    error_type = EventErrorType.UNKNOWN_ERROR
 
     def __init__(self, data=None):
         if data is None:
@@ -52,7 +52,7 @@ class BadSource(Exception):
 
 
 class CannotFetch(BadSource):
-    error_type = EventError.FETCH_GENERIC_ERROR
+    error_type = EventErrorType.FETCH_GENERIC_ERROR
 
 
 def get_server_hostname() -> str:
@@ -139,7 +139,7 @@ def get_domain_key(url: str) -> str:
 def lock_domain(url, error=None):
     error = dict(error or {})
     if error.get("type") is None:
-        error["type"] = EventError.UNKNOWN_ERROR
+        error["type"] = EventErrorType.UNKNOWN_ERROR
     if error.get("url") is None:
         error["url"] = expose_url(url)
     domain_key = get_domain_key(url)
@@ -211,28 +211,28 @@ def fetch_file(
         except Exception as exc:
             logger.debug("Unable to fetch %r", url, exc_info=True)
             if isinstance(exc, RestrictedIPAddress):
-                error: dict[str, Any] = {"type": EventError.RESTRICTED_IP}
+                error: dict[str, Any] = {"type": EventErrorType.RESTRICTED_IP}
             elif isinstance(exc, SuspiciousOperation):
-                error = {"type": EventError.SECURITY_VIOLATION}
+                error = {"type": EventErrorType.SECURITY_VIOLATION}
             elif isinstance(exc, (Timeout, ReadTimeout)):
                 error = {
-                    "type": EventError.FETCH_TIMEOUT,
+                    "type": EventErrorType.FETCH_TIMEOUT,
                     "timeout": settings.SENTRY_SOURCE_FETCH_TIMEOUT,
                 }
             elif isinstance(exc, OverflowError):
                 error = {
-                    "type": EventError.FETCH_TOO_LARGE,
+                    "type": EventErrorType.FETCH_TOO_LARGE,
                     # We want size in megabytes to format nicely
                     "max_size": float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
                 }
             elif isinstance(exc, RequestException):
                 error = {
-                    "type": EventError.FETCH_GENERIC_ERROR,
+                    "type": EventErrorType.FETCH_GENERIC_ERROR,
                     "value": f"{type(exc)}",
                 }
             else:
                 logger.exception(str(exc))
-                error = {"type": EventError.UNKNOWN_ERROR}
+                error = {"type": EventErrorType.UNKNOWN_ERROR}
 
             # TODO(dcramer): we want to be less aggressive on disabling domains
             if domain_lock_enabled:

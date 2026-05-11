@@ -77,11 +77,11 @@ describe('GroupInsightItemDiffTable', () => {
     expect(screen.getByText('icon.png')).toBeInTheDocument();
     expect(screen.getByText('LICENSE.txt')).toBeInTheDocument();
 
-    // Check nested child items
-    expect(screen.getByText('/assets/icon1.png')).toBeInTheDocument();
-    expect(screen.getByText('/assets/icon2.png')).toBeInTheDocument();
-    expect(screen.getByText('/META-INF/LICENSE1.txt')).toBeInTheDocument();
-    expect(screen.getByText('/META-INF/LICENSE2.txt')).toBeInTheDocument();
+    // Check nested child items (rendered with └ prefix)
+    expect(screen.getByText('└ /assets/icon1.png')).toBeInTheDocument();
+    expect(screen.getByText('└ /assets/icon2.png')).toBeInTheDocument();
+    expect(screen.getByText('└ /META-INF/LICENSE1.txt')).toBeInTheDocument();
+    expect(screen.getByText('└ /META-INF/LICENSE2.txt')).toBeInTheDocument();
   });
 
   it('displays correct status tags and sizes', () => {
@@ -95,10 +95,8 @@ describe('GroupInsightItemDiffTable', () => {
     const removedTags = screen.getAllByText('Removed');
     expect(removedTags).toHaveLength(3); // 1 group + 2 children
 
-    // Check sizes
+    // Check sizes (only group totals are shown, not individual child sizes)
     expect(screen.getByText('+1.5 KB')).toBeInTheDocument(); // Group total
-    expect(screen.getByText('+500 B')).toBeInTheDocument(); // Child 1
-    expect(screen.getByText('+1 KB')).toBeInTheDocument(); // Child 2
   });
 
   it('supports sorting by different fields', async () => {

@@ -98,6 +98,21 @@ def get_size_analysis_response(
             status=422,
         )
 
+    if any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN for s in states):
+        not_ran_metric = next(
+            m
+            for m in all_size_metrics
+            if m.state == PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+        )
+        return Response(
+            {
+                "state": "not_started",
+                "error_code": not_ran_metric.error_code,
+                "error_message": not_ran_metric.error_message or "Size analysis was not started",
+            },
+            status=200,
+        )
+
     analysis_file_ids = [m.analysis_file_id for m in all_size_metrics if m.analysis_file_id]
 
     if not analysis_file_ids:

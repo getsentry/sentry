@@ -1,11 +1,11 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -41,8 +41,7 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
             onDismiss?.();
           }}
           size="zero"
-          priority="link"
-          borderless
+          variant="link"
           aria-label={t('Dismiss')}
           icon={<IconClose size="xs" />}
         />
@@ -59,9 +58,10 @@ const TagPill = styled('div')<{
   height: 20px;
   font-size: ${p => p.theme.font.size.sm};
   display: inline-flex;
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   border-radius: ${p => p.theme.radius.xs};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
   button,
@@ -119,18 +119,16 @@ const Text = styled('div')`
   /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const IconWrapper = styled('span')`
-  margin-right: ${space(0.5)};
   display: inline-flex;
   align-items: center;
   gap: inherit;
 `;
 
 const DismissButton = styled(Button)`
-  margin-left: ${space(0.5)};
-  margin-right: -${space(0.5)};
+  margin-right: -${p => p.theme.space.xs};
   border: none;
 `;

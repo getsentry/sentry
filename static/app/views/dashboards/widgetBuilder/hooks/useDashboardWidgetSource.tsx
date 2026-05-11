@@ -1,10 +1,10 @@
+import {parseAsString, useQueryState} from 'nuqs';
+
 import {defined} from 'sentry/utils';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 
-function useDashboardWidgetSource(): DashboardWidgetSource | '' {
-  const {getParamValue} = useUrlParams('source');
-  const source = getParamValue();
+export function useDashboardWidgetSource(): DashboardWidgetSource | '' {
+  const [source] = useQueryState('source', parseAsString);
 
   const validSources = Object.values(
     DashboardWidgetSource
@@ -14,5 +14,3 @@ function useDashboardWidgetSource(): DashboardWidgetSource | '' {
     ? (source as DashboardWidgetSource)
     : DashboardWidgetSource.DASHBOARDS;
 }
-
-export default useDashboardWidgetSource;

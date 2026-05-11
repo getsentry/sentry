@@ -22,7 +22,7 @@ class AvailableOnTest(TestCase):
     class ControlModel(TestModel):
         pass
 
-    @ModelSiloLimit(SiloMode.REGION)
+    @ModelSiloLimit(SiloMode.CELL)
     class RegionModel(TestModel):
         pass
 
@@ -39,7 +39,7 @@ class AvailableOnTest(TestCase):
 
         self.ModelOnMonolith.objects.filter(id=1).delete()
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     def test_available_on_same_mode(self) -> None:
         assert list(self.RegionModel.objects.all()) == []
         with raises(self.RegionModel.DoesNotExist):
@@ -50,7 +50,7 @@ class AvailableOnTest(TestCase):
 
         self.RegionModel.objects.filter(id=1).delete()
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     def test_unavailable_on_other_mode(self) -> None:
         with raises(ModelSiloLimit.AvailabilityError):
             list(self.ControlModel.objects.all())
@@ -73,7 +73,7 @@ class AvailableOnTest(TestCase):
         app_config = MagicMock()
         app_config.get_model.side_effect = test_models.get
 
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             assert get_model_if_available(app_config, "ControlModel") is None
             assert get_model_if_available(app_config, "RegionModel") is self.RegionModel
             assert get_model_if_available(app_config, "ModelOnMonolith") is self.ModelOnMonolith

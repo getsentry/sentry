@@ -55,7 +55,7 @@ describe('CreateSampleEventButton', () => {
     expect(createRequest).toHaveBeenCalled();
 
     const latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       body: {},
     });
 
@@ -78,6 +78,59 @@ describe('CreateSampleEventButton', () => {
     );
   });
 
+  it('fires the legacy view sample event when hasScmOnboarding is not set', async () => {
+    renderComponent();
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/create-sample/`,
+      method: 'POST',
+      body: {groupID},
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
+      delay: null,
+    });
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'growth.onboarding_view_sample_event',
+      expect.objectContaining({platform: 'javascript'})
+    );
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'onboarding.scm_view_sample_event_clicked',
+      expect.anything()
+    );
+  });
+
+  it('fires the SCM view sample event when hasScmOnboarding is true', async () => {
+    render(
+      <CreateSampleEventButton
+        source="test"
+        project={{...project, platform: 'javascript'}}
+        hasScmOnboarding
+      >
+        {createSampleText}
+      </CreateSampleEventButton>,
+      {organization: org}
+    );
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/create-sample/`,
+      method: 'POST',
+      body: {groupID},
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
+      delay: null,
+    });
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'onboarding.scm_view_sample_event_clicked',
+      expect.objectContaining({platform: 'javascript'})
+    );
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'growth.onboarding_view_sample_event',
+      expect.anything()
+    );
+  });
+
   it('waits for the latest event to be processed', async () => {
     const {router} = renderComponent();
     const createRequest = MockApiClient.addMockResponse({
@@ -94,7 +147,7 @@ describe('CreateSampleEventButton', () => {
 
     // Start with no latest event
     let latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 404,
       body: {},
     });
@@ -106,7 +159,7 @@ describe('CreateSampleEventButton', () => {
     // Second request will be successful
     MockApiClient.clearMockResponses();
     latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 200,
       body: {},
     });

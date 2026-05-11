@@ -18,8 +18,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {
   Dataset,
   EventTypes,
@@ -60,6 +60,10 @@ describe('DetectorDetails', () => {
     ProjectsStore.loadInitialData([project]);
     TeamStore.loadInitialData([ownerTeam]);
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
         AutomationFixture({id: '1', name: 'Automation 1'}),
@@ -97,11 +101,11 @@ describe('DetectorDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/`,
+      url: '/organizations/org-slug/issues/1/',
       body: GroupFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/`,
+      url: '/organizations/org-slug/detectors/',
       body: [issueStreamDetector],
       match: [
         MockApiClient.matchQuery({
@@ -111,7 +115,7 @@ describe('DetectorDetails', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/workflows/`,
+      url: '/organizations/org-slug/workflows/',
       body: [],
       match: [(_url, options) => options.query?.detector === undefined],
     });
@@ -304,8 +308,8 @@ describe('DetectorDetails', () => {
 
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
 
-      // Verify check-in data is displayed
-      expect(screen.getAllByText('Uptime')).toHaveLength(4); // breadcrumb + section heading + timeline legend + check-in row
+      // Verify check-in data is displayed - wait for table to fully render
+      await waitFor(() => expect(screen.getAllByText('Uptime')).toHaveLength(4)); // breadcrumb + section heading + timeline legend + check-in row
       expect(screen.getByText('200')).toBeInTheDocument();
       expect(screen.getByText('US East')).toBeInTheDocument();
       expect(screen.getAllByText('Failure')).toHaveLength(2); // timeline legend + check-in row

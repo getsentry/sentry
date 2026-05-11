@@ -8,18 +8,17 @@ from rest_framework.response import Response
 from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -53,19 +52,11 @@ class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
             org_id=organization.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
-        # Check consent
-        user_acknowledgement = get_seer_user_acknowledgement(
-            user_id=request.user.id, organization=organization
-        )
-        org_acknowledgement = True
-        if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
-            org_acknowledgement = get_seer_org_acknowledgement(organization)
-
         return Response(
             {
                 "setupAcknowledgement": {
-                    "orgHasAcknowledged": org_acknowledgement,
-                    "userHasAcknowledged": user_acknowledgement,
+                    "orgHasAcknowledged": True,
+                    "userHasAcknowledged": True,
                 },
                 "billing": {
                     "hasAutofixQuota": has_autofix_quota,

@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Badge} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
+import {IconCopy, IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -23,6 +24,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   borderless?: boolean;
   children?: React.ReactNode;
   noVisualizationPadding?: boolean;
+  onCopyUrlClick?: () => void;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
@@ -50,6 +52,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
 
   const shouldShowFullScreenViewButton =
     Boolean(props.onFullScreenViewClick) && !props.error;
+
+  const shouldShowCopyUrlButton = Boolean(props.onCopyUrlClick) && !props.error;
 
   const shouldShowActions = actions && actions.length > 0;
 
@@ -127,7 +131,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   triggerProps={{
                     'aria-label': t('Widget actions'),
                     size: 'xs',
-                    borderless: true,
+                    variant: 'transparent',
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
                   }}
@@ -137,11 +141,25 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </TitleActionsWrapper>
           )}
 
+          {shouldShowCopyUrlButton && (
+            <Tooltip title={t('Copy Widget URL')}>
+              <Button
+                size="xs"
+                aria-label={t('Copy Widget URL')}
+                variant="transparent"
+                icon={<IconCopy />}
+                onClick={() => {
+                  props.onCopyUrlClick?.();
+                }}
+              />
+            </Tooltip>
+          )}
+
           {shouldShowFullScreenViewButton && (
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
-              borderless
+              variant="transparent"
               icon={<IconExpand />}
               onClick={() => {
                 props.onFullScreenViewClick?.();
@@ -150,7 +168,15 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
         </Fragment>
       }
-      Visualization={props.error ? <Widget.WidgetError error={error} /> : props.children}
+      Visualization={
+        props.error ? (
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        ) : (
+          props.children
+        )
+      }
       noVisualizationPadding={props.noVisualizationPadding}
     />
   );

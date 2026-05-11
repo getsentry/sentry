@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
@@ -16,7 +17,7 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import * as Storybook from 'sentry/stories';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
   FieldKind,
@@ -392,7 +393,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       },
     };
 
-    const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
+    const getAggregateFieldDefinition: FieldDefinitionGetter = key => {
       switch (key) {
         case 'apdex':
           return {
@@ -579,8 +580,8 @@ export default Storybook.story('SearchQueryBuilder', story => {
   });
 
   story('Callbacks', () => {
-    const [onChangeValue, setOnChangeValue] = useState<string>('');
-    const [onSearchValue, setOnSearchValue] = useState<string>('');
+    const [onChangeValue, setOnChangeValue] = useState('');
+    const [onSearchValue, setOnSearchValue] = useState('');
 
     return (
       <Fragment>
@@ -629,7 +630,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       'disallowUnsupportedFilters',
     ];
 
-    const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
+    const [enabledConfigs, setEnabledConfigs] = useState([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[config] = true;
@@ -770,7 +771,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The suggestions will be the values for the provided keys. The following example,
           will show suggestions for the <code>id</code> key when the user types a value
-          that matches the regex pattern <code>{`/^[0-9]{3}$/`}</code>.
+          that matches the regex pattern <code>{'/^[0-9]{3}$/'}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -778,7 +779,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
-          matchKeySuggestions={[{key: 'id', valuePattern: /^[0-9]{3}$/}]}
+          matchKeySuggestions={[{key: 'id', valuePattern: /^\d{3}$/}]}
         />
         <p>
           You can also pass multiple values in the prop to show suggestions for multiple
@@ -791,8 +792,8 @@ export default Storybook.story('SearchQueryBuilder', story => {
           getTagValues={getTagValues}
           searchSource="storybook"
           matchKeySuggestions={[
-            {key: 'test-1.id', valuePattern: /^[0-9]{3}$/},
-            {key: 'test-2.id', valuePattern: /^[0-9]{3}$/},
+            {key: 'test-1.id', valuePattern: /^\d{3}$/},
+            {key: 'test-2.id', valuePattern: /^\d{3}$/},
           ]}
         />
       </Fragment>
@@ -810,7 +811,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The raw search will be replaced with option(s) in the dropdown. The options will
           be the values for the provided keys. The following example shows the prop set as{' '}
-          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -822,7 +823,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         />
         <p>
           You can also pass multiple values in the prop to replace multiple keys.{' '}
-          <code>{`replaceRawSearchKeys={['span.op', 'span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.op', 'span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -931,6 +932,50 @@ function SearchQueryBuilderExample(queryBuilderProps: SearchQueryBuilderProps) {
         </CodeBlock>
         <p>The following is the above code in action:</p>
         <SearchQueryBuilderExample />
+      </Fragment>
+    );
+  });
+
+  story('Async filter keys', () => {
+    const asyncGetTagKeys = (searchQuery: string): Promise<Tag[]> => {
+      const allKeys: Tag[] = [
+        {key: 'dynamic_key_1', name: 'dynamic_key_1', kind: FieldKind.TAG},
+        {key: 'dynamic_key_2', name: 'dynamic_key_2', kind: FieldKind.TAG},
+        {key: 'dynamic_key_3', name: 'dynamic_key_3', kind: FieldKind.TAG},
+      ];
+
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(
+            searchQuery
+              ? allKeys.filter(k => k.key.includes(searchQuery.toLowerCase()))
+              : allKeys
+          );
+        }, 300);
+      });
+    };
+
+    return (
+      <Fragment>
+        <p>
+          When filter keys are not fully known upfront, use <code>getTagKeys</code> to
+          fetch them asynchronously. This is useful when the set of available keys depends
+          on user input or needs to be loaded from an API.
+        </p>
+        <p>
+          The function receives the current search input and should return an array of{' '}
+          <code>Tag</code> objects. The returned keys are automatically merged with any
+          static <code>filterKeys</code> and deduplicated. Requests are debounced
+          internally.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeys={FILTER_KEYS}
+          filterKeySections={FILTER_KEY_SECTIONS}
+          getTagValues={getTagValues}
+          getTagKeys={asyncGetTagKeys}
+          searchSource="storybook"
+        />
       </Fragment>
     );
   });

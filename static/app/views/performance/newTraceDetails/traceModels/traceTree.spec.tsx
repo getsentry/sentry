@@ -12,8 +12,6 @@ import {
 } from './../traceGuards';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
-import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
-import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
@@ -182,7 +180,7 @@ const eapTraceWithOccurences = makeEAPTrace([
       makeEAPSpan({
         event_id: 'eap-span-2',
         is_transaction: false,
-        occurrences: [makeEAPOccurrence({event_id: 'eap-occurence-1'})],
+        occurrences: [makeEAPOccurrence({event_id: 'eap-occurrence-1'})],
       }),
     ],
   }),
@@ -615,7 +613,7 @@ describe('TraceTree', () => {
       expect(eapSpan?.errors.size).toBe(1);
     });
 
-    it('adds eap occurences to tree nodes', () => {
+    it('adds eap occurrences to tree nodes', () => {
       const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceOptions);
 
       expect(tree.root.children[0]!.occurrences.size).toBe(1);
@@ -776,6 +774,108 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
+    it('preserves actual parents while summarizing collapsed EAP transactions', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-transaction',
+            is_transaction: true,
+            start_timestamp: start,
+            end_timestamp: start + 5,
+            children: [
+              makeEAPSpan({
+                event_id: 'span-a',
+                is_transaction: false,
+                parent_span_id: 'root-transaction',
+                start_timestamp: start + 1,
+                end_timestamp: start + 2,
+                children: [
+                  makeEAPSpan({
+                    event_id: 'child-transaction-a',
+                    is_transaction: true,
+                    parent_span_id: 'span-a',
+                    start_timestamp: start + 1.25,
+                    end_timestamp: start + 2,
+                    children: [],
+                  }),
+                ],
+              }),
+              makeEAPSpan({
+                event_id: 'span-b',
+                is_transaction: false,
+                parent_span_id: 'root-transaction',
+                start_timestamp: start + 3,
+                end_timestamp: start + 4,
+                children: [
+                  makeEAPSpan({
+                    event_id: 'child-transaction-b',
+                    is_transaction: true,
+                    parent_span_id: 'span-b',
+                    start_timestamp: start + 3.25,
+                    end_timestamp: start + 4,
+                    children: [],
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ]),
+        traceOptions
+      ).build();
+
+      const rootTransaction = tree.root.findChild(n => n.id === 'root-transaction');
+      const spanA = tree.root.findChild(n => n.id === 'span-a');
+      const spanB = tree.root.findChild(n => n.id === 'span-b');
+      const childTransactionA = tree.root.findChild(n => n.id === 'child-transaction-a');
+      const childTransactionB = tree.root.findChild(n => n.id === 'child-transaction-b');
+
+      assertEAPSpanNode(rootTransaction);
+      assertEAPSpanNode(spanA);
+      assertEAPSpanNode(spanB);
+      assertEAPSpanNode(childTransactionA);
+      assertEAPSpanNode(childTransactionB);
+
+      expect(rootTransaction.children).toEqual([spanA, spanB]);
+      expect(childTransactionA.parent).toBe(spanA);
+      expect(childTransactionB.parent).toBe(spanB);
+      expect(rootTransaction.directVisibleChildren).toEqual([
+        childTransactionA,
+        childTransactionB,
+      ]);
+      expect(TraceTree.VisibleParent(childTransactionA)).toBe(rootTransaction);
+      expect(TraceTree.VisibleParent(childTransactionB)).toBe(rootTransaction);
+      expect(TraceTree.Depth(childTransactionA)).toBe(
+        TraceTree.Depth(rootTransaction) + 1
+      );
+      expect(TraceTree.Depth(childTransactionB)).toBe(
+        TraceTree.Depth(rootTransaction) + 1
+      );
+      expect(TraceTree.IsLastVisibleChild(childTransactionA)).toBe(false);
+      expect(TraceTree.IsLastVisibleChild(childTransactionB)).toBe(true);
+      const rootTransactionIndex = tree.list.indexOf(rootTransaction);
+      expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 3)).toEqual([
+        rootTransaction,
+        childTransactionA,
+        childTransactionB,
+      ]);
+
+      rootTransaction.expand(true, tree);
+
+      expect(childTransactionA.parent).toBe(spanA);
+      expect(childTransactionB.parent).toBe(spanB);
+      expect(TraceTree.VisibleParent(childTransactionA)).toBe(spanA);
+      expect(TraceTree.VisibleParent(childTransactionB)).toBe(spanB);
+      expect(TraceTree.Depth(childTransactionA)).toBe(TraceTree.Depth(spanA) + 1);
+      expect(TraceTree.Depth(childTransactionB)).toBe(TraceTree.Depth(spanB) + 1);
+      expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 5)).toEqual([
+        rootTransaction,
+        spanA,
+        childTransactionA,
+        spanB,
+        childTransactionB,
+      ]);
+    });
+
     it('collects measurements', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([
@@ -818,6 +918,109 @@ describe('TraceTree', () => {
           expect.objectContaining({type: 'lcp', label: 'LCP', measurement: {value: 200}}),
         ])
       );
+    });
+
+    it('standalone LCP span indicator takes priority over pageload LCP indicator', () => {
+      const standaloneStart = start + 1.5;
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'pageload-span',
+            op: 'pageload',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [],
+          }),
+          makeEAPSpan({
+            event_id: 'standalone-lcp-span',
+            op: 'ui.webvital.lcp',
+            start_timestamp: standaloneStart,
+            end_timestamp: standaloneStart + 0.1,
+            is_transaction: false,
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
+      expect(lcpIndicators).toHaveLength(1);
+      expect(lcpIndicators[0]!.start).toBe(standaloneStart * 1e3 + 500);
+    });
+
+    it('applies standalone LCP measurement offset from trace origin when present', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'pageload-span',
+            op: 'pageload',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            additional_attributes: {
+              'tags[performance.timeOrigin,number]': start,
+            },
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [],
+          }),
+          makeEAPSpan({
+            event_id: 'standalone-lcp-span',
+            op: 'ui.webvital.lcp',
+            start_timestamp: start + 1.5,
+            end_timestamp: start + 1.6,
+            is_transaction: false,
+            measurements: {
+              'measurements.lcp': 1240,
+            },
+            children: [],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
+      expect(lcpIndicators).toHaveLength(1);
+      expect(lcpIndicators[0]!.start).toBe(start * 1e3 + 1240);
+    });
+
+    it('handles cycles in EAP trace structure without infinite loop', () => {
+      const cyclicSpan = makeEAPSpan({
+        event_id: 'cyclic-span',
+        is_transaction: false,
+        children: [],
+      });
+
+      cyclicSpan.children = [cyclicSpan];
+
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-span',
+            is_transaction: true,
+            children: [cyclicSpan],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      expect(tree.build()).toBeDefined();
+
+      const cyclicNodes: BaseNode[] = [];
+      tree.root.forEachChild(node => {
+        if (node.id === 'cyclic-span') {
+          cyclicNodes.push(node);
+        }
+      });
+      expect(cyclicNodes).toHaveLength(1);
     });
   });
 
@@ -967,9 +1170,7 @@ describe('TraceTree', () => {
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      const parentAutogroupNode = tree.root.findChild(n =>
-        isParentAutogroupedNode(n)
-      ) as ParentAutogroupNode;
+      const parentAutogroupNode = tree.root.findChild(n => isParentAutogroupedNode(n))!;
 
       // Expand the chain and collapse an intermediary child
       parentAutogroupNode.expand(true, tree);
@@ -1418,9 +1619,7 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = tree.root.findChild(node =>
-        isParentAutogroupedNode(node)
-      ) as ParentAutogroupNode;
+      const parentAutogroup = tree.root.findChild(node => isParentAutogroupedNode(node))!;
 
       expect(parentAutogroup).not.toBeNull();
       expect(parentAutogroup.directVisibleChildren[0]).toBe(
@@ -1438,9 +1637,7 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = tree.root.findChild(node =>
-        isParentAutogroupedNode(node)
-      ) as ParentAutogroupNode;
+      const parentAutogroup = tree.root.findChild(node => isParentAutogroupedNode(node))!;
 
       parentAutogroup.expand(true, tree);
 
@@ -1650,6 +1847,208 @@ describe('TraceTree', () => {
     });
   });
 
+  describe('HasDirectVisibleChildren', () => {
+    it('true when transaction has children', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [makeTransaction({children: [makeTransaction()]})],
+        }),
+        traceOptions
+      );
+      expect(tree.root.children[0]!.hasDirectVisibleChildren()).toBe(true);
+    });
+
+    describe('span', () => {
+      it.each([true, false])(
+        '%s when span has children and is expanded',
+        async expanded => {
+          const tree = TraceTree.FromTrace(
+            makeTrace({
+              transactions: [
+                makeTransaction({
+                  children: [makeTransaction()],
+                  event_id: 'event-id',
+                  project_slug: 'project',
+                }),
+              ],
+            }),
+            traceOptions
+          );
+
+          mockSpansResponse(
+            [
+              makeSpan({span_id: '0000'}),
+              makeSpan({span_id: '0001', parent_span_id: '0000'}),
+            ],
+            'project',
+            'event-id'
+          );
+          await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+            api: new MockApiClient(),
+            organization,
+          });
+
+          const span = tree.root.findChild(
+            node => isSpanNode(node) && node.value.span_id === '0000'
+          )!;
+
+          span.expand(expanded, tree);
+          expect(span.hasDirectVisibleChildren()).toBe(expanded);
+        }
+      );
+    });
+
+    describe('sibling autogroup', () => {
+      it.each([true, false])('%s when sibling autogroup is expanded', async expanded => {
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+
+        mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
+        const siblingAutogroup = tree.root.findChild(node =>
+          isSiblingAutogroupedNode(node)
+        );
+
+        siblingAutogroup!.expand(expanded, tree);
+        expect(siblingAutogroup!.hasDirectVisibleChildren()).toBe(expanded);
+      });
+
+      it("doesn't auto-group sibling spans with default op", async () => {
+        const siblingSpans = [
+          makeSpan({
+            op: 'pageload',
+            description: 'parent',
+            start_timestamp: start,
+            timestamp: start + 1,
+            span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+        mockSpansResponse(siblingSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
+
+        const siblingAutogroup = tree.root.findChild(node =>
+          isSiblingAutogroupedNode(node)
+        );
+        expect(siblingAutogroup).toBeNull();
+      });
+    });
+
+    describe('parent autogroup', () => {
+      it.each([true, false])('%s when parent autogroup is expanded', async expanded => {
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+
+        mockSpansResponse(parentAutogroupSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        const parentAutogroup = tree.root.findChild(node =>
+          isParentAutogroupedNode(node)
+        );
+
+        parentAutogroup!.expand(expanded, tree);
+        expect(parentAutogroup!.hasDirectVisibleChildren()).toBe(expanded);
+      });
+
+      it("does't auto-group child spans with default op", async () => {
+        const childSpans = [
+          makeSpan({op: 'default', description: 'desc1', span_id: '0000'}),
+          makeSpan({
+            op: 'default',
+            description: 'desc2',
+            span_id: '0001',
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+        mockSpansResponse(childSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
+        const parentAutogroup = tree.root.findChild(node =>
+          isParentAutogroupedNode(node)
+        );
+        expect(parentAutogroup).toBeNull();
+      });
+    });
+
+    describe('parent autogroup when tail has children', () => {
+      // Always true because tail has children
+      it.each([true, false])('%s when parent autogroup is expanded', async expanded => {
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+
+        mockSpansResponse(parentAutogroupSpansWithTailChildren, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        tree.build();
+
+        const parentAutogroup = tree.root.findChild(node =>
+          isParentAutogroupedNode(node)
+        );
+
+        parentAutogroup!.expand(expanded, tree);
+        expect(parentAutogroup!.hasDirectVisibleChildren()).toBe(true);
+      });
+    });
+  });
+
   describe('IsLastChild', () => {
     it('returns false if node is not last child', () => {
       const tree = TraceTree.FromTrace(
@@ -1668,6 +2067,17 @@ describe('TraceTree', () => {
         traceOptions
       );
       expect(tree.root.children[0]!.children[1]!.isLastChild()).toBe(true);
+    });
+  });
+
+  describe('IsLastVisibleChild', () => {
+    it('treats the trace root row as the last visible child', () => {
+      const tree = TraceTree.FromTrace(trace, traceOptions);
+      const traceRoot = tree.root.children[0]!;
+
+      expect(TraceTree.VisibleParent(traceRoot)).toBeNull();
+      expect(TraceTree.IsLastVisibleChild(traceRoot)).toBe(true);
+      expect(TraceTree.ConnectorsTo(traceRoot)).toEqual([]);
     });
   });
 
@@ -1823,7 +2233,7 @@ describe('TraceTree', () => {
 
         const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
-        ) as ParentAutogroupNode;
+        )!;
         expect(parentAutogroup.tail.pathToNode()).toEqual([
           'span-tail-span-id',
           'txn-child-event-id',
@@ -1888,7 +2298,7 @@ describe('TraceTree', () => {
 
         const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
-        ) as SiblingAutogroupNode;
+        )!;
 
         const path = siblingAutogroup.pathToNode();
         expect(path).toEqual(['ag-child-event-id', 'txn-child-event-id']);
@@ -1908,7 +2318,7 @@ describe('TraceTree', () => {
 
         const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
-        ) as SiblingAutogroupNode;
+        )!;
 
         const path = siblingAutogroup.children[1]!.pathToNode();
         expect(path).toEqual(['span-1', 'txn-child-event-id']);

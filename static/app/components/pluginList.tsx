@@ -1,6 +1,6 @@
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
-import PluginConfig from 'sentry/components/pluginConfig';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {PluginConfig} from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
@@ -11,7 +11,7 @@ type Props = {
   project: Project;
 };
 
-export default function PluginList({project, pluginList}: Props) {
+export function PluginList({project, pluginList}: Props) {
   const togglePluginMutation = useTogglePluginMutation({
     projectSlug: project.slug,
   });

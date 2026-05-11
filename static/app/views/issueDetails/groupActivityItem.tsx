@@ -2,12 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import CommitLink from 'sentry/components/commitLink';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
+import {CommitLink} from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import PullRequestLink from 'sentry/components/pullRequestLink';
-import Version from 'sentry/components/version';
+import {Duration} from 'sentry/components/duration';
+import {PullRequestLink} from 'sentry/components/pullRequestLink';
+import {Version} from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import type {
   Group,
@@ -31,7 +32,7 @@ interface AssignedMessageProps {
 
 function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
   const {data} = activity;
-  let assignee: string | User | undefined = undefined;
+  let assignee: string | User | undefined;
   const {teams} = useTeamsById(
     data.assigneeType === 'team' ? {ids: [data.assignee]} : undefined
   );
@@ -40,7 +41,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
     const team = teams.find(({id}) => id === data.assignee);
     // TODO: could show a loading indicator if the team is loading
     assignee = team ? `#${team.slug}` : '<unknown-team>';
-  } else if (activity.user && data.assignee === activity.user.id) {
+  } else if (data.assignee === activity.user?.id) {
     assignee = t('themselves');
   } else if (data.assigneeType === 'user' && data.assigneeEmail) {
     assignee = data.assigneeEmail;
@@ -95,7 +96,7 @@ interface GroupActivityItemProps {
   projectId: Project['id'];
 }
 
-function GroupActivityItem({
+export function GroupActivityItem({
   activity,
   organization,
   projectId,
@@ -372,6 +373,21 @@ function GroupActivityItem({
         }
         return tct('[author] marked this issue as resolved in a commit', {author});
       }
+      case GroupActivityType.REFERENCED_IN_COMMIT: {
+        if (activity.data.commit) {
+          return tct('[author] referenced this issue in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] referenced this issue in a commit', {author});
+      }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
@@ -611,8 +627,6 @@ function GroupActivityItem({
 
   return <Fragment>{renderContent()}</Fragment>;
 }
-
-export default GroupActivityItem;
 
 const Subtext = styled('div')`
   font-size: ${p => p.theme.font.size.sm};

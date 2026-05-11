@@ -1,14 +1,15 @@
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 
 import {AddToOrgModal, RemoveFromOrgModal} from 'admin/components/addOrRemoveOrgModal';
-import CustomerGrid from 'admin/components/customerGrid';
+import {CustomerGrid} from 'admin/components/customerGrid';
 
 type Props = {
   userId: string;
 };
 
-function UserCustomers({userId}: Props) {
+export function UserCustomers({userId}: Props) {
   const openAddToOrgModal = () => {
     openModal(modalProps => <AddToOrgModal {...modalProps} userId={userId} />);
   };
@@ -31,7 +32,7 @@ function UserCustomers({userId}: Props) {
       buttonGroup={
         <div>
           <Button
-            priority="primary"
+            variant="primary"
             size="sm"
             onClick={openAddToOrgModal}
             style={{
@@ -40,7 +41,7 @@ function UserCustomers({userId}: Props) {
           >
             Add to Org
           </Button>
-          <Button priority="default" size="sm" onClick={openRemoveFromOrgModal}>
+          <Button variant="secondary" size="sm" onClick={openRemoveFromOrgModal}>
             Remove from Org
           </Button>
         </div>
@@ -48,5 +49,3 @@ function UserCustomers({userId}: Props) {
     />
   );
 }
-
-export default UserCustomers;

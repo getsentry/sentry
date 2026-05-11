@@ -10,7 +10,7 @@ from rediscluster import RedisCluster
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.utils.redis import (
@@ -179,8 +179,10 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
             return False
 
         if not self.in_cache(organization_id, feature_id):
-            row, created = self.create_or_update(
-                organization_id=organization_id, feature_id=feature_id, complete=True
+            _, created = self.update_or_create(
+                organization_id=organization_id,
+                feature_id=feature_id,
+                defaults={"complete": True},
             )
             self.set_cache(organization_id, feature_id)
             return created
@@ -227,7 +229,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
         ).first()
 
 
-@region_silo_model
+@cell_silo_model
 class FeatureAdoption(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

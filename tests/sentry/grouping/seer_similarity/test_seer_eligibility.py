@@ -200,7 +200,7 @@ class ShouldCallSeerTest(TestCase):
             assert (
                 should_call_seer_for_grouping(event, event.get_grouping_variants(), grouphash)
                 is expected_result
-            ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
+            ), f"Case with fingerprint {event.data['fingerprint']} failed."
 
     def test_obeys_excessive_frame_check(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -250,7 +250,10 @@ class ShouldCallSeerTest(TestCase):
             is False
         )
         mock_record_did_call_seer.assert_any_call(
-            empty_frame_event, call_made=False, blocker="empty-stacktrace-string"
+            empty_frame_event,
+            call_made=False,
+            blocker="empty-stacktrace-string",
+            training_mode=False,
         )
 
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
@@ -268,18 +271,19 @@ class ShouldCallSeerTest(TestCase):
             should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is False
         )
         mock_record_did_call_seer.assert_any_call(
-            self.event, call_made=False, blocker="race_condition"
+            self.event, call_made=False, blocker="race_condition", training_mode=False
         )
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
     def test_stacktrace_string_not_saved_in_event(
         self, mock_get_similarity_data: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", 1)
         event = save_new_event(self.event_data, self.project)
         assert mock_get_similarity_data.call_count == 1
-        assert "raise FailedToFetchError('Charlie didn't bring the ball back')" in (
-            mock_get_similarity_data.call_args.args[0]["stacktrace"]
+        assert (
+            "raise FailedToFetchError('Charlie didn't bring the ball back')"
+            in (mock_get_similarity_data.call_args.args[0]["stacktrace"])
         )
 
         assert event.data.get("stacktrace_string") is None

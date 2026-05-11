@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {
@@ -370,7 +370,7 @@ describe('useCopyIssueDetails', () => {
 
       mockCopy.mockResolvedValue('');
 
-      jest.mocked(copyToClipboardModule.default).mockReturnValue({
+      jest.mocked(copyToClipboardModule.useCopyToClipboard).mockReturnValue({
         copy: mockCopy,
       });
 
@@ -386,36 +386,34 @@ describe('useCopyIssueDetails', () => {
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
-      jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+      jest.spyOn(useOrganization, 'useOrganization').mockReturnValue(organization);
     });
 
     it('calls useCopyToClipboard hook', () => {
       renderHook(() => useCopyIssueDetails(group, event));
 
       // Check that the hook was called
-      expect(copyToClipboardModule.default).toHaveBeenCalled();
+      expect(copyToClipboardModule.useCopyToClipboard).toHaveBeenCalled();
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
-      const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
+      const useHotkeysMock = jest.spyOn(
+        require('@sentry/scraps/hotkey/useHotkeys'),
+        'useHotkeys'
+      );
 
       renderHook(() => useCopyIssueDetails(group, event));
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
-          match: 'command+alt+c',
-          callback: expect.any(Function),
-          skipPreventDefault: expect.any(Boolean),
-        },
-        {
-          match: 'ctrl+alt+c',
+          match: 'mod+alt+c',
           callback: expect.any(Function),
           skipPreventDefault: expect.any(Boolean),
         },
       ]);
     });
 
-    it('provides partial data when event is undefined', () => {
+    it('provides partial data when event is undefined', async () => {
       let capturedText = '';
 
       mockCopy.mockImplementation((text: string) => {
@@ -425,14 +423,7 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, undefined));
 
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
@@ -443,7 +434,7 @@ describe('useCopyIssueDetails', () => {
       expect(capturedText).not.toContain('## Exception');
     });
 
-    it('generates markdown with the correct data when event is provided', () => {
+    it('generates markdown with the correct data when event is provided', async () => {
       let capturedText = '';
 
       mockCopy.mockImplementation((text: string) => {
@@ -453,14 +444,7 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, event));
 
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);

@@ -1,6 +1,8 @@
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SessionsResponse {
   data: ExplorerSession[];
@@ -16,7 +18,9 @@ export function useExplorerSessions({
   const organization = useOrganization({allowNull: true});
   const query = useApiQuery<SessionsResponse>(
     [
-      `/organizations/${organization?.slug ?? ''}/seer/explorer-runs/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-runs/', {
+        path: {organizationIdOrSlug: organization?.slug ?? ''},
+      }),
       {
         query: {
           per_page: limit,
@@ -24,8 +28,8 @@ export function useExplorerSessions({
       },
     ],
     {
-      staleTime: 10_000,
-      enabled: enabled && Boolean(organization),
+      staleTime: 0,
+      enabled: enabled && !!organization && isSeerExplorerEnabled(organization),
     }
   );
 

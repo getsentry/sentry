@@ -4,7 +4,6 @@ from typing import Any
 
 import pytest
 
-from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.http_overhead_detector import HTTPOverheadDetector
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
@@ -66,9 +65,7 @@ def _valid_http_overhead_event(url: str) -> dict[str, Any]:
     }
 
 
-def find_problems(
-    settings: dict[DetectorType, Any], event: dict[str, Any]
-) -> list[PerformanceProblem]:
+def find_problems(settings: dict[str, Any], event: dict[str, Any]) -> list[PerformanceProblem]:
     detector = HTTPOverheadDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
@@ -81,7 +78,7 @@ class HTTPOverheadDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        return find_problems(self._settings, event)
+        return find_problems(self._settings[HTTPOverheadDetector.settings_key], event)
 
     def test_detects_http_overhead(self) -> None:
         event = _valid_http_overhead_event("/api/endpoint/123")

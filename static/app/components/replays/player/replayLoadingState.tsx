@@ -1,17 +1,18 @@
 import type {ReactNode} from 'react';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
-import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import ReplayRequestsThrottledAlert from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
+import {MissingReplayAlert} from 'sentry/components/replays/alerts/missingReplayAlert';
+import {ReplayRequestsThrottledAlert} from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ReplayReaderResult = ReturnType<typeof useLoadReplayReader>;
 
-export default function ReplayLoadingState({
+export function ReplayLoadingState({
   children,
   readerResult,
   renderArchived,
@@ -33,8 +34,11 @@ export default function ReplayLoadingState({
   const organization = useOrganization();
 
   const throttledErrorExists =
-    readerResult.fetchError?.status === 429 ||
-    readerResult.attachmentError?.find(error => error.status === 429);
+    (readerResult.fetchError instanceof RequestError &&
+      readerResult.fetchError.status === 429) ||
+    readerResult.attachmentError?.find(
+      error => error instanceof RequestError && error.status === 429
+    );
 
   if (throttledErrorExists) {
     return renderThrottled ? (

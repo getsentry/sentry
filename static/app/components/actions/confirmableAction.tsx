@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 > &
   Pick<ConfirmProps, 'message' | 'disabled' | 'confirmText' | 'onConfirm'>;
 
-export default function ConfirmableAction({shouldConfirm, children, ...props}: Props) {
+export function ConfirmableAction({shouldConfirm, children, ...props}: Props) {
   if (shouldConfirm) {
     return <Confirm {...props}>{children as ConfirmProps['children']}</Confirm>;
   }

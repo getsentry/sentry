@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DataConditionHandler
@@ -76,7 +76,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
         self.registry_patcher.stop()
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCase):
     def test_group_filter(self) -> None:
         response = self.get_success_response(

@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('dotnet onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
@@ -14,6 +14,11 @@ describe('dotnet onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+        ProductSolution.METRICS,
+      ],
     });
 
     // Renders main headings
@@ -51,6 +56,16 @@ describe('dotnet onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/options.ProfilesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.EnableLogs/))
     ).toBeInTheDocument();
   });
 });

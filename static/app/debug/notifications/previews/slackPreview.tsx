@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Image} from 'sentry/components/core/image/image';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
 import {NotificationBodyRenderer} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 import {
@@ -32,10 +32,10 @@ export function SlackPreview({
       title="Slack"
       actions={
         <LinkButton
-          to={previewLink}
+          href={previewLink}
           size="xs"
           icon={<PluginIcon pluginId="slack" size={24} />}
-          target="_blank"
+          external
         >
           BlockKit Builder
         </LinkButton>

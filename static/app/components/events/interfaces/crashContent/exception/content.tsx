@@ -1,15 +1,16 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Container} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
-import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {
   prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebuggerData,
+  useSourceMapDebugQuery,
+  type SourceMapDebugBlueThunderResponse,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
@@ -19,8 +20,8 @@ import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {
   FoldSection,
@@ -28,10 +29,9 @@ import {
 } from 'sentry/views/issueDetails/streamline/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
-import {LineCoverageLegend} from './lineCoverageLegend';
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
-import StackTrace from './stackTrace';
+import {StackTrace} from './stackTrace';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
@@ -126,7 +126,7 @@ function ToggleExceptionButton({
 
   return (
     <ShowRelatedExceptionsButton
-      priority="link"
+      variant="link"
       onClick={() => {
         toggleRelatedExceptions(exceptionId);
       }}
@@ -163,7 +163,7 @@ function InnerContent({
   hasChainedExceptions: boolean;
   hiddenExceptions: ExceptionRenderStateMap;
   isSampleError: boolean;
-  sourceMapDebuggerData: ReturnType<typeof useSourceMapDebuggerData>;
+  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse | undefined;
   toggleRelatedExceptions: (exceptionId: number) => void;
   values: ExceptionValue[];
   project?: Project;
@@ -191,7 +191,6 @@ function InnerContent({
     ? exceptionIdx === values.length - 1
     : exceptionIdx === 0;
 
-  const {hasCoverageData} = useLineCoverageContext();
   return (
     <Fragment>
       <StyledPre>
@@ -210,11 +209,6 @@ function InnerContent({
       {exception.mechanism ? (
         <Container paddingTop="xl">
           <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
-        </Container>
-      ) : null}
-      {hasCoverageData ? (
-        <Container paddingTop="md">
-          <LineCoverageLegend />
         </Container>
       ) : null}
       <RelatedExceptions
@@ -264,7 +258,11 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
-  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
+  const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
+    projectSlug,
+    event.id,
+    event.sdk?.name ?? null
+  );
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 

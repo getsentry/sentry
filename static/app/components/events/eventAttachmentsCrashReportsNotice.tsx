@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
@@ -10,7 +11,11 @@ type Props = {
   projectSlug: string;
 };
 
-function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Props) {
+export function EventAttachmentsCrashReportsNotice({
+  orgSlug,
+  projectSlug,
+  groupId,
+}: Props) {
   const location = useLocation();
   const settingsUrl = `/settings/${orgSlug}/projects/${projectSlug}/security-and-privacy/`;
   const attachmentsUrl = {
@@ -32,5 +37,3 @@ function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Pro
     </Alert.Container>
   );
 }
-
-export default EventAttachmentsCrashReportsNotice;

@@ -49,7 +49,7 @@ class FileBlobTest(TestCase):
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
         baz_file.putfile(fileobj)
-        blob = baz_file.blobs.all()[0]
+        blob = baz_file.blobs.order_by("id")[0]
 
         mock_delete_file_region = Mock()
         mock_task_factory.return_value = mock_delete_file_region
@@ -123,7 +123,6 @@ class FileTest(TestCase):
         assert results[1].offset == 3
         assert results[2].offset == 6
 
-        fp = None
         with file1.getfile() as fp:
             assert fp.read().decode("utf-8") == "foo bar"
             fp.seek(2)

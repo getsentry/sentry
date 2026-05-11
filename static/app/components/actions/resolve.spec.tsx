@@ -8,7 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ResolveActions from 'sentry/components/actions/resolve';
+import {ResolveActions} from 'sentry/components/actions/resolve';
 
 describe('ResolveActions', () => {
   const spy = jest.fn();

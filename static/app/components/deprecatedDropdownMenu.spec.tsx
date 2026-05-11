@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
+import {DropdownMenu as DeprecatedDropdownMenu} from 'sentry/components/deprecatedDropdownMenu';
 
 describe('dropdownMenuDeprecated', () => {
   function DeprecatedDropdownImplementation(

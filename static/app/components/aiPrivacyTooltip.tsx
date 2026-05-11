@@ -1,8 +1,8 @@
 import type {ComponentProps, ReactNode} from 'react';
 
-import {ExternalLink} from '@sentry/scraps/link/link';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 
 interface AiPrivacyNoticeProps {
@@ -10,8 +10,7 @@ interface AiPrivacyNoticeProps {
 }
 
 interface AiPrivacyTooltipProps
-  extends Omit<TooltipProps, 'title' | 'children'>,
-    AiPrivacyNoticeProps {
+  extends Omit<TooltipProps, 'title' | 'children'>, AiPrivacyNoticeProps {
   children: ReactNode;
 }
 
@@ -34,7 +33,7 @@ export function AiPrivacyNotice({linkProps = {}}: AiPrivacyNoticeProps) {
  * A shortened version of the privacy noice, useful for tooltips or places where space is limited.
  */
 function AiPrivacyNoticeShort({linkProps = {}}: AiPrivacyNoticeProps) {
-  return tct(`Powered by genAI. [link:Learn more.]`, {
+  return tct('Powered by genAI. [link:Learn more.]', {
     link: <ExternalLink href={AI_PRIVACY_NOTICE_LINK} {...linkProps} />,
   });
 }

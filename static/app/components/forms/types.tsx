@@ -1,35 +1,35 @@
-import type {AlertProps} from 'sentry/components/core/alert';
+import type {AlertProps} from '@sentry/scraps/alert';
+
 import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
 import type {SelectValue} from 'sentry/types/core';
 import type {AvatarProject, Project} from 'sentry/types/project';
 
-export const FieldType = [
-  'array',
-  'blank',
-  'bool',
-  'boolean',
-  'choice_mapper',
-  'datetime',
-  'email',
-  'file',
-  'hidden',
-  'multichoice',
-  'number',
-  'radio',
-  'secret',
-  'separator',
-  'string',
-  'text',
-  'url',
-  'table',
-  'project_mapper',
-  'sentry_project_selector',
-  'select_async',
-] as const;
+type FieldType =
+  | 'array'
+  | 'blank'
+  | 'bool'
+  | 'boolean'
+  | 'choice_mapper'
+  | 'datetime'
+  | 'email'
+  | 'file'
+  | 'hidden'
+  | 'multichoice'
+  | 'number'
+  | 'radio'
+  | 'secret'
+  | 'separator'
+  | 'string'
+  | 'text'
+  | 'url'
+  | 'table'
+  | 'project_mapper'
+  | 'sentry_project_selector'
+  | 'select_async';
 
 export type FieldValue = any;
 
@@ -224,7 +224,7 @@ export type Field = (
   | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType
-  | {type: (typeof FieldType)[number]}
+  | {type: FieldType}
   | FileType
   | DateTimeType
 ) &

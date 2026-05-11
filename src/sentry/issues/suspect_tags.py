@@ -10,6 +10,7 @@ from sentry.models.project import Project
 from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -287,6 +288,7 @@ def _query_error_counts_eap(
         referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS.value,
         group_id=group_id,
         environments=environments,
+        occurrence_category=OccurrenceCategory.ERROR,
     )
 
 
@@ -323,7 +325,18 @@ def query_error_counts(
             organization_id, project_id, start, end, environment_names, group_id
         )
         error_count = EAPOccurrencesComparator.check_and_choose(
-            snuba_count, eap_count, "issues.suspect_tags.query_error_counts"
+            snuba_count,
+            eap_count,
+            "issues.suspect_tags.query_error_counts",
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "group_id": group_id,
+                "environment_names": environment_names,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+            },
         )
 
     return error_count

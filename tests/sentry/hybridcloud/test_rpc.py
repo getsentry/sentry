@@ -28,17 +28,17 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers import override_options
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 
-_REGIONS = [
-    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT),
-    Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT),
+_CELLS = [
+    Cell("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT),
 ]
 
 
@@ -46,7 +46,7 @@ _REGIONS = [
 class RpcServiceTest(TestCase):
     @mock.patch("sentry.hybridcloud.rpc.service.dispatch_remote_call")
     def test_remote_service(self, mock_dispatch_remote_call: mock.MagicMock) -> None:
-        target_region = _REGIONS[0]
+        target_cell = _CELLS[0]
 
         user = self.create_user()
         organization = self.create_organization()
@@ -56,7 +56,7 @@ class RpcServiceTest(TestCase):
                 defaults={
                     "slug": organization.slug,
                     "name": organization.name,
-                    "region_name": target_region.name,
+                    "cell_name": target_cell.name,
                 },
             )
 
@@ -64,7 +64,7 @@ class RpcServiceTest(TestCase):
         serial_org = serialize_rpc_organization(organization)
 
         service = OrganizationService.create_delegation()
-        with override_regions(_REGIONS), override_settings(SILO_MODE=SiloMode.CONTROL):
+        with override_cells(_CELLS), override_settings(SILO_MODE=SiloMode.CONTROL):
             service.add_organization_member(
                 organization_id=serial_org.id,
                 default_org_role=serial_org.default_role,
@@ -75,12 +75,12 @@ class RpcServiceTest(TestCase):
 
         assert mock_dispatch_remote_call.called
         (
-            region,
+            cell,
             service_name,
             method_name,
             serial_arguments,
         ) = mock_dispatch_remote_call.call_args.args
-        assert region == target_region
+        assert cell == target_cell
         assert service_name == OrganizationService.key
         assert method_name == "add_organization_member"
         assert serial_arguments.keys() == {
@@ -108,7 +108,7 @@ class RpcServiceTest(TestCase):
             role=None,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service = OrganizationService.create_delegation()
             dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)
 
@@ -151,7 +151,7 @@ class DispatchRemoteCallTest(TestCase):
         )
 
     @responses.activate
-    def test_region_to_control_happy_path(self) -> None:
+    def test_cell_to_control_happy_path(self) -> None:
         org = self.create_organization()
 
         response_value = RpcUserOrganizationContext(organization=serialize_rpc_organization(org))
@@ -163,30 +163,30 @@ class DispatchRemoteCallTest(TestCase):
         assert result == response_value
 
     @responses.activate
-    @override_settings(SILO_MODE=SiloMode.REGION)
-    def test_region_to_control_null_result(self) -> None:
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    def test_cell_to_control_null_result(self) -> None:
         self._set_up_mock_response("organization/get_organization_by_id", None)
 
         result = dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
         assert result is None
 
     @responses.activate
-    @override_regions(_REGIONS)
+    @override_cells(_CELLS)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_control_to_region_happy_path(self) -> None:
+    def test_control_to_cell_happy_path(self) -> None:
         user = self.create_user()
         serial = serialize_rpc_user(user)
         self._set_up_mock_response(
             "user/get_first_superuser", serial.dict(), address="http://na.sentry.io"
         )
 
-        result = dispatch_remote_call(_REGIONS[0], "user", "get_first_superuser", {})
+        result = dispatch_remote_call(_CELLS[0], "user", "get_first_superuser", {})
         assert result == serial
 
     @responses.activate
-    @override_regions(_REGIONS)
+    @override_cells(_CELLS)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_region_to_control_with_list_result(self) -> None:
+    def test_cell_to_control_with_list_result(self) -> None:
         users = [self.create_user() for _ in range(3)]
         serial = [serialize_rpc_user(user) for user in users]
         self._set_up_mock_response("user/get_many", [m.dict() for m in serial])
@@ -195,9 +195,9 @@ class DispatchRemoteCallTest(TestCase):
         assert result == serial
 
     @responses.activate
-    @override_regions(_REGIONS)
+    @override_cells(_CELLS)
     @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
-    def test_early_halt_from_null_region_resolution(self) -> None:
+    def test_early_halt_from_null_cell_resolution(self) -> None:
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             org_service_delgn = OrganizationService.create_delegation(use_test_client=False)
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
@@ -223,7 +223,7 @@ class DispatchRemoteCallTest(TestCase):
         test_class = _RemoteSiloCall(
             service_name="organization_service",
             method_name="get_org_by_id",
-            region=None,
+            cell=None,
             serial_arguments={},
         )
 
@@ -238,7 +238,7 @@ class DispatchRemoteCallTest(TestCase):
             test_class = _RemoteSiloCall(
                 service_name="organization_service",
                 method_name="get_org_by_id",
-                region=None,
+                cell=None,
                 serial_arguments={},
             )
 
@@ -275,7 +275,7 @@ class DispatchRemoteCallTest(TestCase):
         test_class = _RemoteSiloCall(
             service_name="organization_service",
             method_name="get_org_by_id",
-            region=None,
+            cell=None,
             serial_arguments={},
         )
 
@@ -290,7 +290,7 @@ class DispatchRemoteCallTest(TestCase):
             test_class = _RemoteSiloCall(
                 service_name="organization_service",
                 method_name="get_org_by_id",
-                region=None,
+                cell=None,
                 serial_arguments={},
             )
 

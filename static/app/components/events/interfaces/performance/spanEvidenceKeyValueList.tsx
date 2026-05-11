@@ -6,13 +6,15 @@ import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
@@ -24,6 +26,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -37,11 +40,17 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SpanFields} from 'sentry/views/insights/types';
+import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {
+  getSearchInExploreTarget,
+  TraceDrawerActionKind,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
@@ -106,15 +115,13 @@ function ConsecutiveHTTPSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          makeRow(
-            'Offending Spans',
-            offendingSpans.map(span => span.description)
-          ),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(
+          'Offending Spans',
+          offendingSpans.map(span => span.description)
+        ),
+      ].filter(Boolean)}
     />
   );
 }
@@ -128,17 +135,15 @@ function LargeHTTPPayloadSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
-          makeRow(
-            t('Payload Size'),
-            getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
-              getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
-          ),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
+        makeRow(
+          t('Payload Size'),
+          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
+        ),
+      ].filter(Boolean)}
     />
   );
 }
@@ -153,13 +158,11 @@ function HTTPOverheadSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
 
-          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
-        ].filter(Boolean) as KeyValueListData
-      }
+        makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
+      ].filter(Boolean)}
     />
   );
 }
@@ -423,6 +426,13 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
   [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
+  [IssueType.LLM_DETECTED_EXPERIMENTAL_V2]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_HTTP]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_DB]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_RUNTIME_PERFORMANCE]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_SECURITY]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_CODE_HEALTH]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_GENERAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -488,15 +498,54 @@ function SlowDBQueryEvidence({
   projectSlug,
   location,
 }: SpanEvidenceKeyValueListProps) {
+  const span = offendingSpans[0]!;
+  const sentryTags = 'sentry_tags' in span ? span.sentry_tags : undefined;
+  const groupHash = sentryTags?.group ?? span.hash ?? '';
+  const hasExplore = organization.features.includes('visibility-explore-view');
+
+  const queryValue = (
+    <QueryCard>
+      <NoPaddingClippedBox clipHeight={200}>
+        <StyledCodeSnippet language="sql">
+          {formatter.toString(span.description ?? '')}
+        </StyledCodeSnippet>
+      </NoPaddingClippedBox>
+      <Flex gap="md" padding="sm lg" borderTop="muted">
+        <SpanSummaryLink
+          op={span.op}
+          category={sentryTags?.category}
+          group={groupHash}
+          project_id={event.projectID}
+          organization={organization}
+        />
+        {hasExplore && span.description && (
+          <Link
+            to={getSearchInExploreTarget(
+              organization,
+              location,
+              event.projectID,
+              SpanFields.SPAN_DESCRIPTION,
+              span.description,
+              TraceDrawerActionKind.INCLUDE
+            )}
+          >
+            <Flex align="center" gap="xs">
+              <IconGraph type="scatter" size="xs" />
+              {t('More Samples')}
+            </Flex>
+          </Link>
+        )}
+      </Flex>
+    </QueryCard>
+  );
+
   return (
-    <PresortedKeyValueList
+    <KeyValueList
+      shouldSort={false}
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
-        makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0]!)),
-        makeRow(
-          t('Duration Impact'),
-          getSingleSpanDurationImpact(event, offendingSpans[0]!)
-        ),
+        makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, span)),
+        makeRow(t('Slow DB Query'), queryValue),
       ]}
     />
   );
@@ -561,9 +610,7 @@ function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
     <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
   );
 
-  return (
-    <PresortedKeyValueList data={[transactionRow].filter(Boolean) as KeyValueListData} />
-  );
+  return <PresortedKeyValueList data={[transactionRow].filter(Boolean)} />;
 }
 
 function DefaultSpanEvidence({
@@ -857,4 +904,13 @@ function formatBasePath(span: Span, baseURL?: string): string {
 
 const NoPaddingClippedBox = styled(ClippedBox)`
   padding: 0;
+`;
+
+const QueryCard = styled('div')`
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  pre {
+    margin: 0 !important;
+  }
 `;

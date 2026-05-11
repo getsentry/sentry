@@ -3,13 +3,10 @@ from typing import Literal
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
-    VirtualColumnDefinition,
-    project_context_constructor,
-    project_term_resolver,
     simple_sentry_field,
 )
-from sentry.search.eap.common_columns import COMMON_COLUMNS
-from sentry.utils.validators import is_event_id_or_list
+from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
+from sentry.utils.validators import is_event_id_or_list, normalize_event_id_strict
 
 OURLOG_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -20,6 +17,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
             validator=is_event_id_or_list,
+            normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(
             public_alias="severity_number",
@@ -41,6 +39,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.trace_id",
             search_type="string",
             validator=is_event_id_or_list,
+            normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(
             public_alias=constants.TIMESTAMP_PRECISE_ALIAS,
@@ -103,14 +102,7 @@ for field in {constants.TIMESTAMP_ALIAS, constants.TIMESTAMP_PRECISE_ALIAS, cons
     assert field in OURLOG_ATTRIBUTE_DEFINITIONS, f"{field} must be defined for ourlogs"
 
 
-OURLOG_VIRTUAL_CONTEXTS = {
-    key: VirtualColumnDefinition(
-        constructor=project_context_constructor(key),
-        term_resolver=project_term_resolver,
-        filter_column="project.id",
-    )
-    for key in constants.PROJECT_FIELDS
-}
+OURLOG_VIRTUAL_CONTEXTS = project_virtual_contexts()
 
 LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     Literal["string", "number", "boolean"], dict[str, str]

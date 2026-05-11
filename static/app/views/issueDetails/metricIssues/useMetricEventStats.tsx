@@ -1,14 +1,12 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {EventsStats} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {
-  useApiQuery,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   getPeriodInterval,
@@ -35,7 +33,7 @@ interface MetricEventStatsParams {
   timePeriod: TimePeriodType;
 }
 
-interface EventRequestQueryParams {
+type EventRequestQueryParams = {
   comparisonDelta?: number;
   dataset?: DiscoverDatasets;
   end?: string;
@@ -57,7 +55,7 @@ interface EventRequestQueryParams {
   useOnDemandMetrics?: 'true';
   withoutZerofill?: '1';
   yAxis?: string | string[];
-}
+};
 
 export function useMetricEventStats(
   {
@@ -67,7 +65,7 @@ export function useMetricEventStats(
     referrer,
     samplingMode,
   }: MetricEventStatsParams & RPCQueryExtras,
-  options: Partial<UseApiQueryOptions<EventsStats>> = {}
+  options: {enabled?: boolean} = {}
 ) {
   const organization = useOrganization();
   const location = useLocation();
@@ -96,7 +94,7 @@ export function useMetricEventStats(
     timePeriod,
   });
 
-  const queryExtras: Record<string, string> = getMetricDatasetQueryExtras({
+  const queryExtras = getMetricDatasetQueryExtras({
     organization,
     location,
     dataset,
@@ -120,16 +118,18 @@ export function useMetricEventStats(
         ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
         : undefined,
       ...queryExtras,
-    }).filter(([, value]) => typeof value !== 'undefined')
+    }).filter(([, value]) => value !== undefined)
   );
 
-  const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events-stats/`,
-    {query: queryObject},
-  ];
-
-  return useApiQuery<EventsStats>(queryKey, {
-    staleTime: 0,
+  return useQuery({
+    ...apiOptions.as<EventsStats>()(
+      '/organizations/$organizationIdOrSlug/events-stats/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: queryObject,
+        staleTime: 0,
+      }
+    ),
     ...options,
   });
 }

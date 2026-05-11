@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
@@ -36,7 +36,7 @@ type FormFieldState = {
   value: Value;
 };
 
-export default abstract class FormField<
+export abstract class FormField<
   Props extends FormFieldProps = FormFieldProps,
   State extends FormFieldState = FormFieldState,
 > extends PureComponent<Props, State> {
@@ -73,7 +73,7 @@ export default abstract class FormField<
     if (defined(props.value)) {
       return props.value;
     }
-    if (form?.data.hasOwnProperty(props.name)) {
+    if (form && Object.hasOwn(form.data, props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
     return defined(props.defaultValue) ? props.defaultValue : '';

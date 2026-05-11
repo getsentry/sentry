@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import itertools
 from collections import defaultdict
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum, StrEnum
 from typing import ClassVar, TypedDict
 
@@ -15,7 +14,7 @@ from django.db.models.functions import Cast
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
@@ -102,7 +101,7 @@ class GroupOwnerManager(BaseManager["GroupOwner"]):
             return GroupOwner.objects.create(**lookup_kwargs), True
 
 
-@region_silo_model
+@cell_silo_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.
@@ -198,33 +197,12 @@ class GroupOwner(Model):
         """
         cache.delete(ISSUE_OWNERS_DEBOUNCE_KEY(group_id))
 
-    # TODO(shashank): can make this O(1) cache invalidation by using the project ownership version timestamp (follow-up PR), prob will need to update some tests in test_post_process.py as well
     @classmethod
-    def invalidate_assignee_exists_cache(cls, project_id, group_id=None):
+    def invalidate_assignee_exists_cache(cls, group_id):
         """
-        If `group_id` is provided, clear the assignee exists cache for that group, else
-        clear the cache of all groups for a project that had an event within the
-        ASSIGNEE_EXISTS_DURATION window.
+        Clear the assignee exists cache for a specific group.
         """
-        if group_id:
-            cache.delete(ASSIGNEE_EXISTS_KEY(group_id))
-            return
-
-        # Get all the groups for a project that had an event within the ASSIGNEE_EXISTS_DURATION window.
-        # Any groups without events in that window would have expired their TTL in the cache.
-        queryset = Group.objects.filter(
-            project_id=project_id,
-            last_seen__gte=timezone.now() - timedelta(seconds=ASSIGNEE_EXISTS_DURATION),
-        ).values_list("id", flat=True)
-
-        # Run cache invalidation in batches
-        group_id_iter = queryset.iterator(chunk_size=1000)
-        while True:
-            group_ids = list(itertools.islice(group_id_iter, 1000))
-            if not group_ids:
-                break
-            cache_keys = [ASSIGNEE_EXISTS_KEY(group_id) for group_id in group_ids]
-            cache.delete_many(cache_keys)
+        cache.delete(ASSIGNEE_EXISTS_KEY(group_id))
 
     @classmethod
     def set_project_ownership_version(cls, project_id: int) -> float:

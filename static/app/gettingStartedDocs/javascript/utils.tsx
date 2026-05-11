@@ -1,4 +1,4 @@
-import {Link} from '@sentry/scraps/link/link';
+import {Link} from '@sentry/scraps/link';
 
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import {
@@ -10,7 +10,7 @@ import {
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getAIRulesForCodeEditorStep,
+  getAISetupStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -50,11 +50,11 @@ export const isAutoInstall = (params: Params) =>
 const getIntegrations = (params: Params): string[] => {
   const integrations = [];
   if (params.isPerformanceSelected) {
-    integrations.push(`Sentry.browserTracingIntegration()`);
+    integrations.push('Sentry.browserTracingIntegration()');
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isReplaySelected) {
@@ -174,140 +174,8 @@ const getVerifySnippetBlock = (params: Params): ContentBlock[] => [
   },
 ];
 
-export const getAiRulesConfig = (params: Params): OnboardingStep =>
-  getAIRulesForCodeEditorStep({
-    rules: `
-These examples should be used as guidance when configuring Sentry functionality within a project.
-
-# Error / Exception Tracking
-
-Use \`Sentry.captureException(error)\` to capture an exception and log the error in Sentry.
-Use this in try catch blocks or areas where exceptions are expected
-
-# Tracing Examples
-
-Spans should be created for meaningful actions within an applications like button clicks, API calls, and function calls
-Use the \`Sentry.startSpan\` function to create a span
-Child spans can exist within a parent span
-
-## Custom Span instrumentation in component actions
-
-Name custom spans with meaningful names and operations.
-Attach attributes based on relevant information and metrics from the request
-
-\`\`\`javascript
-function TestComponent() {
-  const handleTestButtonClick = () => {
-    // Create a transaction/span to measure performance
-    Sentry.startSpan(
-      {
-        op: "ui.click",
-        name: "Test Button Click",
-      },
-      (span) => {
-        const value = "some config";
-        const metric = "some metric";
-
-        // Metrics can be added to the span
-        span.setAttribute("config", value);
-        span.setAttribute("metric", metric);
-
-        doSomething();
-      },
-    );
-  };
-
-  return (
-    <button type="button" onClick={handleTestButtonClick}>
-      Test Sentry
-    </button>
-  );
-}
-\`\`\`
-
-## Custom span instrumentation in API calls
-
-Name custom spans with meaningful names and operations.
-Attach attributes based on relevant information and metrics from the request
-
-\`\`\`javascript
-async function fetchUserData(userId) {
-  return Sentry.startSpan(
-    {
-      op: "http.client",
-      name: \`GET /api/users/\${userId}\`,
-    },
-    async () => {
-      const response = await fetch(\`/api/users/\${userId}\`);
-      const data = await response.json();
-      return data;
-    },
-  );
-}
-\`\`\`
-
-# Logs
-
-Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/browser"\`
-Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
-Reference the logger using \`const { logger } = Sentry\`
-Sentry offers a \`consoleLoggingIntegration\` that can be used to log specific console error types automatically without instrumenting the individual logger calls
-
-## Configuration
-
-### Baseline
-
-\`\`\`javascript
-import * as Sentry from "@sentry/browser";
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-
-  _experiments: {
-    enableLogs: true,
-  },
-});
-\`\`\`
-
-### Logger Integration
-
-\`\`\`javascript
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [
-    // send console.log, console.warn, and console.error calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
-  ],
-});
-\`\`\`
-
-## Logger Examples
-
-\`logger.fmt\` is a template literal function that should be used to bring variables into the structured logs.
-
-\`\`\`javascript
-import * as Sentry from "@sentry/browser";
-
-const { logger } = Sentry;
-
-logger.trace("Starting database connection", { database: "users" });
-logger.debug(logger.fmt\`Cache miss for user: \${userId}\`);
-logger.info("Updated profile", { profileId: 345 });
-logger.warn("Rate limit reached for endpoint", {
-  endpoint: "/api/results/",
-  isEnterprise: false,
-});
-logger.error("Failed to process payment", {
-  orderId: "order_123",
-  amount: 99.99,
-});
-logger.fatal("Database connection pool exhausted", {
-  database: "users",
-  activeConnections: 100,
-});
-\`\`\`
-`,
-  });
+export const getAiSetupConfig = (): OnboardingStep =>
+  getAISetupStep({skillPath: 'sentry-sdk-setup'});
 
 const getVerifyConfig = (params: Params) => [
   {
@@ -442,7 +310,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
         }
       },
     },
-    getAiRulesConfig(params),
+    getAiSetupConfig(),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
@@ -460,7 +328,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     if (params.isMetricsSelected) {
       steps.push({
         id: 'metrics',
-        name: t('Metrics'),
+        name: t('Application Metrics'),
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),
@@ -472,20 +340,30 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPageLoad: params => {
     return () => {
-      trackAnalytics('onboarding.setup_loader_docs_rendered', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_setup_loader_docs_rendered'
+          : 'onboarding.setup_loader_docs_rendered',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onPlatformOptionsChange: params => {
     return () => {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_js_loader_npm_docs_shown'
+          : 'onboarding.js_loader_npm_docs_shown',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onProductSelectionChange: params => {
@@ -561,7 +439,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       guideLink: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
       ...params,
     }),
-    getAiRulesConfig(params),
+    getAiSetupConfig(),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
@@ -570,7 +448,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     if (params.isMetricsSelected) {
       steps.push({
         id: 'metrics',
-        name: t('Metrics'),
+        name: t('Application Metrics'),
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),
@@ -582,11 +460,16 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPageLoad: params => {
     return () => {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_js_loader_npm_docs_shown'
+          : 'onboarding.js_loader_npm_docs_shown',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onProductSelectionChange: params => {
@@ -613,11 +496,16 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPlatformOptionsChange: params => {
     return () => {
-      trackAnalytics('onboarding.setup_loader_docs_rendered', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_setup_loader_docs_rendered'
+          : 'onboarding.setup_loader_docs_rendered',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
 };

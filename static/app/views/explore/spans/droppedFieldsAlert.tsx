@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Text} from 'sentry/components/core/text';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {Alert} from '@sentry/scraps/alert';
+import {Text} from '@sentry/scraps/text';
+
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -31,7 +32,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   const changedReason = savedQuery.changedReason;
   if (changedReason.columns.length > 0) {
     columnsWarning.push(
-      tct(`[columns] is no longer supported`, {
+      tct('[columns] is no longer supported', {
         columns: changedReason.columns.join(', '),
       })
     );
@@ -39,7 +40,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   if (changedReason.equations) {
     equationsWarning.push(
       ...changedReason.equations.map(equation =>
-        tct(`[equation] is no longer supported because [reason] is unsupported`, {
+        tct('[equation] is no longer supported because [reason] is unsupported', {
           equation: stripEquationPrefix(equation.equation),
           reason:
             typeof equation.reason === 'string'
@@ -60,10 +61,10 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
 
         // make sure that the reason and the orderby aren't the same and word it correctly
         return typeof orderby.reason === 'string' || orderbyWithoutPrefix === reasonText
-          ? tct(`sorting by [orderby] is no longer supported`, {
+          ? tct('sorting by [orderby] is no longer supported', {
               orderby: orderbyWithoutPrefix,
             })
-          : tct(`sorting by [orderby] is not supported because [reason] is unsupported`, {
+          : tct('sorting by [orderby] is not supported because [reason] is unsupported', {
               orderby: orderby.orderby,
               reason: reasonText,
             });

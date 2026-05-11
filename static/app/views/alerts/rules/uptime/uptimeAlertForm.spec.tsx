@@ -5,11 +5,23 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import * as indicators from 'sentry/actionCreators/indicator';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAssertion,
+} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
 describe('Uptime Alert Form', () => {
@@ -36,6 +48,22 @@ describe('Uptime Alert Form', () => {
   function numberInput(name: string) {
     return screen.getByRole('spinbutton', {name});
   }
+
+  it('shows validation errors on required sibling fields after first field change', async () => {
+    render(<UptimeAlertForm />, {organization});
+    await screen.findByText('Configure Request');
+
+    // Initially no validation error tooltips should be rendered
+    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+
+    // Change one field (Method) to trigger first-change validation
+    await selectEvent.select(input('Method'), 'POST');
+
+    // Validation error tooltips should now appear on other required empty fields
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
+    });
+  });
 
   it('can create a new rule', async () => {
     render(<UptimeAlertForm />, {organization});
@@ -403,13 +431,8 @@ describe('Uptime Alert Form', () => {
     expect(pathName).toHaveValue('Uptime check for example.com/with-path');
   });
 
-  it('sends assertion in create request when feature is enabled', async () => {
-    const orgWithAssertions = OrganizationFixture({
-      features: ['uptime-runtime-assertions'],
-    });
-    OrganizationStore.onUpdate(orgWithAssertions);
-
-    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+  it('sends assertion in create request', async () => {
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
     // Verify the Verification section is shown
@@ -425,7 +448,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.type(name, 'Rule with Assertion');
 
     const createMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
     });
 
@@ -437,39 +460,40 @@ describe('Uptime Alert Form', () => {
         data: expect.objectContaining({
           name: 'Rule with Assertion',
           url: 'http://example.com',
-          assertion: {root: {op: 'and', children: [], id: expect.any(String)}},
+          assertion: {
+            root: {
+              op: UptimeOpType.AND,
+              id: expect.any(String),
+              children: [
+                {
+                  op: UptimeOpType.STATUS_CODE_CHECK,
+                  id: expect.any(String),
+                  operator: {cmp: UptimeComparisonType.GREATER_THAN},
+                  value: 199,
+                },
+                {
+                  op: UptimeOpType.STATUS_CODE_CHECK,
+                  id: expect.any(String),
+                  operator: {cmp: UptimeComparisonType.LESS_THAN},
+                  value: 300,
+                },
+              ],
+            },
+          },
         }),
       })
     );
   });
 
-  it('does not show assertions when feature is disabled', async () => {
-    const orgWithoutAssertions = OrganizationFixture({
-      features: [],
-    });
-    OrganizationStore.onUpdate(orgWithoutAssertions);
-
-    render(<UptimeAlertForm />, {organization: orgWithoutAssertions});
-    await screen.findByText('Configure Request');
-
-    // Verify the Verification section is NOT shown
-    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
-  });
-
   it('renders and updates assertion for existing rule', async () => {
-    const orgWithAssertions = OrganizationFixture({
-      features: ['uptime-runtime-assertions'],
-    });
-    OrganizationStore.onUpdate(orgWithAssertions);
-
-    const assertion = {
+    const assertion: UptimeAssertion = {
       root: {
-        op: 'and' as const,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-1',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -485,11 +509,11 @@ describe('Uptime Alert Form', () => {
       assertion,
     });
 
-    render(<UptimeAlertForm rule={rule} />, {organization: orgWithAssertions});
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Verification');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -504,82 +528,129 @@ describe('Uptime Alert Form', () => {
       })
     );
   });
-});
 
-describe('normalizeAssertion', () => {
-  // Import the function directly for unit testing
-  const {
-    normalizeAssertion,
-  } = require('sentry/views/alerts/rules/uptime/assertions/field');
+  it('displays assertion compilation errors', async () => {
+    const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-  it('handles NaN status code value by defaulting to 200', () => {
-    const op = {
-      id: 'test-1',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: NaN,
-    };
+    render(<UptimeAlertForm />, {organization});
+    await screen.findByText('Verification');
 
-    expect(normalizeAssertion(op)).toEqual({
-      id: 'test-1',
-      op: 'status_code_check',
-      operator: {cmp: 'equals'},
-      value: 200,
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Invalid Assertion');
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        assertion: {
+          error: 'compilation_error',
+          compileError: {
+            type: 'invalid_json_path',
+            msg: 'Invalid JSON path expression: syntax error at position 5',
+            assertPath: ['0', '0'],
+          },
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    // Inline error message on assertion's input row
+    expect(
+      await screen.findByText(
+        'Invalid JSON Path: Invalid JSON path expression: syntax error at position 5'
+      )
+    ).toBeInTheDocument();
+
+    // Error toast
+    await waitFor(() => {
+      expect(addErrorMessageSpy).toHaveBeenCalledWith(
+        'Failed to create monitor (Assertion Compilation Error)',
+        expect.anything()
+      );
     });
   });
 
-  it('clamps status code values to valid HTTP range', () => {
-    const tooLow = {
-      id: 'test-1',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: 50,
-    };
+  it('displays assertion serialization error toast', async () => {
+    const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    const tooHigh = {
-      id: 'test-2',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: 700,
-    };
+    render(<UptimeAlertForm />, {organization});
+    await screen.findByText('Verification');
 
-    expect(normalizeAssertion(tooLow).value).toBe(100);
-    expect(normalizeAssertion(tooHigh).value).toBe(599);
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Invalid Assertion');
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        assertion: {
+          error: 'serialization_error',
+          details: 'unknown variant `invalid_op`, expected one of `and`, `or`',
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    await waitFor(() => {
+      expect(addErrorMessageSpy).toHaveBeenCalledWith(
+        'Failed to create monitor (Assertion Serialization Error)',
+        expect.anything()
+      );
+    });
   });
 
-  it('preserves valid status code values', () => {
-    const valid = {
-      id: 'test-1',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: 404,
-    };
+  it('preserves null assertion when editing rule without assertions', async () => {
+    // Rule with no assertions (assertion: null from API)
+    const rule = UptimeRuleFixture({
+      name: 'Rule without Assertion',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+      assertion: null,
+    });
 
-    expect(normalizeAssertion(valid).value).toBe(404);
-  });
+    render(<UptimeAlertForm rule={rule} />, {organization});
+    await screen.findByText('Verification');
 
-  it('recursively normalizes nested assertions in and/or groups', () => {
-    const nested = {
-      id: 'group-1',
-      op: 'and' as const,
-      children: [
-        {
-          id: 'test-1',
-          op: 'status_code_check' as const,
-          operator: {cmp: 'equals' as const},
-          value: NaN,
-        },
-        {
-          id: 'test-2',
-          op: 'status_code_check' as const,
-          operator: {cmp: 'equals' as const},
-          value: 800,
-        },
-      ],
-    };
+    // Should show empty UI - Add Assertion button but no assertion inputs
+    expect(screen.getByRole('button', {name: 'Add Assertion'})).toBeInTheDocument();
+    // The assertion field should not have any status code inputs (which would indicate defaults were applied)
+    const assertionSection = screen.getByText('Verification').closest('section');
+    expect(
+      assertionSection?.querySelectorAll('input[type="text"]').length ?? 0
+    ).toBeLessThanOrEqual(0);
 
-    const result = normalizeAssertion(nested);
-    expect(result.children[0].value).toBe(200);
-    expect(result.children[1].value).toBe(599);
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    // Should submit null, not default assertions
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          assertion: null,
+        }),
+      })
+    );
   });
 });

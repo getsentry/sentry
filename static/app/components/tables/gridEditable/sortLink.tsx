@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {IconArrow} from 'sentry/icons';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -12,14 +13,14 @@ type Props = {
   align: Alignments;
   canSort: boolean;
   direction: Directions;
-  generateSortLink: () => LocationDescriptorObject | undefined;
   title: React.ReactNode;
+  generateSortLink?: () => LocationDescriptorObject | undefined;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   preventScrollReset?: boolean;
   replace?: boolean;
 };
 
-function SortLink({
+export function SortLink({
   align,
   title,
   canSort,
@@ -29,7 +30,7 @@ function SortLink({
   replace,
   preventScrollReset,
 }: Props) {
-  const target = generateSortLink();
+  const target = generateSortLink?.();
   const navigate = useNavigate();
 
   if (!target || !canSort) {
@@ -95,5 +96,3 @@ const StyledNonLink = styled('div')<{align: Alignments}>`
 const StyledIconArrow = styled(IconArrow)`
   vertical-align: top;
 `;
-
-export default SortLink;

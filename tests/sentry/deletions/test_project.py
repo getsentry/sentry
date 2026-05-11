@@ -236,6 +236,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
     def test_delete_with_uptime_monitors(self, mock_remove_seat: mock.MagicMock) -> None:
         project = self.create_project(name="test")
         detector = self.create_uptime_detector(project=project)
+        detector_id = detector.id
         uptime_subscription = get_uptime_subscription(detector)
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
@@ -244,9 +245,11 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
-        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not Detector.objects.filter(id=detector_id).exists()
         assert not UptimeSubscription.objects.filter(id=uptime_subscription.id).exists()
-        mock_remove_seat.assert_called_with(seat_object=detector)
+        # remove_seat is called from both DetectorDeletionTask and
+        # UptimeSubscriptionDeletionTask as belt-and-suspenders.
+        assert mock_remove_seat.call_count == 2
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):

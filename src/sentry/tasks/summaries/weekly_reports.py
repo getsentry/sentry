@@ -16,6 +16,8 @@ from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry_sdk import set_tag
+from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import analytics
 from sentry.analytics.events.weekly_report import WeeklyReportSent
@@ -25,7 +27,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.summaries.metrics import (
     WeeklyReportHaltReason,
     WeeklyReportOperationType,
@@ -36,14 +38,13 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 )
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
 from sentry.taskworker.namespaces import reports_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
+from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
@@ -100,11 +101,16 @@ class WeeklyReportProgressTracker:
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.schedule_organizations",
     namespace=reports_tasks,
-    retry=Retry(times=5),
+    retry=Retry(
+        times=5,
+        on=(
+            Exception,
+            ProcessingDeadlineExceeded,
+        ),
+    ),
     processing_deadline_duration=timedelta(minutes=30),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
-@retry(timeouts=True)
 def schedule_organizations(
     dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
 ) -> None:
@@ -161,10 +167,9 @@ def schedule_organizations(
     name="sentry.tasks.summaries.weekly_reports.prepare_organization_report",
     namespace=reports_tasks,
     processing_deadline_duration=60 * 10,
-    retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    retry=Retry(times=5, delay=5, on=(Exception,)),
+    silo_mode=SiloMode.CELL,
 )
-@retry
 def prepare_organization_report(
     timestamp: float,
     duration: int,
@@ -295,7 +300,7 @@ class OrganizationReportBatch:
         local_start, local_end = get_local_dates(self.ctx, user_id)
 
         message = MessageBuilder(
-            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(local_start)} - {date_format(local_end)}",
+            subject=f"Weekly Report for {sanitize_outbound_name(self.ctx.organization.name)}: {date_format(local_start)} - {date_format(local_end)}",
             template="sentry/emails/reports/body.txt",
             html_template="sentry/emails/reports/body.html",
             type="report.organization",

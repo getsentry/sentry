@@ -1,13 +1,20 @@
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeLogsPathname} from 'sentry/views/explore/logs/utils';
 import {makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
-function ExploreBreadcrumb({traceItemDataset}: {traceItemDataset: TraceItemDataset}) {
+export function ExploreBreadcrumb({
+  traceItemDataset,
+  savedQueryName,
+}: {
+  traceItemDataset: TraceItemDataset;
+  savedQueryName?: string;
+}) {
   const organization = useOrganization();
   const crumbs: Crumb[] = [];
   if (traceItemDataset === TraceItemDataset.SPANS) {
@@ -25,14 +32,18 @@ function ExploreBreadcrumb({traceItemDataset}: {traceItemDataset: TraceItemDatas
   if (traceItemDataset === TraceItemDataset.TRACEMETRICS) {
     crumbs.push({
       to: makeMetricsPathname({organizationSlug: organization.slug, path: '/'}),
-      label: t('Metrics'),
+      label: t('Application Metrics'),
+    });
+  }
+  if (traceItemDataset === TraceItemDataset.REPLAYS) {
+    crumbs.push({
+      to: makeReplaysPathname({organization, path: '/'}),
+      label: t('Replays'),
     });
   }
   crumbs.push({
-    label: t('Saved Query'),
+    label: savedQueryName ?? t('Saved Query'),
   });
 
   return <Breadcrumbs crumbs={crumbs} />;
 }
-
-export default ExploreBreadcrumb;

@@ -13,6 +13,7 @@ from sentry.integrations.gitlab.utils import (
     GitLabApiClientPath,
     GitLabRateLimitInfo,
     get_rate_limit_info_from_response,
+    safe_quote,
 )
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -90,7 +91,9 @@ def _fetch_file_blame(
 
     # GitLab returns an invalid file path error if there are leading or trailing slashes
     encoded_path = quote(file.path.strip("/"), safe="")
-    request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
+    request_path = GitLabApiClientPath.blame.format(
+        project=safe_quote(project_id), path=encoded_path
+    )
     params = {"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno}
 
     cache_key = client.get_cache_key(request_path, orjson.dumps(params).decode())
@@ -125,7 +128,6 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 def _handle_file_blame_error(
     error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]
 ) -> None:
-
     # Ignore expected error codes
     if error.code in (401, 403, 404):
         logger.warning(
@@ -192,5 +194,5 @@ def _create_commit_from_blame(
             committedDate=datetime.fromisoformat(committed_date).replace(tzinfo=timezone.utc),
         )
     except Exception:
-        logger.exception("get_blame_for_files.invalid_commit_response", extra=extra)
+        logger.warning("get_blame_for_files.invalid_commit_response", extra=extra)
         return None

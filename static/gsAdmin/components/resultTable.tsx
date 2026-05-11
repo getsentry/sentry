@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-const ResultTable = styled('table')`
+export const ResultTable = styled('table')`
   margin: 0;
   width: 100%;
   line-height: 1;
@@ -18,22 +16,20 @@ const ResultTable = styled('table')`
   }
 
   th {
-    padding: ${space(2)} ${space(1.5)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
   }
 
   td {
-    padding: ${space(1.5)} ${space(1.5)};
+    padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg};
   }
 
   th,
   td {
     &:first-of-type {
-      padding-left: ${space(3)};
+      padding-left: ${p => p.theme.space['2xl']};
     }
     &:last-child {
-      padding-right: ${space(3)};
+      padding-right: ${p => p.theme.space['2xl']};
     }
   }
 `;
-
-export default ResultTable;

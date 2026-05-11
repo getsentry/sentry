@@ -1,15 +1,17 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   hasAccess: boolean;
@@ -25,7 +27,7 @@ type Props = {
   ruleId?: string;
 };
 
-function SnoozeAlert({
+export function SnoozeAlert({
   isSnoozed,
   onSnooze,
   projectSlug,
@@ -123,11 +125,39 @@ function SnoozeAlert({
 
   const primaryMuteAction = 'everyone';
 
+  const hasPrompted = useRef(false);
+
   useEffect(() => {
-    if (location.query.mute === '1' && !isSnoozed) {
-      handleMute(primaryMuteAction, true);
+    if (location.query.mute !== '1' || isSnoozed || hasPrompted.current) {
+      return;
     }
-  }, [location.query, isSnoozed, handleMute, primaryMuteAction]);
+    hasPrompted.current = true;
+
+    const stripMuteParam = () => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, mute: undefined},
+        },
+        {replace: true}
+      );
+    };
+
+    openConfirmModal({
+      header: t('Mute Alert'),
+      message: t('Are you sure you want to mute this alert for everyone?'),
+      confirmText: t('Mute'),
+      onConfirm: () => handleMute(primaryMuteAction, true),
+      onClose: stripMuteParam,
+    });
+  }, [
+    location.query,
+    location.pathname,
+    isSnoozed,
+    navigate,
+    handleMute,
+    primaryMuteAction,
+  ]);
 
   if (isSnoozed) {
     return (
@@ -142,7 +172,7 @@ function SnoozeAlert({
     );
   }
   return (
-    <ButtonBar gap="0">
+    <Grid flow="column" align="center" gap="0">
       <MuteButton
         size="sm"
         icon={<IconSound />}
@@ -154,11 +184,9 @@ function SnoozeAlert({
       >
         {t('Mute for everyone')}
       </MuteButton>
-    </ButtonBar>
+    </Grid>
   );
 }
-
-export default SnoozeAlert;
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;

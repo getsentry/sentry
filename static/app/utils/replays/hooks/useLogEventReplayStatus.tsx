@@ -1,17 +1,16 @@
 import {useEffect} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function useLogEventReplayStatus({readerResult}: Props) {
+export function useLogEventReplayStatus({readerResult}: Props) {
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({
       fetchError: readerResult.fetchError,
@@ -34,7 +33,7 @@ function getReplayAnalyticsStatus({
   fetchError,
   replayRecord,
 }: {
-  fetchError?: RequestError;
+  fetchError?: Error;
   replayRecord?: ReplayRecord;
 }) {
   if (fetchError) {

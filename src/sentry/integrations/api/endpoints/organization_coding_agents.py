@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -11,10 +11,12 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
+from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
@@ -26,6 +28,8 @@ logger = logging.getLogger(__name__)
 class LaunchFailure(TypedDict):
     repo_name: str
     error_message: str
+    failure_type: NotRequired[str]
+    github_installation_id: NotRequired[str]
 
 
 class LaunchResponse(TypedDict, total=False):
@@ -62,7 +66,7 @@ class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, o
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
@@ -73,9 +77,6 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Get all available coding agent integrations for the organization."""
-        if not features.has("organizations:seer-coding-agent-integrations", organization):
-            return Response({"detail": "Feature not available"}, status=404)
-
         integrations = integration_service.get_integrations(
             organization_id=organization.id,
             providers=get_coding_agent_providers(),
@@ -92,13 +93,34 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             if integration.provider != "github_copilot"
         ]
 
-        if features.has("organizations:integrations-github-copilot-agent", organization):
+        github_copilot_installed = any(i.provider == "github_copilot" for i in integrations)
+        if github_copilot_installed and features.has(
+            "organizations:integrations-github-copilot-agent", organization
+        ):
+            has_identity = False
+            if request.user and request.user.id:
+                try:
+                    access_token = github_copilot_identity_service.get_access_token_for_user(
+                        user_id=request.user.id
+                    )
+                    has_identity = access_token is not None
+                except RpcException:
+                    # If the identity service is unavailable, default to no identity
+                    # This ensures the endpoint remains functional even if the service is down
+                    logger.warning(
+                        "Failed to check GitHub Copilot identity",
+                        extra={"user_id": request.user.id},
+                        exc_info=True,
+                    )
+                    has_identity = False
+
             integrations_data.append(
                 {
                     "id": None,
                     "name": "GitHub Copilot",
                     "provider": "github_copilot",
                     "requires_identity": True,
+                    "has_identity": has_identity,
                 }
             )
 
@@ -131,13 +153,15 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             trigger_source=trigger_source,
             instruction=instruction,
             user_id=request.user.id,
+            initiator="user",
+            referrer="api.organization_coding_agents",
         )
 
         successes = results["successes"]
         failures = results["failures"]
 
         response_data: LaunchResponse = {
-            "success": True,
+            "success": len(successes) > 0,
             "launched_count": len(successes),
             "failed_count": len(failures),
         }

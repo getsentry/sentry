@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-function CloseAccountInfo() {
+export function CloseAccountInfo() {
   return (
     <Fragment>
       <p>
@@ -22,5 +22,3 @@ function CloseAccountInfo() {
     </Fragment>
   );
 }
-
-export default CloseAccountInfo;

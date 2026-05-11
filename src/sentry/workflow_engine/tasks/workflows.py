@@ -5,6 +5,7 @@ from typing import Any
 
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
+from taskbroker_client.retry import Retry, retry_task
 
 from sentry.eventstream.base import GroupState
 from sentry.locks import locks
@@ -14,16 +15,16 @@ from sentry.models.project import Project
 from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
-from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
-from sentry.utils.exceptions import quiet_redis_noise
+from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
+    ProjectNotActiveError,
     build_workflow_event_data_from_event,
 )
 from sentry.workflow_engine.types import WorkflowEventData
@@ -36,10 +37,9 @@ logger = log_context.get_logger(__name__)
     name="sentry.workflow_engine.tasks.process_workflow_activity",
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=60,
-    retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.REGION,
+    retry=Retry(times=3, delay=5, on=(Exception,)),
+    silo_mode=SiloMode.CELL,
 )
-@retry
 def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
     """
     Process a workflow task identified by the given activity, group, and detector.
@@ -88,25 +88,53 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     name="sentry.workflow_engine.tasks.process_workflows_event",
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=60,
-    retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.REGION,
-)
-@retry(
-    timeouts=True,
-    exclude=EventNotFoundError,
-    ignore=(Group.DoesNotExist, Project.DoesNotExist),
-    on_silent=DataConditionGroup.DoesNotExist,
+    retry=Retry(
+        times=3,
+        delay=5,
+        on=(Exception,),
+        ignore=(
+            EventNotFoundError,
+            Group.DoesNotExist,
+            Project.DoesNotExist,
+            ProjectNotActiveError,
+        ),
+    ),
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=(
+        EventNotFoundError,
+        DataConditionGroup.DoesNotExist,
+        Group.DoesNotExist,
+        Project.DoesNotExist,
+        ProjectNotActiveError,
+    ),
 )
 def process_workflows_event(
     event_id: str,
     group_id: int,
     occurrence_id: str | None,
     group_state: GroupState,
-    has_reappeared: bool,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
-    project_id: int | None = None,  # TODO: remove
     **kwargs: dict[str, Any],
+) -> None:
+    with quiet_retriable_timeouts():
+        _process_workflows_event(
+            event_id=event_id,
+            group_id=group_id,
+            occurrence_id=occurrence_id,
+            group_state=group_state,
+            has_escalated=has_escalated,
+            start_timestamp_seconds=start_timestamp_seconds,
+        )
+
+
+def _process_workflows_event(
+    event_id: str,
+    group_id: int,
+    occurrence_id: str | None,
+    group_state: GroupState,
+    has_escalated: bool,
+    start_timestamp_seconds: float | None = None,
 ) -> None:
     from sentry.workflow_engine.processors.workflow import process_workflows
 
@@ -120,7 +148,6 @@ def process_workflows_event(
                 group_id=group_id,
                 occurrence_id=occurrence_id,
                 group_state=group_state,
-                has_reappeared=has_reappeared,
                 has_escalated=has_escalated,
             )
         except (RetryError, OSError) as e:

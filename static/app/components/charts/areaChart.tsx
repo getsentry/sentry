@@ -2,13 +2,12 @@ import type {LineSeriesOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 
-import AreaSeries from './series/areaSeries';
+import {AreaSeries} from './series/areaSeries';
 import type {BaseChartProps} from './baseChart';
-import BaseChart from './baseChart';
+import {BaseChart} from './baseChart';
 
 export interface AreaChartSeries
-  extends Omit<LineSeriesOption, 'data' | 'areaStyle' | 'color' | 'id'>,
-    Series {}
+  extends Omit<LineSeriesOption, 'data' | 'areaStyle' | 'color' | 'id'>, Series {}
 
 export interface AreaChartProps extends Omit<BaseChartProps, 'series'> {
   series: AreaChartSeries[];
@@ -33,7 +32,7 @@ function transformToAreaSeries({
       },
       areaStyle: {
         color: (colors as any)?.[i],
-        opacity: 1.0,
+        opacity: 1,
       },
       // Define the z level so that the series remain stacked in the correct order
       // even after operations like hiding / highlighting series

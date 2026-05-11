@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';

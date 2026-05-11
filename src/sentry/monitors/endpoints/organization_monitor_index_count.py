@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.constants import ObjectStatus
@@ -13,7 +13,7 @@ from sentry.monitors.models import Monitor
 from sentry.utils.auth import AuthenticatedHttpRequest
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorIndexCountEndpoint(OrganizationEndpoint):
     publish_status = {

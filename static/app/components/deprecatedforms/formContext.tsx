@@ -19,6 +19,4 @@ export type FormContextData = {
  * The FormField component uses a truthy test to see if it is connected
  * to context or if the control is 'uncontrolled'.
  */
-const FormContext = createContext<FormContextData>({});
-
-export default FormContext;
+export const FormContext = createContext<FormContextData>({});

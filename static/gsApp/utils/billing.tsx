@@ -6,7 +6,7 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {
@@ -41,7 +41,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -693,7 +693,8 @@ export function getActiveProductTrial(
       pt =>
         pt.category === category &&
         pt.isStarted &&
-        getDaysSinceDate(pt.endDate ?? '') <= 0
+        getDaysSinceDate(pt.endDate ?? '') <= 0 &&
+        getDaysSinceDate(pt.startDate ?? '') >= 0
     )
     .sort((a, b) => b.endDate?.localeCompare(a.endDate ?? '') || 0);
 
@@ -1039,13 +1040,15 @@ export function productIsEnabled(
   if (!metricHistory) {
     return false;
   }
-  const isPaygOnly = metricHistory.reserved === 0;
-  return (
-    !isPaygOnly ||
+  const hasNonPaygAccess =
+    (metricHistory.prepaid ?? 0) !== 0 ||
+    !!metricHistory.softCapType ||
+    !!subscription.hasSoftCap;
+  const hasPaygBudget =
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
-      subscription.onDemandBudgets.sharedMaxBudget > 0)
-  );
+      subscription.onDemandBudgets.sharedMaxBudget > 0);
+  return hasNonPaygAccess || hasPaygBudget;
 }
 
 /**

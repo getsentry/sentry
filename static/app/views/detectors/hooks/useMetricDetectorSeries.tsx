@@ -1,9 +1,15 @@
 import {useMemo} from 'react';
+import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {
+  type AggregationOutputType,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   Dataset,
   EventTypes,
@@ -24,16 +30,18 @@ interface UseMetricDetectorSeriesProps {
   comparisonDelta?: number;
   end?: string | null;
   extrapolationMode?: ExtrapolationMode;
-  options?: Partial<UseApiQueryOptions<any>>;
+  options?: {enabled?: boolean};
   start?: string | null;
   statsPeriod?: string | null;
 }
 
 interface UseMetricDetectorSeriesResult {
   comparisonSeries: Series[];
-  error: RequestError | null;
+  error: Error | null;
   isLoading: boolean;
+  outputType: AggregationOutputType | undefined;
   series: Series[];
+  unit: string | null;
 }
 
 function applySharedSeriesOptions(series: Series[]): Series[] {
@@ -84,14 +92,17 @@ export function useMetricDetectorSeries({
     extrapolationMode,
   });
 
-  const {data, isLoading, error} = useApiQuery<
-    Parameters<typeof datasetConfig.transformSeriesQueryData>[0]
-  >(seriesQueryOptions, {
-    // 5 minutes
-    staleTime: 5 * 60 * 1000,
-    retry: (failureCount, apiError: RequestError) => {
+  type SeriesData = Parameters<typeof datasetConfig.transformSeriesQueryData>[0];
+  const {data, isLoading, error} = useQuery({
+    ...(seriesQueryOptions as UseQueryOptions<
+      ApiResponse<SeriesData>,
+      Error,
+      SeriesData,
+      ApiQueryKey
+    >),
+    retry: (failureCount, err) => {
       // Disable retries for 400 status code
-      if (apiError?.status === 400) {
+      if (err instanceof RequestError && err.status === 400) {
         return false;
       }
 
@@ -119,5 +130,16 @@ export function useMetricDetectorSeries({
     };
   }, [datasetConfig, data, aggregate, comparisonDelta]);
 
-  return {series, comparisonSeries, isLoading, error};
+  // Extract unit and type metadata from the API response meta field
+  if (data && 'meta' in data) {
+    const unit =
+      data.meta?.units?.[aggregate] ??
+      data.meta?.units?.[getAggregateAlias(aggregate)] ??
+      null;
+    const outputType =
+      data.meta?.fields?.[aggregate] ?? data.meta?.fields?.[getAggregateAlias(aggregate)];
+    return {series, comparisonSeries, isLoading, error, unit, outputType};
+  }
+
+  return {series, comparisonSeries, isLoading, error, unit: null, outputType: undefined};
 }

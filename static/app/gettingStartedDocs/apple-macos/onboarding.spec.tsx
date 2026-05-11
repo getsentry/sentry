@@ -6,7 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('apple-macos onboarding docs', () => {
   it('renders docs correctly', async () => {
@@ -90,5 +90,12 @@ describe('apple-macos onboarding docs', () => {
     );
     expect(stopMatches.length).toBeGreaterThan(0);
     stopMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
   });
 });

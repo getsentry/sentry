@@ -1,9 +1,9 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {mcp} from './mcp';
@@ -11,7 +11,7 @@ import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {replay} from './replay';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboarding: replay,
   feedbackOnboardingNpm: feedback,
@@ -24,7 +24,11 @@ const docs: Docs = {
     nodeProfilingLink:
       'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/node-profiling/',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring({
+    packageName: '@sentry/react-router',
+    clientConfigFileName: 'entry.client.tsx',
+    serverConfigFileName: 'instrument.server.mjs',
+  }),
   logsOnboarding: logsFullStack({
     docsPlatform: 'react-router',
     packageName: '@sentry/react-router',
@@ -35,5 +39,3 @@ const docs: Docs = {
   }),
   mcpOnboarding: mcp,
 };
-
-export default docs;

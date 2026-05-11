@@ -1,8 +1,7 @@
-import {useEffect, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {AutofixData} from './types';
-import type {AutofixProgressDetails} from './utils';
 import {getAutofixProgressDetails} from './utils';
 
 interface AutofixProgressBarProps {
@@ -10,15 +9,10 @@ interface AutofixProgressBarProps {
 }
 
 function AutofixProgressBar({autofixData}: AutofixProgressBarProps) {
-  const [progressDetails, setProgressDetails] = useState<AutofixProgressDetails>({
-    overallProgress: 0,
-  });
-
-  useEffect(() => {
-    setProgressDetails(getAutofixProgressDetails(autofixData));
-  }, [autofixData]);
-
-  const {overallProgress} = progressDetails;
+  const {overallProgress} = useMemo(
+    () => getAutofixProgressDetails(autofixData),
+    [autofixData]
+  );
 
   return (
     <ProgressBarContainer hasData={!!autofixData}>
@@ -51,12 +45,12 @@ const ProgressBarTrack = styled('div')`
   position: absolute;
   width: 100%;
   height: 2px;
-  background-color: ${p => p.theme.tokens.border.secondary};
+  background-color: ${p => p.theme.tokens.graphics.neutral.moderate};
 `;
 
 const ProgressBarFill = styled('div')`
   height: 100%;
-  background-color: ${p => p.theme.tokens.interactive.link.accent.active};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   opacity: 0.7;
   transition: width 1s ease-in-out;
 `;

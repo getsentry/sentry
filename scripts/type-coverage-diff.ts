@@ -15,12 +15,12 @@ type GitDiffChange = {
 };
 
 const colors = {
-  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
-  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
-  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
-  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
-  bold: (text: string) => `\x1b[1m${text}\x1b[0m`,
-  dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
+  red: (text: string) => `\x1B[31m${text}\x1B[0m`,
+  green: (text: string) => `\x1B[32m${text}\x1B[0m`,
+  yellow: (text: string) => `\x1B[33m${text}\x1B[0m`,
+  cyan: (text: string) => `\x1B[36m${text}\x1B[0m`,
+  bold: (text: string) => `\x1B[1m${text}\x1B[0m`,
+  dim: (text: string) => `\x1B[2m${text}\x1B[0m`,
 };
 
 type TypeCoverageResult = {
@@ -205,9 +205,10 @@ async function parseGitDiff(
 ): Promise<Map<string, GitDiffChange>> {
   try {
     // Get unified diff with line numbers and context
+    // Use a large buffer (100MB) to handle diffs against commits that are weeks old
     const {stdout} = await execAsync(
       `git diff --unified=3 ${oldCommit}..${currentCommit}`,
-      {maxBuffer: 1024 * 1024 * 5}
+      {maxBuffer: 1024 * 1024 * 100}
     );
 
     const changes = new Map<string, GitDiffChange>();
@@ -496,11 +497,40 @@ async function main() {
     console.log(
       `Items typed  : ${colors.cyan(oldResult.summary.typed.toString())} → ${colors.cyan(currentResult.summary.typed.toString())} (${currentResult.summary.typed > oldResult.summary.typed ? colors.green('+') : colors.red('')}${currentResult.summary.typed - oldResult.summary.typed})`
     );
+
+    // Calculate untyped items
+    const oldUntyped = oldResult.summary.total - oldResult.summary.typed;
+    const currentUntyped = currentResult.summary.total - currentResult.summary.typed;
+    console.log(
+      `Items untyped: ${colors.cyan(oldUntyped.toString())} → ${colors.cyan(currentUntyped.toString())} (${currentUntyped <= oldUntyped ? colors.green('') : colors.red('+')}${currentUntyped - oldUntyped})`
+    );
+
     console.log(
       `Coverage     : ${colors.cyan(oldResult.summary.coverage.toFixed(2) + '%')} → ${colors.cyan(currentResult.summary.coverage.toFixed(2) + '%')} (${currentResult.summary.coverage > oldResult.summary.coverage ? colors.green('+') : colors.red('')}${(currentResult.summary.coverage - oldResult.summary.coverage).toFixed(2)}%)`
     );
+
+    // Show counts of type issues
+    const oldAnyCount = oldResult.anySymbols?.length ?? 0;
+    const currentAnyCount = currentResult.anySymbols?.length ?? 0;
+    const oldNonNullCount = oldResult.nonNullAssertions?.length ?? 0;
+    const currentNonNullCount = currentResult.nonNullAssertions?.length ?? 0;
+    const oldTypeAssertCount = oldResult.typeAssertions?.length ?? 0;
+    const currentTypeAssertCount = currentResult.typeAssertions?.length ?? 0;
+
     console.log(
-      `${colors.dim(`\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff`)}`
+      `Any symbols  : ${colors.cyan(oldAnyCount.toString())} → ${colors.cyan(currentAnyCount.toString())} (${currentAnyCount <= oldAnyCount ? colors.green('') : colors.red('+')}${currentAnyCount - oldAnyCount})`
+    );
+    console.log(
+      `Non-null (!) : ${colors.cyan(oldNonNullCount.toString())} → ${colors.cyan(currentNonNullCount.toString())} (${currentNonNullCount <= oldNonNullCount ? colors.green('') : colors.red('+')}${currentNonNullCount - oldNonNullCount})`
+    );
+    console.log(
+      `Type asserts : ${colors.cyan(oldTypeAssertCount.toString())} → ${colors.cyan(currentTypeAssertCount.toString())} (${currentTypeAssertCount <= oldTypeAssertCount ? colors.green('') : colors.red('+')}${currentTypeAssertCount - oldTypeAssertCount})`
+    );
+
+    console.log(
+      colors.dim(
+        '\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff'
+      )
     );
 
     // Compare any-typed symbols (only in actually modified code)

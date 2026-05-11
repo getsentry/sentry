@@ -3,11 +3,18 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
+
+// TODO: covers the legacy (non-EAP) path. useTransactionSummaryEAP now
+// always returns true after the flag graduated; mock back to false until
+// the legacy paths are deleted.
+jest.mock('sentry/views/performance/eap/useTransactionSummaryEAP', () => ({
+  useTransactionSummaryEAP: () => false,
+}));
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
 
@@ -175,6 +182,15 @@ describe('Performance > TransactionSummary', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      match: [
+        (_url, options) => {
+          return options.query?.dataset === 'spans';
+        },
+      ],
     });
   });
 

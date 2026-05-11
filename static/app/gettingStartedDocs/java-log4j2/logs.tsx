@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {tct} from 'sentry/locale';
@@ -42,7 +43,7 @@ export const logs: OnboardingConfig = {
             {
               label: 'sentry.properties',
               language: 'properties',
-              code: `logs.enabled=true`,
+              code: 'logs.enabled=true',
             },
             {
               label: 'Java',

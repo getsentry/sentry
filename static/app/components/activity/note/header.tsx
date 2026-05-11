@@ -30,7 +30,7 @@ function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
           triggerProps={{
             size: 'xs',
             showChevron: false,
-            borderless: true,
+            variant: 'transparent',
             icon: <IconEllipsis />,
             'aria-label': t('Comment Actions'),
           }}

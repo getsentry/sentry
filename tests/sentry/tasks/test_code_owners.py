@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 from rest_framework.exceptions import NotFound
 
+from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -10,7 +10,6 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
-from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -74,6 +73,7 @@ class CodeOwnersTest(TestCase):
                 }
             ],
         }
+        assert code_owners.date_synced is None
 
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # delete external team mapping
@@ -85,6 +85,7 @@ class CodeOwnersTest(TestCase):
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
 
         assert code_owners.schema == {"$version": 1, "rules": []}
+        assert code_owners.date_synced is None
 
     @freeze_time("2023-01-01 00:00:00")
     @patch(
@@ -133,6 +134,8 @@ class CodeOwnersTest(TestCase):
             ],
         }
         assert code_owners.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
+        assert code_owners.date_synced is not None
+        assert code_owners.date_synced.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
@@ -302,16 +305,6 @@ class CodeOwnersTest(TestCase):
 
             mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
 
-    def test_codeowners_auto_sync_retries_on_missing_commit(self) -> None:
-        non_existent_commit_id = 999999999
-
-        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
-            with pytest.raises(RetryTaskError):
-                code_owners_auto_sync(non_existent_commit_id)
-
-        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
-        assert code_owners.raw == self.data["raw"]
-
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         side_effect=NotImplementedError("Integration does not support CODEOWNERS"),
@@ -355,3 +348,27 @@ class CodeOwnersTest(TestCase):
         assert code_owners.raw == original_raw
         # Notification should have been sent
         mock_send_email.assert_called_once_with()
+
+    def test_build_associations_case_insensitive_matching(self) -> None:
+        self.create_external_user(
+            user=self.user,
+            external_name="@ShashankJarmale",
+            integration=self.integration,
+        )
+        # CODEOWNERS uses lowercase, ExternalActor stored with mixed case
+        raw = "docs/* @shashankjarmale\n"
+        associations, _ = build_codeowners_associations(raw, self.project)
+        assert "@shashankjarmale" in associations
+        assert associations["@shashankjarmale"] == self.user.email
+
+    def test_build_associations_duplicate_names(self) -> None:
+        self.create_external_user(
+            user=self.user,
+            external_name="@ShashankJarmale",
+            integration=self.integration,
+        )
+        self.create_external_team(integration=self.integration)
+        raw = "docs/* @ShashankJarmale @getsentry/ecosystem\napi/* @ShashankJarmale\nsrc/* @ShashankJarmale\n"
+        associations, _ = build_codeowners_associations(raw, self.project)
+        assert associations["@ShashankJarmale"] == self.user.email
+        assert associations["@getsentry/ecosystem"] == f"#{self.team.slug}"

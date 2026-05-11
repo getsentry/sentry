@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict, TypedDict
+from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -14,6 +14,24 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
+class MetricResponseTypeOptional(TypedDict, total=False):
+    unit: str | None
+
+
+class MetricResponseType(MetricResponseTypeOptional):
+    name: str
+    type: str
+
+
+class CrossEventResponseTypeOptional(TypedDict, total=False):
+    metric: MetricResponseType
+
+
+class CrossEventResponseType(CrossEventResponseTypeOptional):
+    query: str
+    type: str
+
+
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     environment: list[str]
     query: str
@@ -22,6 +40,7 @@ class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     end: str
     interval: str
     mode: str
+    crossEvents: list[CrossEventResponseType]
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -49,7 +68,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
+        result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
         starred_queries = dict(
             ExploreSavedQueryStarred.objects.filter(
@@ -104,6 +123,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "start",
             "end",
             "interval",
+            "crossEvents",
         ]
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),

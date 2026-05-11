@@ -9,7 +9,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -21,7 +20,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationMember.objects.create(
                 user_id=self.user.id, organization=self.org, role="admin"
             )
@@ -56,7 +55,6 @@ class VercelExtensionConfigurationTest(TestCase):
         }
 
     @responses.activate
-    @with_feature("organizations:integrations-deployment")
     def test_logged_in_one_org(self) -> None:
         self.login_as(self.user)
 
@@ -76,7 +74,7 @@ class VercelExtensionConfigurationTest(TestCase):
     @responses.activate
     def test_logged_in_as_member(self) -> None:
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
@@ -101,7 +99,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationMember.objects.create(user_id=self.user.id, organization=org)
 
         resp = self.client.get(self.path, self.params)
@@ -121,7 +119,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationMember.objects.create(user_id=self.user.id, organization=org)
         self.params["orgSlug"] = org.slug
 
@@ -152,7 +150,6 @@ class VercelExtensionConfigurationTest(TestCase):
         )
 
     @responses.activate
-    @with_feature("organizations:integrations-deployment")
     def test_logged_in_one_org_customer_domain(self) -> None:
         self.login_as(self.user)
 

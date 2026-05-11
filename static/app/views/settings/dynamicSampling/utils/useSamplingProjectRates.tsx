@@ -1,15 +1,13 @@
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {type ApiQueryKey} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SamplingProjectRate {
   id: number;
@@ -17,7 +15,9 @@ interface SamplingProjectRate {
 }
 
 function getEndpoint(organization: Organization) {
-  return `/organizations/${organization.slug}/sampling/project-rates/`;
+  return getApiUrl('/organizations/$organizationIdOrSlug/sampling/project-rates/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 }
 
 function getQueryKey(organization: Organization): ApiQueryKey {
@@ -60,10 +60,10 @@ const fetchAllSamplingRates = async (
 export function useGetSamplingProjectRates() {
   const api = useApi();
   const organization = useOrganization();
-  return useQuery<SamplingProjectRate[]>({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  return useQuery({
     queryKey: getQueryKey(organization),
-    queryFn: () => fetchAllSamplingRates(api, organization),
+    queryFn: (): Promise<SamplingProjectRate[]> =>
+      fetchAllSamplingRates(api, organization),
     staleTime: 0,
   });
 }
@@ -82,17 +82,18 @@ export function useUpdateSamplingProjectRates() {
     },
     onSuccess: data => {
       const queryKey = getQueryKey(organization);
+      // eslint-disable-next-line @sentry/no-query-data-type-parameters
       const previous = queryClient.getQueryData<SamplingProjectRate[]>(queryKey);
       if (!previous) {
         return;
       }
 
-      const newDataById = data.reduce(
+      const newDataById = data.reduce<Record<number, SamplingProjectRate>>(
         (acc, item) => {
           acc[item.id] = item;
           return acc;
         },
-        {} as Record<number, SamplingProjectRate>
+        {}
       );
 
       queryClient.setQueryData(

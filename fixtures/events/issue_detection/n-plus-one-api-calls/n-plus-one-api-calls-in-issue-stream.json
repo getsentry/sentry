@@ -91,14 +91,14 @@
       "timestamp": 1667330086.5295,
       "start_timestamp": 1667330086.3058,
       "exclusive_time": 223.700046,
-      "description": "GET /api/0/subscriptions/sentry/",
+      "description": "GET /api/0/customers/sentry/",
       "op": "http.client",
       "span_id": "8252b556def01d1c",
       "parent_span_id": "a0c39078d1570b00",
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/customers/sentry/"},
       "hash": "51a97bb49057facc"
     },
     {

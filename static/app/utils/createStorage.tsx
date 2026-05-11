@@ -10,7 +10,7 @@ const noopStorage: Storage = {
     return;
   },
   clear() {
-    return undefined;
+    return;
   },
   // Returns null if key doesn't exist:
   // https://developer.mozilla.org/en-US/docs/Web/API/Storage/getItem
@@ -26,7 +26,7 @@ const noopStorage: Storage = {
 // This asserts that storage is both available and that it can be used.
 // See https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API/Using_the_Web_Storage_API
 const STORAGE_TEST_KEY = 'sentry';
-export default function createStorage(getStorage: () => Storage): Storage {
+export function createStorage(getStorage: () => Storage): Storage {
   try {
     const storage = getStorage();
 

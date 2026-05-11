@@ -1,9 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import type {MultipleSelectProps} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {TeamAvatar} from '@sentry/scraps/avatar';
+import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import type {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
@@ -24,7 +25,7 @@ type TeamKeyTransactionProps = Omit<
   transactionName: string;
 };
 
-function TeamKeyTransaction({
+export function TeamKeyTransaction({
   keyedTeams,
   teams,
   project,
@@ -116,7 +117,7 @@ function TeamKeyTransaction({
         value={value}
         onChange={handleChange}
         options={options}
-        searchable={options.length > 8}
+        search={options.length > 8}
         {...props}
       />
     </Wrapper>
@@ -130,5 +131,3 @@ const Wrapper = styled('div')`
     margin: 0;
   }
 `;
-
-export default TeamKeyTransaction;

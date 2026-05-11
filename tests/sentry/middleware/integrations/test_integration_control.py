@@ -50,7 +50,7 @@ class IntegrationControlMiddlewareTest(TestCase):
         assert mock_should_operate(request) is False
         self.validate_mock_ran_with_noop(request, mock_should_operate)
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     @patch.object(
         IntegrationControlMiddleware,
         "_should_operate",

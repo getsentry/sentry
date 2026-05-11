@@ -2,22 +2,21 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {InputGroup} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {
   addFilterToQuery,
@@ -32,7 +31,11 @@ type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   searchBarDispatch: React.Dispatch<QueryBuilderActions>;
 };
 
-function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDrawerProps) {
+export function SchemaHintsDrawer({
+  hints,
+  searchBarDispatch,
+  queryRef,
+}: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -95,51 +98,48 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
 
   const virtualItems = virtualizer.getVirtualItems();
 
-  const handleCheckboxChange = useCallback(
-    (hint: Tag) => {
-      const filterQuery = new MutableSearch(queryRef.current);
-      if (
-        filterQuery
-          .getFilterKeys()
-          .map(parseTagKey)
-          .some(key => key === hint.key || key === `!${hint.key}`)
-      ) {
-        const keyToRemove =
-          hint.kind === FieldKind.FUNCTION
-            ? (filterQuery
-                .getFilterKeys()
-                .find(key => parseFunction(key)?.name === hint.key) ?? '')
-            : hint.key;
-        // remove hint and/or negated hint if it exists
-        filterQuery.removeFilter(keyToRemove);
-        filterQuery.removeFilter(`!${keyToRemove}`);
-      } else {
-        const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
-        addFilterToQuery(filterQuery, hint, hintFieldDefinition);
-      }
+  const handleCheckboxChange = (hint: Tag) => {
+    const filterQuery = new MutableSearch(queryRef.current);
+    if (
+      filterQuery
+        .getFilterKeys()
+        .map(parseTagKey)
+        .some(key => key === hint.key || key === `!${hint.key}`)
+    ) {
+      const keyToRemove =
+        hint.kind === FieldKind.FUNCTION
+          ? (filterQuery
+              .getFilterKeys()
+              .find(key => parseFunction(key)?.name === hint.key) ?? '')
+          : hint.key;
+      // remove hint and/or negated hint if it exists
+      filterQuery.removeFilter(keyToRemove);
+      filterQuery.removeFilter(`!${keyToRemove}`);
+    } else {
+      const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+      addFilterToQuery(filterQuery, hint, hintFieldDefinition);
+    }
 
-      handleQueryChange(filterQuery);
-      searchBarDispatch({
-        type: 'UPDATE_QUERY',
-        query: filterQuery.formatString(),
-        focusOverride: {
-          itemKey: `filter:${filterQuery
-            .getTokenKeys()
-            .filter(key => key !== undefined)
-            .map(parseTagKey)
-            .lastIndexOf(hint.key)}`,
-          part: 'value',
-        },
-        shouldCommitQuery: false,
-      });
-      trackAnalytics('trace.explorer.schema_hints_click', {
-        hint_key: hint.key,
-        source: 'drawer',
-        organization,
-      });
-    },
-    [handleQueryChange, organization, queryRef, searchBarDispatch]
-  );
+    handleQueryChange(filterQuery);
+    searchBarDispatch({
+      type: 'UPDATE_QUERY',
+      query: filterQuery.formatString(),
+      focusOverride: {
+        itemKey: `filter:${filterQuery
+          .getTokenKeys()
+          .filter(key => key !== undefined)
+          .map(parseTagKey)
+          .lastIndexOf(hint.key)}`,
+        part: 'value',
+      },
+      shouldCommitQuery: false,
+    });
+    trackAnalytics('trace.explorer.schema_hints_click', {
+      hint_key: hint.key,
+      source: 'drawer',
+      organization,
+    });
+  };
 
   const noAttributesMessage = (
     <NoAttributesMessage>
@@ -213,8 +213,6 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
   );
 }
 
-export default SchemaHintsDrawer;
-
 const SchemaHintsHeader = styled('h4')`
   margin: 0;
   flex-shrink: 0;
@@ -232,9 +230,9 @@ const CheckboxLabelContainer = styled('div')`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   cursor: pointer;
-  padding-right: ${space(0.25)};
+  padding-right: ${p => p.theme.space['2xs']};
 `;
 
 const CheckboxLabel = styled('span')`
@@ -255,7 +253,7 @@ const StyledMultipleCheckbox = styled(MultipleCheckbox)`
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   width: 100%;
-  padding: ${space(1)} ${space(0.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -315,7 +313,7 @@ const NoAttributesMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

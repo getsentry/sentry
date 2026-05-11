@@ -1,7 +1,7 @@
 import type {ReactNode, ReactPortal} from 'react';
 import {useMemo} from 'react';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -55,20 +55,16 @@ export type LogsFrozenContextProviderProps =
   | LogsNotFrozenProviderProps;
 
 interface LogsFrozenForTracesProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForTracesProviderProps {}
+  extends ReactPortal, LogsFrozenForTracesProviderProps {}
 
 interface LogsFrozenForTraceProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForTraceProviderProps {}
+  extends ReactPortal, LogsFrozenForTraceProviderProps {}
 
 interface LogsFrozenForSpanProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForSpanProviderProps {}
+  extends ReactPortal, LogsFrozenForSpanProviderProps {}
 
 interface LogsFrozenForReplayProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForReplayProviderProps {}
+  extends ReactPortal, LogsFrozenForReplayProviderProps {}
 
 type LogsFrozenContextProviderWithChildrenProps =
   | LogsFrozenForTracesProviderWithChildrenProps
@@ -80,25 +76,25 @@ type LogsFrozenContextProviderWithChildrenProps =
 function isLogsFrozenForTracesProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForTracesProviderWithChildrenProps {
-  return value.hasOwnProperty('traceIds');
+  return Object.hasOwn(value, 'traceIds');
 }
 
 function isLogsFrozenForTraceProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForTraceProviderWithChildrenProps {
-  return value.hasOwnProperty('traceId');
+  return Object.hasOwn(value, 'traceId');
 }
 
 function isLogsFrozenForSpanProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForSpanProviderWithChildrenProps {
-  return value.hasOwnProperty('span');
+  return Object.hasOwn(value, 'span');
 }
 
 function isLogsFrozenForReplayProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForReplayProviderWithChildrenProps {
-  return value.hasOwnProperty('replayId');
+  return Object.hasOwn(value, 'replayId');
 }
 
 export function LogsFrozenContextProvider(

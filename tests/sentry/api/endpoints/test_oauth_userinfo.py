@@ -1,6 +1,7 @@
 import datetime
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from sentry.testutils.cases import APITestCase
@@ -58,6 +59,33 @@ class OAuthUserInfoTest(APITestCase):
             == 'Bearer realm="api", error="insufficient_scope", scope="openid"'
         )
 
+    def test_rejects_expired_token(self) -> None:
+        expired_token = self.create_user_auth_token(
+            user=self.user,
+            scope_list=["openid"],
+            expires_at=timezone.now() - datetime.timedelta(days=1),
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {expired_token.token}")
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 401
+        assert response.data["error"] == "invalid_token"
+        assert response["WWW-Authenticate"] == 'Bearer realm="api", error="invalid_token"'
+
+    def test_accepts_non_expired_token(self) -> None:
+        valid_token = self.create_user_auth_token(
+            user=self.user,
+            scope_list=["openid"],
+            expires_at=timezone.now() + datetime.timedelta(days=1),
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {valid_token.token}")
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data == {"sub": str(self.user.id)}
+
     def test_gets_sub_with_openid_scope(self) -> None:
         openid_only_token = self.create_user_auth_token(user=self.user, scope_list=["openid"])
 
@@ -66,7 +94,7 @@ class OAuthUserInfoTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"sub": self.user.id}
+        assert response.data == {"sub": str(self.user.id)}
 
     def test_gets_email_information(self) -> None:
         email_token = self.create_user_auth_token(user=self.user, scope_list=["openid", "email"])
@@ -76,7 +104,7 @@ class OAuthUserInfoTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "sub": self.user.id,
+            "sub": str(self.user.id),
             "email": self.user.email,
             "email_verified": True,
         }
@@ -95,7 +123,7 @@ class OAuthUserInfoTest(APITestCase):
         assert response.data["avatar_url"] is None
         assert isinstance(response.data["date_joined"], datetime.datetime)
         assert response.data["name"] == ""
-        assert response.data["sub"] == self.user.id
+        assert response.data["sub"] == str(self.user.id)
 
     def test_gets_multiple_scopes(self) -> None:
         all_access_token = self.create_user_auth_token(
@@ -118,4 +146,4 @@ class OAuthUserInfoTest(APITestCase):
         assert response.data["email_verified"]
 
         # openid information
-        assert response.data["sub"] == self.user.id
+        assert response.data["sub"] == str(self.user.id)

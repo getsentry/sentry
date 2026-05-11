@@ -483,7 +483,6 @@ ERR = ConditionError(msg="test error")
 
 
 class TestTriggerResult(unittest.TestCase):
-
     def test_any_all_untainted_true_returns_untainted_true(self) -> None:
         assert TriggerResult.any([FALSE, TRUE, FALSE]) == TRUE
 
@@ -568,3 +567,9 @@ class TestTriggerResult(unittest.TestCase):
         assert TriggerResult.none(iter([FALSE, FALSE.with_error(ERR), FALSE])) == TRUE.with_error(
             ERR
         )
+
+    def test_choose_tainted(self) -> None:
+        assert TriggerResult.choose_tainted(TRUE.with_error(ERR), FALSE) == TRUE.with_error(ERR)
+        assert TriggerResult.choose_tainted(TRUE, FALSE.with_error(ERR)) == FALSE.with_error(ERR)
+        assert TriggerResult.choose_tainted(TRUE, FALSE) == TRUE
+        assert TriggerResult.choose_tainted(FALSE, TRUE) == FALSE

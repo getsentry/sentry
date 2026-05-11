@@ -13,6 +13,7 @@ from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.utils import json
 
 
@@ -34,6 +35,17 @@ class SentryAppComponentPreparer:
     def _prepare_stacktrace_link(self) -> None:
         schema = self.component.app_schema
         uri = schema.get("uri")
+
+        if not self.install.sentry_app.webhook_url:
+            raise SentryAppIntegratorError(
+                message="Sentry app webhook_url is not configured",
+                webhook_context={
+                    "error_type": "MISSING_URL",
+                    "sentry_app_slug": self.install.sentry_app.slug,
+                    "uri": uri,
+                },
+                status_code=500,
+            )
 
         urlparts = list(urlparse(force_str(self.install.sentry_app.webhook_url)))
         urlparts[2] = str(uri)

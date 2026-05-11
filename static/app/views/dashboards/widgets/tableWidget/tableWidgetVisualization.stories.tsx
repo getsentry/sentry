@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CodeBlock} from 'sentry/components/core/code';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -116,12 +117,10 @@ ${JSON.stringify(aliases)}
 
   story('Sorting', () => {
     const location = useLocation();
-    const [data, setData] = useState<TabularData>(sampleHTTPRequestTableData);
+    const [data, setData] = useState(sampleHTTPRequestTableData);
     const [sort, setSort] = useState<Sort>();
     function onChangeSort(newSort: Sort) {
-      const sortedData: Array<TabularRow<string>> = Object.entries(
-        sampleHTTPRequestTableData.data
-      )
+      const sortedData: TabularRow[] = Object.entries(sampleHTTPRequestTableData.data)
         .sort(([, a], [, b]) => {
           const aField = a?.[newSort.field] ?? 0;
           const bField = b?.[newSort.field] ?? 0;
@@ -385,11 +384,39 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
     case Actions.EXCLUDE:
       setFilter(filter.filter(_value => _value !== value));
       break;
-    default:
-      break;
   }
 }
         `}
+        </CodeBlock>
+        <p>
+          To customize actions per cell, use <code>allowedCellActions</code> as a
+          function. This function receives the full cell info, including the column type.
+          There are also default actions defined in <code>ALLOWED_CELL_ACTIONS</code>,
+          it's recommended to use them as a base.
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={cellInfo => {
+            if (cellInfo.column.type === 'integer') {
+              return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+            }
+
+            return [Actions.ADD, Actions.EXCLUDE];
+          }}
+        />
+        <CodeBlock language="tsx">
+          {`
+<TableWidgetVisualization
+  tableData={sampleHTTPRequestTableData}
+  allowedCellActions={cellInfo => {
+    if (cellInfo.column.type === 'integer') {
+      return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+    }
+
+    return [Actions.ADD, Actions.EXCLUDE];
+  }}
+/>
+          `}
         </CodeBlock>
       </Fragment>
     );

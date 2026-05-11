@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import NumberField from 'sentry/components/forms/fields/numberField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
 
 type Props = {
   // TODO(ts): Type customer when available
@@ -12,10 +12,10 @@ type Props = {
   onAction: (data: any) => void;
 };
 
-function ChangeARRAction(props: Props) {
+export function ChangeARRAction(props: Props) {
   return (
     <Button
-      priority="link"
+      variant="link"
       size="zero"
       onClick={() =>
         openModal(renderProps => <ChangeARRModal {...props} {...renderProps} />)
@@ -75,11 +75,7 @@ class ChangeARRModal extends Component<ModalProps, ModalState> {
         <Footer>
           <ButtonBar>
             <Button onClick={closeModal}>Cancel</Button>
-            <Button
-              priority="primary"
-              onClick={this.onAction}
-              disabled={this.state.error}
-            >
+            <Button variant="primary" onClick={this.onAction} disabled={this.state.error}>
               Submit
             </Button>
           </ButtonBar>
@@ -88,5 +84,3 @@ class ChangeARRModal extends Component<ModalProps, ModalState> {
     );
   }
 }
-
-export default ChangeARRAction;

@@ -4,7 +4,7 @@ from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.lang.native.applecrashreport import AppleCrashReport
@@ -12,7 +12,7 @@ from sentry.services import eventstore
 from sentry.utils.safe import get_path
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -37,6 +37,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
             )
 
         symbolicated = request.GET.get("minified") not in ("1", "true")
+        prioritized_thread_id = request.GET.get("thread_id") or None
 
         apple_crash_report_string = str(
             AppleCrashReport(
@@ -45,6 +46,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
                 debug_images=get_path(event.data, "debug_meta", "images", filter=True),
                 exceptions=get_path(event.data, "exception", "values", filter=True),
                 symbolicated=symbolicated,
+                prioritized_thread_id=prioritized_thread_id,
             )
         )
 

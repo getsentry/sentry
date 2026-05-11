@@ -6,15 +6,15 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import control_silo_model, region_silo_model
+from sentry.db.models import cell_silo_model, control_silo_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.uuid import UUIDField
 
 RETRY_BACKOFF = timedelta(minutes=5)
 """After each failed attempt we wait 5 minutes between retries."""
 
-MAX_AGE = timedelta(hours=1)
-"""Give up on retries after 1 hour."""
+MAX_AGE = timedelta(minutes=80)
+"""Give up on retries after 80 minutes."""
 
 
 class RelocationTransferState(models.TextChoices):
@@ -24,10 +24,10 @@ class RelocationTransferState(models.TextChoices):
 
 class BaseRelocationTransfer(DefaultFieldsModel):
     """
-    Base class for control + region relocation transfer models
+    Base class for control + cell relocation transfer models
 
     Relocation transfers are used to record a retriable
-    state of a regional transfer for relocation data.
+    state of a cell transfer for relocation data.
     These models replace outbox based transfers.
     """
 
@@ -35,8 +35,8 @@ class BaseRelocationTransfer(DefaultFieldsModel):
 
     relocation_uuid = UUIDField()
     org_slug = models.CharField(null=False)
-    requesting_region = models.CharField(null=False)
-    exporting_region = models.CharField(null=False)
+    requesting_cell = models.CharField(null=False, db_column="requesting_region")
+    exporting_cell = models.CharField(null=False, db_column="exporting_region")
     state = models.CharField(
         choices=RelocationTransferState, default=RelocationTransferState.Request
     )
@@ -50,7 +50,7 @@ class BaseRelocationTransfer(DefaultFieldsModel):
 class ControlRelocationTransfer(BaseRelocationTransfer):
     __relocation_scope__ = RelocationScope.Excluded
 
-    # The public key of the region that is requesting
+    # The public key of the cell that is requesting
     # the relocation.
     public_key = models.BinaryField(null=True)
 
@@ -59,7 +59,7 @@ class ControlRelocationTransfer(BaseRelocationTransfer):
         db_table = "sentry_controlrelocationtransfer"
 
 
-@region_silo_model
+@cell_silo_model
 class RegionRelocationTransfer(BaseRelocationTransfer):
     __relocation_scope__ = RelocationScope.Excluded
 

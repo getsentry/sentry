@@ -7,8 +7,8 @@ import {
   Flex,
   type FlexProps,
   type FlexPropsWithRenderFunction,
-} from 'sentry/components/core/layout';
-import type {Responsive} from 'sentry/components/core/layout/styles';
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Flex', () => {
   it('renders children', () => {
@@ -137,7 +137,7 @@ describe('Flex', () => {
     });
     it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
       const props: FlexPropsWithRenderFunction<any> = {
-        children: () => undefined,
+        children: () => {},
       };
       expectTypeOf(props.children).toEqualTypeOf<
         (props: {className: string}) => React.ReactNode | undefined

@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -36,7 +36,7 @@ class RuleSource(IntEnum):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class Rule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -171,7 +171,7 @@ class RuleActivityType(Enum):
     DISABLED = 5
 
 
-@region_silo_model
+@cell_silo_model
 class RuleActivity(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -183,15 +183,3 @@ class RuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_ruleactivity"
-
-
-@region_silo_model
-class NeglectedRule(Model):
-    __relocation_scope__ = RelocationScope.Organization
-
-    rule = FlexibleForeignKey("sentry.Rule")
-    organization = FlexibleForeignKey("sentry.Organization")
-    disable_date = models.DateTimeField()
-    opted_out = models.BooleanField(default=False)
-    sent_initial_email_date = models.DateTimeField(null=True)
-    sent_final_email_date = models.DateTimeField(null=True)

@@ -3,7 +3,6 @@ from sentry.testutils.cases import TestCase
 
 
 class TestSentryAppBaseError(TestCase):
-
     def test_to_public_dict(self) -> None:
         error = SentryAppError(message="brooo", public_context={"omg": "omgggg"})
         body = error.to_public_dict()

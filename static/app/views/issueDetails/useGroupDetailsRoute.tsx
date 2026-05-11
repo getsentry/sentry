@@ -1,44 +1,49 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useMatches, type UIMatch} from 'react-router-dom';
+
 import type {Organization} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
-type RouteProps = RouteComponentProps<{groupId: string; eventId?: string}>;
-
-function getCurrentTab({router}: {router: RouteProps['router']}) {
-  const currentRoute = router.routes[router.routes.length - 1];
+function getCurrentTab({
+  matches,
+  params,
+}: {
+  matches: UIMatch[];
+  params: Record<string, string | undefined>;
+}) {
+  const currentMatch = matches[matches.length - 1];
+  const currentPath = (currentMatch?.handle as {path?: string} | undefined)?.path;
 
   // If we're in the tag details page ("/distributions/:tagKey/")
-  if (router.params.tagKey) {
+  if (params.tagKey) {
     return Tab.DISTRIBUTIONS;
   }
-  return (
-    Object.values(Tab).find(tab => currentRoute?.path === TabPaths[tab]) ?? Tab.DETAILS
-  );
+  return Object.values(Tab).find(tab => currentPath === TabPaths[tab]) ?? Tab.DETAILS;
 }
 
 function getCurrentRouteInfo({
-  groupId,
   eventId,
+  groupId,
+  matches,
   organization,
-  router,
+  params,
 }: {
   eventId: string | undefined;
   groupId: string;
+  matches: UIMatch[];
   organization: Organization;
-  router: RouteProps['router'];
+  params: Record<string, string | undefined>;
 }): {
   baseUrl: string;
   currentTab: Tab;
 } {
-  const currentTab = getCurrentTab({router});
+  const currentTab = getCurrentTab({matches, params});
 
   const baseUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/${
-      router.params.eventId && eventId ? `events/${eventId}/` : ''
+      params.eventId && eventId ? `events/${eventId}/` : ''
     }`
   );
 
@@ -50,12 +55,17 @@ export function useGroupDetailsRoute(): {
   currentTab: Tab;
 } {
   const organization = useOrganization();
-  const params = useParams<{groupId: string; eventId?: string}>();
-  const router = useRouter();
+  const params = useParams<{
+    groupId: string;
+    eventId?: string;
+    tagKey?: string;
+  }>();
+  const matches = useMatches();
   return getCurrentRouteInfo({
-    groupId: params.groupId,
     eventId: params.eventId,
+    groupId: params.groupId,
+    matches,
     organization,
-    router,
+    params,
   });
 }

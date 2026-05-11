@@ -245,7 +245,7 @@ eap trace root
 "
 `;
 
-exports[`autogrouping sibling autogrouping eap traces groups spans with the same op and name if OTel UI is enabled 1`] = `
+exports[`autogrouping sibling autogrouping eap traces groups spans with the same op and name 1`] = `
 "
 eap trace root
   http.server - redis

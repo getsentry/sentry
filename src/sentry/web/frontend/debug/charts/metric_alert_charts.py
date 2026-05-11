@@ -4,7 +4,7 @@ from django.views.generic import View
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.seer.anomaly_detection.types import AnomalyType
-from sentry.web.frontend.base import internal_region_silo_view
+from sentry.web.frontend.base import internal_cell_silo_view
 from sentry.web.frontend.debug.mail import MailPreview
 
 incident = {
@@ -511,7 +511,7 @@ crash_free_metric_alert = {
 }
 
 
-@internal_region_silo_view
+@internal_cell_silo_view
 class DebugMetricAlertChartRendererView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         ret = []

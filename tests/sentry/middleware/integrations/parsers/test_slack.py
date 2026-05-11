@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
+import orjson
 import responses
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -11,6 +12,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.services.organization_mapping.service import organization_mapping_service
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.message_builder.routing import encode_action_id
@@ -20,12 +22,12 @@ from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_cells
 from sentry.utils import json
 from sentry.utils.signing import sign
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class SlackRequestParserTest(TestCase):
     factory = RequestFactory()
     timestamp = "123123123"
@@ -36,9 +38,40 @@ class SlackRequestParserTest(TestCase):
         self.integration = self.create_integration(
             organization=self.organization, external_id="TXXXXXXX1", provider="slack"
         )
+        org_mapping = organization_mapping_service.get(organization_id=self.organization.id)
+        assert org_mapping is not None
+        self.org_mapping = org_mapping
+        patcher = patch(
+            "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
+            return_value=True,
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
+
+    def _make_parser_with_seer_event(self, event_type: str = "app_mention"):
+        data = {
+            "type": "event_callback",
+            "team_id": self.integration.external_id,
+            "api_app_id": "AXXXXXXXX1",
+            "event_id": "E1",
+            "event": {
+                "type": event_type,
+                "channel": "C1234567890",
+                "user": "U1234567890",
+                "text": "hello",
+                "ts": "1234567890.123456",
+                "thread_ts": "1234567890.000001",
+            },
+        }
+        request = self.factory.post(
+            reverse("sentry-integration-slack-event"),
+            data=orjson.dumps(data),
+            content_type="application/json",
+        )
+        return SlackRequestParser(request, self.get_response)
 
     @responses.activate
     @patch(
@@ -110,14 +143,8 @@ class SlackRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    @patch(
-        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
-        return_value=True,
-    )
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    def test_triggers_async_response(
-        self, mock_slack_task: MagicMock, mock_signing_secret: MagicMock
-    ) -> None:
+    def test_triggers_async_response(self, mock_slack_task: MagicMock) -> None:
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {
             "payload": json.dumps(
@@ -129,21 +156,15 @@ class SlackRequestParserTest(TestCase):
         response = parser.get_response()
         mock_slack_task.apply_async.assert_called_once_with(
             kwargs={
-                "region_names": ["us"],
+                "cell_names": ["us"],
                 "payload": create_async_request_payload(request),
                 "response_url": response_url,
             }
         )
         assert response.status_code == status.HTTP_200_OK
 
-    @patch(
-        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
-        return_value=True,
-    )
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    def test_skips_async_response_if_org_integration_missing(
-        self, mock_slack_task, mock_signing_secret
-    ):
+    def test_skips_async_response_if_org_integration_missing(self, mock_slack_task):
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {
             "payload": json.dumps(
@@ -203,6 +224,7 @@ class SlackRequestParserTest(TestCase):
                 content_type="application/x-www-form-urlencoded",
             )
             parser = SlackRequestParser(request, self.get_response)
+            parser.get_integration_from_request()
             organizations = parser.get_organizations_from_integration(self.integration)
             organization_ids = {org.id for org in organizations}
             assert len(organization_ids) == 2
@@ -228,6 +250,7 @@ class SlackRequestParserTest(TestCase):
                 content_type="application/x-www-form-urlencoded",
             )
             parser = SlackRequestParser(request, self.get_response)
+            parser.get_integration_from_request()
             organizations = parser.get_organizations_from_integration(self.integration)
 
             assert len(organizations) == 1
@@ -254,6 +277,7 @@ class SlackRequestParserTest(TestCase):
                 content_type="application/x-www-form-urlencoded",
             )
             parser = SlackRequestParser(request, self.get_response)
+            parser.get_integration_from_request()
             organizations = parser.get_organizations_from_integration(self.integration)
             organization_ids = {org.id for org in organizations}
             assert len(organization_ids) == 2
@@ -281,6 +305,7 @@ class SlackRequestParserTest(TestCase):
             content_type="application/x-www-form-urlencoded",
         )
         parser = SlackRequestParser(request, self.get_response)
+        parser.get_integration_from_request()
         organizations = parser.get_organizations_from_integration(self.integration)
         organization_ids = {org.id for org in organizations}
         assert len(organization_ids) == 2
@@ -310,6 +335,7 @@ class SlackRequestParserTest(TestCase):
             content_type="application/x-www-form-urlencoded",
         )
         parser = SlackRequestParser(request, self.get_response)
+        parser.get_integration_from_request()
         organizations = parser.get_organizations_from_integration(self.integration)
         organization_ids = {org.id for org in organizations}
         assert len(organization_ids) == 1
@@ -339,8 +365,43 @@ class SlackRequestParserTest(TestCase):
             content_type="application/x-www-form-urlencoded",
         )
         parser = SlackRequestParser(request, self.get_response)
+        parser.get_integration_from_request()
         organizations = parser.get_organizations_from_integration(self.integration)
         organization_ids = {org.id for org in organizations}
         assert len(organization_ids) == 2
         assert self.organization.id in organization_ids
         assert other_organization.id in organization_ids
+
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_acks_200_and_enqueues_routing_task(self, mock_apply):
+        parser = self._make_parser_with_seer_event(event_type="app_mention")
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        mock_apply.assert_called_once()
+        kwargs = mock_apply.call_args.kwargs["kwargs"]
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["slack_user_id"] == "U1234567890"
+        assert kwargs["channel_id"] == "C1234567890"
+        assert kwargs["thread_ts"] == "1234567890.000001"
+        assert kwargs["message_ts"] == "1234567890.123456"
+        assert kwargs["event_type"] == "app_mention"
+        assert kwargs["message_text"] == "hello"
+        assert kwargs["payload"]["method"] == "POST"
+        assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
+
+    @responses.activate
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_non_seer_event_not_routed_through_task(self, mock_apply):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/slack/event/",
+            status=status.HTTP_200_OK,
+            body=b"",
+        )
+        parser = self._make_parser_with_seer_event(event_type="link_shared")
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        mock_apply.assert_not_called()

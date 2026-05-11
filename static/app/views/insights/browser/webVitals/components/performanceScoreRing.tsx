@@ -52,7 +52,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   ${p => p.textCss?.(p)}
 `;
 
-function PerformanceScoreRing({
+export function PerformanceScoreRing({
   values,
   size = 20,
   barWidth = 3,
@@ -190,5 +190,3 @@ const RingBar = styled('circle')<{
     stroke-dashoffset 300ms,
     stroke 300ms;
 `;
-
-export default PerformanceScoreRing;

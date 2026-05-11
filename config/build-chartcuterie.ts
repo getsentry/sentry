@@ -69,7 +69,7 @@ async function runEsbuild(commitHash: string): Promise<void> {
       'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(false),
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(false),
       'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(false),
-      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(false),
+      'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(false),
       'process.env.UI_DEV_ENABLE_PROFILING': JSON.stringify(false),
       'process.env.SPA_DSN': JSON.stringify(''),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(''),
@@ -93,8 +93,20 @@ async function runEsbuild(commitHash: string): Promise<void> {
       '.woff2': 'file',
       '.ttf': 'file',
       '.eot': 'file',
-      '.pegjs': 'text',
     },
+    // Stub out .pegjs grammar files with a no-op parse function since
+    // chartcuterie doesn't need search syntax parsing.
+    plugins: [
+      {
+        name: 'peggy-stub',
+        setup(build) {
+          build.onLoad({filter: /\.pegjs$/}, () => ({
+            contents: 'export function parse() {}',
+            loader: 'js',
+          }));
+        },
+      },
+    ],
     external: ['*.css'],
   });
 }

@@ -5,7 +5,6 @@ import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 
 const IMAGE_ADDR_LEN = 12;
-export const IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT = 400;
 
 export function getStatusWeight(status?: ImageStatus | null) {
   switch (status) {
@@ -33,7 +32,7 @@ export function combineStatus(
 
 export function getFileName(path?: string | null) {
   if (!path) {
-    return undefined;
+    return;
   }
   const directorySeparator = /^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/';
   return path.split(directorySeparator).pop();
@@ -56,5 +55,5 @@ export function getImageAddress(image: Image) {
     );
   }
 
-  return undefined;
+  return;
 }

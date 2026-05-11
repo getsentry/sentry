@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {TableDataRow} from './discover/discoverQuery';
 
@@ -104,7 +104,7 @@ export function setDateToTime(
     date.setUTCHours(hours, minutes);
   }
 
-  if (typeof seconds !== 'undefined') {
+  if (seconds !== undefined) {
     date.setSeconds(seconds);
   }
 
@@ -339,4 +339,17 @@ export function getDateFromTimestamp(value: unknown): Date | null {
   }
 
   return dateObj;
+}
+
+/**
+ * Converts a string or timestamp in milliseconds to a Date, returning null if invalid.
+ * If the value is a timezone-naive ISO string, it is assumed to be UTC.
+ */
+export function getDateFromTimestampAssumeUtc(value: unknown): Date | null {
+  const withTz =
+    typeof value === 'string' && !/Z|[+-]\d{2}:\d{2}$|[+-]\d{4}$/.test(value)
+      ? value + 'Z'
+      : value;
+
+  return getDateFromTimestamp(withTz);
 }

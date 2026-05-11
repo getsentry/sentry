@@ -4,16 +4,16 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as modal from 'sentry/actionCreators/modal';
-import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
@@ -36,7 +36,6 @@ describe('HighlightsDataSection', () => {
   };
   const highlightContextTitles = ['User: email', 'Browser: name', 'Browser: version'];
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-  const modalSpy = jest.spyOn(modal, 'openModal');
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -54,14 +53,8 @@ describe('HighlightsDataSection', () => {
       url: `/organizations/${organization.slug}/replays/${replayId}/`,
       body: {},
     });
-    render(
-      <HighlightsDataSection
-        event={event}
-        project={project}
-        viewAllRef={{current: null}}
-      />,
-      {organization}
-    );
+    render(<HighlightsDataSection event={event} project={project} />, {organization});
+    renderGlobalModal();
     expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();
@@ -72,7 +65,7 @@ describe('HighlightsDataSection', () => {
       'highlights.issue_details.edit_clicked',
       expect.anything()
     );
-    expect(modalSpy).toHaveBeenCalled();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('renders highlights from the detailed project API response', async () => {
@@ -90,14 +83,17 @@ describe('HighlightsDataSection', () => {
     render(<HighlightsDataSection event={event} project={project} />, {
       organization,
     });
-    expect(screen.getByText('Highlights')).toBeInTheDocument();
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(await screen.findByText('Highlights')).toBeInTheDocument();
+    // Wait for the project detail API data to load and render tags
+    expect(await screen.findByText('environment', {selector: 'div'})).toBeInTheDocument();
     for (const tagKey of highlightTags) {
+      // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+      // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
       const row = screen
         .getByText(tagKey, {selector: 'div'})
         .closest('div[data-test-id=highlight-tag-row]') as HTMLElement;
       // If highlight is present on the event...
-      if (eventTagMap.hasOwnProperty(tagKey)) {
+      if (Object.hasOwn(eventTagMap, tagKey)) {
         expect(within(row).getByText(eventTagMap[tagKey]!)).toBeInTheDocument();
         const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
         expect(highlightTagDropdown).toBeInTheDocument();

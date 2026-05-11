@@ -1,7 +1,5 @@
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-
-import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -20,11 +18,12 @@ type Props = {
   lightText?: boolean;
 };
 
-const getPadding = ({disablePadding, hasButtons}: Props) => css`
-  padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
+const getPadding = ({disablePadding, hasButtons, theme}: Props & {theme: Theme}) => css`
+  padding: ${hasButtons ? theme.space.md : theme.space.xl}
+    ${disablePadding ? 0 : theme.space.xl};
 `;
 
-const PanelHeader = styled('div')<Props>`
+export const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -47,5 +46,3 @@ const PanelHeader = styled('div')<Props>`
   position: relative;
   ${getPadding};
 `;
-
-export default PanelHeader;

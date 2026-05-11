@@ -1,6 +1,6 @@
 from sentry import audit_log
 from sentry.audit_log.services.log.service import log_rpc_service
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.deletedteam import DeletedTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.testutils.cases import APITestCase
@@ -31,7 +31,7 @@ class TeamDetailsTestBase(APITestCase):
             event=audit_log.get_event_id("TEAM_REMOVE"),
             target_object_id=team.id,
         )
-        scheduled_deletion_exists = RegionScheduledDeletion.objects.filter(
+        scheduled_deletion_exists = CellScheduledDeletion.objects.filter(
             model_name="Team", object_id=team.id
         ).exists()
 

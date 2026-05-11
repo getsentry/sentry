@@ -1,12 +1,8 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {useParams as useReactRouter6Params} from 'react-router-dom';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useParams} from 'sentry/utils/useParams';
-import {useTestRouteContext} from 'sentry/utils/useRouteContext';
-import {TestRouteContext} from 'sentry/views/routeContext';
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();
@@ -35,18 +31,12 @@ describe('useParams', () => {
         return null;
       }
 
-      const routeContext: RouteContextInterface = {
-        location: LocationFixture(),
-        params: {},
-        router: RouterFixture(),
-        routes: [],
-      };
-
-      render(
-        <TestRouteContext value={routeContext}>
-          <HomePage />
-        </TestRouteContext>
-      );
+      render(<HomePage />, {
+        initialRouterConfig: {
+          route: '/issues/',
+          location: {pathname: '/issues/'},
+        },
+      });
 
       expect(params).toEqual({});
     });
@@ -60,18 +50,12 @@ describe('useParams', () => {
         return null;
       }
 
-      const routeContext: RouteContextInterface = {
-        location: LocationFixture(),
-        params: {slug: 'sentry'},
-        router: RouterFixture(),
-        routes: [],
-      };
-
-      render(
-        <TestRouteContext value={routeContext}>
-          <HomePage />
-        </TestRouteContext>
-      );
+      render(<HomePage />, {
+        initialRouterConfig: {
+          route: '/organizations/:slug/',
+          location: {pathname: '/organizations/sentry/'},
+        },
+      });
       expect(params).toEqual({slug: 'sentry'});
     });
   });
@@ -89,26 +73,19 @@ describe('useParams', () => {
       let useParamsValue: any;
 
       function Component() {
-        const {params} = useTestRouteContext()!;
-        originalParams = params;
+        originalParams = useReactRouter6Params();
         useParamsValue = useParams();
         return (
           <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>
         );
       }
 
-      const routeContext: RouteContextInterface = {
-        location: LocationFixture(),
-        params: {},
-        router: RouterFixture(),
-        routes: [],
-      };
-
-      render(
-        <TestRouteContext value={routeContext}>
-          <Component />
-        </TestRouteContext>
-      );
+      render(<Component />, {
+        initialRouterConfig: {
+          route: '/issues/',
+          location: {pathname: '/issues/'},
+        },
+      });
 
       expect(
         screen.getByText('rendered component for org: albertos-apples')
@@ -127,26 +104,19 @@ describe('useParams', () => {
       let useParamsValue: any;
 
       function Component() {
-        const {params} = useTestRouteContext()!;
-        originalParams = params;
+        originalParams = useReactRouter6Params();
         useParamsValue = useParams();
         return (
           <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>
         );
       }
 
-      const routeContext: RouteContextInterface = {
-        location: LocationFixture(),
-        params: {},
-        router: RouterFixture(),
-        routes: [],
-      };
-
-      render(
-        <TestRouteContext value={routeContext}>
-          <Component />
-        </TestRouteContext>
-      );
+      render(<Component />, {
+        initialRouterConfig: {
+          route: '/issues/',
+          location: {pathname: '/issues/'},
+        },
+      });
 
       expect(
         screen.getByText('rendered component for org: no org id')

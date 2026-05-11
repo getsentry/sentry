@@ -25,19 +25,19 @@ app:
           frame (non app frame)
             function*
               "TppWorkpExecuteCallback"
-          frame (marked out of app by built-in stack trace rule (category:system -app))
+          frame (marked out of app by built-in stacktrace rule (category:system -app))
             function*
               "HTTP_THREAD_POOL::_StaticWorkItemCallback"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "WEBIO_REQUEST::OnIoComplete"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "HTTP_USER_REQUEST::OnSendRequest"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "HTTP_BASE_OBJECT::Dereference"
           frame (non app frame)
@@ -52,37 +52,37 @@ app:
           frame (non app frame)
             function*
               "RtlFreeHeap"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "memset"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpFreeUserBlock"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpFreeUserBlockToHeap"
           frame (non app frame)
             function*
               "RtlFreeHeap"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpFreeHeapInternal"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpFreeHeap"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlEnterCriticalSection"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpEnterCriticalSectionContended"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpWaitOnCriticalSection"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpWaitOnAddress"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RtlpOptimizeWaitOnAddressWaitList"
 --------------------------------------------------------------------------
@@ -98,37 +98,37 @@ system:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "TppWorkpExecuteCallback"
           frame*
             function*
               "HTTP_THREAD_POOL::_StaticWorkItemCallback"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "WEBIO_REQUEST::OnIoComplete"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "HTTP_USER_REQUEST::OnSendRequest"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "HTTP_BASE_OBJECT::Dereference"
           frame*
             function*
               "destructor'"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             function*
               "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
           frame*
@@ -137,36 +137,36 @@ system:
           frame*
             function*
               "RtlFreeHeap"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "memset"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpFreeUserBlock"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpFreeUserBlockToHeap"
           frame*
             function*
               "RtlFreeHeap"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpFreeHeapInternal"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpFreeHeap"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlEnterCriticalSection"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpEnterCriticalSectionContended"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpWaitOnCriticalSection"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpWaitOnAddress"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RtlpOptimizeWaitOnAddressWaitList"

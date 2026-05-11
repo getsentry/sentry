@@ -1,6 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -13,7 +14,7 @@ const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
   [AlertRuleThresholdType.ABOVE_AND_BELOW]: 'both',
 } as const;
 
-interface EventAnomalyPayload {
+type EventAnomalyPayload = {
   config: {
     direction: 'up' | 'down' | 'both';
     /**
@@ -30,7 +31,7 @@ interface EventAnomalyPayload {
   historical_data: Array<[timestamp: number, {count: number}]>;
   organization_id: string;
   project_id: string;
-}
+};
 
 interface UseMetricDetectorAnomaliesProps {
   enabled: boolean;
@@ -100,7 +101,9 @@ export function useMetricDetectorAnomalies({
 
   const {data, isLoading, error, refetch} = useApiQuery<Anomaly[]>(
     [
-      `/organizations/${organization.slug}/events/anomalies/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/anomalies/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         method: 'POST',
         data: payload,

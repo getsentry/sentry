@@ -26,7 +26,7 @@ export function ExpandedStateContextProvider({
   initialExpandedPaths,
   onToggleExpand,
 }: Props) {
-  const expandedRef = useRef<string[]>(initialExpandedPaths());
+  const expandedRef = useRef(initialExpandedPaths());
 
   const expand = useCallback(
     (path: any) => {
@@ -52,7 +52,7 @@ export function ExpandedStateContextProvider({
   return <Context value={value}>{children}</Context>;
 }
 
-export default function useExpandedState({path}: {path: string}) {
+export function useExpandedState({path}: {path: string}) {
   const {collapse, expand, expandedPaths} = useContext(Context);
   const isExpanded = expandedPaths.includes(path);
   return useMemo(

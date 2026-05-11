@@ -175,12 +175,7 @@ class RedisTSDB(BaseTSDB):
         values.
         """
         return self.add_environment_parameter(
-            "{prefix}{model}:{epoch}:{key}".format(
-                prefix=self.prefix,
-                model=model.value,
-                epoch=self.normalize_ts_to_rollup(timestamp, rollup),
-                key=self.get_model_key(key),
-            ),
+            f"{self.prefix}{model.value}:{self.normalize_ts_to_rollup(timestamp, rollup)}:{self.get_model_key(key)}",
             environment_id,
         )
 
@@ -205,12 +200,7 @@ class RedisTSDB(BaseTSDB):
             vnode = _crc32(force_bytes(model_key)) % self.vnodes
 
         return (
-            "{prefix}{model}:{epoch}:{vnode}".format(
-                prefix=self.prefix,
-                model=model.value,
-                epoch=self.normalize_to_rollup(timestamp, rollup),
-                vnode=vnode,
-            ),
+            f"{self.prefix}{model.value}:{self.normalize_to_rollup(timestamp, rollup)}:{vnode}",
             self.add_environment_parameter(model_key, environment_id),
         )
 

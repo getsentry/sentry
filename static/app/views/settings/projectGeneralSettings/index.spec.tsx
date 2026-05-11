@@ -1,4 +1,3 @@
-import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -11,16 +10,16 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import ProjectContextProvider from 'sentry/views/projects/projectContext';
+import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {ProjectRouteProvider} from 'sentry/views/projects/projectRouteContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/components/organizations/pageFilters/persistence');
+jest.mock('sentry/components/pageFilters/persistence');
 
 function getField(role: string, name: string) {
   return screen.getByRole(role, {name});
@@ -37,7 +36,6 @@ describe('projectGeneralSettings', () => {
     securityTokenHeader: 'x-security-header',
     verifySSL: true,
   });
-  const groupingConfigs = GroupingConfigsFixture();
   let putMock: jest.Mock;
   const mockOnChangeSlug = jest.fn();
 
@@ -50,11 +48,6 @@ describe('projectGeneralSettings', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/grouping-configs/`,
-      method: 'GET',
-      body: groupingConfigs,
-    });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
@@ -327,9 +320,9 @@ describe('projectGeneralSettings', () => {
     });
 
     render(
-      <ProjectContextProvider projectSlug={project.slug}>
+      <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-      </ProjectContextProvider>,
+      </ProjectRouteProvider>,
       {
         organization,
         initialRouterConfig,
@@ -357,9 +350,9 @@ describe('projectGeneralSettings', () => {
     });
 
     render(
-      <ProjectContextProvider projectSlug={project.slug}>
+      <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-      </ProjectContextProvider>,
+      </ProjectRouteProvider>,
       {
         organization,
         initialRouterConfig,
@@ -400,9 +393,9 @@ describe('projectGeneralSettings', () => {
 
     function renderProjectGeneralSettings() {
       render(
-        <ProjectContextProvider projectSlug={project.slug}>
+        <ProjectRouteProvider projectSlug={project.slug}>
           <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-        </ProjectContextProvider>,
+        </ProjectRouteProvider>,
         {
           organization,
           initialRouterConfig,
@@ -472,17 +465,12 @@ describe('projectGeneralSettings', () => {
       mockOnChangeSlug.mockClear();
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/grouping-configs/`,
-        method: 'GET',
-        body: groupingConfigs,
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/environments/`,
+        url: '/projects/org-slug/project-slug/environments/',
         method: 'GET',
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/users/`,
+        url: '/organizations/org-slug/users/',
         method: 'GET',
         body: [],
       });

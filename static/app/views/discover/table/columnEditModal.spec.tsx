@@ -10,11 +10,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {makeCloseButton} from 'sentry/components/globalModal/components';
-import TagStore from 'sentry/stores/tagStore';
+import {makeCloseButton} from '@sentry/scraps/modal';
+
+import {TagStore} from 'sentry/stores/tagStore';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
+import {ColumnEditModal} from 'sentry/views/discover/table/columnEditModal';
 
 const stubEl = styled((p: any) => p.children);
 
@@ -97,7 +98,7 @@ describe('Discover -> ColumnEditModal', () => {
   });
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'dashboards-mep'],
+      features: ['performance-view'],
     },
   });
   const columns: QueryFieldValue[] = [
@@ -944,8 +945,8 @@ describe('Discover -> ColumnEditModal', () => {
           Body={stubEl()}
           organization={initialData.organization}
           columns={[columns[0]!]}
-          onApply={() => undefined}
-          closeModal={() => undefined}
+          onApply={() => {}}
+          closeModal={() => {}}
           measurementKeys={[]}
           customMeasurements={{
             'measurements.custom.kibibyte': {

@@ -37,7 +37,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
-
     def _generate_data(self, fingerprint: str | None = None) -> dict[str, Any]:
         return {
             "fingerprint": [fingerprint or uuid4().hex],
@@ -185,7 +184,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             del os.environ["_SENTRY_CLEANUP"]
 
     @mock.patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_groups_delete_grouping_records_by_hash(
         self, mock_delete_seer_grouping_records_by_hash_apply_async: mock.Mock
@@ -233,7 +232,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         }
 
     @mock.patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_invalid_group_type_handling(
         self, mock_delete_seer_grouping_records_by_hash_apply_async: mock.Mock
@@ -305,7 +304,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             "sentry.grouping.ingest.seer.get_seer_similar_issues"
         ) as mock_get_seer_similar_issues:
             # This will allow grouphash_b to be matched to grouphash_a by Seer
-            mock_get_seer_similar_issues.return_value = (0.01, grouphash_a)
+            mock_get_seer_similar_issues.return_value = (0.01, grouphash_a, "v1")
 
             # Event B will be kept - different exception to ensure different group hash to grouphash_a
             event_b = self.store_event(

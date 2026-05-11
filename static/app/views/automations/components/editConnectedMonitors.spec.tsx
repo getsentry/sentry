@@ -13,12 +13,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-import EditConnectedMonitors from './editConnectedMonitors';
+import {EditConnectedMonitors} from './editConnectedMonitors';
 
 describe('EditConnectedMonitors', () => {
   const project = ProjectFixture({id: '1', slug: 'test-project'});
@@ -44,6 +44,10 @@ describe('EditConnectedMonitors', () => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project, otherProject]);
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       method: 'GET',

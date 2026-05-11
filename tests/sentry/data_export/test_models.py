@@ -224,6 +224,22 @@ class ExportedDataTest(TestCase):
             html_content
         )
 
+    @patch("sentry.data_export.models.logger")
+    def test_email_failure_logging(self, mock_logger: MagicMock) -> None:
+        data_export_id = self.data_export.id
+        with self.tasks():
+            self.data_export.email_failure("failed to export data!")
+        mock_logger.info.assert_any_call(
+            "notification.platform.data-export-failure.has_access",
+            extra={
+                "organization_id": self.organization.id,
+                "data_export_id": data_export_id,
+                "data_source": "data-export-failure",
+                "has_access": False,
+                "user_email": self.user.email,
+            },
+        )
+
     @override_options(
         {"notifications.platform-rollout.internal-testing": {"data-export-failure": 1.0}}
     )

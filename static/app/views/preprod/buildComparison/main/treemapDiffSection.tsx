@@ -5,10 +5,9 @@ import type {ECharts, TreemapSeriesOption} from 'echarts';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
-import {Separator} from '@sentry/scraps/separator/separator';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
 import {IconContract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getAppSizeDiffCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
@@ -117,7 +116,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       type: 'treemap',
       animationEasing: 'quarticOut',
       animationDuration: 300,
-      height: `calc(100% - 22px)`,
+      height: 'calc(100% - 22px)',
       width: '100%',
       top: '22px',
       leafDepth: 100000,
@@ -199,11 +198,10 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
     },
     formatter: function (params: any) {
       const sizeDiff = params.data?.size_diff || 0;
-      const diffType = params.data?.diff_type || 'unchanged';
-      const diffCategoryInfo = getAppSizeDiffCategoryInfo(theme)[diffType];
-      if (!diffCategoryInfo) {
-        throw new Error(`Diff type ${diffType} not found`);
-      }
+      const diffType = params.data?.diff_type;
+      const diffCategoryInfo = diffType
+        ? getAppSizeDiffCategoryInfo(theme)[diffType]
+        : null;
 
       const diffString = formattedSizeDiff(sizeDiff);
       let tagType: TagType = 'muted';
@@ -219,49 +217,46 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
             <Text bold>{params.name}</Text>
           </Flex>
           {params.data?.path ? <Text size="sm">{params.data.path}</Text> : null}
-          <Tag variant={tagType}>{`${diffString} (${diffCategoryInfo.displayName})`}</Tag>
+          {diffCategoryInfo ? (
+            <Tag
+              variant={tagType}
+            >{`${diffString} (${diffCategoryInfo.displayName})`}</Tag>
+          ) : null}
         </Stack>
       );
     },
   };
 
   return (
-    <Stack gap="xl">
-      <Separator orientation="horizontal" border="primary" />
-
-      <Stack gap="md">
-        <Heading as="h2">{t('X-Ray Diff')}</Heading>
-        <Stack paddingBottom="xl">
-          <Container
-            height="400px"
-            width="100%"
-            position="relative"
-            onMouseDown={handleContainerMouseDown}
-            style={{minHeight: 0}}
-          >
-            <BaseChart
-              height={400}
-              renderer="canvas"
-              xAxis={null}
-              yAxis={null}
-              series={series}
-              tooltip={tooltip}
-              onChartReady={handleChartReady}
-            />
-            <TreemapControlButtons
-              buttons={[
-                {
-                  ariaLabel: t('Recenter View'),
-                  title: t('Recenter'),
-                  icon: <IconContract />,
-                  onClick: handleRecenter,
-                  disabled: !isZoomed,
-                },
-              ]}
-            />
-          </Container>
-        </Stack>
-      </Stack>
+    <Stack paddingBottom="xl">
+      <Container
+        height="400px"
+        width="100%"
+        position="relative"
+        onMouseDown={handleContainerMouseDown}
+        style={{minHeight: 0}}
+      >
+        <BaseChart
+          height={400}
+          renderer="canvas"
+          xAxis={null}
+          yAxis={null}
+          series={series}
+          tooltip={tooltip}
+          onChartReady={handleChartReady}
+        />
+        <TreemapControlButtons
+          buttons={[
+            {
+              ariaLabel: t('Recenter View'),
+              title: t('Recenter'),
+              icon: <IconContract />,
+              onClick: handleRecenter,
+              disabled: !isZoomed,
+            },
+          ]}
+        />
+      </Container>
     </Stack>
   );
 }

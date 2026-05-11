@@ -7,7 +7,7 @@ import {
   Grid,
   type GridProps,
   type GridPropsWithRenderFunction,
-} from 'sentry/components/core/layout';
+} from '@sentry/scraps/layout';
 
 describe('Grid', () => {
   it('renders children', () => {
@@ -120,7 +120,7 @@ describe('Grid', () => {
     });
     it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
       const props: GridPropsWithRenderFunction<any> = {
-        children: () => undefined,
+        children: () => {},
       };
       expectTypeOf(props.children).toEqualTypeOf<
         (props: {className: string}) => React.ReactNode | undefined

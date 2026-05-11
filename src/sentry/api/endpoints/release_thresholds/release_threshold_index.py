@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -30,7 +30,7 @@ class ReleaseThresholdIndexGETValidator(serializers.Serializer[ReleaseThresholdI
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
@@ -47,14 +47,13 @@ class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
         environments_list = self.get_environments(request, organization)
         projects_list = self.get_projects(request, organization)
 
-        release_query = Q()
+        # `projects_list` is already organization-scoped by `get_projects`, so
+        # `project__in=projects_list` both narrows to the caller's projects and
+        # prevents cross-tenant reads. An empty list yields zero rows.
+        release_query = Q(project__in=projects_list)
         if environments_list:
             release_query &= Q(
                 environment__in=environments_list,
-            )
-        if projects_list:
-            release_query &= Q(
-                project__in=projects_list,
             )
 
         queryset = ReleaseThreshold.objects.filter(release_query)

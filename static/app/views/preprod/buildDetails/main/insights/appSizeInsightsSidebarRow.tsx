@@ -1,9 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,8 +14,9 @@ import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {InsightTimedOutWarning} from 'sentry/views/preprod/buildDetails/main/insights/insightTimedOutWarning';
 import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
 import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
@@ -39,7 +39,7 @@ export function formatUpside(percentage: number): string {
     return `-${formatPercentage(percentage, 1)}`;
   }
   // Format smaller than 0.001 (so 0.1%) as "(~0%)"
-  return `~0%`;
+  return '~0%';
 }
 
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
@@ -127,9 +127,12 @@ export function AppSizeInsightsSidebarRow({
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
       <Flex align="start" justify="between">
-        <Text variant="primary" size="md" bold>
-          {insight.name}
-        </Text>
+        <Flex align="center" gap="xs">
+          <Text variant="primary" size="md" bold>
+            {insight.name}
+          </Text>
+          <InsightTimedOutWarning insight={insight} />
+        </Flex>
         <Flex align="center" gap="sm" flexShrink={0}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
@@ -147,7 +150,7 @@ export function AppSizeInsightsSidebarRow({
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <Button priority="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
+          <Button variant="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
             {t('How to fix this locally')}
           </Button>
         )}
@@ -197,7 +200,7 @@ export function AppSizeInsightsSidebarRow({
                   <Text size="sm" variant="muted">
                     {t('Page %s of %s', currentPage + 1, totalPages)}
                   </Text>
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous')}

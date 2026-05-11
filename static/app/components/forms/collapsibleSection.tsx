@@ -10,7 +10,7 @@ export interface CollapsibleSectionProps extends Omit<FieldFromConfigProps, 'fie
   initiallyCollapsed?: boolean;
 }
 
-export default function CollapsibleSection(props: CollapsibleSectionProps) {
+export function CollapsibleSection(props: CollapsibleSectionProps) {
   return (
     <JsonForm
       {...props}

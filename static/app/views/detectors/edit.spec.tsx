@@ -17,8 +17,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import * as indicators from 'sentry/actionCreators/indicator';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
@@ -93,6 +94,11 @@ describe('DetectorEdit', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/`,
@@ -129,9 +135,7 @@ describe('DetectorEdit', () => {
       const {router} = render(<DetectorEdit />, {organization, initialRouterConfig});
       renderGlobalModal();
 
-      expect(
-        await screen.findByRole('link', {name: mockDetector.name})
-      ).toBeInTheDocument();
+      await screen.findAllByText(mockDetector.name);
 
       await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
@@ -164,9 +168,7 @@ describe('DetectorEdit', () => {
 
       render(<DetectorEdit />, {organization, initialRouterConfig});
 
-      expect(
-        await screen.findByRole('link', {name: mockDetector.name})
-      ).toBeInTheDocument();
+      await screen.findAllByText(mockDetector.name);
 
       // Wait for the component to load and display automation actions
       expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
@@ -215,7 +217,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig,
       });
 
-      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+      await screen.findAllByText(name);
 
       // Should have save button, but not disable or delete
       expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
@@ -252,6 +254,33 @@ describe('DetectorEdit', () => {
         );
       });
     });
+
+    it('displays error response detail in a toast when save fails', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'PUT',
+        statusCode: 403,
+        body: {detail: 'You do not have permission to perform this action.'},
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      await screen.findAllByText(name);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'You do not have permission to perform this action.'
+        );
+      });
+    });
   });
 
   describe('Metric', () => {
@@ -284,7 +313,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig,
       });
 
-      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+      await screen.findAllByText(name);
 
       // Find the editable name field and change it
       const nameInput = screen.getByTestId('editable-text-label');
@@ -364,7 +393,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig,
       });
 
-      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+      await screen.findAllByText(name);
 
       // Start with errors dataset and select 1 minute interval
       const datasetField = screen.getByLabelText('Dataset');
@@ -440,12 +469,11 @@ describe('DetectorEdit', () => {
 
       render(<DetectorEdit />, {organization, initialRouterConfig});
 
-      expect(
-        await screen.findByRole('link', {name: detectorWithOkEqualsHigh.name})
-      ).toBeInTheDocument();
+      await screen.findAllByText(detectorWithOkEqualsHigh.name);
 
-      expect(screen.getByText('Default').closest('label')).toHaveClass(
-        'css-1aktlwe-RadioLineItem'
+      expect(screen.getByText('Default').closest('label')).toHaveAttribute(
+        'aria-checked',
+        'true'
       );
 
       // Switching to Custom should reveal prefilled resolution input with the current OK value
@@ -481,7 +509,7 @@ describe('DetectorEdit', () => {
         },
       });
 
-      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+      await screen.findAllByText(name);
 
       // Switch to percent change detection
       await userEvent.click(screen.getByRole('radio', {name: 'Change'}));
@@ -522,8 +550,10 @@ describe('DetectorEdit', () => {
         );
       });
       const updateBody = updateRequest.mock.calls[0][1];
+      // Percent thresholds are reverse-translated to internal absolute-percentage form:
+      // user enters 22 (meaning "22% higher") → stored as 122 (122% of baseline)
       expect(updateBody.data.conditionGroup.conditions[0]).toEqual({
-        comparison: Number(newThresholdValue),
+        comparison: Number(newThresholdValue) + 100,
         conditionResult: 75,
         type: 'gt',
       });
@@ -555,9 +585,7 @@ describe('DetectorEdit', () => {
         },
       });
 
-      expect(
-        await screen.findByRole('link', {name: 'Test Detector'})
-      ).toBeInTheDocument();
+      await screen.findAllByText('Test Detector');
 
       // Verify detection type options are initially available
       expect(screen.getByText('Threshold')).toBeInTheDocument();
@@ -604,9 +632,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('link', {name: spansDetector.name})
-      ).toBeInTheDocument();
+      await screen.findAllByText(spansDetector.name);
 
       // Column parameter should be locked to "spans" - verify only "spans" option is available
       const button = screen.getByRole('button', {name: 'spans'});
@@ -624,12 +650,17 @@ describe('DetectorEdit', () => {
         body: mockDetector,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/anomaly-data/`,
+        body: [],
+      });
+
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig,
       });
 
-      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+      await screen.findAllByText(name);
 
       // Set interval to 1 day
       const intervalField = screen.getByLabelText('Interval');
@@ -673,6 +704,11 @@ describe('DetectorEdit', () => {
         body: dynamicDetector,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${dynamicDetector.id}/anomaly-data/`,
+        body: [],
+      });
+
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
@@ -683,9 +719,7 @@ describe('DetectorEdit', () => {
         },
       });
 
-      expect(
-        await screen.findByRole('link', {name: 'Dynamic Detector'})
-      ).toBeInTheDocument();
+      await screen.findAllByText('Dynamic Detector');
 
       expect(screen.getByRole('radio', {name: 'Dynamic'})).toBeChecked();
 
@@ -697,6 +731,11 @@ describe('DetectorEdit', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
         body: mockDetector,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/anomaly-data/`,
+        body: [],
       });
 
       // Current data for chart
@@ -738,7 +777,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig,
       });
 
-      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+      await screen.findAllByText(name);
 
       await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
 
@@ -788,7 +827,7 @@ describe('DetectorEdit', () => {
           initialRouterConfig,
         });
 
-        expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+        await screen.findAllByText(name);
 
         // Change dataset to releases
         const datasetField = screen.getByLabelText('Dataset');
@@ -868,9 +907,7 @@ describe('DetectorEdit', () => {
       });
 
       // Wait for the detector to load
-      expect(
-        await screen.findByRole('link', {name: 'Transactions Detector'})
-      ).toBeInTheDocument();
+      await screen.findAllByText('Transactions Detector');
 
       // Open dataset dropdown
       const datasetField = screen.getByLabelText('Dataset');
@@ -925,9 +962,7 @@ describe('DetectorEdit', () => {
         },
       });
 
-      expect(
-        await screen.findByRole('link', {name: transactionsDetector.name})
-      ).toBeInTheDocument();
+      await screen.findAllByText(transactionsDetector.name);
 
       // Interval select should be disabled
       const intervalField = screen.getByLabelText('Interval');
@@ -988,9 +1023,7 @@ describe('DetectorEdit', () => {
         },
       });
 
-      expect(
-        await screen.findByRole('link', {name: 'Span Detector with Extrapolation'})
-      ).toBeInTheDocument();
+      await screen.findAllByText('Span Detector with Extrapolation');
 
       // Verify events-stats is called with 'sampleWeightd' extrapolation mode for the chart
       // as we want to switch the extrapolation mode when saving

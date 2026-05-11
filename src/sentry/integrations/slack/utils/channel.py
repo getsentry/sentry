@@ -115,7 +115,7 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
         results = client.users_info(user=input_user_id).data
 
     except SlackApiError as e:
-        _logger.exception(
+        _logger.warning(
             "rule.slack.user_info_failed",
             extra={
                 "integration_id": integration_id,
@@ -171,7 +171,7 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
             sample_rate=1.0,
             tags={"type": "conversations_info"},
         )
-        _logger.exception(
+        _logger.warning(
             "rule.slack.conversation_info_failed",
             extra={
                 "integration_id": integration_id,
@@ -228,7 +228,7 @@ def get_channel_id_with_timeout(
         _channel_id = check_for_channel(client, name)
         _prefix = "#"
     except SlackApiError:
-        _logger.exception("rule.slack.channel_check_error", extra=logger_params)
+        _logger.warning("rule.slack.channel_check_error", extra=logger_params)
         return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=False)
 
     if _channel_id is not None:
@@ -297,7 +297,7 @@ def check_user_with_timeout(
                 )
                 return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
     except SlackApiError as e:
-        _logger.exception("rule.slack.user_check_error", extra=logger_params)
+        _logger.warning("rule.slack.user_check_error", extra=logger_params)
         if unpack_slack_api_error(e) == RATE_LIMITED:
             metrics.incr(
                 SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
@@ -344,7 +344,7 @@ def check_for_channel(
             "channel": name,
             "post_at": int(time.time() + 500),
         }
-        _logger.exception("slack.chat_scheduleMessage.error", extra=logger_params)
+        _logger.warning("slack.chat_scheduleMessage.error", extra=logger_params)
         if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
             return None
         else:
@@ -378,5 +378,5 @@ def check_for_channel(
             "channel_id": msg_response.get("channel"),
             "scheduled_message_id": msg_response.get("scheduled_message_id"),
         }
-        _logger.exception("slack.chat_deleteScheduledMessage.error", extra=logger_params)
+        _logger.warning("slack.chat_deleteScheduledMessage.error", extra=logger_params)
         raise

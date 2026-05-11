@@ -2,6 +2,8 @@ from collections.abc import Sequence
 from typing import Any
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import deletions
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
@@ -9,18 +11,25 @@ from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.deletions.tasks.groups.delete_groups_for_project",
     namespace=deletion_tasks,
-    retry=Retry(times=MAX_RETRIES, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    retry=Retry(
+        times=MAX_RETRIES,
+        delay=60 * 5,
+        on=(
+            Exception,
+            ProcessingDeadlineExceeded,
+        ),
+        ignore=(DeleteAborted,),
+    ),
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=(DeleteAborted,),
 )
-@retry(exclude=(DeleteAborted,), timeouts=True)
 @track_group_async_operation
 def delete_groups_for_project(
     project_id: int,

@@ -1,7 +1,7 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   StepType,
-  type BasePlatformOptions,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -25,7 +25,7 @@ Sentry.metrics().gauge("queue_size", 42.0)
 // Distribution metric - track a value distribution
 Sentry.metrics().distribution("response_time", 150.0)`;
 
-export const metrics: OnboardingConfig<BasePlatformOptions> = {
+export const metrics: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -33,7 +33,7 @@ export const metrics: OnboardingConfig<BasePlatformOptions> = {
         {
           type: 'text',
           text: tct(
-            "To start using metrics, make sure your Sentry Android SDK version is [version:8.30.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
+            "To start using metrics, make sure your Sentry Android SDK version is [version:8.34.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
             {
               version: <code />,
               link: (
@@ -46,7 +46,7 @@ export const metrics: OnboardingConfig<BasePlatformOptions> = {
     },
   ],
   configure: () => [],
-  verify: (params: DocsParams<BasePlatformOptions>) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [

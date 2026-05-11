@@ -50,7 +50,7 @@ function getRubyFrame(frame: Frame, includeLocation: boolean): string {
     result += ':' + frame.lineNo;
   }
   if (defined(frame.function)) {
-    result += `:in '` + frame.function + "'";
+    result += ":in '" + frame.function + "'";
   }
   return result;
 }
@@ -217,7 +217,7 @@ function getDartFrame(
 }
 
 function ljust(str: string, len: number) {
-  return str + new Array(Math.max(0, len - str.length) + 1).join(' ');
+  return str + Array.from({length: Math.max(0, len - str.length) + 1}).join(' ');
 }
 
 function getNativeFrame(frame: Frame, includeLocation: boolean): string {
@@ -355,7 +355,7 @@ type DisplayRawContentArgs = {
  *
  * @returns Array of formatted strings representing the stack trace, one per frame.
  */
-export default function displayRawContent({
+export function displayRawContent({
   data,
   platform,
   exception,

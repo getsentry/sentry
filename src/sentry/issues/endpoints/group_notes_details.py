@@ -4,10 +4,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -17,7 +19,7 @@ from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupNotesDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -28,6 +30,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
     def delete(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
@@ -70,6 +73,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         return Response(status=204)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
     def put(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")

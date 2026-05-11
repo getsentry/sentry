@@ -13,7 +13,7 @@ import {profiling} from 'sentry/gettingStartedDocs/python/profiling';
 
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   profilingOnboarding: profiling(),
@@ -22,10 +22,6 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[tornado]',
-  }),
+  logsOnboarding: logs(),
   metricsOnboarding: metrics(),
 };
-
-export default docs;

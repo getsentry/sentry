@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DeviceName} from 'sentry/components/deviceName';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
@@ -122,10 +123,10 @@ export function TagBar({
 const TagPanel = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const TagHeader = styled('h5')`
@@ -145,7 +146,7 @@ const TagValueContent = styled('div')`
   display: grid;
   grid-template-columns: 4fr auto ${progressBarWidth};
   color: ${p => p.theme.tokens.content.secondary};
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
 
   & > :nth-child(2n) {
     background-color: ${p => p.theme.tokens.background.secondary};
@@ -167,26 +168,27 @@ const TagValue = styled('div')`
 
 const TagBarPlaceholder = styled('div')`
   position: relative;
-  height: ${space(1)};
+  height: ${p => p.theme.space.md};
   width: 100%;
   border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
-  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
+  background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
 const TagBarContainer = styled('div')`
-  height: ${space(1)};
+  height: ${p => p.theme.space.md};
   position: absolute;
   left: 0;
   top: 0;
-  min-width: ${space(0.25)};
+  min-width: ${p => p.theme.space['2xs']};
   &:before {
     position: absolute;
     inset: 0;
     content: '';
     background: ${p =>
-      `linear-gradient(to right, ${Color(p.theme.colors.gray400).alpha(0.5).toString()} 0px, ${Color(p.theme.colors.gray400).alpha(0.7).toString()} ${progressBarWidth})`};
+      `linear-gradient(to right, ${color(p.theme.colors.gray400).alpha(0.5).toString()} 0px, ${color(p.theme.colors.gray400).alpha(0.7).toString()} ${progressBarWidth})`};
     width: 100%;
   }
 `;

@@ -2,7 +2,7 @@ import {useContext} from 'react';
 
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 
-export default function useCustomMeasurements() {
+export function useCustomMeasurements() {
   const customMeasurementsContext = useContext(CustomMeasurementsContext);
 
   if (!customMeasurementsContext) {

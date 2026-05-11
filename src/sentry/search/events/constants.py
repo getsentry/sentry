@@ -215,7 +215,11 @@ PERCENT_UNITS = {"ratio", "percent"}
 NO_CONVERSION_FIELDS = {"start", "end"}
 # Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter
 # In these cases we should instead treat it as a tag instead
-SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS}
+# "duration" is an internal Snuba column name for transaction.duration (UInt32).
+# Bare `duration:>3s` (without the `transaction.` prefix) causes a 500 because
+# the parser produces a string value while resolve_column maps to the raw numeric
+# column.  Forcing tag resolution makes the filter harmless instead of crashing.
+SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS, "duration"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
 ARRAY_FIELDS = {
@@ -280,6 +284,7 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
+    "user_count": "user_count",
     SEMVER_ALIAS: SEMVER_ALIAS,
     RELEASE_STAGE_ALIAS: RELEASE_STAGE_ALIAS,
 }
@@ -307,7 +312,8 @@ OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exac
 #
 # We use this character as a prefix and suffix with our wildcard operators to avoid
 # introducing breaking changes, and leave the possibility open down to the road to add in
-# new operators.
+# new operators. These operators are internal implementation details and should
+# not be included in product docs. Users should use `*` instead.
 WILDCARD_UNICODE = "\uf00d"
 
 WILDCARD_OPERATOR_MAP = {
@@ -509,6 +515,8 @@ SPANS_METRICS_FUNCTIONS = {
     "http_response_rate",
 }
 
+# Functions that are defined as SnQLFunction and need special parsing in incidents/logic.py.
+# These are not supported in the older resolve_field logic.
 METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS = {
     "performance_score",
     "weighted_performance_score",

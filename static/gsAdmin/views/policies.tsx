@@ -1,12 +1,13 @@
 import moment from 'moment-timezone';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import ConfigStore from 'sentry/stores/configStore';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
 
-import PageHeader from 'admin/components/pageHeader';
-import AddPolicyModal from 'admin/components/policies/addPolicyModal';
+import {openModal} from 'sentry/actionCreators/modal';
+import {ConfigStore} from 'sentry/stores/configStore';
+
+import {PageHeader} from 'admin/components/pageHeader';
+import {AddPolicyModal} from 'admin/components/policies/addPolicyModal';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
@@ -23,7 +24,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-export default function Policies() {
+export function Policies() {
   const hasPermission = ConfigStore.get('user').permissions.has('policies.admin');
 
   return (
@@ -33,9 +34,11 @@ export default function Policies() {
           onClick={() => openModal(deps => <AddPolicyModal {...deps} />)}
           size="sm"
           disabled={!hasPermission}
-          title={
-            hasPermission ? undefined : "You don't have the policies.admin permission"
-          }
+          tooltipProps={{
+            title: hasPermission
+              ? undefined
+              : "You don't have the policies.admin permission",
+          }}
         >
           Add Policy
         </Button>

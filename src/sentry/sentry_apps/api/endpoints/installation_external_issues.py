@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import all_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
@@ -13,7 +13,7 @@ from sentry.sentry_apps.api.parsers.sentry_app import URLField
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -22,7 +22,7 @@ class PlatformExternalIssueSerializer(serializers.Serializer):
     identifier = serializers.CharField()
 
 
-@all_silo_endpoint
+@control_silo_endpoint
 class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
@@ -41,7 +41,11 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         except Exception:
             return Response({"detail": "issueId is required, and must be an integer"}, status=400)
 
-        result = sentry_app_region_service.create_external_issue(
+        if not request.user.is_authenticated:
+            return Response({"detail": "Authentication credentials were not provided."}, status=401)
+
+        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
+        result = sentry_app_cell_service.create_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
             group_id=group_id,

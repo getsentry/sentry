@@ -1,12 +1,13 @@
-import type {Repository} from 'sentry/types/integrations';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
 
-function getRepositoriesQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
-  return [`/organizations/${orgSlug}/repos/`];
-}
+import type {Repository} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 export function useRepositories({orgSlug}: {orgSlug: string}) {
-  return useApiQuery<Repository[]>(getRepositoriesQueryKey({orgSlug}), {
-    staleTime: Infinity,
-  });
+  return useQuery(
+    apiOptions.as<Repository[]>()('/organizations/$organizationIdOrSlug/repos/', {
+      path: {organizationIdOrSlug: orgSlug},
+      staleTime: Infinity,
+    })
+  );
 }

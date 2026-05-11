@@ -1,21 +1,25 @@
 import {useTheme} from '@emotion/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DetectorTypeForm,
   useDetectorTypeQueryState,
 } from 'sentry/views/detectors/components/detectorTypeForm';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
@@ -40,10 +44,9 @@ export default function DetectorNew() {
   useWorkflowEngineFeatureGate({redirect: true});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const hasPageFrame = useHasPageFrameFeature();
   const [detectorType] = useDetectorTypeQueryState();
   const [projectId] = useQueryState('project', parseAsString);
-
-  const newMonitorName = t('New Monitor');
 
   const formProps = {
     onSubmit: () => {
@@ -61,31 +64,48 @@ export default function DetectorNew() {
   };
 
   return (
-    <EditLayout formProps={formProps}>
-      <SentryDocumentTitle title={newMonitorName} />
-
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
-          <NewDetectorBreadcrumbs />
-          <EditLayout.Title title={newMonitorName} />
-        </EditLayout.HeaderContent>
+    <EditLayoutDeprecated formProps={formProps}>
+      <SentryDocumentTitle title={t('New Monitor')} />
+      <EditLayoutDeprecated.Header maxWidth={maxWidth}>
+        <EditLayoutDeprecated.HeaderContent>
+          {hasPageFrame ? (
+            <TopBar.Slot name="title">
+              <NewDetectorBreadcrumbs />
+            </TopBar.Slot>
+          ) : (
+            <NewDetectorBreadcrumbs />
+          )}
+          {!hasPageFrame && (
+            <EditLayoutDeprecated.Title title={t('Select monitor type')} />
+          )}
+          <Text as="p" size="md" variant="muted">
+            {tct(
+              'Monitors detect problems in your application and create Sentry Issues. [docsLink:Read the Docs].',
+              {
+                docsLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/new-monitors-and-alerts/monitors/" />
+                ),
+              }
+            )}
+          </Text>
+        </EditLayoutDeprecated.HeaderContent>
         <div>
           <MonitorFeedbackButton />
         </div>
-      </EditLayout.Header>
+      </EditLayoutDeprecated.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         <DetectorTypeForm />
-      </EditLayout.Body>
+      </EditLayoutDeprecated.Body>
 
-      <EditLayout.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
-        <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
+      <EditLayoutDeprecated.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
+        <LinkButton variant="secondary" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
-        <Button priority="primary" type="submit">
+        <Button variant="primary" type="submit">
           {t('Next')}
         </Button>
-      </EditLayout.Footer>
-    </EditLayout>
+      </EditLayoutDeprecated.Footer>
+    </EditLayoutDeprecated>
   );
 }

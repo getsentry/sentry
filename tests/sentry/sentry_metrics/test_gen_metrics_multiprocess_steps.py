@@ -15,6 +15,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
+from django.test import override_settings
 
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
@@ -528,12 +529,12 @@ def test_process_messages_invalid_messages(
 
 
 @pytest.mark.django_db
-def test_process_messages_rate_limited(caplog: Any, settings: Any) -> None:
+@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
+def test_process_messages_rate_limited(caplog: Any) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
     happens when postgres writes are being rate-limited.
     """
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     rate_limited_payload = deepcopy(distribution_payloads[0])
     rate_limited_payload["tags"]["rate_limited_test"] = "true"
 

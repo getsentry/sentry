@@ -93,7 +93,7 @@ class MSTeamsNotificationTest(TestCase):
         self._install_msteams_personal()
 
         notification = DummyNotification(self.organization)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             recipients = Actor.many_from_object([self.user_1])
         with self.tasks():
             send_notification_as_msteams(notification, recipients, {}, {})
@@ -108,7 +108,7 @@ class MSTeamsNotificationTest(TestCase):
 
         notification = DummyNotification(self.organization)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             recipients = Actor.many_from_object([self.user_1])
 
         with patch(
@@ -129,7 +129,7 @@ class MSTeamsNotificationTest(TestCase):
             mock_get_user_conversation_id.return_value = "some_conversation_id"
 
             notification = DummyNotification(self.organization)
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 recipients = Actor.many_from_object([self.user_1])
 
             with self.tasks():
@@ -148,7 +148,7 @@ class MSTeamsNotificationTest(TestCase):
         self.create_identity(user=user_2, identity_provider=self.idp, external_id=self.team_id)
 
         notification = DummyNotification(self.organization)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             recipients = Actor.many_from_object([user_2])
 
         with self.tasks():
@@ -164,7 +164,7 @@ class MSTeamsNotificationTest(TestCase):
         self.create_identity(user=user_2, identity_provider=self.idp, external_id=user_id_2)
 
         notification = DummyNotification(self.organization)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             recipients = Actor.many_from_object([self.user_1, user_2])
 
         with self.tasks():

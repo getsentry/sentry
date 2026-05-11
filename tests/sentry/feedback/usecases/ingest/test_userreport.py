@@ -293,7 +293,6 @@ def test_save_user_report_shims_if_event_found(
             "sentry.feedback.usecases.ingest.userreport.shim_to_feedback"
         ) as mock_shim_to_feedback,
     ):
-
         mock_report_dict["event_id"] = event.event_id
 
         save_userreport(

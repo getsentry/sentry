@@ -4,24 +4,22 @@ import styled from '@emotion/styled';
 import partnerMigrationHero from 'getsentry-images/partnership/plan-ending.svg';
 import moment from 'moment-timezone';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconBusiness} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getContractDaysLeft, isTeamPlanFamily} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = Pick<ModalRenderProps, 'closeModal'> & {
   organization: Organization;
@@ -114,7 +112,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">
-            {tct(`Your promotional plan with [partnerName] ends soon`, {
+            {tct('Your promotional plan with [partnerName] ends soon', {
               partnerName,
             })}
           </h2>
@@ -136,7 +134,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         </PartnerPlanHeading>
         <Flex justify="between">
           <PathContainer>
-            <SubHeading>{tct(`New Plan on [endDate]`, {endDate})}</SubHeading>
+            <SubHeading>{tct('New Plan on [endDate]', {endDate})}</SubHeading>
             <PathHeading>{t('Developer')}</PathHeading>
             <p>{t('For solo devs working on small projects')}</p>
             <Bullets>{leftColumnItems.map(DeveloperItem)}</Bullets>
@@ -144,7 +142,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
 
           <PathContainer>
             <SubHeading>{t('Recommended Plan')}</SubHeading>
-            <PathHeading>{tct(`[returnPlan]`, {returnPlan})}</PathHeading>
+            <PathHeading>{tct('[returnPlan]', {returnPlan})}</PathHeading>
             <p>{t('For multiple teams that operate at scale')}</p>
             <Bullets data-test-id="partner-plan-ending-bullet">
               {rightColumnItems.map(UpgradeItem)}
@@ -153,7 +151,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         </Flex>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
-            <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
+            <Button data-test-id="maybe-later" variant="secondary" onClick={closeModal}>
               {t('Remind Me Later')}
             </Button>
             {hasBillingAccess ? (
@@ -161,7 +159,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
                 size="md"
                 to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
-                priority="primary"
+                variant="primary"
                 onClick={() =>
                   trackGetsentryAnalytics('partner_billing_migration.modal.clicked_cta', {
                     subscription,
@@ -177,7 +175,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               <Button
                 size="md"
                 aria-label="Request to Upgrade"
-                priority="primary"
+                variant="primary"
                 onClick={handleRequest}
               >
                 {t('Request to Upgrade')}
@@ -191,7 +189,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
 }
 
 const PartnerPlanHeading = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
 
   p {
     font-size: ${p => p.theme.font.size.lg};
@@ -204,7 +202,7 @@ const PartnerPlanHeading = styled('div')`
 `;
 
 const PathContainer = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   grid-auto-rows: max-content;
   border: 1px solid ${p => p.theme.colors.gray400};
   margin-left: auto;
@@ -218,7 +216,7 @@ const PathContainer = styled('div')`
 `;
 
 const StyledButtonBar = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   display: flex;
   flex-direction: row;
   column-gap: 20px;
@@ -227,7 +225,8 @@ const StyledButtonBar = styled('div')`
 `;
 
 const ImageHeader = styled('div')`
-  margin: -${space(4)} -${space(4)} 0 -${space(4)};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+    0 -${p => p.theme.space['3xl']};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background-image: url(${partnerMigrationHero});
   background-size: cover;
@@ -236,7 +235,8 @@ const ImageHeader = styled('div')`
   height: 200px;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${space(4)} -${space(4)} 0 -${space(4)};
+    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+      0 -${p => p.theme.space['3xl']};
   }
 `;
 
@@ -244,10 +244,10 @@ const Bullets = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-auto-rows: max-content;
-  gap: ${space(1)} ${space(1.5)};
+  gap: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PathHeading = styled('h5')`

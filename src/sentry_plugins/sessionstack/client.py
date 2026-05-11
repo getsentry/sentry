@@ -52,7 +52,6 @@ class SessionStackClient:
         response.raise_for_status()
 
     def get_session_url(self, session_id, event_timestamp):
-
         player_url = self.player_url + SESSION_URL_PATH + session_id
         query_params = {}
         query_params["source"] = DEFAULT_SENTRY_SOURCE

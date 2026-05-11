@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
@@ -17,12 +17,12 @@ PLATFORM_MAPPING = {
 }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectCreateSampleEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.VALUE_DISCOVERY
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)

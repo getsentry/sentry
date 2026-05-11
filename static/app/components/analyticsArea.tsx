@@ -1,6 +1,6 @@
 import {createContext, useContext, type ReactNode} from 'react';
 
-const AnalyticsAreaContext = createContext<string>('');
+const AnalyticsAreaContext = createContext('');
 
 /**
  * Returns a string identifying the UI area from which an analytics event is emitted.
@@ -40,7 +40,7 @@ export function useAnalyticsArea(): string {
  * </AnalyticsArea>
  * ```
  */
-export default function AnalyticsArea({
+export function AnalyticsArea({
   children,
   name,
   overrideParent = false,

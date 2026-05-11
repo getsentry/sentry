@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Text} from 'sentry/components/core/text/text';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import RadioField from 'sentry/components/forms/fields/radioField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';

@@ -103,7 +103,7 @@ class UUIDField(models.Field):
             if self.null or self._auto_add or (self.default != NOT_PROVIDED):
                 return None
             raise ValueError(
-                "Explicit UUID required unless either `null` is " "True or `auto_add` is given."
+                "Explicit UUID required unless either `null` is True or `auto_add` is given."
             )
 
         # If we already have a UUID, pass it through.

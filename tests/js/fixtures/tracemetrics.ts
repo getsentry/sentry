@@ -2,8 +2,8 @@ import pick from 'lodash/pick';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -270,11 +270,13 @@ export function createTraceMetricFixtures(
     TraceMetricKnownFieldKey.METRIC_VALUE,
     TraceMetricKnownFieldKey.TIMESTAMP,
     TraceMetricKnownFieldKey.TRACE,
+    `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
+    `max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`,
   ];
 
   const baseFieldKeys = options.baseFields || defaultBaseFields;
 
-  const metricData: Array<Partial<Record<TraceMetricKnownFieldKey, string | number>>> = [
+  const metricData: Array<Partial<Record<string, string | number>>> = [
     {
       [TraceMetricKnownFieldKey.ID]: '1',
       [TraceMetricKnownFieldKey.PROJECT_ID]: project.id,
@@ -288,6 +290,8 @@ export function createTraceMetricFixtures(
       [TraceMetricKnownFieldKey.RELEASE]: '1.0.0',
       [TraceMetricKnownFieldKey.SDK_NAME]: 'sentry.python',
       [TraceMetricKnownFieldKey.SDK_VERSION]: '1.0.0',
+      [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 100,
+      [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
     },
     {
       [TraceMetricKnownFieldKey.ID]: '2',
@@ -302,6 +306,8 @@ export function createTraceMetricFixtures(
       [TraceMetricKnownFieldKey.RELEASE]: '1.0.0',
       [TraceMetricKnownFieldKey.SDK_NAME]: 'sentry.python',
       [TraceMetricKnownFieldKey.SDK_VERSION]: '1.0.0',
+      [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 50,
+      [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
     },
     {
       [TraceMetricKnownFieldKey.ID]: '3',
@@ -316,6 +322,8 @@ export function createTraceMetricFixtures(
       [TraceMetricKnownFieldKey.RELEASE]: '1.0.0',
       [TraceMetricKnownFieldKey.SDK_NAME]: 'sentry.python',
       [TraceMetricKnownFieldKey.SDK_VERSION]: '1.0.0',
+      [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 200,
+      [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
     },
     {
       [TraceMetricKnownFieldKey.ID]: '4',
@@ -330,6 +338,8 @@ export function createTraceMetricFixtures(
       [TraceMetricKnownFieldKey.RELEASE]: '1.0.1',
       [TraceMetricKnownFieldKey.SDK_NAME]: 'sentry.python',
       [TraceMetricKnownFieldKey.SDK_VERSION]: '1.0.0',
+      [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 75,
+      [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
     },
     {
       [TraceMetricKnownFieldKey.ID]: '5',
@@ -344,6 +354,8 @@ export function createTraceMetricFixtures(
       [TraceMetricKnownFieldKey.RELEASE]: '1.0.1',
       [TraceMetricKnownFieldKey.SDK_NAME]: 'sentry.python',
       [TraceMetricKnownFieldKey.SDK_VERSION]: '1.0.0',
+      [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 30,
+      [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
     },
     {
       [TraceMetricKnownFieldKey.ID]: '6',
@@ -358,6 +370,8 @@ export function createTraceMetricFixtures(
       [TraceMetricKnownFieldKey.RELEASE]: '1.0.1',
       [TraceMetricKnownFieldKey.SDK_NAME]: 'sentry.python',
       [TraceMetricKnownFieldKey.SDK_VERSION]: '1.0.0',
+      [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 150,
+      [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
     },
   ];
 

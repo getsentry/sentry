@@ -1,5 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';

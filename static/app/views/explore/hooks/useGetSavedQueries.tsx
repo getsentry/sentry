@@ -1,14 +1,17 @@
 import {useCallback, useMemo} from 'react';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type RawGroupBy = {
@@ -41,6 +44,7 @@ type ReadableQuery = {
   // - `aggregateField` which contains a list of group bys and visualizes merged together
   // - `groupby` and `visualize` which contains the group bys and visualizes separately
   aggregateField?: Array<RawGroupBy | RawVisualize>;
+  aggregateOrderby?: string;
   caseInsensitive?: CaseInsensitive;
 
   groupby?: string[];
@@ -50,13 +54,14 @@ type ReadableQuery = {
 };
 
 // This is the `query` property on our SavedQuery, which indicates the actualy query portion of the saved query, hence SavedQueryQuery.
-export class SavedQueryQuery {
+class SavedQueryQuery {
   fields: string[];
   mode: Mode;
   orderby: string;
   query: string;
   caseInsensitive?: CaseInsensitive;
   aggregateField: Array<RawGroupBy | RawVisualize>;
+  aggregateOrderby?: string;
   groupby: string[];
   visualize: RawVisualize[];
 
@@ -69,6 +74,7 @@ export class SavedQueryQuery {
     this.orderby = query.orderby;
     this.query = query.query;
     this.caseInsensitive = query.caseInsensitive;
+    this.aggregateOrderby = query.aggregateOrderby;
     // for compatibility, we ensure that aggregate fields, group bys and visualizes are all populated
     // we ensure that group bys + visualizes = aggregate fields
     this.groupby =
@@ -98,7 +104,8 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 export type ReadableSavedQuery = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics'; // ExploreSavedQueryDataset
+  // ExploreSavedQueryDataset
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -112,6 +119,7 @@ export type ReadableSavedQuery = {
   caseInsensitive?: CaseInsensitive;
   changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
+  crossEvents?: CrossEvent[];
   end?: string;
   environment?: string[];
   isPrebuilt?: boolean;
@@ -132,6 +140,7 @@ export class SavedQuery {
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
   changedReason?: ExploreQueryChangedReason | null;
+  crossEvents?: CrossEvent[];
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
@@ -141,6 +150,7 @@ export class SavedQuery {
 
   constructor(savedQuery: ReadableSavedQuery) {
     this.changedReason = savedQuery.changedReason;
+    this.crossEvents = savedQuery.crossEvents;
     this.dateAdded = savedQuery.dateAdded;
     this.dateUpdated = savedQuery.dateUpdated;
     this.id = savedQuery.id;
@@ -168,6 +178,26 @@ export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['datas
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
 }
 
+export const MAX_STARRED_SAVED_QUERIES_IN_NAV = 20;
+
+function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
+  organization: Organization,
+  query?: Record<string, unknown>
+) {
+  return apiOptions.as<TData>()('/organizations/$organizationIdOrSlug/explore/saved/', {
+    path: {organizationIdOrSlug: organization.slug},
+    query,
+    staleTime: 0,
+  });
+}
+
+export function starredSavedQueriesApiOptions(organization: Organization) {
+  return savedQueriesApiOptions<SavedQuery[]>(organization, {
+    per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
+    starred: 1,
+  });
+}
+
 type Props = {
   cursor?: string;
   exclude?: 'owned' | 'shared';
@@ -187,29 +217,28 @@ export function useGetSavedQueries({
 }: Props) {
   const organization = useOrganization();
 
-  const {data, isLoading, getResponseHeader, ...rest} = useApiQuery<ReadableSavedQuery[]>(
-    [
-      `/organizations/${organization.slug}/explore/saved/`,
-      {
-        query: {
-          sortBy,
-          exclude,
-          per_page: perPage,
-          starred: starred ? 1 : undefined,
-          cursor,
-          query,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
+  const {data, isLoading, isFetched, isError} = useQuery({
+    ...savedQueriesApiOptions(organization, {
+      sortBy,
+      exclude,
+      per_page: perPage,
+      starred: starred ? 1 : undefined,
+      cursor,
+      query,
+    }),
+    select: selectJsonWithHeaders,
+  });
+
+  const pageLinks = data?.headers.Link;
+
+  const savedQueries = useMemo(
+    () =>
+      data?.json
+        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+        .map(q => new SavedQuery(q)),
+    [data?.json]
   );
-
-  const pageLinks = getResponseHeader?.('Link');
-
-  const savedQueries = useMemo(() => data?.map(q => new SavedQuery(q)), [data]);
-  return {data: savedQueries, isLoading, pageLinks, ...rest};
+  return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
 }
 
 export function useInvalidateSavedQueries() {
@@ -217,23 +246,39 @@ export function useInvalidateSavedQueries() {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/`],
-    });
-  }, [queryClient, organization.slug]);
+    const baseKey = savedQueriesApiOptions(organization).queryKey;
+    queryClient.invalidateQueries({queryKey: baseKey});
+  }, [queryClient, organization]);
+}
+
+function savedQueryApiOptions({
+  organization,
+  id,
+}: {
+  id: string | undefined;
+  organization: Organization;
+}) {
+  return apiOptions.as<ReadableSavedQuery>()(
+    '/organizations/$organizationIdOrSlug/explore/saved/$id/',
+    {
+      path: defined(id) ? {organizationIdOrSlug: organization.slug, id} : skipToken,
+      staleTime: 0,
+    }
+  );
 }
 
 export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
-  const {data, isLoading, ...rest} = useApiQuery<ReadableSavedQuery>(
-    [`/organizations/${organization.slug}/explore/saved/${id}/`],
-    {
-      staleTime: 0,
-      enabled: defined(id),
+  const {data, isLoading, isFetched} = useQuery(savedQueryApiOptions({organization, id}));
+  const savedQuery = useMemo(() => {
+    if (!defined(data)) {
+      return;
     }
-  );
-  const savedQuery = useMemo(() => (defined(data) ? new SavedQuery(data) : data), [data]);
-  return {data: savedQuery, isLoading, ...rest};
+    return Array.isArray(data.query) && data.query.length > 0
+      ? new SavedQuery(data)
+      : undefined;
+  }, [data]);
+  return {data: savedQuery, isLoading, isFetched};
 }
 
 export function useInvalidateSavedQuery(id?: string) {
@@ -241,17 +286,21 @@ export function useInvalidateSavedQuery(id?: string) {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
+    if (!defined(id)) {
+      return;
+    }
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/${id}/`],
+      queryKey: savedQueryApiOptions({organization, id}).queryKey,
     });
-  }, [queryClient, organization.slug, id]);
+  }, [queryClient, organization, id]);
 }
 
 const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {
   logs: 'Logs',
   spans: 'Traces',
   segment_spans: 'Traces',
-  metrics: 'Metrics',
+  metrics: 'Application Metrics',
+  replays: 'Replays',
 };
 
 const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
@@ -262,6 +311,7 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   spans: TraceItemDataset.SPANS,
   segment_spans: TraceItemDataset.SPANS,
   metrics: TraceItemDataset.TRACEMETRICS,
+  replays: TraceItemDataset.REPLAYS,
 };
 
 export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {

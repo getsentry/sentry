@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
-import allPlatforms from 'sentry/data/platforms';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Stack} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
+import {allPlatforms} from 'sentry/data/platforms';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProjectInstallPlatform} from './platform';
@@ -31,7 +31,7 @@ export default function GettingStarted() {
   const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   return (
-    <GettingStartedLayout withPadding>
+    <GettingStartedLayout flex={1} padding="2xl 3xl">
       {loadingProjects ? (
         <LoadingIndicator />
       ) : project ? (
@@ -39,7 +39,7 @@ export default function GettingStarted() {
       ) : (
         <Redirect
           to={makeProjectsPathname({
-            path: `/new/`,
+            path: '/new/',
             organization,
           })}
         />
@@ -48,7 +48,6 @@ export default function GettingStarted() {
   );
 }
 
-const GettingStartedLayout = styled(Layout.Page)`
+const GettingStartedLayout = styled(Stack)`
   background: ${p => p.theme.tokens.background.primary};
-  padding-top: ${space(3)};
 `;

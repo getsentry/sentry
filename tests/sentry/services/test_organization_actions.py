@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
@@ -16,7 +16,7 @@ from sentry.testutils.cases import TestCase
 
 
 def assert_outbox_update_message_exists(org: Organization, expected_count: int) -> None:
-    outbox_messages = RegionOutbox.objects.filter()
+    outbox_messages = CellOutbox.objects.filter()
 
     # TODO(HC): Remove this once we can ensure an expected count of 1 for every message
     #  It's not essential since these messages will coallesce, but there's no reason we

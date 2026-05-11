@@ -4,7 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
+import {ProjectTeamAccess} from 'sentry/views/projectDetail/projectTeamAccess';
 
 describe('ProjectDetail > ProjectTeamAccess', () => {
   const {organization} = initializeOrg();

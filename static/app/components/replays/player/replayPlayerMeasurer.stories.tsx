@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/replaySlugChooser';
-import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
-import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
+import {ReplaySlugChooser} from 'sentry/components/replays/player/__stories__/replaySlugChooser';
+import {ReplayPlayer} from 'sentry/components/replays/player/replayPlayer';
+import {ReplayPlayerMeasurer} from 'sentry/components/replays/player/replayPlayerMeasurer';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ReplayPlayerMeasurer', story => {

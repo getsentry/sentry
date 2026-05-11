@@ -3,7 +3,7 @@
  *
  * e.g. {id: 'test'}
  */
-export default function replaceRouterParams(
+export function replaceRouterParams(
   route: string,
   params: Record<string, string | number | undefined>
 ): string {
@@ -17,7 +17,7 @@ export default function replaceRouterParams(
   // replace with current params
   matches.forEach(param => {
     const paramName = param.slice(1);
-    if (typeof params[paramName] === 'undefined') {
+    if (params[paramName] === undefined) {
       return;
     }
 

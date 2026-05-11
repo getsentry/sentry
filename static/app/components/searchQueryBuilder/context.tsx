@@ -10,8 +10,8 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {
+  GetTagKeys,
   GetTagValues,
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
@@ -32,8 +32,8 @@ import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -41,7 +41,9 @@ interface SearchQueryBuilderContextData {
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
+  clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
   committedQuery: string;
+  consumeReopenDropdownOnQueryClear: () => void;
   currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
@@ -55,14 +57,17 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  gaveSeerConsent: boolean;
+  // @deprecated: remove this, it's constant now
+  gaveSeerConsent: true;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
+  invalidFilterKeys: string[];
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
+  reopenDropdownOnQueryClear: boolean;
   searchSource: string;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
@@ -71,6 +76,7 @@ interface SearchQueryBuilderContextData {
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   caseInsensitive?: CaseInsensitive;
   filterKeyAliases?: TagCollection;
+  getTagKeys?: GetTagKeys;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
@@ -112,6 +118,7 @@ export function SearchQueryBuilderProvider({
   filterKeyMenuWidth = 460,
   filterKeySections,
   getSuggestedFilterKey,
+  getTagKeys,
   getTagValues,
   onSearch,
   placeholder,
@@ -125,13 +132,15 @@ export function SearchQueryBuilderProvider({
   filterKeyAliases,
   caseInsensitive,
   onCaseInsensitiveClick,
+  invalidFilterKeys,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
-  const currentInputValueRef = useRef<string>('');
+  const [reopenDropdownOnQueryClear, setReopenDropdownOnQueryClear] = useState(false);
+  const currentInputValueRef = useRef('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
 
@@ -140,8 +149,6 @@ export function SearchQueryBuilderProvider({
     Boolean(enableAISearchProp) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
-
-  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
@@ -197,6 +204,11 @@ export function SearchQueryBuilderProvider({
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
+
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
   useEffect(() => {
@@ -233,6 +245,24 @@ export function SearchQueryBuilderProvider({
     searchSource,
     onSearch,
   });
+
+  const clearSearchQuery = useCallback(
+    ({reopenDropdown = false}: {reopenDropdown?: boolean} = {}) => {
+      currentInputValueRef.current = '';
+      askSeerNLQueryRef.current = null;
+      askSeerSuggestedQueryRef.current = null;
+      setDisplayAskSeerFeedback(false);
+      setReopenDropdownOnQueryClear(reopenDropdown);
+      dispatch({type: 'CLEAR'});
+      handleSearch('');
+    },
+    [dispatch, handleSearch]
+  );
+
+  const consumeReopenDropdownOnQueryClear = useCallback(() => {
+    setReopenDropdownOnQueryClear(false);
+  }, []);
+
   const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
@@ -241,6 +271,7 @@ export function SearchQueryBuilderProvider({
     return {
       ...state,
       aiSearchBadgeType,
+      invalidFilterKeys: stableInvalidFilterKeys,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
@@ -253,8 +284,11 @@ export function SearchQueryBuilderProvider({
       filterKeys: stableFilterKeys,
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
+      getTagKeys,
       getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
+      clearSearchQuery,
+      consumeReopenDropdownOnQueryClear,
       wrapperRef,
       actionBarRef,
       handleSearch,
@@ -271,8 +305,9 @@ export function SearchQueryBuilderProvider({
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
-      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      gaveSeerConsent: true,
       currentInputValueRef,
+      reopenDropdownOnQueryClear,
       displayAskSeerFeedback,
       setDisplayAskSeerFeedback,
       askSeerNLQueryRef,
@@ -284,6 +319,8 @@ export function SearchQueryBuilderProvider({
     aiSearchBadgeType,
     autoSubmitSeer,
     caseInsensitive,
+    clearSearchQuery,
+    consumeReopenDropdownOnQueryClear,
     disabled,
     disallowFreeText,
     disallowLogicalOperators,
@@ -295,8 +332,10 @@ export function SearchQueryBuilderProvider({
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
+    getTagKeys,
     getTagValues,
     handleSearch,
+    stableInvalidFilterKeys,
     matchKeySuggestions,
     onCaseInsensitiveClick,
     parseQuery,
@@ -304,10 +343,10 @@ export function SearchQueryBuilderProvider({
     placeholder,
     portalTarget,
     recentSearches,
+    reopenDropdownOnQueryClear,
     namespace,
     replaceRawSearchKeys,
     searchSource,
-    setupAcknowledgement.orgHasAcknowledged,
     size,
     stableFieldDefinitionGetter,
     stableFilterKeys,

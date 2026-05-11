@@ -2,7 +2,8 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 
 describe('GuidedSteps', () => {
@@ -136,5 +137,27 @@ describe('GuidedSteps', () => {
     expect(screen.queryByText('This is the first step.')).not.toBeInTheDocument();
     expect(screen.getByText('This is the second step.')).toBeInTheDocument();
     expect(screen.queryByText('This is the third step.')).not.toBeInTheDocument();
+  });
+
+  it('resets to first step when initialStep exceeds the number of steps', async () => {
+    const onStepChange = jest.fn();
+
+    render(
+      <GuidedSteps initialStep={3} onStepChange={onStepChange}>
+        <GuidedSteps.Step stepKey="step-1" title="Step 1 Title">
+          This is the first step.
+          <GuidedSteps.StepButtons />
+        </GuidedSteps.Step>
+        <GuidedSteps.Step stepKey="step-2" title="Step 2 Title">
+          This is the second step.
+          <GuidedSteps.StepButtons />
+        </GuidedSteps.Step>
+      </GuidedSteps>
+    );
+
+    // Should reset to the first step instead of showing nothing
+    expect(await screen.findByText('This is the first step.')).toBeInTheDocument();
+    expect(screen.queryByText('This is the second step.')).not.toBeInTheDocument();
+    expect(onStepChange).toHaveBeenCalledWith(1);
   });
 });

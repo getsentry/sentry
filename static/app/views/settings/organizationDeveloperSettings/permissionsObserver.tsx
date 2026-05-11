@@ -1,18 +1,27 @@
 import {Component, Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Alert} from '@sentry/scraps/alert';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
-import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
+import type {
+  PermissionResource,
+  Permissions,
+  WebhookEvent,
+} from 'sentry/types/integrations';
 import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
-import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import {
+  PermissionSelection,
+  permissionStateToList,
+} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
   appPublished: boolean;
@@ -23,15 +32,20 @@ type Props = DefaultProps & {
   events: WebhookEvent[];
   newApp: boolean;
   scopes: Scope[];
+  continuousIntegrationError?: string;
+  onEventsChange?: (events: WebhookEvent[]) => void;
+  onScopesChange?: (scopes: Scope[]) => void;
+  permissionErrors?: Partial<Record<PermissionResource, string>>;
 };
 
 type State = {
   elevating: boolean;
   events: WebhookEvent[];
+  hasContinuousIntegration: boolean;
   permissions: Permissions;
 };
 
-export default class PermissionsObserver extends Component<Props, State> {
+export class PermissionsObserver extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
     appPublished: false,
@@ -42,6 +56,7 @@ export default class PermissionsObserver extends Component<Props, State> {
     this.state = {
       permissions: this.scopeListToPermissionState(),
       events: this.props.events,
+      hasContinuousIntegration: this.hasContinuousIntegration(),
       elevating: false,
     };
   }
@@ -61,8 +76,15 @@ export default class PermissionsObserver extends Component<Props, State> {
     return toResourcePermissions(this.props.scopes);
   }
 
-  onPermissionChange = (permissions: Permissions) => {
-    this.setState({permissions});
+  hasContinuousIntegration() {
+    return this.props.scopes.includes(CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope);
+  }
+
+  onPermissionChange = (permissions: Permissions, hasContinuousIntegration: boolean) => {
+    this.setState({permissions, hasContinuousIntegration});
+    this.props.onScopesChange?.(
+      permissionStateToList(permissions, hasContinuousIntegration)
+    );
     const new_permissions = toResourcePermissions(this.props.scopes);
 
     let elevating = false;
@@ -81,17 +103,22 @@ export default class PermissionsObserver extends Component<Props, State> {
       return false;
     });
 
+    if (!elevating && hasContinuousIntegration && !this.hasContinuousIntegration()) {
+      elevating = true;
+    }
+
     this.setState({elevating});
   };
 
   onEventChange = (events: WebhookEvent[]) => {
     this.setState({events});
+    this.props.onEventsChange?.(events);
   };
 
   renderCallout() {
     const {elevating} = this.state;
 
-    if (!this.props.newApp && elevating === true) {
+    if (!this.props.newApp && elevating) {
       return (
         <Alert.Container>
           <Alert variant="warning">
@@ -107,7 +134,7 @@ export default class PermissionsObserver extends Component<Props, State> {
   }
 
   render() {
-    const {permissions, events} = this.state;
+    const {hasContinuousIntegration, permissions, events} = this.state;
 
     return (
       <Fragment>
@@ -115,9 +142,12 @@ export default class PermissionsObserver extends Component<Props, State> {
           <PanelHeader>{t('Permissions')}</PanelHeader>
           <PanelBody>
             <PermissionSelection
+              hasContinuousIntegration={hasContinuousIntegration}
               permissions={permissions}
               onChange={this.onPermissionChange}
               appPublished={this.props.appPublished}
+              errors={this.props.permissionErrors}
+              continuousIntegrationError={this.props.continuousIntegrationError}
             />
             {this.renderCallout()}
           </PanelBody>

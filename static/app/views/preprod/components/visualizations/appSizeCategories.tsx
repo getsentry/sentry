@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import type {PieSeriesOption} from 'echarts';
 
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapType, type TreemapResults} from 'sentry/views/preprod/types/appSizeTypes';

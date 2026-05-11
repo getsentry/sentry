@@ -13,7 +13,6 @@ from sentry.sentry_metrics.indexer.base import (
     metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils import metrics
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -238,11 +237,6 @@ SPAN_METRICS_NAMES = {
     # Last possible index: 499
 }
 
-# 500-599
-ESCALATING_ISSUES_METRIC_NAMES = {
-    "c:escalating_issues/event_ingested@none": PREFIX + 500,
-}
-
 # 600-699
 PROFILING_METRIC_NAMES = {
     "d:profiles/function.duration@millisecond": PREFIX + 600,
@@ -264,7 +258,6 @@ SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
-    **ESCALATING_ISSUES_METRIC_NAMES,
     **PROFILING_METRIC_NAMES,
     **BUNDLE_ANALYSIS_METRIC_NAMES,
     **METRIC_STATS_METRIC_NAMES,
@@ -317,9 +310,6 @@ class StaticStringIndexer(StringIndexer):
 
     @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
-        # TODO: remove this metric after investigation is over
-        if use_case_id is UseCaseID.ESCALATING_ISSUES:
-            metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id, org_id, string)

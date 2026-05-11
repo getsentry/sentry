@@ -19,7 +19,7 @@ from sentry.integrations.types import (
 )
 from sentry.issues.grouptype import (
     GROUP_CATEGORIES_CUSTOM_EMAIL,
-    GroupCategory,
+    PERFORMANCE_ISSUE_CATEGORIES,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
@@ -100,7 +100,14 @@ class AlertRuleNotification(ProjectNotification):
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
 
-        if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+        if (
+            event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
+            or event.group.issue_type.type_id
+            in (
+                PerformanceP95EndpointRegressionGroupType.type_id,
+                ProfileFunctionRegressionType.type_id,
+            )
+        ):
             # profile issues use the generic template for now
             if (
                 isinstance(event, GroupEvent)
@@ -108,6 +115,8 @@ class AlertRuleNotification(ProjectNotification):
                 and event.occurrence.evidence_data.get("template_name") == "profile"
             ):
                 email_template_name = GENERIC_TEMPLATE_NAME
+            elif event.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
+                email_template_name = "performance"
             else:
                 email_template_name = event.group.issue_category.name.lower()
         else:
@@ -138,11 +147,15 @@ class AlertRuleNotification(ProjectNotification):
         self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         tz: tzinfo = UTC
+        clock_24_hours = False
         if recipient.is_user:
             user_options = user_option_service.get_many(
-                filter={"user_ids": [recipient.id], "keys": ["timezone"]}
+                filter={"user_ids": [recipient.id], "keys": ["timezone", "clock_24_hours"]}
             )
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
+            clock_24_hours = bool(
+                get_option_from_list(user_options, key="clock_24_hours", default=False)
+            )
             try:
                 tz = zoneinfo.ZoneInfo(user_tz)
             except (ValueError, zoneinfo.ZoneInfoNotFoundError):
@@ -150,6 +163,7 @@ class AlertRuleNotification(ProjectNotification):
         return {
             **super().get_recipient_context(recipient, extra_context),
             "timezone": tz,
+            "clock_24_hours": clock_24_hours,
         }
 
     def get_image_url(self) -> str | None:
@@ -221,10 +235,7 @@ class AlertRuleNotification(ProjectNotification):
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
         has_session_replay = features.has("organizations:session-replay", self.organization)
-        show_replay_link = features.has(
-            "organizations:session-replay-issue-emails", self.organization
-        )
-        if has_session_replay and show_replay_link and get_replay_id(self.event):
+        if has_session_replay and get_replay_id(self.event):
             context.update(
                 {
                     "issue_replays_url": get_issue_replay_link(self.group, sentry_query_params),
@@ -237,7 +248,7 @@ class AlertRuleNotification(ProjectNotification):
             else None
         )
 
-        if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
+        if self.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES and template_name != "profile":
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
             # and gathering span evidence.
 

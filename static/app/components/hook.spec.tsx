@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 
 function HookWrapper(props: any) {
   return (
@@ -63,6 +63,35 @@ describe('Hook', () => {
     expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
     expect(screen.getByText(/Old Hook/)).toBeInTheDocument();
+  });
+
+  it('re-fetches hooks when name prop changes', () => {
+    HookStore.add('sidebar:help-menu', ({organization}) => (
+      <HookWrapper key="help" organization={organization}>
+        Help Hook
+      </HookWrapper>
+    ));
+
+    HookStore.add('sidebar:organization-dropdown-menu', () => (
+      <HookWrapper key="bottom">Bottom Hook</HookWrapper>
+    ));
+
+    const {rerender} = render(
+      <Hook name="sidebar:help-menu" organization={OrganizationFixture()} />
+    );
+
+    expect(screen.getByText(/Help Hook/)).toBeInTheDocument();
+    expect(screen.queryByText(/Bottom Hook/)).not.toBeInTheDocument();
+
+    rerender(
+      <Hook
+        name="sidebar:organization-dropdown-menu"
+        organization={OrganizationFixture()}
+      />
+    );
+
+    expect(screen.queryByText(/Help Hook/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Bottom Hook/)).toBeInTheDocument();
   });
 
   it('can use children as a render prop', () => {

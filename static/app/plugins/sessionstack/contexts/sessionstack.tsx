@@ -1,6 +1,7 @@
 import {Component} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {uniqueId} from 'sentry/utils/guid';
 
 const ASPECT_RATIO = 16 / 9;
@@ -17,7 +18,7 @@ type State = {
   width?: number;
 };
 
-class SessionStackContextType extends Component<Props, State> {
+export class SessionStackContextType extends Component<Props, State> {
   state: State = {
     showIframe: false,
   };
@@ -81,5 +82,3 @@ class SessionStackContextType extends Component<Props, State> {
     );
   }
 }
-
-export default SessionStackContextType;

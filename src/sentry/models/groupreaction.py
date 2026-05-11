@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_model, sane_repr
+from sentry.db.models import cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -16,7 +16,7 @@ class GroupReactionType(Enum):
     USER_SUSPECT_COMMIT_REACTION = 0
 
 
-@region_silo_model
+@cell_silo_model
 class GroupReaction(DefaultFieldsModel):
     """
     This model has no affiliation with PullRequestComment.reactions.

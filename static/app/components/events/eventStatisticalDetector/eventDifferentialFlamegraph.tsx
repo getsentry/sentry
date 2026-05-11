@@ -3,20 +3,19 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Link} from 'sentry/components/core/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {Placeholder} from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -38,9 +37,8 @@ import type {DifferentialFlamegraphQueryResult} from 'sentry/utils/profiling/hoo
 import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {LOADING_PROFILE_GROUP} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 interface EventDifferentialFlamegraphProps {
   event: Event;
@@ -130,7 +128,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         ? systemFrameOnly
         : undefined;
 
-  const [negated, setNegated] = useState<boolean>(false);
+  const [negated, setNegated] = useState(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -179,7 +177,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           flamegraph={differentialFlamegraph}
           canvasPoolManager={canvasPoolManager}
         />
-        <DifferentialFlamegraphContainer>
+        <Container width="100%" height="420px" position="relative">
           {props.after.isPending || props.before.isPending ? (
             <Stack justify="center" width="100%" height="100%" position="absolute">
               <LoadingIndicator />
@@ -203,7 +201,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             canvasPoolManager={canvasPoolManager}
             scheduler={scheduler}
           />
-        </DifferentialFlamegraphContainer>
+        </Container>
         <DifferentialFlamegraphExplanationBar negated={negated} />
       </StyledPanel>
 
@@ -292,9 +290,7 @@ function paginationReducer(
 
 interface DifferentialFlamegraphChangedFunctionsProps {
   flamegraph: DifferentialFlamegraphModel;
-  functions:
-    | DifferentialFlamegraphModel['increasedFrames']
-    | DifferentialFlamegraphModel['newFrames'];
+  functions: FlamegraphFrame[];
   loading: boolean;
   makeFunctionLink: (frame: FlamegraphFrame) => LocationDescriptor;
   subtitle: string;
@@ -312,14 +308,14 @@ function DifferentialFlamegraphChangedFunctions(
 
   const onPreviousPaginationClick = useMemo(() => {
     if (state.page === 0) {
-      return undefined;
+      return;
     }
     return () => dispatch({type: 'previous'});
   }, [state.page]);
 
   const onNextPaginationClick = useMemo(() => {
     if (state.page + 1 === state.pageCount) {
-      return undefined;
+      return;
     }
     return () => dispatch({type: 'next'});
   }, [state.page, state.pageCount]);
@@ -340,28 +336,30 @@ function DifferentialFlamegraphChangedFunctions(
         onPreviousPageClick={onPreviousPaginationClick}
       />
       {props.loading
-        ? new Array(5).fill(0).map((_, idx) => {
-            return (
-              <DifferentialFlamegraphChangedFunctionContainer key={idx}>
-                <div>
-                  <Placeholder
-                    height="16px"
-                    width="66%"
-                    style={MARGIN_BOTTOM_PLACEHOLDER_STYLES}
-                  />
-                  <Placeholder height="16px" width="48%" />
-                </div>
-                <DifferentialFlamegraphChangedFunctionStats>
-                  <Placeholder
-                    height="16px"
-                    width="32px"
-                    style={RIGHT_ALIGN_PLACEHOLDER_STYLES}
-                  />
-                  <Placeholder height="16px" width="56px" />
-                </DifferentialFlamegraphChangedFunctionStats>
-              </DifferentialFlamegraphChangedFunctionContainer>
-            );
-          })
+        ? Array.from({length: 5})
+            .fill(0)
+            .map((_, idx) => {
+              return (
+                <DifferentialFlamegraphChangedFunctionContainer key={idx}>
+                  <div>
+                    <Placeholder
+                      height="16px"
+                      width="66%"
+                      style={MARGIN_BOTTOM_PLACEHOLDER_STYLES}
+                    />
+                    <Placeholder height="16px" width="48%" />
+                  </div>
+                  <DifferentialFlamegraphChangedFunctionStats>
+                    <Placeholder
+                      height="16px"
+                      width="32px"
+                      style={RIGHT_ALIGN_PLACEHOLDER_STYLES}
+                    />
+                    <Placeholder height="16px" width="56px" />
+                  </DifferentialFlamegraphChangedFunctionStats>
+                </DifferentialFlamegraphChangedFunctionContainer>
+              );
+            })
         : props.functions
             .slice(
               state.page * state.pageSize,
@@ -421,10 +419,10 @@ const DifferentialFlamegraphFunctionsWrapper = styled('div')`
   flex: 1;
   width: 50%;
   &:first-child {
-    padding-right: ${space(0.5)};
+    padding-right: ${p => p.theme.space.xs};
   }
   &:nth-child(2) {
-    padding-left: ${space(0.5)};
+    padding-left: ${p => p.theme.space.xs};
   }
 `;
 
@@ -434,7 +432,7 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   border-radius: 2px;
   display: inline-block;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   background-color: ${p => p.theme.colors.green400};
 `;
 
@@ -483,8 +481,8 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(0.5)} 0;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} 0;
 
   > *:first-child {
     min-width: 0;
@@ -502,8 +500,8 @@ function DifferentialFlamegraphExplanationBar(
     <DifferentialFlamegraphExplanationBarContainer>
       <div>
         {props.negated
-          ? t(`Flamegraph is showing how stack frequency will change.`)
-          : t(`Flamegraph is showing how stack frequency has changed.`)}
+          ? t('Flamegraph is showing how stack frequency will change.')
+          : t('Flamegraph is showing how stack frequency has changed.')}
       </div>
       <DifferentialFlamegraphLegend />
     </DifferentialFlamegraphExplanationBarContainer>
@@ -514,7 +512,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
@@ -541,7 +539,10 @@ function DifferentialFlamegraphLegend() {
   return (
     <Flex justify="between" align="center">
       <div>+</div>
-      <DifferentialFlamegraphLegendBar
+      <Container
+        margin="0 xs"
+        width="60px"
+        height="14px"
         style={{
           background: `linear-gradient(90deg, rgba(${increaseColor}) 0%, rgba(${neutralColor}) 50%, rgba(${decreaseColor}) 100%)`,
         }}
@@ -550,12 +551,6 @@ function DifferentialFlamegraphLegend() {
     </Flex>
   );
 }
-
-const DifferentialFlamegraphLegendBar = styled('div')`
-  width: 60px;
-  height: 14px;
-  margin: 0 ${space(0.5)};
-`;
 
 function DifferentialFlamegraphChangedFunctionsTitle(props: {
   onNextPageClick: (() => void) | undefined;
@@ -571,7 +566,7 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           {props.subtitle}
         </DifferentialFlamegraphChangedFunctionsSubtitleText>
       </DifferentialFlamegraphChangedFunctionsTitleText>
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <DifferentialFlamegraphPaginationButton
           size="xs"
           disabled={!props.onPreviousPageClick}
@@ -603,8 +598,8 @@ const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
 `;
 
 const DifferentialFlamegraphPaginationButton = styled(Button)`
-  padding-left: ${space(0.75)};
-  padding-right: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
+  padding-right: ${p => p.theme.space.sm};
 `;
 
 const ErrorMessageContainer = styled('div')`
@@ -617,13 +612,7 @@ const ErrorMessageContainer = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
-  padding: ${space(2)} ${space(4)};
-`;
-
-const DifferentialFlamegraphContainer = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 420px;
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
 const StyledPanel = styled(Panel)`

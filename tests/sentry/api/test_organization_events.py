@@ -37,6 +37,24 @@ class OrganizationEventsEndpointTest(APITestCase):
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
+    def test_missing_discover_feature_returns_forbidden(self) -> None:
+        query = {
+            "field": ["user"],
+            "project": [self.project.id],
+        }
+        features = {
+            "organizations:discover-basic": False,
+            "organizations:performance-view": False,
+            "organizations:visibility-explore-view": False,
+        }
+
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 403
+        assert response.data == {
+            "detail": "Discover, Performance, or Explore is required to access this endpoint."
+        }
+
     def test_api_key_request(self) -> None:
         self.store_event(
             data={
@@ -50,7 +68,12 @@ class OrganizationEventsEndpointTest(APITestCase):
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
-        query = {"field": ["project.name", "environment"], "project": [self.project.id]}
+        query = {
+            "field": ["project.name", "environment"],
+            "project": [self.project.id],
+            "statsPeriod": "1h",
+            "query": "environment:staging",
+        }
 
         url = self.reverse_url()
         response = self.client_get(

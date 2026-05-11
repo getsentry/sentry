@@ -144,11 +144,11 @@ config:
             - name: value
               op: glob
               value:
-              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,421,422,423,425}*'
             - name: value
               op: glob
               value:
-              - '*https://react.dev/errors/{418,419,422,423,425}*'
+              - '*https://react.dev/errors/{418,419,421,422,423,425}*'
             op: or
           name: event.exception.values
           op: any
@@ -159,6 +159,7 @@ config:
       isEnabled: true
       patterns:
       - '*healthcheck*'
+      - '*health-check*'
       - '*heartbeat*'
       - '*/health{/,}'
       - '*/healthy{/,}'
@@ -173,14 +174,19 @@ config:
       - '*/ping{/,}'
       - '*/up{/,}'
   groupingConfig:
-    enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA
-    id: newstyle:2023-01-11
+    enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA
+    id: newstyle:2026-01-20
   performanceScore:
     profiles:
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Chrome
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Chrome
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Chrome
+        op: or
       name: Chrome
       scoreComponents:
       - measurement: fcp
@@ -204,9 +210,14 @@ config:
         p50: 400.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Firefox
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Firefox
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Firefox
+        op: or
       name: Firefox
       scoreComponents:
       - measurement: fcp
@@ -230,9 +241,14 @@ config:
         p50: 400.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Safari
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Safari
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Safari
+        op: or
       name: Safari
       scoreComponents:
       - measurement: fcp
@@ -256,9 +272,14 @@ config:
         p50: 400.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Edge
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Edge
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Edge
+        op: or
       name: Edge
       scoreComponents:
       - measurement: fcp
@@ -282,9 +303,14 @@ config:
         p50: 400.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Opera
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Opera
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Opera
+        op: or
       name: Opera
       scoreComponents:
       - measurement: fcp
@@ -315,6 +341,12 @@ config:
         - name: event.contexts.browser.name
           op: eq
           value: Google Chrome
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Chrome
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Google Chrome
         op: or
       name: Chrome INP
       scoreComponents:
@@ -324,9 +356,14 @@ config:
         p50: 500.0
         weight: 1.0
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Edge
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Edge
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Edge
+        op: or
       name: Edge INP
       scoreComponents:
       - measurement: inp
@@ -335,9 +372,14 @@ config:
         p50: 500.0
         weight: 1.0
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Opera
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Opera
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Opera
+        op: or
       name: Opera INP
       scoreComponents:
       - measurement: inp
@@ -346,9 +388,14 @@ config:
         p50: 500.0
         weight: 1.0
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Chrome Mobile
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Chrome Mobile
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Chrome Mobile
+        op: or
       name: Chrome Mobile
       scoreComponents:
       - measurement: fcp
@@ -372,9 +419,14 @@ config:
         p50: 1800.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Firefox Mobile
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Firefox Mobile
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Firefox Mobile
+        op: or
       name: Firefox Mobile
       scoreComponents:
       - measurement: fcp
@@ -398,9 +450,14 @@ config:
         p50: 1800.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Mobile Safari
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Mobile Safari
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Mobile Safari
+        op: or
       name: Safari Mobile
       scoreComponents:
       - measurement: fcp
@@ -424,9 +481,14 @@ config:
         p50: 1800.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Edge Mobile
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Edge Mobile
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Edge Mobile
+        op: or
       name: Edge Mobile
       scoreComponents:
       - measurement: fcp
@@ -450,9 +512,14 @@ config:
         p50: 1800.0
         weight: 0.1
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Opera Mobile
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Opera Mobile
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Opera Mobile
+        op: or
       name: Opera Mobile
       scoreComponents:
       - measurement: fcp
@@ -480,6 +547,9 @@ config:
         - name: event.contexts.browser.name
           op: eq
           value: Chrome Mobile
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Chrome Mobile
         op: or
       name: Chrome Mobile INP
       scoreComponents:
@@ -489,9 +559,14 @@ config:
         p50: 500.0
         weight: 1.0
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Edge Mobile
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Edge Mobile
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Edge Mobile
+        op: or
       name: Edge Mobile INP
       scoreComponents:
       - measurement: inp
@@ -500,9 +575,14 @@ config:
         p50: 500.0
         weight: 1.0
     - condition:
-        name: event.contexts.browser.name
-        op: eq
-        value: Opera Mobile
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Opera Mobile
+        - name: span.attributes.browser.name.value
+          op: eq
+          value: Opera Mobile
+        op: or
       name: Opera Mobile INP
       scoreComponents:
       - measurement: inp

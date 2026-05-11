@@ -8,7 +8,7 @@ import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreata
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 import TextareaField from 'sentry/components/deprecatedforms/textareaField';
 import TextField from 'sentry/components/deprecatedforms/textField';
-import type FormState from 'sentry/components/forms/state';
+import type {FormState} from 'sentry/components/forms/state';
 import {defined} from 'sentry/utils';
 
 type FieldType =
@@ -56,9 +56,9 @@ type Props = {
   formErrors?: Record<PropertyKey, string>;
 };
 
-function GenericField({
+export function GenericField({
   config,
-  formData = {},
+  formData,
   formErrors = {},
   formState,
   onChange,
@@ -120,5 +120,3 @@ function GenericField({
       return null;
   }
 }
-
-export default GenericField;

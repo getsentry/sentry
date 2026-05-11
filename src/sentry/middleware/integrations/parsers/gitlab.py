@@ -56,7 +56,7 @@ class GitlabRequestParser(BaseRequestParser):
                 self._METRIC_CONTROL_PATH_FAILURE_KEY,
                 tags={"integration": self.provider, "error": str(e)},
             )
-            logger.exception("Failed to get integration from request")
+            logger.warning("Failed to get integration from request")
 
         return None
 
@@ -70,11 +70,11 @@ class GitlabRequestParser(BaseRequestParser):
             if not integration:
                 return self.get_default_missing_integration_response()
 
-            regions = self.get_regions_from_organizations()
+            cells = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             return self.get_default_missing_integration_response()
 
-        if len(regions) == 0:
+        if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
         try:
@@ -83,7 +83,7 @@ class GitlabRequestParser(BaseRequestParser):
             data = {}
 
         return self.get_response_from_webhookpayload(
-            regions=regions,
+            cells=cells,
             identifier=self.get_mailbox_identifier(integration, data),
             integration_id=integration.id,
         )

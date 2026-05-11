@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';

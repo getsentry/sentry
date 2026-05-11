@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {t, tct} from 'sentry/locale';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 
-export default function HeaderTitle({
+export function HeaderTitle({
   includeFeatureFlagsTab,
   tab,
   tagKey,

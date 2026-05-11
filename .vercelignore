@@ -8,14 +8,13 @@
 !src/sentry/locale/**
 !build-utils
 !build-utils/**
-!babel.config.js
 !jest.config.js
 !now.json
 !package.json
 !stylelint.config.js
 !tsconfig.json
 !config
-!webpack.config.js
+!rspack.config.ts
 !pnpm-lock.yaml
 !tests
 !fixtures

@@ -201,3 +201,6 @@ class SafeUrlencodeTest(unittest.TestCase):
         assert d == [["1", None], ["3", "4"]]
         d = [["1", "2"], ["3", "4"]]
         assert safe_urlencode(d) == "1=2&3=4"
+
+    def test_none(self) -> None:
+        assert safe_urlencode(None) == ""

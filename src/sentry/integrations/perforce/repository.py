@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
@@ -12,6 +12,7 @@ from sentry.integrations.perforce.client import (
     P4UserInfo,
     PerforceClient,
 )
+from sentry.integrations.perforce.integration import PerforceIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -24,7 +25,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 logger = logging.getLogger(__name__)
 
 
-class PerforceRepositoryProvider(IntegrationRepositoryProvider):
+class PerforceRepositoryProvider(IntegrationRepositoryProvider[PerforceIntegration]):
     """Repository provider for Perforce integration."""
 
     name = "Perforce"
@@ -55,8 +56,8 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         return installation.get_client()
 
     def get_repository_data(
-        self, organization: Organization, config: dict[str, Any]
-    ) -> Mapping[str, Any]:
+        self, organization: Organization, config: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
         """
         Validate and return repository data.
 
@@ -87,7 +88,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         except Exception as e:
             # Log and re-raise connection/P4 errors
             # We cannot create a repository if we can't validate the depot exists
-            logger.exception(
+            logger.warning(
                 "perforce.get_repository_data.depot_validation_failed",
                 extra={"depot_path": depot_path.path},
             )
@@ -102,7 +103,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: dict[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         """
         Build repository configuration for database storage.
@@ -250,7 +251,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
 
         except (ValueError, TypeError) as e:
             # Log conversion errors for debugging
-            logger.exception(
+            logger.warning(
                 "perforce.compare_commits.invalid_changelist",
                 extra={
                     "start_sha": start_sha,
@@ -262,7 +263,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             )
             return []
         except Exception as e:
-            logger.exception(
+            logger.warning(
                 "perforce.compare_commits.failed",
                 extra={
                     "start_sha": start_sha,

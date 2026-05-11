@@ -3,30 +3,37 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
+import {
+  DASHBOARD_ONLY_SPAN_ATTRIBUTES,
+  EXPLORE_FIVE_MIN_STALE_TIME,
+} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  sortKnownAttributes,
+  sortSearchedAttributes,
+} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
+  booleanTags: TagCollection;
   columns: readonly string[];
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
@@ -35,6 +42,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
   requiredTags?: string[];
+  traceItemType?: TraceItemDataset;
 }
 
 export function ColumnEditorModal({
@@ -45,92 +53,30 @@ export function ColumnEditorModal({
   columns,
   onColumnsChange,
   requiredTags,
+  booleanTags,
   numberTags,
   stringTags,
   hiddenKeys,
   isDocsButtonHidden = false,
   handleReset,
+  traceItemType = TraceItemDataset.SPANS,
 }: ColumnEditorModalProps) {
-  const tags: Array<SelectOption<string>> = useMemo(() => {
-    let allTags = [
-      ...columns
-        .filter(column => !(column in stringTags) && !(column in numberTags))
-        .map(column => {
-          const kind = classifyTagKey(column);
-          const label = prettifyTagKey(column);
-          return {
-            label,
-            value: column,
-            textValue: column,
-            trailingItems: <TypeBadge kind={kind} />,
-            key: `${column}-${classifyTagKey(column)}`,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={column}
-                kind={kind}
-                label={label}
-                traceItemType={TraceItemDataset.SPANS}
-              />
-            ),
-          };
-        }),
-      ...Object.values(stringTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
-          key: `${tag.key}-${FieldKind.TAG}`,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={tag.key}
-              kind={FieldKind.TAG}
-              label={tag.name}
-              traceItemType={TraceItemDataset.SPANS}
-            />
-          ),
-        };
+  const tags = useMemo(
+    () =>
+      buildColumnOptions({
+        columns,
+        stringTags,
+        numberTags,
+        booleanTags,
+        hiddenKeys,
+        traceItemType,
       }),
-      ...Object.values(numberTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-          key: `${tag.key}-${FieldKind.MEASUREMENT}`,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={tag.key}
-              kind={FieldKind.TAG}
-              label={tag.name}
-              traceItemType={TraceItemDataset.SPANS}
-            />
-          ),
-        };
-      }),
-    ];
-    allTags = allTags
-      .filter(tag => !(hiddenKeys ?? []).includes(tag.label))
-      .toSorted((a, b) => {
-        if (a.label < b.label) {
-          return -1;
-        }
-
-        if (a.label > b.label) {
-          return 1;
-        }
-
-        return 0;
-      });
-    return allTags;
-  }, [columns, stringTags, numberTags, hiddenKeys]);
+    [booleanTags, columns, hiddenKeys, numberTags, stringTags, traceItemType]
+  );
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
-  const [tempColumns, setTempColumns] = useState<string[]>(columns.slice());
+  const [tempColumns, setTempColumns] = useState(columns.slice());
 
   function handleApply() {
     onColumnsChange(tempColumns.filter(Boolean));
@@ -148,18 +94,20 @@ export function ColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={column.id}
+                  key={column.uniqueId}
                   canDelete={editableColumns.length > 1}
                   required={requiredTags?.includes(column.column)}
                   column={column}
-                  options={tags}
+                  baseOptions={tags}
+                  hiddenKeys={hiddenKeys}
+                  traceItemType={traceItemType}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
                 />
               );
             })}
             <RowContainer>
-              <ButtonBar>
+              <Grid flow="column" align="center" gap="md">
                 <Button
                   size="sm"
                   aria-label={t('Add a Column')}
@@ -168,13 +116,13 @@ export function ColumnEditorModal({
                 >
                   {t('Add a Column')}
                 </Button>
-              </ButtonBar>
+              </Grid>
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               {!isDocsButtonHidden && (
-                <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+                <LinkButton variant="secondary" href={SPAN_PROPS_DOCS_URL} external>
                   {t('Read the Docs')}
                 </LinkButton>
               )}
@@ -189,10 +137,10 @@ export function ColumnEditorModal({
                   {t('Reset')}
                 </Button>
               ) : null}
-              <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
+              <Button aria-label={t('Apply')} variant="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Footer>
         </Fragment>
       )}
@@ -201,11 +149,13 @@ export function ColumnEditorModal({
 }
 
 interface ColumnEditorRowProps {
+  baseOptions: Array<SelectOption<string>>;
   canDelete: boolean;
   column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
-  options: Array<SelectOption<string>>;
+  traceItemType: TraceItemDataset;
+  hiddenKeys?: string[];
   required?: boolean;
 }
 
@@ -213,13 +163,96 @@ function ColumnEditorRow({
   canDelete,
   column,
   required,
-  options,
+  baseOptions,
+  hiddenKeys,
+  traceItemType,
   onColumnChange,
   onColumnDelete,
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
   });
+
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  // The parent's tag collections come pre-filtered: useSpanItemAttributes folds in
+  // DASHBOARD_ONLY_SPAN_ATTRIBUTES, and log callers pass HiddenColumnEditorLogFields
+  // via hiddenKeys. The bare useTraceItemDatasetAttributes does neither, so merge
+  // both here to keep the searched results consistent with baseOptions.
+  const searchHiddenKeys = useMemo(() => {
+    const merged = [...(hiddenKeys ?? [])];
+    if (traceItemType === TraceItemDataset.SPANS) {
+      merged.push(...DASHBOARD_ONLY_SPAN_ATTRIBUTES);
+    }
+    return merged;
+  }, [hiddenKeys, traceItemType]);
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'string',
+      searchHiddenKeys
+    );
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'number',
+      searchHiddenKeys
+    );
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'boolean',
+      searchHiddenKeys
+    );
+
+  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+
+  // Feed CompactSelect the full base list at all times so its built-in matcher
+  // can filter synchronously while typing. Once the debounced server search
+  // returns, merge in any attributes baseOptions doesn't already cover so the
+  // user can still pick keys that weren't in the initial fetch.
+  const options = useMemo(() => {
+    if (!hasSearch) return baseOptions;
+    const searched = buildColumnOptions({
+      columns: [],
+      stringTags: searchedStringTags,
+      numberTags: searchedNumberTags,
+      booleanTags: searchedBooleanTags,
+      hiddenKeys,
+      traceItemType,
+    });
+    if (searched.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searched.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
+  }, [
+    hasSearch,
+    baseOptions,
+    searchedStringTags,
+    searchedNumberTags,
+    searchedBooleanTags,
+    hiddenKeys,
+    traceItemType,
+  ]);
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
     if (defined(option) && typeof option.value === 'string') {
@@ -231,7 +264,9 @@ function ColumnEditorRow({
   // selection. This overrides it to render in a trailing item showing the type.
   const label = useMemo(() => {
     if (defined(column.column)) {
-      const tag = options.find(option => option.value === column.column);
+      const tag =
+        options.find(option => option.value === column.column) ??
+        baseOptions.find(option => option.value === column.column);
       if (defined(tag)) {
         return (
           <TriggerLabel>
@@ -249,7 +284,7 @@ function ColumnEditorRow({
       }
     }
     return <TriggerLabel>{column.column || t('\u2014')}</TriggerLabel>;
-  }, [column.column, options]);
+  }, [column.column, options, baseOptions]);
 
   return (
     <RowContainer
@@ -261,20 +296,25 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledButton
-        aria-label={t('Drag to reorder')}
-        borderless
-        size="sm"
-        icon={<IconGrabbable size="sm" />}
-        {...listeners}
-      />
+      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
-        searchable
+        search={{
+          onChange: setSearch,
+          filter: (option, searchText) => {
+            return sortSearchedAttributes({
+              fieldDefinitionType: traceItemType,
+              option,
+              searchText,
+            });
+          },
+        }}
+        loading={isSearchLoading}
+        emptyMessage={isSearchLoading ? t('Loading\u2026') : t('No matching attributes')}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
@@ -289,7 +329,7 @@ function ColumnEditorRow({
       />
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        variant="transparent"
         disabled={!canDelete || required}
         size="sm"
         icon={<IconDelete size="sm" />}
@@ -299,15 +339,53 @@ function ColumnEditorRow({
   );
 }
 
+interface BuildColumnOptionsParams {
+  booleanTags: TagCollection;
+  columns: readonly string[];
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  traceItemType: TraceItemDataset;
+  hiddenKeys?: string[];
+}
+
+function buildColumnOptions({
+  columns,
+  stringTags,
+  numberTags,
+  booleanTags,
+  hiddenKeys,
+  traceItemType,
+}: BuildColumnOptionsParams) {
+  return buildAttributeOptions({
+    numberTags,
+    stringTags,
+    booleanTags,
+    traceItemType,
+    extraColumns: columns,
+  })
+    .filter(option => {
+      const hidden = hiddenKeys ?? [];
+      if (hidden.includes(option.value)) return false;
+      if (typeof option.label === 'string' && hidden.includes(option.label)) return false;
+      return true;
+    })
+    .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
+}
+
 const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
+`;
+
+const StyledDragReorderButton = styled(DragReorderButton)`
+  padding-left: 0;
+  padding-right: 0;
 `;
 
 const StyledButton = styled(Button)`

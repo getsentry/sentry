@@ -1,14 +1,14 @@
+import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import type {DocIntegration} from 'sentry/types/integrations';
 
-import DocIntegrationModal from 'admin/components/docIntegrationModal';
-import PageHeader from 'admin/components/pageHeader';
+import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (doc: DocIntegration) => [
@@ -28,19 +28,19 @@ const getRow = (doc: DocIntegration) => [
     {doc.popularity}
   </td>,
   <td key="status" style={{textAlign: 'right'}}>
-    <Tag variant={doc.isDraft === true ? 'warning' : 'success'}>
-      {doc.isDraft === false ? 'published' : 'draft'}
+    <Tag variant={doc.isDraft ? 'warning' : 'success'}>
+      {doc.isDraft ? 'draft' : 'published'}
     </Tag>
   </td>,
 ];
 
-export default function DocIntegrations() {
+export function DocIntegrations() {
   return (
     <div>
       <PageHeader title="Document Integrations">
         <Button
           onClick={() => openModal(deps => <DocIntegrationModal {...deps} />)}
-          priority="primary"
+          variant="primary"
           size="sm"
         >
           Create Doc Integration

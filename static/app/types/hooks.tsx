@@ -1,22 +1,24 @@
+import type {ButtonProps} from '@sentry/scraps/button';
+
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import type {ButtonProps} from 'sentry/components/core/button';
-import type {SelectKey} from 'sentry/components/core/compactSelect';
-import type {FormPanelProps} from 'sentry/components/forms/formPanel';
-import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
-import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import type {InstallationInfo} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
+import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
+import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
 import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
   useDefaultMaxPickableDays,
   useMaxPickableDays,
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
+import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -40,7 +42,8 @@ import type {User} from './user';
  * the sentry frontend application.
  */
 export interface Hooks
-  extends RouteHooks,
+  extends
+    RouteHooks,
     ComponentHooks,
     CustomizationHooks,
     AnalyticsHooks,
@@ -61,6 +64,7 @@ export type HookName = keyof Hooks;
  */
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
+  'routes:org-settings': RouteObjectHook;
   'routes:root': RouteObjectHook;
   'routes:subscription-settings': RouteObjectHook;
 };
@@ -106,10 +110,6 @@ type ProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
-type ContinuousProfilingBetaAlertBannerProps = {
-  organization: Organization;
-};
-
 type ContinuousProfilingBillingRequirementBannerProps = {
   project: Project;
 };
@@ -133,6 +133,15 @@ type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
   wrapWithContainer?: boolean;
+};
+
+export type ScmGithubMultiOrgInstallProps = {
+  installations: InstallationInfo[];
+  onNewInstall: () => void;
+  onSelectInstallation: (installationId: string) => void;
+  isDisabled?: boolean;
+  newInstallDisabled?: boolean;
+  popupBlockedNotice?: React.ReactNode;
 };
 
 type FirstPartyIntegrationAdditionalCTAProps = {
@@ -163,17 +172,8 @@ export type PartnershipAgreementProps = {
 };
 
 export type MembershipSettingsProps = {
-  forms: JsonFormObject[];
-  jsonFormSettings: Omit<
-    FormPanelProps,
-    'highlighted' | 'fields' | 'additionalFieldProps'
-  >;
-};
-export type GithubInstallationInstallButtonProps = {
-  handleSubmit: (e: React.MouseEvent) => void;
-  hasSCMMultiOrg: boolean;
-  installationID: SelectKey;
-  isSaving: boolean;
+  onSave: (previous: Organization, updated: Organization) => void;
+  organization: Organization;
 };
 
 type DashboardLimitProviderProps = {
@@ -191,12 +191,11 @@ type DashboardLimitProviderProps = {
  * Component wrapping hooks
  */
 type ComponentHooks = {
+  'component:ai-configure-seer-quota-sidebar': () => React.ComponentType<AutofixContentProps>;
   'component:ai-setup-configuration': () => React.ComponentType<AiSetupConfigrationProps>;
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
-  'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
-  'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
@@ -230,7 +229,7 @@ type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
-  'component:scm-multi-org-install-button': () => React.ComponentType<GithubInstallationInstallButtonProps>;
+  'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
   'component:seer-beta-closing-alert': () => React.ComponentType;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
@@ -295,6 +294,7 @@ export type FeatureDisabledHooks = {
  * Interface chrome hooks.
  */
 type InterfaceChromeHooks = {
+  'cmdk:global-settings-actions': GenericComponentHook;
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
   'sidebar:billing-status': GenericOrganizationComponentHook;
@@ -302,6 +302,7 @@ type InterfaceChromeHooks = {
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
+  'sidebar:seer-config-reminder': GenericOrganizationComponentHook;
   'sidebar:try-business': SidebarTryBusinessHook;
 };
 
@@ -346,6 +347,7 @@ type ReactHooks = {
     dataset: WidgetType;
   }) => number;
   'react-hook:use-default-max-pickable-days': typeof useDefaultMaxPickableDays;
+  'react-hook:use-experiment': (options: UseExperimentOptions) => UseExperimentResult;
   'react-hook:use-get-max-retention-days': () => number | undefined;
   'react-hook:use-max-pickable-days': typeof useMaxPickableDays;
   'react-hook:use-metric-detector-limit': () => {
@@ -356,6 +358,7 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
+  'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
 };
 
 /**

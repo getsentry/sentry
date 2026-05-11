@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import (
     APITestCase,
+    OccurrenceTestCase,
     OurLogTestCase,
     SnubaTestCase,
     SpanTestCase,
@@ -15,7 +16,12 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTraceItemDetailsEndpointTest(
-    APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase, TraceAttachmentTestCase
+    APITestCase,
+    SnubaTestCase,
+    OurLogTestCase,
+    SpanTestCase,
+    TraceAttachmentTestCase,
+    OccurrenceTestCase,
 ):
     def setUp(self) -> None:
         super().setUp()
@@ -66,8 +72,8 @@ class ProjectTraceItemDetailsEndpointTest(
             },
             timestamp=self.one_min_ago,
         )
-        self.store_ourlogs([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -121,8 +127,8 @@ class ProjectTraceItemDetailsEndpointTest(
             },
             timestamp=self.one_min_ago,
         )
-        self.store_ourlogs([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -161,6 +167,74 @@ class ProjectTraceItemDetailsEndpointTest(
             + "Z",
         }
 
+    def test_details_exposes_arrays(self) -> None:
+        event_id = uuid.uuid4().hex
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=self.trace_uuid,
+            project=self.project,
+            timestamp=self.one_min_ago,
+            attributes={
+                "fingerprint": ["trace-item-details-stack-arrays"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "bad value",
+                            "mechanism": {"type": "generic", "handled": True},
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/app/sentry/web/urls.py",
+                                        "filename": "sentry/web/urls.py",
+                                        "module": "sentry.web.urls",
+                                        "function": "dispatch",
+                                        "in_app": True,
+                                        "lineno": 45,
+                                        "colno": 12,
+                                    },
+                                    {
+                                        "abs_path": "/usr/lib/django/views/base.py",
+                                        "filename": "django/views/base.py",
+                                        "module": "django.views.base",
+                                        "function": "handler",
+                                        "in_app": False,
+                                        "lineno": 200,
+                                        "colno": 0,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        )
+        self.store_eap_items([occ])
+        item_id = occ.item_id.hex()
+
+        response = self.do_request("occurrences", item_id)
+        assert response.status_code == 200, response.content
+        by_name = {a["name"]: a for a in response.data["attributes"]}
+        assert "stack.filename" not in by_name
+        assert "stack.lineno" not in by_name
+        assert "stack.in_app" not in by_name
+
+        response = self.do_request(
+            "occurrences",
+            item_id,
+            features={**self.features, "organizations:trace-item-details-array-fields": True},
+        )
+        assert response.status_code == 200, response.content
+        by_name = {a["name"]: a for a in response.data["attributes"]}
+        assert by_name["stack.filename"]["type"] == "array"
+        assert by_name["stack.filename"]["value"] == ["sentry/web/urls.py", "django/views/base.py"]
+        assert by_name["stack.lineno"]["type"] == "array"
+        assert by_name["stack.lineno"]["value"] == ["45", "200"]
+        assert by_name["stack.in_app"]["type"] == "array"
+        assert by_name["stack.in_app"]["value"] == [True, False]
+
     def test_simple_using_spans_item_type(self) -> None:
         previous_trace = uuid.uuid4().hex
         span_1 = self.create_span(
@@ -178,14 +252,14 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
+            {"name": "is_transaction", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response_content_length", "type": "float", "value": 100.0},
-            {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -242,7 +316,7 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request(
             "spans",
@@ -254,9 +328,9 @@ class ProjectTraceItemDetailsEndpointTest(
         )
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
+            {"name": "is_transaction", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response.body.size", "type": "float", "value": 100.0},
-            {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -279,6 +353,11 @@ class ProjectTraceItemDetailsEndpointTest(
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
             {"name": "sdk.version", "type": "str", "value": "1.0"},
+            {
+                "name": "sentry.segment.id",
+                "type": "str",
+                "value": span_1["segment_id"],
+            },
             {"name": "span.description", "type": "str", "value": "foo"},
             {"name": "span.status", "type": "str", "value": "success"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
@@ -286,11 +365,6 @@ class ProjectTraceItemDetailsEndpointTest(
                 "name": "transaction.event_id",
                 "type": "str",
                 "value": span_1["event_id"],
-            },
-            {
-                "name": "transaction.span_id",
-                "type": "str",
-                "value": span_1["segment_id"],
             },
         ]
         assert trace_details_response.data["itemId"] == item_id
@@ -321,8 +395,8 @@ class ProjectTraceItemDetailsEndpointTest(
             },
             timestamp=self.one_min_ago,
         )
-        self.store_ourlogs([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -374,8 +448,8 @@ class ProjectTraceItemDetailsEndpointTest(
             timestamp=self.one_min_ago,
         )
 
-        self.store_ourlogs([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
@@ -424,12 +498,12 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
-            {"name": "is_transaction", "type": "float", "value": 0.0},
+            {"name": "is_transaction", "type": "bool", "value": False},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -497,7 +571,7 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_spans([span_1], is_eap=True)
+        self.store_spans([span_1])
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200
@@ -523,7 +597,7 @@ class ProjectTraceItemDetailsEndpointTest(
         attachment = self.create_trace_attachment(trace_id=self.trace_uuid, attributes={"foo": 2})
         self.store_eap_items([attachment])
 
-        item_id = uuid.UUID(bytes=bytes(reversed(attachment.item_id))).hex
+        item_id = uuid.UUID(bytes=attachment.item_id).hex
         response = self.do_request("attachments", item_id)
         assert response.status_code == 200, response.data
         assert response.data == {

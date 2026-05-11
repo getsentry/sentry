@@ -4,9 +4,8 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
@@ -18,7 +17,7 @@ from sentry.snuba.trace import SerializedEvent, query_trace_data
 from sentry.utils.validators import is_event_id
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
     """Replaces OrganizationEventsTraceEndpoint"""
 
@@ -53,17 +52,21 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         self,
         snuba_params: SnubaParams,
         trace_id: str,
+        referrer: str | None,
         error_id: str | None = None,
         additional_attributes: list[str] | None = None,
         include_uptime: bool = False,
+        *,
+        organization: Organization,
     ) -> list[SerializedEvent]:
         return query_trace_data(
-            snuba_params, trace_id, error_id, additional_attributes, include_uptime
-        )
-
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return bool(
-            features.has("organizations:trace-spans-format", organization, actor=request.user)
+            snuba_params,
+            trace_id,
+            referrer,
+            error_id,
+            additional_attributes,
+            include_uptime,
+            organization=organization,
         )
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
@@ -74,6 +77,8 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
+
+        referrer = request.GET.get("referrer")
 
         additional_attributes = request.GET.getlist("additional_attributes", [])
         include_uptime = request.GET.get("include_uptime", "0") == "1"
@@ -88,7 +93,13 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
                 update_snuba_params_with_timestamp(request, snuba_params)
 
                 spans = self.query_trace_data(
-                    snuba_params, trace_id, error_id, additional_attributes, include_uptime
+                    snuba_params,
+                    trace_id,
+                    referrer,
+                    error_id,
+                    additional_attributes,
+                    include_uptime,
+                    organization=organization,
                 )
             return spans
 

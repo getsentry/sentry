@@ -1,13 +1,14 @@
-import {Flex} from 'sentry/components/core/layout';
-import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
+import {Flex} from '@sentry/scraps/layout';
+
+import {InviteButton} from 'sentry/components/modals/inviteMembersModal/inviteButton';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
+import {InviteStatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 
 interface Props {
   canSend: boolean;
 }
 
-export default function InviteMembersFooter({canSend}: Props) {
+export function InviteMembersFooter({canSend}: Props) {
   const {
     inviteStatus,
     setInviteStatus,
@@ -39,7 +40,7 @@ export default function InviteMembersFooter({canSend}: Props) {
         willInvite={willInvite}
         size="sm"
         data-test-id="send-invites"
-        priority="primary"
+        variant="primary"
         disabled={!canSend || !isValidInvites}
         onClick={() => {
           removeSentInvites();

@@ -1,16 +1,15 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
-import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import Placeholder from 'sentry/components/placeholder';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import {ReplayInlineCTAPanel} from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
+import {ReplaySection} from 'sentry/components/feedback/feedbackItem/replaySection';
+import {Placeholder} from 'sentry/components/placeholder';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
+import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 
 interface Props {
@@ -19,7 +18,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function FeedbackReplay({eventData, feedbackItem, organization}: Props) {
+export function FeedbackReplay({eventData, feedbackItem, organization}: Props) {
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
@@ -30,9 +29,7 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
     eventData?.tags?.find(({key}) => key === 'replayId')?.value;
   const {hasSentOneReplay, fetching: isFetchingSentOneReplay} =
     useHaveSelectedProjectsSentAnyReplayEvents();
-  const platformSupported = replayPlatforms.includes(
-    feedbackItem.project?.platform as PlatformKey
-  );
+  const platformSupported = replayPlatforms.includes(feedbackItem.project?.platform!);
 
   if (replayId && hasReplayId) {
     return (

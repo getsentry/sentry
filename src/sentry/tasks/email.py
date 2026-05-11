@@ -2,12 +2,13 @@ import logging
 from smtplib import SMTPDataError
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry.auth import access
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
@@ -73,10 +74,9 @@ def _send_email(message: dict[str, Any]) -> None:
     name="sentry.tasks.email.send_email",
     namespace=notifications_tasks,
     processing_deadline_duration=90,
-    retry=Retry(times=2, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    retry=Retry(times=2, delay=60 * 5, on=(TemporaryEmailError,)),
+    silo_mode=SiloMode.CELL,
 )
-@retry(on=(TemporaryEmailError,))
 def send_email(message: dict[str, Any]) -> None:
     _send_email(message)
 
@@ -85,9 +85,8 @@ def send_email(message: dict[str, Any]) -> None:
     name="sentry.tasks.email.send_email_control",
     namespace=notifications_control_tasks,
     processing_deadline_duration=90,
-    retry=Retry(times=2, delay=60 * 5),
+    retry=Retry(times=2, delay=60 * 5, on=(TemporaryEmailError,)),
     silo_mode=SiloMode.CONTROL,
 )
-@retry(on=(TemporaryEmailError,))
 def send_email_control(message: dict[str, Any]) -> None:
     _send_email(message)

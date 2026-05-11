@@ -1,10 +1,9 @@
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
 import {OrganizationStatsInner} from 'sentry/views/organizationStats/index';
 
 import EnhancedUsageStatsOrganization from './enhancedUsageStatsOrganization';
 
-class EnhancedOrganizationStats extends OrganizationStatsInner {
+export class EnhancedOrganizationStats extends OrganizationStatsInner {
   get spikeCursor(): string | undefined {
     return decodeScalar(this.props.location?.query?.spikeCursor);
   }
@@ -29,10 +28,3 @@ class EnhancedOrganizationStats extends OrganizationStatsInner {
     );
   }
 }
-
-// HACK: Typescript does not like the inheritance from OrganizationStats
-function ComponentWrapper(props: OrganizationStatsProps) {
-  return <EnhancedOrganizationStats {...props} />;
-}
-
-export default ComponentWrapper;

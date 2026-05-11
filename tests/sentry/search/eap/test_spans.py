@@ -21,12 +21,23 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
     OrFilter,
     TraceItemFilter,
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.attributes import (
+    SPAN_ATTRIBUTE_DEFINITIONS,
+    SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SPANS_REPLACEMENT_MAP,
+    _update_attribute_definitions_with_deprecations,
+)
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.eap.types import SearchResolverConfig
@@ -87,7 +98,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_uuid_validation(self) -> None:
-        where, having, _ = self.resolver.resolve_query(f"id:{'f'*16}")
+        where, having, _ = self.resolver.resolve_query(f"id:{'f' * 16}")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
@@ -193,6 +204,108 @@ class SearchResolverQueryTest(TestCase):
                             key=AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING),
                             op=ComparisonFilter.OP_EQUALS,
                             value=AttributeValue(val_str="bar"),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_has_in_filter_multi_key(self) -> None:
+        """Multi-key has:[key1,key2] (event_search has_in_filter) resolves to OR of (exists + != '')."""
+        where, having, _ = self.resolver.resolve_query("has:[span.description,span.op]")
+        desc_key = AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING)
+        op_key = AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        and_filter=AndFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(key=desc_key),
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=desc_key,
+                                        op=ComparisonFilter.OP_NOT_EQUALS,
+                                        value=AttributeValue(val_str=""),
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        and_filter=AndFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(key=op_key),
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=op_key,
+                                        op=ComparisonFilter.OP_NOT_EQUALS,
+                                        value=AttributeValue(val_str=""),
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_not_has_in_filter_multi_key(self) -> None:
+        """Negated multi-key !has:[key1,key2] resolves to AND of (not-exists OR = '')."""
+        where, having, _ = self.resolver.resolve_query("!has:[span.description,span.op]")
+        desc_key = AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING)
+        op_key = AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        or_filter=OrFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    not_filter=NotFilter(
+                                        filters=[
+                                            TraceItemFilter(
+                                                exists_filter=ExistsFilter(key=desc_key),
+                                            )
+                                        ]
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=desc_key,
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str=""),
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        or_filter=OrFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    not_filter=NotFilter(
+                                        filters=[
+                                            TraceItemFilter(
+                                                exists_filter=ExistsFilter(key=op_key),
+                                            )
+                                        ]
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=op_key,
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str=""),
+                                    )
+                                ),
+                            ]
                         )
                     ),
                 ]
@@ -543,6 +656,28 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_cache_update_for_issues(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, projects=[self.project]),
+            config=SearchResolverConfig(),
+            definitions=OCCURRENCE_DEFINITIONS,
+        )
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        resolver.resolve_query(f"issue:{group1.qualified_short_id}")
+        project_id = group1.project_id
+        assert project_id in resolver.qualified_short_id_to_group_id_cache
+        assert len(resolver.qualified_short_id_to_group_id_cache[project_id]) == 1
+        assert (
+            group1.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
+        )
+
+        resolver.resolve_query(f"issue:{group2.qualified_short_id}")
+        assert len(resolver.qualified_short_id_to_group_id_cache[project_id]) == 2
+        assert (
+            group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
+        )
+
 
 class SearchResolverColumnTest(TestCase):
     def setUp(self) -> None:
@@ -567,7 +702,9 @@ class SearchResolverColumnTest(TestCase):
             name="project", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context is not None
-        assert virtual_context.constructor(self.resolver.params) == VirtualColumnContext(
+        assert virtual_context.constructor(
+            self.resolver.params, self.resolver
+        ) == VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name="project",
             value_map={str(self.project.id): self.project.slug},
@@ -579,7 +716,9 @@ class SearchResolverColumnTest(TestCase):
             name="project.slug", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context is not None
-        assert virtual_context.constructor(self.resolver.params) == VirtualColumnContext(
+        assert virtual_context.constructor(
+            self.resolver.params, self.resolver
+        ) == VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name="project.slug",
             value_map={str(self.project.id): self.project.slug},
@@ -704,3 +843,229 @@ def test_loads_deprecated_attrs_json() -> None:
     attribute = deprecated_attrs[0]
     assert attribute["key"]
     assert attribute["deprecation"]
+
+
+def test_backfilled_deprecated_attributes_resolve_to_replacement() -> None:
+    deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS["http.response_content_length"]
+    replacement_attr = SPAN_ATTRIBUTE_DEFINITIONS["http.response.body.size"]
+
+    assert deprecated_attr.internal_name == "http.response_content_length"
+    assert deprecated_attr.search_type == "byte"
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "http.response.body.size"
+    assert replacement_attr.internal_name == "http.response.body.size"
+    assert replacement_attr.search_type == "byte"
+    assert SPANS_REPLACEMENT_MAP["http.response_content_length"] == "http.response.body.size"
+
+
+def test_deprecated_attribute_internal_alias_preserves_existing_search_type() -> None:
+    attribute_definitions = {
+        "mobile.total_frames": SPAN_ATTRIBUTE_DEFINITIONS["mobile.total_frames"],
+    }
+    mobile_total_frames_attr = attribute_definitions["mobile.total_frames"]
+
+    assert mobile_total_frames_attr.public_alias == "mobile.total_frames"
+    assert mobile_total_frames_attr.internal_name == "frames.total"
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "frames.total",
+                "type": "integer",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "app.vitals.frames.total.count",
+                },
+            }
+        ],
+    )
+
+    deprecated_internal_attr = attribute_definitions["mobile.total_frames"]
+    replacement_attr = attribute_definitions["app.vitals.frames.total.count"]
+
+    assert "frames.total" not in attribute_definitions
+    assert deprecated_internal_attr.public_alias == "mobile.total_frames"
+    assert deprecated_internal_attr.internal_name == "frames.total"
+    assert deprecated_internal_attr.search_type == "number"
+    assert deprecated_internal_attr.deprecation_status == "backfill"
+    assert deprecated_internal_attr.replacement == "app.vitals.frames.total.count"
+    assert replacement_attr.public_alias == "app.vitals.frames.total.count"
+    assert replacement_attr.internal_name == "app.vitals.frames.total.count"
+    assert replacement_attr.search_type == "number"
+
+
+def test_deprecated_attribute_internal_name_match_does_not_expose_internal_alias() -> None:
+    attribute_definitions = {
+        "measurements.fcp": SPAN_ATTRIBUTE_DEFINITIONS["measurements.fcp"],
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "fcp",
+                "type": "double",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "browser.web_vital.fcp.value",
+                },
+            }
+        ],
+    )
+
+    deprecated_attr = attribute_definitions["measurements.fcp"]
+    replacement_attr = attribute_definitions["browser.web_vital.fcp.value"]
+
+    assert "fcp" not in attribute_definitions
+    assert deprecated_attr.public_alias == "measurements.fcp"
+    assert deprecated_attr.internal_name == "fcp"
+    assert deprecated_attr.search_type == "millisecond"
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "browser.web_vital.fcp.value"
+    assert replacement_attr.public_alias == "browser.web_vital.fcp.value"
+    assert replacement_attr.internal_name == "browser.web_vital.fcp.value"
+    assert replacement_attr.search_type == "millisecond"
+
+
+def test_deprecated_attribute_replacement_does_not_inherit_secondary_alias() -> None:
+    attribute_definitions = {
+        "span.system": ResolvedAttribute(
+            public_alias="span.system",
+            internal_name="db.system",
+            search_type="string",
+            secondary_alias=True,
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "db.system",
+                "type": "string",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "db.system.name",
+                },
+            }
+        ],
+    )
+
+    deprecated_attr = attribute_definitions["span.system"]
+    replacement_attr = attribute_definitions["db.system.name"]
+
+    assert "db.system" not in attribute_definitions
+    assert deprecated_attr.public_alias == "span.system"
+    assert deprecated_attr.internal_name == "db.system"
+    assert deprecated_attr.secondary_alias is True
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "db.system.name"
+    assert replacement_attr.public_alias == "db.system.name"
+    assert replacement_attr.internal_name == "db.system.name"
+    assert replacement_attr.search_type == "string"
+    assert replacement_attr.secondary_alias is False
+    assert replacement_attr.deprecation_status is None
+    assert replacement_attr.replacement is None
+
+
+def test_deprecated_attribute_loaded_replacement_is_primary_alias() -> None:
+    replacement_attr = SPAN_ATTRIBUTE_DEFINITIONS["db.system.name"]
+
+    assert replacement_attr.secondary_alias is False
+    assert SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["string"]["db.system.name"] == "db.system.name"
+    assert SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING.get("db.system.name") is None
+
+
+def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
+    attribute_definitions = {
+        "mobile.total_frames": SPAN_ATTRIBUTE_DEFINITIONS["mobile.total_frames"],
+        "app.vitals.frames.total.count": ResolvedAttribute(
+            public_alias="app.vitals.frames.total.count",
+            internal_name="app.vitals.frames.total.count",
+            search_type="integer",
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "frames.total",
+                "type": "number",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "app.vitals.frames.total.count",
+                },
+            }
+        ],
+    )
+
+    deprecated_internal_attr = attribute_definitions["mobile.total_frames"]
+    replacement_attr = attribute_definitions["app.vitals.frames.total.count"]
+
+    assert "frames.total" not in attribute_definitions
+    assert deprecated_internal_attr.public_alias == "mobile.total_frames"
+    assert deprecated_internal_attr.internal_name == "frames.total"
+    assert deprecated_internal_attr.search_type == "number"
+    assert deprecated_internal_attr.deprecation_status == "backfill"
+    assert deprecated_internal_attr.replacement == "app.vitals.frames.total.count"
+    assert replacement_attr.public_alias == "app.vitals.frames.total.count"
+    assert replacement_attr.internal_name == "app.vitals.frames.total.count"
+    assert replacement_attr.search_type == "integer"
+    assert replacement_attr.deprecation_status is None
+    assert replacement_attr.replacement is None
+
+
+def test_deprecated_attribute_normalizes_supported_convention_attribute_types() -> None:
+    attribute_definitions: dict[str, ResolvedAttribute] = {}
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "old_string",
+                "type": "string",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_string",
+                },
+            },
+            {
+                "key": "old_boolean",
+                "type": "boolean",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_boolean",
+                },
+            },
+            {
+                "key": "old_integer",
+                "type": "integer",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_integer",
+                },
+            },
+            {
+                "key": "old_double",
+                "type": "double",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_double",
+                },
+            },
+        ],
+    )
+
+    assert attribute_definitions["old_string"].search_type == "string"
+    assert attribute_definitions["new_string"].search_type == "string"
+
+    assert attribute_definitions["old_boolean"].search_type == "boolean"
+    assert attribute_definitions["new_boolean"].search_type == "boolean"
+
+    assert attribute_definitions["old_integer"].search_type == "integer"
+    assert attribute_definitions["new_integer"].search_type == "integer"
+
+    assert attribute_definitions["old_double"].search_type == "number"
+    assert attribute_definitions["new_double"].search_type == "number"

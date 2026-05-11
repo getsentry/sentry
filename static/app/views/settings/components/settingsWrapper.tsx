@@ -2,34 +2,38 @@ import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useLocation} from 'sentry/utils/useLocation';
-import useScrollToTop from 'sentry/utils/useScrollToTop';
+import {useScrollToTop} from 'sentry/utils/useScrollToTop';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
+import {SettingsCommandPaletteActions} from 'sentry/views/settings/settingsCommandPaletteActions';
 
 function scrollDisable(newLocation: Location, prevLocation: Location) {
   return newLocation.pathname === prevLocation.pathname;
 }
 
-export default function SettingsWrapper() {
+export function SettingsWrapper() {
   const location = useLocation();
   useScrollToTop({location, disable: scrollDisable});
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
-    <StyledSettingsWrapper>
-      <BreadcrumbProvider>
-        <Outlet />
-      </BreadcrumbProvider>
-    </StyledSettingsWrapper>
+    <AnalyticsArea name="settings">
+      <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
+        <BreadcrumbProvider>
+          <SettingsCommandPaletteActions />
+          <Outlet />
+        </BreadcrumbProvider>
+      </StyledFlex>
+    </AnalyticsArea>
   );
 }
 
-const StyledSettingsWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  font-size: ${p => p.theme.font.size.md};
-  line-height: ${p => p.theme.font.lineHeight.default};
-  color: ${p => p.theme.tokens.content.primary};
-
+const StyledFlex = styled(Flex)`
   .messages-container {
     margin: 0;
   }

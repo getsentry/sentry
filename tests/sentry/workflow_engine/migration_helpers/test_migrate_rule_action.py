@@ -20,8 +20,8 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    ActionType,
     SentryAppDataBlob,
-    SentryAppIdentifier,
     TicketDataBlob,
     TicketFieldMappingKeys,
     issue_alert_action_translator_mapping,
@@ -36,7 +36,6 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_ticketing_action_data_blob(
         self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
     ) -> None:
-
         # Check dynamic_form_fields
         assert action.data.get(
             TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
@@ -115,10 +114,14 @@ class TestNotificationActionMigrationUtils(TestCase):
                     else:
                         # For unmapped fields, check directly with empty string default
                         if action.type == Action.Type.EMAIL and field == "fallthrough_type":
-                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
-                            assert action.data.get(field) == compare_dict.get(
-                                field, "ActiveMembers"
+                            fallthrough_fields = ["fallthrough_type", "fallthroughType"]
+                            assert any(
+                                [
+                                    action.data.get(field) == compare_dict.get(f, "ActiveMembers")
+                                    for f in fallthrough_fields
+                                ]
                             )
+                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
                         else:
                             assert action.data.get(field) == compare_dict.get(field, "")
                 # Ensure no extra fields
@@ -131,7 +134,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 if key not in exclude_keys:
                     if (
                         action.type == Action.Type.EMAIL
-                        and key == "fallthrough_type"
+                        and (key == "fallthrough_type" or key == "fallthroughType")
                         and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
                         # for email actions, fallthrough_type should only be set for when targetType is ISSUE_OWNERS
@@ -162,7 +165,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # Assert integration_id matches if specified
         if integration_id_key:
-            assert action.integration_id == compare_dict.get(integration_id_key)
+            assert str(action.integration_id) == compare_dict.get(integration_id_key)
 
         # Assert target_identifier matches if specified
         if target_identifier_key:
@@ -198,6 +201,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         for action, rule_data in zip(actions, rule_data_actions):
             assert isinstance(action, Action)
+            action.refresh_from_db()
             self.assert_action_attributes(
                 action,
                 rule_data,
@@ -717,47 +721,47 @@ class TestNotificationActionMigrationUtils(TestCase):
         test_cases = [
             (
                 "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                Action.Type.SLACK,
+                ActionType.SLACK,
             ),
             (
                 "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-                Action.Type.DISCORD,
+                ActionType.DISCORD,
             ),
             (
                 "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
-                Action.Type.MSTEAMS,
+                ActionType.MSTEAMS,
             ),
             (
                 "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
-                Action.Type.PAGERDUTY,
+                ActionType.PAGERDUTY,
             ),
             (
                 "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                Action.Type.OPSGENIE,
+                ActionType.OPSGENIE,
             ),
             (
                 "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                Action.Type.GITHUB,
+                ActionType.GITHUB,
             ),
             (
                 "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                Action.Type.GITHUB_ENTERPRISE,
+                ActionType.GITHUB_ENTERPRISE,
             ),
             (
                 "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-                Action.Type.AZURE_DEVOPS,
+                ActionType.AZURE_DEVOPS,
             ),
             (
                 "sentry.mail.actions.NotifyEmailAction",
-                Action.Type.EMAIL,
+                ActionType.EMAIL,
             ),
             (
                 "sentry.rules.actions.notify_event.NotifyEventAction",
-                Action.Type.PLUGIN,
+                ActionType.PLUGIN,
             ),
             (
                 "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                Action.Type.WEBHOOK,
+                ActionType.WEBHOOK,
             ),
         ]
 
@@ -830,6 +834,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 {
                     "integration": "1",
                     "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                    "repo": "owner/repo",
                     "uuid": "test-uuid",
                 },
                 Action.Type.GITHUB,
@@ -839,6 +844,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 {
                     "integration": "1",
                     "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                    "repo": "owner/repo",
                     "uuid": "test-uuid",
                 },
                 Action.Type.GITHUB_ENTERPRISE,
@@ -1099,11 +1105,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.config.get("target_identifier") == install.uuid
-            assert (
-                action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-            )
+            assert action.config.get("target_identifier") == str(install.sentry_app.id)
 
     def test_dry_run_flag(self) -> None:
         """Test that the dry_run flag prevents database writes."""

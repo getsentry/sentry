@@ -10,7 +10,7 @@ import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reserve
 
 import type {DataCategory} from 'sentry/types/core';
 
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
 import {CheckoutType, ReservedBudgetCategoryType} from 'getsentry/types';
 
@@ -22,6 +22,8 @@ const AM2_CHECKOUT_CATEGORIES = [
   'monitorSeats',
   'uptime',
   'logBytes',
+  'sizeAnalyses',
+  'installableBuilds',
 ] as DataCategory[];
 
 const AM2_ONDEMAND_CATEGORIES = [
@@ -50,6 +52,11 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
   seerUsers: {singular: 'active contributor', plural: 'active contributors'},
+  sizeAnalyses: {singular: 'size analysis build', plural: 'size analysis builds'},
+  installableBuilds: {
+    singular: 'build distribution install',
+    plural: 'build distribution installs',
+  },
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
@@ -87,7 +94,6 @@ const AM2_TEAM_FEATURES = [
 const AM2_BUSINESS_FEATURES = [
   ...AM2_TEAM_FEATURES,
   'anomaly-detection-alerts',
-  'app-store-connect-multiple',
   'baa',
   'change-alerts',
   'custom-inbound-filters',
@@ -126,7 +132,7 @@ const commonFields = {
 };
 
 // TODO: Update with correct pricing and structure
-const AM2_PLANS: Record<string, Plan> = {
+export const AM2_PLANS = {
   am2_business: {
     ...commonFields,
     id: 'am2_business',
@@ -740,72 +746,72 @@ const AM2_PLANS: Record<string, Plan> = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4700,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7000,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9300,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 11600,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13900,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 16300,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 18600,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 20900,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 23200,
         },
       ],
@@ -842,6 +848,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS,
@@ -933,6 +955,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS_DEVELOPER,
@@ -1554,72 +1592,72 @@ const AM2_PLANS: Record<string, Plan> = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4700,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7000,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9300,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 11600,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13900,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 16300,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 18600,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 20900,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 23200,
         },
       ],
@@ -1656,6 +1694,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS,
@@ -1747,6 +1801,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -2331,72 +2401,72 @@ const AM2_PLANS: Record<string, Plan> = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 6300,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 12500,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 18800,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 25000,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 50000,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 75000,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 100000,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 125000,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 150000,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 175000,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 200000,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 225000,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 250000,
         },
       ],
@@ -2433,6 +2503,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS_ANNUAL,
@@ -3017,72 +3103,72 @@ const AM2_PLANS: Record<string, Plan> = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 6300,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 12500,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 18800,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 25000,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 50000,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 75000,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 100000,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 125000,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 150000,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 175000,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 200000,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 225000,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 250000,
         },
       ],
@@ -3121,6 +3207,22 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...LEGACY_SEER_TIERS_ANNUAL,
       ...SEER_TIERS,
     },
@@ -3153,12 +3255,14 @@ const AM2_PLANS: Record<string, Plan> = {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
       transactions: [{events: 10000000, unitPrice: 0.0054, price: 0}],
       replays: [{events: 10000, unitPrice: 0.288, price: 0}],
-      attachments: [{events: 10, unitPrice: 25.0, price: 0}],
+      attachments: [{events: 10, unitPrice: 25, price: 0}],
       monitorSeats: [{events: 500, unitPrice: 0, price: 0}],
       uptime: [{events: 500, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
       logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
+      sizeAnalyses: [{events: 100, unitPrice: 0, price: 0, onDemandPrice: 0}],
+      installableBuilds: [{events: 25000, unitPrice: 0, price: 0, onDemandPrice: 0}],
     },
     availableReservedBudgetTypes: {},
     addOnCategories: {},
@@ -3190,12 +3294,14 @@ const AM2_PLANS: Record<string, Plan> = {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
       transactions: [{events: 100_000, unitPrice: 0.0054, price: 0}],
       replays: [{events: 500, unitPrice: 0.288, price: 0}],
-      attachments: [{events: 1, unitPrice: 25.0, price: 0}],
+      attachments: [{events: 1, unitPrice: 25, price: 0}],
       monitorSeats: [{events: 10, unitPrice: 0, price: 0}],
       uptime: [{events: 10, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
       logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
+      sizeAnalyses: [{events: 100, unitPrice: 0, price: 0, onDemandPrice: 0}],
+      installableBuilds: [{events: 25000, unitPrice: 0, price: 0, onDemandPrice: 0}],
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -3588,72 +3694,72 @@ const AM2_PLANS: Record<string, Plan> = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4700,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7000,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9300,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 11600,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13900,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 16300,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 18600,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 20900,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 23200,
         },
       ],
@@ -3690,6 +3796,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS,
@@ -4134,72 +4256,72 @@ const AM2_PLANS: Record<string, Plan> = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4700,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7000,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9300,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 11600,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13900,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 16300,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 18600,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 20900,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 23200,
         },
       ],
@@ -4236,6 +4358,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS,
@@ -4695,72 +4833,72 @@ const AM2_PLANS: Record<string, Plan> = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4700,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7000,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9300,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 11600,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13900,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 16300,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 18600,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 20900,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 23200,
         },
       ],
@@ -4797,6 +4935,22 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 5,
           unitPrice: 0.5,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS,
@@ -4890,6 +5044,22 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -4980,6 +5150,22 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
       ...SEER_TIERS,
     },
@@ -4987,6 +5173,4 @@ const AM2_PLANS: Record<string, Plan> = {
     metricDetectorLimit: -1,
     hasOnDemandModes: false,
   },
-};
-
-export default AM2_PLANS;
+} as const satisfies Record<string, Plan>;

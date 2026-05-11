@@ -5,11 +5,12 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.attributes import OCCURRENCE_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.ourlogs.attributes import OURLOG_ATTRIBUTE_DEFINITIONS
+from sentry.search.eap.processing_errors.attributes import PROCESSING_ERROR_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.profile_functions.attributes import PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.trace_metrics.attributes import TRACE_METRICS_ATTRIBUTE_DEFINITIONS
@@ -21,6 +22,7 @@ TYPE_TO_DEFINITIONS = {
     "occurrences": OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     "tracemetrics": TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
     "uptime_results": UPTIME_ATTRIBUTE_DEFINITIONS,
+    "processing_errors": PROCESSING_ERROR_ATTRIBUTE_DEFINITIONS,
     "profiles": PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS,
 }
 
@@ -32,7 +34,7 @@ class AttributeMappingResponse(TypedDict):
     searchType: str
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
     """
     Return a static list of attributes and their mappings to public aliases and search types.

@@ -4,12 +4,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import Table from 'sentry/views/performance/table';
+import {Table} from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 
@@ -176,7 +176,7 @@ describe('Performance > Table', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/key-transactions-list/`,
+      url: '/organizations/org-slug/key-transactions-list/',
       body: [],
     });
   });
@@ -331,7 +331,7 @@ describe('Performance > Table', () => {
         {
           query: 'event.type:transaction transaction:/api*',
         },
-        ['performance-use-metrics']
+        ['dynamic-sampling']
       );
 
       render(

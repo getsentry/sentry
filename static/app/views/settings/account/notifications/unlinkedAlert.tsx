@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 
@@ -8,7 +9,7 @@ type Props = {
   organizations: OrganizationSummary[];
 };
 
-function UnlinkedAlert({organizations}: Props) {
+export function UnlinkedAlert({organizations}: Props) {
   return (
     <StyledAlert variant="warning">
       {t(
@@ -26,5 +27,3 @@ function UnlinkedAlert({organizations}: Props) {
 const StyledAlert = styled(Alert)`
   margin: 20px 0px;
 `;
-
-export default UnlinkedAlert;

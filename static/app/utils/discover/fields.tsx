@@ -24,12 +24,15 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
+export type SortKind = 'asc' | 'desc';
+
 export type Sort = {
   field: string;
-  kind: 'asc' | 'desc';
+  kind: SortKind;
 };
 
 // Contains the URL field value & the related table column width.
@@ -105,12 +108,7 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [
-        AggregationKeyWithAlias,
-        string,
-        AggregationRefinement,
-        AggregationRefinement,
-      ];
+      function: [AggregationKeyWithAlias, string, ...AggregationRefinement[]];
       kind: 'function';
       alias?: string;
     };
@@ -118,7 +116,7 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
-export type Alignments = 'left' | 'right';
+type Alignments = 'left' | 'right';
 
 export type CountUnit = 'count';
 
@@ -186,6 +184,23 @@ export enum SizeUnit {
   EXBIBYTE = 'exbibyte',
   EXABYTE = 'exabyte',
 }
+
+// NOTE: These units are treated as base 10 (SI) vs. base 2 (IEC). That
+// intuitively makes sense for units like "kilobyte" (vs. kibibyte) where the
+// unit itself indicates its base. If this list contains "byte" (the default
+// unit for size data in Sentry), "byte" becomes a base 10 unit everywhere. That
+// will force effectively all tables and chart to format size data multipliers
+// using base 10. This is not a problem, it's just an important implication to
+// be aware of.
+export const ABYTE_UNITS = [
+  'byte',
+  'kilobyte',
+  'megabyte',
+  'gigabyte',
+  'terabyte',
+  'petabyte',
+  'exabyte',
+];
 
 // Sizes normalized to byte unit
 export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
@@ -609,6 +624,23 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  [AggregationKey.OPPORTUNITY_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.OPPORTUNITY_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
@@ -617,7 +649,7 @@ const ALIASES = {
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
+assert(AGGREGATIONS);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
@@ -882,15 +914,15 @@ export const TRANSACTIONS_AGGREGATION_FUNCTIONS = [
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
-const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
-const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([\w-.]+)$/;
+const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([\w-.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   return MEASUREMENT_PATTERN.test(field);
 }
 
 export function measurementType(field: string): MeasurementType {
-  if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(MEASUREMENT_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
@@ -906,9 +938,9 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
+const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
@@ -923,7 +955,7 @@ export function getAggregateArg(field: string): string | null {
 
 export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
-  if (results && results.length === 3) {
+  if (results?.length === 3) {
     return {
       name: results[1]!,
       arguments: parseArguments(results[2]!),
@@ -1024,7 +1056,7 @@ export function stripEquationPrefix(field: string): string {
 export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
-  if (results && results.length === 2) {
+  if (results?.length === 2) {
     return parseInt(results[1]!, 10);
   }
   return -1;
@@ -1062,7 +1094,7 @@ export function generateAggregateFields(
     const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {
@@ -1071,7 +1103,7 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => param.defaultValue !== undefined)) {
       const newField = `${func}(${parameters
         .map((param: any) => param.defaultValue)
         .join(',')})`;
@@ -1080,7 +1112,7 @@ export function generateAggregateFields(
       }
     }
   });
-  return fields.map(field => ({field})) as Field[];
+  return fields.map(field => ({field}));
 }
 
 function isDerivedMetric(field: string): boolean {
@@ -1108,8 +1140,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
       function: [
         results.name as AggregationKey,
         results.arguments[0] ?? '',
-        results.arguments[1] as AggregationRefinement,
-        results.arguments[2] as AggregationRefinement,
+        ...results.arguments.slice(1),
       ],
       alias,
     };
@@ -1132,7 +1163,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
-  const parameters = value.function.slice(1).filter(i => i);
+  const parameters = value.function.slice(1).filter(Boolean);
   return `${aggregation}(${parameters.join(',')})`;
 }
 
@@ -1156,7 +1187,7 @@ export function getAggregateAlias(field: string): string {
     alias += '_' + result.arguments.join('_');
   }
 
-  return alias.replace(/[^\w]/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
+  return alias.replace(/\W/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
 }
 
 /**
@@ -1250,7 +1281,7 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+  if (firstArg && Object.hasOwn(SESSIONS_FIELDS, firstArg)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
@@ -1335,7 +1366,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!result) {
     return 'area';
   }
-  if (!AGGREGATIONS.hasOwnProperty(result.name)) {
+  if (!Object.hasOwn(AGGREGATIONS, result.name)) {
     return 'area';
   }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1385,13 +1416,18 @@ const alignedTypes: ColumnValueType[] = [
   'percent_change',
   'rate',
   'size',
+  'currency',
 ];
 
 export function fieldAlignment(
   columnName: string,
-  columnType?: undefined | ColumnValueType,
+  columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
+  if (columnName === SpanFields.IS_STARRED_TRANSACTION) {
+    return 'right';
+  }
+
   let align: Alignments = 'left';
 
   if (columnType) {
@@ -1412,7 +1448,7 @@ export function fieldAlignment(
  * Match on types that are legal to show on a timeseries chart.
  */
 export function isLegalYAxisType(match: ColumnType) {
-  return ['number', 'integer', 'duration', 'percentage'].includes(match);
+  return ['number', 'integer', 'duration', 'percentage', 'score'].includes(match);
 }
 
 export function getSpanOperationName(field: string): string | null {
@@ -1670,6 +1706,13 @@ export function prettifyParsedFunction(func: ParsedFunction) {
     func.arguments[0] === 'message'
   ) {
     return 'count(logs)';
+  }
+
+  // special case for trace metrics format: function(value,metricName,metricType,unit)
+  // display as function(metricName)
+  if (func.arguments.length === 4 && func.arguments[0] === 'value') {
+    const metricName = func.arguments[1];
+    return `${func.name}(${prettifyTagKey(metricName ?? '')})`;
   }
 
   const args = func.arguments.map(prettifyTagKey);

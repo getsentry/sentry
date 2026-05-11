@@ -1,10 +1,10 @@
-import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import {AddIntegrationRow} from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 jest.mock('sentry/actionCreators/modal');
@@ -12,7 +12,7 @@ jest.mock('sentry/actionCreators/modal');
 describe('AddIntegrationRow', () => {
   let org: any;
   const project = ProjectFixture();
-  const provider = GitHubIntegrationProviderFixture();
+  const provider = IntegrationProviderFixture();
 
   beforeEach(() => {
     org = OrganizationFixture();

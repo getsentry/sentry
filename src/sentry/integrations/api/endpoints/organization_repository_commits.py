@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
@@ -16,13 +16,13 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -41,6 +41,7 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
                 type=str,
                 location="path",
             ),
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

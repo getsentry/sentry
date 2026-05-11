@@ -141,7 +141,7 @@ function findAllFieldRefs(
 
   // Visualizes
 
-  const readableVisualizeFields: string[] =
+  const readableVisualizeFields =
     readableQueryParams.visualizes.flatMap(getVisualizeFields);
 
   readableVisualizeFields.forEach(field => {
@@ -149,7 +149,7 @@ function findAllFieldRefs(
     readableRefs.set(field, count + 1);
   });
 
-  const writableVisualizeFields: string[] =
+  const writableVisualizeFields =
     writableQueryParams.aggregateFields === null
       ? // null means to clear it so make sure to handle it correctly
         []

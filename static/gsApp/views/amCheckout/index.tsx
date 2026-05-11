@@ -1,35 +1,36 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
+import type {QueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import LogoSentry from 'sentry/components/logoSentry';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {LogoSentry} from 'sentry/components/logoSentry';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {QueryClient} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {showIntercom} from 'sentry/utils/intercom';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withApi} from 'sentry/utils/withApi';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {
   ANNUAL,
@@ -58,14 +59,14 @@ import {
   isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import withPromotions from 'getsentry/utils/withPromotions';
-import Cart from 'getsentry/views/amCheckout/components/cart';
-import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
-import AddBillingInformation from 'getsentry/views/amCheckout/steps/addBillingInfo';
-import BuildYourPlan from 'getsentry/views/amCheckout/steps/buildYourPlan';
-import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
-import SetSpendLimit from 'getsentry/views/amCheckout/steps/setSpendLimit';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {withPromotions} from 'getsentry/utils/withPromotions';
+import {Cart} from 'getsentry/views/amCheckout/components/cart';
+import {CheckoutSuccess} from 'getsentry/views/amCheckout/components/checkoutSuccess';
+import {AddBillingInformation} from 'getsentry/views/amCheckout/steps/addBillingInfo';
+import {BuildYourPlan} from 'getsentry/views/amCheckout/steps/buildYourPlan';
+import {ChooseYourBillingCycle} from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
+import {SetSpendLimit} from 'getsentry/views/amCheckout/steps/setSpendLimit';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
@@ -111,6 +112,7 @@ function AMCheckout(props: Props) {
     promotionData,
   } = props;
 
+  const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | boolean>(false);
   const [formData, setFormData] = useState<CheckoutFormData | null>(null);
@@ -423,20 +425,16 @@ function AMCheckout(props: Props) {
             // only populate add-ons that are launched
             addOn => addOn.isAvailable
           )
-          .reduce((acc, addOn) => {
+          .reduce<CheckoutAddOns>((acc, addOn) => {
             acc[addOn.apiName] = {
               // don't prepopulate add-ons from trial state
               enabled: addOn.enabled && !isTrialPlan(subscription.plan),
             };
             return acc;
-          }, {} as CheckoutAddOns),
+          }, {}),
       };
 
-      if (
-        isNewPayingCustomer(subscription, organization) &&
-        checkoutTier === PlanTier.AM3
-      ) {
-        // TODO(isabella): Test if this behavior works as expected on older tiers
+      if (isNewPayingCustomer(subscription, organization)) {
         data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
           ? PAYG_BUSINESS_DEFAULT
           : PAYG_TEAM_DEFAULT;
@@ -448,14 +446,7 @@ function AMCheckout(props: Props) {
 
       return getValidData(initialPlan, data);
     },
-    [
-      subscription,
-      checkoutTier,
-      organization,
-      getInitialPlan,
-      canComparePrices,
-      getValidData,
-    ]
+    [subscription, organization, getInitialPlan, canComparePrices, getValidData]
   );
 
   const getFormDataForPreview = useCallback((data: CheckoutFormData) => {
@@ -574,6 +565,8 @@ function AMCheckout(props: Props) {
     loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
   }, []);
 
+  const hasIntercom = organization.features.includes('intercom-support');
+
   useEffect(() => {
     trackGetsentryAnalytics('am_checkout.viewed', {
       organization,
@@ -584,8 +577,20 @@ function AMCheckout(props: Props) {
   }, [organization, subscription]);
 
   useEffect(() => {
+    if (hasIntercom) {
+      trackGetsentryAnalytics('intercom_link.viewed', {
+        organization,
+        source: 'checkout',
+      });
+    }
+  }, [hasIntercom, organization]);
+
+  useEffect(() => {
     if (subscription.canSelfServe) {
-      fetchBillingConfig();
+      if (!hasFetchedBillingConfig.current) {
+        hasFetchedBillingConfig.current = true;
+        fetchBillingConfig();
+      }
     } else {
       handleRedirect();
     }
@@ -755,10 +760,32 @@ function AMCheckout(props: Props) {
               <Text align="right">
                 {tct('[help:Find an answer] or [contact]', {
                   help: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                    <ExternalLink href="https://www.sentry.help/en/collections/18842102-account-billing" />
                   ),
-                  contact: hasZendesk() ? (
-                    <Button size="zero" priority="link" onClick={activateZendesk}>
+                  contact: hasIntercom ? (
+                    <Button
+                      size="zero"
+                      variant="link"
+                      onClick={async () => {
+                        trackGetsentryAnalytics('intercom_link.clicked', {
+                          organization,
+                          source: 'checkout',
+                        });
+                        try {
+                          await showIntercom(organization.slug);
+                        } catch {
+                          // Fall back to mailto
+                          const supportEmail = ConfigStore.get('supportEmail');
+                          if (supportEmail) {
+                            window.location.href = `mailto:${supportEmail}`;
+                          }
+                        }
+                      }}
+                    >
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </Button>
+                  ) : hasZendesk() ? (
+                    <Button size="zero" variant="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </Button>
                   ) : (
@@ -783,7 +810,7 @@ function AMCheckout(props: Props) {
             {showAnnualTerms && (
               <Text size="xs" align="center" variant="muted">
                 {tct(
-                  `Annual subscriptions require a one-year non-cancellable commitment. By using Sentry you agree to our [terms: Terms of Service].`,
+                  'Annual subscriptions require a one-year non-cancellable commitment. By using Sentry you agree to our [terms: Terms of Service].',
                   {terms: <a href="https://sentry.io/terms/" />}
                 )}
               </Text>
@@ -826,7 +853,7 @@ function AMCheckout(props: Props) {
             to={`/settings/${organization.slug}/billing/`}
             icon={<IconChevron direction="left" />}
             size="xs"
-            borderless
+            variant="transparent"
             onClick={() => {
               trackGetsentryAnalytics('checkout.exit', {
                 subscription,

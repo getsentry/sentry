@@ -1,21 +1,26 @@
+import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {Flex} from '@sentry/scraps/layout';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import SettingsBreadcrumb from 'sentry/views/settings/components/settingsBreadcrumb';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb';
 import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
-import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
-import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
+import {SettingsHeader} from 'sentry/views/settings/components/settingsHeader';
+import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
 
 export default function SubscriptionSettingsLayout() {
   const location = useLocation();
   const params = useParams();
   const routes = useRoutes();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   let feedbackSource = location.pathname;
   for (let i = routes.length - 1; i >= 0; i--) {
     const route = routes[i] as RouteWithName;
@@ -25,29 +30,37 @@ export default function SubscriptionSettingsLayout() {
     }
   }
 
+  const feedbackOptions = {
+    formTitle: t('Give feedback'),
+    messagePlaceholder: t('How can we make the %s page better for you?', feedbackSource),
+    tags: {
+      ['feedback.source']: feedbackSource,
+      ['feedback.owner']: 'billing',
+    },
+  };
+
   return (
     <SettingsColumn direction="column" flex={1} minWidth="0">
-      <StyledSettingsHeader>
-        <Flex align="center" justify="between" gap="xl">
-          <StyledSettingsBreadcrumb params={params} routes={routes} />
-          <Flex align="center" gap="xl">
-            <FeedbackButton
-              feedbackOptions={{
-                formTitle: t('Give feedback'),
-                messagePlaceholder: t(
-                  'How can we make the %s page better for you?',
-                  feedbackSource
-                ),
-                tags: {
-                  ['feedback.source']: feedbackSource,
-                  ['feedback.owner']: 'billing',
-                },
-              }}
-            />
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+          </TopBar.Slot>
+          <TopBar.Slot name="actions">
             <SettingsSearch />
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <StyledSettingsHeader>
+          <Flex align="center" justify="between" gap="xl">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <Flex align="center" gap="xl">
+              <FeedbackButton feedbackOptions={feedbackOptions} />
+              <SettingsSearch />
+            </Flex>
           </Flex>
-        </Flex>
-      </StyledSettingsHeader>
+        </StyledSettingsHeader>
+      )}
       <Flex minWidth={0} flex="1" direction="column">
         <Outlet />
       </Flex>

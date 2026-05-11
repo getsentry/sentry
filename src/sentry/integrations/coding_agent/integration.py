@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import abc
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
+from pydantic import BaseModel
 
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -14,6 +16,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.utils.http import absolute_uri
 
@@ -37,6 +40,12 @@ DEFAULT_CODING_AGENT_METADATA = IntegrationMetadata(
 class CodingAgentIntegrationProvider(IntegrationProvider, abc.ABC):
     """Abstract base provider for coding agent integrations."""
 
+    can_add = True
+    allow_multiple = False
+    setup_dialog_config = {"width": 600, "height": 700}
+    requires_feature_flag = True
+    features = frozenset([IntegrationFeatures.CODING_AGENT])
+
     @abc.abstractmethod
     def get_agent_name(self) -> str:
         """Return the name of the coding agent."""
@@ -56,11 +65,18 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
         """Get API client for the coding agent."""
         pass
 
+    def _persist_metadata(self, metadata: BaseModel, **kwargs: Any) -> None:
+        """Persist updated metadata to the database and local model."""
+        integration_service.update_integration(
+            integration_id=self.model.id, metadata=metadata.dict(), **kwargs
+        )
+        self.model.metadata = metadata.dict()
+
     def get_webhook_url(self) -> str:
         """Generate webhook URL for this integration."""
         return absolute_uri(
             f"/extensions/{self.model.provider}/organizations/{self.organization_id}/webhook/",
-            url_prefix=generate_region_url(),
+            url_prefix=generate_locality_url(),
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:

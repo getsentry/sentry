@@ -82,6 +82,7 @@ class QueryParser:
                     QueryConditionsCompositeVisitor(
                         LatestReleaseTransformationVisitor(self._projects)
                     )
-                ).get()
+                )
+                .get()
             )
             yield query_expression, compiled_mql_query.order, compiled_mql_query.limit

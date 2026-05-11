@@ -29,8 +29,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -598,6 +596,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         }
 
     def test_assign_issue_where_team_not_in_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
         user2 = self.create_user(is_superuser=False)
         team2 = self.create_team(
             organization=self.organization, members=[self.user], name="Ecosystem"
@@ -611,6 +611,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
     def test_assign_issue_where_team_not_in_project_through_unfurl(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
         user2 = self.create_user(is_superuser=False)
         team2 = self.create_team(
             organization=self.organization, members=[self.user], name="Ecosystem"
@@ -687,9 +689,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-            assignee=self.external_id
-        )
+        expect_status = f"*Issue assigned to <@{self.external_id}> by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[3]["text"]["text"].endswith(expect_status), text
 
@@ -714,9 +714,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-            assignee=self.external_id
-        )
+        expect_status = f"*Issue assigned to <@{self.external_id}> by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[3]["text"]["text"].endswith(expect_status), text
 
@@ -738,8 +736,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[3]["text"]["text"] == expect_status
         assert ":white_circle:" in blocks[0]["text"]["text"]
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_resolve_issue_during_aci_rollout(

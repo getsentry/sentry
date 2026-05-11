@@ -10,10 +10,9 @@ from sentry.replays.lib import kafka
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
-from sentry.replays.usecases.delete import SEER_DELETE_SUMMARIES_ENDPOINT_PATH
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.utils import json, kafka_config
+from sentry.utils import kafka_config
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -152,13 +151,18 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-    def test_delete_replay_from_filestore(self) -> None:
-        """Test deleting files uploaded through the filestore interface."""
-        # test deleting as a member, as they should be able to
+    def test_delete_forbidden_for_project_read_only_member(self) -> None:
+        """Members with only project:read cannot delete replays."""
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
         self.login_as(user=user)
 
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.delete(self.url)
+            assert response.status_code == 403
+
+    def test_delete_replay_from_filestore(self) -> None:
+        """Test deleting files uploaded through the filestore interface."""
         file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
         file.putfile(BytesIO(b"replay-recording-segment"))
 
@@ -239,7 +243,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         assert storage.get(metadata2) is None
         assert storage.get(metadata3) is not None
 
-    @patch("sentry.replays.usecases.delete.make_signed_seer_api_request")
+    @patch("sentry.replays.usecases.delete.make_replay_delete_request")
     def test_delete_replay_from_seer(self, mock_seer_api_request: MagicMock) -> None:
         """Test delete method deletes from Seer if summaries are enabled."""
         kept_replay_id = uuid4().hex
@@ -260,9 +264,9 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 204
 
         mock_seer_api_request.assert_called_once()
-        call_args = mock_seer_api_request.call_args
-        assert call_args[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
-        request_body = json.loads(call_args[1]["body"].decode())
-        assert request_body == {
+        body = mock_seer_api_request.call_args[0][0]
+        assert body == {
             "replay_ids": [self.replay_id],
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
         }

@@ -2,7 +2,7 @@
 title: LinkButton
 description: LinkButtons are clickable elements that navigate to a different URL or route while maintaining button styling and behavior.
 category: buttons
-source: 'sentry/components/core/button/linkButton'
+source: '@sentry/scraps/button'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
   js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/button/linkButton.tsx#L23
@@ -14,8 +14,9 @@ resources:
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ---
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {
   IconAdd,
   IconArrow,
@@ -34,9 +35,7 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/button/linkButton';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/button/linkButton');
 
 LinkButtons combine the visual appearance of buttons with navigation functionality. Use LinkButton when you need to navigate to a different URL or route while maintaining consistent button styling.
 
@@ -88,6 +87,27 @@ Use the `href` prop for external URLs. External links automatically open in a ne
 </LinkButton>
 ```
 
+### Opening Internal Links in a New Tab
+
+In rare cases, you may need an internal link to open in a new tab. Use the `openInNewTab` prop with `to`.
+
+<Storybook.Demo>
+  <LinkButton to="/explore/logs" openInNewTab>
+    Open Logs in New Tab
+  </LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton to="/explore/logs" openInNewTab>
+  Open Logs in New Tab
+</LinkButton>
+```
+
+> [!WARNING]
+> Use `openInNewTab` sparingly. Opening internal links in a new tab breaks
+> the single-page app navigation flow and should only be used when users
+> need to preserve their current context (e.g., opening a reference page
+> from a drawer).
+
 ## Sizes
 
 LinkButtons are available in the same sizes as regular buttons.
@@ -127,11 +147,11 @@ LinkButtons support an optional leading icon, following the same patterns as reg
 
 > [!TIP]
 > You do not typically need to set the `size` prop for the icon, the LinkButton wraps the
-> rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
+> rendered Icon in an `IconDefaultsProvider` to provide an icon size proportional to the
 > button size.
 
 <Storybook.Demo>
-  <LinkButton icon={<IconOpen />} priority="primary" to="/dashboard">
+  <LinkButton icon={<IconOpen />} variant="primary" to="/dashboard">
     Open Dashboard
   </LinkButton>
   <LinkButton icon={<IconDocs />} href="https://docs.sentry.io" external>
@@ -139,7 +159,7 @@ LinkButtons support an optional leading icon, following the same patterns as reg
   </LinkButton>
 </Storybook.Demo>
 ```jsx
-<LinkButton icon={<IconOpen />} priority="primary" to="/dashboard">
+<LinkButton icon={<IconOpen />} variant="primary" to="/dashboard">
   Open Dashboard
 </LinkButton>
 <LinkButton icon={<IconDocs />} href="https://docs.sentry.io" external>
@@ -147,7 +167,7 @@ LinkButtons support an optional leading icon, following the same patterns as reg
 </LinkButton>
 ```
 
-We have standardized call to action copy and specific icon pairings. When creating an icon LinkButton, please use a pairing from the following list.
+The following table defines standardized call to action copy and icon pairings for LinkButtons.
 
 | Icon         | Name   | Copy              | Meaning                                             |
 | ------------ | ------ | ----------------- | --------------------------------------------------- |
@@ -159,7 +179,7 @@ We have standardized call to action copy and specific icon pairings. When creati
 Disabled LinkButtons prevent navigation and show a non-interactive appearance.
 
 <Storybook.Demo>
-  <LinkButton disabled priority="primary" to="/disabled">
+  <LinkButton disabled variant="primary" to="/disabled">
     Disabled Primary
   </LinkButton>
   <LinkButton disabled to="/disabled">
@@ -167,7 +187,7 @@ Disabled LinkButtons prevent navigation and show a non-interactive appearance.
   </LinkButton>
 </Storybook.Demo>
 ```jsx
-<LinkButton disabled priority="primary" to="/disabled">
+<LinkButton disabled variant="primary" to="/disabled">
   Disabled Primary
 </LinkButton>
 <LinkButton disabled to="/disabled">
@@ -177,15 +197,15 @@ Disabled LinkButtons prevent navigation and show a non-interactive appearance.
 
 ## External Link Security
 
-LinkButtons with the `external` prop automatically include security attributes (`target="_blank"`, `rel="noreferrer noopener"`) to prevent security vulnerabilities when opening external links.
+LinkButtons with the `external` prop automatically include security attributes (`target="_blank"`, `rel="noreferrer noopener"`) and always open in a new tab. External links cannot opt out of new-tab behavior.
 
 <Storybook.Demo>
-  <LinkButton href="https://docs.sentry.io" external priority="primary">
+  <LinkButton href="https://docs.sentry.io" external variant="primary">
     Secure External Link
   </LinkButton>
 </Storybook.Demo>
 ```jsx
-<LinkButton href="https://docs.sentry.io" external priority="primary">
+<LinkButton href="https://docs.sentry.io" external variant="primary">
   Secure External Link
 </LinkButton>
 ```

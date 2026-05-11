@@ -7,7 +7,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TrialStarter from 'getsentry/components/trialStarter';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 type RendererProps = Parameters<ComponentProps<typeof TrialStarter>['children']>[0];
 
@@ -53,7 +53,7 @@ describe('TrialStarter', () => {
     });
 
     const reloadSubsMock = MockApiClient.addMockResponse({
-      url: `/subscriptions/${org.slug}/`,
+      url: `/customers/${org.slug}/`,
       method: 'GET',
       body: sub,
     });

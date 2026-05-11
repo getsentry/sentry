@@ -2,9 +2,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import useDeleteReplays from 'sentry/utils/replays/hooks/useDeleteReplays';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useDeleteReplays} from 'sentry/utils/replays/hooks/useDeleteReplays';
 
 describe('useDeleteReplays', () => {
   describe('queryOptionsToPayload', () => {

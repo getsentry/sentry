@@ -4,13 +4,12 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 
-import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
+import {SentryMemberTeamSelectorField} from './sentryMemberTeamSelectorField';
 
 describe('SentryMemberTeamSelectorField', () => {
   const org = OrganizationFixture();
@@ -18,23 +17,21 @@ describe('SentryMemberTeamSelectorField', () => {
   const mockTeams = [TeamFixture()];
 
   beforeEach(() => {
-    MemberListStore.init();
-    MemberListStore.loadInitialData(mockUsers);
     TeamStore.init();
     TeamStore.loadInitialData(mockTeams);
     OrganizationStore.onUpdate(org, {replace: true});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/user-teams/`,
+      url: '/organizations/org-slug/user-teams/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/teams/`,
+      url: '/organizations/org-slug/teams/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
-      body: [],
+      url: '/organizations/org-slug/members/',
+      body: mockUsers.map(user => ({user})),
     });
   });
 
@@ -147,15 +144,13 @@ describe('SentryMemberTeamSelectorField', () => {
 
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
     expect(
-      within(
-        (await screen.findByText('My Teams')).parentElement as HTMLElement
-      ).getByText('#my-team')
+      within((await screen.findByText('My Teams')).parentElement!).getByText('#my-team')
     ).toBeInTheDocument();
 
     expect(
-      within(
-        (await screen.findByText('Disabled Teams')).parentElement as HTMLElement
-      ).getByText('#disabled-team')
+      within((await screen.findByText('Disabled Teams')).parentElement!).getByText(
+        '#disabled-team'
+      )
     ).toBeInTheDocument();
   });
 });

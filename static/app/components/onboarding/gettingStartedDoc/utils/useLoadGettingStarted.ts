@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -12,7 +13,7 @@ import {
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {useProjectKeys} from 'sentry/utils/useProjectKeys';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 
 type Props = {
   orgSlug: Organization['slug'];
@@ -40,11 +41,13 @@ export function useLoadGettingStarted({
   projectKeyId: Project['id'] | undefined;
   refetch: () => void;
 } {
-  const [module, setModule] = useState<undefined | 'none' | {default: Docs<any>}>(
-    undefined
-  );
+  const [module, setModule] = useState<undefined | 'none' | {docs: Docs<any>}>(undefined);
 
-  const projectKeys = useProjectKeys({orgSlug, projSlug});
+  const projectKeys = useQuery({
+    ...projectKeysApiOptions({orgSlug, projSlug}),
+    staleTime: Infinity,
+    retry: false,
+  });
 
   useEffect(() => {
     async function getGettingStartedDoc() {
@@ -87,7 +90,7 @@ export function useLoadGettingStarted({
     refetch: projectKeys.refetch,
     isLoading: projectKeys.isPending || module === undefined,
     isError: projectKeys.isError,
-    docs: module === 'none' ? null : (module?.default ?? null),
+    docs: module === 'none' ? null : (module?.docs ?? null),
     dsn: projectKeys.data?.[0]?.dsn,
     projectKeyId: projectKeys.data?.[0]?.id,
   };

@@ -482,3 +482,111 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert mock_is_new_issue_count_healthy.call_count == 1
         assert mock_fetch_sessions_data.call_count == 1
         assert mock_is_crash_free_rate_healthy.call_count == 1
+
+
+class ReleaseThresholdStatusProjectAccessTest(APITestCase):
+    """Tests that release threshold status respects project-level access controls."""
+
+    endpoint = "sentry-api-0-organization-release-threshold-statuses"
+    method = "get"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Create a separate owner so self.user doesn't get the owner role,
+        # which has global project access and would bypass team-based filtering.
+        owner = self.create_user("owner@example.com")
+        self.organization = self.create_organization(owner=owner)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        self.user = self.create_user(is_staff=False, is_superuser=False)
+
+        self.team1 = self.create_team(organization=self.organization)
+        self.team2 = self.create_team(organization=self.organization)
+
+        self.accessible_project = self.create_project(
+            name="accessible", organization=self.organization, teams=[self.team1]
+        )
+        self.inaccessible_project = self.create_project(
+            name="inaccessible", organization=self.organization, teams=[self.team2]
+        )
+
+        # User only belongs to team1, giving access to accessible_project only
+        self.create_team_membership(team=self.team1, user=self.user)
+
+        self.environment = Environment.objects.create(
+            organization_id=self.organization.id, name="production"
+        )
+
+        # Release attached to both projects
+        self.release = Release.objects.create(version="v1", organization=self.organization)
+        self.release.add_project(self.accessible_project)
+        self.release.add_project(self.inaccessible_project)
+
+        ReleaseProjectEnvironment.objects.create(
+            release_id=self.release.id,
+            project_id=self.accessible_project.id,
+            environment_id=self.environment.id,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release_id=self.release.id,
+            project_id=self.inaccessible_project.id,
+            environment_id=self.environment.id,
+        )
+
+        # Thresholds on both projects
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            trigger_type=1,
+            value=100,
+            window_in_seconds=100,
+            project=self.accessible_project,
+            environment=self.environment,
+        )
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            trigger_type=1,
+            value=100,
+            window_in_seconds=100,
+            project=self.inaccessible_project,
+            environment=self.environment,
+        )
+
+        self.login_as(user=self.user)
+
+    def test_inaccessible_project_slug_returns_no_data(self) -> None:
+        """Requesting only an inaccessible project slug must not return its threshold data."""
+        now = datetime.now(UTC)
+        yesterday = now - timedelta(hours=24)
+
+        response = self.get_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            projectSlug=[self.inaccessible_project.slug],
+        )
+
+        # No valid projects → NoProjects is raised, so it should not be a 200
+        assert response.status_code != 200
+
+    def test_mixed_slugs_only_returns_accessible_project(self) -> None:
+        """When both accessible and inaccessible slugs are requested,
+        only accessible project data is returned."""
+        now = datetime.now(UTC)
+        yesterday = now - timedelta(hours=24)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            projectSlug=[
+                self.accessible_project.slug,
+                self.inaccessible_project.slug,
+            ],
+        )
+
+        assert len(response.data) == 1
+        expected_key = f"{self.accessible_project.slug}-{self.release.version}"
+        assert expected_key in response.data
+        inaccessible_key = f"{self.inaccessible_project.slug}-{self.release.version}"
+        assert inaccessible_key not in response.data

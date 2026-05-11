@@ -33,6 +33,8 @@ KEY_RATE_LIMIT = {
         "hasReplay": True,
         "hasPerformance": True,
         "hasDebug": True,
+        "hasFeedback": False,
+        "hasLogsAndMetrics": False,
     },
 }
 
@@ -57,7 +59,6 @@ BASE_PROJECT = {
     "features": [
         "alert-filters",
         "custom-inbound-filters",
-        "data-forwarding",
         "discard-groups",
         "minidump",
         "rate-limits",
@@ -268,9 +269,11 @@ DETAILED_PROJECT = {
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
+    "seerNightshiftTweaks": None,
     "highlightTags": [],
     "highlightContext": {},
     "highlightPreset": {"tags": [], "context": {}},
+    "scmSourceContextEnabled": False,
 }
 
 PROJECT_SUMMARY = {
@@ -312,7 +315,6 @@ PROJECT_SUMMARY = {
     "features": [
         "alert-filters",
         "custom-inbound-filters",
-        "data-forwarding",
         "discard-groups",
         "minidump",
         "rate-limits",

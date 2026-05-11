@@ -87,7 +87,7 @@ class OrganizationMemberRequestSerializerTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
-            invite_state = get_invite_state(member.id, org.slug, user.id, request)
+            invite_state = get_invite_state(member.id, org.slug, user.id)
             assert invite_state, "Expected invite state, logic bug?"
             invite_helper = ApiInviteHelper(
                 request=request, invite_context=invite_state, token=None
@@ -562,7 +562,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         # Check that only primary email is present and no other email addresses are exposed
         assert member_data["email"] == "primary@example.com"
-        assert "emails" not in member_data["user"]
+        assert member_data["user"]["emails"] == []
         assert all("email" not in team for team in member_data.get("teams", []))
         assert all("email" not in role for role in member_data.get("teamRoles", []))
 

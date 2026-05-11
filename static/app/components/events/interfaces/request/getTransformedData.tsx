@@ -1,6 +1,6 @@
 import {defined} from 'sentry/utils';
 
-function getTransformedData(data: any, meta: Record<any, any> | undefined) {
+export function getTransformedData(data: any, meta: Record<any, any> | undefined) {
   if (Array.isArray(data)) {
     return data
       .filter(dataValue => {
@@ -41,5 +41,3 @@ function getTransformedData(data: any, meta: Record<any, any> | undefined) {
 
   return [];
 }
-
-export default getTransformedData;

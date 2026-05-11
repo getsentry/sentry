@@ -1,20 +1,21 @@
 import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
 import {isDeveloperPlan, isTrialPlan} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import VolumeSliders from 'getsentry/views/amCheckout/components/volumeSliders';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
-function ReserveAdditionalVolume({
+export function ReserveAdditionalVolume({
   organization,
   subscription,
   activePlan,
@@ -31,7 +32,7 @@ function ReserveAdditionalVolume({
   | 'onUpdate'
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
-  const [showSliders, setShowSliders] = useState<boolean>(
+  const [showSliders, setShowSliders] = useState(
     isDeveloperPlan(subscription.planDetails) || isTrialPlan(subscription.plan)
       ? false
       : Object.values(subscription.categories ?? {})
@@ -48,9 +49,7 @@ function ReserveAdditionalVolume({
               }).price > 0
           )
   );
-  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
-    formData.reserved
-  );
+  const [reserved, setReserved] = useState(formData.reserved);
   const reservedVolumeTotal = useMemo(() => {
     return Object.entries(reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
@@ -97,8 +96,7 @@ function ReserveAdditionalVolume({
         <Stack gap="sm" align="start">
           <Button
             size="sm"
-            priority="link"
-            borderless
+            variant="link"
             icon={showSliders ? <IconSubtract /> : <IconAdd />}
             aria-label={
               showSliders
@@ -152,5 +150,3 @@ function ReserveAdditionalVolume({
     </Stack>
   );
 }
-
-export default ReserveAdditionalVolume;

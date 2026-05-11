@@ -27,7 +27,6 @@ def make_message(payload: bytes, partition: Partition, offset: int, timestamp: d
 @pytest.mark.parametrize("stale_threshold_sec", [300])
 @django_db_all
 def test_dlq_stale_messages_timestamps(factories, stale_threshold_sec) -> None:
-
     organization = factories.create_organization()
     project = factories.create_project(organization=organization)
 

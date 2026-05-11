@@ -31,7 +31,7 @@ def split_database(tables: list[str], source: str, destination: str, reset: bool
     command.extend([">", f"/tmp/{destination}-tables.sql"])
 
     with get_docker_client() as client:
-        postgres = client.containers.get("sentry-postgres-1")
+        postgres = client.containers.get("postgres-postgres-1")
 
         if verbose:
             click.echo(f">> Running {' '.join(command)}")
@@ -76,9 +76,9 @@ def revise_organization_mappings(legacy_region_name: str):
             "> No OrganizationMapping have been modified. Set 'SENTRY_MONOLITH_REGION' in sentry.conf.py to update monolith mappings."
         )
     else:
-        qs = OrganizationMapping.objects.filter(region_name=legacy_region_name)
+        qs = OrganizationMapping.objects.filter(cell_name=legacy_region_name)
         record_count = len(qs)
-        qs.update(region_name=settings.SENTRY_MONOLITH_REGION)
+        qs.update(cell_name=settings.SENTRY_MONOLITH_REGION)
         click.echo(
             f"> {record_count} OrganizationMapping record(s) have been updated from '{legacy_region_name}' to '{settings.SENTRY_MONOLITH_REGION}'"
         )
@@ -130,7 +130,7 @@ def main(database: str, reset: bool, verbose: bool, legacy_region_name: str):
             continue
         if SiloMode.CONTROL in silo_limit.modes:
             control_tables.append(model._meta.db_table)
-        if SiloMode.REGION in silo_limit.modes:
+        if SiloMode.CELL in silo_limit.modes:
             region_tables.append(model._meta.db_table)
 
     revise_organization_mappings(legacy_region_name=legacy_region_name)

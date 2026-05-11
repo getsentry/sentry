@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.search.eap import constants
+from sentry.search.eap.aggregate_utils import resolve_key_eq_value_filter
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
@@ -27,8 +28,8 @@ from sentry.search.eap.columns import (
     ResolverSettings,
     ValueArgumentDefinition,
 )
+from sentry.search.eap.common_formulas import make_epm, make_eps
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
-from sentry.search.eap.spans.aggregates import resolve_key_eq_value_filter
 from sentry.search.eap.spans.utils import (
     WEB_VITALS_MEASUREMENTS,
     operate_multiple_columns,
@@ -48,13 +49,13 @@ from sentry.snuba.referrer import Referrer
 def get_total_span_count(settings: ResolverSettings) -> Column:
     """
     This column represents a count of the all of spans.
-    It works by counting the number of spans that have the attribute "sentry.exclusive_time_ms" (which is set on every span)
+    It works by counting the number of spans that have the attribute "sentry.duration_ms" (which is set on every span)
     """
     extrapolation_mode = settings["extrapolation_mode"]
     return Column(
         aggregation=AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+            key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.duration_ms"),
             extrapolation_mode=extrapolation_mode,
         )
     )
@@ -215,7 +216,7 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
         right=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.duration_ms"),
                 filter=key_equal_value_filter,
                 extrapolation_mode=extrapolation_mode,
             ),
@@ -228,28 +229,35 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
 
     return Column.BinaryFormula(
         left=Column(
-            conditional_aggregation=AttributeConditionalAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(
-                    name="sentry.status",
-                    type=AttributeKey.TYPE_STRING,
-                ),
-                filter=TraceItemFilter(
-                    comparison_filter=ComparisonFilter(
+            formula=Column.BinaryFormula(
+                default_value_double=0.0,
+                left=Column(
+                    conditional_aggregation=AttributeConditionalAggregation(
+                        aggregate=Function.FUNCTION_COUNT,
                         key=AttributeKey(
                             name="sentry.status",
                             type=AttributeKey.TYPE_STRING,
                         ),
-                        op=ComparisonFilter.OP_NOT_IN,
-                        value=AttributeValue(
-                            val_str_array=StrArray(
-                                values=["ok", "cancelled", "unknown"],
-                            ),
+                        filter=TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    name="sentry.status",
+                                    type=AttributeKey.TYPE_STRING,
+                                ),
+                                op=ComparisonFilter.OP_NOT_IN,
+                                value=AttributeValue(
+                                    val_str_array=StrArray(
+                                        values=["ok", "cancelled", "unknown"],
+                                    ),
+                                ),
+                            )
                         ),
-                    )
+                        extrapolation_mode=extrapolation_mode,
+                    ),
                 ),
-                extrapolation_mode=extrapolation_mode,
-            ),
+                op=Column.BinaryFormula.OP_MULTIPLY,
+                right=Column(literal=LiteralValue(val_double=1.0)),
+            )
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=get_total_span_count(settings),
@@ -726,35 +734,11 @@ def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
-def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    extrapolation_mode = settings["extrapolation_mode"]
-    is_timeseries_request = settings["snuba_params"].is_timeseries_request
-
-    divisor = (
-        settings["snuba_params"].timeseries_granularity_secs
-        if is_timeseries_request
-        else settings["snuba_params"].interval
-    )
-
-    return Column.BinaryFormula(
-        left=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                extrapolation_mode=extrapolation_mode,
-            ),
-        ),
-        op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(
-            literal=LiteralValue(val_double=divisor / 60),
-        ),
-    )
-
-
 def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -781,31 +765,6 @@ def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
         ),
         op=Column.BinaryFormula.OP_MULTIPLY,
         right=Column(literal=LiteralValue(val_double=1.0)),
-    )
-
-
-def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    extrapolation_mode = settings["extrapolation_mode"]
-    is_timeseries_request = settings["snuba_params"].is_timeseries_request
-
-    divisor = (
-        settings["snuba_params"].timeseries_granularity_secs
-        if is_timeseries_request
-        else settings["snuba_params"].interval
-    )
-
-    return Column.BinaryFormula(
-        left=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                extrapolation_mode=extrapolation_mode,
-            ),
-        ),
-        op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(
-            literal=LiteralValue(val_double=divisor),
-        ),
     )
 
 
@@ -1037,6 +996,8 @@ def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
 
+_SPAN_COUNT_KEY = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.duration_ms")
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -1224,7 +1185,10 @@ SPAN_FORMULA_DEFINITIONS = {
         private=True,
     ),
     "epm": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=make_epm(_SPAN_COUNT_KEY),
+        is_aggregate=True,
     ),
     "tpm": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
@@ -1236,7 +1200,10 @@ SPAN_FORMULA_DEFINITIONS = {
         is_aggregate=True,
     ),
     "eps": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=make_eps(_SPAN_COUNT_KEY),
+        is_aggregate=True,
     ),
     "apdex": FormulaDefinition(
         default_search_type="number",

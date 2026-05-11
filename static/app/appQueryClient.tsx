@@ -1,13 +1,10 @@
 import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persister';
+import {notifyManager, QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {PersistQueryClientProvider} from '@tanstack/react-query-persist-client';
 import {get as getItem, del as removeItem, set as setItem} from 'idb-keyval';
 
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
 
 /**
  * Named it appQueryClient because we already have a queryClient in sentry/utils/queryClient
@@ -19,6 +16,17 @@ import {
  */
 const appQueryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 const cacheKey = 'sentry-react-query-cache';
+
+// In v5, React Query batches with macrotask (setTimeout 0)
+// This can cause flickering when resetting form state before the cache is updated.
+// Using queueMicrotask will ensure the cache is updated before any state updates are processed.
+// This will also be the default in v6, so this is a forward compatible change.
+
+// Skipped in test environments because it causes act() warnings in tests that
+// don't await async query state updates.
+if (process.env.NODE_ENV !== 'test') {
+  notifyManager.setScheduler(queueMicrotask);
+}
 
 const indexedDbPersister = createAsyncStoragePersister({
   // We're using indexedDB as our storage provider because projects cache can be large

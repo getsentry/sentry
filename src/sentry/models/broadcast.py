@@ -34,6 +34,10 @@ class Broadcast(Model):
     media_url = models.URLField(null=True, blank=True)
     category = models.CharField(choices=BROADCAST_CATEGORIES, max_length=32, null=True, blank=True)
     created_by_id = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    # When True, the hourly changelog sync job in getsentry skips updates to this
+    # broadcast. Flipped automatically when an admin edits a sync-managed field
+    # on a changelog-sourced broadcast; can be cleared to re-enable sync.
+    sync_locked = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         app_label = "sentry"

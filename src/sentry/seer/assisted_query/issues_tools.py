@@ -10,7 +10,6 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
-from sentry.seer.endpoints.utils import validate_date_params
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import PriorityLevel
@@ -74,7 +73,9 @@ _FIELD_VALUE_TYPES: dict[str, str] = {
     "issue": "issue_short_id",
     "device.class": "device_class",
     "timesSeen": "integer",
-    "detector": "dynamic_id",
+    "userCount": "integer",
+    "detector": "dynamic_id",  # TODO - delete this once the UI has been updated
+    "monitor": "dynamic_id",
 }
 
 # Event context fields available for issue search (from frontend's ISSUE_EVENT_PROPERTY_FIELDS)
@@ -446,8 +447,6 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
@@ -560,8 +559,6 @@ def get_filter_key_values(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
     tag_keys: list[str] | None = None
@@ -626,28 +623,29 @@ def get_filter_key_values(
     if issues_resp.status_code == 200 and issues_resp.data:
         all_results.extend(issues_resp.data)
 
-    # 3. Try events dataset with flags backend (feature flags)
-    flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
-    flags_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
-        params=flags_params,
-    )
-    if flags_resp.status_code == 200 and flags_resp.data:
-        all_results.extend(flags_resp.data)
-
+    # 3. Try flags backend (feature flags) only if no results were found. This is only enabled for events dataset
     if not all_results:
-        return []
+        flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
+        flags_resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
+            params=flags_params,
+        )
+        if flags_resp.status_code == 200 and flags_resp.data:
+            all_results.extend(flags_resp.data)
 
     # Merge results by value, summing counts and keeping most recent timestamps
     merged: dict[str, dict[str, Any]] = {}
-    for item in all_results:
+    for item in all_results:  # expected to be TagValueSerializerResponse
+        if not item.get("value") or not item.get("count"):
+            continue
+
         value = item["value"]
         if value not in merged:
             merged[value] = item.copy()
         else:
-            merged[value]["count"] = merged[value].get("count", 0) + item.get("count", 0)
+            merged[value]["count"] += item["count"]
             if "lastSeen" in item and "lastSeen" in merged[value]:
                 if item["lastSeen"] > merged[value]["lastSeen"]:
                     merged[value]["lastSeen"] = item["lastSeen"]
@@ -656,8 +654,7 @@ def get_filter_key_values(
                     merged[value]["firstSeen"] = item["firstSeen"]
 
     result = list(merged.values())
-    result.sort(key=lambda x: x.get("count", 0), reverse=True)
-
+    result.sort(key=lambda x: x["count"], reverse=True)
     return result
 
 
@@ -693,8 +690,6 @@ def execute_issues_query(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
-
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -764,8 +759,6 @@ def get_issues_stats(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
-
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     if not issue_ids:
         return []

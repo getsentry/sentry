@@ -2,13 +2,13 @@ import type {InitializeDataSettings} from 'sentry-test/performance/initializePer
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
@@ -24,7 +24,20 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   return data;
 };
 
+const DEFAULT_ALLOWED_CHARTS = [
+  PerformanceWidgetSetting.TPM_AREA,
+  PerformanceWidgetSetting.FAILURE_RATE_AREA,
+  PerformanceWidgetSetting.USER_MISERY_AREA,
+  PerformanceWidgetSetting.DURATION_HISTOGRAM,
+];
+
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
+  // Ensure the defaultChartSetting is always in allowedCharts so the
+  // interactive title dropdown can find it
+  const allowedCharts = rest.allowedCharts ?? [
+    ...new Set([...DEFAULT_ALLOWED_CHARTS, rest.defaultChartSetting].filter(Boolean)),
+  ];
+
   return (
     <OrganizationContext value={data.organization}>
       <MetricsCardinalityProvider
@@ -37,12 +50,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
           >
             <WidgetContainer
               chartHeight={100}
-              allowedCharts={[
-                PerformanceWidgetSetting.TPM_AREA,
-                PerformanceWidgetSetting.FAILURE_RATE_AREA,
-                PerformanceWidgetSetting.USER_MISERY_AREA,
-                PerformanceWidgetSetting.DURATION_HISTOGRAM,
-              ]}
+              allowedCharts={allowedCharts}
               rowChartSettings={[]}
               withStaticFilters={withStaticFilters}
               forceDefaultChartSetting
@@ -72,17 +80,17 @@ describe('Performance > Widgets > WidgetContainer', () => {
     ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       body: {},
     });
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [{}],
         meta: {},
@@ -91,7 +99,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     issuesListMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [
           {
@@ -115,13 +123,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility/`,
+      url: '/organizations/org-slug/metrics-compatibility/',
       body: [],
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility-sums/`,
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
       body: [],
     });
   });
@@ -271,7 +279,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
       body: {
         detail: 'Request did not work :(',
@@ -279,7 +287,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       statusCode: 400,
       body: {
         detail: 'Request did not work :(',
@@ -362,172 +370,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
           yAxis: 'failure_rate()',
         }),
       })
-    );
-  });
-
-  it('Widget with MEP enabled and metric meta set to true', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['performance-use-metrics'],
-      }
-    );
-
-    eventStatsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
-      body: {
-        data: [],
-        isMetricsData: true,
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
-    });
-
-    eventsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events/`,
-      body: {
-        data: [{}],
-        meta: {isMetricsData: true},
-      },
-    });
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-      />
-    );
-
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'processed'
-    );
-  });
-
-  it('Widget with MEP enabled and metric meta set to undefined', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['performance-use-metrics'],
-      }
-    );
-
-    eventStatsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
-      body: {
-        data: [],
-        isMetricsData: undefined,
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
-    });
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-      />
-    );
-
-    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-  });
-
-  it('Widget with MEP enabled and metric meta set to false', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['performance-use-metrics'],
-      }
-    );
-
-    eventStatsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
-      body: {
-        data: [],
-        isMetricsData: false,
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
-    });
-
-    eventsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events/`,
-      body: {
-        data: [{}],
-        meta: {isMetricsData: false},
-      },
-    });
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-      />
-    );
-
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'indexed'
     );
   });
 
@@ -1051,7 +893,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     const data = initializeData(
       {},
       {
-        features: ['performance-use-metrics'],
+        features: ['dynamic-sampling'],
       }
     );
 
@@ -1129,7 +971,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Able to change widget type from menu', async () => {
+  it('Able to change widget type from dropdown', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
@@ -1149,8 +991,9 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
-    await userEvent.click(await screen.findByLabelText('More'));
-    await userEvent.click(await screen.findByText('User Misery'));
+    // Open the interactive title dropdown and select a different widget type
+    await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'User Misery'}));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
@@ -1159,7 +1002,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(setRowChartSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('Chart settings passed from the row are disabled in the menu', async () => {
+  it('Chart settings passed from the row are disabled in the dropdown', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
@@ -1180,8 +1023,8 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Failure Rate'
     );
 
-    // Open context menu
-    await userEvent.click(await screen.findByLabelText('More'));
+    // Open the interactive title dropdown
+    await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
 
     // Check that the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change

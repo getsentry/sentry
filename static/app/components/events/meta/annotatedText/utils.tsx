@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 import type {ChunkType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -25,7 +26,7 @@ const NON_DATA_SCRUBBING_RULES = {
 
 export function getTooltipText({
   remark = '',
-  rule_id = '',
+  rule_id,
   organization,
   project,
 }: Pick<ChunkType, 'remark' | 'rule_id'> & {

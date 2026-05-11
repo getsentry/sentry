@@ -35,7 +35,6 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "value": 10,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
-            "id": "1",
         }
         mock_new_issue_counts = {
             "1": 0,
@@ -63,7 +62,6 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "value": 10,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
-            "id": "1",
         }
         threshold2: EnrichedThreshold = {
             "id": "2",
@@ -82,7 +80,6 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "value": 10,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
-            "id": "2",
         }
         threshold3: EnrichedThreshold = {
             "id": "3",
@@ -101,7 +98,6 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "value": 10,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
-            "id": "3",
         }
         mock_new_issue_counts = {
             "1": 0,
@@ -139,7 +135,6 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "value": 10,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
-            "id": "1",
         }
         mock_new_issue_counts = {
             "1": 0,

@@ -7,6 +7,18 @@ import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling
 
 import {ProjectsTable} from './projectsTable';
 
+jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockReturnValue({
+  height: 400,
+  width: 500,
+  x: 0,
+  y: 0,
+  top: 0,
+  left: 0,
+  right: 500,
+  bottom: 400,
+  toJSON: jest.fn(),
+});
+
 describe('ProjectsTable', () => {
   const organization = OrganizationFixture({
     access: ['org:write'],

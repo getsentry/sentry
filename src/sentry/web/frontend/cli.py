@@ -155,8 +155,5 @@ def get_cli(request: HttpRequest) -> HttpResponse:
 
 @control_silo_view
 def get_cli_download_url(request: HttpRequest, platform: str, arch: str) -> HttpResponseRedirect:
-    url = "https://release-registry.services.sentry.io/apps/sentry-cli/latest?response=download&arch={}&platform={}&package=sentry-cli".format(
-        quote_plus(arch),
-        quote_plus(platform),
-    )
+    url = f"https://release-registry.services.sentry.io/apps/sentry-cli/latest?response=download&arch={quote_plus(arch)}&platform={quote_plus(platform)}&package=sentry-cli"
     return HttpResponseRedirect(url)

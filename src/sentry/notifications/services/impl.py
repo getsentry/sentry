@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from django.db import router, transaction
 
@@ -29,11 +30,11 @@ class DatabaseBackedNotificationsService(NotificationsService):
         team_id: int | None = None,
         types: list[NotificationSettingEnum] | None = None,
     ) -> None:
-        assert (team_id and not user_id) or (
-            user_id and not team_id
-        ), "Can only enable settings for team or user"
+        assert (team_id and not user_id) or (user_id and not team_id), (
+            "Can only enable settings for team or user"
+        )
 
-        kwargs: MutableMapping[str, str | int] = {}
+        kwargs: dict[str, Any] = {}
         if user_id:
             kwargs["user_id"] = user_id
             kwargs["scope_type"] = NotificationScopeEnum.USER.value
@@ -48,11 +49,11 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 # check the type if it's an input
                 if types and type_enum not in types:
                     continue
-                NotificationSettingProvider.objects.create_or_update(
+                NotificationSettingProvider.objects.update_or_create(
                     **kwargs,
                     provider=external_provider.value,
                     type=type_enum.value,
-                    values={
+                    defaults={
                         "value": NotificationSettingsOptionEnum.ALWAYS.value,
                     },
                 )
@@ -66,16 +67,16 @@ class DatabaseBackedNotificationsService(NotificationsService):
         scope_identifier: int,
         value: NotificationSettingsOptionEnum,
     ) -> None:
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if actor.is_user:
             kwargs["user_id"] = actor.id
         else:
             kwargs["team_id"] = actor.id
-        NotificationSettingOption.objects.create_or_update(
+        NotificationSettingOption.objects.update_or_create(
             type=type.value,
             scope_type=scope_type.value,
             scope_identifier=scope_identifier,
-            values={"value": value.value},
+            defaults={"value": value.value},
             **kwargs,
         )
 

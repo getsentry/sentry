@@ -2,11 +2,11 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BreadcrumbTimeDisplay,
@@ -32,11 +32,11 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
-  const [timeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
-  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
@@ -96,7 +96,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            borderless
+            variant="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter Breadcrumbs')}
@@ -112,7 +112,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
         position="bottom-end"
         trigger={props => (
           <OverlayTrigger.IconButton
-            borderless
+            variant="transparent"
             icon={<IconSort />}
             aria-label={t('Sort Breadcrumbs')}
             title={t('Sort')}

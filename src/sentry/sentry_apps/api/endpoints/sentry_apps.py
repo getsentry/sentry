@@ -108,7 +108,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppParser(data=data, access=request.access)
+        serializer = SentryAppParser(data=data, access=request.access, context={"request": request})
 
         if serializer.is_valid():
             if data.get("isInternal"):
@@ -116,9 +116,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 data["author"] = data["author"] or organization.name
 
             try:
-                assert isinstance(
-                    request.user, (User, RpcUser)
-                ), "User must be authenticated to create a Sentry App"
+                assert isinstance(request.user, (User, RpcUser)), (
+                    "User must be authenticated to create a Sentry App"
+                )
                 sentry_app = SentryAppCreator(
                     name=data["name"],
                     author=data["author"],

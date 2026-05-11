@@ -1,11 +1,13 @@
 import type {ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {EChartsType} from 'echarts';
 import * as echarts from 'echarts';
 
 import {uniqueId} from 'sentry/utils/guid';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
-type RegistrationFunction = (chart: EChartsType) => void;
+type UnregisterFunction = () => void;
+type RegistrationFunction = (chart: EChartsType) => UnregisterFunction;
 
 interface WidgetSyncContext {
   groupName: string;
@@ -25,18 +27,74 @@ interface WidgetSyncContextProviderProps {
 
 export function WidgetSyncContextProvider({
   children,
-  groupName = uniqueId(),
+  groupName,
 }: WidgetSyncContextProviderProps) {
-  const register: RegistrationFunction = chart => {
-    chart.group = groupName;
-    echarts?.connect(groupName);
-  };
+  // Stabilize the default groupName so it doesn't change on every render
+  const stableGroupName = useMemo(() => groupName ?? uniqueId(), [groupName]);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const getOrCreateObserver = useCallback(() => {
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          // Skip detached DOM nodes — they can appear in the observer callback
+          // during component unmount/navigation and cause echarts to call
+          // getAttribute on a null element (echarts-for-react race condition).
+          if (!entry.target.isConnected) {
+            continue;
+          }
+          const chart = echarts.getInstanceByDom(entry.target as HTMLElement);
+          if (!chart) {
+            continue;
+          }
+
+          if (entry.isIntersecting) {
+            chart.group = stableGroupName;
+          } else {
+            chart.group = '';
+          }
+        }
+
+        echarts?.connect(stableGroupName);
+      });
+    }
+    return observerRef.current;
+  }, [stableGroupName]);
+
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    };
+  }, [stableGroupName]);
+
+  const register = useCallback(
+    (chart: EChartsType): UnregisterFunction => {
+      const dom = chart.getDom();
+      if (!dom) {
+        return () => {};
+      }
+
+      getOrCreateObserver().observe(dom);
+
+      // Set the group immediately for charts that may already be visible
+      chart.group = stableGroupName;
+      echarts?.connect(stableGroupName);
+
+      // Return a function to unregister the chart
+      return () => {
+        observerRef.current?.unobserve(dom);
+        chart.group = '';
+      };
+    },
+    [stableGroupName, getOrCreateObserver]
+  );
 
   return (
     <_WidgetSyncProvider
       value={{
         register,
-        groupName,
+        groupName: stableGroupName,
       }}
     >
       {children}
@@ -50,7 +108,7 @@ export function useWidgetSyncContext(): WidgetSyncContext {
   if (!context) {
     // The provider was not registered, return a dummy function
     return {
-      register: (_p: any) => null,
+      register: (_p: any) => () => {},
       groupName: '',
     };
   }

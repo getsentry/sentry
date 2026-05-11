@@ -1,26 +1,26 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
-import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
-import DiffTimestampPicker from 'sentry/components/replays/diff/picker/diffTimestampPicker';
-import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
+import {LearnMoreButton} from 'sentry/components/replays/diff/learnMoreButton';
+import {DiffTimestampPicker} from 'sentry/components/replays/diff/picker/diffTimestampPicker';
+import {ReplayDiffChooser} from 'sentry/components/replays/diff/replayDiffChooser';
 import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {isHydrateCrumb, type HydrationErrorFrame} from 'sentry/utils/replays/types';
 
 interface Props extends ModalRenderProps {
@@ -41,7 +41,7 @@ export default function ReplayComparisonModal({
 }: Props) {
   // Callbacks set by GlobalModal on-render.
   // We need these to interact with feedback opened while a modal is active.
-  const {focusTrap} = useGlobalModal();
+  const {focusTrap} = useModal();
 
   const isSameTimestamp = initialLeftOffsetMs === initialRightOffsetMs;
 
@@ -83,7 +83,7 @@ export default function ReplayComparisonModal({
                   <Button
                     aria-label={t('Adjust diff')}
                     icon={<IconSliders size="md" />}
-                    borderless
+                    variant="transparent"
                   />
                 </AutoWideHovercard>
               ) : null}
@@ -112,15 +112,15 @@ export default function ReplayComparisonModal({
               </Alert>
             </Alert.Container>
           ) : null}
-          <RelativePosition>
+          <Container height="100%" position="relative">
             <ReplayDiffChooser />
-            <AbsoluteTopRight>
+            <Container position="absolute" top="0" right="0">
               <LearnMoreButton
                 onHover={() => focusTrap?.pause()}
                 onBlur={() => focusTrap?.unpause()}
               />
-            </AbsoluteTopRight>
-          </RelativePosition>
+            </Container>
+          </Container>
         </Body>
       </DiffCompareContextProvider>
     </AnalyticsArea>
@@ -133,7 +133,7 @@ const AutoWideHovercard = styled(Hovercard)`
 
 const Title = styled('h4')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Before = styled('span')`
@@ -144,15 +144,4 @@ const Before = styled('span')`
 const After = styled('span')`
   color: ${p => p.theme.colors.green400};
   font-weight: bold;
-`;
-
-const RelativePosition = styled('div')`
-  position: relative;
-  height: 100%;
-`;
-
-const AbsoluteTopRight = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
 `;

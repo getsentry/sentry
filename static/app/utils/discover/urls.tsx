@@ -10,7 +10,7 @@ import type {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import type {EventData} from './eventView';
-import EventView from './eventView';
+import {EventView} from './eventView';
 
 /**
  * Create a slug that can be used with discover details views
@@ -134,19 +134,19 @@ export function eventDetailsRouteWithEventView({
 export function getDiscoverLandingUrl(organization: Organization): string {
   if (organization.features.includes('discover-query')) {
     return makeDiscoverPathname({
-      path: `/homepage/`,
+      path: '/homepage/',
       organization,
     });
   }
   return makeDiscoverPathname({
-    path: `/results/`,
+    path: '/results/',
     organization,
   });
 }
 
 export function getDiscoverQueriesUrl(organization: Organization): string {
   return makeDiscoverPathname({
-    path: `/queries/`,
+    path: '/queries/',
     organization,
   });
 }

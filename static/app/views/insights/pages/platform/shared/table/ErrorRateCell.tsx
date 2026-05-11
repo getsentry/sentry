@@ -1,28 +1,13 @@
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
-
-export function getErrorCellIssuesLink({
-  projectId,
-  query,
-}: {
-  projectId: number | string;
-  query: string;
-}) {
-  return {
-    pathname: '/issues/',
-    query: {
-      project: projectId,
-      query: `is:unresolved event.type:error ${query}`,
-    },
-  };
-}
 
 export function ErrorRateCell({
   errorRate,

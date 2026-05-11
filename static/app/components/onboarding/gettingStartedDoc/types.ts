@@ -58,6 +58,10 @@ export interface PlatformOption<Value extends string = string> {
   items: Array<{
     label: string;
     value: Value;
+    /**
+     * Optional leading items to display before the label (e.g., icons)
+     */
+    leadingItems?: React.ReactNode;
   }>;
   /**
    * The name of the option
@@ -69,7 +73,7 @@ export interface PlatformOption<Value extends string = string> {
   defaultValue?: string;
 }
 
-export type BasePlatformOptions = Record<string, PlatformOption<string>>;
+export type BasePlatformOptions = Record<string, PlatformOption>;
 
 export type SelectedPlatformOptions<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
@@ -121,6 +125,7 @@ export interface DocsParams<
     name?: boolean;
     screenshot?: boolean;
   };
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
   profilingOptions?: {
     defaultProfilingMode?: 'transaction' | 'continuous';
@@ -140,24 +145,31 @@ interface NextStep {
 export interface OnboardingConfig<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > extends WithGeneratorProperties<
-    {
-      configure: OnboardingStep[];
-      install: OnboardingStep[];
-      verify: OnboardingStep[];
-      introduction?: React.ReactNode | React.ReactNode[];
-      nextSteps?: Array<NextStep | null>;
-      onPageLoad?: () => void;
-      onPlatformOptionsChange?: (
-        platformOptions: SelectedPlatformOptions<PlatformOptions>
-      ) => void;
-      onProductSelectionChange?: (params: {
-        previousProducts: ProductSolution[];
-        products: ProductSolution[];
-      }) => void;
-      onProductSelectionLoad?: (products: ProductSolution[]) => void;
-    },
-    DocsParams<PlatformOptions>
-  > {}
+  {
+    configure: OnboardingStep[];
+    install: OnboardingStep[];
+    verify: OnboardingStep[];
+    introduction?: React.ReactNode | React.ReactNode[];
+    nextSteps?: Array<NextStep | null>;
+    onPageLoad?: () => void;
+    onPlatformOptionsChange?: (
+      platformOptions: SelectedPlatformOptions<PlatformOptions>
+    ) => void;
+    onProductSelectionChange?: (params: {
+      previousProducts: ProductSolution[];
+      products: ProductSolution[];
+    }) => void;
+    onProductSelectionLoad?: (products: ProductSolution[]) => void;
+  },
+  DocsParams<PlatformOptions>
+> {
+  /**
+   * When true, the "Copy instructions" button is hidden for this guide.
+   * Use when the guide includes its own copy mechanism
+   * (e.g. AI-assisted setup prompt).
+   */
+  hideInstructionsCopy?: boolean;
+}
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;

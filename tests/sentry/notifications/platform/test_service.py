@@ -6,23 +6,31 @@ from django.utils import timezone
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
+from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.service import (
-    NotificationDataDto,
+    KILLSWITCH_OPTION_KEY,
+    NotificationKillswitchedError,
+    NotificationRenderError,
     NotificationService,
     NotificationServiceError,
+    deserialize_notification_data,
+    notify_target_async,
+    serialize_notification_data,
 )
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
+    serialize_target,
 )
 from sentry.notifications.platform.templates.data_export import DataExportFailure
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import (
     MockNotification,
     MockNotificationTemplate,
@@ -91,13 +99,18 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_notify_sync_collects_errors(self, mock_send: mock.MagicMock) -> None:
-        mock_send.side_effect = IntegrationConfigurationError("Provider error", 400)
+        mock_send.return_value = SendFailure(
+            status=SendFailureStatus.HALT,
+            exception=IntegrationConfigurationError(message="Provider error"),
+            error_code=400,
+        )
 
         service = NotificationService(data=MockNotification(message="test"))
         errors = service.notify_sync(targets=[self.target])
 
         assert len(errors[NotificationProviderKey.EMAIL]) == 1
-        assert "Provider error" in errors[NotificationProviderKey.EMAIL][0]
+        assert errors[NotificationProviderKey.EMAIL][0].status == SendFailureStatus.HALT
+        assert str(errors[NotificationProviderKey.EMAIL][0].exception) == "Provider error"
 
     def test_render_template_classmethod(self) -> None:
         data = MockNotification(message="test")
@@ -121,10 +134,14 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_notify_target_async_with_api_error(
+    def test_notify_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.side_effect = ApiError("API request failed", 400)
+        mock_send.return_value = SendFailure(
+            status=SendFailureStatus.FAILURE,
+            exception=IntegrationError(message="API request failed"),
+            error_code=400,
+        )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
             service.notify_async(targets=[self.target])
@@ -148,10 +165,14 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_notify_integration_target_async_with_api_error(
+    def test_notify_integration_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.side_effect = ApiError("Slack API request failed", 400)
+        mock_send.return_value = SendFailure(
+            status=SendFailureStatus.FAILURE,
+            exception=IntegrationError(message="Slack API request failed"),
+            error_code=400,
+        )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
             service.notify_async(targets=[self.integration_target])
@@ -178,9 +199,109 @@ class NotificationServiceTest(TestCase):
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 2)
         assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 2)
 
+    @mock.patch("sentry.notifications.platform.service.NotificationService.render_template")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_render_error_records_failure_and_raises(
+        self, mock_record: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        mock_render.side_effect = ValueError("missing occurrence")
+        service = NotificationService(data=MockNotification(message="test"))
 
-class NotificationDataDtoTest(TestCase):
-    def test_from_dict_raises_error_without_source(self) -> None:
+        with pytest.raises(NotificationRenderError) as exc_info:
+            with self.tasks():
+                service.notify_async(targets=[self.target])
+
+        assert "missing occurrence" in str(exc_info.value.__cause__)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.FAILURE, 1)
+
+    @override_options({KILLSWITCH_OPTION_KEY: ["test"]})
+    @mock.patch("sentry.notifications.platform.service.logger")
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_notify_target_blocked_by_killswitch(
+        self, mock_send: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        service = NotificationService(data=MockNotification(message="test"))
+        result = service.notify_target(target=self.target)
+
+        mock_send.assert_not_called()
+        assert isinstance(result, SendFailure)
+        assert result.status == SendFailureStatus.HALT
+        assert isinstance(result.exception, NotificationKillswitchedError)
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_target"},
+        )
+
+    @override_options({KILLSWITCH_OPTION_KEY: ["test"]})
+    @mock.patch("sentry.notifications.platform.service.logger")
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_notify_sync_blocked_by_killswitch(
+        self, mock_send: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        service = NotificationService(data=MockNotification(message="test"))
+        errors = service.notify_sync(targets=[self.target])
+
+        mock_send.assert_not_called()
+        assert len(errors[NotificationProviderKey.EMAIL]) == 1
+        failure = errors[NotificationProviderKey.EMAIL][0]
+        assert failure.status == SendFailureStatus.HALT
+        assert isinstance(failure.exception, NotificationKillswitchedError)
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_target"},
+        )
+
+    @override_options({KILLSWITCH_OPTION_KEY: ["test"]})
+    @mock.patch("sentry.notifications.platform.service.logger")
+    @mock.patch("sentry.notifications.platform.service.notify_target_async.delay")
+    def test_notify_async_blocked_by_killswitch_does_not_enqueue(
+        self, mock_delay: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        service = NotificationService(data=MockNotification(message="test"))
+        service.notify_async(targets=[self.target])
+
+        mock_delay.assert_not_called()
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_async"},
+        )
+
+    @mock.patch("sentry.notifications.platform.service.logger")
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_notify_target_async_task_blocked_by_killswitch(
+        self, mock_send: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """
+        Even when the killswitch is added after the task is enqueued, the task
+        itself must short-circuit before sending.
+        """
+        service = NotificationService(data=MockNotification(message="test"))
+        with override_options({KILLSWITCH_OPTION_KEY: ["test"]}):
+            with self.tasks():
+                # Enqueue the task directly to simulate a task that was
+                # scheduled before the killswitch was activated.
+                notify_target_async.delay(
+                    data=serialize_notification_data(service.data),
+                    nested_target=serialize_target(self.target),
+                )
+
+        mock_send.assert_not_called()
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_target_async"},
+        )
+
+    @override_options({KILLSWITCH_OPTION_KEY: ["data-export-success"]})
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_killswitch_only_blocks_listed_sources(self, mock_send: mock.MagicMock) -> None:
+        service = NotificationService(data=MockNotification(message="test"))
+        service.notify_sync(targets=[self.target])
+
+        mock_send.assert_called_once()
+
+
+class NotificationDataSerializationTest(TestCase):
+    def test_deserialize_raises_error_without_source(self) -> None:
         serialized = {
             "data": {
                 "message": "test",
@@ -188,31 +309,30 @@ class NotificationDataDtoTest(TestCase):
         }
 
         with pytest.raises(NotificationServiceError, match="Source is required"):
-            NotificationDataDto.from_dict(serialized)
+            deserialize_notification_data(serialized)
 
     def test_roundtrip_serialization(self) -> None:
         original_notification = MockNotification(message="roundtrip test")
-        dto = NotificationDataDto(notification_data=original_notification)
 
-        serialized = dto.to_dict()
-        reconstructed_dto = NotificationDataDto.from_dict(serialized)
+        serialized = serialize_notification_data(original_notification)
+        reconstructed = deserialize_notification_data(serialized)
 
-        assert isinstance(reconstructed_dto.notification_data, MockNotification)
-        assert reconstructed_dto.notification_data.source == original_notification.source
-        assert reconstructed_dto.notification_data.message == original_notification.message
+        assert isinstance(reconstructed, MockNotification)
+        assert reconstructed.source == original_notification.source
+        assert reconstructed.message == original_notification.message
 
-    def test_from_dict_with_complex_data_types(self) -> None:
+    def test_roundtrip_with_complex_data_types(self) -> None:
         now = timezone.now()
         data = DataExportFailure(
             error_message="Export failed",
             error_payload={"export_type": "Issues", "project": [123]},
             creation_date=now,
         )
-        serialized = NotificationDataDto(notification_data=data).to_dict()
-        dto = NotificationDataDto.from_dict(serialized)
+        serialized = serialize_notification_data(data)
+        reconstructed = deserialize_notification_data(serialized)
 
-        assert dto.notification_data.source == "data-export-failure"
-        assert isinstance(dto.notification_data, DataExportFailure)
-        assert dto.notification_data.error_message == "Export failed"
-        assert dto.notification_data.error_payload == {"export_type": "Issues", "project": [123]}
-        assert dto.notification_data.creation_date == now
+        assert reconstructed.source == "data-export-failure"
+        assert isinstance(reconstructed, DataExportFailure)
+        assert reconstructed.error_message == "Export failed"
+        assert reconstructed.error_payload == {"export_type": "Issues", "project": [123]}
+        assert reconstructed.creation_date == now

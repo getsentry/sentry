@@ -1,6 +1,7 @@
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {LinkButtonProps} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 interface Props extends Omit<LinkButtonProps, 'to' | 'external'> {}
@@ -10,8 +11,8 @@ export function NewMonitorButton(props: Props) {
 
   return (
     <LinkButton
-      to={makeAlertsPathname({path: `/new/crons/`, organization})}
-      priority="primary"
+      to={makeAlertsPathname({path: '/new/crons/', organization})}
+      variant="primary"
       {...props}
     >
       {props.children}

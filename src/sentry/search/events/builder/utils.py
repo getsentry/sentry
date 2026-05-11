@@ -55,12 +55,7 @@ def optimal_granularity_for_date_range(start: datetime, end: datetime) -> int:
 
     if (
         # precisely going hour to hour
-        start.minute
-        == end.minute
-        == start.second
-        == end.second
-        == duration % 3600
-        == 0
+        start.minute == end.minute == start.second == end.second == duration % 3600 == 0
     ):
         # we're going from midnight -> midnight which aligns with our daily buckets
         if start.hour == end.hour == duration % 86400 == 0:
@@ -70,14 +65,12 @@ def optimal_granularity_for_date_range(start: datetime, end: datetime) -> int:
             granularity = 3600
     elif (
         # Its over 30d, just use the daily granularity
-        duration
-        >= 86400 * 30
+        duration >= 86400 * 30
     ):
         granularity = 86400
     elif (
         # more than 3 days
-        duration
-        >= 86400 * 3
+        duration >= 86400 * 3
     ):
         # Allow 30 minutes for the daily buckets
         if near_midnight(start) and near_midnight(end):

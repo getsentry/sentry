@@ -164,7 +164,6 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
 
     event_type = get_event_type(event.data)
     event_metadata: dict[str, Any] = dict(event_type.get_metadata(event.data))
-    event_metadata = dict(event_metadata)
     # Don't clobber existing metadata
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
@@ -342,6 +341,7 @@ def save_issue_from_occurrence(
                 reason=PriorityChangeReason.ISSUE_PLATFORM,
                 project=project,
                 is_regression=is_regression,
+                event_id=occurrence.event_id,
             )
 
             open_period = get_latest_open_period(group)

@@ -199,9 +199,9 @@ def create_configurations(
     platform_config: PlatformConfig,
 ) -> tuple[list[CodeMapping], list[str]]:
     """
-    Given a set of trees and frames to process, create code mappings & in-app stack trace rules.
+    Given a set of trees and frames to process, create code mappings & in-app stacktrace rules.
 
-    Returns a tuple of code mappings and in-app stack trace rules even when running in dry-run mode.
+    Returns a tuple of code mappings and in-app stacktrace rules even when running in dry-run mode.
     """
     org_integration = installation.org_integration
     if not org_integration:
@@ -212,7 +212,9 @@ def create_configurations(
     tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
     with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
         for code_mapping in code_mappings:
-            repository = create_repository(code_mapping.repo.name, org_integration, tags)
+            repository = create_repository(
+                code_mapping.repo.name, org_integration, tags, code_mapping.repo.external_id
+            )
             create_code_mapping(code_mapping, repository, project, org_integration, tags)
 
     in_app_stack_trace_rules: list[str] = []
@@ -238,12 +240,12 @@ def create_code_mapping(
         _, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
             stack_root=code_mapping.stacktrace_root,
+            source_root=code_mapping.source_path,
             defaults={
                 "repository": repository,
                 "organization_integration_id": org_integration.id,
                 "integration_id": org_integration.integration_id,
                 "organization_id": org_integration.organization_id,
-                "source_root": code_mapping.source_path,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": True,
             },

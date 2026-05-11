@@ -2,8 +2,11 @@ import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Alert} from '@sentry/scraps/alert';
+import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {Container} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {
   StoryTreeNode,
@@ -12,7 +15,7 @@ import {
 } from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
@@ -88,17 +91,31 @@ function StoryDetail() {
   return (
     <StoriesLayout>
       {story.isLoading ? (
-        <VerticalScroll>
+        <Container
+          as="main"
+          padding="xl"
+          overflowX="visible"
+          overflowY="auto"
+          row="1"
+          column="2"
+        >
           <LoadingIndicator />
-        </VerticalScroll>
+        </Container>
       ) : story.isError ? (
-        <VerticalScroll>
+        <Container
+          as="main"
+          padding="xl"
+          overflowX="visible"
+          overflowY="auto"
+          row="1"
+          column="2"
+        >
           <Alert.Container>
             <Alert variant="danger">
               <strong>{story.error.name}:</strong> {story.error.message}
             </Alert>
           </Alert.Container>
-        </VerticalScroll>
+        </Container>
       ) : story.isSuccess ? (
         <StoryMainContainer>
           {story.data.map(s => {
@@ -106,9 +123,16 @@ function StoryDetail() {
           })}
         </StoryMainContainer>
       ) : (
-        <VerticalScroll>
+        <Container
+          as="main"
+          padding="xl"
+          overflowX="visible"
+          overflowY="auto"
+          row="1"
+          column="2"
+        >
           <strong>The file you selected does not export a story.</strong>
-        </VerticalScroll>
+        </Container>
       )}
     </StoriesLayout>
   );
@@ -119,15 +143,17 @@ function StoriesLayout(props: PropsWithChildren) {
     <Fragment>
       <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
-        <OrganizationContainer>
-          <Layout>
-            <HeaderContainer>
-              <StoryHeader />
-            </HeaderContainer>
-            <StorySidebar />
-            {props.children}
-          </Layout>
-        </OrganizationContainer>
+        <GlobalDrawer>
+          <OrganizationContainer>
+            <Layout>
+              <HeaderContainer>
+                <StoryHeader />
+              </HeaderContainer>
+              <StorySidebar />
+              {props.children}
+            </Layout>
+          </OrganizationContainer>
+        </GlobalDrawer>
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
@@ -222,15 +248,6 @@ const HeaderContainer = styled('header')`
   right: 0;
   z-index: ${p => p.theme.zIndex.header};
   background: ${p => p.theme.tokens.background.primary};
-`;
-
-const VerticalScroll = styled('main')`
-  overflow-x: visible;
-  overflow-y: auto;
-
-  grid-row: 1;
-  grid-column: 2;
-  padding: ${p => p.theme.space.xl};
 `;
 
 const StoryMainContainer = styled('main')`

@@ -37,7 +37,7 @@ export type Params = DocsParams<PlatformOptions>;
 const getIntegrations = (params: Params): string[] => {
   const integrations = [];
   if (params.isPerformanceSelected) {
-    integrations.push(`Sentry.browserTracingIntegration({ router })`);
+    integrations.push('Sentry.browserTracingIntegration({ router })');
   }
 
   if (params.isReplaySelected) {
@@ -47,7 +47,7 @@ const getIntegrations = (params: Params): string[] => {
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isFeedbackSelected) {
@@ -147,7 +147,7 @@ function getSentryInitLayout(params: Params, siblingOption: string): string {
   const config = buildSdkConfig({
     params,
     staticParts: [
-      `${siblingOption === VueVersion.VUE2 ? 'Vue' : 'app'}`,
+      siblingOption === VueVersion.VUE2 ? 'Vue' : 'app',
       `dsn: "${params.dsn.public}"`,
       `// Setting this option to true will send default PII data to Sentry.
       // For example, automatic IP address collection on events

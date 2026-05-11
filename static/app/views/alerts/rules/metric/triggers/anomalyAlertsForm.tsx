@@ -1,8 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {Select} from '@sentry/scraps/select';
+
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -109,7 +110,7 @@ function DirectionFormItem({
   );
 }
 
-class AnomalyDetectionFormField extends Component<Props> {
+export class AnomalyDetectionFormField extends Component<Props> {
   render() {
     const {sensitivity, onSensitivityChange, thresholdType, onThresholdTypeChange} =
       this.props;
@@ -139,4 +140,3 @@ const StyledField = styled(FieldGroup)`
 const SelectContainer = styled('div')`
   flex: 1;
 `;
-export default AnomalyDetectionFormField;

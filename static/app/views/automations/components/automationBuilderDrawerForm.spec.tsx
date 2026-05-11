@@ -8,7 +8,7 @@ import {
 } from 'sentry-fixture/workflowEngine';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
@@ -125,7 +125,10 @@ describe('AutomationBuilderDrawerForm', () => {
     );
 
     // Add an action
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await selectEvent.select(
+      await screen.findByRole('textbox', {name: 'Add action'}),
+      'Slack'
+    );
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
 
     // Fill in the automation name - clear first to override auto-generated name
@@ -152,5 +155,5 @@ describe('AutomationBuilderDrawerForm', () => {
     await waitFor(() => {
       expect(onSuccess).toHaveBeenCalledWith('123');
     });
-  });
+  }, 10_000);
 });

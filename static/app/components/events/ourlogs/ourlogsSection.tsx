@@ -1,11 +1,13 @@
 import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
-import useDrawer from 'sentry/components/globalDrawer';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -15,18 +17,17 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LOGS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -39,17 +40,30 @@ export function OurlogsSection({
   group: Group;
   project: Project;
 }) {
+  const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
+  if (!traceId) {
+    return null;
+  }
   return (
-    <LogsQueryParamsProvider
-      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-      source="state"
-      freeze={traceId ? {traceId} : undefined}
+    <LazyRender
+      disabled={
+        location.query[LOGS_DRAWER_QUERY_PARAM] === 'true' ||
+        location.hash === `#${SectionKey.LOGS}`
+      }
+      observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
+      withoutContainer
     >
-      <LogsPageDataProvider disabled={!traceId}>
-        <OurlogsSectionContent event={event} group={group} project={project} />
-      </LogsPageDataProvider>
-    </LogsQueryParamsProvider>
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+        source="state"
+        freeze={{traceId}}
+      >
+        <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
+          <OurlogsSectionContent event={event} group={group} project={project} />
+        </LogsPageDataProvider>
+      </LogsQueryParamsProvider>
+    </LazyRender>
   );
 }
 
@@ -115,21 +129,22 @@ function OurlogsSectionContent({
             source="state"
             freeze={traceId ? {traceId} : undefined}
           >
-            <LogsPageDataProvider disabled={!traceId}>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <OurlogsDrawer
-                  group={group}
-                  event={event}
-                  project={project}
-                  embeddedOptions={
-                    expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
-                  }
-                  additionalData={{
-                    event,
-                    scrollToDisabled: !!expandedLogId,
-                  }}
-                />
-              </TraceItemAttributeProvider>
+            <LogsPageDataProvider
+              disabled={!traceId}
+              staleTime={EXPLORE_FIVE_MIN_STALE_TIME}
+            >
+              <OurlogsDrawer
+                group={group}
+                event={event}
+                project={project}
+                embeddedOptions={
+                  expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
+                }
+                additionalData={{
+                  event,
+                  scrollToDisabled: !!expandedLogId,
+                }}
+              />
             </LogsPageDataProvider>
           </LogsQueryParamsProvider>
         ),

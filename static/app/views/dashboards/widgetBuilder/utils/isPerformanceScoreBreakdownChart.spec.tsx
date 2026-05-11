@@ -10,7 +10,7 @@ describe('isPerformanceScoreBreakdownChart', () => {
     orderby: '',
   };
 
-  it('returns true', () => {
+  it('returns true for regular format', () => {
     const widgetQuery: WidgetQuery = {
       ...baseWidgetQuery,
       aggregates: [
@@ -19,6 +19,21 @@ describe('isPerformanceScoreBreakdownChart', () => {
         'performance_score(measurements.score.cls)',
         'performance_score(measurements.score.inp)',
         'performance_score(measurements.score.ttfb)',
+      ],
+    };
+
+    expect(isPerformanceScoreBreakdownChart(widgetQuery)).toBe(true);
+  });
+
+  it('returns true for equation format', () => {
+    const widgetQuery: WidgetQuery = {
+      ...baseWidgetQuery,
+      aggregates: [
+        'equation|performance_score(measurements.score.lcp)',
+        'equation|performance_score(measurements.score.fcp)',
+        'equation|performance_score(measurements.score.cls)',
+        'equation|performance_score(measurements.score.inp)',
+        'equation|performance_score(measurements.score.ttfb)',
       ],
     };
 

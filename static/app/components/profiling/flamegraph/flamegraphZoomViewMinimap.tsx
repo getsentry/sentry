@@ -97,7 +97,7 @@ function FlamegraphZoomViewMinimap({
     return renderer;
   }, [flamegraph, flamegraphMiniMapCanvasRef, colorCoding, flamegraphTheme]);
 
-  const positionIndicatorRenderer: PositionIndicatorRenderer | null = useMemo(() => {
+  const positionIndicatorRenderer = useMemo(() => {
     if (!flamegraphMiniMapOverlayCanvasRef) {
       return null;
     }
@@ -115,7 +115,7 @@ function FlamegraphZoomViewMinimap({
       !positionIndicatorRenderer ||
       !flamegraphMiniMapRenderer
     ) {
-      return undefined;
+      return;
     }
 
     const clearOverlayCanvas = () => {

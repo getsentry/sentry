@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
 
@@ -53,11 +53,9 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         self.reload_cache(organization.id, "organizationoption.unset_value")
 
     def set_value(self, organization: Organization, key: str, value: Any) -> bool:
-        inst, created = self.create_or_update(
-            organization=organization, key=key, values={"value": value}
-        )
+        self.update_or_create(organization=organization, key=key, defaults={"value": value})
         self.reload_cache(organization.id, "organizationoption.set_value")
-        return bool(created) or inst > 0
+        return True
 
     def get_all_values(self, organization: Organization | int) -> Mapping[str, Any]:
         if isinstance(organization, models.Model):
@@ -96,7 +94,7 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         self.reload_cache(instance.organization_id, "organizationoption.post_delete")
 
 
-@region_silo_model
+@cell_silo_model
 class OrganizationOption(Model):
     """
     Organization options apply only to an instance of a organization.

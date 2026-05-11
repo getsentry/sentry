@@ -5,18 +5,18 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {mentionStyle} from 'sentry/components/activity/note/mentionStyle';
 import type {
   CreateError,
   MentionChangeEvent,
   Mentioned,
 } from 'sentry/components/activity/note/types';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
@@ -49,7 +49,7 @@ function StreamlinedNoteInput({
 }: Props) {
   const theme = useTheme();
 
-  const {members} = useMembers();
+  const {data: members = []} = useMembers();
   const {teams} = useTeams();
 
   const suggestMembers = members.map(member => ({
@@ -176,14 +176,14 @@ function StreamlinedNoteInput({
         />
       </MentionsInput>
       {(isSubmitVisible || existingItem) && (
-        <ButtonBar gap="xs">
+        <Grid flow="column" align="center" gap="xs">
           {existingItem && (
             <Button size="xs" onClick={onCancel}>
               {t('Cancel')}
             </Button>
           )}
           <Button
-            priority="primary"
+            variant="primary"
             size="xs"
             disabled={!canSubmit}
             aria-label={existingItem ? t('Save comment') : t('Submit comment')}
@@ -191,7 +191,7 @@ function StreamlinedNoteInput({
           >
             {existingItem ? t('Save') : t('Comment')}
           </Button>
-        </ButtonBar>
+        </Grid>
       )}
     </NoteInputForm>
   );
@@ -241,7 +241,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
 const NoteInputForm = styled('form')<{error?: string}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: flex-end;
   width: 100%;
   transition: padding 0.2s ease-in-out;

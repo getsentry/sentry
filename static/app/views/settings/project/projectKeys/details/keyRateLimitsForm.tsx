@@ -2,21 +2,21 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Input} from '@sentry/scraps/input';
+
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Input} from 'sentry/components/core/input';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import type {ProjectKey} from 'sentry/types/project';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
@@ -24,25 +24,33 @@ const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
 ];
 
-type RateLimitValue = {
+interface RateLimitValue {
   count: number;
   window: number;
-};
+}
 
-type Props = {
-  data: ProjectKey;
-  disabled: boolean;
-  organization: Organization;
-  updateData: (data: ProjectKey) => void;
-} & Pick<
+interface KeyRateLimitsFormProps extends Pick<
   RouteComponentProps<{
     keyId: string;
     projectId: string;
   }>,
   'params'
->;
+> {
+  data: ProjectKey;
+  disabled: boolean;
+  organization: Organization;
+  project: Project;
+  updateData: (data: ProjectKey) => void;
+}
 
-function KeyRateLimitsForm({data, disabled, organization, params, updateData}: Props) {
+export function KeyRateLimitsForm({
+  data,
+  disabled,
+  organization,
+  params,
+  project,
+  updateData,
+}: KeyRateLimitsFormProps) {
   const initialRateLimit = useMemo(() => data.rateLimit, [data.rateLimit]);
 
   const {keyId, projectId} = params;
@@ -95,12 +103,13 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
       <Feature
         features="projects:rate-limits"
         hookName="feature-disabled:rate-limits"
+        project={project}
         renderDisabled={({children, ...props}) =>
           typeof children === 'function' &&
           children({...props, renderDisabled: disabledAlert})
         }
       >
-        {({hasFeature, features, project, renderDisabled}) => (
+        {({hasFeature, features, renderDisabled}) => (
           <Panel>
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
@@ -131,9 +140,8 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
                 validate={({form}: any) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
-                    form?.rateLimit &&
-                    typeof form.rateLimit.count !== 'undefined' &&
-                    typeof form.rateLimit.window !== 'undefined';
+                    form?.rateLimit?.count !== undefined &&
+                    form.rateLimit.window !== undefined;
 
                   if (isValid) {
                     return [];
@@ -193,13 +201,13 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
                             }
                             return getExactDuration(rangeValue);
                           }
-                          return undefined;
+                          return;
                         }}
                         disabled={disabled || !hasFeature}
                         onChange={(rangeValue, event) =>
                           onChange({...value, window: Number(rangeValue)}, event)
                         }
-                        onBlur={() => {
+                        onChangeEnd={() => {
                           if (hasRateLimitChanged(value)) {
                             formModel.saveField('rateLimit', value);
                           }
@@ -217,13 +225,11 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
   );
 }
 
-export default KeyRateLimitsForm;
-
 const RateLimitRow = styled('div')`
   display: grid;
   grid-template-columns: 100px max-content 1fr;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const EventsIn = styled('small')`

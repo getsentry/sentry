@@ -4,14 +4,14 @@ import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
 
 type ProjectPlaceholder = AvatarProject;
 
@@ -172,7 +172,7 @@ class BaseProjects extends Component<Props, State> {
   /**
    * List of projects that need to be fetched via API
    */
-  fetchQueue: Set<string> = new Set();
+  fetchQueue = new Set<string>();
 
   /**
    * Memoized function that returns a `Map<project.slug, project>`
@@ -282,9 +282,7 @@ class BaseProjects extends Component<Props, State> {
     // For each item in the fetch queue, lookup the project object and in the case
     // where something wrong has happened and we were unable to get project summary from
     // the server, just fill in with an object with only the slug
-    const projectsOrPlaceholder: Project[] | ProjectPlaceholder[] = Array.from(
-      this.fetchQueue
-    )
+    const projectsOrPlaceholder = Array.from(this.fetchQueue)
       .map(slug =>
         projectsMap.has(slug)
           ? projectsMap.get(slug)
@@ -445,9 +443,7 @@ class BaseProjects extends Component<Props, State> {
  * The legacy way of handling this is that `ProjectSummary[]` is expected to be included in an
  * `Organization` as well as being saved to `ProjectsStore`.
  */
-const Projects = withProjects(withApi(BaseProjects));
-
-export default Projects;
+export const Projects = withProjects(withApi(BaseProjects));
 
 type FetchProjectsOptions = {
   cursor?: State['nextCursor'];

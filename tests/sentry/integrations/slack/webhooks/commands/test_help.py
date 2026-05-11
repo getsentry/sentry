@@ -5,7 +5,7 @@ from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
@@ -30,7 +30,7 @@ def assert_unknown_command_text(data: SlackBody, unknown_command: str | None = N
     assert "Here are the commands you can use" in text
 
 
-@control_silo_test(regions=[Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)])
+@control_silo_test(cells=[Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)])
 class SlackCommandsHelpTest(SlackCommandsTest):
     @responses.activate
     def test_missing_command(self) -> None:
@@ -76,8 +76,10 @@ class SlackCommandsHelpTest(SlackCommandsTest):
             )
         data = self.send_slack_message("help")
         text = get_response_text(data)
-        assert "`/sentry link team [organization_slug]`:" in text
-        assert "`/sentry unlink team [organization_slug]`:" in text
+        assert "`/sentry link team <organization_slug>`:" in text
+        assert "`/sentry unlink team <organization_slug>`:" in text
+        assert "`/sentry set org <organization_slug>`:" in text
+        assert "`/sentry unset org`:" in text
 
     @responses.activate
     def test_support_command(self) -> None:

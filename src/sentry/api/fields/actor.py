@@ -24,7 +24,10 @@ class OwnerActorField(ActorField):
     """
     ActorField variant for owner assignment that validates team membership.
 
-    When assigning a team as owner, validates that the requesting user either:
+    When assigning a team as owner, validation is skipped if:
+    - Open Team Membership is enabled for the organization (users can join any team)
+
+    Otherwise, validates that the requesting user either:
     - Has team:admin scope, OR
     - Is a member of the team being assigned
 
@@ -46,27 +49,27 @@ class OwnerActorField(ActorField):
     def _validate_team_assignment(self, actor: Actor) -> None:
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
+        organization = self.context.get("organization")
+
+        if organization and organization.flags.allow_joinleave:
+            return
+
         request = self.context.get("request")
-        # Check for access in context directly for background tasks or on request for API requests
         access = self.context.get("access") or getattr(request, "access", None)
 
-        # Users with team:admin scope can assign any team
-        # SystemAccess (used in background tasks) returns True for all scopes
         if access and access.has_scope("team:admin"):
             return
 
-        # Try to get user from context directly or from request
         user = self.context.get("user") or getattr(request, "user", None)
 
-        # Fail closed
         if not user:
-            raise serializers.ValidationError("You do not have permission to assign this owner")
+            raise serializers.ValidationError("You can only assign teams you are a member of")
 
-        user_is_team_member = OrganizationMemberTeam.objects.filter(
+        if OrganizationMemberTeam.objects.filter(
             team_id=actor.id,
             organizationmember__user_id=user.id,
             is_active=True,
-        ).exists()
+        ).exists():
+            return
 
-        if not user_is_team_member:
-            raise serializers.ValidationError("You do not have permission to assign this owner")
+        raise serializers.ValidationError("You can only assign teams you are a member of")

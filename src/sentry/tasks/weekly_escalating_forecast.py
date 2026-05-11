@@ -2,14 +2,15 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
+from taskbroker_client.retry import Retry
+
 from sentry.constants import ObjectStatus
 from sentry.issues.escalating.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -31,7 +32,7 @@ ITERATOR_CHUNK = 500
     name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
     namespace=issues_tasks,
     processing_deadline_duration=60 * 2,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_escalating_forecast() -> None:
     """
@@ -54,10 +55,9 @@ def run_escalating_forecast() -> None:
     name="sentry.tasks.weekly_escalating_forecast.generate_forecasts_for_projects",
     namespace=issues_tasks,
     processing_deadline_duration=60 * 2,
-    retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    retry=Retry(times=3, delay=60, on=(Exception,)),
+    silo_mode=SiloMode.CELL,
 )
-@retry
 def generate_forecasts_for_projects(project_ids: list[int]) -> None:
     for until_escalating_groups in chunked(
         RangeQuerySetWrapper(

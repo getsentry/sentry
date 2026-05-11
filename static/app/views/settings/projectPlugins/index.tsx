@@ -1,23 +1,29 @@
 import {Fragment, useEffect} from 'react';
 
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import ProjectPlugins from './projectPlugins';
+import {ProjectPlugins} from './projectPlugins';
 import {useTogglePluginMutation} from './useTogglePluginMutation';
 
 export default function ProjectPluginsContainer() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
 
-  const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
+  const pluginsQueryKey = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }
+  );
 
   const {
     data: plugins = [],

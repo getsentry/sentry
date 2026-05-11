@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ArrayValue from 'sentry/utils/discover/arrayValue';
+import {ArrayValue} from 'sentry/utils/discover/arrayValue';
 
 describe('Discover > ArrayValue', () => {
   it('renders an expand link', () => {

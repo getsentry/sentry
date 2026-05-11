@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseProfileEventsStatsOptions<F> {
   dataset: 'discover' | 'profiles' | 'profileFunctions';
@@ -39,24 +40,23 @@ export function useProfileEventsStats<F extends string>({
     query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
   }
 
-  const path = `/organizations/${organization.slug}/events-stats/`;
-  const endpointOptions = {
-    query: {
-      dataset,
-      referrer,
-      project: selection.projects,
-      environment: selection.environments,
-      ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      yAxis: yAxes,
-      interval,
-      query,
-      partial: 1,
-    },
-  };
-
-  const {data, ...rest} = useApiQuery<any>([path, endpointOptions], {
+  const {data, isPending, isError, error} = useQuery({
+    ...apiOptions.as<any>()('/organizations/$organizationIdOrSlug/events-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        dataset,
+        referrer,
+        project: selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        yAxis: yAxes,
+        interval,
+        query,
+        partial: 1,
+      },
+      staleTime: Infinity,
+    }),
     enabled,
-    staleTime: Infinity,
   });
 
   const transformed = useMemo(
@@ -66,6 +66,8 @@ export function useProfileEventsStats<F extends string>({
 
   return {
     data: transformed,
-    ...rest,
+    isPending,
+    isError,
+    error,
   };
 }

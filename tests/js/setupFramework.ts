@@ -1,10 +1,26 @@
 /* global process */
 import failOnConsole from 'jest-fail-on-console';
 
+// Throw instead of logging console warnings about accessibility issues in react-aria
+const reactAriaTextValueWarning =
+  /<Item> with non-plain text contents is unsupported by type to select for accessibility\. Please add a `textValue` prop\./;
+
 process.on('unhandledRejection', reason => {
   // eslint-disable-next-line no-console
   console.error(reason);
 });
+
+// eslint-disable-next-line no-console
+const originalConsoleWarn = console.warn;
+
+// eslint-disable-next-line no-console
+console.warn = (message?: unknown, ...args: unknown[]) => {
+  if (typeof message === 'string' && reactAriaTextValueWarning.test(message)) {
+    throw new Error(message);
+  }
+
+  originalConsoleWarn(message, ...args);
+};
 
 failOnConsole({
   shouldFailOnWarn: false,
@@ -18,13 +34,6 @@ failOnConsole({
     }
 
     if (/HTMLMediaElement.prototype.play/.test(errorMessage)) {
-      return true;
-    }
-
-    // Full text:
-    // Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.
-    // This is a warning from CellMeasurer in react-virtualized. It safely falls back to something compatible with React 19.
-    if (/Accessing element.ref was removed in React 19/.test(errorMessage)) {
       return true;
     }
 

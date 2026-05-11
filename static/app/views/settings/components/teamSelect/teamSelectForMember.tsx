@@ -1,20 +1,21 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TeamRoleSelect from 'sentry/components/teamRoleSelect';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
@@ -42,7 +43,7 @@ type Props = TeamSelectProps & {
   selectedTeamRoles: Member['teamRoles'];
 };
 
-function TeamSelect({
+export function TeamSelect({
   disabled,
   loadingTeams,
   member,
@@ -165,7 +166,7 @@ function TeamRow({
         <Button
           size="xs"
           icon={<IconSubtract />}
-          title={buttonHelpText}
+          tooltipProps={{title: buttonHelpText}}
           disabled={isRemoveDisabled}
           onClick={() => onRemoveTeam(team.slug)}
         >
@@ -176,10 +177,10 @@ function TeamRow({
   );
 }
 
-const GRID_TEMPLATE = `
+const GRID_TEMPLATE = (p: {theme: Theme}) => `
   display: grid;
   grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px;
-  gap: ${space(1)};
+  gap: ${p.theme.space.md};
 
   > div:last-child {
     margin-left: auto;
@@ -192,7 +193,5 @@ const TeamPanelHeader = styled(PanelHeader)`
 
 const TeamPanelItem = styled(PanelItem)`
   ${GRID_TEMPLATE}
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
-
-export default TeamSelect;

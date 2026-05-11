@@ -32,7 +32,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
-from sentry.types.region import find_all_region_names, find_regions_for_sentry_app
+from sentry.types.cell import find_all_cell_names, find_cells_for_sentry_app
 from sentry.utils import metrics
 
 REQUIRED_EVENT_PERMISSIONS = {
@@ -44,6 +44,7 @@ REQUIRED_EVENT_PERMISSIONS = {
     "organization": "org:read",
     "team": "team:read",
     "comment": "event:read",
+    "preprod_artifact": "project:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of
@@ -117,6 +118,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     # does the application subscribe to `event.alert`,
     # meaning can it be used in alert rules as a {service} ?
     is_alertable = models.BooleanField(default=False)
+    is_disabled = models.BooleanField(default=False, db_default=False)
 
     # does the application need to wait for verification
     # on behalf of the external service to know if its installations
@@ -217,9 +219,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_UPDATE,
-                region_name=region_name,
+                cell_name=cell_name,
             )
-            for region_name in find_all_region_names()
+            for cell_name in find_all_cell_names()
         ]
 
     def outboxes_for_delete(self) -> list[ControlOutbox]:
@@ -229,14 +231,14 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_DELETE,
-                region_name=region_name,
+                cell_name=cell_name,
                 payload={"slug": self.slug},
             )
-            for region_name in find_all_region_names()
+            for cell_name in find_all_cell_names()
         ]
 
-    def regions_with_installations(self) -> set[str]:
-        return find_regions_for_sentry_app(self)
+    def cells_with_installations(self) -> set[str]:
+        return find_cells_for_sentry_app(self)
 
     def delete(self, *args, **kwargs):
         from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
@@ -255,10 +257,6 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 return super(Model, self).delete(*args, **kwargs)
 
             return super().delete(*args, **kwargs)
-
-    def _disable(self):
-        self.events = []
-        self.save(update_fields=["events"])
 
     @classmethod
     def sanitize_relocation_json(

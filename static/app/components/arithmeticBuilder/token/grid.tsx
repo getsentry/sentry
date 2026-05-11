@@ -15,16 +15,17 @@ import {
   isTokenLiteral,
   isTokenOperator,
   isTokenParenthesis,
+  isTokenReference,
 } from 'sentry/components/arithmeticBuilder/token';
 import {ArithmeticTokenFreeText} from 'sentry/components/arithmeticBuilder/token/freeText';
 import {ArithmeticTokenFunction} from 'sentry/components/arithmeticBuilder/token/function';
 import {ArithmeticTokenLiteral} from 'sentry/components/arithmeticBuilder/token/literal';
 import {ArithmeticTokenOperator} from 'sentry/components/arithmeticBuilder/token/operator';
 import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/token/parenthesis';
+import {ArithmeticBuilderTokenReference} from 'sentry/components/arithmeticBuilder/token/reference';
 import {computeNextAllowedTokenKinds} from 'sentry/components/arithmeticBuilder/validator';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 interface TokenGridProps {
@@ -142,6 +143,17 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
           );
         }
 
+        if (isTokenReference(token)) {
+          return (
+            <ArithmeticBuilderTokenReference
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+            />
+          );
+        }
+
         if (isTokenFreeText(token)) {
           return (
             <ArithmeticTokenFreeText
@@ -185,10 +197,10 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 }
 
 const TokenGridWrapper = styled('div')`
-  padding: ${space(0.75)};
+  padding: ${p => p.theme.space.sm};
   display: flex;
   align-items: stretch;
-  row-gap: ${space(0.5)};
+  row-gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
 
   &:focus {

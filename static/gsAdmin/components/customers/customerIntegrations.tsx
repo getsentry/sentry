@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {ExternalLink} from 'sentry/components/core/link';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -9,7 +9,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
 };
 
-function CustomerIntegrations({orgId, ...props}: Props) {
+export function CustomerIntegrations({orgId, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -41,5 +41,3 @@ function CustomerIntegrations({orgId, ...props}: Props) {
     />
   );
 }
-
-export default CustomerIntegrations;

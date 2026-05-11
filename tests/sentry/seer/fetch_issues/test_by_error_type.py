@@ -46,6 +46,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="KeyError",
         )
         assert "error" not in seer_response
@@ -66,6 +68,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="ValueError",
         )
         assert seer_response == {"issues": [], "issues_full": []}
@@ -158,6 +162,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="KeyError",
         )
         assert "error" not in seer_response
@@ -208,6 +214,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="KeyError",
         )
         assert "error" not in seer_response
@@ -220,6 +228,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="KeyError",
             num_days_ago=9,
         )
@@ -284,6 +294,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="KeyError",
         )
         assert "error" not in seer_response
@@ -297,6 +309,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="ValueError",
         )
         assert "error" not in seer_response
@@ -335,7 +349,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Get repo projects
         repo_projects = get_repo_and_projects(
-            organization_id=self.organization.id, provider="integrations:github", external_id="1"
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            owner="getsentry",
+            name="sentryA",
         )
 
         # Test the internal function directly
@@ -361,7 +379,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Get repo projects but don't create any matching events
         repo_projects = get_repo_and_projects(
-            organization_id=self.organization.id, provider="integrations:github", external_id="1"
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            owner="getsentry",
+            name="sentryA",
         )
 
         # Test the internal function directly
@@ -412,6 +434,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type=search_exception_type,
         )
         assert "error" not in seer_response
@@ -511,6 +535,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="valueerror",
         )
         assert "error" not in seer_response
@@ -522,6 +548,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="type error",
         )
         assert "error" not in seer_response
@@ -533,6 +561,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
+            owner="getsentry",
+            name="sentryA",
             exception_type="runtimeerror",
         )
         assert seer_response == {"issues": [], "issues_full": []}

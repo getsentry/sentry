@@ -3,12 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import {createTeam} from 'sentry/actionCreators/teams';
-import {makeCloseButton} from 'sentry/components/globalModal/components';
 import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
 jest.mock('sentry/actionCreators/teams', () => ({
-  createTeam: jest.fn((...args: any[]) => new Promise(resolve => resolve(args))),
+  createTeam: jest.fn(
+    (...args: Parameters<typeof createTeam>) => new Promise(resolve => resolve(args))
+  ),
 }));
 
 describe('CreateTeamModal', () => {
@@ -17,7 +20,7 @@ describe('CreateTeamModal', () => {
   const onClose = jest.fn();
 
   beforeEach(() => {
-    onClose.mockReset();
+    jest.clearAllMocks();
   });
 
   it('calls createTeam action creator on submit', async () => {
@@ -34,7 +37,7 @@ describe('CreateTeamModal', () => {
       />
     );
 
-    await userEvent.type(screen.getByText('Team Name'), 'new-team');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Team Slug'}), 'new-team');
     await userEvent.click(screen.getByLabelText('Create Team'));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));

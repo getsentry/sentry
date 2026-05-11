@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,41 +8,46 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailsPage from 'admin/components/detailsPage';
-import MergeAccountsModal from 'admin/components/mergeAccounts';
-import SelectableContainer from 'admin/components/selectableContainer';
-import UserCustomers from 'admin/components/users/userCustomers';
-import UserEmailLog from 'admin/components/users/userEmailLog';
-import UserEmails from 'admin/components/users/userEmails';
-import UserOverview from 'admin/components/users/userOverview';
-import UserPermissionsModal from 'admin/components/users/userPermissionsModal';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {MergeAccountsModal} from 'admin/components/mergeAccounts';
+import {SelectableContainer} from 'admin/components/selectableContainer';
+import {UserCustomers} from 'admin/components/users/userCustomers';
+import {UserEmailLog} from 'admin/components/users/userEmailLog';
+import {UserEmails} from 'admin/components/users/userEmails';
+import {UserOverview} from 'admin/components/users/userOverview';
+import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
-function UserDetails() {
+export function UserDetails() {
   const api = useApi({persistInFlight: true});
   const {userId} = useParams<{userId: string}>();
   const queryClient = useQueryClient();
 
-  const makeFetchUserQueryKey = (): ApiQueryKey => [`/users/${userId}/`];
-  const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
-    `/users/${userId}/user-identities/`,
+  const makeFetchUserQueryKey = (): ApiQueryKey => [
+    getApiUrl('/users/$userId/', {
+      path: {userId},
+    }),
   ];
-  const makeFetchTokensQueryKey = (): ApiQueryKey => [`/api-tokens/`, {query: {userId}}];
+  const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
+    getApiUrl('/users/$userId/user-identities/', {
+      path: {userId},
+    }),
+  ];
+  const makeFetchTokensQueryKey = (): ApiQueryKey => [
+    getApiUrl('/api-tokens/'),
+    {query: {userId}},
+  ];
 
   const {
     data: user,
@@ -108,6 +115,28 @@ function UserDetails() {
     },
     onError: () => {
       addErrorMessage('Unable to revoke token.');
+    },
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: `/_admin/users/${userId}/suspend/`,
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => {
+      addLoadingMessage('Saving changes...');
+    },
+    onSuccess: (_data, params) => {
+      clearIndicators();
+      const action = params.action === 'suspend' ? 'suspended' : 'unsuspended';
+      addSuccessMessage(`User account has been ${action}.`);
+      queryClient.invalidateQueries({queryKey: makeFetchUserQueryKey()});
+    },
+    onError: () => {
+      clearIndicators();
+      addErrorMessage('Failed to update user suspension status.');
     },
   });
 
@@ -220,7 +249,10 @@ function UserDetails() {
     <DetailsPage
       rootName="Users"
       name={user.name === user.email ? user.email : `${user.name} (${user.email})`}
-      badges={[{name: 'Inactive', level: 'warning', visible: !user.isActive}]}
+      badges={[
+        {name: 'Inactive', level: 'warning', visible: !user.isActive},
+        {name: 'Suspended', level: 'danger', visible: user.isSuspended},
+      ]}
       actions={[
         {
           key: 'edit-permissions',
@@ -255,8 +287,26 @@ function UserDetails() {
           key: 'reactivate',
           name: 'Reactivate Account',
           help: 'Restores this account allowing the user to login.',
-          visible: !user.isActive,
+          visible: !user.isActive && !user.isSuspended,
           onAction: () => onUpdateMutation.mutate({isActive: 1}),
+        },
+        {
+          key: 'suspend',
+          name: 'Suspend Account',
+          help: 'Prevent this user from logging in. Account and data are preserved.',
+          visible: user.isActive && !user.isSuspended,
+          confirmModalOpts: {
+            priority: 'danger',
+            confirmText: 'Suspend Account',
+          },
+          onAction: params => suspendMutation.mutate({...params, action: 'suspend'}),
+        },
+        {
+          key: 'unsuspend',
+          name: 'Unsuspend Account',
+          help: 'Allow this user to log in again.',
+          visible: user.isSuspended,
+          onAction: params => suspendMutation.mutate({...params, action: 'unsuspend'}),
         },
       ]}
       sections={[
@@ -284,5 +334,3 @@ function UserDetails() {
     />
   );
 }
-
-export default UserDetails;

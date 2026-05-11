@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Project, ProjectKey} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Project} from 'sentry/types/project';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function OtherPlatformsInfo({
   projectSlug,
@@ -28,7 +28,8 @@ export function OtherPlatformsInfo({
     isError,
     isPending,
     refetch,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
+  } = useQuery({
+    ...projectKeysApiOptions({orgSlug: organization.slug, projSlug: projectSlug}),
     staleTime: Infinity,
   });
 
@@ -59,7 +60,7 @@ export function OtherPlatformsInfo({
             {
               link: (
                 <Link
-                  to={`/organizations/${organization.slug}/settings/projects/${projectSlug}/keys/`}
+                  to={`/settings/${organization.slug}/projects/${projectSlug}/keys/`}
                 />
               ),
             }
@@ -123,8 +124,8 @@ export function OtherPlatformsInfo({
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 const Suggestion = styled(Wrapper)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

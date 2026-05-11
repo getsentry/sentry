@@ -1,13 +1,14 @@
-import {useCallback, type MouseEvent} from 'react';
+import {type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Link} from 'sentry/components/core/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Link} from '@sentry/scraps/link';
+
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 interface Props {
@@ -26,9 +27,9 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
-  const handleClick = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
     e.stopPropagation();
-  }, []);
+  };
 
   const projectAvatar = project ? <ProjectAvatar project={project} size={16} /> : null;
 

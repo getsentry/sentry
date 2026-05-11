@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import moment from 'moment-timezone';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -11,9 +12,12 @@ import {
   useDetectorTimePeriodOptions,
 } from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {MetricDetectorTimePeriod} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+import {
+  getTimePeriodLabel,
+  MetricDetectorTimePeriod,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
-type BaseOption = {label: React.ReactNode; value: MetricDetectorTimePeriod};
+type BaseOption = {label: React.ReactNode; value: string};
 
 const CUSTOM_TIME_VALUE = '__custom_time__';
 
@@ -28,6 +32,7 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
 
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
+  const urlStatsPeriod = location.query?.statsPeriod as string | undefined;
 
   const hasCustomRange = Boolean(start && end);
 
@@ -37,11 +42,17 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
   });
 
   // Determine selected period from query or fallback to largest option
-  const selected: MetricDetectorTimePeriod = useDetectorResolvedStatsPeriod({
+  const selected = useDetectorResolvedStatsPeriod({
     dataset,
     intervalSeconds: interval,
-    urlStatsPeriod: location.query?.statsPeriod as string | undefined,
+    urlStatsPeriod,
   });
+
+  const hasCustomStatsPeriod = Boolean(
+    !hasCustomRange &&
+    urlStatsPeriod &&
+    !options.some(option => option.value === urlStatsPeriod)
+  );
 
   // If there is no time selection in the URL, sync the resolved default period
   // into the query params so that the rest of the page (chart, links, etc.)
@@ -80,10 +91,27 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
       return [custom, ...options];
     }
 
-    return options;
-  }, [hasCustomRange, start, end, options]);
+    if (hasCustomStatsPeriod && urlStatsPeriod) {
+      const customStatsPeriodLabel = getTimePeriodLabel(
+        urlStatsPeriod as MetricDetectorTimePeriod
+      );
+      const custom = {
+        label: (
+          <Fragment>
+            {t('Custom time')}: {customStatsPeriodLabel}
+          </Fragment>
+        ),
+        value: CUSTOM_TIME_VALUE,
+        textValue: `${t('Custom time')}: ${customStatsPeriodLabel}`,
+        disabled: true,
+      };
+      return [custom, ...options];
+    }
 
-  const value = hasCustomRange ? CUSTOM_TIME_VALUE : selected;
+    return options;
+  }, [hasCustomRange, start, end, options, hasCustomStatsPeriod, urlStatsPeriod]);
+
+  const value = hasCustomRange || hasCustomStatsPeriod ? CUSTOM_TIME_VALUE : selected;
 
   return (
     <CompactSelect

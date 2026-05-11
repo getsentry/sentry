@@ -1,7 +1,7 @@
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 
-import TimeRangeItemLabel from './timeRangeItemLabel';
+import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
 
 type Props = {
@@ -12,7 +12,7 @@ type Props = {
   shouldShowRelative?: boolean;
 };
 
-const SelectorItems = ({
+export const SelectorItems = ({
   children,
   relativePeriods,
   shouldShowRelative,
@@ -41,5 +41,3 @@ const SelectorItems = ({
 
   return children(items);
 };
-
-export default SelectorItems;

@@ -1,17 +1,18 @@
 import logging
 
+from taskbroker_client.retry import Retry
+
 from sentry.codecov.client import CodecovApiClient, ConfigurationError, GitProvider
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import (
     integrations_control_tasks,
     integrations_control_throttled_tasks,
 )
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,11 @@ account_link_endpoint = "/sentry/internal/account/link/"
 @instrumented_task(
     name="sentry.integrations.github.tasks.codecov_account_link",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3),
+    retry=Retry(times=3, on=(Exception,), ignore=(ConfigurationError,)),
     processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(ConfigurationError,),
 )
-@retry(exclude=(ConfigurationError,))
 def codecov_account_link(
     integration_id: int,
     organization_id: int,
@@ -37,10 +38,10 @@ def codecov_account_link(
     name="sentry.integrations.github.tasks.backfill_codecov_account_link",
     silo_mode=SiloMode.CONTROL,
     namespace=integrations_control_throttled_tasks,
-    retry=Retry(times=3),
+    retry=Retry(times=3, on=(Exception,), ignore=(ConfigurationError,)),
     processing_deadline_duration=60,
+    silenced_exceptions=(ConfigurationError,),
 )
-@retry(exclude=(ConfigurationError,))
 def backfill_codecov_account_link(
     integration_id: int,
     organization_id: int,

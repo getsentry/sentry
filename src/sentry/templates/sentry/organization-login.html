@@ -15,32 +15,6 @@
     input: '#id_registration_password',
     element: '.password-strength',
   });
-  // HACK(jferge): inline getCookie function from our utils,
-  // update the csrf token value in a rudimentary way (timer based)
-  // on the SSO login form
-  // to help out when users have multiple sentry tabs and are logged out
-  function getCookie(name) {
-    if (document.cookie && document.cookie !== '') {
-      var cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        var cookie = cookies[i].trim();
-        // Does this cookie string begin with the name we want?
-        if (cookie.substring(0, name.length + 1) === name + '=') {
-          return decodeURIComponent(cookie.substring(name.length + 1));
-        }
-      }
-    }
-    return null;
-  }
-  setInterval(function() {
-    var csrfCookieVal = getCookie(window.csrfCookieName || 'sc');
-    // combine strings for csrf name as some tests grep on the token name :(
-    var csrfName = 'csrf'+'middleware'+'token';
-    var csrfEls = document.getElementsByName(csrfName);
-    if (csrfEls.length == 1 && csrfCookieVal) {
-      csrfEls[0].value = csrfCookieVal;
-    }
-  },200);
 </script>
 {% endscript %}
 {% endblock %}

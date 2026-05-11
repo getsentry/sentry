@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TimeSince from 'sentry/components/timeSince';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Confirm} from 'sentry/components/confirm';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 
 export function OrganizationFeatureFlagsProviderRow({
@@ -27,14 +28,22 @@ export function OrganizationFeatureFlagsProviderRow({
     <Fragment>
       <div>
         <div>{secret.provider}</div>
-        <SecretPreview aria-label={t('Secret preview')}>{secret.secret}</SecretPreview>
+        <Text variant="secondary" aria-label={t('Secret preview')}>
+          {secret.secret}
+        </Text>
       </div>
 
       <Flex align="center" gap="xs">
         <TimeSince date={secret.createdAt} />
       </Flex>
 
-      <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
+      <Flex align="center">
+        {isUserPending ? (
+          <LoadingIndicator mini />
+        ) : (
+          (user?.name ?? t('Deactivated user'))
+        )}
+      </Flex>
 
       <Flex justify="end">
         <Tooltip
@@ -65,7 +74,3 @@ export function OrganizationFeatureFlagsProviderRow({
     </Fragment>
   );
 }
-
-const SecretPreview = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

@@ -8,7 +8,6 @@ from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
@@ -76,7 +75,7 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
         title = ev_metadata["type"]
 
     elif ev_type == "csp":
-        title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
+        title = f"{ev_metadata['directive']} - {ev_metadata['uri']}"
     else:
         if isinstance(obj, GroupEvent):
             if obj.occurrence is not None:
@@ -104,31 +103,13 @@ def fetch_environment_name(rule_env: int) -> str | None:
         return env.name
 
 
-def get_rule_environment_param_from_rule(
-    rule_id: int, rule_environment_id: int | None, organization: Organization, type_id: int
-) -> dict[str, str]:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
+def get_rule_environment_param_from_rule(rule_environment_id: int | None) -> dict[str, str]:
     params = {}
-    if should_fire_workflow_actions(organization, type_id):
-        if (
-            rule_environment_id is not None
-            and (environment_name := fetch_environment_name(rule_environment_id)) is not None
-        ):
-            params["environment"] = environment_name
-    else:
-        try:
-            rule = Rule.objects.get(id=rule_id)
-        except Rule.DoesNotExist:
-            rule_env = None
-        else:
-            rule_env = rule.environment_id
-
-        if (
-            rule_env is not None
-            and (environment_name := fetch_environment_name(rule_env)) is not None
-        ):
-            params["environment"] = environment_name
+    if (
+        rule_environment_id is not None
+        and (environment_name := fetch_environment_name(rule_environment_id)) is not None
+    ):
+        params["environment"] = environment_name
     return params
 
 
@@ -146,11 +127,7 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if rule_id:
-        other_params.update(
-            get_rule_environment_param_from_rule(
-                rule_id, rule_environment_id, group.organization, group.type
-            )
-        )
+        other_params.update(get_rule_environment_param_from_rule(rule_environment_id))
         # hard code for issue alerts
         other_params["alert_rule_id"] = str(rule_id)
         other_params["alert_type"] = "issue"
@@ -257,10 +234,7 @@ def build_attachment_replay_link(
     group: Group, url_format: str, event: Event | GroupEvent | None = None
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
-    has_slack_links = features.has(
-        "organizations:session-replay-slack-new-issue", group.organization
-    )
-    if has_replay and has_slack_links and group.has_replays():
+    if has_replay and group.has_replays():
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 
@@ -270,15 +244,10 @@ def build_attachment_replay_link(
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     org_slug = group.organization.slug
     project_slug = project.slug
-    if should_fire_workflow_actions(group.organization, group.type):
-        rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-        rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule_id}/details/"
-    else:
-        rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
+    rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
+    rule_url = f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
 
     return absolute_uri(rule_url)
 

@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 
 import {TraceTree} from './traceModels/traceTree';
@@ -85,7 +85,7 @@ export function useTraceOnLoad(
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
 
   const traceState = useTraceState();
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<
@@ -95,7 +95,7 @@ export function useTraceOnLoad(
 
   useLayoutEffect(() => {
     if (tree.type !== 'trace') {
-      return undefined;
+      return;
     }
 
     let cancel = false;
@@ -164,7 +164,7 @@ export function useTraceIssuesOnLoad(
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
 
   const traceState = useTraceState();
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<
@@ -174,7 +174,7 @@ export function useTraceIssuesOnLoad(
 
   useLayoutEffect(() => {
     if (tree.type !== 'trace') {
-      return undefined;
+      return;
     }
 
     let cancel = false;

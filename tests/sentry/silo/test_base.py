@@ -56,13 +56,13 @@ class SiloLimitCoverageTest(TestCase):
 
         assert len(undecorated_endpoint_classes) == 0, (
             "Endpoint classes missing EndpointSiloLimit: "
-            f"{', '.join(f"{m.__module__}.{m.__name__}" for m in undecorated_endpoint_classes)}"
+            f"{', '.join(f'{m.__module__}.{m.__name__}' for m in undecorated_endpoint_classes)}"
         )
         assert len(undecorated_view_classes) == 0, (
             "View classes missing ViewSiloLimit: "
-            f"{', '.join(f"{m.__module__}.{m.__name__}" for m in undecorated_view_classes)}"
+            f"{', '.join(f'{m.__module__}.{m.__name__}' for m in undecorated_view_classes)}"
         )
         assert len(undecorated_view_functions) == 0, (
             "View functions missing ViewSiloLimit: "
-            f"{', '.join(f"{m.__module__}.{m}" for m in undecorated_view_functions)}"
+            f"{', '.join(f'{m.__module__}.{m}' for m in undecorated_view_functions)}"
         )

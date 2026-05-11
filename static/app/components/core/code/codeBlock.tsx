@@ -3,10 +3,11 @@ import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
@@ -94,7 +95,6 @@ export function CodeBlock({
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
     async function loadLineHighlight() {
-      // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
       await import('prismjs/plugins/line-highlight/prism-line-highlight');
       setLineHighlightLoaded(true);
     }
@@ -171,20 +171,19 @@ export function CodeBlock({
                 </Tab>
               ))}
             </TabsWrapper>
-            <FlexSpacer />
+            <Container flexGrow={1} />
           </Fragment>
         )}
         {icon}
         {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <FlexSpacer />}
+        {!hasTabs && <Container flexGrow={1} />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
             size="xs"
-            borderless
+            variant="transparent"
             onClick={handleCopy}
-            title={tooltipTitle}
-            tooltipProps={{position: 'left'}}
+            tooltipProps={{position: 'left', title: tooltipTitle}}
             onMouseLeave={() => setTooltipState('copy')}
             isAlwaysVisible={!hasFloatingHeader || (!!icon && hasFloatingHeader)}
             aria-label={t('Copy snippet')}
@@ -213,10 +212,6 @@ export function CodeBlock({
   // components
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
-
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
-`;
 
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
@@ -247,7 +242,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   ${p =>
     p.isFloating
       ? css`
-          gap: ${space(0.25)};
+          gap: ${p.theme.space['2xs']};
           justify-content: flex-end;
           position: absolute;
           top: 0;
@@ -255,11 +250,11 @@ const Header = styled('div')<{isFloating: boolean}>`
           width: max-content;
           height: max-content;
           max-height: 100%;
-          padding: ${space(0.5)};
+          padding: ${p.theme.space.xs};
         `
       : css`
-          gap: ${space(0.75)};
-          padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
+          gap: ${p.theme.space.sm};
+          padding: ${p.theme.space.xs} ${p.theme.space.xs} 0 ${p.theme.space.md};
           border-bottom: solid 1px ${p.theme.tokens.border.primary};
         `}
 `;
@@ -275,6 +270,7 @@ const FileName = styled('span')`
 const TabsWrapper = styled('div')`
   padding: 0;
   display: flex;
+  overflow-x: auto;
 `;
 
 const Tab = styled('button')<{isSelected: boolean}>`
@@ -283,7 +279,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   margin: 0;
   border: none;
   background: none;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   color: var(--prism-comment);
   ${p =>
     p.isSelected

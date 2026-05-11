@@ -106,7 +106,6 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         # Update the group status, priority, and add the group to the inbox
         manage_issue_states(group=group, group_inbox_reason=GroupInboxReason.ESCALATING)
     elif new_status == GroupStatus.UNRESOLVED:
-        activity_type = None
         if new_substatus == GroupSubStatus.REGRESSED:
             activity_type = ActivityType.SET_REGRESSION
             group_inbox_reason = GroupInboxReason.REGRESSION
@@ -119,9 +118,9 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             else:
                 activity_type = ActivityType.SET_UNRESOLVED
 
-        # We don't support setting the UNRESOLVED status with substatus NEW as it
-        # is automatically set on creation. All other issues should be set to ONGOING.
-        if activity_type is None:
+        else:
+            # We don't support setting the UNRESOLVED status with substatus NEW as it
+            # is automatically set on creation. All other issues should be set to ONGOING.
             logger.error(
                 "group.update_status.invalid_substatus",
                 extra={**log_extra},

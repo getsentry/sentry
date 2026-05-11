@@ -12,9 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.endpoints.api_tokens import get_appropriate_user_id
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryIsAuthenticated
+from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.apitoken import ApiToken
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 ALLOWED_FIELDS = ["name", "tokenId"]
 
@@ -31,13 +32,14 @@ class ApiTokenDetailsEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.SECURITY
-    permission_classes = (SentryIsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated, DisallowImpersonatedTokenCreation)
 
-    def convert_args(self, request: Request, token_id: int, *args, **kwargs):
+    def convert_args(self, request: Request, token_id: str, *args, **kwargs):
+        validated_token_id = to_valid_int_id("token_id", token_id, raise_404=True)
         user_id = get_appropriate_user_id(request=request)
         try:
             kwargs["instance"] = ApiToken.objects.get(
-                id=token_id, application__isnull=True, user_id=user_id
+                id=validated_token_id, application__isnull=True, user_id=user_id
             )
         except ApiToken.DoesNotExist:
             raise ResourceDoesNotExist(detail="Invalid token ID")

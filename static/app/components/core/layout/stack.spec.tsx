@@ -7,8 +7,8 @@ import {
   Stack,
   type StackProps,
   type StackPropsWithRenderFunction,
-} from 'sentry/components/core/layout';
-import type {Responsive} from 'sentry/components/core/layout/styles';
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Stack', () => {
   it('renders children', () => {
@@ -162,7 +162,7 @@ describe('Stack', () => {
     });
     it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
       const props: StackPropsWithRenderFunction<any> = {
-        children: () => undefined,
+        children: () => {},
       };
       expectTypeOf(props.children).toEqualTypeOf<
         (props: {className: string}) => React.ReactNode | undefined

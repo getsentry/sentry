@@ -12,10 +12,9 @@ import * as Sentry from '@sentry/react';
 
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
@@ -33,8 +32,10 @@ import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 
 const noopTraceSearch = () => {};
 
-interface IssuesTraceWaterfallProps
-  extends Omit<TraceWaterfallProps, 'tree' | 'traceWaterfallScrollHandlers' | 'meta'> {
+interface IssuesTraceWaterfallProps extends Omit<
+  TraceWaterfallProps,
+  'tree' | 'traceWaterfallScrollHandlers' | 'meta'
+> {
   event: Event;
   tree: IssuesTraceTree;
 }
@@ -56,7 +57,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     return {affectedSpanIds: [], focusedSpanIds: []};
   }, [props.event]);
 
-  const projectsRef = useRef<Project[]>(projects);
+  const projectsRef = useRef(projects);
   projectsRef.current = projects;
 
   useEffect(() => {

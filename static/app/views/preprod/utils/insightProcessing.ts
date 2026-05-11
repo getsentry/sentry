@@ -35,6 +35,7 @@ export interface ProcessedInsight {
   name: string;
   percentage: number;
   totalSavings: number;
+  timedOut?: boolean;
 }
 
 interface InsightConfig {
@@ -94,6 +95,13 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
   },
   {
     key: 'large_audio',
+    name: t('Large Audio'),
+    description: t(
+      'Size Analysis flags audio files over 5 MB. These files can often be compressed further, converted to a more efficient format, or excluded from the app bundle and instead downloaded dynamically as the user requires them.'
+    ),
+  },
+  {
+    key: 'large_audios',
     name: t('Large Audio'),
     description: t(
       'Size Analysis flags audio files over 5 MB. These files can often be compressed further, converted to a more efficient format, or excluded from the app bundle and instead downloaded dynamically as the user requires them.'
@@ -204,6 +212,7 @@ export function processInsights(
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
+        timedOut: insight.timed_out ?? false,
         files: optimizableFiles.map((file: OptimizableImageFile) => {
           const maxSavings = Math.max(
             file.minify_savings || 0,
@@ -240,6 +249,7 @@ export function processInsights(
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
+        timedOut: insight.timed_out ?? false,
         files: optimizableFiles.map((file: OptimizableImageFile) => {
           const maxSavings = Math.max(
             file.minify_savings || 0,
@@ -342,6 +352,7 @@ export function processInsights(
     'large_images',
     'large_videos',
     'large_audio',
+    'large_audios',
     'unnecessary_files',
     'localized_strings_minify',
     'small_files',

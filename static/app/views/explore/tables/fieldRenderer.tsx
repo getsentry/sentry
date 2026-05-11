@@ -3,31 +3,33 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container as ScrapsContainer} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import TimeSince from 'sentry/components/timeSince';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {
+  type Actions,
+  CellAction,
+  updateQuery,
+} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
@@ -49,6 +51,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface FieldProps {
   data: EventData;
   meta: MetaType;
+  allowActions?: Actions[];
   column?: TableColumn<keyof TableDataRow>;
   unit?: string;
   usePortalOnDropdown?: boolean;
@@ -59,6 +62,7 @@ export function FieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
   usePortalOnDropdown,
 }: FieldProps) {
   const userQuery = useQueryParamsQuery();
@@ -70,6 +74,7 @@ export function FieldRenderer({
       meta={meta}
       unit={unit}
       column={column}
+      allowActions={allowActions}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
       usePortalOnDropdown={usePortalOnDropdown}
@@ -107,7 +112,6 @@ export function MultiQueryFieldRenderer({
 interface BaseFieldProps extends FieldProps {
   setUserQuery: (query: string) => void;
   userQuery: string;
-  usePortalOnDropdown?: boolean;
 }
 
 function BaseExploreFieldRenderer({
@@ -115,6 +119,7 @@ function BaseExploreFieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
   userQuery,
   setUserQuery,
   usePortalOnDropdown,
@@ -127,13 +132,10 @@ function BaseExploreFieldRenderer({
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
-    return projects.reduce(
-      (acc, project) => {
-        acc[project.slug] = project;
-        return acc;
-      },
-      {} as Record<string, Project>
-    );
+    return projects.reduce<Record<string, Project>>((acc, project) => {
+      acc[project.slug] = project;
+      return acc;
+    }, {});
   }, [projects]);
 
   const project = projectsMap[data.project];
@@ -144,14 +146,14 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const otelFriendlyUI = organization?.features.includes('performance-otel-friendly-ui');
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap, otelFriendlyUI);
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
 
   let rendered = renderer(data, {
     location,
     organization,
     theme,
     unit,
+    projects,
   });
 
   if (field === 'timestamp') {
@@ -281,18 +283,9 @@ function BaseExploreFieldRenderer({
       rendered = <Link to={target}>{rendered}</Link>;
     }
 
-    if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
+    if (field === 'id') {
       return rendered;
     }
-  }
-
-  if (field === 'profile.id') {
-    const target = generateProfileFlamechartRouteWithQuery({
-      organization,
-      projectSlug: data.project,
-      profileId: data['profile.id'],
-    });
-    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   return (
@@ -303,7 +296,7 @@ function BaseExploreFieldRenderer({
         updateQuery(query, actions, column, value);
         setUserQuery(query.formatString());
       }}
-      allowActions={ALLOWED_CELL_ACTIONS}
+      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
       usePortalOnDropdown={usePortalOnDropdown}
     >
       {rendered}
@@ -314,16 +307,12 @@ function BaseExploreFieldRenderer({
 function getExploreFieldRenderer(
   field: string,
   meta: MetaType,
-  projects: Record<string, Project>,
-  otelFriendlyUI: boolean
+  projects: Record<string, Project>
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
-  if (field === 'span.description' && !otelFriendlyUI) {
-    return spanDescriptionRenderFunc('span.description', projects);
-  }
-  if (field === SpanFields.NAME && otelFriendlyUI) {
+  if (field === SpanFields.NAME) {
     return spanDescriptionRenderFunc(SpanFields.NAME, projects);
   }
   return getFieldRenderer(field, meta, false);
@@ -392,7 +381,7 @@ const Description = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const WrappingText = styled('div')`

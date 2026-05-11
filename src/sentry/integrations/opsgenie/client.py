@@ -9,7 +9,6 @@ from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_key_from_rule_data, split_rules_by_rule_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -57,11 +56,8 @@ class OpsgenieClient(ApiClient):
         organization = group.project.organization
         rule_urls = []
         for rule in rules:
-            rule_id = rule.id
-            if should_fire_workflow_actions(organization, group.type):
-                rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-
-            path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"
+            rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
+            path = f"/organizations/{organization.slug}/issues/alerts/rules/{group.project.slug}/{rule_id}/details/"
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
 
@@ -82,7 +78,7 @@ class OpsgenieClient(ApiClient):
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
                 "Release": data.release,
             },
-            "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
+            "tags": [f"{str(x).replace(',', '')}:{str(y).replace(',', '')}" for x, y in event.tags],
         }
         if group:
             payload["alias"] = f"sentry: {group.id}"

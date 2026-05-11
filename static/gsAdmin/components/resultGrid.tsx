@@ -2,30 +2,29 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Region} from 'sentry/types/system';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 
-import ResultTable from 'admin/components/resultTable';
+import {ResultTable} from 'admin/components/resultTable';
 
 type Option = [key: string, label: string];
 
@@ -537,7 +536,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
               <Button
                 type="submit"
                 icon={<IconSearch />}
-                priority="primary"
+                variant="primary"
                 size="sm"
                 aria-label="Search"
               />
@@ -574,35 +573,35 @@ const ResultGridContainer = styled('div')``;
 
 const SortSearchForm = styled('form')`
   display: flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 
   &:not(:empty) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 
 const FilterList = styled('div')`
   width: 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
   align-items: center;
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 
 export const SearchInput = styled(Input)`
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   height: 100%;
 
   &:focus-visible {
@@ -611,15 +610,12 @@ export const SearchInput = styled(Input)`
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const ErrorAlert = styled(Alert)`
-  margin-top: ${space(0.5)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space.xs};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
-export default withApi(
-  // TODO(TS): Type cast added as part of react 18 upgrade, can remove after?
-  withSentryRouter(ResultGrid)
-);
+export default withApi(withSentryRouter(ResultGrid));

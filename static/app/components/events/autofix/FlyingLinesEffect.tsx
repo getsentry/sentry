@@ -7,12 +7,12 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
   const [position, setPosition] = useState({left: 0, top: 0});
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
-  const lastUpdateRef = useRef<number>(0);
+  const lastUpdateRef = useRef(0);
   const THROTTLE_MS = 16;
 
   useLayoutEffect(() => {
     if (!targetElement) {
-      return undefined;
+      return;
     }
 
     function getScrollParents(element: HTMLElement): Element[] {
@@ -89,7 +89,7 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
     <FlyingLinesContainer style={{left: position.left, top: position.top}}>
       <AdditionalLine delay={-0.6} variant="leftColored" />
       <AdditionalLine delay={-0.8} rotation={45} variant="rightColored" />
-      <AdditionalLine delay={-1.0} rotation={-30} variant="leftColored" />
+      <AdditionalLine delay={-1} rotation={-30} variant="leftColored" />
     </FlyingLinesContainer>,
     portalContainerRef.current
   );
@@ -121,12 +121,12 @@ const AdditionalLine = styled('div')<{
   bottom: 0;
   border-radius: 50%;
   border: 2px solid transparent;
-  border-top-color: ${p => p.theme.tokens.content.secondary};
-  border-bottom-color: ${p => p.theme.tokens.content.secondary};
+  border-top-color: ${p => p.theme.tokens.border.secondary};
+  border-bottom-color: ${p => p.theme.tokens.border.secondary};
   border-left-color: ${p =>
-    p.variant === 'leftColored' ? p.theme.tokens.content.secondary : 'transparent'};
+    p.variant === 'leftColored' ? p.theme.tokens.border.secondary : 'transparent'};
   border-right-color: ${p =>
-    p.variant === 'rightColored' ? p.theme.tokens.content.secondary : 'transparent'};
+    p.variant === 'rightColored' ? p.theme.tokens.border.secondary : 'transparent'};
   animation: ${flyingLines} 1s linear infinite;
   animation-delay: ${p => p.delay}s;
   transform: ${p => (p.rotation ? `rotate(${p.rotation}deg)` : 'none')};
@@ -151,20 +151,20 @@ const FlyingLinesContainer = styled('div')`
     bottom: 0;
     border-radius: 50%;
     border: 2px solid transparent;
-    border-top-color: ${p => p.theme.tokens.content.secondary};
-    border-bottom-color: ${p => p.theme.tokens.content.secondary};
+    border-top-color: ${p => p.theme.tokens.border.secondary};
+    border-bottom-color: ${p => p.theme.tokens.border.secondary};
     animation: ${flyingLines} 1s linear infinite;
   }
 
   &:before {
-    border-left-color: ${p => p.theme.tokens.content.secondary};
+    border-left-color: ${p => p.theme.tokens.border.secondary};
     border-right-color: transparent;
     animation-delay: -0.4s;
   }
 
   &:after {
     border-left-color: transparent;
-    border-right-color: ${p => p.theme.tokens.content.secondary};
+    border-right-color: ${p => p.theme.tokens.border.secondary};
     animation-delay: -0.2s;
   }
 `;

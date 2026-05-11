@@ -11,7 +11,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensIndex} from 'sentry/views/settings/organizationAuthTokens';
 
@@ -30,7 +30,7 @@ describe('OrganizationAuthTokensIndex', () => {
     routeParams: router.params,
   };
 
-  let projectsMock: jest.Mock<any>;
+  let projectsMock: jest.Mock;
 
   beforeEach(() => {
     OrganizationsStore.addOrReplace(organization);
@@ -95,7 +95,10 @@ describe('OrganizationAuthTokensIndex', () => {
     expect(projectsMock).toHaveBeenCalledTimes(1);
     expect(projectsMock).toHaveBeenCalledWith(
       PROJECTS_ENDPOINT,
-      expect.objectContaining({method: 'GET', query: {query: `id:${project.id}`}})
+      expect.objectContaining({
+        method: 'GET',
+        query: {collapse: ['latestDeploys', 'unusedFeatures'], query: `id:${project.id}`},
+      })
     );
   });
 

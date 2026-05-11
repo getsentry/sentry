@@ -7,6 +7,7 @@ from django.utils.functional import cached_property
 from sentry import analytics
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
+from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.metrics import (
@@ -20,6 +21,7 @@ from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT, to
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.users.models.user import User
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger("sentry.token-exchange")
 
@@ -48,10 +50,48 @@ class ManualTokenRefresher:
             lifecycle.add_extras(context)
 
             try:
+                installation = self.installation
+                if installation.api_token is None:
+                    raise SentryAppIntegratorError(
+                        message="Installation does not have a token",
+                        status_code=401,
+                        webhook_context={"installation_uuid": self.install.uuid},
+                    )
+
+                lock = locks.get(
+                    ApiToken.get_lock_key(installation.api_token_id),
+                    duration=10,
+                    name="api_token_refresh",
+                )
+
+                try:
+                    lock_context = lock.acquire()
+                except UnableToAcquireLock:
+                    raise SentryAppIntegratorError(
+                        message="Token refresh already in progress",
+                        status_code=409,
+                        webhook_context=context,
+                    )
+
+                original_token_id = installation.api_token_id
                 token = None
-                with transaction.atomic(router.db_for_write(ApiToken)):
+                with lock_context, transaction.atomic(router.db_for_write(ApiToken)):
                     self._validate()
-                    self._delete_existing_token()
+                    # Re-fetch to verify token still exists inside lock
+                    installation.refresh_from_db()
+                    if installation.api_token_id != original_token_id:
+                        raise SentryAppIntegratorError(
+                            message="Token was already refreshed",
+                            status_code=409,
+                            webhook_context=context,
+                        )
+                    if installation.api_token is None:
+                        raise SentryAppIntegratorError(
+                            message="Installation does not have a token",
+                            status_code=401,
+                            webhook_context={"installation_uuid": self.install.uuid},
+                        )
+                    installation.api_token.delete()
 
                     token = self._create_new_token()
                     self._record_token_exchange()
@@ -74,17 +114,6 @@ class ManualTokenRefresher:
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e)
                 raise
-
-    def _delete_existing_token(self) -> None:
-        # An installation must have a token to be refreshed
-        # Lack of token indicates the api grant hasn't been exchanged yet
-        if self.installation.api_token is None:
-            raise SentryAppIntegratorError(
-                message="Installation does not have a token",
-                status_code=401,
-                webhook_context={"installation_uuid": self.install.uuid},
-            )
-        self.installation.api_token.delete()
 
     def _record_token_exchange(self) -> None:
         analytics.record(

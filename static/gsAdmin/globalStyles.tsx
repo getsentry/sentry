@@ -15,7 +15,7 @@ const styles = (theme: Theme) => css`
   }
 
   .loading .loading-indicator {
-    border-color: ${theme.tokens.background.transparent.neutral.muted};
+    border-color: ${theme.tokens.border.transparent.neutral.muted};
     border-left-color: ${theme.tokens.graphics.accent.vibrant};
   }
 
@@ -29,8 +29,6 @@ const styles = (theme: Theme) => css`
 /**
  * Renders an emotion global styles injection component
  */
-function GlobalStyles({theme}: {theme: Theme}) {
+export function GlobalStyles({theme}: {theme: Theme}) {
   return <Global styles={styles(theme)} />;
 }
-
-export default GlobalStyles;

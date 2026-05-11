@@ -4,7 +4,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Details from 'getsentry/components/upsellModal/details';
+import {Details} from 'getsentry/components/upsellModal/details';
 import {PlanTier} from 'getsentry/types';
 
 describe('Upsell Modal Details', () => {
@@ -15,7 +15,7 @@ describe('Upsell Modal Details', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: subscription,
     });

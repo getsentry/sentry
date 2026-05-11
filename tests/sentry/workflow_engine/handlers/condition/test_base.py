@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Mapping
 from uuid import uuid4
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -20,7 +20,7 @@ class ConditionTestCase(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event()
 
     def translate_to_data_condition(
-        self, data: dict[str, Any], dcg: DataConditionGroup
+        self, data: Mapping[str, Any], dcg: DataConditionGroup
     ) -> DataCondition:
         data_condition = dual_write_condition(data, dcg)
         data_condition.save()

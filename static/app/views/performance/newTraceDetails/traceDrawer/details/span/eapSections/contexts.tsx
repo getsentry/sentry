@@ -1,5 +1,5 @@
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import ContextCard from 'sentry/components/events/contexts/contextCard';
+import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
@@ -62,7 +62,6 @@ export function Contexts({
       alias={alias}
       value={value}
       event={event}
-      group={undefined}
       project={project}
     />
   ));

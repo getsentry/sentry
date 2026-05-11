@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('OnboardingPanel', story => {
@@ -29,7 +30,7 @@ export default Storybook.story('OnboardingPanel', story => {
             impact of their crashes or bugs and you shall receive.
           </p>
           <ButtonList>
-            <Button priority="primary">Read the Docs</Button>
+            <Button variant="primary">Read the Docs</Button>
             <Button>See an Example</Button>
           </ButtonList>
         </OnboardingPanel>
@@ -73,7 +74,7 @@ export default Storybook.story('OnboardingPanel', story => {
             impact of their crashes or bugs and you shall receive.
           </p>
           <ButtonList>
-            <Button priority="primary">Read the Docs</Button>
+            <Button variant="primary">Read the Docs</Button>
             <Button>See an Example</Button>
           </ButtonList>
         </OnboardingPanel>
@@ -82,6 +83,8 @@ export default Storybook.story('OnboardingPanel', story => {
   });
 });
 
-const ButtonList = styled(ButtonBar)`
+const ButtonList = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;

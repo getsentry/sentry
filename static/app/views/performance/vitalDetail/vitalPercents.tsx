@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
@@ -26,24 +25,24 @@ function getVitalStateText(vital: WebVital | WebVital[], vitalState: any) {
     case VitalState.POOR:
       return Array.isArray(vital)
         ? t('Poor')
-        : // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+        : // @ts-expect-error WebVital.REQUEST_TIME is not in the threshold maps
           tct('(>[threshold][unit])', {threshold: webVitalPoor[vital], unit});
     case VitalState.MEH:
       return Array.isArray(vital)
         ? t('Meh')
-        : // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+        : // @ts-expect-error WebVital.REQUEST_TIME is not in the threshold maps
           tct('(>[threshold][unit])', {threshold: webVitalMeh[vital], unit});
     case VitalState.GOOD:
       return Array.isArray(vital)
         ? t('Good')
-        : // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+        : // @ts-expect-error WebVital.REQUEST_TIME is not in the threshold maps
           tct('(<=[threshold][unit])', {threshold: webVitalMeh[vital], unit});
     default:
       return null;
   }
 }
 
-export default function VitalPercents(props: Props) {
+export function VitalPercents(props: Props) {
   return (
     <VitalSet>
       {props.percents.map(pct => (
@@ -61,12 +60,12 @@ export default function VitalPercents(props: Props) {
 const VitalSet = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const VitalStatus = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
 `;

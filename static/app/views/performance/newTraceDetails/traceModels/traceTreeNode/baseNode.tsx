@@ -115,6 +115,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   connectors: number[] | undefined;
 
   /**
+   * The parent node in the current visible tree.
+   */
+  visibleParent: BaseNode | null | undefined;
+
+  /**
    * The extra options for the node. Examples include the organization to check for enabled features.
    */
   extra: TraceTreeNodeExtra | null;
@@ -174,7 +179,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       }
 
       if ('occurrences' in value && Array.isArray(value.occurrences)) {
-        value.occurrences.forEach(occurence => this.occurrences.add(occurence));
+        value.occurrences.forEach(occurrence => this.occurrences.add(occurrence));
       }
     }
   }
@@ -227,7 +232,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   get uniqueErrorIssues(): TraceTree.TraceErrorIssue[] {
     const unique: TraceTree.TraceErrorIssue[] = [];
-    const seenIssues: Set<number> = new Set();
+    const seenIssues = new Set<number>();
 
     for (const error of this.errors) {
       if (seenIssues.has(error.issue_id)) {
@@ -242,7 +247,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   get uniqueOccurrenceIssues(): TraceTree.TraceOccurrence[] {
     const unique: TraceTree.TraceOccurrence[] = [];
-    const seenIssues: Set<number> = new Set();
+    const seenIssues = new Set<number>();
 
     for (const issue of this.occurrences) {
       if (seenIssues.has(issue.issue_id)) {
@@ -278,6 +283,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get visibleChildren(): BaseNode[] {
     const queue: BaseNode[] = [];
     const visibleChildren: BaseNode[] = [];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
+
     if (this.directVisibleChildren.length > 0) {
       for (let i = this.directVisibleChildren.length - 1; i >= 0; i--) {
         queue.push(this.directVisibleChildren[i]!);
@@ -286,6 +294,12 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
     while (queue.length > 0) {
       const node = queue.pop()!;
+
+      // Cycle detection: skip already-visited nodes
+      if (visited.has(node)) {
+        continue;
+      }
+      visited.add(node);
 
       visibleChildren.push(node);
 
@@ -390,6 +404,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.visibleChildren.length > 0;
   }
 
+  hasDirectVisibleChildren(): boolean {
+    return this.directVisibleChildren.length > 0;
+  }
+
   matchById(id: string): boolean {
     const hasMatchingErrors = Array.from(this.errors).some(
       error => error.event_id === id
@@ -404,22 +422,39 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   invalidate() {
     this.connectors = undefined;
     this.depth = undefined;
+    this.visibleParent = undefined;
   }
 
   getNextTraversalNodes(): BaseNode[] {
     return this.children;
   }
 
-  findChild<ChildType extends BaseNode = BaseNode>(
-    predicate: (child: BaseNode) => boolean
-  ): ChildType | null {
+  /**
+   * Cycle Detection Strategy
+   *
+   * Traversals track visited nodes to prevent infinite loops when trace data
+   * contains circular references (for example, a parent_span_id chain that
+   * loops back to an ancestor). When a cycle is detected, the node is skipped
+   * so the UI can render the remaining subtree safely.
+   *
+   * Traverses all children using depth-first search with cycle detection.
+   * @param callback - Called for each node. Return `true` to stop traversal early.
+   */
+  private traverseChildren(callback: (node: BaseNode) => boolean | void): void {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
-      if (predicate(next)) {
-        return next as ChildType;
+      if (visited.has(next)) {
+        continue;
+      }
+      visited.add(next);
+
+      if (callback(next) === true) {
+        return;
       }
 
       const children = next.getNextTraversalNodes();
@@ -427,54 +462,66 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
         queue.push(children[i]!);
       }
     }
+  }
 
-    return null;
+  findChild<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => child is ChildType
+  ): ChildType | null;
+  findChild(predicate: (child: BaseNode) => boolean): BaseNode | null;
+  findChild<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => child is ChildType
+  ): ChildType | null {
+    let result: ChildType | null = null;
+    this.traverseChildren(node => {
+      if (predicate(node)) {
+        result = node;
+        return true;
+      }
+      return;
+    });
+    return result;
   }
 
   findAllChildren<ChildType extends BaseNode = BaseNode>(
-    predicate: (child: BaseNode) => boolean
+    predicate: (child: BaseNode) => child is ChildType
+  ): ChildType[];
+  findAllChildren(predicate: (child: BaseNode) => boolean): BaseNode[];
+  findAllChildren<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => child is ChildType
   ): ChildType[] {
-    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
     const results: ChildType[] = [];
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-
-      if (predicate(next)) {
-        results.push(next as ChildType);
+    this.traverseChildren(node => {
+      if (predicate(node)) {
+        results.push(node);
       }
-
-      const children = next.getNextTraversalNodes();
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
-
+    });
     return results;
   }
 
   forEachChild(callback: (child: BaseNode) => void) {
-    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-
-      callback(next);
-
-      const children = next.getNextTraversalNodes();
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
+    this.traverseChildren(callback);
   }
 
-  findParent<ChildType extends BaseNode = BaseNode>(
-    predicate: (parent: BaseNode) => boolean
-  ): ChildType | null {
+  findParent<ParentType extends BaseNode = BaseNode>(
+    predicate: (parent: BaseNode) => parent is ParentType
+  ): ParentType | null;
+  findParent(predicate: (parent: BaseNode) => boolean): BaseNode | null;
+  findParent<ParentType extends BaseNode = BaseNode>(
+    predicate: (parent: BaseNode) => parent is ParentType
+  ): ParentType | null {
+    const visited = new Set<BaseNode>();
+    visited.add(this);
+
     let current = this.parent;
     while (current) {
+      // Cycle detection: stop if we've seen this node before
+      if (visited.has(current)) {
+        break;
+      }
+      visited.add(current);
+
       if (predicate(current)) {
-        return current as ChildType;
+        return current;
       }
       current = current.parent;
     }
@@ -496,11 +543,13 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   findParentNodeStoreTransaction(): TransactionNode | null {
-    return this.findParent<TransactionNode>(p => isTransactionNode(p));
+    return this.findParent(p => isTransactionNode(p));
   }
 
   findParentEapTransaction(): EapSpanNode | null {
-    return this.findParent<EapSpanNode>(p => isEAPSpanNode(p) && p.value.is_transaction);
+    return this.findParent(
+      (p): p is EapSpanNode => isEAPSpanNode(p) && p.value.is_transaction
+    );
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {

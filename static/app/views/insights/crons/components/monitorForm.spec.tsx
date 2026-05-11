@@ -5,17 +5,15 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {useMembers} from 'sentry/utils/useMembers';
-import {useTeams} from 'sentry/utils/useTeams';
-import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useOwners} from 'sentry/utils/useOwners';
+import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
-jest.mock('sentry/utils/useTeams');
-jest.mock('sentry/utils/useMembers');
+jest.mock('sentry/utils/useOwners');
 
 describe('MonitorForm', () => {
   const organization = OrganizationFixture();
@@ -27,24 +25,36 @@ describe('MonitorForm', () => {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
 
-    jest.mocked(useTeams).mockReturnValue({
-      fetchError: null,
+    jest.mocked(useOwners).mockReturnValue({
       fetching: false,
-      hasMore: false,
-      initiallyLoaded: false,
-      loadMore: jest.fn(),
-      onSearch: jest.fn(),
+      members: [member.user!],
+      onMemberSearch: jest.fn(),
+      onTeamSearch: jest.fn(),
       teams: [team],
     });
+  });
 
-    jest.mocked(useMembers).mockReturnValue({
-      fetchError: null,
-      fetching: false,
-      hasMore: false,
-      initiallyLoaded: false,
-      loadMore: jest.fn(),
-      onSearch: jest.fn(),
-      members: [member.user!],
+  it('shows validation errors on required sibling fields after first field change', async () => {
+    render(
+      <MonitorForm
+        apiMethod="POST"
+        apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+        onSubmitSuccess={jest.fn()}
+      />,
+      {organization}
+    );
+
+    // Initially no validation error tooltips should be rendered
+    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+
+    // Change one field (schedule) to trigger first-change validation
+    const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+    await userEvent.clear(schedule);
+    await userEvent.type(schedule, '5 * * * *');
+
+    // Validation error tooltips should now appear on other required empty fields
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
     });
   });
 

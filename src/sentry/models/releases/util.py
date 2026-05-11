@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Self
 
 from django.db import models
-from django.db.models import Case, F, Func, Q, Subquery, Value, When
+from django.db.models import Case, Exists, F, Func, OuterRef, Q, Subquery, Value, When
 from django.db.models.signals import pre_save
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
@@ -38,7 +38,7 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(BaseQuerySet["Release"]):
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> Self:
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
         by prerelease. We treat an empty (but not null) prerelease as higher than any
@@ -47,6 +47,23 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return self.annotate(
             prerelease_case=Case(
                 When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def annotate_build_code_column(self) -> Self:
+        """
+        Adds a `build_code_case` column to the queryset which is used to properly sort
+        by build code to match compare_version behavior:
+        - Alphanumeric builds (NULL build_number, non-NULL build_code): case=2 (highest)
+        - Numeric builds (non-NULL build_number): case=1 (middle)
+        - No build metadata (NULL build_number, NULL build_code): case=0 (lowest)
+        """
+        return self.annotate(
+            build_code_case=Case(
+                When(build_number__isnull=True, build_code__isnull=False, then=2),
+                When(build_number__isnull=False, then=1),
+                default=0,
+                output_field=models.IntegerField(),
             )
         )
 
@@ -183,6 +200,40 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
+
+    def filter_by_environment(
+        self,
+        value: str | Sequence[str],
+        project_ids: Sequence[int],
+        *,
+        lookup: str = "in",
+        negated: bool = False,
+    ) -> Self:
+        """
+        Filter releases by environment name using an EXISTS subquery, avoiding
+        duplicate rows when a release appears in the same environment across
+        multiple projects.
+
+        ``lookup`` controls the match type: ``"in"`` for exact, or one of
+        ``"icontains"`` / ``"istartswith"`` / ``"iendswith"`` for wildcards.
+        """
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+
+        if lookup == "in":
+            env_filter: dict[str, object] = {
+                "environment__name__in": [value] if isinstance(value, str) else list(value)
+            }
+        else:
+            env_filter = {f"environment__name__{lookup}": value}
+
+        exists_subquery = Exists(
+            ReleaseProjectEnvironment.objects.filter(
+                release=OuterRef("pk"),
+                project_id__in=project_ids,
+                **env_filter,
+            )
+        )
+        return self.filter(~exists_subquery if negated else exists_subquery)
 
     def order_by_recent(self) -> Self:
         return self.order_by("-date_added", "-id")

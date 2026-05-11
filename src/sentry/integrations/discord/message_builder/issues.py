@@ -142,7 +142,6 @@ def build_components(
     group: Group,
     project: Project,
 ) -> list[DiscordMessageComponent]:
-
     archive_button = DiscordButton(
         custom_id=f"{CustomIds.ARCHIVE}:{group.id}",
         label="Archive",

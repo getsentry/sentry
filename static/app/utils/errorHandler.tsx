@@ -1,13 +1,13 @@
 import {Component} from 'react';
 
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 
 type State = {
   error: Error | undefined;
   hasError: boolean;
 };
 
-export default function errorHandler<P>(WrappedComponent: React.ComponentType<P>) {
+export function errorHandler<P>(WrappedComponent: React.ComponentType<P>) {
   class ErrorHandler extends Component<P, State> {
     static getDerivedStateFromError(error: Error) {
       // Update state so the next render will show the fallback UI.

@@ -1,7 +1,8 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
+import {AlertStore} from 'sentry/stores/alertStore';
 
 export function displayDeployPreviewAlert() {
   if (!DEPLOY_PREVIEW_CONFIG) {

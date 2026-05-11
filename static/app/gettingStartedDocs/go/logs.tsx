@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   StepType,
   type BasePlatformOptions,
@@ -73,7 +74,7 @@ func main() {
                 <ExternalLink
                   href={
                     docsPlatform === 'go'
-                      ? `https://docs.sentry.io/platforms/go/logs/#integrations`
+                      ? 'https://docs.sentry.io/platforms/go/logs/#integrations'
                       : `https://docs.sentry.io/platforms/go/guides/${docsPlatform}/logs/#integrations`
                   }
                 />

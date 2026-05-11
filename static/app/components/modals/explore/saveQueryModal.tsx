@@ -1,6 +1,11 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 
 import {
   addErrorMessage,
@@ -8,16 +13,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSetQueryParamsSavedQuery} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -49,7 +49,7 @@ function SaveQueryModal({
 
   const setQueryParamsSavedQuery = useSetQueryParamsSavedQuery();
 
-  const onSave = useCallback(async () => {
+  const onSave = async () => {
     try {
       setIsSaving(true);
       addLoadingMessage(t('Saving query...'));
@@ -82,17 +82,7 @@ function SaveQueryModal({
     } finally {
       setIsSaving(false);
     }
-  }, [
-    saveQuery,
-    name,
-    starred,
-    setQueryParamsSavedQuery,
-    closeModal,
-    organization,
-    initialName,
-    source,
-    traceItemDataset,
-  ]);
+  };
 
   return (
     <Fragment>
@@ -103,6 +93,7 @@ function SaveQueryModal({
         <Wrapper>
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
+            autoFocus
             placeholder={
               defined(initialName)
                 ? t('Enter a name for your query')
@@ -136,7 +127,7 @@ function SaveQueryModal({
           <Button onClick={closeModal} disabled={isSaving}>
             {t('Cancel')}
           </Button>
-          <Button onClick={onSave} disabled={!name || isSaving} priority="primary">
+          <Button onClick={onSave} disabled={!name || isSaving} variant="primary">
             {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
         </StyledButtonBar>
@@ -148,13 +139,13 @@ function SaveQueryModal({
 export default SaveQueryModal;
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StarredWrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   > h6 {
@@ -162,10 +153,12 @@ const StarredWrapper = styled('div')`
   }
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {
@@ -176,5 +169,5 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const SectionHeader = styled('h6')`
   font-size: ${p => p.theme.form.md.fontSize};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;

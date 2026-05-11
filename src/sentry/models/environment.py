@@ -11,7 +11,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
@@ -22,7 +22,7 @@ from sentry.utils.hashlib import md5_text
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
-@region_silo_model
+@cell_silo_model
 class EnvironmentProject(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -36,13 +36,13 @@ class EnvironmentProject(Model):
         unique_together = (("project", "environment"),)
 
 
-@region_silo_model
+@cell_silo_model
 class Environment(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=["pk"])
@@ -70,7 +70,9 @@ class Environment(Model):
 
     @classmethod
     def get_name_or_default(cls, name):
-        return name or ""
+        if name:
+            return name[:ENVIRONMENT_NAME_MAX_LENGTH]
+        return ""
 
     @classmethod
     def get_for_organization_id(cls, organization_id, name):

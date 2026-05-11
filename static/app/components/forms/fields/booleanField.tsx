@@ -1,9 +1,10 @@
 import type {FormEvent, ReactNode} from 'react';
 
-import Confirm from 'sentry/components/confirm';
-import {Switch, type SwitchProps} from 'sentry/components/core/switch';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FormField from 'sentry/components/forms/formField';
+import {Switch, type SwitchProps} from '@sentry/scraps/switch';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Confirm} from 'sentry/components/confirm';
+import {FormField} from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps, OnEvent} from './inputField';
@@ -16,7 +17,7 @@ export interface BooleanFieldProps extends InputFieldProps {
   };
 }
 
-export default function BooleanField({confirm, ...fieldProps}: BooleanFieldProps) {
+export function BooleanField({confirm, ...fieldProps}: BooleanFieldProps) {
   return (
     <FormField {...fieldProps} resetOnError>
       {({

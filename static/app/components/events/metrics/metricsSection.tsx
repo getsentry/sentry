@@ -1,11 +1,13 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
-import useDrawer from 'sentry/components/globalDrawer';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -14,12 +16,10 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRICS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/metrics/constants';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
@@ -36,10 +36,10 @@ export function MetricsSection({
   project: Project;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
 
   if (!traceId) {
-    // If there isn't a traceId, we shouldn't show metrics since they are trace specific
     return null;
   }
 
@@ -48,14 +48,23 @@ export function MetricsSection({
   }
 
   return (
-    <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-      <MetricsSectionContent
-        event={event}
-        group={group}
-        project={project}
-        traceId={traceId}
-      />
-    </TraceViewMetricsProviderWrapper>
+    <LazyRender
+      disabled={
+        location.query[METRICS_DRAWER_QUERY_PARAM] === 'true' ||
+        location.hash === `#${SectionKey.METRICS}`
+      }
+      observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
+      withoutContainer
+    >
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <MetricsSectionContent
+          event={event}
+          group={group}
+          project={project}
+          traceId={traceId}
+        />
+      </TraceViewMetricsProviderWrapper>
+    </LazyRender>
   );
 }
 
@@ -80,26 +89,23 @@ function MetricsSectionContent({
     ? result.data.slice(0, NUMBER_ABBREVIATED_METRICS)
     : undefined;
 
-  const onOpenMetricsDrawer = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      trackAnalytics('metrics.issue_details.drawer_opened', {
-        organization,
-      });
+  const onOpenMetricsDrawer = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    trackAnalytics('metrics.issue_details.drawer_opened', {
+      organization,
+    });
 
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            [METRICS_DRAWER_QUERY_PARAM]: 'true',
-          },
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          [METRICS_DRAWER_QUERY_PARAM]: 'true',
         },
-        {replace: true}
-      );
-    },
-    [navigate, location, organization]
-  );
+      },
+      {replace: true}
+    );
+  };
 
   useEffect(() => {
     const shouldOpenDrawer = location.query[METRICS_DRAWER_QUERY_PARAM] === 'true';
@@ -107,12 +113,7 @@ function MetricsSectionContent({
       openDrawer(
         () => (
           <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-            <TraceItemAttributeProvider
-              traceItemType={TraceItemDataset.TRACEMETRICS}
-              enabled
-            >
-              <MetricsDrawer group={group} event={event} project={project} />
-            </TraceItemAttributeProvider>
+            <MetricsDrawer group={group} event={event} project={project} />
           </TraceViewMetricsProviderWrapper>
         ),
         {
@@ -147,7 +148,7 @@ function MetricsSectionContent({
     <InterimSection
       key="metrics"
       type={SectionKey.METRICS}
-      title={t('Metrics')}
+      title={t('Application Metrics')}
       data-test-id="metrics-data-section"
     >
       <Flex direction="column" gap="xl">

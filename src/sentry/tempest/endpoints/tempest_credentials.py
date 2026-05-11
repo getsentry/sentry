@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
@@ -18,7 +18,7 @@ from sentry.tempest.tasks import fetch_latest_item_id
 from sentry.tempest.utils import has_tempest_access
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class TempestCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

@@ -23,13 +23,15 @@ export function getSeriesRequestData(
   organization: Organization,
   pageFilters: PageFilters,
   dataset: DiscoverDatasets,
-  referrer?: string
+  referrer?: string,
+  widgetInterval?: string
 ): EventsStatsOptions<true> {
   const widgetQuery = widget.queries[queryIndex]!;
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(widget, {start, end, period: statsPeriod}, '1m');
+  const interval =
+    widgetInterval ?? getWidgetInterval(widget, {start, end, period: statsPeriod}, '1m');
 
   let requestData: EventsStatsOptions<true>;
   if (displayType === DisplayType.TOP_N) {

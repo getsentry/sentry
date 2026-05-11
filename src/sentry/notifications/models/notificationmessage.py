@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import datetime
 
+from django.db import models
 from django.db.models import DateTimeField, IntegerField, Q, Value
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import CharField, FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 
 
-@region_silo_model
+@cell_silo_model
 class NotificationMessage(Model):
     """
     Data model represents the aggregate for an entire notification message.
@@ -63,6 +64,12 @@ class NotificationMessage(Model):
     class Meta:
         app_label = "notifications"
         db_table = "sentry_notificationmessage"
+        indexes = [
+            models.Index(
+                fields=["group", "action", "date_added"],
+                name="idx_notifmsg_group_action_date",
+            ),
+        ]
         # A notification message should exist for either issue or metric alert, but never both
         constraints = [
             # A notification message should only exist for one of the following conditions:

@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,7 +8,7 @@ from sentry import analytics
 from sentry.api.analytics import OrganizationSavedSearchDeletedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -18,6 +20,7 @@ from sentry.api.serializers.rest_framework.savedsearch import (
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class OrganizationSearchEditPermission(OrganizationSearchPermission):
@@ -36,7 +39,7 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
             )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
@@ -45,8 +48,17 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationSearchEditPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, search_id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        search_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         (args, kwargs) = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+
+        validated_search_id = to_valid_int_id("search_id", search_id, raise_404=True)
 
         # Only allow users to delete their own personal searches OR
         # organization level searches
@@ -57,7 +69,7 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
             search = SavedSearch.objects.get(
                 org_search | personal_search,
                 organization=kwargs["organization"],
-                id=search_id,
+                id=validated_search_id,
             )
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist

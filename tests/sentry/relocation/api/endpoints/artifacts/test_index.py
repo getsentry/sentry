@@ -73,6 +73,7 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
         self.relocation_storage.save(f"{dir}/out/baseline-config.tar", StringIO("1234567890abcd"))
         self.relocation_storage.save(f"{dir}/out/colliding-users.tar", StringIO("1234567890abcde"))
 
+    @override_options({"staff.ga-rollout": False})
     def test_good_with_superuser(self) -> None:
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.superuser, superuser=True)
@@ -108,6 +109,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
+    @override_options({"staff.ga-rollout": False})
     def test_bad_superuser_disabled(self) -> None:
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.superuser, superuser=False)
@@ -127,6 +129,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
+    @override_options({"staff.ga-rollout": False})
     def test_bad_has_superuser_but_no_relocation_admin_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 

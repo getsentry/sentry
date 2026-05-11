@@ -4,7 +4,7 @@ import type {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 
 interface TableHeadProps<K> {
   currentSort?: GridColumnSortBy<K> | null;
@@ -29,7 +29,7 @@ export function renderTableHead<K>({
         title={column.name}
         direction={currentSort?.key === column.key ? currentSort?.order : undefined}
         canSort={sortableColumns?.has(column.key) || false}
-        generateSortLink={generateSortLink?.(column.key) ?? (() => undefined)}
+        generateSortLink={generateSortLink?.(column.key) ?? (() => {})}
         replace
       />
     );

@@ -1,16 +1,16 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const installText = (features: Props['features'], featureName: string): string => {
   const featuresList = Array.isArray(features) ? features : [features];
@@ -56,7 +56,7 @@ type Props = {
  * information about why the feature is disabled, showing the missing feature
  * flag and linking to documentation for managing sentry server feature flags.
  */
-function FeatureDisabled({
+export function FeatureDisabled({
   features,
   featureName,
   alert,
@@ -84,7 +84,7 @@ function FeatureDisabled({
           )}
         </HelpText>
         <CopyButton
-          borderless
+          variant="transparent"
           icon={<IconCopy />}
           onClick={() => copy(snippet)}
           size="xs"
@@ -105,11 +105,7 @@ function FeatureDisabled({
         <FeatureDisabledMessage>
           {message}
           {!hideHelpToggle && (
-            <ToggleButton
-              priority="link"
-              size="xs"
-              onClick={() => setShowHelp(!showHelp)}
-            >
+            <ToggleButton variant="link" size="xs" onClick={() => setShowHelp(!showHelp)}>
               {t('Help')}
               <StyledIconChevron direction={showDescription ? 'up' : 'down'} />
             </ToggleButton>
@@ -137,7 +133,7 @@ const FeatureDisabledMessage = styled('div')`
 `;
 
 const HelpDescription = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 
   pre,
   code {
@@ -146,16 +142,16 @@ const HelpDescription = styled('div')`
   }
 
   button {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
 `;
 
 const HelpText = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const ToggleButton = styled(Button)`
@@ -176,5 +172,3 @@ const Pre = styled('pre')`
   margin-bottom: 0;
   overflow: auto;
 `;
-
-export default FeatureDisabled;

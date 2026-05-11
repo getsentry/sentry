@@ -70,12 +70,12 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
     }
 
     @pytest.fixture(autouse=True)
-    def _setup_metrics(self):
+    def _setup_metrics(self) -> object:
         with patch("sentry.snuba.tasks.metrics") as self.metrics:
             yield
 
     @abc.abstractproperty
-    def expected_status(self):
+    def expected_status(self) -> Any:
         pass
 
     @abc.abstractmethod
@@ -84,14 +84,14 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
 
     def create_subscription(
         self,
-        status=None,
-        subscription_id=None,
-        dataset=None,
-        query=None,
-        aggregate=None,
-        time_window=None,
-        query_extra=None,
-    ):
+        status: Any = None,
+        subscription_id: Any = None,
+        dataset: Any = None,
+        query: Any = None,
+        aggregate: Any = None,
+        time_window: Any = None,
+        query_extra: Any = None,
+    ) -> Any:
         if status is None:
             status = self.expected_status
         if dataset is None:
@@ -124,18 +124,14 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
     def test_no_subscription(self) -> None:
         self.task(12345)
         self.metrics.incr.assert_called_once_with(
-            "snuba.subscriptions.{}.subscription_does_not_exist".format(
-                self.status_translations[self.expected_status]
-            )
+            f"snuba.subscriptions.{self.status_translations[self.expected_status]}.subscription_does_not_exist"
         )
 
     def test_invalid_status(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.ACTIVE)
         self.task(sub.id)
         self.metrics.incr.assert_called_once_with(
-            "snuba.subscriptions.{}.incorrect_status".format(
-                self.status_translations[self.expected_status]
-            )
+            f"snuba.subscriptions.{self.status_translations[self.expected_status]}.incorrect_status"
         )
 
 
@@ -587,7 +583,8 @@ class BuildSnqlQueryTest(TestCase):
         },
         SnubaQuery.Type.CRASH_RATE: {
             Dataset.Sessions: {
-                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id,
+                **kwargs: [
                     Function(
                         function="if",
                         parameters=[
@@ -607,7 +604,8 @@ class BuildSnqlQueryTest(TestCase):
                         alias="_crash_rate_alert_aggregate",
                     )
                 ],
-                "percentage(users_crashed, users) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                "percentage(users_crashed, users) as _crash_rate_alert_aggregate": lambda org_id,
+                **kwargs: [
                     Function(
                         function="if",
                         parameters=[
@@ -626,7 +624,9 @@ class BuildSnqlQueryTest(TestCase):
                 ],
             },
             Dataset.Metrics: {
-                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, metric_mri, **kwargs: [
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id,
+                metric_mri,
+                **kwargs: [
                     Function(
                         function="sumIf",
                         parameters=[
@@ -710,7 +710,9 @@ class BuildSnqlQueryTest(TestCase):
                         alias="crashed",
                     ),
                 ],
-                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id, metric_mri, **kwargs: [
+                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id,
+                metric_mri,
+                **kwargs: [
                     Function(
                         function="uniqIf",
                         parameters=[
@@ -779,20 +781,20 @@ class BuildSnqlQueryTest(TestCase):
 
     def run_test(
         self,
-        query_type,
-        dataset,
-        aggregate,
-        query,
-        expected_conditions,
-        entity_extra_fields=None,
-        environment=None,
-        granularity=None,
-        aggregate_kwargs=None,
+        query_type: Any,
+        dataset: Any,
+        aggregate: Any,
+        query: Any,
+        expected_conditions: Any,
+        entity_extra_fields: Any = None,
+        environment: Any = None,
+        granularity: Any = None,
+        aggregate_kwargs: Any = None,
         # This flag is used to expect None clauses instead of [], it has been done in order to account for how the
         # metrics layer generates snql.
-        use_none_clauses=False,
-        expected_match=None,
-    ):
+        use_none_clauses: bool = False,
+        expected_match: Any = None,
+    ) -> None:
         aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
         time_window = 3600
         entity_subscription = get_entity_subscription(
@@ -843,7 +845,9 @@ class BuildSnqlQueryTest(TestCase):
             expected_query = expected_query.set_granularity(granularity)
         assert snql_query.query == expected_query
 
-    def string_aggregate_to_snql(self, query_type, dataset, aggregate, aggregate_kwargs):
+    def string_aggregate_to_snql(
+        self, query_type: Any, dataset: Any, aggregate: Any, aggregate_kwargs: Any
+    ) -> Any:
         aggregate_builder_func = self.aggregate_mappings[query_type][dataset].get(
             aggregate,
             self.aggregate_mappings_fallback.get(aggregate, lambda org_id, **kwargs: []),
@@ -1237,7 +1241,9 @@ class TestApplyDatasetQueryConditions(TestCase):
 
 
 class SubscriptionCheckerTest(TestCase):
-    def create_subscription(self, status, subscription_id=None, date_updated=None):
+    def create_subscription(
+        self, status: Any, subscription_id: Any = None, date_updated: Any = None
+    ) -> Any:
         dataset = Dataset.Events.value
         aggregate = "count_unique(tags[sentry:user])"
         query = "hello"

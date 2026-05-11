@@ -1,10 +1,7 @@
-import {useEffect, useState} from 'react';
-
 import type {ResponseMeta} from 'sentry/api';
-import MemberListStore from 'sentry/stores/memberListStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {
   IssuesConfig,
   type IssuesSeriesResponse,
@@ -27,9 +24,10 @@ type Props = {
   onDataFetched?: (results: OnDataFetchedProps) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
+  widgetInterval?: string;
 };
 
-function IssueWidgetQueries({
+export function IssueWidgetQueries({
   children,
   widget,
   cursor,
@@ -38,17 +36,8 @@ function IssueWidgetQueries({
   onDataFetched,
   onDataFetchStart,
   selection,
+  widgetInterval,
 }: Props) {
-  const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
-
-  useEffect(() => {
-    setMemberListStoreLoaded(!MemberListStore.state.loading);
-    const unlistener = MemberListStore.listen(() => {
-      setMemberListStoreLoaded(!MemberListStore.state.loading);
-    }, undefined);
-    return () => unlistener();
-  }, []);
-
   const config = IssuesConfig;
 
   const afterFetchTableData = (_rawResult: Group[], response?: ResponseMeta) => {
@@ -66,15 +55,14 @@ function IssueWidgetQueries({
     selection,
     afterFetchTableData,
     skipDashboardFilterParens: true, // Issue widgets do not support parens in search
+    widgetInterval,
   });
 
   return getDynamicText({
     value: children({
-      loading: loading || !memberListStoreLoaded,
+      loading,
       ...rest,
     }),
     fixed: <div />,
   });
 }
-
-export default IssueWidgetQueries;

@@ -1,7 +1,8 @@
-import {Flex, Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import type {BaseTextProps} from 'sentry/components/core/text/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import type {TextProps} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
@@ -13,7 +14,7 @@ type UptimePercentProps = {
    * Text to display at the top of the uptime percent text tooltip
    */
   note?: React.ReactNode;
-  size?: BaseTextProps['size'];
+  size?: TextProps<'span'>['size'];
 };
 
 export function UptimePercent({summary, note, size}: UptimePercentProps) {

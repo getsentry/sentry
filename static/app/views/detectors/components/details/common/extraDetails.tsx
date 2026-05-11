@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {TimeSince} from 'sentry/components/timeSince';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 type Props = {
@@ -18,9 +19,9 @@ type Props = {
 
 export function DetectorExtraDetails({children}: Props) {
   return (
-    <Section title={t('Details')}>
+    <DetailSection title={t('Details')}>
       <StyledKeyValueTable>{children}</StyledKeyValueTable>
-    </Section>
+    </DetailSection>
   );
 }
 
@@ -49,7 +50,11 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
 }) {
   const createdBy = detector.createdBy ?? null;
 
-  const {isPending, data: user} = useUserFromId({
+  const {
+    isPending,
+    isError,
+    data: user,
+  } = useUserFromId({
     id: createdBy ? parseInt(createdBy, 10) : undefined,
   });
 
@@ -66,6 +71,10 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
         value={<Placeholder width="80px" height="16px" />}
       />
     );
+  }
+
+  if (isError) {
+    return <KeyValueTableRow keyName={keyName} value={t('Deactivated user')} />;
   }
 
   const title = user?.name ?? user?.email ?? t('Unknown');

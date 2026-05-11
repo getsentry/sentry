@@ -232,14 +232,14 @@ def delete_assemble_status(task, scope, checksum):
     name="sentry.tasks.assemble.assemble_dif",
     namespace=attachments_tasks,
     processing_deadline_duration=60 * 3,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
+    from sentry.models.debugfile import BadDif, create_dif_from_file
     from sentry.models.project import Project
 
     sentry_sdk.get_isolation_scope().set_tag("project", project_id)
@@ -268,21 +268,15 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                result = detect_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
+                dif, created = create_dif_from_file(
+                    project, file, temp_file.name, name=name, debug_id=debug_id
+                )
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
                 )
                 return
 
-            if len(result) != 1:
-                detail = "Object contains %s architectures (1 expected)" % len(result)
-                set_assemble_status(
-                    AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=detail
-                )
-                return
-
-            dif, created = create_dif_from_id(project, result[0], file=file)
             delete_file = False
 
             if created:
@@ -411,8 +405,6 @@ class ArtifactBundlePostAssembler:
         # We take a snapshot in time in order to have consistent values in the database.
         date_snapshot = timezone.now()
 
-        # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
-        # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
         new_date_added = {"date_added": date_snapshot}
 
         # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
@@ -432,23 +424,21 @@ class ArtifactBundlePostAssembler:
 
             # If a release version is passed, we want to create the weak association between a bundle and a release.
             if self.release:
-                ReleaseArtifactBundle.objects.create_or_update(
+                ReleaseArtifactBundle.objects.update_or_create(
                     organization_id=self.organization.id,
                     release_name=self.release,
                     # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
                     # tables.
                     dist_name=self.dist or NULL_STRING,
                     artifact_bundle=artifact_bundle,
-                    values=new_date_added,
                     defaults=new_date_added,
                 )
 
             for project_id in self.project_ids:
-                ProjectArtifactBundle.objects.create_or_update(
+                ProjectArtifactBundle.objects.update_or_create(
                     organization_id=self.organization.id,
                     project_id=project_id,
                     artifact_bundle=artifact_bundle,
-                    values=new_date_added,
                     defaults=new_date_added,
                 )
 
@@ -609,7 +599,7 @@ class ArtifactBundlePostAssembler:
     name="sentry.tasks.assemble.assemble_artifacts",
     namespace=attachments_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_artifacts(
     org_id,

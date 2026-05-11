@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface OnDemandThresholdCheckerProps {
   children: (props: {isOnDemandLimitReached: boolean | undefined}) => React.ReactNode;
@@ -19,7 +20,9 @@ export function OnDemandThresholdChecker({
 
   const {data} = useApiQuery<{maxAllowed: number; totalOnDemandAlertSpecs: number}>(
     [
-      `/organizations/${organization.slug}/ondemand-rules-stats/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/ondemand-rules-stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: projectId,

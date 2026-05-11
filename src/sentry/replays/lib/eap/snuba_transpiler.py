@@ -18,9 +18,8 @@ normalize it first.
 
 from collections.abc import MutableMapping, Sequence
 from datetime import date, datetime
-from typing import Any
+from typing import Any, NotRequired, Required, TypedDict, cast
 from typing import Literal as TLiteral
-from typing import NotRequired, Required, TypedDict, cast
 
 import urllib3
 from django.conf import settings
@@ -35,26 +34,25 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationComparisonFilter,
     AggregationFilter,
     AggregationOrFilter,
-)
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.formula_pb2 import Literal
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta as EAPRequestMeta
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
     DoubleArray,
     ExtrapolationMode,
+    IntArray,
+    StrArray,
+    VirtualColumnContext,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunction
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import IntArray, StrArray, VirtualColumnContext
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -784,11 +782,11 @@ def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
         if expr.alias:
             return expr.alias
         else:
-            return f'{expr.function}({", ".join(label(p) for p in expr.parameters)})'
+            return f"{expr.function}({', '.join(label(p) for p in expr.parameters)})"
     elif isinstance(expr, (date, datetime)):
         return expr.isoformat()
     elif isinstance(expr, (list, tuple, Sequence)):
-        return f"[{", ".join(label(item) for item in expr)}]"
+        return f"[{', '.join(label(item) for item in expr)}]"
     elif isinstance(expr, (bytes, bytearray, memoryview)):
         return str(expr)
     else:
@@ -806,14 +804,12 @@ class QueryResultMetaDownsamplingMode(TypedDict):
 
 
 class QueryResultMeta(TypedDict):
-
     downsampling_mode: QueryResultMetaDownsamplingMode
     next_offset: int
     request_id: str
 
 
 class QueryResult(TypedDict):
-
     data: list[dict[str, bool | float | int | str | None]]
     meta: QueryResultMeta
 
@@ -831,13 +827,13 @@ def translate_response(
             return None
 
         typ_ = type_map[name]
-        if typ_ == bool:
+        if typ_ is bool:
             return result.val_bool
-        if typ_ == float:
+        if typ_ is float:
             return result.val_double
-        if typ_ == int:
+        if typ_ is int:
             return result.val_int
-        if typ_ == str:
+        if typ_ is str:
             return result.val_str
         else:
             return None

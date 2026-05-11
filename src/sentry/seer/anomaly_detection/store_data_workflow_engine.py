@@ -2,16 +2,13 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
-from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.models.project import Project
-from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.store_data import SeerMethod
+from sentry.seer.anomaly_detection.store_data import SeerMethod, make_store_data_request
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
@@ -22,11 +19,12 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
     format_historical_data,
+    get_aggregate_type,
     get_dataset_from_label_and_event_types,
     get_event_types,
     translate_direction,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
@@ -34,11 +32,6 @@ from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceD
 from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
-
-seer_anomaly_detection_connection_pool = connection_from_url(
-    settings.SEER_ANOMALY_DETECTION_URL,
-    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
-)
 
 
 def _fetch_related_models(
@@ -220,6 +213,8 @@ def send_historical_data_to_seer(
         direction=translate_direction(data_condition.comparison.get("threshold_type")),
         expected_seasonality=data_condition.comparison.get("seasonality"),
     )
+    if aggregate_type := get_aggregate_type(snuba_query.aggregate):
+        anomaly_detection_config["aggregate"] = aggregate_type
     alert = AlertInSeer(
         id=None,
         source_id=int(data_source.source_id),
@@ -242,12 +237,9 @@ def send_historical_data_to_seer(
             "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
         },
     )
+    viewer_context = SeerViewerContext(organization_id=project.organization.id)
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
-            path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-            body=json.dumps(body).encode("utf-8"),
-        )
+        response = make_store_data_request(body, viewer_context=viewer_context)
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
         logger.warning(

@@ -1,15 +1,24 @@
+from typing import Any, Iterable, cast
 from unittest.mock import MagicMock, patch
 
 from django.db import IntegrityError
+from django.http import StreamingHttpResponse
+from django.urls import reverse
 
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
-from sentry.data_export.tasks import assemble_download, merge_export_blobs
+from sentry.data_export.tasks import (
+    assemble_download,
+    merge_export_blobs,
+    recoverable_retry_countdown,
+)
+from sentry.data_export.writers import OutputMode
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import OurLogTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     DatasetSelectionError,
@@ -64,6 +73,12 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
     def test_task_persistent_name(self) -> None:
         assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
+
+    def test_recoverable_retry_countdown_exponential_backoff(self) -> None:
+        assert recoverable_retry_countdown(3) == 30
+        assert recoverable_retry_countdown(2) == 60
+        assert recoverable_retry_countdown(1) == 120
+        assert recoverable_retry_countdown(0) == 240
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_issue_by_tag_batched(self, emailer: MagicMock) -> None:
@@ -696,7 +711,197 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
-        self.project = self.create_project(organization=self.org)
+
+        self.team = self.create_team(organization=self.org)
+        self.project = self.create_project(organization=self.org, teams=[self.team])
+        self.create_member(user=self.user, organization=self.org, teams=[self.team])
+
+    def _store_explore_logs_jsonl_rich_field_fixture(
+        self, n: int = 2
+    ) -> tuple[str, str, dict[str, dict[str, object]], frozenset[str]]:
+        """
+        Store n wide logs rows via Snuba. Returns (start_iso, end_iso, expected_rows_by_user_agent, ignore_keys).
+        """
+        shared_attrs = {
+            "environment": "prod",
+            "origin": "auto.log.stdlib",
+            "sdk.name": "sentry.python.django",
+            "sdk.version": "2.47.0",
+            "tags[code.line.number,number]": 148,
+            "tags[process.pid,number]": 6639,
+        }
+        per_log = [
+            {
+                "body": f"api.access.log{i}",
+                "user_agent": f"agent/{i}",
+                "method": "GET" if i % 2 == 0 else "POST",
+                "path": f"/api/0/log/{i}/",
+                "response": str(200 + i),
+                "payload_size": 1000 + i * 100,
+            }
+            for i in range(n)
+        ]
+        logs = [
+            self.create_ourlog(
+                {"body": p["body"], "severity_text": "info", "severity_number": 9},  # type: ignore[arg-type]
+                timestamp=before_now(minutes=10, seconds=i * 30),
+                organization=self.org,
+                project=self.project,
+                attributes={
+                    **shared_attrs,
+                    "method": p["method"],
+                    "path": p["path"],
+                    "user_agent": p["user_agent"],
+                    "logger.name": "sentry.access.api",
+                    "response": p["response"],
+                    "rate_limited": "False",
+                    "payload_size": p["payload_size"],
+                },
+            )
+            for i, p in enumerate(per_log)
+        ]
+        self.store_eap_items(logs)
+
+        expected_rows_by_agent = {
+            p["user_agent"]: {
+                "sdk.name": "sentry.python.django",
+                "sdk.version": "2.47.0",
+                "origin": "auto.log.stdlib",
+                "environment": "prod",
+                "tags[code.line.number,number]": 148.0,
+                "tags[process.pid,number]": 6639.0,
+                "logger.name": "sentry.access.api",
+                "rate_limited": "False",
+                "severity": "info",
+                "severity_number": 9.0,
+                "user_agent": p["user_agent"],
+                "method": p["method"],
+                "path": p["path"],
+                "message": p["body"],
+                "response": p["response"],
+                "payload_size": float(p["payload_size"]),
+            }
+            for p in per_log
+        }
+        start = before_now(minutes=15).isoformat()
+        end = before_now(seconds=30).isoformat()
+
+        # Present on TraceItem / Snuba but not worth pinning (ids, times, nanosecond precision, sampling).
+        variable_keys = frozenset(
+            {
+                "timestamp_precise",
+                "observed_timestamp",
+                "trace",
+                "id",
+                "organization.id",
+                "project.id",
+                "item_type",
+                "timestamp",
+                "client_sample_rate",
+                "server_sample_rate",
+                "retention_days",
+                "downsampled_retention_days",
+            }
+        )
+        return start, end, expected_rows_by_agent, variable_keys  # type: ignore[return-value]
+
+    def _assert_explore_logs_jsonl_rows_match_expected(
+        self,
+        rows_by_agent: dict[str, dict[str, object]],
+        expected_rows_by_agent: dict[str, dict[str, object]],
+        ignored_keys: frozenset[str],
+    ) -> None:
+        def assert_row_equals_export(
+            actual: dict[str, object], expected: dict[str, object]
+        ) -> None:
+            for key, exp in expected.items():
+                assert key in actual, f"missing column {key!r}; got {sorted(actual)}"
+                got = actual[key]
+                if isinstance(exp, (int, float)) and isinstance(got, (int, float)):
+                    assert float(got) == float(exp), (key, got, exp)
+                else:
+                    assert got == exp, (key, got, exp)
+            extra = set(actual) - set(expected) - ignored_keys
+            assert not extra, f"unexpected columns: {sorted(extra)}"
+
+        assert set(rows_by_agent.keys()) == set(expected_rows_by_agent.keys())
+        for user_agent in rows_by_agent:
+            assert_row_equals_export(rows_by_agent[user_agent], expected_rows_by_agent[user_agent])
+
+    def _explore_logs_jsonl_rich_field_api_request_body(
+        self, start: str, end: str, *, limit: int | None = None
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "query_type": ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+            "format": OutputMode.JSONL.value,
+            "query_info": {
+                "project": [self.project.id],
+                "field": [],
+                "equations": [],
+                "query": "",
+                "dataset": "logs",
+                "start": start,
+                "end": end,
+            },
+        }
+        if limit is not None:
+            body["limit"] = limit
+        return body
+
+    def _post_explore_logs_jsonl_rich_field_export(
+        self, start: str, end: str, *, limit: int | None = None
+    ) -> dict[str, Any]:
+        self.login_as(self.user)
+        url = reverse(
+            "sentry-api-0-organization-data-export",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
+        request_body = self._explore_logs_jsonl_rich_field_api_request_body(start, end, limit=limit)
+        with self.feature("organizations:discover-query"):
+            response = self.client.post(
+                url,
+                data=json.dumps(request_body),
+                content_type="application/json",
+            )
+        assert response.status_code == 201, response.content
+        return json.loads(response.content)
+
+    def _assert_explore_logs_jsonl_export_create_payload(
+        self, payload: dict[str, Any]
+    ) -> ExportedData:
+        de = ExportedData.objects.get(id=payload["id"])
+        assert de.user_id == self.user.id
+        assert de.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
+        assert de.export_format == OutputMode.JSONL.value
+        assert de.query_info["dataset"] == "logs"
+        return de
+
+    def _assert_rich_field_ndjson_rows_match_expected(
+        self,
+        raw_ndjson: bytes,
+        expected_rows_by_agent: dict[str, dict[str, object]],
+        ignored_keys: frozenset[str],
+    ) -> None:
+        lines = [ln for ln in raw_ndjson.split(b"\n") if ln]
+        assert len(lines) == len(expected_rows_by_agent)
+        rows = [json.loads(ln.decode("utf-8")) for ln in lines]
+        rows_by_agent = {row["user_agent"]: row for row in rows}
+        self._assert_explore_logs_jsonl_rows_match_expected(
+            rows_by_agent, expected_rows_by_agent, ignored_keys
+        )
+
+    def _get_data_export_download_body(self, data_export_id: int) -> bytes:
+        details_url = reverse(
+            "sentry-api-0-organization-data-export-details",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "data_export_id": data_export_id,
+            },
+        )
+        dl_response = self.client.get(f"{details_url}?download=1")
+        assert dl_response.status_code == 200
+        stream = cast(StreamingHttpResponse, dl_response).streaming_content
+        return b"".join(cast(Iterable[bytes], stream)).strip()
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_spans_dataset_called_correctly(self, emailer: MagicMock) -> None:
@@ -708,7 +913,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             )
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -755,7 +960,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 attributes={"custom.field": "test_value"},
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -775,7 +980,6 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             assemble_download(de.id, batch_size=1)
 
         de = ExportedData.objects.get(id=de.id)
-        de = ExportedData.objects.get(id=de.id)
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
@@ -790,6 +994,139 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert b"log.body,severity_text" in content
 
     @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_jsonl_format(self, emailer: MagicMock) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "jsonl log message", "severity_text": "INFO"},
+                timestamp=before_now(minutes=10),
+                organization=self.org,
+                project=self.project,
+                attributes={"custom.field": "test_value 1"},
+            ),
+            self.create_ourlog(
+                {"body": "jsonl log message two", "severity_text": "INFO"},
+                timestamp=before_now(minutes=8),
+                organization=self.org,
+                project=self.project,
+                attributes={"custom.field": "test_value 2"},
+            ),
+            self.create_ourlog(
+                {"body": "jsonl log message three", "severity_text": "INFO"},
+                timestamp=before_now(minutes=4),
+                organization=self.org,
+                project=self.project,
+                attributes={"custom.field": "test_value 3"},
+            ),
+        ]
+        self.store_eap_items(logs)
+        fields = ["log.body", "severity_text"]
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.EXPLORE,
+            query_info={
+                "project": [self.project.id],
+                "field": fields,
+                "query": "",
+                "dataset": "logs",
+                "start": before_now(minutes=15).isoformat(),
+                "end": before_now(seconds=30).isoformat(),
+            },
+            export_format=OutputMode.JSONL.value,
+        )
+
+        rows_exported = len(logs) - 1
+        with self.tasks():
+            assemble_download(de.id, batch_size=1, export_limit=rows_exported, page_token=None)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file_id is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+        assert file.size is not None
+        assert file.checksum is not None
+
+        with file.getfile() as f:
+            content = f.read().strip()
+
+        lines = [ln for ln in content.split(b"\n") if ln]
+        assert len(lines) == rows_exported
+        message_key = "log.body" if len(fields) else "message"
+        bodies = {json.loads(ln.decode("utf-8"))[message_key] for ln in lines}
+        assert bodies == {
+            "jsonl log message",
+            "jsonl log message two",
+        }
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_jsonl_full_dataset_rich_fields_async(self, emailer: MagicMock) -> None:
+        """
+        Wide logs JSONL: two rows, export_limit above row count (async assemble_download).
+
+        """
+        start, end, expected_rows_by_agent, ignored_keys = (
+            self._store_explore_logs_jsonl_rich_field_fixture(n=7)
+        )
+
+        payload = self._post_explore_logs_jsonl_rich_field_export(start, end)
+        de = self._assert_explore_logs_jsonl_export_create_payload(payload)
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=2, export_limit=100)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+
+        with file.getfile() as f:
+            content = f.read().strip()
+        self._assert_rich_field_ndjson_rows_match_expected(
+            content, expected_rows_by_agent, ignored_keys
+        )
+        assert emailer.called
+
+    @patch("sentry.data_export.endpoints.data_export.assemble_download.delay")
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_jsonl_full_dataset_rich_fields_sync(
+        self, emailer: MagicMock, assemble_delay: MagicMock
+    ) -> None:
+        """
+        Same dataset as test_explore_logs_jsonl_full_dataset_rich_fields: explore + JSONL + limit
+        runs synchronously; API response includes file metadata; download stream matches rows.
+        """
+        start, end, expected_rows_by_agent, ignored_keys = (
+            self._store_explore_logs_jsonl_rich_field_fixture()
+        )
+
+        payload = self._post_explore_logs_jsonl_rich_field_export(start, end, limit=100)
+        assert not assemble_delay.called
+
+        assert payload["dateFinished"] is not None
+        assert payload["checksum"] is not None
+        assert payload["fileName"] is not None
+        de = self._assert_explore_logs_jsonl_export_create_payload(payload)
+        assert de.date_finished is not None
+        assert de.file_id is not None
+
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.checksum == payload["checksum"]
+        assert file.name == payload["fileName"]
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+
+        raw = self._get_data_export_download_body(de.id)
+        self._assert_rich_field_ndjson_rows_match_expected(
+            raw, expected_rows_by_agent, ignored_keys
+        )
+        assert not emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_datasets_isolation(self, emailer: MagicMock) -> None:
         spans = [
             self.create_span(
@@ -799,7 +1136,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             )
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         logs = [
             self.create_ourlog(
@@ -809,7 +1146,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         # Test spans dataset export
         de_spans = ExportedData.objects.create(
@@ -897,7 +1234,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             ),
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -953,7 +1290,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 project=self.project,
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -1054,7 +1391,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             )
             for _ in range(5)
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -1106,7 +1443,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             )
             for i in range(5)
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -1162,7 +1499,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             ),
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,

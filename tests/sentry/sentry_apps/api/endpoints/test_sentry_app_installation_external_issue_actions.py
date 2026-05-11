@@ -1,10 +1,13 @@
 import responses
 from django.urls import reverse
 
+from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
+@control_silo_test
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
@@ -47,7 +50,8 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         response = self.client.post(self.url, data=data, format="json")
-        external_issue = PlatformExternalIssue.objects.get()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            external_issue = PlatformExternalIssue.objects.get()
 
         assert response.status_code == 200
         assert response.data == {
@@ -78,6 +82,46 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         assert response.status_code == 500
         assert (
             response.content
-            == b'{"detail":"Issue occured while trying to contact testin to link issue"}'
+            == b'{"detail":"Issue occurred while trying to contact testin to link issue"}'
         )
-        assert not PlatformExternalIssue.objects.all()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.all()
+
+    def test_rejects_group_from_inaccessible_project(self) -> None:
+        with assume_test_silo_mode_of(Organization):
+            self.org.flags.allow_joinleave = False
+            self.org.save()
+
+        user_team = self.create_team(organization=self.org, name="user-team")
+        other_team = self.create_team(organization=self.org, name="other-team")
+        self.create_project(organization=self.org, teams=[user_team], name="user-proj")
+        other_project = self.create_project(
+            organization=self.org, teams=[other_team], name="other-proj"
+        )
+        other_group = self.create_group(project=other_project)
+
+        limited_user = self.create_user()
+        self.create_member(
+            organization=self.org,
+            user=limited_user,
+            role="member",
+            teams=[user_team],
+            teamRole="admin",
+        )
+
+        self.login_as(user=limited_user)
+        response = self.client.post(
+            self.url,
+            data={
+                "groupId": other_group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "/create-issues",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to link this issue."
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.filter(group_id=other_group.id).exists()

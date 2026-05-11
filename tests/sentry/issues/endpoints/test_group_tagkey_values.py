@@ -27,7 +27,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/{key}/values/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/{key}/values/"
 
         response = self.client.get(url)
 
@@ -55,7 +55,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.group.id}/tags/{key}/values/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/{key}/values/"
 
         response = self.client.get(url)
 
@@ -84,7 +84,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/user/values/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/user/values/"
 
         response = self.client.get(url)
 
@@ -116,9 +116,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = (
-            f"/api/0/issues/{group.id}/tags/message/values/?query=minidumpC%3A%5C%5CUsers%5C%5Ctest"
-        )
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/message/values/?query=minidumpC%3A%5C%5CUsers%5C%5Ctest"
 
         response = self.client.get(url)
 
@@ -149,7 +147,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/foo/values/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/foo/values/"
 
         response = self.client.get(url)
 
@@ -183,7 +181,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/foo/values/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/foo/values/"
 
         group_tag_key = tagstore.backend.get_group_tag_key(
             group,
@@ -235,7 +233,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/user/values/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/user/values/"
 
         # This should not crash with AttributeError: 'NoneType' object has no attribute 'split'
         response = self.client.get(url)
@@ -294,7 +292,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/user/values/?sort=count"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/user/values/?sort=count"
 
         response = self.client.get(url)
 
@@ -322,7 +320,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/{key}/values/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/{key}/values/"
 
         with freeze_time(datetime.datetime.now()):
             for i in range(150):

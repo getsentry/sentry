@@ -18,14 +18,14 @@ const commonFields = {
   categories: MM2_CATEGORIES,
   categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
   checkoutCategories: MM2_CATEGORIES,
-  availableCategories: [], // TODO(isabella): check this
+  availableCategories: [],
   onDemandCategories: MM2_CATEGORIES,
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'on-demand',
   availableReservedBudgetTypes: {},
 };
 
-const MM2_PLANS: Record<string, Plan> = {
+export const MM2_PLANS = {
   mm2_a_100k: {
     ...commonFields,
     isTestPlan: false,
@@ -653,6 +653,4 @@ const MM2_PLANS: Record<string, Plan> = {
     dashboardLimit: 0,
     metricDetectorLimit: 0,
   },
-};
-
-export default MM2_PLANS;
+} as const satisfies Record<string, Plan>;

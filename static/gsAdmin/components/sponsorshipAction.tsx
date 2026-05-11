@@ -1,7 +1,8 @@
 import {Component, Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {Alert} from '@sentry/scraps/alert';
+
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 
 import type {
   AdminConfirmParams,
@@ -20,7 +21,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class SponsorshipAction extends Component<Props, State> {
+export class SponsorshipAction extends Component<Props, State> {
   state: State = {
     sponsoredType: undefined,
   };
@@ -79,5 +80,3 @@ class SponsorshipAction extends Component<Props, State> {
     );
   }
 }
-
-export default SponsorshipAction;

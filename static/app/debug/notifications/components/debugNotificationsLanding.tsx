@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 
 import heroImg from 'sentry-images/debug/notifications/hero.png';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 // Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';

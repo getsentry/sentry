@@ -4,18 +4,15 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {Policy, Subscription} from 'getsentry/types';
 import {PolicyStatus} from 'getsentry/views/legalAndCompliance/policyStatus';
@@ -51,7 +48,12 @@ export function PolicyRow({
   const activeSuperUser = isActiveSuperuser();
   const hasBillingAccess = organization.access.includes('org:billing');
 
-  const policyUrl = policy.url ? safeURL(policy.url) : null;
+  const rawPolicyUrl = policy.url ? safeURL(policy.url) : null;
+  // Only allow http/https URLs to prevent javascript: and data: URL injection
+  const policyUrl =
+    rawPolicyUrl?.protocol === 'http:' || rawPolicyUrl?.protocol === 'https:'
+      ? rawPolicyUrl
+      : null;
   // userCurrentVersion filters version select dropdown to only the current version + latest version
   if (policyUrl && policy.consent) {
     policyUrl.searchParams.set('userCurrentVersion', policy.consent.acceptedVersion);
@@ -64,7 +66,7 @@ export function PolicyRow({
     const name = 'sentryPolicy';
     const width = 600;
     const height = 600;
-    const url = policy.url;
+    const url = policyUrl?.toString() ?? null;
 
     // this attempts to center the dialog
     const innerWidth = window.innerWidth
@@ -149,13 +151,13 @@ export function PolicyRow({
                   })}
                 </small>
 
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   <Button size="sm" onClick={closeModal}>
                     {t('Cancel')}
                   </Button>
                   <Button
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                     onClick={() => {
                       onAccept(curPolicy);
                       closeModal();
@@ -163,7 +165,7 @@ export function PolicyRow({
                   >
                     {t('I Accept')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               </Flex>
             ) : (
               <Button size="sm" onClick={closeModal}>
@@ -196,7 +198,7 @@ export function PolicyRow({
   return (
     <PanelItemPolicy>
       <div>
-        <PolicyTitle style={{marginBottom: showUpdated ? space(0.5) : 0}}>
+        <PolicyTitle style={{marginBottom: showUpdated ? theme.space.xs : 0}}>
           {policy.slug === 'terms' ? 'Terms of Service' : policy.name}
         </PolicyTitle>
         <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
@@ -215,21 +217,21 @@ export function PolicyRow({
             hasBillingAccess ? (
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               onClick={showModal}
               disabled={activeSuperUser || !hasBillingAccess}
-              title={
-                activeSuperUser
+              tooltipProps={{
+                title: activeSuperUser
                   ? t("Superusers can't consent to policies")
                   : hasBillingAccess
                     ? undefined
-                    : t("You don't have access to accept policies.")
-              }
+                    : t("You don't have access to accept policies."),
+              }}
             >
               {t('Review and Accept')}
             </Button>
           ) : (
-            <LinkButton size="sm" external href={policy.url}>
+            <LinkButton size="sm" external href={policyUrl.toString()}>
               {t('Review')}
             </LinkButton>
           ))}
@@ -243,7 +245,7 @@ const PolicyFrame = styled('iframe')`
   width: 100%;
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 3px;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PolicySubtext = styled('div')`
@@ -263,6 +265,6 @@ const modalCss = (theme: Theme) => css`
     max-width: 1200px;
   }
 `;
-export function PolicyStatusRow(props: FlexProps<'div'>) {
+export function PolicyStatusRow(props: FlexProps) {
   return <Flex align="center" height="100%" {...props} />;
 }

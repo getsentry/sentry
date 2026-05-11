@@ -7,12 +7,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GroupStore from 'sentry/stores/groupStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
-import GroupList from './groupList';
+import {GroupList} from './groupList';
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();
@@ -34,6 +33,10 @@ describe('GroupList', () => {
 
     MockApiClient.addMockResponse({url: membersUrl, body: [MemberFixture()]});
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [MemberFixture()],
+    });
+    MockApiClient.addMockResponse({
       url: issuesUrl,
       method: 'GET',
       body: [group],
@@ -43,7 +46,6 @@ describe('GroupList', () => {
   afterEach(() => {
     GroupStore.reset();
     TeamStore.reset();
-    MemberListStore.reset();
   });
 
   it('renders the group list', async () => {
@@ -56,9 +58,9 @@ describe('GroupList', () => {
     expect(screen.getByText(group.shortId)).toBeInTheDocument();
     expect(screen.getByText(group.culprit)).toBeInTheDocument();
     // Event count
-    expect(screen.getByText('327k')).toBeInTheDocument();
+    expect(screen.getByText('327K')).toBeInTheDocument();
     // Users
-    expect(screen.getByText('35k')).toBeInTheDocument();
+    expect(screen.getByText('35K')).toBeInTheDocument();
   });
 
   it('renders empty state when no groups are returned', async () => {
@@ -195,7 +197,6 @@ describe('GroupList', () => {
     const groupWithProject = GroupFixture({project, assignedTo: null});
 
     TeamStore.loadInitialData([team]);
-    MemberListStore.loadInitialData([user]);
 
     MockApiClient.addMockResponse({url: membersUrl, body: [MemberFixture({user})]});
     MockApiClient.addMockResponse({

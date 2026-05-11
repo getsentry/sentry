@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -42,9 +43,11 @@ export function DisabledAlert({detector, message}: DisabledAlertProps) {
             onClick={handleEnable}
             disabled={isEnabling || !canEdit}
             aria-label={t('Enable')}
-            title={
-              canEdit ? undefined : t('You do not have permission to enable this monitor')
-            }
+            tooltipProps={{
+              title: canEdit
+                ? undefined
+                : t('You do not have permission to enable this monitor'),
+            }}
           >
             {t('Enable')}
           </Button>

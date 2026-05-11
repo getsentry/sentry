@@ -58,11 +58,9 @@ interface FlexLayoutProps {
 }
 
 export interface FlexProps<T extends ContainerElement = 'div'>
-  extends Omit<ContainerProps<T>, 'display'>,
-    FlexLayoutProps {}
+  extends Omit<ContainerProps<T>, 'display'>, FlexLayoutProps {}
 export interface FlexPropsWithRenderFunction<T extends ContainerElement = 'div'>
-  extends Omit<ContainerPropsWithRenderFunction<T>, 'display'>,
-    FlexLayoutProps {}
+  extends Omit<ContainerPropsWithRenderFunction<T>, 'display'>, FlexLayoutProps {}
 
 export const Flex = styled(Container, {
   shouldForwardProp: prop => {

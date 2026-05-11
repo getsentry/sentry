@@ -7,7 +7,8 @@ import type {LocationDescriptor} from 'history';
 import {useLinkBehavior} from './linkBehaviorContext';
 
 export interface LinkProps
-  extends React.RefAttributes<HTMLAnchorElement>,
+  extends
+    React.RefAttributes<HTMLAnchorElement>,
     Pick<
       ReactRouterLinkProps,
       'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'
@@ -16,6 +17,7 @@ export interface LinkProps
       React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
       'href' | 'target' | 'as' | 'css'
     > {
+  [key: `data-${string}`]: string | undefined;
   /**
    * The string path or LocationDescriptor object.
    *

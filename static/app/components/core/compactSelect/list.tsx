@@ -23,6 +23,7 @@ import {
   getEscapedKey,
   getHiddenOptions,
   getSelectedOptions,
+  getSortedItems,
   HiddenSectionToggle,
   shouldCloseOnSelect,
 } from './utils';
@@ -30,7 +31,8 @@ import {
 export const SelectFilterContext = createContext(new Set<SelectKey>());
 
 interface BaseListProps<Value extends SelectKey>
-  extends Omit<ListProps<any>, 'disallowEmptySelection'>,
+  extends
+    Omit<ListProps<any>, 'disallowEmptySelection'>,
     Omit<
       AriaListBoxOptions<any>,
       | 'disallowEmptySelection'
@@ -124,8 +126,9 @@ export type SingleListProps<Value extends SelectKey> =
   | SingleClearableListProps<Value>
   | SingleUnclearableListProps<Value>;
 
-interface SingleUnclearableListProps<Value extends SelectKey>
-  extends BaseListProps<Value> {
+interface SingleUnclearableListProps<
+  Value extends SelectKey,
+> extends BaseListProps<Value> {
   onChange: (selectedOption: SelectOption<Value>) => void;
   value: Value | undefined;
   clearable?: false;
@@ -172,11 +175,17 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, overlayIsOpen} = useContext(ControlContext);
+  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
+    useContext(ControlContext);
 
-  const hiddenOptions = useMemo(
-    () => getHiddenOptions(items, search, sizeLimit),
-    [items, search, sizeLimit]
+  const {hidden: hiddenOptions, scores} = useMemo(
+    () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
+    [items, search, sizeLimit, searchMatcher]
+  );
+
+  const sortedItems = useMemo(
+    () => (scores.size > 0 ? getSortedItems(items, scores) : items),
+    [items, scores]
   );
 
   /**
@@ -247,7 +256,7 @@ export function List<Value extends SelectKey>({
   const listState = useListState({
     ...props,
     ...listStateProps,
-    items,
+    items: sortedItems,
   });
 
   // In composite selects, focus should seamlessly move from one region (list) to
@@ -358,7 +367,7 @@ export function List<Value extends SelectKey>({
       ) : (
         <ListBox
           {...props}
-          hasSearch={!!search}
+          searchable={searchable}
           overlayIsOpen={overlayIsOpen}
           hiddenOptions={hiddenOptions}
           id={listId}

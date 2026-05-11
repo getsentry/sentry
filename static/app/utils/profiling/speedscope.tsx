@@ -43,7 +43,7 @@ export class Rect {
   }
 
   isValid(): boolean {
-    return this.toMatrix().every(n => !isNaN(n));
+    return [...this.toMatrix()].every(n => !Number.isNaN(n));
   }
 
   isEmpty(): boolean {
@@ -130,7 +130,7 @@ export class Rect {
     const {width: w, height: h, x, y} = this;
     // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
     // https://webglfundamentals.org/webgl/lessons/webgl-matrix-vs-math.html
-    // prettier-ignore
+    // oxfmt-ignore
     return mat3.fromValues(w, 0, 0, 0, h, 0, x, y, 1);
   }
 
@@ -318,7 +318,7 @@ export function findRangeBinarySearch(
 }
 
 const fract = (x: number): number => x - Math.floor(x);
-const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;
+const triangle = (x: number): number => 2 * Math.abs(fract(x) - 0.5) - 1;
 function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
   const hPrime = H / 60;
   const X = C * (1 - Math.abs((hPrime % 2) - 1));
@@ -336,7 +336,7 @@ function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
               : [C, 0, X];
 
   const m = L - (0.35 * R1 + 0.35 * G1 + 0.35 * B1);
-  return [clamp(R1 + m, 0, 1), clamp(G1 + m, 0, 1), clamp(B1 + m, 0, 1.0)];
+  return [clamp(R1 + m, 0, 1), clamp(G1 + m, 0, 1), clamp(B1 + m, 0, 1)];
 }
 
 // Modified to allow only a part of the spectrum
@@ -346,7 +346,7 @@ export function makeColorBucketTheme(
   offset = 0
 ): (t: number) => ColorChannels {
   return t => {
-    const x = triangle(30.0 * t);
+    const x = triangle(30 * t);
     const tx = 0.9 * t;
     const H = spectrum < 360 ? offset + spectrum * tx : spectrum * tx;
     const C = lch.C_0 + lch.C_d * x;

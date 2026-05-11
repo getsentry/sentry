@@ -29,7 +29,7 @@ def _check_bitfield_flags(name: str, old: list[str], new: list[str]) -> None:
     if deleted:
         raise ValueError(
             f"migration `{name}` alters a BitField in an unsafe way!\n\n"
-            f'the following flags were removed: {", ".join(sorted(deleted))}\n\n'
+            f"the following flags were removed: {', '.join(sorted(deleted))}\n\n"
             f"unused flags must remain to preserve padding for future flags"
         )
 
@@ -39,7 +39,7 @@ def _check_bitfield_flags(name: str, old: list[str], new: list[str]) -> None:
     if inserted:
         raise ValueError(
             f"migration `{name}` alters a BitField in an unsafe way!\n\n"
-            f'the following flags were inserted between old flags: {", ".join(sorted(inserted))}\n\n'
+            f"the following flags were inserted between old flags: {', '.join(sorted(inserted))}\n\n"
             f"new flags must be added at the end or flags will change meaning"
         )
 

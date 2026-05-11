@@ -71,7 +71,7 @@ const DURATION_LABELS = {
  * @param minimumUnit Smallest unit to consider while formatting. 55 seconds with a `minimumUnit` of `MINUTE` will return `"1 minute"` instead of `"55 seconds"`
  * @returns Formatted string
  */
-export default function getDuration(
+export function getDuration(
   seconds: number,
   fixedDigits = 0,
   abbreviation = false,

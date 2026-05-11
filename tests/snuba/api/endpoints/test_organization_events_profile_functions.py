@@ -11,7 +11,7 @@ class OrganizationEventsProfileFunctionsEndpointTest(OrganizationEventsEndpointT
             self.create_profile_function(attributes={"name": "foo", "self_time_ns": 1}),
             self.create_profile_function(attributes={"name": "bar", "self_time_ns": 2}),
         ]
-        self.store_profile_functions(profile_functions)
+        self.store_eap_items(profile_functions)
 
         response = self.do_request(
             {
@@ -36,7 +36,7 @@ class OrganizationEventsProfileFunctionsEndpointTest(OrganizationEventsEndpointT
             self.create_profile_function(attributes={"name": "foo", "self_time_ns": 1}),
             self.create_profile_function(attributes={"name": "bar", "self_time_ns": 2}),
         ]
-        self.store_profile_functions(profile_functions)
+        self.store_eap_items(profile_functions)
 
         response = self.do_request(
             {

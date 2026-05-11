@@ -31,7 +31,7 @@ ONE_HOUR = 3600
     name="sentry.tasks.schedule_auto_resolution",
     namespace=issues_tasks,
     processing_deadline_duration=75,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_resolution():
     options_qs = ProjectOption.objects.filter(
@@ -64,7 +64,7 @@ def schedule_auto_resolution():
     name="sentry.tasks.auto_resolve_project_issues",
     namespace=issues_tasks,
     processing_deadline_duration=90,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     from sentry.incidents.grouptype import MetricIssue
@@ -77,7 +77,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     if not age:
         return
 
-    project.update_option("sentry:_last_auto_resolve", int(time()), reload_cache=False)
+    project.update_option("sentry:_last_auto_resolve", int(time()))
 
     if cutoff:
         cutoff = datetime.fromtimestamp(cutoff, timezone.utc)

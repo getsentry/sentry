@@ -79,7 +79,7 @@ class DiscordInteractionsEndpoint(Endpoint):
         except DiscordRequestError as e:
             if SiloMode.get_current_mode() != SiloMode.MONOLITH:
                 sentry_sdk.capture_exception(e)
-            logger.exception(
+            logger.warning(
                 "discord.request.error",
                 extra={
                     "error": str(e),
@@ -88,7 +88,7 @@ class DiscordInteractionsEndpoint(Endpoint):
             )
             return self.respond(status=e.status)
         except Exception as e:
-            logger.exception(
+            logger.warning(
                 "discord.request.unexpected_error",
                 extra={
                     "error": str(e),

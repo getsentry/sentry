@@ -2,7 +2,9 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './index';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
+import {docs} from './index';
 
 describe('xamarin onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
@@ -12,6 +14,7 @@ describe('xamarin onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
 
     // Renders main headings

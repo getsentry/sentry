@@ -488,7 +488,6 @@ class BaseTSDB(Service):
         group_on_time: bool = True,
         project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
-
         raise NotImplementedError
 
     def get_sums(

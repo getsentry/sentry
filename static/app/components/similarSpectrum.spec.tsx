@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import SimilarSpectrum from 'sentry/components/similarSpectrum';
+import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 
 describe('SimilarSpectrum', () => {
   it('renders', () => {

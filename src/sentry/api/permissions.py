@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -25,6 +26,8 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.utils import auth
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from rest_framework.views import APIView
@@ -200,9 +203,10 @@ class SentryPermission(ScopedPermission):
             rpc_user_org_context=org_context,
         )
 
-        if auth.is_user_signed_request(request):
-            # if the user comes from a signed request
-            # we let them pass if sso is enabled
+        if auth.is_user_signed_request(request) or auth.is_user_from_viewer_context(request):
+            # Signed requests and viewer-context-authenticated service
+            # callbacks already carry a trusted assertion of user identity, so
+            # they should not depend on browser-session SSO completion.
             logger.info(
                 "access.signed-sso-passthrough",
                 extra=extra,
@@ -345,9 +349,39 @@ class DemoSafePermission(SentryPermission):
         return super().has_object_permission(request, view, obj)
 
 
+class DisallowImpersonatedTokenCreation(BasePermission):
+    """
+    Blocks non-safe requests (POST, PUT, DELETE) during impersonation sessions.
+    Prevents creating/modifying/revoking tokens as another user.
+    """
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        if request.method in SAFE_METHODS:
+            return True
+        actual_user = getattr(request, "actual_user", None)
+        if actual_user is not None:
+            logger.warning(
+                "impersonation.token_creation_blocked",
+                extra={
+                    "actual_user_id": actual_user.id,
+                    "impersonated_user_id": request.user.id,
+                    "method": request.method,
+                    "path": request.path,
+                },
+            )
+            return False
+        return True
+
+
 class SentryIsAuthenticated(IsAuthenticated):
     """
     Used to deny access for demo users in both view and object permission checks.
+
+    WARNING: Setting ``permission_classes = (SentryIsAuthenticated,)`` on an endpoint grants
+    access to ANY authenticated user, regardless of the endpoint's base class. For example,
+    an endpoint that extends ``OrganizationEndpoint`` will NOT enforce organization membership
+    or scoped access — any logged-in user can call it. Only use this permission class on
+    endpoints that are intentionally open to all authenticated users.
     """
 
     def has_permission(self, request: Request, view: APIView) -> bool:

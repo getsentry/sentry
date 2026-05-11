@@ -19,7 +19,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         )
 
     def renders_2fa_setting(self) -> bool:
-        return self.browser.wait_until("#require2FA")
+        return self.browser.wait_until("input[type='checkbox'][name='require2FA']")
 
     def test_renders_2fa_setting_for_owner(self) -> None:
         self.browser.get(self.path)
@@ -40,11 +40,11 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         assert not self.browser.element_exists(
             '[data-test-id="organization-settings-security-and-privacy"] .error'
         )
-        self.browser.click("#require2FA")
+        self.browser.click("input[type='checkbox'][name='require2FA']")
         self.browser.wait_until("[role='dialog']")
         self.browser.click("[role='dialog'] [data-test-id='confirm-button']")
         self.browser.wait_until_not("[role='dialog']")
-        self.browser.wait_until_test_id("toast-error")
+        self.browser.wait_until("input[type='checkbox'][name='require2FA'][aria-invalid='true']")
         self.load_organization_helper()
 
     def test_renders_advanced_data_scrubbing_without_rule(self) -> None:

@@ -1,6 +1,6 @@
 """
 A 'foreign key' which is not enforced in the local database, but triggers eventually consistent delete work in the
-presence of either RegionTombstone or ControlTombstone model objects through the tasks/deletion/hybrid_cloud.py logic.
+presence of either CellTombstone or ControlTombstone model objects through the tasks/deletion/hybrid_cloud.py logic.
 
 Its main purpose is to support foreign key columns in, say, region silos that refer to User or Integration objects (conversely
 also columns in the control silo that point to, say, Organization objects) that do not actually exist in the local database,
@@ -87,9 +87,9 @@ class HybridCloudForeignKey(models.BigIntegerField[FieldSetType, FieldGetType]):
         ).name.upper()
 
         parts = foreign_model.split(".")
-        assert (
-            len(parts) == 2
-        ), f"{self.__class__.__name__} model reference must be <app>.<ModelName>, got {foreign_model}"
+        assert len(parts) == 2, (
+            f"{self.__class__.__name__} model reference must be <app>.<ModelName>, got {foreign_model}"
+        )
         self.foreign_model_name = foreign_model
 
         kwds.setdefault("db_index", True)

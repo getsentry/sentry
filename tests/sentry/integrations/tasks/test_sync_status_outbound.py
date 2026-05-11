@@ -7,10 +7,9 @@ from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import sync_status_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationFormError
-from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 
 
 def raise_exception(_external_issue, _is_resolved, _group_proj_id):
@@ -25,7 +24,7 @@ def raise_api_unauthorized_error(*args, **kwargs):
     raise ApiUnauthorized(text="auth failed")
 
 
-@region_silo_test
+@cell_silo_test
 class TestSyncStatusOutbound(TestCase):
     def setUp(self) -> None:
         self.example_integration = self.create_integration(
@@ -48,7 +47,6 @@ class TestSyncStatusOutbound(TestCase):
     def test_successful_outbound_sync(
         self, mock_sync_status: mock.MagicMock, mock_record_event: mock.MagicMock
     ) -> None:
-
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
         )
@@ -111,7 +109,7 @@ class TestSyncStatusOutbound(TestCase):
             group=self.group, key="foo_integration", integration=self.example_integration
         )
 
-        with pytest.raises(RetryTaskError):
+        with pytest.raises(Exception, match="Something went wrong"):
             sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
 
         assert mock_record_failure.call_count == 1

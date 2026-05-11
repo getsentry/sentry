@@ -1,17 +1,16 @@
 import {useEffect, useState} from 'react';
-import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
 import type {CustomMeasurementsContextValue} from './customMeasurementsContext';
 import {CustomMeasurementsContext} from './customMeasurementsContext';
@@ -23,7 +22,7 @@ function fetchCustomMeasurements(
   organization: Organization,
   selection?: PageFilters
 ): Promise<MeasurementsMetaResponse> {
-  const query: Query = selection?.datetime
+  const query = selection?.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
 

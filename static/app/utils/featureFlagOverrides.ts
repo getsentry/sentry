@@ -1,7 +1,7 @@
 import type {FlagMap} from '@sentry/toolbar';
 
 import type {Organization} from 'sentry/types/organization';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 type OverrideState = Record<string, boolean>;
 
@@ -9,7 +9,7 @@ const LOCALSTORAGE_KEY = 'feature-flag-overrides';
 
 let __SINGLETON: FeatureFlagOverrides | null = null;
 
-export default class FeatureFlagOverrides {
+export class FeatureFlagOverrides {
   /**
    * Return the same instance of FeatureFlagOverrides in each part of the app.
    *
@@ -59,9 +59,9 @@ export default class FeatureFlagOverrides {
     const enabled = new Set(Object.keys(this.getFlagMap(organization)));
     Object.entries(this.getStoredOverrides()).forEach(([override, value]) => {
       // TODO(ryan953): we're only dealing with booleans to start, but other types could be supported
-      if (value === true) {
+      if (value) {
         enabled.add(override);
-      } else if (value === false) {
+      } else {
         enabled.delete(override);
       }
     });

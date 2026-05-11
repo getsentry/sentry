@@ -7,11 +7,11 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import {onboardingSteps} from 'sentry/views/onboarding/onboarding';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useExperiment} from 'sentry/utils/useExperiment';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {StepDescriptor} from 'sentry/views/onboarding/types';
 
 /**
@@ -20,11 +20,13 @@ import type {StepDescriptor} from 'sentry/views/onboarding/types';
  */
 export function useBackActions({
   stepIndex,
+  onboardingSteps,
   recentCreatedProject,
   isRecentCreatedProjectActive,
   goToStep,
 }: {
   goToStep: (step: StepDescriptor) => void;
+  onboardingSteps: StepDescriptor[];
   stepIndex: number;
   isRecentCreatedProjectActive?: boolean;
   recentCreatedProject?: Project;
@@ -32,40 +34,54 @@ export function useBackActions({
   const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: false,
+  });
   const currentStep = onboardingSteps[stepIndex];
 
-  const deleteRecentCreatedProject = useCallback(async () => {
-    if (!recentCreatedProject) {
-      return;
-    }
+  const deleteRecentCreatedProject = useCallback(
+    async (preserveOnboardingState = false) => {
+      if (!recentCreatedProject) {
+        return;
+      }
 
-    onboardingContext.setSelectedPlatform(undefined);
+      if (preserveOnboardingState) {
+        onboardingContext.setCreatedProjectSlug(undefined);
+      } else {
+        onboardingContext.setSelectedPlatform(undefined);
+      }
 
-    try {
-      await removeProject({
-        api,
-        orgSlug: organization.slug,
-        projectSlug: recentCreatedProject.slug,
-        origin: 'onboarding',
-      });
+      try {
+        await removeProject({
+          api,
+          orgSlug: organization.slug,
+          projectSlug: recentCreatedProject.slug,
+          origin: 'onboarding',
+        });
 
-      trackAnalytics('onboarding.data_removed', {
-        organization,
-        date_created: recentCreatedProject.dateCreated,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    } catch (error) {
-      handleXhrErrorResponse(
-        'Unable to delete project in onboarding',
-        error as RequestError
-      );
-      // we don't give the user any feedback regarding this error as this shall be silent
-    }
-  }, [api, organization, onboardingContext, recentCreatedProject]);
+        trackAnalytics(
+          hasScmOnboarding ? 'onboarding.scm_data_removed' : 'onboarding.data_removed',
+          {
+            organization,
+            date_created: recentCreatedProject.dateCreated,
+            platform: recentCreatedProject.slug,
+            project_id: recentCreatedProject.id,
+          }
+        );
+      } catch (error) {
+        handleXhrErrorResponse(
+          'Unable to delete project in onboarding',
+          error as RequestError
+        );
+        // we don't give the user any feedback regarding this error as this shall be silent
+      }
+    },
+    [api, organization, onboardingContext, recentCreatedProject, hasScmOnboarding]
+  );
 
   const backStepActions = useCallback(
-    ({
+    async ({
       prevStep,
       browserBackButton,
     }: {
@@ -76,12 +92,17 @@ export function useBackActions({
         return;
       }
 
-      trackAnalytics('onboarding.back_button_clicked', {
-        organization,
-        from: currentStep.id,
-        to: prevStep.id,
-        browserBackButton,
-      });
+      trackAnalytics(
+        hasScmOnboarding
+          ? 'onboarding.scm_back_button_clicked'
+          : 'onboarding.back_button_clicked',
+        {
+          organization,
+          from: currentStep.id,
+          to: prevStep.id,
+          browserBackButton,
+        }
+      );
 
       // from selected platform to welcome
       if (currentStep.id === 'select-platform') {
@@ -93,19 +114,29 @@ export function useBackActions({
         return;
       }
 
-      // from setup docs to selected platform
+      // from setup docs to previous step
       if (
         currentStep.id === 'setup-docs' &&
         defined(isRecentCreatedProjectActive) &&
         !isRecentCreatedProjectActive &&
         recentCreatedProject
       ) {
-        trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
-          organization,
-          platform: recentCreatedProject.slug,
-          project_id: recentCreatedProject.id,
-        });
-        deleteRecentCreatedProject();
+        trackAnalytics(
+          hasScmOnboarding
+            ? 'onboarding.scm_data_removal_modal_confirm_button_clicked'
+            : 'onboarding.data_removal_modal_confirm_button_clicked',
+          {
+            organization,
+            platform: recentCreatedProject.slug,
+            project_id: recentCreatedProject.id,
+          }
+        );
+        // Await deletion so the projects store is updated before navigating
+        // back. Without this, re-selecting the same platform can see stale
+        // store data and skip project creation.
+        // In the SCM flow, preserve context so the user keeps their SCM
+        // connection, repo selection, and feature choices.
+        await deleteRecentCreatedProject(hasScmOnboarding);
       }
 
       if (!browserBackButton) {
@@ -113,13 +144,14 @@ export function useBackActions({
       }
     },
     [
-      goToStep,
+      currentStep,
       organization,
-      onboardingContext,
       isRecentCreatedProjectActive,
       recentCreatedProject,
-      currentStep,
+      onboardingContext,
+      goToStep,
       deleteRecentCreatedProject,
+      hasScmOnboarding,
     ]
   );
 
@@ -152,7 +184,7 @@ export function useBackActions({
         browserBackButton: false,
       });
     },
-    [stepIndex, backStepActions]
+    [stepIndex, backStepActions, onboardingSteps]
   );
 
   return {handleGoBack};

@@ -75,9 +75,7 @@ def complete(request, backend, *args, **kwargs):
         messages.add_message(
             request,
             messages.SUCCESS,
-            "You have linked your account with {}.".format(
-                settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name)
-            ),
+            f"You have linked your account with {settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name)}.",
         )
 
     if not user:

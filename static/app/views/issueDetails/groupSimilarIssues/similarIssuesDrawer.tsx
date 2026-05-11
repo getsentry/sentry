@@ -1,4 +1,5 @@
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -12,7 +13,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
+import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 
 export function SimilarIssuesDrawer({group, project}: {group: Group; project: Project}) {
   return (

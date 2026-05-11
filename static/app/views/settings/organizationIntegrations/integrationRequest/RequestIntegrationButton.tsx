@@ -1,13 +1,13 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationType} from 'sentry/types/integrations';
 
-import RequestIntegrationModal from './RequestIntegrationModal';
+import {RequestIntegrationModal} from './RequestIntegrationModal';
 
 type Props = {
   name: string;
@@ -15,9 +15,11 @@ type Props = {
   type: IntegrationType;
 };
 
-export default function RequestIntegrationButton(props: Props) {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [isSent, setIsSent] = useState<boolean>(false);
+export function RequestIntegrationButton(props: Props) {
+  const {openModal} = useModal();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSent, setIsSent] = useState(false);
 
   const openRequestModal = () => {
     setIsOpen(true);
@@ -49,7 +51,7 @@ export default function RequestIntegrationButton(props: Props) {
       data-test-id="request-integration-button"
       disabled={isOpen || isSent}
       onClick={openRequestModal}
-      priority="primary"
+      variant="primary"
       size="sm"
     >
       {buttonText}
@@ -58,5 +60,5 @@ export default function RequestIntegrationButton(props: Props) {
 }
 
 const StyledRequestIntegrationButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;

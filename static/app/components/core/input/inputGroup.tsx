@@ -9,12 +9,17 @@ import {
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {InputProps} from 'sentry/components/core/input';
-import {Input as CoreInput} from 'sentry/components/core/input';
-import type {TextAreaProps} from 'sentry/components/core/textarea';
-import {TextArea as CoreTextArea} from 'sentry/components/core/textarea';
-import {space} from 'sentry/styles/space';
+import type {InputProps} from '@sentry/scraps/input';
+
 import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+
+// There is a cycle here if we import textarea from scraps.
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import type {TextAreaProps} from '../textarea';
+// eslint-disable-next-line  no-relative-import-paths/no-relative-import-paths
+import {TextArea as CoreTextArea} from '../textarea';
+
+import {Input as CoreInput} from './input';
 
 interface InputStyleProps {
   leadingWidth?: number;
@@ -26,7 +31,7 @@ const InputItemsWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   /* Do not use transform here to do alignment as it will create a new stacking
    * context, breaking things like dropdown menus */
@@ -75,7 +80,7 @@ const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
   disablePointerEvents?: boolean;
 }>`
   left: ${p => p.theme.form[p.size].paddingLeft + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
+  ${p => p.disablePointerEvents && 'pointer-events: none;'}
 `;
 
 const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
@@ -83,7 +88,7 @@ const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
   disablePointerEvents?: boolean;
 }>`
   right: ${p => p.theme.form[p.size].paddingRight + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
+  ${p => p.disablePointerEvents && 'pointer-events: none;'}
 `;
 
 interface InputContext {
@@ -263,8 +268,6 @@ InputGroup.Input = Input;
 InputGroup.TextArea = TextArea;
 InputGroup.LeadingItems = LeadingItems;
 InputGroup.TrailingItems = TrailingItems;
-
-export type {InputProps, TextAreaProps};
 
 const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;

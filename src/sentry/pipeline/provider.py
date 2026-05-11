@@ -4,7 +4,9 @@ import abc
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from sentry.pipeline.views.base import PipelineView
+from rest_framework.serializers import Serializer
+
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 
 
 class PipelineProvider[P](abc.ABC):
@@ -35,6 +37,24 @@ class PipelineProvider[P](abc.ABC):
         interface. Each view will be dispatched in order.
         >>> return [OAuthInitView(), OAuthCallbackView()]
         """
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[P] | None:
+        """
+        Return API step objects for this provider's pipeline, or None if API
+        mode is not supported. Override to enable the pipeline API.
+        """
+        return None
+
+    def get_initial_data_serializer_cls(self) -> type[Serializer[Any]] | None:
+        """
+        Return a DRF serializer class that validates initial data sent
+        alongside the pipeline initialize request. Validated fields are bound
+        to pipeline state before the first step runs.
+
+        Override to accept provider-specific data at initialization time
+        (e.g. installation_id for provider-initiated GitHub installs).
+        """
+        return None
 
     def update_config(self, config: Mapping[str, Any]) -> None:
         """

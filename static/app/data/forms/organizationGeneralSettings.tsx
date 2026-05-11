@@ -1,13 +1,14 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import slugify from 'sentry/utils/slugify';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {slugify} from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
 
-const formGroups: JsonFormObject[] = [
+export const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('General'),
@@ -25,7 +26,7 @@ const formGroups: JsonFormObject[] = [
           'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
           {
             link: (
-              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+              <ExternalLink href="https://www.sentry.help/en/articles/13964423-can-i-update-my-sentry-organization-slug" />
             ),
           }
         ),
@@ -51,5 +52,3 @@ const formGroups: JsonFormObject[] = [
     ],
   },
 ];
-
-export default formGroups;

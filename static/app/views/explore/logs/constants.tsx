@@ -20,6 +20,20 @@ export const LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT = 150;
 export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT = 150;
 export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH = 400; // With autorefresh on, a stationary mouse can prefetch multiple rows since virtual time moves rows constantly.
 export const MAX_LOGS_INFINITE_QUERY_PAGES = 30; // This number * the refresh interval must be more seconds than 2 * the smallest time interval in the chart for streaming to work.
+/** Larger page cap once enough rows are cached (see useInfiniteLogsQuery). */
+export const MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED = 300;
+/** Below this many rows in the client cache, use {@link MAX_LOGS_INFINITE_QUERY_PAGES}. */
+export const LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES = 500;
+
+/**
+ * Initial duration to keep high-fidelity "needle in a haystack" auto-fetching.
+ */
+export const LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS = 10_000;
+
+/**
+ * Additional durations to keep high-fidelity "needle in a haystack" auto-fetching.
+ */
+export const LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS = 20_000;
 
 /**
  * These are required fields are always added to the query when fetching the log table.
@@ -57,7 +71,6 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   'sentry.timestamp_nanos',
   'sentry.observed_timestamp_nanos',
   'tags[sentry.trace_flags,number]',
-  'span_id',
 ];
 
 export const DeprecatedLogDetailFields: OurLogFieldKey[] = [

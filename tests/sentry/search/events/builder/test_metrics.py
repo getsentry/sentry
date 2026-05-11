@@ -22,18 +22,15 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
-    SPEC_VERSION_TWO_FLAG,
     MetricSpecType,
     OnDemandMetricSpec,
 )
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.discover import user_misery_formula
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -587,16 +584,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Near 12h, but 15 minutes before the boundary for end
         start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
-        assert (
-            get_granularity(start, end) == 60
-        ), "12h at boundary, but 15 min before the boundary for end"
+        assert get_granularity(start, end) == 60, (
+            "12h at boundary, but 15 min before the boundary for end"
+        )
 
         # Near 12h, but 15 minutes after the boundary for start
         start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
-        assert (
-            get_granularity(start, end) == 60
-        ), "12h at boundary, but 15 min after the boundary for start"
+        assert get_granularity(start, end) == 60, (
+            "12h at boundary, but 15 min after the boundary for start"
+        )
 
     def test_get_snql_query(self) -> None:
         query = MetricsQueryBuilder(
@@ -1744,15 +1741,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # granularity
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
-        assert (
-            get_granularity(start, end, 900) == 60
-        ), "A few hours, but random minute, 15min interval"
-        assert (
-            get_granularity(start, end, 3600) == 3600
-        ), "A few hours, but random minute, 1hr interval"
-        assert (
-            get_granularity(start, end, 86400) == 3600
-        ), "A few hours, but random minute, 1d interval"
+        assert get_granularity(start, end, 900) == 60, (
+            "A few hours, but random minute, 15min interval"
+        )
+        assert get_granularity(start, end, 3600) == 3600, (
+            "A few hours, but random minute, 1hr interval"
+        )
+        assert get_granularity(start, end, 86400) == 3600, (
+            "A few hours, but random minute, 1d interval"
+        )
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
@@ -2107,39 +2104,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "count", "type": "Float64"},
             ],
         )
-
-    # Once we delete the current spec version this test will fail and we can delete it
-    def test_on_demand_builder_with_new_spec(self) -> None:
-        field = "count()"
-        query = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
-        # As expected, it does not include the environment tag
-        expected_str_hash = "None;{'name': 'event.duration', 'op': 'gt', 'value': 0.0}"
-        assert spec._query_str_for_hash == expected_str_hash
-
-        # Because we call the builder with the feature flag we will get the environment to be included
-        with Feature(SPEC_VERSION_TWO_FLAG):
-            query_builder = TimeseriesMetricQueryBuilder(
-                self.params,
-                dataset=Dataset.PerformanceMetrics,
-                interval=3600,
-                query=query,
-                selected_columns=[field],
-                config=QueryBuilderConfig(
-                    on_demand_metrics_enabled=True,
-                    on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
-                ),
-            )
-            spec_in_use: OnDemandMetricSpec | None = (
-                query_builder._on_demand_metric_spec_map[field]
-                if query_builder._on_demand_metric_spec_map
-                else None
-            )
-            assert spec_in_use
-            # It does include the environment tag
-            assert spec_in_use._query_str_for_hash == f"{expected_str_hash};['environment']"
-            # This proves that we're picking up the new spec version
-            assert spec_in_use.spec_version.flags == {"include_environment_tag"}
 
     def test_on_demand_builder_with_not_event_type_error(self) -> None:
         field = "count()"
@@ -2600,20 +2564,19 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert spec_map[field]
         assert spec_map[field_two]
 
-        mep_query = TopMetricsQueryBuilder(
-            Dataset.PerformanceMetrics,
-            self.params,
-            3600 * 24,
-            [{"customtag1": "div > text"}, {"customtag2": "red"}],
-            query="",
-            selected_columns=groupbys,
-            timeseries_columns=[field, field_two],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=False,
-            ),
-        )
-
-        assert not mep_query._on_demand_metric_spec_map
+        with pytest.raises(IncompatibleMetricsQuery):
+            TopMetricsQueryBuilder(
+                Dataset.PerformanceMetrics,
+                self.params,
+                3600 * 24,
+                [{"customtag1": "div > text"}, {"customtag2": "red"}],
+                query="",
+                selected_columns=groupbys,
+                timeseries_columns=[field, field_two],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=False,
+                ),
+            )
         result = query.run_query("test_query")
 
         assert result["data"]
@@ -2936,101 +2899,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
 
-    def _test_user_misery(
-        self, user_to_frustration: list[tuple[str, bool]], expected_user_misery: float
-    ) -> None:
-        threshold = 300
-        field = f"user_misery({threshold})"
-        query_s = "transaction.duration:>=10"
-        # You can only query this function if you have the feature flag for the org
-        spec_type = MetricSpecType.SIMPLE_QUERY
-        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=spec_type)
-
-        for hour in range(0, 2):
-            for name, frustrated in user_to_frustration:
-                tags = (
-                    {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
-                    if frustrated
-                    else {"query_hash": spec.query_hash}
-                )
-                self.store_transaction_metric(
-                    value=name,
-                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                    # It's a set on demand because of using the users field
-                    internal_metric=TransactionMRI.SET_ON_DEMAND.value,
-                    entity=EntityKey.MetricsSets.value,
-                    tags=tags,
-                    timestamp=self.start + datetime.timedelta(hours=hour),
-                )
-
-        def create_query_builder():
-            return TimeseriesMetricQueryBuilder(
-                self.params,
-                dataset=Dataset.PerformanceMetrics,
-                interval=3600,
-                query=query_s,
-                selected_columns=[field],
-                config=QueryBuilderConfig(
-                    on_demand_metrics_enabled=True, on_demand_metrics_type=spec_type
-                ),
-            )
-
-        with Feature({SPEC_VERSION_TWO_FLAG: False}):
-            # user_misery was added in spec version 2, querying without it results in fallback.
-            with pytest.raises(IncompatibleMetricsQuery):
-                create_query_builder()
-
-        with Feature(SPEC_VERSION_TWO_FLAG):
-            query = create_query_builder()
-            assert query._on_demand_metric_spec_map
-            selected_spec = query._on_demand_metric_spec_map[field]
-            metrics_query = query._get_metrics_query_from_on_demand_spec(
-                spec=selected_spec, require_time_range=True
-            )
-
-            assert len(metrics_query.select) == 1
-            assert metrics_query.select[0].op == "on_demand_user_misery"
-            assert metrics_query.where
-            assert metrics_query.where[0].lhs.name == "query_hash"
-            # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
-            assert metrics_query.where[0].rhs == "f9a20ff3"
-            assert metrics_query.where[0].rhs == spec.query_hash
-
-        result = query.run_query("test_query")
-        assert result["data"][:3] == [
-            {
-                "time": self.start.isoformat(),
-                "user_misery_300": expected_user_misery,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "user_misery_300": expected_user_misery,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "user_misery_300": 0,
-            },
-        ]
-        self.assertCountEqual(
-            result["meta"],
-            [
-                {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "user_misery_300", "type": "Float64"},
-            ],
-        )
-
-    def test_run_query_with_on_demand_user_misery(self) -> None:
-        self._test_user_misery(
-            [("happy user", False), ("sad user", True)],
-            user_misery_formula(1, 2),
-        )
-
-    def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
-        self._test_user_misery(
-            [("happy user", False), ("ok user", False)],
-            user_misery_formula(0, 2),
-        )
-
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_histogram_columns_set_on_builder(self) -> None:
@@ -3159,7 +3027,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3215,7 +3082,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[field],
                 config=QueryBuilderConfig(
-                    use_metrics_layer=False,
                     on_demand_metrics_enabled=True,
                     on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                     skip_time_conditions=False,
@@ -3268,7 +3134,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3314,7 +3179,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3343,7 +3207,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
@@ -3370,7 +3233,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is not supplied, which is the case for alert
@@ -3429,7 +3291,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is supplied.
@@ -3491,8 +3352,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             offset=None,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
-                use_metrics_layer=True,
-                insights_metrics_override_metric_layer=True,
             ),
         )
 
@@ -3530,72 +3389,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             snql_query.select,
         )
 
-    def test_run_query_with_on_demand_deprecation_flag_enabled(self) -> None:
-        field = "count()"
-        query_s = ""
-        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
-
-        self.store_transaction_metric(
-            value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags={"query_hash": spec.query_hash},
-            timestamp=self.start,
-        )
-
-        with Feature("organizations:on-demand-gen-metrics-deprecation-query-prefill"):
-            query = AlertMetricsQueryBuilder(
-                self.params,
-                granularity=3600,
-                time_range_window=3600,
-                query=query_s,
-                dataset=Dataset.PerformanceMetrics,
-                selected_columns=[field],
-                config=QueryBuilderConfig(
-                    use_metrics_layer=False,
-                    on_demand_metrics_enabled=True,
-                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                    skip_time_conditions=False,
-                ),
-            )
-
-            # Verify the SNQL query structure uses on-demand metrics
-            snql_request = query.get_snql_query()
-            assert snql_request.dataset == "generic_metrics"
-            snql_query = snql_request.query
-
-            self.assertEqual(
-                [
-                    Function(
-                        "sumIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "equals",
-                                [
-                                    Column("metric_id"),
-                                    indexer.resolve(
-                                        UseCaseID.TRANSACTIONS,
-                                        1,
-                                        "c:transactions/on_demand@none",
-                                    ),
-                                ],
-                            ),
-                        ],
-                        "c:transactions/on_demand@none",
-                    )
-                ],
-                snql_query.select,
-            )
-
-            result = query.run_query("test_query")
-
-            assert result["data"] == [{"c:transactions/on_demand@none": 1.0}]
-            meta = result["meta"]
-            assert len(meta) == 1
-            assert meta[0]["name"] == "c:transactions/on_demand@none"
-
     def test_run_query_with_on_demand_deprecation_flag_disabled(self) -> None:
         field = "count()"
         query_s = ""
@@ -3623,7 +3416,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,

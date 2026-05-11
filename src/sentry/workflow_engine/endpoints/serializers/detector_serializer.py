@@ -11,7 +11,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
@@ -29,7 +29,7 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     createdBy: str | None
     alertRuleId: int | None
     ruleId: int | None
-    latestGroup: dict | None
+    latestGroup: dict[str, Any] | None
     description: str | None
 
 
@@ -39,12 +39,12 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     projectId: str
     name: str
     type: str
-    workflowIds: list[str]
+    workflowIds: list[str] | None
     dateCreated: datetime
     dateUpdated: datetime
-    dataSources: list[dict] | None
-    conditionGroup: dict | None
-    config: dict
+    dataSources: list[dict[str, Any]] | None
+    conditionGroup: dict[str, Any] | None
+    config: dict[str, Any]
     enabled: bool
     openIssues: int
 
@@ -52,7 +52,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
 @register(Detector)
 class DetectorSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[Detector], user, **kwargs
+        self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Detector, dict[str, Any]]:
         attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
 
@@ -100,31 +100,41 @@ class DetectorSerializer(Serializer):
             for mapping in alert_rule_mappings
         }
 
-        latest_detector_groups = (
+        latest_detector_group_values = (
             DetectorGroup.objects.filter(detector__in=item_list)
-            .select_related("group", "group__project")
             .order_by("detector_id", "-date_added")
             .distinct("detector_id")
+            .values_list("detector_id", "group_id")
         )
-        latest_groups_map = {
-            dg.detector_id: (
-                None
-                if dg.group is None
-                else serialize(
-                    dg.group,
-                    user=user,
-                    serializer=SimpleGroupSerializer(),
-                )
+        latest_group_ids_by_detector_id = {
+            detector_id: group_id for detector_id, group_id in latest_detector_group_values
+        }
+        project_ids = {item.project_id for item in item_list}
+        latest_groups = list(
+            Group.objects.filter(
+                id__in=latest_group_ids_by_detector_id.values(),
+                project_id__in=project_ids,
+            ).select_related("project")
+        )
+        serialized_latest_groups = {
+            group.id: serialized
+            for group, serialized in zip(
+                latest_groups,
+                serialize(latest_groups, user=user, serializer=SimpleGroupSerializer()),
             )
-            for dg in latest_detector_groups
+        }
+        latest_groups_map = {
+            detector_id: serialized_latest_groups.get(group_id)
+            for detector_id, group_id in latest_group_ids_by_detector_id.items()
         }
 
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
-        project_ids = [item.project_id for item in filtered_item_list]
+        error_detector_project_ids = [item.project_id for item in filtered_item_list]
 
         project_options_list = list(
             ProjectOption.objects.filter(
-                key__in=Detector.error_detector_project_options.values(), project__in=project_ids
+                key__in=Detector.error_detector_project_options.values(),
+                project__in=error_detector_project_ids,
             )
         )
 
@@ -172,7 +182,19 @@ class DetectorSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+    @staticmethod
+    def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+        # XXX: There are some migrated metric alerts which have `detection_type: "static"`,
+        # a defined `comparison_delta`. These are treated as `detection_type: "percent"` in the backend,
+        # so this is a temporary fix to ensure that the frontend displays the correct detection type.
+        # Remove this once ISWF-2272 backfills the correct `detection_type`.
+        if config.get("detection_type") == "static" and config.get("comparison_delta"):
+            return {**config, "detection_type": "percent"}
+        return config
+
+    def serialize(
+        self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
@@ -187,7 +209,9 @@ class DetectorSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": convert_dict_key_case(attrs.get("config"), snake_to_camel_case),
+            "config": convert_dict_key_case(
+                self._normalize_config(attrs.get("config", {})), snake_to_camel_case
+            ),
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
             "ruleId": alert_rule_mapping.get("rule_id"),

@@ -44,7 +44,6 @@ class BaseTSDBTest(TestCase):
 
     @freeze_time("2016-08-01")
     def test_get_optimal_rollup_series_aligned_intervals(self) -> None:
-
         start = datetime.now(timezone.utc) - timedelta(seconds=30)
 
         assert self.tsdb.get_optimal_rollup_series(start) == (
@@ -104,7 +103,6 @@ class BaseTSDBTest(TestCase):
 
     @freeze_time("2016-08-01")
     def test_make_series_aligned_intervals(self) -> None:
-
         start = datetime.now(timezone.utc) - timedelta(seconds=30)
         assert self.tsdb.make_series(0, start) == [
             ((start + timedelta(seconds=10) * i).timestamp(), 0) for i in range(4)

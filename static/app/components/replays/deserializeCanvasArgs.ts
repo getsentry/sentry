@@ -12,7 +12,7 @@ type CanvasContexts =
   | CanvasRenderingContext2D
   | WebGLRenderingContext
   | WebGL2RenderingContext;
-const webGLVarMap: Map<CanvasContexts, GLVarMap> = new Map();
+const webGLVarMap = new Map<CanvasContexts, GLVarMap>();
 
 function variableListFor(ctx: CanvasContexts, ctor: string) {
   let contextMap = webGLVarMap.get(ctx);
@@ -24,7 +24,7 @@ function variableListFor(ctx: CanvasContexts, ctor: string) {
     contextMap.set(ctor, []);
   }
 
-  return contextMap.get(ctor) as any[];
+  return contextMap.get(ctor)!;
 }
 
 export function deserializeCanvasArg(

@@ -2,33 +2,39 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
+from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.seer.code_review.models import (
+    SeerCodeReviewTaskRequestForPrClosed,
+    SeerCodeReviewTaskRequestForPrReview,
+)
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.state import current_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
-from ..utils import get_seer_endpoint_for_event, make_seer_request
+from ..utils import (
+    get_seer_path_for_request,
+    make_seer_request,
+)
 
 logger = logging.getLogger(__name__)
 
 
 PREFIX = "seer.code_review.task"
-MAX_RETRIES = 3
+MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
-METRICS_PREFIX = "seer.code_review.task"
 
 
 def schedule_task(
@@ -38,6 +44,7 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    tags: Mapping[str, object],
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -57,10 +64,31 @@ def schedule_task(
         )
         return
 
+    # Validate payload before scheduling to catch schema mismatches early
+    from pydantic import ValidationError
+
+    try:
+        validated_payload: (
+            SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
+        )
+        if github_event == GithubWebhookType.PULL_REQUEST and github_event_action == "closed":
+            validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(transformed_event)
+        else:
+            validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(transformed_event)
+        # Use json.loads(validated_payload.json()) to ensure all types are JSON-serializable
+        # (datetimes become ISO strings, enums become their values)
+        payload = json.loads(validated_payload.json())
+    except ValidationError:
+        logger.warning("%s.validation_failed_before_scheduling", PREFIX)
+        record_webhook_filtered(
+            github_event, github_event_action, WebhookFilteredReason.INVALID_PAYLOAD
+        )
+        return
+
     process_github_webhook_event.delay(
-        github_event=github_event,
-        event_payload=transformed_event,
-        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        seer_path=get_seer_path_for_request(github_event.value, github_event_action),
+        event_payload=payload,
+        tags=tags,
     )
     record_webhook_enqueued(github_event, github_event_action)
 
@@ -69,61 +97,33 @@ def schedule_task(
     name="sentry.seer.code_review.tasks.process_github_webhook_event",
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=RETRYABLE_ERRORS),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_github_webhook_event(
     *,
-    enqueued_at_str: str,
-    github_event: GithubWebhookType,
+    seer_path: str,
     event_payload: Mapping[str, Any],
-    **kwargs: Any,
+    tags: Mapping[str, Any],
 ) -> None:
     """
-    Process GitHub webhook event by forwarding to Seer if applicable.
+    Forward a validated code-review payload to Seer.
 
     Args:
-        enqueued_at_str: The timestamp when the task was enqueued
-        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
-        event_payload: The payload of the webhook event
-        **kwargs: Parameters to pass to webhook handler functions
+        seer_path: The path to the Seer API endpoint to call
+        event_payload: The payload (already validated before scheduling)
+        tags: Sentry SDK tags to set on this task's scope for error correlation
     """
     status = "success"
-    should_record_latency = True
     try:
-        path = get_seer_endpoint_for_event(github_event).value
-        make_seer_request(path=path, payload=event_payload)
+        sentry_sdk.set_tags(tags)
+        viewer_context: SeerViewerContext | None = None
+        if org_id := tags.get("sentry_organization_id"):
+            viewer_context = SeerViewerContext(organization_id=int(org_id))
+
+        make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)
     except Exception as e:
         status = e.__class__.__name__
-        # Retryable errors are automatically retried by taskworker.
-        if isinstance(e, RETRYABLE_ERRORS):
-            task = current_task()
-            if task and task.retries_remaining:
-                should_record_latency = False
         raise
     finally:
         if status != "success":
             metrics.incr(f"{PREFIX}.error", tags={"error_status": status}, sample_rate=1.0)
-        if should_record_latency:
-            record_latency(status, enqueued_at_str)
-
-
-def record_latency(status: str, enqueued_at_str: str) -> None:
-    latency_ms = calculate_latency(enqueued_at_str)
-    if latency_ms > 0:
-        metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
-
-
-def calculate_latency(enqueued_at_str: str) -> int:
-    """Calculate the latency between the enqueued_at timestamp and the current time."""
-    try:
-        enqueued_at = datetime.fromisoformat(enqueued_at_str)
-        processing_started_at = datetime.now(timezone.utc)
-        return int((processing_started_at - enqueued_at).total_seconds() * 1000)
-    except (ValueError, TypeError) as e:
-        # Don't fail the task if timestamp parsing fails
-        logger.warning(
-            "%s.invalid_timestamp",
-            PREFIX,
-            extra={"enqueued_at": enqueued_at_str, "error": str(e)},
-        )
-        return 0

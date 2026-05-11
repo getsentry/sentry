@@ -21,7 +21,7 @@ describe('getAlertsUrl', () => {
       pageFilters,
     });
     expect(url).toBe(
-      '/organizations/orgSlug/issues/alerts/new/metric/?aggregate=avg%28d%3Aspans%2Fduration%40millisecond%29&dataset=generic_metrics&eventTypes=transaction&interval=1h&project=project-slug&query=span.category%3Adb&statsPeriod=7d'
+      '/organizations/orgSlug/issues/alerts/new/metric/?aggregate=avg%28d%3Aspans%2Fduration%40millisecond%29&dataset=generic_metrics&interval=1h&project=project-slug&query=span.category%3Adb&statsPeriod=7d'
     );
   });
   it('should return a url to an EAP alert rule', () => {
@@ -37,7 +37,7 @@ describe('getAlertsUrl', () => {
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     });
     expect(url).toBe(
-      '/organizations/orgSlug/issues/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=project-slug&query=span.op%3Ahttp.client&statsPeriod=7d'
+      '/organizations/orgSlug/issues/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&interval=1h&project=project-slug&query=span.op%3Ahttp.client&statsPeriod=7d'
     );
   });
 });

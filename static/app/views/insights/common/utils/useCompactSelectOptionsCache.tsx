@@ -1,10 +1,8 @@
 import {useCallback, useMemo, useRef} from 'react';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 type Option = SelectOption<SelectKey>;
-
-type OptionCache<T extends Option> = Map<SelectKey, T>;
 
 /**
  * Cache designed for the `option` prop of a `CompactSelect`. Accepts
@@ -27,7 +25,7 @@ export function useCompactSelectOptionsCache<T extends Option>(
   clear: () => void;
   options: T[];
 } {
-  const cacheMap = useRef<Record<string, OptionCache<T>>>({[cacheKey]: new Map()});
+  const cacheMap = useRef({[cacheKey]: new Map()});
   if (!cacheMap.current[cacheKey]) {
     cacheMap.current[cacheKey] = new Map();
   }

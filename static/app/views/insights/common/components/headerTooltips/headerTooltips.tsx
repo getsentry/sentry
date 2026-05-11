@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {MODULE_PRODUCT_DOC_LINKS} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';

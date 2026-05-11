@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DateString} from 'sentry/types/core';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

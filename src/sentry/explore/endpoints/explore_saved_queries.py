@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -97,6 +97,33 @@ PREBUILT_SAVED_QUERIES = [
                     },
                 ],
                 "orderby": "-timestamp",
+            }
+        ],
+    },
+    {
+        "prebuilt_id": 5,
+        "prebuilt_version": 1,
+        "name": "LLM Calls",
+        "dataset": "spans",
+        "query": [
+            {
+                "fields": [
+                    "id",
+                    "gen_ai.output.messages",
+                    "gen_ai.response.model",
+                    "gen_ai.cost.total_tokens",
+                    "timestamp",
+                ],
+                "query": "gen_ai.operation.type:ai_client has:gen_ai.output.messages",
+                "mode": "samples",
+                "visualize": [
+                    {
+                        "chartType": 0,
+                        "yAxes": ["count(span.duration)"],
+                    },
+                ],
+                "orderby": "-timestamp",
+                "groupby": ["gen_ai.response.model"],
             }
         ],
     },
@@ -205,7 +232,7 @@ def sync_prebuilt_queries(organization):
                 continue
             if prebuilt_query["prebuilt_id"] in saved_prebuilt_query_ids:
                 saved_prebuilt_query = saved_prebuilt_queries.get(
-                    prebuilt_id=prebuilt_query["prebuilt_id"]  # type: ignore[misc]
+                    prebuilt_id=prebuilt_query["prebuilt_id"]
                 )
                 if prebuilt_query["prebuilt_version"] > saved_prebuilt_query.prebuilt_version:
                     queries_to_update.append(
@@ -243,7 +270,22 @@ def sync_prebuilt_queries_starred(organization, user_id):
     This ensures that prebuilt queries are starred by default for all users.
     """
     with transaction.atomic(router.db_for_write(ExploreSavedQueryStarred)):
-        prebuilt_query_ids_without_starred_status = (
+        prebuilt_starred = list(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=organization,
+                user_id=user_id,
+                starred=True,
+                explore_saved_query__prebuilt_id__isnull=False,
+            )
+            .order_by("position")
+            .select_related("explore_saved_query")
+        )
+        starred_names = [s.explore_saved_query.name for s in prebuilt_starred]
+        # If the user's prebuilt stars are still in alphabetical order, treat them
+        # as not customized and keep new prebuilts in alphabetical order too.
+        is_default_order = starred_names == sorted(starred_names)
+
+        missing_queries = (
             ExploreSavedQuery.objects.filter(
                 organization=organization,
                 prebuilt_id__isnull=False,
@@ -254,18 +296,19 @@ def sync_prebuilt_queries_starred(organization, user_id):
                     user_id=user_id,
                 ).values_list("explore_saved_query_id", flat=True)
             )
-            .order_by("prebuilt_id")  # Ensures prebuilt queries are starred in the correct order
-            .values_list("id", flat=True)
+            .order_by("name")
         )
-        for prebuilt_query_id in prebuilt_query_ids_without_starred_status:
-            # Not using bulk_create because we need to handle position with insert_starred_query
-            ExploreSavedQueryStarred.objects.insert_starred_query(
-                organization, user_id, ExploreSavedQuery.objects.get(id=prebuilt_query_id)
-            )
+        for query in missing_queries:
+            if is_default_order:
+                ExploreSavedQueryStarred.objects.insert_starred_query_alphabetically(
+                    organization, user_id, query
+                )
+            else:
+                ExploreSavedQueryStarred.objects.insert_starred_query(organization, user_id, query)
 
 
 @extend_schema(tags=["Discover"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

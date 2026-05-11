@@ -5,13 +5,14 @@ const ONE_DAY_MS = intervalToMilliseconds('1d');
 interface Props<QueryView extends {statsPeriod: string}> {
   listHeadTime: number;
   queryView: QueryView;
-  defaultStatsPeriod?: string;
   prefetch?: boolean;
 }
 
-export default function coaleseIssueStatsPeriodQuery<
-  QueryView extends {statsPeriod: string},
->({queryView, listHeadTime, defaultStatsPeriod, prefetch = false}: Props<QueryView>) {
+export function coaleseIssueStatsPeriodQuery<QueryView extends {statsPeriod: string}>({
+  queryView,
+  listHeadTime,
+  prefetch = false,
+}: Props<QueryView>) {
   // We don't want to use `statsPeriod` directly, because that will mean the
   // start time of our infinite list will change, shifting the index/page
   // where items appear if we invalidate the cache and refetch specific pages.
@@ -31,7 +32,7 @@ export default function coaleseIssueStatsPeriodQuery<
     const {statsPeriod, ...rest} = queryView;
     if (!statsPeriod) {
       // We shouldn't prefetch if the query uses an absolute date range
-      return undefined;
+      return;
     }
     // Look 1 day into the future, from the time the page is loaded for new
     // feedbacks to come in.
@@ -41,7 +42,7 @@ export default function coaleseIssueStatsPeriodQuery<
     return statsPeriod ? {...rest, limit: 1, start, end} : undefined;
   }
 
-  const {statsPeriod = defaultStatsPeriod, ...rest} = queryView;
+  const {statsPeriod, ...rest} = queryView;
   const intervalMS = intervalToMilliseconds(statsPeriod ?? '');
   const start = new Date(listHeadTime - intervalMS).toISOString();
   const end = new Date(listHeadTime).toISOString();

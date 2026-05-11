@@ -207,7 +207,6 @@ class TeamExamples:
                             "features": [
                                 "alert-filters",
                                 "custom-inbound-filters",
-                                "data-forwarding",
                                 "discard-groups",
                                 "minidump",
                                 "rate-limits",
@@ -268,7 +267,6 @@ class TeamExamples:
                             "features": [
                                 "alert-filters",
                                 "custom-inbound-filters",
-                                "data-forwarding",
                                 "discard-groups",
                                 "minidump",
                                 "rate-limits",

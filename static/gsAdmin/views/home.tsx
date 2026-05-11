@@ -1,25 +1,25 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import Truncate from 'sentry/components/truncate';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {Truncate} from 'sentry/components/truncate';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import DebounceSearch from 'admin/components/debounceSearch';
-import Overview from 'admin/views/overview';
+import {DebounceSearch} from 'admin/components/debounceSearch';
+import {Overview} from 'admin/views/overview';
 
-export default function HomePage() {
+export function HomePage() {
   const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
   const [regionUrl, setRegionUrl] = useState(regions[0]!.url);
+  const selectedRegion = regions.find((region: any) => region.url === regionUrl);
 
   const buildOrgPath = (org: any) => `/_admin/customers/${org.slug}/`;
   const orgSelect = (org: any) => {
@@ -90,7 +90,17 @@ export default function HomePage() {
           This is an internal tool meant to enable Sentry Employees (you!) to better
           assist and resolve issues that may arise for our customers.
         </strong>
-        <div>If you have any questions, ask us in #discuss-admin</div>
+        <div>
+          If you have any questions, ask us in{' '}
+          <a
+            href="https://app.slack.com/client/T024ZCV9U/CQDHVRS2W"
+            target="_blank"
+            rel="noreferrer"
+          >
+            #triage-product
+          </a>
+          .
+        </div>
       </div>
       <Flex justify="center" margin="xl 0">
         <Warning>
@@ -127,7 +137,11 @@ export default function HomePage() {
         <SearchLabel>Organizations</SearchLabel>
         <DebounceSearch
           host={regionUrl}
-          path="/customers/"
+          path={
+            selectedRegion
+              ? `/_admin/cells/${selectedRegion.name}/customers/`
+              : '/customers/'
+          }
           onSelectResult={orgSelect}
           onSearch={orgSubmit}
           suggestionContent={renderOrgSuggestion}
@@ -158,16 +172,16 @@ export default function HomePage() {
 }
 
 const RegionPanel = styled('div')`
-  padding: ${space(4)} 0;
+  padding: ${p => p.theme.space['3xl']} 0;
 `;
 
 const SearchLabel = styled('label')`
   display: block;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const SplashWrapper = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const HeaderTitle = styled('h3')`
@@ -178,7 +192,7 @@ const HeaderTitle = styled('h3')`
 `;
 
 const OverviewWrap = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;
 const SecondaryText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};

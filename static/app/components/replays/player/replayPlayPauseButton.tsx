@@ -1,5 +1,6 @@
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
@@ -7,7 +8,7 @@ import {
   useReplayUserAction,
 } from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 
-export default function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
+export function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
   const userAction = useReplayUserAction();
   const {playerState, isFinished} = useReplayPlayerState();
 
@@ -15,23 +16,23 @@ export default function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
 
   return isFinished ? (
     <Button
-      title={t('Restart Replay')}
+      tooltipProps={{title: t('Restart Replay')}}
       icon={<IconRefresh />}
       onClick={() => {
         userAction({type: 'jumpToOffset', offsetMs: 0});
         userAction({type: 'play'});
       }}
       aria-label={t('Restart Replay')}
-      priority="primary"
+      variant="primary"
       {...props}
     />
   ) : (
     <Button
-      title={isPlaying ? t('Pause') : t('Play')}
+      tooltipProps={{title: isPlaying ? t('Pause') : t('Play')}}
       icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => userAction(isPlaying ? {type: 'pause'} : {type: 'play'})}
       aria-label={isPlaying ? t('Pause') : t('Play')}
-      priority="primary"
+      variant="primary"
       {...props}
     />
   );

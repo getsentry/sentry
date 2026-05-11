@@ -6,7 +6,7 @@ from typing import ClassVar, Self, TypedDict
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import is_model_attr_cached
 from sentry.workflow_engine.models.data_condition import DataConditionSnapshot
@@ -18,7 +18,7 @@ class DataConditionGroupSnapshot(TypedDict):
     conditions: list[DataConditionSnapshot]
 
 
-@region_silo_model
+@cell_silo_model
 class DataConditionGroup(DefaultFieldsModel):
     """
     A data group is a way to specify a group of conditions that must be met for a workflow action to execute

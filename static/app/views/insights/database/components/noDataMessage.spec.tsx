@@ -2,14 +2,14 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectSdkUpdatesFixture} from 'sentry-fixture/projectSdkUpdates';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import importedUsePageFilters from 'sentry/utils/usePageFilters';
+import {usePageFilters as importedUsePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 const usePageFilters = jest.mocked(importedUsePageFilters);
 
@@ -32,7 +32,6 @@ describe('NoDataMessage', () => {
       isReady: true,
       shouldPersist: true,
       pinnedFilters: new Set(),
-      desyncedFilters: new Set(),
     }));
   });
 
@@ -54,17 +53,15 @@ describe('NoDataMessage', () => {
   });
 
   it('shows a no data message if there is no recent data', async () => {
-    const sdkMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
 
     render(<NoDataMessage isDataAvailable={false} />);
-    await waitFor(() => expect(sdkMock).toHaveBeenCalled());
-    await tick(); // There is no visual indicator, this awaits the promise resolve
 
     expect(
-      screen.getByText(textWithMarkupMatcher('No queries found.'))
+      await screen.findByText(textWithMarkupMatcher('No queries found.'))
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -74,21 +71,18 @@ describe('NoDataMessage', () => {
   });
 
   it('shows a list of outdated SDKs if there is no data available and SDKs are outdated', async () => {
-    const sdkMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [ProjectSdkUpdatesFixture({projectId: '2'})],
     });
 
     render(<NoDataMessage isDataAvailable={false} />);
 
-    await waitFor(() => expect(sdkMock).toHaveBeenCalled());
-    await tick(); // There is no visual indicator, this awaits the promise resolve
-
     expect(
-      screen.getByText(textWithMarkupMatcher('No queries found.'))
+      await screen.findByText(textWithMarkupMatcher('No queries found.'))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
+      await screen.findByText(
         textWithMarkupMatcher('You may be missing data due to outdated SDKs')
       )
     ).toBeInTheDocument();

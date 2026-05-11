@@ -2,10 +2,10 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -25,7 +25,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.models import Detector
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
     owner = ApiOwner.CRONS
 
@@ -85,11 +85,7 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         """
         Update an uptime monitor.
         """
-        assertions_enabled = features.has(
-            "organizations:uptime-runtime-assertions", project.organization, actor=request.user
-        )
         validator = UptimeMonitorValidator(
-            assertions_enabled,
             data=request.data,
             partial=True,
             instance=uptime_detector,

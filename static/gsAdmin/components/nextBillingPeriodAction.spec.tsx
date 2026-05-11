@@ -8,9 +8,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 
-import triggerEndPeriodEarlyModal from 'admin/components/nextBillingPeriodAction';
+import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 
 describe('NextBillingPeriodAction', () => {
   const organization = OrganizationFixture();

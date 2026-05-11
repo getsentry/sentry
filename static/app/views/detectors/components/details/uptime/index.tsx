@@ -1,17 +1,18 @@
 import {useCallback, useState} from 'react';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import Placeholder from 'sentry/components/placeholder';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {Placeholder} from 'sentry/components/placeholder';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {DetailsTimeline} from 'sentry/views/alerts/rules/uptime/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/alerts/rules/uptime/detailsTimelineLegend';
 import {
@@ -19,6 +20,10 @@ import {
   type CheckStatusBucket,
 } from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTable';
+import {
+  DisableDetectorAction,
+  EditDetectorAction,
+} from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
@@ -29,6 +34,7 @@ import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/de
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type UptimeDetectorDetailsProps = {
   detector: UptimeDetector;
@@ -37,6 +43,7 @@ type UptimeDetectorDetailsProps = {
 
 export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const {data: uptimeSummaries} = useUptimeMonitorSummaries({
     detectorIds: [detector.id],
@@ -60,26 +67,34 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <DatePageFilter />
+          <Flex align="center" gap="sm" justify="between" wrap="wrap">
+            <DatePageFilter />
+            {hasPageFrameFeature ? (
+              <Flex align="center" gap="sm" marginLeft="auto">
+                <DisableDetectorAction detector={detector} />
+                <EditDetectorAction detector={detector} />
+              </Flex>
+            ) : null}
+          </Flex>
           <DisabledAlert
             detector={detector}
             message={t('This monitor is disabled and not recording uptime checks.')}
           />
           <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
-          <DetectorDetailsOngoingIssues detector={detector} />
-          <Section title={t('Recent Check-Ins')}>
+          <DetectorDetailsOngoingIssues detector={detector} dateTimeSelection={null} />
+          <DetailSection title={t('Recent Check-Ins')}>
             <div>
               <UptimeChecksTable
                 detectorId={detector.id}
-                projectSlug={project.slug}
+                project={project}
                 traceSampling={detector.dataSources[0].queryObj.traceSampling}
               />
             </div>
-          </Section>
+          </DetailSection>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
-          <Section title={t('Detect')}>
+          <DetailSection title={t('Detect')}>
             <div>
               {tn(
                 '%s failed check.',
@@ -90,19 +105,19 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <CodeBlock
               hideCopyButton
             >{`${dataSource.queryObj.method} ${dataSource.queryObj.url}`}</CodeBlock>
-          </Section>
-          <Section title={t('Resolve')}>
+          </DetailSection>
+          <DetailSection title={t('Resolve')}>
             {tn(
               '%s successful check.',
               '%s consecutive successful checks.',
               detector.config.recoveryThreshold
             )}
-          </Section>
-          <Section title={t('Legend')}>
+          </DetailSection>
+          <DetailSection title={t('Legend')}>
             <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
-          </Section>
+          </DetailSection>
           <Grid columns="max-content max-content" gap="3xl">
-            <Section title={t('Duration')}>
+            <DetailSection title={t('Duration')}>
               {summary === undefined ? (
                 <Text size="xl">
                   <Placeholder width="60px" height="1lh" />
@@ -112,8 +127,8 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
               ) : (
                 <UptimeDuration size="xl" summary={summary} />
               )}
-            </Section>
-            <Section title={t('Uptime')}>
+            </DetailSection>
+            <DetailSection title={t('Uptime')}>
               {summary === undefined ? (
                 <Text size="xl">
                   <Placeholder width="60px" height="1lh" />
@@ -129,7 +144,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
                   )}
                 />
               )}
-            </Section>
+            </DetailSection>
           </Grid>
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorDetailsDescription description={detector.description} />

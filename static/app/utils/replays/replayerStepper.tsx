@@ -20,7 +20,7 @@ type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {
   current: Frame | undefined;
 };
 
-export default function replayerStepper<
+export function replayerStepper<
   Frame extends ReplayFrame | RecordingFrame,
   CollectionData,
 >({

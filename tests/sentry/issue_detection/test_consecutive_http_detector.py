@@ -30,7 +30,9 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = ConsecutiveHTTPSpanDetector(self._settings, event)
+        detector = ConsecutiveHTTPSpanDetector(
+            self._settings[ConsecutiveHTTPSpanDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -365,8 +367,10 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         project = self.create_project()
         event = self.create_issue_event()
 
-        settings = get_detection_settings(project.id)
-        detector = ConsecutiveHTTPSpanDetector(settings, event)
+        settings = get_detection_settings(project)
+        detector = ConsecutiveHTTPSpanDetector(
+            settings[ConsecutiveHTTPSpanDetector.settings_key], event
+        )
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -376,8 +380,10 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
             value={"consecutive_http_spans_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
-        detector = ConsecutiveHTTPSpanDetector(settings, event)
+        settings = get_detection_settings(project)
+        detector = ConsecutiveHTTPSpanDetector(
+            settings[ConsecutiveHTTPSpanDetector.settings_key], event
+        )
 
         assert not detector.is_creation_allowed_for_project(project)
 
@@ -393,7 +399,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         assert len(problems) == 0
 
     def test_ignores_http_spans_with_gen_ai_parent(self) -> None:
-        """Test that HTTP spans with gen_ai.chat parent spans are ignored."""
+        """Test that HTTP spans with gen_ai.* parent spans are ignored."""
         span_duration = 2000
 
         # Create a gen_ai.chat span first

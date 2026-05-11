@@ -6,9 +6,10 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import TextField from 'sentry/components/forms/fields/textField';
-import withApi from 'sentry/utils/withApi';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {withApi} from 'sentry/utils/withApi';
 
 import type {
   AdminConfirmParams,
@@ -50,10 +51,12 @@ class SendWeeklyEmailAction extends Component<Props, State> {
         addSuccessMessage('Email queued');
       })
       .catch(res => {
-        if (res.status === 404) {
-          addErrorMessage('User is not a member of the organization!');
-        } else {
-          addErrorMessage(res.responseText || res.name);
+        if (res instanceof RequestError) {
+          if (res.status === 404) {
+            addErrorMessage('User is not a member of the organization!');
+          } else {
+            addErrorMessage(res.responseText || res.name);
+          }
         }
       });
   };

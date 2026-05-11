@@ -42,15 +42,10 @@ def fetch_sessions_data(
         query_params["start"] = start.isoformat()
         query_params["end"] = end.isoformat()
 
-        # crash free rates are on a dynamic INTERVAL basis
-        # TODO: determine how this affects results for new releases
-        query_config = release_health.backend.sessions_query_config(organization)
-
         # NOTE: params start/end are overwritten by query start/end
         query = QueryDefinition(
             query=query_params,
             params=params,
-            query_config=query_config,
         )
 
         return release_health.backend.run_sessions_query(

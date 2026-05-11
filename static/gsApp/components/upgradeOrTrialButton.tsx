@@ -1,19 +1,18 @@
 import {useState} from 'react';
 
+import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import type {Client} from 'sentry/api';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type ChildRenderProps = {
   action: 'upgrade' | 'trial';
@@ -34,11 +33,11 @@ interface BaseButtonProps {
   /**
    * Default button priority to use when the button triggers an upgrade
    */
-  trialPriority?: ButtonProps['priority'];
+  trialPriority?: ButtonProps['variant'];
   /**
    * Default button priority to use when the button will start a trial
    */
-  upgradePriority?: ButtonProps['priority'];
+  upgradePriority?: ButtonProps['variant'];
 }
 
 /**
@@ -75,7 +74,7 @@ function UpgradeOrTrialButton({
       : children;
 
   // The button color depends on the priority, and that is determined by the action
-  const buttonPriority: ButtonProps['priority'] =
+  const buttonPriority: ButtonProps['variant'] =
     action === 'trial' ? trialPriority : upgradePriority;
 
   const recordAnalytics = () => {
@@ -130,7 +129,7 @@ function UpgradeOrTrialButton({
           source={source}
           onTrialStarted={handleSuccess}
           requestData={requestData}
-          priority={buttonPriority}
+          variant={buttonPriority}
           {...(props as LinkButtonProps)}
         >
           {childComponent || t('Start %s-Day Trial', getTrialLength(organization))}
@@ -142,7 +141,7 @@ function UpgradeOrTrialButton({
       <Button
         onClick={handleRequest}
         busy={busy}
-        priority={buttonPriority}
+        variant={buttonPriority}
         {...(props as ButtonProps)}
       >
         {childComponent || t('Request Trial')}
@@ -160,7 +159,7 @@ function UpgradeOrTrialButton({
       <LinkButton
         onClick={handleSuccess}
         href={`${baseUrl}?referrer=upgrade-${source}`}
-        priority={buttonPriority}
+        variant={buttonPriority}
         {...(props as LinkButtonProps)}
       >
         {childComponent || t('Upgrade now')}
@@ -171,7 +170,7 @@ function UpgradeOrTrialButton({
     <Button
       onClick={handleRequest}
       busy={busy}
-      priority={buttonPriority}
+      variant={buttonPriority}
       {...(props as ButtonProps)}
     >
       {childComponent || t('Request Upgrade')}

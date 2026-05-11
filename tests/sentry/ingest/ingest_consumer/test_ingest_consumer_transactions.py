@@ -67,7 +67,7 @@ def get_test_message(project):
 
 @pytest.fixture
 def random_group_id() -> str:
-    return f"test-consumer-{random.randint(0, 2 ** 16)}"
+    return f"test-consumer-{random.randint(0, 2**16)}"
 
 
 @django_db_all(transaction=True)

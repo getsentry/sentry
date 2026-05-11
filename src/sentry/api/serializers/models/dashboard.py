@@ -10,11 +10,12 @@ from django.db.models import prefetch_related_objects
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetLegendType,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
@@ -26,6 +27,7 @@ from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
+from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
@@ -98,8 +100,10 @@ class DashboardWidgetResponse(TypedDict):
     dashboardId: str
     queries: list[DashboardWidgetQueryResponse]
     limit: int | None
-    widgetType: str
+    widgetType: str | None
     layout: dict[str, int] | None
+    axisRange: str | None
+    legendType: DashboardWidgetLegendType | None
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
     changedReason: list[WidgetChangedReasonType] | None
@@ -276,7 +280,7 @@ class DashboardWidgetSerializer(Serializer):
                 # using aggregateField instead of visualize + groupBy because that format will be deprecated
                 "aggregateField": visualize,
                 "field": fields,
-                "query": f"{spans_query.conditions}{f" AND release:{",".join(release)}" if release else ""}",
+                "query": f"{spans_query.conditions}{f' AND release:{",".join(release)}' if release else ''}",
                 "sort": sort,
                 "interval": obj.interval,
                 "referrer": "dashboards.widget-transaction-deprecation-warning",
@@ -298,10 +302,14 @@ class DashboardWidgetSerializer(Serializer):
         return urls
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
-        widget_type = (
-            DashboardWidgetTypes.get_type_name(obj.widget_type)
-            or DashboardWidgetTypes.TYPE_NAMES[0]
-        )
+        # Text widgets don't have a widget_type
+        if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
+            widget_type = None
+        else:
+            widget_type = (
+                DashboardWidgetTypes.get_type_name(obj.widget_type)
+                or DashboardWidgetTypes.TYPE_NAMES[0]
+            )
 
         if (
             obj.widget_type == DashboardWidgetTypes.DISCOVER
@@ -338,9 +346,11 @@ class DashboardWidgetSerializer(Serializer):
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
             "limit": obj.limit,
-            # Default to discover type if null
+            # Default to discover type if null and not a text widget
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
+            "axisRange": obj.detail.get("axis_range") if obj.detail else None,
+            "legendType": obj.detail.get("legend_type") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
             "changedReason": obj.changed_reason,
         }
@@ -506,17 +516,14 @@ class DashboardFiltersMixin:
 
 class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
-        organization = kwargs.get("context", {}).get("organization")
         item_dict = {i.id: i for i in item_list}
-        prefetch_related_objects(
-            item_list, "projects__organization", "dashboardlastvisited_set__member"
-        )
+        prefetch_related_objects(item_list, "projects__organization")
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
         favorited_dashboard_ids = set(
             DashboardFavoriteUser.objects.filter(
-                user_id=user.id, dashboard_id__in=item_dict.keys()
+                user_id=user.id, dashboard_id__in=item_dict.keys(), favorited=True
             ).values_list("dashboard_id", flat=True)
         )
 
@@ -572,17 +579,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             result[dashboard]["permissions"] = serialize(permission)
 
         for dashboard in item_dict.values():
-            if features.has(
-                "organizations:dashboards-starred-reordering",
-                organization,
-                actor=user,
-            ):
-                visit = dashboard.dashboardlastvisited_set.filter(
-                    dashboard=dashboard,
-                    member__user_id=user.id,
-                    member__organization=organization,
-                ).first()
-                result[dashboard]["last_visited"] = visit.last_visited if visit else None
+            result[dashboard]["last_visited"] = dashboard.last_visited
 
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
@@ -663,13 +660,6 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
 
-        if "globalFilter" in tag_filters and not features.has(
-            "organizations:dashboards-global-filters",
-            organization=obj.organization,
-            actor=user,
-        ):
-            tag_filters["globalFilter"] = []
-
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
             "title": obj.title,
@@ -690,3 +680,46 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         }
 
         return data
+
+
+class DashboardRevisionResponse(TypedDict):
+    id: str
+    title: str
+    dateCreated: datetime
+    createdBy: dict[str, Any] | None
+    source: str
+
+
+@register(DashboardRevision)
+class DashboardRevisionSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
+        users_by_id = {
+            u["id"]: u for u in user_service.serialize_many(filter={"user_ids": user_ids})
+        }
+        return {
+            revision: {"created_by": users_by_id.get(str(revision.created_by_id))}
+            for revision in item_list
+        }
+
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardRevisionResponse:
+        created_by = attrs.get("created_by") or {}
+        avatar = created_by.get("avatar") or {}
+        avatar_type = avatar.get("avatarType")
+        return {
+            "id": str(obj.id),
+            "title": obj.title,
+            "dateCreated": obj.date_added,
+            "createdBy": {
+                "id": created_by["id"],
+                "name": created_by["name"],
+                "email": created_by["email"],
+                "avatarType": avatar_type,
+                "avatarUrl": get_gravatar_url(created_by["email"], size=32)
+                if avatar_type == "gravatar"
+                else avatar.get("avatarUrl"),
+            }
+            if created_by
+            else None,
+            "source": obj.source,
+        }

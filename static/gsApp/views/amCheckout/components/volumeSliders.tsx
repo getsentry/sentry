@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import {Flex} from '@sentry/scraps/layout';
+
+import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -19,7 +20,7 @@ import {
   getSingularCategoryName,
   isByteCategory,
 } from 'getsentry/utils/dataCategory';
-import UnitTypeItem from 'getsentry/views/amCheckout/components/unitTypeItem';
+import {UnitTypeItem} from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -58,7 +59,7 @@ export function renderPerformanceHovercard() {
   );
 }
 
-function VolumeSliders({
+export function VolumeSliders({
   currentSliderValues,
   checkoutTier,
   activePlan,
@@ -90,7 +91,7 @@ function VolumeSliders({
         )
         .map(category => {
           const allowedValues = activePlan.planCategories[category]?.map(
-            (bucket: any) => bucket.events
+            bucket => bucket.events
           );
 
           if (!allowedValues) {
@@ -104,8 +105,8 @@ function VolumeSliders({
 
           const categoryInfo = getCategoryInfoFromPlural(category);
 
-          const min = allowedValues[0];
-          const max = allowedValues.slice(-1)[0];
+          const min = allowedValues[0]!;
+          const max = allowedValues.slice(-1)[0]!;
 
           const billingInterval = utils.getShortInterval(activePlan.billingInterval);
           const price = utils.displayPrice({cents: eventBucket.price});
@@ -232,8 +233,6 @@ function VolumeSliders({
     </SlidersContainer>
   );
 }
-
-export default VolumeSliders;
 
 const SlidersContainer = styled('div')`
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.xl};

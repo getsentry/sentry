@@ -1,18 +1,19 @@
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -123,6 +124,7 @@ function UptimeSpanNodeDetailsContent({
 }: UptimeSpanNodeDetailsContentProps) {
   const location = useLocation();
   const attributes = traceItemData.attributes;
+  const issues = node.uniqueIssues;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -133,6 +135,9 @@ function UptimeSpanNodeDetailsContent({
         hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
+        {issues.length > 0 ? (
+          <IssueList organization={organization} issues={issues} node={node} />
+        ) : null}
         <Attributes
           node={node}
           attributes={attributes}

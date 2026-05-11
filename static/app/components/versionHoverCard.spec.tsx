@@ -4,9 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import VersionHoverCard from './versionHoverCard';
+import {VersionHoverCard} from './versionHoverCard';
 
 describe('VersionHoverCard', () => {
   const organization = OrganizationFixture();
@@ -37,13 +37,13 @@ describe('VersionHoverCard', () => {
         organization={organization}
         projectSlug={project.slug}
         releaseVersion={release.version}
+        forceVisible
       >
         <div>{release.version}</div>
       </VersionHoverCard>
     );
 
     expect(await screen.findByText(release.version)).toBeInTheDocument();
-    await userEvent.hover(screen.getByText(release.version));
 
     expect(await screen.findByText(deploy.environment)).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Package'})).toBeInTheDocument();

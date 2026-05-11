@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
  *  - The organization is on the code-review-beta trial
  *  - If the new Seer billing is released
  */
-export default function showNewSeer(organization: Organization) {
+export function showNewSeer(organization: Organization) {
   // New seer plan
   if (organization.features.includes('seat-based-seer-enabled')) {
     return true;
@@ -24,10 +24,7 @@ export default function showNewSeer(organization: Organization) {
   }
 
   // This is the launch flag
-  if (
-    organization.features.includes('seer-user-billing') &&
-    organization.features.includes('seer-user-billing-launch')
-  ) {
+  if (organization.features.includes('seer-user-billing-launch')) {
     return true;
   }
 

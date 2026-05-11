@@ -116,13 +116,13 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "raise"
-          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
             filename*
               "crashpad_client_win.cc"
             function*
@@ -140,16 +140,16 @@ system:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "RtlpTpWorkCallback"
           frame*
@@ -161,7 +161,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -172,7 +172,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -183,7 +183,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -194,7 +194,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -202,7 +202,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -243,13 +243,13 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "raise"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             filename*
               "crashpad_client_win.cc"
             function*

@@ -24,7 +24,6 @@ export const MOCK_EVENTS_TABLE_DATA = [
     'transaction.duration': 600,
     'project.id': 1,
     timestamp: '2020-05-22T15:31:18+00:00',
-    trace: '4321',
     'span_ops_breakdown.relative': '',
     'spans.browser': 100,
     'spans.db': 300,

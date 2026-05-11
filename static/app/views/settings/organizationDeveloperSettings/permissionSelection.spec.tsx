@@ -1,9 +1,9 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
   let onChange: jest.Mock;
@@ -16,6 +16,7 @@ describe('PermissionSelection', () => {
       <Form model={model}>
         <PermissionSelection
           appPublished={false}
+          hasContinuousIntegration
           permissions={{
             Event: 'no-access',
             Team: 'no-access',
@@ -30,18 +31,22 @@ describe('PermissionSelection', () => {
     );
   }
 
-  it('renders a row for each resource', () => {
+  it('renders a row for each resource', async () => {
     renderForm();
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', {name: 'Project'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Organization'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Member'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
+    ).toBeInTheDocument();
   });
 
   it('lists human readable permissions', async () => {
     renderForm();
+    await screen.findByRole('textbox', {name: 'Project'});
     const expectOptions = async (name: string, options: string[]) => {
       for (const option of options) {
         await selectEvent.select(screen.getByRole('textbox', {name}), option);
@@ -58,6 +63,7 @@ describe('PermissionSelection', () => {
 
   it('stores the permissions the User has selected', async () => {
     renderForm();
+    await screen.findByRole('textbox', {name: 'Project'});
     const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
@@ -74,5 +80,18 @@ describe('PermissionSelection', () => {
     expect(model.getValue('Event--permission')).toBe('admin');
     expect(model.getValue('Organization--permission')).toBe('read');
     expect(model.getValue('Member--permission')).toBe('no-access');
+  });
+
+  it('stores the Continuous Integration permission', async () => {
+    renderForm();
+    const ciCheckbox = await screen.findByRole('checkbox', {
+      name: 'Continuous Integration (CI)',
+    });
+
+    expect(ciCheckbox).toBeChecked();
+    await userEvent.click(ciCheckbox);
+
+    expect(model.getValue('ContinuousIntegration--permission')).toBe(false);
+    expect(model.getValue('scopes')).not.toContain('org:ci');
   });
 });

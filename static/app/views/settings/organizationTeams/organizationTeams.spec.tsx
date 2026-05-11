@@ -1,15 +1,17 @@
 import {AccessRequestFixture} from 'sentry-fixture/accessRequest';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import TeamStore from 'sentry/stores/teamStore';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizationTeams';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {OrganizationTeams} from 'sentry/views/settings/organizationTeams/organizationTeams';
 
 jest.mocked(recreateRoute).mockReturnValue('');
 
@@ -56,20 +58,26 @@ describe('OrganizationTeams', () => {
     });
 
     it('can join team and have link to details', () => {
-      const mockTeams = [
-        TeamFixture({
-          hasAccess: true,
-          isMember: false,
-        }),
-      ];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
+      const team = TeamFixture({
+        hasAccess: true,
+        isMember: false,
+      });
+      const mockTeams = [team];
+      TeamStore.loadInitialData(mockTeams, false, null);
+      ProjectsStore.loadInitialData([
+        ProjectFixture({slug: 'project-1', teams: [team]}),
+        ProjectFixture({slug: 'project-2', teams: [team]}),
+      ]);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
       expect(screen.getByLabelText('Join Team')).toBeInTheDocument();
 
       // Should also link to details
       expect(screen.getByTestId('team-link')).toBeInTheDocument();
+
+      // Shows project count
+      expect(screen.getByText('2 projects')).toBeInTheDocument();
     });
 
     it('reloads projects after joining a team', async () => {
@@ -88,9 +96,9 @@ describe('OrganizationTeams', () => {
       });
 
       const mockTeams = [team];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
+      TeamStore.loadInitialData(mockTeams, false, null);
 
-      createWrapper({access: new Set([])});
+      createWrapper({access: new Set()});
       await userEvent.click(screen.getByLabelText('Join Team'));
 
       await waitFor(() => {
@@ -100,7 +108,7 @@ describe('OrganizationTeams', () => {
 
     it('cannot leave idp-provisioned team', () => {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
+      TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper();
 
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
@@ -110,9 +118,9 @@ describe('OrganizationTeams', () => {
       const mockTeams = [
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
+      TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByRole('button', {name: 'Join Team'})).toBeDisabled();
@@ -131,8 +139,8 @@ describe('OrganizationTeams', () => {
       render(
         <OrganizationTeams
           organization={organization}
-          access={new Set([])}
-          features={new Set([])}
+          access={new Set()}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
           {...props}
@@ -146,8 +154,8 @@ describe('OrganizationTeams', () => {
           isMember: false,
         }),
       ];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
-      createWrapper({access: new Set([])});
+      TeamStore.loadInitialData(mockTeams, false, null);
+      createWrapper({access: new Set()});
 
       expect(screen.getByLabelText('Request Access')).toBeInTheDocument();
 
@@ -162,9 +170,9 @@ describe('OrganizationTeams', () => {
           isMember: true,
         }),
       ];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
+      TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
@@ -174,9 +182,9 @@ describe('OrganizationTeams', () => {
       const mockTeams = [
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
+      TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
@@ -184,9 +192,9 @@ describe('OrganizationTeams', () => {
 
     it('cannot leave idp-provisioned team', () => {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
-      act(() => TeamStore.loadInitialData(mockTeams, false, null));
+      TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
@@ -217,8 +225,8 @@ describe('OrganizationTeams', () => {
       render(
         <OrganizationTeams
           organization={organization}
-          access={new Set([])}
-          features={new Set([])}
+          access={new Set()}
+          features={new Set()}
           requestList={requestList}
           onRemoveAccessRequest={() => {}}
           {...props}
@@ -287,6 +295,106 @@ describe('OrganizationTeams', () => {
     });
   });
 
+  describe('Empty States', () => {
+    beforeEach(() => {
+      TeamStore.reset();
+    });
+
+    it('shows empty state when no teams exist', async () => {
+      const {organization} = initializeOrg();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+      TeamStore.loadInitialData([], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set()}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(
+        await screen.findByText(/No teams have been created yet/)
+      ).toBeInTheDocument();
+    });
+
+    it('shows empty state when user has not joined any teams', async () => {
+      const {organization} = initializeOrg();
+      const team = TeamFixture({isMember: false});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [team],
+      });
+      TeamStore.loadInitialData([team], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set()}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(
+        await screen.findByText(/You haven't joined any teams yet/)
+      ).toBeInTheDocument();
+    });
+
+    it('shows empty state when user is member of all teams', async () => {
+      const {organization} = initializeOrg();
+      const team = TeamFixture({isMember: true});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [team],
+      });
+      TeamStore.loadInitialData([team], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set()}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(await screen.findByText(/You're a member of all teams/)).toBeInTheDocument();
+    });
+
+    it('does not show create team link without permission', async () => {
+      const {organization} = initializeOrg();
+      const team = TeamFixture({isMember: true});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [team],
+      });
+      TeamStore.loadInitialData([team], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set()}
+          features={new Set()}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(await screen.findByText(/You're a member of all teams/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create another team'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('Team Roles', () => {
     const features = new Set(['team-roles']);
     const access = new Set<string>();
@@ -302,7 +410,8 @@ describe('OrganizationTeams', () => {
           features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-        />
+        />,
+        {organization}
       );
 
       expect(screen.queryByText('a minimum team-level role of')).not.toBeInTheDocument();
@@ -319,7 +428,8 @@ describe('OrganizationTeams', () => {
           features={features}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-        />
+        />,
+        {organization}
       );
 
       expect(
@@ -341,7 +451,8 @@ describe('OrganizationTeams', () => {
           features={features}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-        />
+        />,
+        {organization}
       );
 
       expect(screen.queryByText('a minimum team-level role of')).not.toBeInTheDocument();

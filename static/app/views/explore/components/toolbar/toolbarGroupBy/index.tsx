@@ -3,16 +3,17 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
+import {type GetFieldDefinitionType} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -20,6 +21,7 @@ import {
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarGroupByHeader() {
   return (
@@ -42,6 +44,7 @@ interface ToolbarGroupByDropdownProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
+  fieldDefinitionType?: GetFieldDefinitionType;
   loading?: boolean;
   onClose?: () => void;
   onSearch?: (search: string) => void;
@@ -56,9 +59,11 @@ export function ToolbarGroupByDropdown({
   onSearch,
   loading,
   onClose,
+  fieldDefinitionType = 'span',
 }: ToolbarGroupByDropdownProps) {
-  const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: column.id,
+    transition: null,
   });
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
@@ -76,41 +81,49 @@ export function ToolbarGroupByDropdown({
     <ToolbarRow
       key={column.id}
       ref={setNodeRef}
-      style={{transform: CSS.Transform.toString(transform), transition}}
+      style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
     >
-      {canDelete ? (
-        <Button
-          aria-label={t('Drag to reorder')}
-          borderless
-          size="zero"
-          icon={<IconGrabbable size="sm" />}
-          {...listeners}
-        />
-      ) : null}
+      {canDelete ? <DragReorderButton iconSize="sm" {...listeners} /> : null}
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
-        searchable
+        search={{
+          onChange: onSearch,
+          filter: (option, search) => {
+            return sortSearchedAttributes({
+              fieldDefinitionType,
+              option,
+              searchText: search,
+            });
+          },
+        }}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
             {label}
           </OverlayTrigger.Button>
         )}
         menuTitle="Group By"
-        onSearch={onSearch}
         onClose={onClose}
         loading={loading}
       />
       {canDelete ? (
         <Button
           aria-label={t('Remove Column')}
-          borderless
+          variant="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnDelete()}
+        />
+      ) : column.column ? (
+        <Button
+          aria-label={t('Clear Group By')}
+          variant="transparent"
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          onClick={() => onColumnChange('')}
         />
       ) : null}
     </ToolbarRow>
@@ -125,11 +138,10 @@ interface ToolbarVisualizeAddProps {
 export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      variant="link"
       aria-label={t('Add Group')}
       disabled={disabled}
     >

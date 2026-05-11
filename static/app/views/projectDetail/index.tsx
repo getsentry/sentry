@@ -1,9 +1,8 @@
-import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
-import ProjectDetail from './projectDetail';
+import {ProjectDetail} from './projectDetail';
 
 export default function ProjectDetailContainer() {
   const params = useParams<{projectId: string}>();
@@ -19,9 +18,5 @@ export default function ProjectDetailContainer() {
       : {}
   );
 
-  return (
-    <PageAlertProvider>
-      <ProjectDetail />
-    </PageAlertProvider>
-  );
+  return <ProjectDetail />;
 }

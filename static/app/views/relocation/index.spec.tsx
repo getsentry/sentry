@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import RelocationOnboardingContainer from './index';
 
@@ -48,7 +48,7 @@ describe('Relocation Onboarding Container', () => {
   });
 
   it('should not render if feature disabled', async () => {
-    ConfigStore.set('features', new Set([]));
+    ConfigStore.set('features', new Set());
     render(<RelocationOnboardingContainer />, {
       initialRouterConfig: {
         location: {

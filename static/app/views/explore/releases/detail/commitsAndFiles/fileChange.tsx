@@ -1,0 +1,60 @@
+import styled from '@emotion/styled';
+
+import {AvatarList} from '@sentry/scraps/avatar';
+
+import {ListGroupItem} from 'sentry/components/listGroup';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import type {CommitAuthor} from 'sentry/types/integrations';
+import type {AvatarUser} from 'sentry/types/user';
+
+import {FileIcon} from './fileIcon';
+
+interface FileChangeProps {
+  authors: CommitAuthor[];
+  filename: string;
+}
+
+export function FileChange({filename, authors}: FileChangeProps) {
+  return (
+    <FileItem>
+      <Filename>
+        <FileIconWrapper>
+          <FileIcon fileName={filename} />
+        </FileIconWrapper>
+        <TextOverflow>{filename}</TextOverflow>
+      </Filename>
+      <AvatarList users={authors as AvatarUser[]} avatarSize={25} typeAvatars="authors" />
+    </FileItem>
+  );
+}
+
+const FileItem = styled(ListGroupItem)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${p => p.theme.space['2xl']};
+
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  :last-child {
+    border: none;
+    border-radius: 0;
+  }
+`;
+
+const Filename = styled('div')`
+  font-size: ${p => p.theme.font.size.md};
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+`;
+
+const FileIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.colors.gray200};
+  border-radius: 3px;
+`;

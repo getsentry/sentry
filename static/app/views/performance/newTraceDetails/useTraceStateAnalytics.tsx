@@ -3,9 +3,8 @@ import {useEffect} from 'react';
 import {getRelativeDate} from 'sentry/components/timeSince';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
+import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
@@ -16,13 +15,13 @@ import {useTraceQueryParams} from './useTraceQueryParams';
 
 type Options = {
   organization: Organization;
-  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
+  trace: TraceQueryResult;
   traceTreeSource: TraceTreeSource;
   tree: TraceTree;
   meta?: TraceMetaQueryResults;
 };
 
-function useTraceStateAnalytics({
+export function useTraceStateAnalytics({
   trace,
   meta,
   organization,
@@ -98,5 +97,3 @@ function useTraceStateAnalytics({
     timestamp,
   ]);
 }
-
-export default useTraceStateAnalytics;

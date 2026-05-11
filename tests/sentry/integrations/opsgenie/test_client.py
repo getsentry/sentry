@@ -14,7 +14,6 @@ from sentry.testutils.asserts import (
     assert_slo_metric,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -101,7 +100,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": "my rule",
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.id}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.id}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -117,7 +116,6 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_send_notification_with_workflow_engine_trigger_actions(
         self, mock_record: MagicMock
     ) -> None:
@@ -169,7 +167,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": rule.label,
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",

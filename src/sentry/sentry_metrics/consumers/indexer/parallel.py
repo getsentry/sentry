@@ -4,14 +4,16 @@ import functools
 import logging
 from collections import deque
 from collections.abc import Mapping
-from typing import Any, Deque, Union, cast
+from typing import Any, Union, cast
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
-from arroyo.processing.strategies import MessageRejected
-from arroyo.processing.strategies import ProcessingStrategy
+from arroyo.processing.strategies import (
+    MessageRejected,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+)
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
 from sentry.sentry_metrics.configuration import (
@@ -38,7 +40,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
-        self.__messages: Deque[Message[KafkaPayload | RoutingPayload | InvalidMessage]] = deque()
+        self.__messages: deque[Message[KafkaPayload | RoutingPayload | InvalidMessage]] = deque()
 
     def poll(self) -> None:
         self.__next_step.poll()

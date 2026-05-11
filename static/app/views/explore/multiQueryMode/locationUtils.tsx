@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
@@ -100,7 +100,7 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
     }
 
     const groupBys: string[] = parsed.groupBys ?? [];
-    const fields: string[] = getFieldsForConstructedQuery(yAxes);
+    const fields = getFieldsForConstructedQuery(yAxes);
 
     const parsedSortBys = decodeSorts(parsed.sortBys);
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);

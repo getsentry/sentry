@@ -34,7 +34,7 @@ export class VirtualizedTree<T extends TreeLike> {
     ) {
       const shouldUseExpandedSet = expandedNodes && expandedNodes.size > 0;
 
-      const treeNode = new VirtualizedTreeNode<T>(
+      const treeNode = new VirtualizedTreeNode(
         node,
         parent,
         depth,
@@ -125,7 +125,7 @@ export class VirtualizedTree<T extends TreeLike> {
       return;
     }
 
-    let path: VirtualizedTreeNode<T> | null = node.parent;
+    let path = node.parent;
     while (path && !path.expanded) {
       this.expandNode(path, true);
       path = path.parent;

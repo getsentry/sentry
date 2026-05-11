@@ -10,8 +10,8 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 
 import {ExternalIssueSidebarList} from './externalIssueSidebarList';
 
@@ -101,7 +101,7 @@ describe('ExternalIssueSidebarList', () => {
     });
 
     const unlinkMock = MockApiClient.addMockResponse({
-      url: `/issues/1/external-issues/1/`,
+      url: `/organizations/${organization.slug}/issues/1/external-issues/1/`,
       method: 'DELETE',
     });
 

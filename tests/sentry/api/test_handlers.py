@@ -3,6 +3,7 @@ from django.urls import re_path
 from rest_framework.permissions import AllowAny
 
 from sentry.api.base import Endpoint
+from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.snuba import RateLimitExceeded
@@ -30,7 +31,4 @@ class TestRateLimited(APITestCase):
         resp = self.get_response()
         assert resp.status_code == 429
 
-        assert (
-            resp.data["detail"]
-            == "Rate limit exceeded. Please try your query with a smaller date range or fewer projects."
-        )
+        assert resp.data["detail"] == RATE_LIMIT_ERROR_MESSAGE

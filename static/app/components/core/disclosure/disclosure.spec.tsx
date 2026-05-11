@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Disclosure} from 'sentry/components/core/disclosure/disclosure';
+import {Disclosure} from '@sentry/scraps/disclosure';
 
 describe('Disclosure', () => {
   it('supports attaching a render ref to the panel', () => {

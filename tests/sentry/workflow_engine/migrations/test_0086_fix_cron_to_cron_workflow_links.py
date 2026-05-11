@@ -368,28 +368,28 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
 
         # === Verify no detector is linked to another monitor's cron workflow ===
         # detector1 and detector2 should NOT be linked to workflow3 or workflow4
-        assert (
-            self.cron_workflow3.id not in detector1_workflow_ids
-        ), "detector1 should not be linked to monitor3's workflow"
-        assert (
-            self.cron_workflow4.id not in detector1_workflow_ids
-        ), "detector1 should not be linked to monitor4's workflow"
+        assert self.cron_workflow3.id not in detector1_workflow_ids, (
+            "detector1 should not be linked to monitor3's workflow"
+        )
+        assert self.cron_workflow4.id not in detector1_workflow_ids, (
+            "detector1 should not be linked to monitor4's workflow"
+        )
 
         # detector3 should NOT be linked to workflow1 or workflow4
-        assert (
-            self.cron_workflow1.id not in detector3_workflow_ids
-        ), "detector3 should not be linked to monitor1/2's deduped workflow"
-        assert (
-            self.cron_workflow4.id not in detector3_workflow_ids
-        ), "detector3 should not be linked to monitor4's workflow"
+        assert self.cron_workflow1.id not in detector3_workflow_ids, (
+            "detector3 should not be linked to monitor1/2's deduped workflow"
+        )
+        assert self.cron_workflow4.id not in detector3_workflow_ids, (
+            "detector3 should not be linked to monitor4's workflow"
+        )
 
         # detector4 should NOT be linked to workflow1 or workflow3
-        assert (
-            self.cron_workflow1.id not in detector4_workflow_ids
-        ), "detector4 should not be linked to monitor1/2's deduped workflow"
-        assert (
-            self.cron_workflow3.id not in detector4_workflow_ids
-        ), "detector4 should not be linked to monitor3's workflow"
+        assert self.cron_workflow1.id not in detector4_workflow_ids, (
+            "detector4 should not be linked to monitor1/2's deduped workflow"
+        )
+        assert self.cron_workflow3.id not in detector4_workflow_ids, (
+            "detector4 should not be linked to monitor3's workflow"
+        )
 
         # === Test detector6 (rule without workflow but same hash as monitor1/2) ===
         # Should be linked ONLY to cron_workflow1 (the primary workflow of its dedupe group)

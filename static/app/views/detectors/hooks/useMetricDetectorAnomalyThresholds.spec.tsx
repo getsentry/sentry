@@ -10,9 +10,7 @@ describe('useMetricDetectorAnomalyThresholds', () => {
   });
 
   it('does not fetch data when detectionType is not dynamic', () => {
-    const organization = OrganizationFixture({
-      features: ['anomaly-detection-threshold-data'],
-    });
+    const organization = OrganizationFixture();
 
     const anomalyDataRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/123/anomaly-data/`,
@@ -42,9 +40,7 @@ describe('useMetricDetectorAnomalyThresholds', () => {
   });
 
   it('fetches data when detectionType is dynamic', async () => {
-    const organization = OrganizationFixture({
-      features: ['anomaly-detection-threshold-data'],
-    });
+    const organization = OrganizationFixture();
 
     const mockData = [
       {
@@ -86,9 +82,7 @@ describe('useMetricDetectorAnomalyThresholds', () => {
   });
 
   it('does not fetch data when detectionType is undefined', () => {
-    const organization = OrganizationFixture({
-      features: ['anomaly-detection-threshold-data'],
-    });
+    const organization = OrganizationFixture();
 
     const anomalyDataRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/123/anomaly-data/`,
@@ -118,9 +112,7 @@ describe('useMetricDetectorAnomalyThresholds', () => {
   });
 
   it('includes legacy_alert query param when isLegacyAlert is true', async () => {
-    const organization = OrganizationFixture({
-      features: ['anomaly-detection-threshold-data'],
-    });
+    const organization = OrganizationFixture();
 
     const mockData = [
       {

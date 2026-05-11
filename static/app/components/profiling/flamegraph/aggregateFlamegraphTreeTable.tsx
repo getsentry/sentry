@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import PerformanceDuration from 'sentry/components/performanceDuration';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -28,9 +29,9 @@ import type {
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
 import {
@@ -336,9 +337,7 @@ export function AggregateFlamegraphTreeTable({
   }, [tree]);
 
   const scrollContainers = useMemo(() => {
-    return [scrollContainerRef, dynamicScrollContainerRef].filter(
-      c => !!c
-    ) as HTMLElement[];
+    return [scrollContainerRef, dynamicScrollContainerRef].filter(c => !!c);
   }, [dynamicScrollContainerRef, scrollContainerRef]);
 
   const {
@@ -369,7 +368,7 @@ export function AggregateFlamegraphTreeTable({
     (index: number) => {
       const handler = _handleRowClick(index);
       return function (evt: React.MouseEvent<HTMLElement>) {
-        const frame: FlamegraphFrame | undefined = getNodeAtIndex(index);
+        const frame = getNodeAtIndex(index);
         if (frame) {
           canvasPoolManager.dispatch('highlight frame', [[frame], 'selected']);
         }

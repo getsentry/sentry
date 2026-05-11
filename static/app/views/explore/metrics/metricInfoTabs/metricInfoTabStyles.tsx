@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {TabPanels} from '@sentry/scraps/tabs';
@@ -6,19 +5,10 @@ import {TabPanels} from '@sentry/scraps/tabs';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
-import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
-  padding-top: 10px;
+export const TabListWrapper = styled('div')`
   width: 100%;
-
-  ${p =>
-    p.orientation === 'bottom' &&
-    css`
-      padding-top: 0;
-      padding-bottom: 1px;
-    `}
 `;
 
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
@@ -73,6 +63,7 @@ export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
   noPadding?: boolean;
 }>`
   font-size: ${p => p.theme.font.size.sm};
+  white-space: nowrap;
   padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
   padding-top: ${p =>
     p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
@@ -129,19 +120,8 @@ export const MetricsDetailsWrapper = styled(DetailsWrapper)`
   padding-right: calc(15px + ${p => p.theme.space.md});
 `;
 
-export const NumericSimpleTableHeaderCell = styled(StyledSimpleTableHeaderCell)`
-  justify-content: flex-end;
-`;
-
 export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
   justify-content: flex-end;
-`;
-
-export const BodyContainer = styled('div')`
-  padding: ${p => p.theme.space.md};
-  padding-top: 0;
-  height: 320px;
-  container-type: inline-size;
 `;
 
 export const StyledTabPanels = styled(TabPanels)`

@@ -3,8 +3,8 @@ import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
-import getDuration from 'sentry/utils/duration/getDuration';
-import clamp from 'sentry/utils/number/clamp';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {clamp} from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -51,9 +51,8 @@ export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
   theme: Theme;
-  row_measurer: TraceRowWidthMeasurer<BaseNode> = new TraceRowWidthMeasurer();
-  indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
-    new TraceRowWidthMeasurer();
+  row_measurer = new TraceRowWidthMeasurer<BaseNode>();
+  indicator_label_measurer = new TraceRowWidthMeasurer<TraceTree['indicators'][0]>();
   text_measurer: TraceTextMeasurer;
 
   resize_observer: ResizeObserver | null = null;
@@ -75,7 +74,7 @@ export class VirtualizedViewManager {
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
   // original size.
-  interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
+  interval_bars = Array.from({length: Math.ceil(window.innerWidth / 100) * 3}).fill(0);
   indicators: Array<
     {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
   > = [];
@@ -103,7 +102,7 @@ export class VirtualizedViewManager {
 
   row_depth_padding = 22;
 
-  private scrollbar_width = 0;
+  scrollbar_width = 0;
   // the transformation matrix that is used to render scaled elements to the DOM
   private span_to_px: mat3 = mat3.create();
   private readonly ROW_PADDING_PX = 16;
@@ -241,7 +240,7 @@ export class VirtualizedViewManager {
     }
 
     this.view.trace_physical_space.width =
-      span_list * this.view.trace_container_physical_space.width;
+      span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
 
     this.scheduler.dispatch('set trace view', {
       x: this.view.trace_view.x,
@@ -260,6 +259,40 @@ export class VirtualizedViewManager {
       return;
     }
     this.scrollbar_width = width;
+
+    // Re-dispatch the container content box so that the trace_physical_space is
+    // recomputed accounting for the new scrollbar width using the same box
+    // model as ResizeObserver's contentRect.
+    const containerPhysicalSpace = this.getContainerContentPhysicalSpace();
+    if (containerPhysicalSpace) {
+      this.scheduler.dispatch('set container physical space', containerPhysicalSpace);
+    }
+  }
+
+  private getContainerContentPhysicalSpace():
+    | [x: number, y: number, width: number, height: number]
+    | null {
+    if (!this.container) {
+      return null;
+    }
+
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      return null;
+    }
+
+    const getBoxSize = (value: string) => Number.parseFloat(value) || 0;
+    const styles = window.getComputedStyle(this.container);
+    const paddingX = getBoxSize(styles.paddingLeft) + getBoxSize(styles.paddingRight);
+    const paddingY = getBoxSize(styles.paddingTop) + getBoxSize(styles.paddingBottom);
+    const borderX =
+      getBoxSize(styles.borderLeftWidth) + getBoxSize(styles.borderRightWidth);
+    const borderY =
+      getBoxSize(styles.borderTopWidth) + getBoxSize(styles.borderBottomWidth);
+    const width = Math.max(rect.width - paddingX - borderX, 0);
+    const height = Math.max(rect.height - paddingY - borderY, 0);
+
+    return [0, 0, width, height];
   }
 
   registerContainerRef(container: HTMLElement | null) {
@@ -804,9 +837,14 @@ export class VirtualizedViewManager {
     }
 
     // Holding shift key allows for horizontal scrolling
-    const distance = event.shiftKey ? event.deltaY : event.deltaX;
+    const distance = event.shiftKey
+      ? getHorizontalDelta(event.deltaX, event.deltaY)
+      : event.deltaX;
 
-    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+    if (
+      event.shiftKey ||
+      (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
+    ) {
       // Prevents firing back/forward navigation
       event.preventDefault();
     } else {
@@ -1136,6 +1174,7 @@ export class VirtualizedViewManager {
     const text_anchor_left =
       span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
+    const text_width_ceil = Math.ceil(text_width);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
     const text_left = Math.min(span_space[0], timestamps[0]!);
@@ -1147,20 +1186,20 @@ export class VirtualizedViewManager {
     // |---text|
     const right_inside =
       this.transformXFromTimestamp(span_space[0] + span_space[1]) -
-      text_width -
-      TEXT_PADDING;
+      TEXT_PADDING -
+      text_width_ceil;
     // |text---|
     const left_inside = this.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
     const left_outside =
-      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
+      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width_ceil;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
       this.transformXFromTimestamp(
         this.view.to_origin + this.view.trace_view.left + this.view.trace_view.width
       ) -
-      text_width -
+      text_width_ceil -
       TEXT_PADDING;
     const window_left =
       this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
@@ -1203,7 +1242,7 @@ export class VirtualizedViewManager {
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= text_width) {
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
         return [1, window_left];
       }
 
@@ -1225,9 +1264,9 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.view.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < text_width
+        space_right / this.span_to_px[0] < text_width_ceil
       ) {
-        if (full_span_px_width > text_width) {
+        if (full_span_px_width > text_width_ceil) {
           return [1, right_inside];
         }
         return [0, left_outside];
@@ -1236,14 +1275,14 @@ export class VirtualizedViewManager {
     }
 
     // If text fits inside the span
-    if (full_span_px_width > text_width) {
+    if (full_span_px_width > text_width_ceil) {
       const distance = span_right - this.view.trace_view.right;
       const visible_width =
         (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= text_width) {
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
         return [1, window_right];
       }
 
@@ -1346,7 +1385,7 @@ export class VirtualizedViewManager {
 
       if (i < start_indicator || i > end_indicator) {
         entry.ref.style.opacity = '0';
-        label.style.opacity = `0`;
+        label.style.opacity = '0';
         continue;
       }
 
@@ -1401,7 +1440,7 @@ export class VirtualizedViewManager {
 
       indicator_label_right = clamped_label_transform + label_width;
 
-      label.style.opacity = `1`;
+      label.style.opacity = '1';
       label.style.transform = `translateX(${clamp(clamped_label_transform, -1, indicator_max)}px)`;
 
       entry.ref.style.opacity = '1';
@@ -1556,7 +1595,7 @@ export class VirtualizedViewManager {
     if (first && last) {
       first.style.opacity = '1';
       last.style.opacity = '1';
-      first.style.transform = `translateX(0)`;
+      first.style.transform = 'translateX(0)';
 
       // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
       // side of the indicator, we need to offset it by the width of the label to make it look like
@@ -1696,10 +1735,10 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const occurence of node.occurrences) {
+  for (const occurrence of node.occurrences) {
     // Occurences render icons at the start timestamp
     const start_timestamp =
-      'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+      'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
     if (typeof start_timestamp === 'number') {
       min_icon_timestamp = Math.min(
         min_icon_timestamp,

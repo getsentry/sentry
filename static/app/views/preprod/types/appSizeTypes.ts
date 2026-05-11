@@ -61,12 +61,18 @@ interface TreemapElementMisc {
   scale?: number;
 }
 
+export interface FlaggedInsight {
+  key: string;
+  savings: number;
+}
+
 export interface TreemapElement {
   children: TreemapElement[];
   is_dir: boolean;
   name: string;
   size: number;
   type: TreemapType;
+  flagged_insights?: Array<string | FlaggedInsight>;
   misc?: TreemapElementMisc;
   path?: string;
 }
@@ -175,6 +181,7 @@ export interface OptimizableImageFile {
 
 interface ImageOptimizationInsightResult extends BaseInsightResult {
   optimizable_files: OptimizableImageFile[];
+  timed_out?: boolean;
 }
 
 export interface StripBinaryFileInfo {
@@ -205,6 +212,7 @@ export interface InsightResults {
   hermes_debug_info?: HermesDebugInfoInsightResult;
   image_optimization?: ImageOptimizationInsightResult;
   large_audio?: LargeAudioFileInsightResult;
+  large_audios?: LargeAudioFileInsightResult;
   large_images?: LargeImageFileInsightResult;
   large_videos?: LargeVideoFileInsightResult;
   localized_strings?: LocalizedStringInsightResult;
@@ -241,6 +249,7 @@ export enum MetricsArtifactType {
   MAIN_ARTIFACT = 0,
   WATCH_ARTIFACT = 1,
   ANDROID_DYNAMIC_FEATURE = 2,
+  APP_CLIP_ARTIFACT = 3,
 }
 
 interface SizeMetricDiffItem {

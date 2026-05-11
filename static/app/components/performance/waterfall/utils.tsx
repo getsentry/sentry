@@ -1,5 +1,6 @@
 import {css, type Theme} from '@emotion/react';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import type {SpanBarType} from './constants';
 import {getSpanBarColors} from './constants';
@@ -86,5 +87,5 @@ export const lightenBarColor = (
   theme: Theme
 ): string => {
   const barColor = pickBarColor(input, theme);
-  return Color(barColor).lighten(lightenRatio).string();
+  return color(barColor).lighten(lightenRatio).string();
 };

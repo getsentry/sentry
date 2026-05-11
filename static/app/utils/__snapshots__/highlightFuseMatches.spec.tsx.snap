@@ -1,10 +1,10 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`highlightFuseMatches matches whole word 1`] = `
 [
-  <Mark>
+  <Styled(mark)>
     foo
-  </Mark>,
+  </Styled(mark)>,
 ]
 `;
 
@@ -13,21 +13,21 @@ exports[`highlightFuseMatches renders a highlighted string 1`] = `
   <span>
     Auth
   </span>,
-  <Mark>
+  <Styled(mark)>
     ent
-  </Mark>,
+  </Styled(mark)>,
   <span>
     icati
   </span>,
-  <Mark>
+  <Styled(mark)>
     on
-  </Mark>,
+  </Styled(mark)>,
   <span>
      
   </span>,
-  <Mark>
+  <Styled(mark)>
     to
-  </Mark>,
+  </Styled(mark)>,
   <span>
     kens allow you to perform actions
   </span>,

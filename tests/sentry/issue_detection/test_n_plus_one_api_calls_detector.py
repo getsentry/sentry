@@ -29,7 +29,9 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = NPlusOneAPICallsDetector(self._settings, event)
+        detector = NPlusOneAPICallsDetector(
+            self._settings[NPlusOneAPICallsDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -195,7 +197,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         assert problem.fingerprint == f"1-{self.type_id}-bf7ad6b20bb345ae327362c849427956862bf839"
 
     def test_does_detect_problem_with_parameterized_urls(self) -> None:
-        event = self.create_event(lambda i: f"GET /clients/{i}/info/{i*100}/?id={i}")
+        event = self.create_event(lambda i: f"GET /clients/{i}/info/{i * 100}/?id={i}")
         [problem] = self.find_problems(event)
         assert problem.desc == "/clients/*/info/*/?id=*"
         assert problem.evidence_data is not None
@@ -203,7 +205,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         path_params = problem.evidence_data.get("path_parameters", [])
         # It should sequentially store sets of path parameters on the evidence data
         for i in range(len(path_params)):
-            assert path_params[i] == f"{i}, {i*100}"
+            assert path_params[i] == f"{i}, {i * 100}"
         query_params = problem.evidence_data.get("parameters", [])
         assert query_params == ["id: 0, 1, 2, 3, 4, 5"]
         assert problem.fingerprint == f"1-{self.type_id}-8bf177290e2d78550fef5a1f6e9ddf115e4b0614"
@@ -231,7 +233,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         event1 = self.create_event(lambda i: f"GET /clients/42/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /clients/42/info?id={i*2}")
+        event2 = self.create_event(lambda i: f"GET /clients/42/info?id={i * 2}")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
@@ -240,7 +242,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         event1 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i*2}")
+        event2 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i * 2}")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
@@ -267,7 +269,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         event1 = self.create_event(lambda i: f"GET /clients/{i}/organization/{i}/info")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /clients/{i*100}/organization/{i*100}/info")
+        event2 = self.create_event(lambda i: f"GET /clients/{i * 100}/organization/{i * 100}/info")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
@@ -454,7 +456,8 @@ def test_parameterizes_url(url: str, parameterized_url: str) -> None:
 )
 @pytest.mark.django_db
 def test_allows_eligible_spans(span: Span) -> None:
-    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    settings = get_detection_settings()[NPlusOneAPICallsDetector.settings_key]
+    detector = NPlusOneAPICallsDetector(settings, {})
     assert detector._is_span_eligible(span)
 
 
@@ -514,7 +517,8 @@ def test_allows_eligible_spans(span: Span) -> None:
 )
 @pytest.mark.django_db
 def test_rejects_ineligible_spans(span: Span) -> None:
-    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    settings = get_detection_settings()[NPlusOneAPICallsDetector.settings_key]
+    detector = NPlusOneAPICallsDetector(settings, {})
     assert not detector._is_span_eligible(span)
 
 

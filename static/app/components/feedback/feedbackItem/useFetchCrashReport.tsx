@@ -1,7 +1,9 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
+
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface Props {
   crashReportId: string;
@@ -9,28 +11,30 @@ interface Props {
   projectSlug: string;
 }
 
-export default function useFetchCrashReport({
-  crashReportId,
-  organization,
-  projectSlug,
-}: Props) {
-  const eventEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${crashReportId}/`;
-  const {data: eventData, isFetching: isEventFetching} = useApiQuery<Event>(
-    [eventEndpoint],
-    {
-      // The default delay is starts at 1000ms and doubles with each try. That's too slow, we'll just show the error quickly instead.
-      retryDelay: 250,
-      staleTime: 0,
-    }
-  );
+export function useFetchCrashReport({crashReportId, organization, projectSlug}: Props) {
+  const {data: eventData, isFetching: isEventFetching} = useQuery({
+    ...apiOptions.as<Event>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug,
+          eventId: crashReportId,
+        },
+        staleTime: 0,
+      }
+    ),
+    // The default delay starts at 1000ms and doubles with each try. That's too slow, we'll just show the error quickly instead.
+    retryDelay: 250,
+  });
 
-  const issueEndpoint = `/organizations/${organization.slug}/issues/${eventData?.groupID}/`;
-  const {data: groupData, isFetching: isGroupFetching} = useApiQuery<Group>(
-    [issueEndpoint],
-    {
-      enabled: Boolean(eventData?.groupID),
+  const {data: groupData, isFetching: isGroupFetching} = useQuery(
+    apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+      path: eventData?.groupID
+        ? {organizationIdOrSlug: organization.slug, issueId: eventData.groupID}
+        : skipToken,
       staleTime: 0,
-    }
+    })
   );
 
   return {

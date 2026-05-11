@@ -1,28 +1,29 @@
 import {useCallback} from 'react';
+import {useMatches} from 'react-router-dom';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import type {ButtonProps} from '@sentry/scraps/button';
 
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
 
 type Props = ButtonProps;
 
-export default function useButtonTracking({
+export function useButtonTracking({
   analyticsEventName,
   analyticsEventKey,
   analyticsParams,
   'aria-label': ariaLabel,
 }: Props) {
   const organization = useOrganization({allowNull: true});
-  const routes = useRoutes();
+  const matches = useMatches();
 
   const trackButton = useCallback(() => {
-    const considerSendingAnalytics = organization && routes;
+    const considerSendingAnalytics = organization && Boolean(matches);
 
     if (considerSendingAnalytics) {
-      const routeString = getEventPath(routes);
+      const routeString = getEventPath(matches);
       const reloadPath = convertToReloadPath(routeString);
 
       // optional way to override the event name for Reload and Amplitude
@@ -50,7 +51,7 @@ export default function useButtonTracking({
     analyticsParams,
     ariaLabel,
     organization,
-    routes,
+    matches,
   ]);
 
   return trackButton;

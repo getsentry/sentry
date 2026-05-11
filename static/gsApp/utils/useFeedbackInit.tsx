@@ -2,13 +2,13 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import {addIntegration, getClient} from '@sentry/react';
 
-import useAsyncSDKIntegrationStore from 'sentry/views/app/asyncSDKIntegrationProvider';
+import {useAsyncSDKIntegrationStore} from 'sentry/views/app/asyncSDKIntegrationProvider';
 
 /**
  * Add Feedback integration here as feedback is for Sentry employees, it
  * doesn't make sense to have it for self-hosted.
  */
-export default function useFeedbackInit() {
+export function useFeedbackInit() {
   const {setState} = useAsyncSDKIntegrationStore();
   const theme = useTheme();
 

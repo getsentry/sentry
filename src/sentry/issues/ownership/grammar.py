@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -13,6 +13,8 @@ from rest_framework.serializers import ValidationError
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.services.eventstore.models import EventSubjectTemplateData
 from sentry.types.actor import Actor, ActorType
 from sentry.users.services.user.service import user_service
@@ -29,6 +31,21 @@ else:
     NodeVisitor = BaseNodeVisitor
 
 VERSION = 1
+
+
+class OwnershipRuleMatcher(TypedDict):
+    type: str
+    pattern: str
+
+
+class OwnershipRule(TypedDict):
+    matcher: OwnershipRuleMatcher
+    owners: list[dict[str, Any]]
+
+
+# $version is not a valid Python identifier, so we use the functional form.
+OwnershipSchema = TypedDict("OwnershipSchema", {"$version": int, "rules": list[OwnershipRule]})
+
 
 URL = "url"
 PATH = "path"
@@ -86,11 +103,11 @@ class Rule(namedtuple("Rule", "matcher owners")):
         )
         return f"{self.matcher} {owners_str}"
 
-    def dump(self) -> dict[str, Sequence[Owner]]:
+    def dump(self) -> OwnershipRule:
         return {"matcher": self.matcher.dump(), "owners": [o.dump() for o in self.owners]}
 
     @classmethod
-    def load(cls, data: Mapping[str, Any]) -> Rule:
+    def load(cls, data: OwnershipRule) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
     def test(
@@ -119,11 +136,11 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def __str__(self) -> str:
         return f"{self.type}:{self.pattern}"
 
-    def dump(self) -> dict[str, str]:
+    def dump(self) -> OwnershipRuleMatcher:
         return {"type": self.type, "pattern": self.pattern}
 
     @classmethod
-    def load(cls, data: Mapping[str, str]) -> Matcher:
+    def load(cls, data: OwnershipRuleMatcher) -> Matcher:
         return cls(data["type"], data["pattern"])
 
     @staticmethod
@@ -308,19 +325,19 @@ def parse_rules(data: str) -> Any:
     return OwnershipVisitor().visit(tree)
 
 
-def dump_schema(rules: Sequence[Rule]) -> dict[str, Any]:
+def dump_schema(rules: Sequence[Rule]) -> OwnershipSchema:
     """Convert a Rule tree into a JSON schema"""
     return {"$version": VERSION, "rules": [r.dump() for r in rules]}
 
 
-def load_schema(schema: Mapping[str, Any]) -> list[Rule]:
+def load_schema(schema: OwnershipSchema) -> list[Rule]:
     """Convert a JSON schema into a Rule tree"""
     if schema["$version"] != VERSION:
         raise RuntimeError("Invalid schema $version: %r" % schema["$version"])
     return [Rule.load(r) for r in schema["rules"]]
 
 
-def convert_schema_to_rules_text(schema: Mapping[str, Any]) -> str:
+def convert_schema_to_rules_text(schema: OwnershipSchema) -> str:
     rules = load_schema(schema)
     text = ""
 
@@ -434,9 +451,9 @@ def convert_codeowners_syntax(
                 )
                 # flatten multiple '/' if not protocol
                 formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
-                result += f'codeowners:{formatted_path} {" ".join(sentry_assignees)}\n'
+                result += f"codeowners:{formatted_path} {' '.join(sentry_assignees)}\n"
             else:
-                result += f'codeowners:{path} {" ".join(sentry_assignees)}\n'
+                result += f"codeowners:{path} {' '.join(sentry_assignees)}\n"
 
     return result
 
@@ -445,7 +462,6 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Acto
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models.team import Team
 
     if not owners:
         return {}
@@ -504,8 +520,60 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Acto
     return {o: actors.get((o.type, o.identifier.lower())) for o in owners}
 
 
+def get_invalid_owner_details(bad_owners: Sequence[Owner], project_id: int) -> list[str]:
+    if not bad_owners:
+        return []
+
+    project_slug, organization_id = Project.objects.values_list("slug", "organization_id").get(
+        id=project_id
+    )
+
+    messages: list[str] = []
+
+    team_owners = [o for o in bad_owners if o.type == "team"]
+    for owner in team_owners:
+        messages.append(
+            f"Team #{owner.identifier} does not have access to project '{project_slug}'."
+        )
+
+    user_owners = [o for o in bad_owners if o.type == "user"]
+    if user_owners:
+        emails = [o.identifier for o in user_owners]
+        existing_users = user_service.get_many(filter=dict(emails=emails, is_active=True))
+        existing_email_to_user_id: dict[str, int] = {}
+        for user in existing_users:
+            existing_email_to_user_id[user.email.lower()] = user.id
+            for useremail in user.useremails:
+                existing_email_to_user_id[useremail.email.lower()] = user.id
+
+        existing_user_ids = set(existing_email_to_user_id.values())
+
+        org_member_user_ids = (
+            set(
+                OrganizationMember.objects.filter(
+                    user_id__in=existing_user_ids,
+                    organization_id=organization_id,
+                ).values_list("user_id", flat=True)
+            )
+            if existing_user_ids
+            else set()
+        )
+
+        for owner in user_owners:
+            user_id = existing_email_to_user_id.get(owner.identifier.lower())
+            if user_id is not None and user_id in org_member_user_ids:
+                messages.append(
+                    f"User {owner.identifier} does not have access to project '{project_slug}'."
+                )
+            else:
+                messages.append(f"User {owner.identifier} is not a member of this organization.")
+
+    messages.sort()
+    return messages
+
+
 def remove_deleted_owners_from_schema(
-    rules: list[dict[str, Any]], owners_id: dict[str, int]
+    rules: list[OwnershipRule], owners_id: dict[str, int]
 ) -> None:
     valid_rules = rules
 
@@ -523,7 +591,7 @@ def remove_deleted_owners_from_schema(
     rules = valid_rules
 
 
-def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, int]) -> None:
+def add_owner_ids_to_schema(rules: list[OwnershipRule], owners_id: dict[str, int]) -> None:
     for rule in rules:
         for rule_owner in rule["owners"]:
             if rule_owner["identifier"] in owners_id.keys():
@@ -534,7 +602,7 @@ def create_schema_from_issue_owners(
     project_id: int,
     issue_owners: str | None,
     remove_deleted_owners: bool = False,
-) -> dict[str, Any] | None:
+) -> OwnershipSchema | None:
     if issue_owners is None:
         return None
 
@@ -552,21 +620,18 @@ def create_schema_from_issue_owners(
     owners_id = {}
     actors = resolve_actors(owners, project_id)
 
-    bad_actors = []
+    bad_owners: list[Owner] = []
     for owner, actor in actors.items():
         if actor is None:
-            if owner.type == "user":
-                bad_actors.append(owner.identifier)
-            elif owner.type == "team":
-                bad_actors.append(f"#{owner.identifier}")
+            bad_owners.append(owner)
         else:
             owners_id[owner.identifier] = actor.id
 
-    if bad_actors and remove_deleted_owners:
+    if bad_owners and remove_deleted_owners:
         remove_deleted_owners_from_schema(schema["rules"], owners_id)
-    elif bad_actors:
-        bad_actors.sort()
-        raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
+    elif bad_owners:
+        error_messages = get_invalid_owner_details(bad_owners, project_id)
+        raise ValidationError({"raw": "Invalid rule owners: {}".format(" ".join(error_messages))})
 
     add_owner_ids_to_schema(schema["rules"], owners_id)
 

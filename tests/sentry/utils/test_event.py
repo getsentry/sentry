@@ -73,9 +73,9 @@ class HasStacktraceTest(TestCase):
                     ],
                 },
             }
-            assert (
-                has_stacktrace(event_data) is False
-            ), f"Mistakenly detected stacktrace in `{container}`"
+            assert has_stacktrace(event_data) is False, (
+                f"Mistakenly detected stacktrace in `{container}`"
+            )
 
     def test_exception_or_threads_empty_frames_ignored(self) -> None:
         for container in ["exception", "threads"]:
@@ -92,9 +92,9 @@ class HasStacktraceTest(TestCase):
                     ],
                 },
             }
-            assert (
-                has_stacktrace(event_data) is False
-            ), f"Mistakenly detected stacktrace in `{container}`"
+            assert has_stacktrace(event_data) is False, (
+                f"Mistakenly detected stacktrace in `{container}`"
+            )
 
     def test_exception_or_threads_no_stacktrace(self) -> None:
         for container in ["exception", "threads"]:
@@ -108,13 +108,81 @@ class HasStacktraceTest(TestCase):
                     ],
                 },
             }
-            assert (
-                has_stacktrace(event_data) is False
-            ), f"Mistakenly detected stacktrace in `{container}`"
+            assert has_stacktrace(event_data) is False, (
+                f"Mistakenly detected stacktrace in `{container}`"
+            )
 
     def test_no_stacktrace_anywhere(self) -> None:
         event_data = {"event_id": 11212012123120120415201309082013}
         assert has_stacktrace(event_data) is False
+
+    def test_native_crash_with_stacktrace_in_threads(self) -> None:
+        """
+        Test for native crashes where exception exists but has no stacktrace,
+        and the actual stacktrace is in threads.
+
+        This is common for C, C++, Cocoa, and minidump crashes.
+        """
+        event_data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGABRT",
+                        "value": "Abort signal was raised",
+                        "mechanism": {"type": "minidump"},
+                    }
+                ]
+            },
+            "threads": {
+                "values": [
+                    {
+                        "id": 0,
+                        "crashed": True,
+                        "stacktrace": {
+                            "frames": [
+                                {"function": "raise", "package": "libsystem_kernel.dylib"},
+                                {"function": "abort", "package": "libsystem_c.dylib"},
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+        assert has_stacktrace(event_data) is True
+
+    def test_native_crash_with_multiple_threads(self) -> None:
+        """
+        Test that stacktraces are found in any thread, not just the first one.
+        """
+        event_data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGSEGV",
+                        "value": "Segmentation fault",
+                        "mechanism": {"type": "minidump"},
+                    }
+                ]
+            },
+            "threads": {
+                "values": [
+                    {
+                        "id": 0,
+                        "crashed": False,
+                    },
+                    {
+                        "id": 1,
+                        "crashed": True,
+                        "stacktrace": {
+                            "frames": [
+                                {"function": "crash_here", "package": "myapp"},
+                            ]
+                        },
+                    },
+                ]
+            },
+        }
+        assert has_stacktrace(event_data) is True
 
 
 class IsHandledTest(TestCase):

@@ -1,6 +1,5 @@
 from copy import deepcopy
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
 
 import orjson
 from slack_sdk.errors import SlackApiError
@@ -8,13 +7,11 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
 
@@ -23,8 +20,8 @@ class TestInit(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
-            self.organization = self.create_organization(id=1, owner=self.user)
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.organization = self.create_organization(owner=self.user)
             self.project = self.create_project(organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -47,7 +44,6 @@ class TestInit(RuleTestCase):
         self.rule = self.create_project_rule(
             project=self.project, action_data=[deepcopy(self.action_data)]
         )
-        self.notification_uuid = str(uuid4())
         self.event = self.store_event(
             data={
                 "message": "Hello world",
@@ -58,33 +54,9 @@ class TestInit(RuleTestCase):
             project_id=self.project.id,
         )
         assert self.event.group is not None
-        self.rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.rule,
-            group=self.event.group,
-            event_id=self.event.event_id,
-            notification_uuid=self.notification_uuid,
-        )
 
         self.action = self.create_action()
 
-    def test_when_rule_fire_history_is_passed_in(self) -> None:
-        instance = SlackNotifyServiceAction(
-            self.project, data={}, rule=self.rule, rule_fire_history=self.rule_fire_history
-        )
-        assert instance.rule_fire_history is not None
-
-    def test_when_rule_fire_history_is_not_passed_in(self) -> None:
-        instance = SlackNotifyServiceAction(self.project, data={}, rule=self.rule)
-        assert instance.rule_fire_history is None
-
-    def test_when_rule_fire_history_is_none(self) -> None:
-        instance = SlackNotifyServiceAction(
-            self.project, data={}, rule=self.rule, rule_fire_history=None
-        )
-        assert instance.rule_fire_history is None
-
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -126,7 +98,6 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_after_noa_slo_halt(self, mock_post: MagicMock, mock_record: MagicMock) -> None:
@@ -174,7 +145,6 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.HALTED
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_after_noa_error(
@@ -218,7 +188,6 @@ class TestInit(RuleTestCase):
         assert send_notification_failure.args[0] == EventLifecycleOutcome.FAILURE
         assert_failure_metric(mock_record, IntegrationError())
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -259,7 +228,6 @@ class TestInit(RuleTestCase):
         assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
         assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -303,7 +271,6 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -345,7 +312,6 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -358,7 +324,7 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             msg = NotificationMessage.objects.create(
                 action_id=self.action.id,
                 group_id=self.event.group.id,

@@ -2,15 +2,17 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
   TraceViewMetricsProviderWrapper,
@@ -20,7 +22,6 @@ import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
-import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
 import {PartialTraceDataWarning} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/partialTraceDataWarning';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
@@ -28,6 +29,8 @@ import {
   TraceLayoutTabKeys,
   useTraceLayoutTabs,
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -43,7 +46,7 @@ import {TraceMetaDataHeader} from './traceHeader';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
-import useTraceStateAnalytics from './useTraceStateAnalytics';
+import {useTraceStateAnalytics} from './useTraceStateAnalytics';
 
 function decodeTraceSlug(maybeSlug: string | undefined): string {
   if (!maybeSlug || maybeSlug === 'null' || maybeSlug === 'undefined') {
@@ -102,7 +105,7 @@ function useInitialLogsData(): OurLogsResponseItem[] | undefined {
   return initialDataRef.current;
 }
 
-function TraceViewImpl({traceSlug}: {traceSlug: string}) {
+function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
@@ -118,7 +121,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
-    additionalAttributes: ['thread.id', 'tags[performance.timeOrigin,number]'],
+    additionalAttributes: [
+      'thread.id',
+      'tags[performance.timeOrigin,number]',
+      'gen_ai.operation.type',
+    ],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 
@@ -135,12 +142,39 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     logs: logsData,
     traceId: traceSlug,
   });
-  const traceInnerLayoutRef = useRef<HTMLDivElement>(null);
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
     logs: logsData,
     metrics: metricsData,
+  });
+
+  // Push trace metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'Sentry trace detail page. services lists the projects (services) involved in this trace. ' +
+      'Tools: get_trace_waterfall(trace_id, span_id?) for full waterfall or specific span; ' +
+      'get_event_details(event_id?, issue_id?) for error event details; ' +
+      'get_issue_details(issue_id) for issue aggregate stats; ' +
+      'get_log_attributes(trace_id, log_message_substring) for log entries in this trace; ' +
+      'get_metric_attributes(trace_id, metric_name) for metric samples in this trace; ' +
+      'get_profile_flamegraph(profile_id, trace_id?) for CPU/memory flamegraph; ' +
+      'telemetry_live_search(dataset, question, project_slugs) for related spans/errors/logs/metrics.',
+    traceId: traceSlug,
+    activeTab: currentTab,
+    durationMs: tree.root.children[0]?.space?.[1],
+    nodeCount: tree.list.length,
+    services: Array.from(tree.projects.values()).map(p => p.slug),
+    errors: meta.data?.errors,
+    performanceIssues: meta.data?.performance_issues,
+    spanCount: meta.data?.span_count,
+    webVitals: tree.indicators.map(i => ({
+      type: i.type,
+      label: i.label,
+      value: i.measurement.value,
+      unit: i.measurement.unit,
+      poor: i.poor,
+    })),
   });
 
   return (
@@ -149,7 +183,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <TraceExternalLayout>
+        <LayoutPageWithHiddenFooter flex={1}>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}
@@ -160,7 +194,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             logs={logsData}
             metrics={metricsData}
           />
-          <TraceInnerLayout ref={traceInnerLayoutRef}>
+          <TraceInnerLayout>
             <ErrorsOnlyWarnings
               tree={tree}
               traceSlug={traceSlug}
@@ -197,46 +231,43 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}
-            {currentTab === TraceLayoutTabKeys.LOGS ? (
-              <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
-            ) : null}
+            {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
               <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
                 <TraceViewMetricsSection />
               </TraceViewMetricsProviderWrapper>
             ) : null}
-            {currentTab === TraceLayoutTabKeys.SUMMARY ? (
-              <TraceSummarySection traceSlug={traceSlug} />
-            ) : null}
             {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
-              <TraceAiSpans traceSlug={traceSlug} />
+              <TraceAiTab traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
-        </TraceExternalLayout>
+        </LayoutPageWithHiddenFooter>
       </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
 
-const TraceExternalLayout = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-  max-height: 100vh;
+const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
 
+// @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
+// When that feature is enabled, the footer is no longer rendered at the bottom of the page.
+const LayoutPageWithHiddenFooter = styled(Stack)`
   ~ footer {
     display: none;
   }
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TraceInnerLayout = styled(FlexBox)`
-  padding: ${space(2)} ${space(3)};
-  flex-grow: 1;
-  overflow-y: auto;
-`;
+function TraceInnerLayout(props: FlexProps) {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Flex
+      {...props}
+      background={hasPageFrame ? 'primary' : undefined}
+      direction="column"
+      gap="md"
+      padding="xl"
+      flex="1"
+      overflowY="auto"
+    />
+  );
+}

@@ -21,6 +21,12 @@ class ProjectManagementActionType(StrEnum):
     SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
     SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
 
+    # Search
+    SEARCH_ISSUES = "search_issues"
+    SEARCH_USERS = "search_users"
+    SEARCH_PROJECTS = "search_projects"
+    SEARCH_FIELD_AUTOCOMPLETE = "search_field_autocomplete"
+
 
 class ProjectManagementHaltReason(StrEnum):
     SYNC_INBOUND_ASSIGNEE_NOT_FOUND = "inbound-assignee-not-found"
@@ -45,3 +51,6 @@ class ProjectManagementEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.action_type)
+
+    def get_integration_id(self) -> int | None:
+        return self.integration.id

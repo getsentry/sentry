@@ -6,7 +6,7 @@ from django.db import models, router, transaction
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, region_silo_model
+from sentry.db.models import FlexibleForeignKey, cell_silo_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -149,7 +149,7 @@ class GroupSearchViewStarredManager(BaseManager["GroupSearchViewStarred"]):
             self.delete_starred_view(organization, starred_view.user_id, view)
 
 
-@region_silo_model
+@cell_silo_model
 class GroupSearchViewStarred(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 

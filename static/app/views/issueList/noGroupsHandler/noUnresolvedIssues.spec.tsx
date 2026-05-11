@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import NoUnresolvedIssues from 'sentry/views/issueList/noGroupsHandler/noUnresolvedIssues';
+import {NoUnresolvedIssues} from 'sentry/views/issueList/noGroupsHandler/noUnresolvedIssues';
 
 describe('NoUnresolvedIssues', () => {
   it('renders', () => {

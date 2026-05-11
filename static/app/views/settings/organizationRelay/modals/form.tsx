@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Input} from 'sentry/components/core/input';
-import {TextArea} from 'sentry/components/core/textarea';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Relay} from 'sentry/types/relay';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
@@ -24,7 +24,7 @@ type Props = {
   values: Values;
 };
 
-function Form({
+export function Form({
   values,
   onChange,
   errors,
@@ -136,10 +136,8 @@ function Form({
   );
 }
 
-export default Form;
-
 const FieldWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledField = styled(FieldGroup)`

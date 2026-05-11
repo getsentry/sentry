@@ -5,7 +5,6 @@ from sentry.new_migrations.monkey.state import DeletionAction
 
 
 class Migration(CheckedMigration):
-
     dependencies = [
         ("good_flow_delete_model_state_app", "0002_delete_model_state"),
     ]

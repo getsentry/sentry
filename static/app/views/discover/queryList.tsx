@@ -3,26 +3,26 @@ import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 import moment from 'moment-timezone';
 
-import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
+import {Button} from '@sentry/scraps/button';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
-import TimeSince from 'sentry/components/timeSince';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {resetPageFilters} from 'sentry/components/pageFilters/actions';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
@@ -34,7 +34,7 @@ import {
   handleUpdateHomepageQuery,
 } from './savedQuery/utils';
 import MiniGraph from './miniGraph';
-import QueryCard from './querycard';
+import {QueryCard} from './querycard';
 import {
   getPrebuiltQueries,
   handleAddQueryToDashboard,
@@ -102,7 +102,7 @@ class QueryList extends Component<Props> {
     }
     cards = cards.concat(this.renderSavedQueries());
 
-    if (cards.filter(x => x).length === 0) {
+    if (cards.filter(Boolean).length === 0) {
       return (
         <StyledEmptyStateWarning>
           <p>{t('No saved queries match that filter')}</p>
@@ -122,7 +122,7 @@ class QueryList extends Component<Props> {
             {...triggerProps}
             aria-label={t('Query actions')}
             size="xs"
-            borderless
+            variant="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -148,7 +148,7 @@ class QueryList extends Component<Props> {
     const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
-      const newQuery = getSavedQueryWithDataset(view) as NewQuery;
+      const newQuery = getSavedQueryWithDataset(view)!;
       const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
       // if a search is performed on the list of queries, we filter
@@ -256,7 +256,7 @@ class QueryList extends Component<Props> {
     }
 
     return savedQueries.map((query, index) => {
-      const savedQuery = getSavedQueryWithDataset(query) as SavedQuery;
+      const savedQuery = getSavedQueryWithDataset(query)!;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
@@ -390,7 +390,7 @@ const PaginationRow = styled(Pagination)`
 const QueryGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
@@ -402,7 +402,7 @@ const QueryGrid = styled('div')`
 `;
 
 const DropdownTrigger = styled(Button)`
-  transform: translateX(${space(1)});
+  transform: translateX(${p => p.theme.space.md});
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

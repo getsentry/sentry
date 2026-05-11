@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.integrations.github.tasks.github_comment_workflow",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def github_comment_workflow(pullrequest_id: int, project_id: int) -> None:
     # TODO(jianyuan): Using `sentry.integrations.source_code_management.tasks.pr_comment_workflow` now.

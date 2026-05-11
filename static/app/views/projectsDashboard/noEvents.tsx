@@ -6,15 +6,13 @@ type Props = {
   seriesCount: number;
 };
 
-function NoEvents({seriesCount}: Props) {
+export function NoEvents({seriesCount}: Props) {
   return (
     <Container>
       <EmptyText seriesCount={seriesCount}>{t('No activity yet.')}</EmptyText>
     </Container>
   );
 }
-
-export default NoEvents;
 
 const Container = styled('div')`
   position: absolute;

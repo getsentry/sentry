@@ -32,7 +32,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 Recipient = Union[Actor, Team, RpcUser, User]
-TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]
+TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK, ExternalProviderEnum.SLACK_STAGING]
 
 
 def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:
@@ -296,9 +296,9 @@ class NotificationController:
                     provider = ExternalProviderEnum(provider_str)
                     if provider_str not in most_specific_recipient_providers[type]:
                         if recipient_is_team(recipient):
-                            most_specific_recipient_providers[type][
-                                provider_str
-                            ] = NotificationSettingsOptionEnum.NEVER
+                            most_specific_recipient_providers[type][provider_str] = (
+                                NotificationSettingsOptionEnum.NEVER
+                            )
                         else:
                             most_specific_recipient_providers[type][provider_str] = (
                                 get_default_for_provider(type, provider)
@@ -576,7 +576,5 @@ class NotificationController:
             type=NotificationSettingEnum.REPORTS,
             # only look at users
             actor_type=ActorType.USER,
-        )[
-            ExternalProviders.EMAIL
-        ]  # email only
+        )[ExternalProviders.EMAIL]  # email only
         return [recipient.id for recipient in recipient_set]

@@ -10,7 +10,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
@@ -318,32 +318,25 @@ describe('AccountSecurity', () => {
 
     renderComponent();
 
-    await userEvent.type(
-      await screen.findByRole('textbox', {name: 'Current Password'}),
-      'oldpassword'
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'New Password'}),
-      'newpassword'
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Verify New Password'}),
-      'newpassword'
-    );
+    await userEvent.type(await screen.findByLabelText('Current Password'), 'oldpassword');
+    await userEvent.type(screen.getByLabelText('New Password'), 'newpassword');
+    await userEvent.type(screen.getByLabelText('Verify New Password'), 'newpassword');
 
     await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
 
-    expect(mock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          password: 'oldpassword',
-          passwordNew: 'newpassword',
-          passwordVerify: 'newpassword',
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            password: 'oldpassword',
+            passwordNew: 'newpassword',
+            passwordVerify: 'newpassword',
+          },
+        })
+      );
+    });
   });
 
   it('requires current password to be entered', async () => {
@@ -359,14 +352,8 @@ describe('AccountSecurity', () => {
 
     renderComponent();
 
-    await userEvent.type(
-      await screen.findByRole('textbox', {name: 'New Password'}),
-      'newpassword'
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Verify New Password'}),
-      'newpassword'
-    );
+    await userEvent.type(await screen.findByLabelText('New Password'), 'newpassword');
+    await userEvent.type(screen.getByLabelText('Verify New Password'), 'newpassword');
 
     await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
 

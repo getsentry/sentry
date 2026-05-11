@@ -7,15 +7,11 @@ import {profiling} from 'sentry/gettingStartedDocs/python/profiling';
 
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[rq]'}),
+  profilingOnboarding: profiling(),
   crashReportOnboarding: crashReport,
   agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[rq]',
-  }),
+  logsOnboarding: logs(),
   metricsOnboarding: metrics(),
 };
-
-export default docs;

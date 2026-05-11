@@ -1,6 +1,5 @@
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class DatabaseBackedActionService(ActionService):
@@ -28,49 +27,36 @@ class DatabaseBackedActionService(ActionService):
             dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).update(status=status)
 
-    def update_action_status_for_sentry_app_via_uuid(
+    def update_action_status_for_sentry_app_installation(
         self,
         *,
+        cell_name: str,
+        status: int,
         organization_id: int,
-        status: int,
-        sentry_app_install_uuid: str,
+        sentry_app_id: int,
     ) -> None:
         Action.objects.filter(
+            config__target_identifier=str(sentry_app_id),
             type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            config__target_identifier=sentry_app_install_uuid,
-        ).update(status=status)
-
-    def update_action_status_for_sentry_app_via_uuid__region(
-        self,
-        *,
-        region_name: str,
-        status: int,
-        sentry_app_install_uuid: str,
-    ) -> None:
-        Action.objects.filter(
-            type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            config__target_identifier=sentry_app_install_uuid,
+            dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).update(status=status)
 
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         status: int,
         sentry_app_id: int,
     ) -> None:
         Action.objects.filter(
-            type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
             config__target_identifier=str(sentry_app_id),
+            type=Action.Type.SENTRY_APP,
         ).update(status=status)
 
     def update_action_status_for_webhook_via_sentry_app_slug(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         status: int,
         sentry_app_slug: str,
     ) -> None:

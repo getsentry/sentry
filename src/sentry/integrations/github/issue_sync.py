@@ -46,7 +46,7 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
             repo_id, issue_num = external_issue_key.split("#")
             return repo_id, issue_num
         except ValueError:
-            logger.exception(
+            logger.warning(
                 "assignee-outbound.invalid-key",
                 extra={
                     "external_issue_key": external_issue_key,
@@ -71,7 +71,7 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         repo_id, issue_num = self.split_external_issue_key(external_issue.key)
 
         if not repo_id or not issue_num:
-            logger.error(
+            logger.warning(
                 "assignee-outbound.invalid-key",
                 extra={
                     "provider": self.model.provider,
@@ -131,7 +131,7 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         repo_id, issue_num = self.split_external_issue_key(external_issue.key)
 
         if not repo_id or not issue_num:
-            logger.error(
+            logger.warning(
                 "status-outbound.invalid-key",
                 extra={
                     "external_issue_key": external_issue.key,

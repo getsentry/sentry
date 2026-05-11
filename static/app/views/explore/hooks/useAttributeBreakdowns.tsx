@@ -1,11 +1,12 @@
 import {useMemo, useRef} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {CHARTS_PER_PAGE} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 
 type AttributeDistributionData = Record<string, Array<{label: string; value: number}>>;
@@ -21,7 +22,7 @@ type AttributeBreakdowns = {
 // The /trace-items/stats/ endpoint returns a paginated response, but recommends fetching
 //  more data than we need to display the current page. Hence we accumulate the
 // data across paginated requests.
-function useAttributeBreakdowns({
+export function useAttributeBreakdowns({
   cursor,
   substringMatch,
 }: {
@@ -67,16 +68,25 @@ function useAttributeBreakdowns({
     return params;
   }, [pageFilters, queryString, cursor, substringMatch]);
 
-  const result = useApiQuery<AttributeBreakdowns>(
-    [`/organizations/${organization.slug}/trace-items/stats/`, {query: queryParams}],
-    {
-      staleTime: Infinity,
-      enabled: pageFiltersReady,
-    }
-  );
+  const {
+    data: response,
+    isLoading,
+    error,
+  } = useQuery({
+    ...apiOptions.as<AttributeBreakdowns>()(
+      '/organizations/$organizationIdOrSlug/trace-items/stats/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: queryParams,
+        staleTime: Infinity,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    enabled: pageFiltersReady,
+  });
 
   const data = useMemo((): AttributeDistributionData | undefined => {
-    const newData = result.data?.data[0]?.attribute_distributions?.data;
+    const newData = response?.json?.data[0]?.attribute_distributions?.data;
     if (newData) {
       accumulatedDataRef.current = {
         ...accumulatedDataRef.current,
@@ -86,12 +96,12 @@ function useAttributeBreakdowns({
     return Object.keys(accumulatedDataRef.current).length > 0
       ? accumulatedDataRef.current
       : newData;
-  }, [result.data]);
+  }, [response?.json]);
 
   return {
-    ...result,
     data,
+    isLoading,
+    error,
+    pageLinks: response?.headers.Link ?? null,
   };
 }
-
-export default useAttributeBreakdowns;

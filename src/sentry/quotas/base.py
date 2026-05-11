@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from django.core.cache import cache
 
@@ -76,6 +76,16 @@ RETENTIONS_CONFIG_MAPPING = {
     DataCategory.SPAN: "span",
     DataCategory.TRACE_METRIC: "traceMetric",
 }
+
+
+class TrimmingConfig(TypedDict):
+    maxSize: int
+
+
+# This mirrors the TrimmingConfigs struct in Relay
+# https://github.com/getsentry/relay/blob/73e5f9816b10c518b4451d46ebffa709f9f7e897/relay-dynamic-config/src/project.rs#L297-L301
+class TrimmingConfigs(TypedDict, total=False):
+    span: TrimmingConfig
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
@@ -430,6 +440,12 @@ class Quota(Service):
     def get_retentions(
         self, organization: Organization, **kwargs
     ) -> Mapping[DataCategory, RetentionSettings]:
+        return {}
+
+    def get_trimming_configs(self, organization: Organization, **kwargs) -> TrimmingConfigs:
+        """
+        Returns per-data-category trimming settings.
+        """
         return {}
 
     def validate(self):

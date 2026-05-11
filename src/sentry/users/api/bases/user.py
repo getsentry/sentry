@@ -23,11 +23,9 @@ from sentry.users.services.user.service import user_service
 
 
 class UserPermission(DemoSafePermission):
-
     def has_object_permission(
         self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:
-
         if user is None or request.user.id == user.id:
             return True
         if is_system_auth(request.auth):

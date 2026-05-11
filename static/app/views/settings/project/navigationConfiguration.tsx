@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
@@ -13,7 +13,7 @@ type ConfigParams = {
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
-export default function getConfiguration({
+export function getNavigationConfiguration({
   project,
   organization,
   debugFilesNeedsReview,
@@ -21,9 +21,6 @@ export default function getConfiguration({
   const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const hasRevampedDataForwarding = organization?.features?.includes(
-    'data-forwarding-revamp-access'
-  );
   return [
     {
       id: 'settings-project',
@@ -43,6 +40,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/alerts/`,
           title: t('Alert Settings'),
+          keywords: [t('alert'), t('alerts')],
           description: t('Project alert settings'),
         },
         {
@@ -53,22 +51,18 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
+          keywords: [t('environment'), t('env'), t('staging'), t('production')],
           description: t('Manage environments in a project'),
         },
         {
           path: `${pathPrefix}/ownership/`,
           title: t('Ownership Rules'),
+          keywords: [t('ownership'), t('codeowners'), t('owners'), t('owner rules')],
           description: t('Manage ownership rules for a project'),
-        },
-        {
-          path: `${pathPrefix}/data-forwarding/`,
-          title: t('Data Forwarding'),
-          show: () => !hasRevampedDataForwarding,
         },
         {
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
-          show: () => !organization?.hideAiFeatures,
         },
         {
           path: `${pathPrefix}/user-feedback/`,
@@ -78,7 +72,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
-          show: () => !!organization?.features?.includes('sentry-toolbar-ui'),
           badge: () => 'beta',
         },
       ],
@@ -90,6 +83,14 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/filters/`,
           title: t('Inbound Filters'),
+          keywords: [
+            t('inbound'),
+            t('filter'),
+            t('filters'),
+            t('discard'),
+            t('ignore'),
+            t('attachments'),
+          ],
           description: t(
             "Configure a project's inbound filters (e.g. browsers, messages)"
           ),
@@ -108,6 +109,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
+          keywords: [t('debug file'), t('debug files'), t('symbols'), t('dsyms')],
           badge: debugFilesNeedsReview ? () => 'warning' : undefined,
         },
         {
@@ -117,6 +119,12 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
+          keywords: [
+            t('source map'),
+            t('source maps'),
+            t('sourcemap'),
+            t('artifact bundles'),
+          ],
         },
         {
           path: `${pathPrefix}/performance/`,
@@ -129,6 +137,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
+          keywords: [t('session'), t('session replay'), t('replay')],
           show: () =>
             !!organization?.features?.includes('session-replay-ui') &&
             !isSelfHostedErrorsOnly,
@@ -139,11 +148,18 @@ export default function getConfiguration({
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
         {
-          path: `${pathPrefix}/preprod/`,
-          title: t('Preprod'),
-          show: () => !!organization?.features?.includes('preprod-issues'),
-          badge: () => 'beta',
+          path: `${pathPrefix}/mobile-builds/`,
+          title: t('Mobile Builds'),
+          badge: () => 'new',
+          keywords: [t('size'), t('size analysis'), t('build size'), t('app size')],
           description: t('Size analysis and build distribution configuration.'),
+        },
+        {
+          path: `${pathPrefix}/snapshots/`,
+          title: t('Snapshots'),
+          badge: () => 'alpha',
+          show: () => !!organization?.features?.includes('preprod-snapshots'),
+          description: t('Configure snapshot status checks and PR comments.'),
         },
       ],
     },
@@ -155,6 +171,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
+          keywords: [t('dsn'), t('auth'), t('token'), t('client key'), t('dsn key')],
         },
         {
           path: `${pathPrefix}/loader-script/`,

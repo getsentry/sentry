@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationAndStaffPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -23,7 +23,7 @@ class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
     effectiveSampleRate: float | None
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
     """Return the organization's effective sample rate over the last 24h.
 

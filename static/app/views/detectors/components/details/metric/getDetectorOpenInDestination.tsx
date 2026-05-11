@@ -4,15 +4,18 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
@@ -168,12 +171,54 @@ function getDetectorLogsUrl({
   });
 }
 
+function getDetectorMetricsUrl({
+  organization,
+  projectId,
+  snubaQuery,
+  statsPeriod,
+  start,
+  end,
+}: GetDetectorDestinationOptions): string {
+  const interval = convertTimeWindowSecondsToInterval(snubaQuery.timeWindow);
+  const numericProjectId = Number(projectId);
+
+  // Expand equation aggregates (e.g. `equation|count(...) + count(...)`) into
+  // one metric row per unique function plus an equation row, so Explore opens
+  // with all the referenced components, not a single opaque VisualizeFunction.
+  const parsed = parseAggregateExpression(snubaQuery.aggregate ?? '', snubaQuery.query);
+  const parsedQueries = parsed.equationRow
+    ? [...parsed.metricQueries, parsed.equationRow]
+    : parsed.metricQueries;
+
+  const metricQueries = parsedQueries.map(metricQuery => ({
+    ...metricQuery,
+    queryParams: metricQuery.queryParams.replace({mode: Mode.AGGREGATE}),
+  }));
+
+  return getMetricsUrl({
+    organization,
+    selection: {
+      datetime: {
+        period: statsPeriod ?? null,
+        start: statsPeriod ? null : (start ?? null),
+        end: statsPeriod ? null : (end ?? null),
+        utc: null,
+      },
+      environments: snubaQuery.environment ? [snubaQuery.environment] : [],
+      projects: [numericProjectId],
+    },
+    interval,
+    metricQueries,
+  });
+}
+
 /**
  * Get the "Open in" button text and destination URL for a metric detector.
  *
  * Returns the appropriate destination based on the detector's dataset:
  * - SPANS/TRANSACTIONS: Open in Explore
  * - LOGS: Open in Logs
+ * - METRICS: Open in Application Metrics
  * - ERRORS: Open in Discover
  */
 export function getDetectorOpenInDestination(
@@ -192,6 +237,11 @@ export function getDetectorOpenInDestination(
       return {
         buttonText: t('Open in Logs'),
         to: getDetectorLogsUrl(options),
+      };
+    case DetectorDataset.METRICS:
+      return {
+        buttonText: t('Open in Application Metrics'),
+        to: getDetectorMetricsUrl(options),
       };
     case DetectorDataset.SPANS:
       return {

@@ -1,6 +1,7 @@
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ProcessingErrorType,
   type ProcessingError,
@@ -115,7 +116,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
     case ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED:
       return tct(
         'We have detected a problem with your organization and disabled check-in ingestion. Contact [link:support] for details.',
-        {link: <ExternalLink href="https://sentry.zendesk.com/hc/en-us/requests/new/" />}
+        {link: <ExternalLink href="https://www.sentry.help/" />}
       );
     default:
       return tct(

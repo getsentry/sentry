@@ -6,7 +6,9 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils.snuba_rpc import table_rpc
-from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.snuba.api.endpoints.test_organization_events import (
+    OrganizationEventsEndpointTestBase,
+)
 
 
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
@@ -17,7 +19,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -42,7 +44,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -65,7 +67,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -91,7 +93,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -111,7 +113,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         ]
 
     def test_sum(self):
-        self.store_trace_metrics(
+        self.store_eap_items(
             [self.create_trace_metric("test_metric", i + 1, "counter") for i in range(6)]
         )
 
@@ -138,7 +140,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("request_count", 5.0, "counter"),
             self.create_trace_metric("request_count", 3.0, "counter"),
         ]
-        self.store_trace_metrics(counter_metrics)
+        self.store_eap_items(counter_metrics)
 
         response = self.do_request(
             {
@@ -163,7 +165,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("request_duration", 75.0, "distribution"),
             self.create_trace_metric("request_duration", 80.0, "distribution"),
         ]
-        self.store_trace_metrics(gauge_metrics)
+        self.store_eap_items(gauge_metrics)
 
         response = self.do_request(
             {
@@ -185,7 +187,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_per_minute_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
-        self.store_trace_metrics(
+        self.store_eap_items(
             [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
         )
 
@@ -205,11 +207,12 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["per_minute(value)"] == 0.6
         assert meta["fields"]["per_minute(value)"] == "rate"
+        assert meta["units"]["per_minute(value)"] == "1/minute"
         assert meta["dataset"] == "tracemetrics"
 
     def test_per_second_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
-        self.store_trace_metrics(
+        self.store_eap_items(
             [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
         )
 
@@ -231,6 +234,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             data[0]["per_second(value)"] == 0.01
         )  # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
         assert meta["fields"]["per_second(value)"] == "rate"
+        assert meta["units"]["per_second(value)"] == "1/second"
         assert meta["dataset"] == "tracemetrics"
 
     def test_per_second_formula_with_counter_metric_type(self) -> None:
@@ -238,7 +242,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("request_count", 5.0, "counter"),
             self.create_trace_metric("request_count", 3.0, "counter"),
         ]
-        self.store_trace_metrics(counter_metrics)
+        self.store_eap_items(counter_metrics)
 
         response = self.do_request(
             {
@@ -261,7 +265,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
             self.create_trace_metric("cpu_usage", 80.0, "gauge"),
         ]
-        self.store_trace_metrics(gauge_metrics)
+        self.store_eap_items(gauge_metrics)
 
         response = self.do_request(
             {
@@ -281,12 +285,14 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
         }
 
-    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(self) -> None:
+    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(
+        self,
+    ) -> None:
         gauge_metrics = [
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
             self.create_trace_metric("cpu_usage", 80.0, "gauge"),
         ]
-        self.store_trace_metrics(gauge_metrics)
+        self.store_eap_items(gauge_metrics)
 
         response = self.do_request(
             {
@@ -312,7 +318,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             *[self.create_trace_metric("baz", 1, "distribution") for _ in range(3)],
             *[self.create_trace_metric("qux", 1, "distribution", "millisecond") for _ in range(4)],
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         # this query does not filter on any metrics, so scan all metrics
         response = self.do_request(
@@ -367,7 +373,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -385,7 +391,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             *[self.create_trace_metric("foo", 1, "counter") for _ in range(6)],
             self.create_trace_metric("bar", 594, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -406,7 +412,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 2, "distribution"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -432,7 +438,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("bar", 4, "counter"),
             self.create_trace_metric("baz", 8, "gauge"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -511,7 +517,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter", project=project1),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -539,3 +545,439 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
+
+    def test_aggregate_with_unit_returns_unit_in_meta(self):
+        """Test that when a unit is specified in the aggregate, it appears in meta["units"]."""
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 100.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="second"
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["avg(value,request_duration,distribution,millisecond)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["avg(value,request_duration,distribution,millisecond)"] == 100.0
+
+        # The field type should be "duration"
+        assert meta["fields"]["avg(value,request_duration,distribution,millisecond)"] == "duration"
+
+        # The unit should be returned in meta["units"]
+        assert "units" in meta, "meta should contain 'units' key"
+        assert (
+            meta["units"]["avg(value,request_duration,distribution,millisecond)"] == "millisecond"
+        )
+
+    def test_count_aggregates_return_number_in_meta(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 100.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="second"
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count(value,request_duration,distribution,millisecond)",
+                    "count_unique(value,request_duration,distribution,millisecond)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,millisecond)"] == 1
+
+        # The field type should be "integer"
+        assert meta["fields"]["count(value,request_duration,distribution,millisecond)"] == "integer"
+        assert (
+            meta["fields"]["count_unique(value,request_duration,distribution,millisecond)"]
+            == "integer"
+        )
+
+        # There should be no unit in meta["units"]
+        assert "units" in meta, "meta should contain 'units' key"
+        assert meta["units"]["count(value,request_duration,distribution,millisecond)"] is None
+        assert (
+            meta["units"]["count_unique(value,request_duration,distribution,millisecond)"] is None
+        )
+
+    def test_aggregate_without_unit_returns_null_unit_in_meta(self):
+        """Test that when no unit is specified (using '-'), meta["units"] is null for that field."""
+        trace_metrics = [
+            self.create_trace_metric("request_count", 5.0, "counter"),
+            self.create_trace_metric("request_count", 3.0, "counter"),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["sum(value,request_count,counter,-)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+
+        # The field type should be "number"
+        assert meta["fields"]["sum(value,request_count,counter,-)"] == "number"
+
+        # When unit is "-", the units value should be null
+        assert "units" in meta, "meta should contain 'units' key"
+        assert meta["units"]["sum(value,request_count,counter,-)"] is None
+
+    def test_aggregate_with_unit_filters_for_correct_items(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 100.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="second"
+            ),
+            self.create_trace_metric(
+                "request_duration", 300.0, "distribution", metric_unit="millisecond"
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,millisecond)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,millisecond)"] == 2
+
+    def test_aggregate_with_placeholder_unit_selects_all_items(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 100.0, "distribution"),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 300.0, "distribution", metric_unit="second"
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,-)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,-)"] == 3
+
+    def test_aggregate_with_none_unit_defined_only_selects_items_with_no_unit(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 100.0, "distribution"),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 300.0, "distribution", metric_unit="second"
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,none)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,none)"] == 1
+
+    def test_aggregation_with_none_includes_items_with_none_explicitly_set(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 100.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,none)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,none)"] == 1
+
+    def test_count_if_with_arbitrary_search_term(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count_if(`release:abcdef`,value,request_duration,distribution,none)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count_if(`release:abcdef`,value,request_duration,distribution,none)"] == 1
+
+    def test_count_if_with_quotes(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"agent_name": "Agent Run"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    'equation|count_if(`agent_name:"Agent Run"`,value,request_duration,distribution,none)'
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert (
+            data[0][
+                'equation|count_if(`agent_name:"Agent Run"`,value,request_duration,distribution,none)'
+            ]
+            == 1
+        )
+
+    def test_count_if_in_equation(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "equation|count_if(`release:abcdef`,value,request_duration,distribution,none) + count_if(`!release:abcdef`,value,request_duration,distribution,none)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert (
+            data[0][
+                "equation|count_if(`release:abcdef`,value,request_duration,distribution,none) + count_if(`!release:abcdef`,value,request_duration,distribution,none)"
+            ]
+            == 2
+        )
+
+    def test_p50_if_with_arbitrary_search_term(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 1000000.0, "distribution", metric_unit="none"
+            ),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef", "foobar": "barfoo"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "p50_if(`release:abcdef and foobar:barfoo`,value,request_duration,distribution,none)"
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert (
+            data[0][
+                "p50_if(`release:abcdef and foobar:barfoo`,value,request_duration,distribution,none)"
+            ]
+            == 200
+        )
+
+    def test_errors_if_query_in_query(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 1000000.0, "distribution", metric_unit="none"
+            ),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef", "foobar": "barfoo"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "p50_if(`release:abcdef and foobar:barfoo p50(`test`, test, test)`,value,request_duration,distribution,none)"
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 400, response.content
+
+    def test_per_second_formula_with_arbitrary_search_term(self) -> None:
+        # Store 6 trace metrics over a 10 minute period
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "test_metric", 1.0, "counter", attributes={"release": "abcdef"}
+                )
+                for _ in range(6)
+            ]
+        )
+        # Store one more without the attribute
+        self.store_eap_items(
+            [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
+        )
+
+        response = self.do_request(
+            {
+                "metricName": "test_metric",
+                "metricType": "counter",
+                "field": ["per_second_if(`release:abcdef`,value)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert (
+            data[0]["per_second_if(`release:abcdef`,value)"] == 0.01
+        )  # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
+        assert meta["fields"]["per_second_if(`release:abcdef`,value)"] == "rate"
+        assert meta["units"]["per_second_if(`release:abcdef`,value)"] == "1/second"
+        assert meta["dataset"] == "tracemetrics"
+
+    def test_per_minute_formula_with_arbitrary_search_term(self) -> None:
+        # Store 6 trace metrics over a 10 minute period
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "test_metric", 1.0, "counter", attributes={"release": "abcdef"}
+                )
+                for _ in range(6)
+            ]
+        )
+        # Store one more without the attribute
+        self.store_eap_items(
+            [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
+        )
+
+        response = self.do_request(
+            {
+                "metricName": "test_metric",
+                "metricType": "counter",
+                "field": ["per_minute_if(`release:abcdef`,value)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["per_minute_if(`release:abcdef`,value)"] == 0.6
+        assert meta["fields"]["per_minute_if(`release:abcdef`,value)"] == "rate"
+        assert meta["units"]["per_minute_if(`release:abcdef`,value)"] == "1/minute"
+        assert meta["dataset"] == "tracemetrics"

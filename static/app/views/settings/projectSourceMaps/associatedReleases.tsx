@@ -1,10 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Version from 'sentry/components/version';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {defined} from 'sentry/utils';
 
@@ -62,9 +62,9 @@ const ReleasesWrapper = styled('pre')`
 const AssociatedReleaseWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   :not(:last-child) {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
 `;
 

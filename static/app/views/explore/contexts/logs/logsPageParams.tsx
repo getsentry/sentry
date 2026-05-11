@@ -2,7 +2,7 @@ import {useLayoutEffect} from 'react';
 import type {Location} from 'history';
 
 import type {Sort} from 'sentry/utils/discover/fields';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -23,21 +23,18 @@ export interface PersistedLogsPageParams {
 
 export function usePersistedLogsPageParams() {
   useLayoutEffect(() => {
-    const pastParams = localStorage.getItem(
+    const pastParams = localStorageWrapper.getItem(
       getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
     );
     if (pastParams) {
-      localStorage.removeItem(getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION));
+      localStorageWrapper.removeItem(getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION));
     }
   });
 
-  return useLocalStorageState<PersistedLogsPageParams>(
-    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
-    {
-      fields: defaultLogFields() as string[],
-      sortBys: [logsTimestampDescendingSortBy],
-    }
-  );
+  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
+    fields: defaultLogFields() as string[],
+    sortBys: [logsTimestampDescendingSortBy],
+  });
 }
 
 export function stripLogParamsFromLocation(location: Location): Location {

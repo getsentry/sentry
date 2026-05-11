@@ -6,10 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 
 export function SlideOverPanelPlayground() {
-  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   return (
     <Fragment>
@@ -27,7 +27,7 @@ export function SlideOverPanelPlayground() {
 }
 
 export function SlideOverPanelSkeletonPlayground() {
-  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const closePanel = useCallback(() => {
     setIsPanelOpen(false);
@@ -84,7 +84,7 @@ export function SkeletonPanelContents({onClick}: PanelContentsProps) {
 function ManySlowComponents() {
   return (
     <Fragment>
-      {[...new Array(100)].map((_, index) => (
+      {[...Array.from({length: 100})].map((_, index) => (
         <VerySlowComponent key={index} />
       ))}
     </Fragment>

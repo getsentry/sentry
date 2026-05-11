@@ -47,9 +47,11 @@ export const sessionReplay: OnboardingConfig = {
               )}"),`,
             },
             {
-              label: 'CocoaPods',
+              label: 'CocoaPods (Deprecated)',
               language: 'ruby',
-              code: `pod update`,
+              code: `# CocoaPods is deprecated and will not receive updates after June 2026.
+# Migrate to SPM or use xcframeworks instead.
+pod update`,
             },
             {
               label: 'Carthage',
@@ -111,8 +113,8 @@ export const sessionReplay: OnboardingConfig = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200B.sessionReplay\u200B.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200B.sessionReplay\u200B.sessionSampleRate',
   }),
   nextSteps: () => [],
 };

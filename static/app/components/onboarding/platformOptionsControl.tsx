@@ -1,13 +1,14 @@
 import {useMemo} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 
 /**
  * Hook that returns the currently selected platform option values from the URL
@@ -99,7 +100,7 @@ export function PlatformOptionsControl({
         <OptionControl
           key={key}
           option={platformOption}
-          value={urlOptionValues[key] ?? (platformOption.items[0]?.value as string)}
+          value={urlOptionValues[key] ?? platformOption.items[0]?.value!}
           onChange={value => handleChange(key, value)}
         />
       ))}

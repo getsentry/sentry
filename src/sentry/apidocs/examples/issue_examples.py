@@ -74,6 +74,7 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
         "lastSeen": datetime.fromisoformat("2018-12-06T21:19:55Z"),
     },
     "seerAutofixLastTriggered": None,
+    "seerExplorerAutofixLastTriggered": None,
     "seerFixabilityScore": None,
     "status": "ignored",
     "substatus": "archived_until_condition_met",

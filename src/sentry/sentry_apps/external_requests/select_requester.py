@@ -48,7 +48,6 @@ class SelectRequester:
     dependent_data: str | None = field(default=None)
 
     def run(self) -> SelectRequesterResult:
-
         response: list[dict[str, str]] = []
         url = None
 
@@ -90,6 +89,10 @@ class SelectRequester:
                     webhook_context={"error_type": halt_reason, **extras},
                     status_code=500,
                 ) from e
+
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e, extra={**extras})
+                raise
 
             except Exception as e:
                 failure_reason = FAILURE_REASON_BASE.format(
@@ -134,6 +137,19 @@ class SelectRequester:
                 raise
 
     def _build_url(self) -> str:
+        if not self.sentry_app.webhook_url:
+            raise SentryAppIntegratorError(
+                message="Sentry app webhook_url is not configured",
+                webhook_context={
+                    "error_type": FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestFailureReason.MISSING_URL
+                    ),
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "uri": self.uri,
+                },
+                status_code=500,
+            )
+
         urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
         urlparts[2] = self.uri
 

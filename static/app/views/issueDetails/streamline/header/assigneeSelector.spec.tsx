@@ -8,20 +8,15 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {EventOwners} from 'sentry/components/group/assignedTo';
-import MemberListStore from 'sentry/stores/memberListStore';
 import type {Committer} from 'sentry/types/integrations';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
+import type {EventOwners} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
 
 describe('GroupHeaderAssigneeSelector', () => {
   const organization = OrganizationFixture();
   const group = GroupFixture();
   const project = ProjectFixture();
   const event = EventFixture();
-
-  beforeEach(() => {
-    MemberListStore.reset();
-  });
 
   it('should render suggested assignees', async () => {
     const commitUser = UserFixture({id: '91', email: 'frodo@sentry.io', name: 'Frodo'});

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -24,7 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
@@ -50,7 +50,7 @@ class TeamDetailsSerializer(CamelSnakeModelSerializer):
 
 
 @extend_schema(tags=["Teams"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class TeamDetailsEndpoint(TeamEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -169,7 +169,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
             with transaction.atomic(router.db_for_write(Team)):
                 team = Team.objects.get(id=team.id, status=TeamStatus.ACTIVE)
                 team.update(slug=new_slug, status=TeamStatus.PENDING_DELETION)
-                scheduled = RegionScheduledDeletion.schedule(team, days=0, actor=request.user)
+                scheduled = CellScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,

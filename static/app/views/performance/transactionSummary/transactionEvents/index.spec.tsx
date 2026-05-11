@@ -2,15 +2,22 @@ import type {InitializeDataSettings} from 'sentry-test/performance/initializePer
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
+
+// TODO: covers the legacy (non-EAP) path. useTransactionSummaryEAP now
+// always returns true after the flag graduated; mock back to false until
+// the legacy paths are deleted.
+jest.mock('sentry/views/performance/eap/useTransactionSummaryEAP', () => ({
+  useTransactionSummaryEAP: () => false,
+}));
 
 const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
   return render(<TransactionSummaryLayout />, {
@@ -138,12 +145,21 @@ const setupMockApiResponeses = () => {
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/recent-searches/`,
+    url: '/organizations/org-slug/recent-searches/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/tags/`,
+    url: '/organizations/org-slug/tags/',
     body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    body: {data: []},
+    match: [
+      (_url, options) => {
+        return options.query?.dataset === 'spans';
+      },
+    ],
   });
 };
 

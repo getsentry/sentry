@@ -55,6 +55,7 @@ class RpcUserProfile(RpcModel):
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
+    is_suspended: bool = False
     session_nonce: str | None = Field(repr=False, default=None)
 
 
@@ -166,6 +167,8 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
     actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
     is_active: bool
+    is_superuser: bool
+    is_staff: bool
 
 
 class UserIdEmailArgs(TypedDict):

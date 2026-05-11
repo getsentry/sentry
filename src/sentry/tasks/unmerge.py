@@ -24,6 +24,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -279,22 +280,27 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
 
 def collect_group_environment_data(
     events: Sequence[GroupEvent],
-) -> dict[tuple[int, str], str | None]:
+) -> dict[tuple[int, str], tuple[str | None, datetime]]:
     """\
-    Find the first release for a each group and environment pair from a
-    date-descending sorted list of events.
+    Find the first release and first seen datetime for each group and
+    environment pair from a date-descending sorted list of events.
     """
-    results: dict[tuple[int, str], str | None] = {}
+    results: dict[tuple[int, str], tuple[str | None, datetime]] = {}
     for event in events:
-        results[(event.group_id, get_environment_name(event))] = event.get_tag("sentry:release")
+        results[(event.group_id, get_environment_name(event))] = (
+            event.get_tag("sentry:release"),
+            event.datetime,
+        )
     return results
 
 
 def repair_group_environment_data(
     caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
 ) -> None:
-    for (group_id, env_name), first_release in collect_group_environment_data(events).items():
-        fields = {}
+    for (group_id, env_name), (first_release, first_seen) in collect_group_environment_data(
+        events
+    ).items():
+        fields: dict[str, Any] = {"first_seen": first_seen}
         if first_release:
             fields["first_release"] = caches["Release"](project.organization_id, first_release)
 
@@ -495,7 +501,7 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
     name="sentry.tasks.unmerge",
     namespace=issues_tasks,
     processing_deadline_duration=300,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
@@ -527,6 +533,7 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         state=last_event,
         referrer="unmerge",
         tenant_ids={"organization_id": source.project.organization_id},
+        eap_conditions=build_group_id_in_filter([source.id]),
     )
     # Convert Event objects to GroupEvent objects
     events: list[GroupEvent] = [event.for_group(source) for event in raw_events]

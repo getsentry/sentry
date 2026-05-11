@@ -9,7 +9,6 @@ import pytest
 
 XFAIL = (
     # XXX: ideally these should get fixed
-    "sentry.sentry_metrics.client.snuba",
     "sentry.web.debug_urls",
 )
 EXCLUDED = ("sentry.testutils.", "sentry.web.frontend.debug.")

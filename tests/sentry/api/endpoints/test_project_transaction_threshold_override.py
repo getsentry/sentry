@@ -185,6 +185,43 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
         assert response.data["threshold"] == "600"
         assert response.data["metric"] == "lcp"
 
+    def test_member_cannot_post_or_delete(self) -> None:
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user)
+
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="earth",
+            project=self.project,
+            organization=self.org,
+            threshold=400,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={
+                    "transaction": self.data["transaction"],
+                    "project": [self.project.id],
+                    "metric": "duration",
+                    "threshold": "600",
+                },
+            )
+
+        assert response.status_code == 403
+
+        with self.feature(self.feature_name):
+            response = self.client.delete(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.data["transaction"],
+                },
+            )
+
+        assert response.status_code == 403
+
     def test_clear_project_threshold(self) -> None:
         ProjectTransactionThresholdOverride.objects.create(
             project=self.project,

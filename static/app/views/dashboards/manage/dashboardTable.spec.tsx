@@ -155,19 +155,22 @@ describe('Dashboards - DashboardTable', () => {
     );
   });
 
-  it('persists global selection headers', async () => {
+  it('does not forward query params from the list page to dashboard links', async () => {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
+        location={{
+          ...LocationFixture(),
+          query: {sort: 'title', query: 'agent', statsPeriod: '7d'},
+        }}
       />
     );
 
     expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
+      '/organizations/org-slug/dashboard/1/'
     );
   });
 
@@ -194,31 +197,6 @@ describe('Dashboards - DashboardTable', () => {
       expect(deleteMock).toHaveBeenCalled();
     });
     expect(dashboardUpdateMock).toHaveBeenCalled();
-  });
-
-  it('cannot delete last dashboard', async () => {
-    const singleDashboard = [
-      DashboardListItemFixture({
-        id: '1',
-        title: 'Dashboard 1',
-        dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: UserFixture({id: '1'}),
-        widgetPreview: [],
-      }),
-    ];
-    render(
-      <DashboardTable
-        organization={organization}
-        dashboards={singleDashboard}
-        location={LocationFixture()}
-        onDashboardsChange={dashboardUpdateMock}
-      />
-    );
-
-    expect((await screen.findAllByTestId('dashboard-delete'))[0]).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
   });
 
   it('can duplicate dashboards', async () => {

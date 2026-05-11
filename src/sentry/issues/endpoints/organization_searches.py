@@ -6,7 +6,7 @@ from sentry import analytics
 from sentry.api.analytics import OrganizationSavedSearchCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.savedsearch import (
@@ -19,7 +19,7 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

@@ -250,9 +250,7 @@ class UseCaseResultsTest(TestCase):
             ),
             (
                 [
-                    UseCaseKeyResult(
-                        use_case_id=UseCaseID.ESCALATING_ISSUES, org_id=2, string="j", id=5
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=2, string="j", id=5),
                 ],
                 FetchType.FIRST_SEEN,
             ),
@@ -263,7 +261,7 @@ class UseCaseResultsTest(TestCase):
         assert use_case_key_results.get_mapped_results() == {
             UseCaseID.SPANS: {1: {"a": 1, "c": 2}},
             UseCaseID.TRANSACTIONS: {1: {"a": 3, "j": 4}},
-            UseCaseID.ESCALATING_ISSUES: {2: {"j": 5}},
+            UseCaseID.PROFILES: {2: {"j": 5}},
         }
         assert use_case_key_results.get_fetch_metadata() == {
             UseCaseID.SPANS: defaultdict(
@@ -278,7 +276,7 @@ class UseCaseResultsTest(TestCase):
                     }
                 },
             ),
-            UseCaseID.ESCALATING_ISSUES: defaultdict(
+            UseCaseID.PROFILES: defaultdict(
                 dict, {2: {"j": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)}}
             ),
         }
@@ -295,7 +293,7 @@ class UseCaseResultsTest(TestCase):
             "spans:1:c": 2,
             "transactions:1:a": 3,
             "transactions:1:j": 4,
-            "escalating_issues:2:j": 5,
+            "profiles:2:j": 5,
         }
 
     def test_merge(self) -> None:
@@ -343,9 +341,7 @@ class UseCaseResultsTest(TestCase):
                     UseCaseKeyResult(
                         use_case_id=UseCaseID.TRANSACTIONS, org_id=2, string="a", id=4
                     ),
-                    UseCaseKeyResult(
-                        use_case_id=UseCaseID.ESCALATING_ISSUES, org_id=1, string="e", id=5
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="e", id=5),
                 ],
                 FetchType.CACHE_HIT,
             ),
@@ -375,7 +371,7 @@ class UseCaseResultsTest(TestCase):
             UseCaseID.SPANS: {1: {"a": 1, "c": 2, "d": 3}},
             UseCaseID.TRANSACTIONS: {1: {"a": 3}, 2: {"a": 4}},
             UseCaseID.SESSIONS: {1: {"e": 4}, 2: {"e": 5}},
-            UseCaseID.ESCALATING_ISSUES: {1: {"e": 5}},
+            UseCaseID.PROFILES: {1: {"e": 5}},
         }
         assert use_case_key_results_1.merge(use_case_key_results_2).get_fetch_metadata() == {
             UseCaseID.SPANS: defaultdict(
@@ -401,7 +397,7 @@ class UseCaseResultsTest(TestCase):
                     2: {"e": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)},
                 },
             ),
-            UseCaseID.ESCALATING_ISSUES: defaultdict(
+            UseCaseID.PROFILES: defaultdict(
                 dict, {1: {"e": Metadata(id=5, fetch_type=FetchType.CACHE_HIT)}}
             ),
         }

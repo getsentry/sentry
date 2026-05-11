@@ -171,10 +171,10 @@ class EffectiveGrantStatusTest(TestCase):
 class GrantCacheStatusTest(TestCase):
     def test_grant_cache_status_values(self) -> None:
         """Test that GrantCacheStatus enum has expected values"""
-        assert GrantCacheStatus.CACHE_MISS == "cache_miss"
-        assert GrantCacheStatus.NEGATIVE_CACHE == "negative_cache"
-        assert GrantCacheStatus.VALID_WINDOW == "valid_window"
-        assert GrantCacheStatus.EXPIRED_WINDOW == "expired_window"
+        assert GrantCacheStatus.CACHE_MISS.value == "cache_miss"
+        assert GrantCacheStatus.NEGATIVE_CACHE.value == "negative_cache"
+        assert GrantCacheStatus.VALID_WINDOW.value == "valid_window"
+        assert GrantCacheStatus.EXPIRED_WINDOW.value == "expired_window"
 
     def test_grant_cache_status_is_string_enum(self) -> None:
         """Test that GrantCacheStatus values are strings"""

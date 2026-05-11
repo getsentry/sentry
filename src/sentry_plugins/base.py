@@ -69,5 +69,5 @@ class CorePluginMixin:
         elif isinstance(exc, PluginError):
             raise
         else:
-            self.logger.exception(str(exc))
+            self.logger.warning(str(exc))
             raise PluginError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])

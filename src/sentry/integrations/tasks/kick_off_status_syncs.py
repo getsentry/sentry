@@ -1,17 +1,17 @@
+from taskbroker_client.retry import Retry
+
 from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.integrations.tasks.kick_off_status_syncs",
     namespace=integrations_tasks,
-    retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    retry=Retry(times=5, delay=60 * 5, on=(Exception,)),
+    silo_mode=SiloMode.CELL,
 )
-@retry()
 @track_group_async_operation
 def kick_off_status_syncs(project_id: int, group_id: int) -> None:
     """This is run async to avoid extra queries in the EventManager."""

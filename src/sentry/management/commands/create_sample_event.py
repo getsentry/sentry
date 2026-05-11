@@ -5,10 +5,12 @@ class Command(BaseCommand):
     help = "Creates a sample event in Sentry (if applicable)"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--project", dest="project", help="project ID or team-slug/project-slug"
-        ),
-        parser.add_argument("--platform", dest="platform"),
+        (
+            parser.add_argument(
+                "--project", dest="project", help="project ID or team-slug/project-slug"
+            ),
+        )
+        (parser.add_argument("--platform", dest="platform"),)
 
     def handle(self, **options):
         from django.conf import settings

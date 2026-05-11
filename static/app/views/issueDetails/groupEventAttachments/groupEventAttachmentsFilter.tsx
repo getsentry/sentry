@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -17,11 +17,13 @@ interface GroupEventAttachmentsFilterProps {
   onChange?: (filter: EventAttachmentFilter) => void;
 }
 
-function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProps) {
+export function GroupEventAttachmentsFilter({
+  onChange,
+}: GroupEventAttachmentsFilterProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeFilter: AttachmentFilterValue =
+  const activeFilter =
     (location.query.attachmentFilter as AttachmentFilterValue | undefined) ??
     EventAttachmentFilter.ALL;
 
@@ -55,5 +57,3 @@ function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProp
     </Flex>
   );
 }
-
-export default GroupEventAttachmentsFilter;

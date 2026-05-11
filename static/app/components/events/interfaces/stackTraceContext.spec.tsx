@@ -1,7 +1,9 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 
@@ -38,6 +40,10 @@ describe('StacktraceContext', () => {
 
   beforeEach(() => {
     localStorageWrapper.clear();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/test-project/',
+      body: ProjectFixture({slug: 'test-project'}),
+    });
   });
 
   it('provides default values', () => {

@@ -1,24 +1,29 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import Pagination from 'sentry/components/pagination';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withProjects from 'sentry/utils/withProjects';
+import {withProjects} from 'sentry/utils/withProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
-import UsageStatsOrganization, {
+import {
   getChartProps,
   getEndpointQuery,
   getEndpointQueryDatetime,
+  UsageStatsOrganization,
   UsageStatsOrgComponents,
 } from 'sentry/views/organizationStats/usageStatsOrg';
 import {
@@ -28,7 +33,7 @@ import {
   getPaginationPageLink,
 } from 'sentry/views/organizationStats/utils';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
@@ -254,29 +259,30 @@ function EnhancedUsageStatsOrganization({
   const hasAccurateSpikes = getSeriesApiInterval(dataDatetime) === REQUIRED_INTERVAL;
 
   const projectWithSpikeProjectionOptionQueryEnabled = isSingleProject && !!project;
-  const projectWithSpikeProjectionOption = useApiQuery<Project[]>(
-    [
-      // This endpoint refetches the specific project with an added query for the SP option
-      `/organizations/${organization.slug}/projects/`,
-      {
-        query: {
-          options: SPIKE_PROTECTION_OPTION_DISABLED,
-          query: `id:${project?.id}`,
-        },
+  // This endpoint refetches the specific project with an added query for the SP option
+  const projectWithSpikeProjectionOption = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        options: SPIKE_PROTECTION_OPTION_DISABLED,
+        query: `id:${project?.id}`,
       },
-    ],
-    {
       staleTime: Infinity,
-      retry: false,
-      enabled: projectWithSpikeProjectionOptionQueryEnabled,
-    }
-  );
+    }),
+    retry: false,
+    enabled: projectWithSpikeProjectionOptionQueryEnabled,
+  });
 
   const spikesListQueryEnabled = isSingleProject && !!project;
   const spikesList = useApiQuery<SpikesList>(
     [
       // Get all the spikes in the time period
-      `/organizations/${organization.slug}/spikes/projects/${project?.slug}/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
+        }
+      ),
       {
         query: {
           ...endpointQueryDatetime,
@@ -290,7 +296,15 @@ function EnhancedUsageStatsOrganization({
   const spikeThresholds = useApiQuery<SpikeThresholds>(
     [
       // Only fetch spike thresholds if the interval is 1h
-      `/organizations/${organization.slug}/spike-projection/projects/${project?.slug}/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project?.slug!,
+          },
+        }
+      ),
       {
         query: {
           ...endpointQueryDatetime,
@@ -323,7 +337,7 @@ function EnhancedUsageStatsOrganization({
     >
       {usageStats => {
         const loadingStatuses = [usageStats.orgStats.isPending];
-        const errorStatuses = [usageStats.orgStats.error];
+        const errorStatuses: Array<Error | null> = [usageStats.orgStats.error];
 
         if (projectWithSpikeProjectionOptionQueryEnabled) {
           loadingStatuses.push(projectWithSpikeProjectionOption.isPending);
@@ -338,13 +352,13 @@ function EnhancedUsageStatsOrganization({
           errorStatuses.push(spikeThresholds.error);
         }
 
-        const loading = loadingStatuses.some(status => status);
+        const loading = loadingStatuses.some(Boolean);
         const error = errorStatuses.find(defined) ?? null;
 
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
 
         const storedSpikes: SpikeDetails[] = [];
-        let newSpikeThresholds: SpikeThresholds | undefined = undefined;
+        let newSpikeThresholds: SpikeThresholds | undefined;
 
         if (isSingleProject) {
           if (hasAccurateSpikes) {
@@ -357,7 +371,7 @@ function EnhancedUsageStatsOrganization({
             }
             storedSpikes.push(
               ...getSpikeDetails({
-                loading: spikeDetailsLoading.some(status => status),
+                loading: spikeDetailsLoading.some(Boolean),
                 spikeThresholds: spikeThresholds.data,
                 spikesList: spikesList.data,
                 orgStats: usageStats.orgStats.data,
@@ -375,7 +389,7 @@ function EnhancedUsageStatsOrganization({
         }
 
         // don't count ongoing spikes
-        const categorySpikes = (storedSpikes || ([] as SpikeDetails[])).filter(
+        const categorySpikes = (storedSpikes || []).filter(
           spike => spike.dataCategory === dataCategoryInfo.name && spike.dropped
         );
 

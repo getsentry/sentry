@@ -11,7 +11,7 @@ import {BuildCompareHeaderContent} from './buildCompareHeaderContent';
 describe('BuildCompareHeaderContent', () => {
   const organization = OrganizationFixture({slug: 'test-org'});
 
-  it('renders breadcrumbs with correct links using projectId', () => {
+  it('renders breadcrumbs with correct links using project_id', () => {
     const buildDetails = PreprodBuildDetailsWithSizeInfoFixture(
       {
         state: BuildDetailsSizeAnalysisState.COMPLETED,
@@ -25,6 +25,7 @@ describe('BuildCompareHeaderContent', () => {
         base_size_metrics: [],
       },
       {
+        project_id: 123456,
         app_info: {
           version: '3.10',
           build_number: '100',
@@ -34,12 +35,12 @@ describe('BuildCompareHeaderContent', () => {
           build_configuration: null,
           date_added: undefined,
           date_built: null,
-          platform: 'ios',
+          platform: 'apple',
         },
       }
     );
 
-    render(<BuildCompareHeaderContent buildDetails={buildDetails} projectId="123456" />, {
+    render(<BuildCompareHeaderContent buildDetails={buildDetails} />, {
       organization,
     });
 
@@ -82,19 +83,19 @@ describe('BuildCompareHeaderContent', () => {
           build_configuration: null,
           date_added: undefined,
           date_built: null,
-          platform: 'ios',
+          platform: 'apple',
         },
       }
     );
 
-    render(<BuildCompareHeaderContent buildDetails={buildDetails} projectId="123456" />, {
+    render(<BuildCompareHeaderContent buildDetails={buildDetails} />, {
       organization,
     });
 
     const releasesLink = screen.getByRole('link', {name: 'Releases'});
     expect(releasesLink).toHaveAttribute(
       'href',
-      '/organizations/test-org/explore/releases/?project=123456&tab=mobile-builds'
+      '/organizations/test-org/explore/releases/?project=1&tab=mobile-builds'
     );
 
     expect(screen.queryByRole('link', {name: /^\d+\.\d+/})).not.toBeInTheDocument();

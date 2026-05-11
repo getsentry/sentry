@@ -2,7 +2,7 @@ import {DeployFixture} from 'sentry-fixture/deploy';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
+import {DeployBadge} from '@sentry/scraps/badge';
 
 describe('DeployBadge', () => {
   const deploy = DeployFixture();

@@ -151,9 +151,7 @@ def get_slicing_router(config: MetricsIngestConfiguration) -> SlicingRouter | No
         if config.use_case_id == UseCaseKey.PERFORMANCE:
             sliceable: Final = "generic_metrics"
         else:
-            raise SlicingConfigurationException(
-                f"Slicing not supported for " f"{config.use_case_id}"
-            )
+            raise SlicingConfigurationException(f"Slicing not supported for {config.use_case_id}")
         return SlicingRouter(sliceable=sliceable)
     else:
         return None

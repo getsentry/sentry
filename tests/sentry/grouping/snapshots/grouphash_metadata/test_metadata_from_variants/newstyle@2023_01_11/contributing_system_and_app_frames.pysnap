@@ -29,7 +29,7 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame* (marked in-app by custom stack trace rule (function:playFetch +app))
+            frame* (marked in-app by custom stacktrace rule (function:playFetch +app))
               filename*
                 "dogpark.js"
               function*

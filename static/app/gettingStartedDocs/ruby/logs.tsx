@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   BasePlatformOptions,
   OnboardingConfig,
@@ -92,7 +93,7 @@ logger.info("Sentry test log from stdlib logger")`,
         {
           type: 'code',
           language: 'ruby',
-          code: `Sentry.logger.info("Test log from %{test_source}", test_source: "Sentry")`,
+          code: 'Sentry.logger.info("Test log from %{test_source}", test_source: "Sentry")',
         },
       ],
     },

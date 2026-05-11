@@ -49,7 +49,7 @@ import logoWindows from 'sentry-logos/logo-windows.svg';
 import logoXbox from 'sentry-logos/logo-xbox.svg';
 
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 const LOGO_MAPPING = {

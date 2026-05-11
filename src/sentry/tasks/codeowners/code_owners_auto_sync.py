@@ -1,6 +1,8 @@
 from typing import Any
 
+from django.utils import timezone
 from rest_framework.exceptions import NotFound
+from taskbroker_client.retry import Retry
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.commit import Commit
@@ -9,19 +11,18 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.tasks.code_owners_auto_sync",
     namespace=issues_tasks,
-    retry=Retry(times=3, delay=60),
+    retry=Retry(times=3, delay=60, on=(Commit.DoesNotExist,)),
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=(Commit.DoesNotExist,),
 )
-@retry(on=(Commit.DoesNotExist,))
 def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
@@ -84,6 +85,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
             repository_project_path_config=code_mapping
         )
         organization = Organization.objects.get(id=code_mapping.organization_id)
+        codeowners.date_synced = timezone.now()
         codeowners.update_schema(
             organization=organization,
             raw=codeowner_contents["raw"],

@@ -2,12 +2,13 @@ import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -128,7 +129,7 @@ export function ConsoleModal({
       <Body>{config}</Body>
       <Footer>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
             trackAnalytics(
               'gaming.partner_request_access_guidance_modal_button_got_it_clicked',

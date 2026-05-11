@@ -7,7 +7,7 @@ from django.db.models.signals import post_delete, post_save
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 
 if TYPE_CHECKING:
@@ -25,7 +25,7 @@ class ProjectTeamManager(BaseManager["ProjectTeam"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectTeam(Model):
     __relocation_scope__ = RelocationScope.Organization
 

@@ -1,11 +1,17 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
 from django.urls import reverse
 
+from sentry.conf.types.sentry_config import SentryMode
+from sentry.models.apitoken import ApiToken
+from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMTestCase
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 
 class SCIMDetailGetTest(SCIMTestCase):
@@ -220,6 +226,182 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
+    def test_replace_members_keeps_overlapping_members(self) -> None:
+        # member_on_team is already on the team; replacing with member_on_team + member_one
+        # should keep member_on_team untouched and only add member_one
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "existing@example.com",
+                    },
+                    {
+                        "value": self.member_one.id,
+                        "display": "new@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_add_multiple_members(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {"value": self.member_one.id, "display": "one@example.com"},
+                    {"value": self.member_two.id, "display": "two@example.com"},
+                ],
+            },
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_preserves_overlapping_membership_row(self) -> None:
+        original_omt = OrganizationMemberTeam.objects.get(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        )
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {"value": self.member_on_team.id, "display": "existing@example.com"},
+                    {"value": self.member_one.id, "display": "new@example.com"},
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        # The overlapping member's row is the same DB object, not deleted and re-created
+        assert OrganizationMemberTeam.objects.filter(id=original_omt.id).exists()
+        # New member was added
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        # member_two was not in the replace list and should not be on the team
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_with_identical_list_is_noop(self) -> None:
+        # Replacing with the same member already on the team should change nothing
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "already@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(team_id=self.team.id).count() == 1
+
+    def test_replace_members_query_count(self) -> None:
+        """The replace-members path should use a bounded number of core data
+        queries regardless of member count: 1 SELECT existing OMTs,
+        1 SELECT new OrgMembers, 1 bulk DELETE, 1 bulk INSERT.
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_one.id,
+                        "display": "test.user@okta.local",
+                    },
+                    {
+                        "value": self.member_two.id,
+                        "display": "test.user2@okta.local",
+                    },
+                ],
+            }
+        ]
+
+        # Removes 1 existing member (member_on_team), adds 2 new members.
+        with CaptureQueriesContext(connection) as ctx:
+            self.get_success_response(
+                self.organization.slug, self.team.id, **self.base_data, status_code=204
+            )
+
+        # Count the core replace-path queries:
+        # - SELECT on OMT with JOIN to OM (fetch existing with select_related)
+        # - DELETE on OMT (bulk delete removed members)
+        # - SELECT on OM with IN clause (batch fetch new members)
+        # - INSERT on OMT (bulk create new memberships)
+        # Exclude: auth lookups, outbox replication callbacks, savepoints,
+        # audit logs, bulk_delete pre-fetches, and sequence nextval calls.
+        core_queries = []
+        for q in ctx.captured_queries:
+            sql = q["sql"]
+            is_fetch_existing = "INNER JOIN" in sql and "sentry_organizationmember_teams" in sql
+            is_bulk_delete = sql.startswith("DELETE") and "sentry_organizationmember_teams" in sql
+            is_fetch_new = (
+                sql.startswith("SELECT")
+                and '"sentry_organizationmember"' in sql
+                and "IN" in sql
+                and "sentry_organizationmember_teams" not in sql
+            )
+            is_bulk_insert = sql.startswith("INSERT") and "sentry_organizationmember_teams" in sql
+            if is_fetch_existing or is_bulk_delete or is_fetch_new or is_bulk_insert:
+                core_queries.append(sql)
+
+        # Exactly 4 core queries, none of which scale with member count
+        assert len(core_queries) <= 4, (
+            f"Expected at most 4 core member queries, got {len(core_queries)}:\n"
+            + "\n".join(f"  {i + 1}. {q[:120]}" for i, q in enumerate(core_queries))
+        )
+
+    def test_replace_members_with_empty_list(self) -> None:
+        # Replacing with an empty list should remove all members
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert not OrganizationMemberTeam.objects.filter(team_id=self.team.id).exists()
+
     def test_team_member_doesnt_exist_add_to_team(self) -> None:
         self.base_data["Operations"] = [
             {
@@ -267,6 +449,70 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "scimType": "invalidFilter",
+        }
+
+    def test_add_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_add_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
         }
 
     def test_rename_team_azure_request(self) -> None:
@@ -319,3 +565,523 @@ class SCIMDetailDeleteTest(SCIMTestCase):
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
         mock_metrics.incr.assert_called_with("sentry.scim.team.delete")
+
+
+@cell_silo_test
+class SCIMPrivilegeManagementTest(SCIMTestCase):
+    endpoint = "sentry-api-0-organization-scim-team-details"
+    method = "patch"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.base_data: dict[str, Any] = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        }
+
+        self.user_one = self.create_user(email="staff_user@example.com")
+        self.member_one = self.create_member(user=self.user_one, organization=self.organization)
+
+        self.user_two = self.create_user(email="superuser_user@example.com")
+        self.member_two = self.create_member(user=self.user_two, organization=self.organization)
+
+    def test_adding_to_staff_group_dispatches_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            staff_team = self.create_team(
+                organization=self.organization, slug="snty-staff", idp_provisioned=True
+            )
+            assert not self.user_one.is_staff
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_one.id,
+                            "display": self.member_one.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
+
+            self.user_one.refresh_from_db()
+            assert self.user_one.is_staff
+
+    def test_adding_to_superuser_group_dispatches_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            superuser_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
+            )
+
+            assert not self.user_two.is_superuser
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_two.id,
+                            "display": self.member_two.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, **self.base_data, status_code=204
+                )
+
+            self.user_two.refresh_from_db()
+            assert self.user_two.is_superuser
+
+    def test_removing_from_staff_group_dispatches_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            staff_team = self.create_team(
+                organization=self.organization, slug="snty-staff", idp_provisioned=True
+            )
+            staff_user = self.create_user(
+                email="test_removing_from_staff_group_dispatches_task@example.com", is_staff=True
+            )
+            staff_member = self.create_member(user=staff_user, organization=self.organization)
+
+            OrganizationMemberTeam.objects.create(team=staff_team, organizationmember=staff_member)
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "remove",
+                    "path": f'members[value eq "{staff_member.id}"]',
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
+
+            staff_user.refresh_from_db()
+            assert (
+                OrganizationMemberTeam.objects.filter(
+                    team=staff_team, organizationmember=staff_member
+                ).exists()
+                is False
+            )
+            assert not staff_user.is_staff
+
+    def test_removing_from_superuser_group_dispatches_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            superuser_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
+            )
+
+            superuser_user = self.create_user(
+                email="test_removing_from_superuser_group_dispatches_task@example.com",
+                is_superuser=True,
+            )
+            superuser_member = self.create_member(
+                user=superuser_user, organization=self.organization
+            )
+
+            OrganizationMemberTeam.objects.create(
+                team=superuser_team, organizationmember=superuser_member
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "remove",
+                    "path": f'members[value eq "{superuser_member.id}"]',
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, **self.base_data, status_code=204
+                )
+
+            superuser_user.refresh_from_db()
+            assert (
+                OrganizationMemberTeam.objects.filter(
+                    team=superuser_team, organizationmember=superuser_member
+                ).exists()
+                is False
+            )
+            assert not superuser_user.is_superuser
+
+    def test_replace_members_dispatches_task_with_grant_and_revoke(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            staff_team = self.create_team(
+                organization=self.organization, slug="snty-staff", idp_provisioned=True
+            )
+
+            self.user_one.is_staff = True
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                self.user_one.save()
+
+            OrganizationMemberTeam.objects.create(
+                team=staff_team, organizationmember=self.member_one
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "replace",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_two.id,
+                            "display": self.member_two.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
+
+            # The new member gets granted staff
+            self.user_two.refresh_from_db()
+            assert self.user_two.is_staff
+
+            # The removed member gets staff revoked
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+
+    def test_adding_to_superuser_write_group_dispatches_task(self) -> None:
+        from sentry.users.models.userpermission import UserPermission
+
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_one.id,
+                            "display": self.member_one.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=204,
+                )
+
+            self.user_one.refresh_from_db()
+            assert self.user_one.is_superuser
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+    def test_removing_from_superuser_write_group_dispatches_task(self) -> None:
+        from sentry.users.models.userpermission import UserPermission
+
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
+            )
+
+            su_write_user = self.create_user(email="remove_su_write@example.com", is_superuser=True)
+            su_write_member = self.create_member(user=su_write_user, organization=self.organization)
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                UserPermission.objects.create(
+                    user_id=su_write_user.id, permission="superuser.write"
+                )
+
+            OrganizationMemberTeam.objects.create(
+                team=superuser_write_team, organizationmember=su_write_member
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "remove",
+                    "path": f'members[value eq "{su_write_member.id}"]',
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=204,
+                )
+
+            su_write_user.refresh_from_db()
+            assert not su_write_user.is_superuser
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert not UserPermission.objects.filter(
+                    user_id=su_write_user.id, permission="superuser.write"
+                ).exists()
+
+    def test_regular_team_does_not_dispatch_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            regular_team = self.create_team(
+                organization=self.organization, slug="engineering", idp_provisioned=True
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_one.id,
+                            "display": self.member_one.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, regular_team.id, **self.base_data, status_code=204
+                )
+
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+            assert not self.user_one.is_superuser
+
+    def test_non_default_org_does_not_dispatch_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            other_org = self.create_organization(name="Other Org")
+            other_member = self.create_member(user=self.user_one, organization=other_org)
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                other_auth_provider = AuthProviderModel(
+                    organization_id=other_org.id, provider="dummy"
+                )
+                other_auth_provider.enable_scim(self.user)
+                other_auth_provider.save()
+                other_scim_user = ApiToken.objects.get(
+                    token=other_auth_provider.get_scim_token()
+                ).user
+
+            self.login_as(user=other_scim_user)
+
+            staff_team = self.create_team(
+                organization=other_org, slug="snty-staff", idp_provisioned=True
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": other_member.id,
+                            "display": other_member.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    other_org.slug, staff_team.id, **self.base_data, status_code=204
+                )
+
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+
+    def test_non_saas_mode_does_not_dispatch_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SELF_HOSTED,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            staff_team = self.create_team(
+                organization=self.organization, slug="snty-staff", idp_provisioned=True
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_one.id,
+                            "display": self.member_one.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
+
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+
+
+class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
+    endpoint = "sentry-api-0-organization-scim-team-details"
+    method = "delete"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.user_one = self.create_user(email="staff_user@example.com")
+        self.member_one = self.create_member(user=self.user_one, organization=self.organization)
+
+        self.user_two = self.create_user(email="superuser_user@example.com")
+        self.member_two = self.create_member(user=self.user_two, organization=self.organization)
+
+    def test_deleting_staff_team_dispatches_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            staff_team = self.create_team(
+                organization=self.organization, slug="snty-staff", idp_provisioned=True
+            )
+
+            staff_user_a = self.create_user(email="delete_staff_a@example.com", is_staff=True)
+            staff_member_a = self.create_member(user=staff_user_a, organization=self.organization)
+            staff_user_b = self.create_user(email="delete_staff_b@example.com", is_staff=True)
+            staff_member_b = self.create_member(user=staff_user_b, organization=self.organization)
+
+            OrganizationMemberTeam.objects.create(
+                team=staff_team, organizationmember=staff_member_a
+            )
+            OrganizationMemberTeam.objects.create(
+                team=staff_team, organizationmember=staff_member_b
+            )
+
+            with self.tasks():
+                self.get_success_response(self.organization.slug, staff_team.id, status_code=204)
+
+            staff_user_a.refresh_from_db()
+            assert not staff_user_a.is_staff
+
+            staff_user_b.refresh_from_db()
+            assert not staff_user_b.is_staff
+
+    def test_deleting_superuser_team_dispatches_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            superuser_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
+            )
+
+            su_user = self.create_user(email="delete_superuser@example.com", is_superuser=True)
+            su_member = self.create_member(user=su_user, organization=self.organization)
+
+            OrganizationMemberTeam.objects.create(team=superuser_team, organizationmember=su_member)
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, status_code=204
+                )
+
+            su_user.refresh_from_db()
+            assert not su_user.is_superuser
+
+    def test_deleting_regular_team_does_not_dispatch_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            regular_team = self.create_team(
+                organization=self.organization, slug="engineering", idp_provisioned=True
+            )
+
+            OrganizationMemberTeam.objects.create(
+                team=regular_team, organizationmember=self.member_one
+            )
+
+            with self.tasks():
+                self.get_success_response(self.organization.slug, regular_team.id, status_code=204)
+
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+            assert not self.user_one.is_superuser

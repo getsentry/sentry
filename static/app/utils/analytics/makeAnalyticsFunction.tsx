@@ -1,6 +1,17 @@
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {rawTrackAnalyticsEvent} from 'sentry/utils/analytics';
+
+/**
+ * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
+ * an analytics function.
+ *
+ * This lives here (rather than in analytics.tsx) to avoid a circular dependency:
+ * analytics.tsx imports makeAnalyticsFunction, and makeAnalyticsFunction calls
+ * rawTrackAnalyticsEvent.
+ */
+const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
+  HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
@@ -16,8 +27,10 @@ type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
  * Can specifcy default options with the defaultOptions argument as well.
  * Can make orgnization required with the second generic.
  */
-export default function makeAnalyticsFunction<
+export function makeAnalyticsFunction<
   EventParameters extends Record<string, Record<string, any>>,
+  // This is used to provide a nice curried type for consumers.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   OrgRequirement extends OptionalOrg = OptionalOrg,
 >(
   eventKeyToNameMap: Record<keyof EventParameters, string | null>,

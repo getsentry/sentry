@@ -28,10 +28,10 @@ variants:
     hint: ignored because custom server fingerprint takes precedence
     key: app_exception_message
     type: component
-  custom_fingerprint:
+  custom_server_fingerprint:
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable{{
       transaction }}"
     type: custom_fingerprint

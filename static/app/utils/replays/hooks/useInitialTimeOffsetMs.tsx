@@ -2,34 +2,13 @@ import {useEffect, useMemo, useState} from 'react';
 import type {Query} from 'history';
 
 import type {Client} from 'sentry/api';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {decodeScalar} from 'sentry/utils/queryString';
-import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
+import {fetchReplayClicks} from 'sentry/utils/replays/fetchReplayClicks';
 import type {highlightNode} from 'sentry/utils/replays/highlightNode';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-
-type TimeOffsetLocationQueryParams = {
-  /**
-   * The time when the event happened.
-   * Anything that can be parsed by `new Date()`; for example a timestamp in ms
-   * or an ISO 8601 formatted string.
-   */
-  event_t?: Query[string];
-
-  /**
-   * The query that was used on the index page. If it includes `click.*` fields
-   * then we will use those to lookup a list of `offsetMs` values
-   */
-  query?: Query[string];
-
-  /**
-   * A specific offset into the replay. Number of seconds.
-   * Should be less than the duration of the replay
-   */
-  t?: Query[string];
-};
 
 type Opts = {
   /**
@@ -162,7 +141,7 @@ async function fromListPageQuery({
   }
 }
 
-export default function useInitialTimeOffsetMs({
+export function useInitialTimeOffsetMs({
   orgSlug,
   replayId,
   projectSlug,
@@ -171,7 +150,7 @@ export default function useInitialTimeOffsetMs({
   const api = useApi();
   const {
     query: {event_t: eventTimestamp, query: listPageQuery, t: offsetSec},
-  } = useLocation<TimeOffsetLocationQueryParams>();
+  } = useLocation();
   const [timestamp, setTimestamp] = useState<Result>(undefined);
 
   // The different strategies for getting a time offset into the replay (what

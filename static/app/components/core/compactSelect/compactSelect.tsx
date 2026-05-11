@@ -1,4 +1,4 @@
-import {useCallback, useId, useMemo, useState} from 'react';
+import {useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';
@@ -18,12 +18,14 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
-import {getItemsWithKeys, shouldCloseOnSelect} from './utils';
+import {getDuplicateOptionKeysInfo, getItemsWithKeys, shouldCloseOnSelect} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
-interface BaseSelectProps<Value extends SelectKey>
-  extends Omit<ControlProps, 'onClear' | 'clearable'> {
+interface BaseSelectProps<Value extends SelectKey> extends Omit<
+  ControlProps,
+  'onClear' | 'clearable'
+> {
   options: Array<SelectOptionOrSection<Value>>;
   /**
    * Number of options above which virtualization will be enabled.
@@ -121,7 +123,7 @@ export function CompactSelect<Value extends SelectKey>({
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    !menuWidth && !grid && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
+    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -136,8 +138,8 @@ export function CompactSelect<Value extends SelectKey>({
   );
 
   const controlDisabled = disabled ?? options?.length === 0;
-
   const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
+
   const longestOptionItemsWithKey = useMemo(() => {
     if (needsMeasuring) {
       const longestOption = maxBy(options, option => {
@@ -157,6 +159,37 @@ export function CompactSelect<Value extends SelectKey>({
     return [];
   }, [needsMeasuring, options]);
   const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
+
+  const componentTitle = useMemo(
+    () =>
+      typeof controlProps.menuTitle === 'string' ? controlProps.menuTitle : 'unknown',
+    [controlProps.menuTitle]
+  );
+
+  const lastLoggedDuplicateKeySignatureRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const {duplicateOptionKeys, hasSections, optionCount} =
+      getDuplicateOptionKeysInfo(allItemsWithKey);
+    if (duplicateOptionKeys.length === 0) {
+      lastLoggedDuplicateKeySignatureRef.current = undefined;
+      return;
+    }
+
+    const duplicateOptionKeySignature = duplicateOptionKeys.join(',');
+    if (lastLoggedDuplicateKeySignatureRef.current === duplicateOptionKeySignature) {
+      return;
+    }
+    lastLoggedDuplicateKeySignatureRef.current = duplicateOptionKeySignature;
+
+    Sentry.logger.error('CompactSelect has duplicate option keys', {
+      component_title: componentTitle,
+      duplicate_option_key_count: duplicateOptionKeys.length,
+      duplicate_option_key_signature: duplicateOptionKeySignature,
+      has_sections: hasSections,
+      option_count: optionCount,
+      virtualize_threshold: virtualizeThreshold ?? 150,
+    });
+  }, [allItemsWithKey, componentTitle, virtualizeThreshold]);
 
   return (
     <Control
@@ -178,9 +211,7 @@ export function CompactSelect<Value extends SelectKey>({
             trackVirtualizationMetrics(
               allItemsWithKey,
               virtualizeThreshold,
-              typeof controlProps.menuTitle === 'string'
-                ? controlProps.menuTitle
-                : undefined
+              componentTitle
             );
           });
         }

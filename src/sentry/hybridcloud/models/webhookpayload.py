@@ -20,8 +20,7 @@ BACKOFF_RATE = 1.4
 
 
 class DestinationType(TextChoices):
-    SENTRY_REGION = "sentry_region"
-    CODECOV = "codecov"
+    SENTRY_CELL = "sentry_region"
 
 
 @control_silo_model
@@ -34,9 +33,9 @@ class WebhookPayload(Model):
     # Destination attributes
     # Table is constantly being deleted from so let's make this non-nullable with a default value, since the table should be small at any given point in time.
     destination_type = models.CharField(
-        choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_REGION
+        choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_CELL
     )
-    region_name = models.CharField(null=True)
+    cell_name = models.CharField(null=True, db_column="region_name")
 
     # May need to add organization_id in the future for debugging.
     integration_id = models.BigIntegerField(null=True)
@@ -81,8 +80,8 @@ class WebhookPayload(Model):
 
         constraints = [
             models.CheckConstraint(
-                condition=~Q(destination_type=DestinationType.SENTRY_REGION)
-                | Q(region_name__isnull=False),
+                condition=~Q(destination_type=DestinationType.SENTRY_CELL)
+                | Q(cell_name__isnull=False),
                 name="webhookpayload_region_name_not_null",
             ),
         ]
@@ -90,7 +89,7 @@ class WebhookPayload(Model):
     __repr__ = sane_repr(
         "mailbox_name",
         "destination_type",
-        "region_name",
+        "cell_name",
         "schedule_for",
         "attempts",
         "integration_id",
@@ -115,7 +114,7 @@ class WebhookPayload(Model):
         cls,
         *,
         destination_type: DestinationType,
-        region: str | None,
+        cell: str | None,
         provider: str,
         identifier: int | str,
         request: HttpRequest,
@@ -126,10 +125,26 @@ class WebhookPayload(Model):
             mailbox_name=f"{provider}:{identifier}",
             provider=provider,
             destination_type=destination_type,
-            region_name=region,
+            cell_name=cell,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),
         )
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return payload attributes as a dict for logging context."""
+        return {
+            "attempts": self.attempts,
+            "date_added": self.date_added.isoformat() if self.date_added else None,
+            "destination_type": self.destination_type,
+            "id": self.id,
+            "integration_id": self.integration_id,
+            "mailbox_name": self.mailbox_name,
+            "provider": self.provider,
+            "cell_name": self.cell_name,
+            "request_method": self.request_method,
+            "request_path": self.request_path,
+            "schedule_for": self.schedule_for.isoformat() if self.schedule_for else None,
+        }
 
     def schedule_next_attempt(self) -> None:
         attempts = self.attempts + 1

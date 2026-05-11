@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   IconCheckmark,
   IconFire,
@@ -11,7 +12,6 @@ import {
   IconUnsubscribed,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   MonitorStatus,
   type MonitorEnvironment,
@@ -59,7 +59,7 @@ const envMutedDisplay: StatusNotice = {
   variant: 'muted',
 };
 
-export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
+export function MonitorEnvironmentLabel({monitorEnv}: Props) {
   const {name, status, isMuted, activeIncident} = monitorEnv;
   const {userNotifiedTimestamp, environmentMutedTimestamp} =
     activeIncident?.brokenNotice ?? {};
@@ -87,7 +87,7 @@ export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
 const EnvWithStatus = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   opacity: var(--disabled-opacity);
 `;

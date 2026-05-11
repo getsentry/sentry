@@ -1,9 +1,13 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   EditExistingCronDetectorForm,
   NewCronDetectorForm,
@@ -17,23 +21,29 @@ import {
   NewMetricDetectorForm,
 } from 'sentry/views/detectors/components/forms/metric/metric';
 import {
+  EditExistingPreprodDetectorForm,
+  NewPreprodDetectorForm,
+} from 'sentry/views/detectors/components/forms/mobileBuild';
+import {
   EditExistingUptimeDetectorForm,
   NewUptimeDetectorForm,
 } from 'sentry/views/detectors/components/forms/uptime';
 
 function PlaceholderForm() {
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <Layout.Body>
         <Layout.Main width="full">
           <LoadingError message={t('This monitor type can not be created')} />
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 
 export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
+  const organization = useOrganization();
+
   switch (detectorType) {
     case 'metric_issue':
       return <NewMetricDetectorForm />;
@@ -45,13 +55,24 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
       return <NewCronDetectorForm />;
     case 'issue_stream':
       return <PlaceholderForm />;
+    case 'preprod_size_analysis':
+      if (!organization.features.includes('preprod-size-monitors-frontend')) {
+        return <PlaceholderForm />;
+      }
+      return <NewPreprodDetectorForm />;
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;
   }
 }
 
-export function EditExistingDetectorForm({detector}: {detector: Detector}) {
+export function EditExistingDetectorForm({
+  detector,
+  project,
+}: {
+  detector: Detector;
+  project: Project;
+}) {
   const detectorType = detector.type;
   switch (detectorType) {
     case 'metric_issue':
@@ -59,7 +80,7 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
     case 'uptime_domain_failure':
       return <EditExistingUptimeDetectorForm detector={detector} />;
     case 'error':
-      return <EditExistingErrorDetectorForm detector={detector} />;
+      return <EditExistingErrorDetectorForm detector={detector} project={project} />;
     case 'monitor_check_in_failure':
       return <EditExistingCronDetectorForm detector={detector} />;
     case 'issue_stream':
@@ -68,6 +89,8 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
           <Alert variant="danger">{t('Issue stream monitors can not be edited.')}</Alert>
         </Alert.Container>
       );
+    case 'preprod_size_analysis':
+      return <EditExistingPreprodDetectorForm detector={detector} />;
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;

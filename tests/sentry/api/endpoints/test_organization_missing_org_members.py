@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -53,13 +54,18 @@ class OrganizationMissingMembersTestCase(APITestCase):
         nonmember_commit_author_invalid_domain.save()
 
         self.integration = self.create_integration(
-            organization=self.organization, provider="github", name="Github", external_id="github:1"
+            organization=self.organization,
+            provider="github",
+            name="Github",
+            external_id="github:1",
+            oi_params={"config": {"nudge_invite": True}},
         )
         self.integration2 = self.create_integration(
             organization=self.organization,
             provider="github",
             name="Github2",
             external_id="github:3",
+            oi_params={"config": {"nudge_invite": True}},
         )
         self.repo = self.create_repo(
             project=self.project, provider="integrations:github", integration_id=self.integration.id
@@ -98,6 +104,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
@@ -119,6 +126,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
@@ -133,6 +141,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
@@ -149,6 +158,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
@@ -158,11 +168,16 @@ class OrganizationMissingMembersTestCase(APITestCase):
         org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
         self.create_integration(
-            organization=org, provider="github", name="Github", external_id="github:2"
+            organization=org,
+            provider="github",
+            name="Github",
+            external_id="github:2",
+            oi_params={"config": {"nudge_invite": True}},
         )
 
         response = self.get_success_response(org.slug)
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == []
 
     def test_owners_filters_with_different_domains(self) -> None:
@@ -210,6 +225,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
@@ -240,6 +256,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
@@ -262,6 +279,22 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
+
+    def test_all_ois_without_nudge_invite_returns_disabled(self) -> None:
+        """When no OI has nudge_invite on, the integration entry has enabled=False."""
+        from sentry.integrations.models.organization_integration import (
+            OrganizationIntegration,
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(organization_id=self.organization.id).update(
+                config={"nudge_invite": False}
+            )
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is False
+        assert response.data[0]["users"] == []
 
     def test_nongithub_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -303,10 +336,27 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
+
+    def test_shared_domain_sql_injection_safe(self) -> None:
+        """Verify that SQL metacharacters in the shared domain are safely parameterized."""
+        # Mock _get_shared_email_domain to return a domain with SQL injection payload.
+        # This ensures the raw SQL query path is exercised with metacharacters.
+        with patch(
+            "sentry.api.endpoints.organization_missing_org_members._get_shared_email_domain",
+            return_value="x' OR 1=1 --",
+        ):
+            # With the old f-string interpolation, this would cause a SQL syntax error.
+            # With parameterized queries, the single quote is properly escaped.
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["enabled"] is True
+        assert response.data[0]["users"] == []
 
     def test_limit_50_missing_members(self) -> None:
         repo = self.create_repo(
@@ -321,4 +371,5 @@ class OrganizationMissingMembersTestCase(APITestCase):
             self.create_commit(repo=repo, author=nonmember_commit_author)
 
         response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["enabled"] is True
         assert len(response.data[0]["users"]) == 50

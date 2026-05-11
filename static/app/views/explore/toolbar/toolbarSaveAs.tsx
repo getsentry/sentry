@@ -2,6 +2,9 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,32 +12,29 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsId,
@@ -63,11 +63,17 @@ export function ToolbarSaveAs() {
   const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const crossEvents = useQueryParamsCrossEvents();
   const mode = useQueryParamsMode();
   const id = useQueryParamsId();
-  const visualizeYAxes = useMemo(
-    () => dedupeArray(visualizes.filter(isVisualizeFunction).map(v => v.yAxis)),
+
+  const visualizeFunctions = useMemo(
+    () => visualizes.filter(isVisualizeFunction),
     [visualizes]
+  );
+  const visualizeYAxes = useMemo(
+    () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
+    [visualizeFunctions]
   );
   const [caseInsensitive] = useCaseInsensitivity();
 
@@ -81,6 +87,7 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -134,8 +141,8 @@ export function ToolbarSaveAs() {
   }
   items.push({
     key: 'save-query',
-    label: <span>{t('A New Query')}</span>,
-    textValue: t('A New Query'),
+    label: <span>{t('New Query')}</span>,
+    textValue: t('New Query'),
     onAction: () => {
       trackAnalytics('trace_explorer.save_query_modal', {
         action: 'open',
@@ -153,8 +160,8 @@ export function ToolbarSaveAs() {
   });
 
   const newAlertLabel = organization.features.includes('workflow-engine-ui')
-    ? t('A Monitor for')
-    : t('An Alert for');
+    ? t('Monitor for')
+    : t('Alert for');
 
   items.push({
     key: 'create-alert',
@@ -180,7 +187,7 @@ export function ToolbarSaveAs() {
         label: formattedYAxes.filter(Boolean).join(', '),
         onAction: () => {
           if (disableAddToDashboard) {
-            return undefined;
+            return;
           }
 
           trackAnalytics('trace_explorer.save_as', {
@@ -196,22 +203,22 @@ export function ToolbarSaveAs() {
 
   items.push({
     key: 'add-to-dashboard',
-    textValue: t('A Dashboard widget'),
+    textValue: t('Dashboard widget'),
     isSubmenu: chartOptions.length > 1 ? true : false,
     label: (
       <Feature
         hookName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+        renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
       >
-        {t('A Dashboard widget')}
+        {t('Dashboard widget')}
       </Feature>
     ),
     disabled: disableAddToDashboard,
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {
       if (disableAddToDashboard || chartOptions.length > 1) {
-        return undefined;
+        return;
       }
 
       trackAnalytics('trace_explorer.save_as', {
@@ -245,6 +252,7 @@ export function ToolbarSaveAs() {
         singleQuery?.visualize,
         true
       ),
+      !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
       (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
@@ -266,6 +274,7 @@ export function ToolbarSaveAs() {
     sortBys,
     fields,
     visualizes,
+    crossEvents,
     pageFilters.selection.datetime.start,
     pageFilters.selection.datetime.end,
     pageFilters.selection.datetime.period,
@@ -277,15 +286,17 @@ export function ToolbarSaveAs() {
     return null;
   }
 
+  const canCompareQueries = visualizeFunctions.length >= 2;
+
   return (
-    <StyledToolbarSection data-test-id="section-save-as">
-      <ButtonBar>
+    <SaveStyledToolbarSection data-test-id="section-save-as">
+      <Grid flow="column" align="center" gap="md">
         <DropdownMenu
           items={items}
           trigger={triggerProps => (
             <SaveAsButton
               {...triggerProps}
-              priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+              variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
               aria-label={t('Save as')}
               onClick={e => {
                 e.stopPropagation();
@@ -294,12 +305,14 @@ export function ToolbarSaveAs() {
                 triggerProps.onClick?.(e);
               }}
             >
-              {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
+              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
             </SaveAsButton>
           )}
         />
-        <LinkButton
+
+        <WideLinkButton
           aria-label={t('Compare')}
+          disabled={hasCrossEvents || !canCompareQueries}
           onClick={() =>
             trackAnalytics('trace_explorer.compare', {
               organization,
@@ -309,32 +322,41 @@ export function ToolbarSaveAs() {
             organization,
             mode,
             location,
-            queries: [
-              {
-                query,
-                groupBys,
-                sortBys,
-                yAxes: [visualizeYAxes[0]!],
-                chartType: visualizes[0]!.chartType,
-                caseInsensitive: caseInsensitive ? '1' : undefined,
-              },
-            ],
+            queries: visualizeFunctions.map(visual => ({
+              query,
+              groupBys,
+              sortBys,
+              yAxes: [visual.yAxis],
+              chartType: visual.chartType,
+              caseInsensitive: caseInsensitive ? '1' : undefined,
+            })),
           })}
+          tooltipProps={
+            hasCrossEvents
+              ? {title: t('Cross-event queries cannot be compared.')}
+              : canCompareQueries
+                ? undefined
+                : {title: t('Add two or more charts to compare chart queries.')}
+          }
         >
-          {`${t('Compare Queries')}`}
-        </LinkButton>
-      </ButtonBar>
-    </StyledToolbarSection>
+          {t('Compare Queries')}
+        </WideLinkButton>
+      </Grid>
+    </SaveStyledToolbarSection>
   );
 }
+
+const WideLinkButton = styled(LinkButton)`
+  width: 100%;
+`;
 
 const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
 
-const StyledToolbarSection = styled(ToolbarSection)`
+export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding-top: ${space(3)};
+  padding-top: ${p => p.theme.space['2xl']};
 `;
 
 const SaveAsButton = styled(Button)`

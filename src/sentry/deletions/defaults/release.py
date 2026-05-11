@@ -7,7 +7,6 @@ from sentry.models.release import Release
 
 
 class ReleaseDeletionTask(ModelDeletionTask[Release]):
-
     def get_query_filter(self) -> Q:
         """
         Returns a Q object that filters for unused releases.

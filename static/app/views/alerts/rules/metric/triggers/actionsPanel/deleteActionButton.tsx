@@ -1,5 +1,6 @@
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -9,9 +10,7 @@ interface DeleteActionButtonProps extends Omit<ButtonProps, 'onClick'> {
   triggerIndex: number;
 }
 
-export default function DeleteActionButton(
-  props: DeleteActionButtonProps
-): React.ReactElement {
+export function DeleteActionButton(props: DeleteActionButtonProps): React.ReactElement {
   const handleClick = (e: React.MouseEvent) => {
     const {triggerIndex, index, onClick} = props;
     onClick(triggerIndex, index, e);

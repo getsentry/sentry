@@ -29,7 +29,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ):
                     raise SystemExit(
                         f"""
-The specifier for package {package['name']} in {filename} isn't allowed:
+The specifier for package {package["name"]} in {filename} isn't allowed:
 
 You cannot use dependencies that are not on internal pypi.
 

@@ -2,17 +2,22 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeStatusCodeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
+import {AssertionsDndContext} from './dragDrop';
 import {AssertionOpStatusCode} from './opStatusCode';
 
 describe('AssertionOpStatusCode', () => {
   const mockOnChange = jest.fn();
   const mockOnRemove = jest.fn();
 
-  const op = 'status_code_check' as const;
+  const op = UptimeOpType.STATUS_CODE_CHECK;
 
-  const renderOp = async (value: StatusCodeOp) => {
+  const renderOp = async (value: UptimeStatusCodeOp) => {
     const result = render(
       <AssertionOpStatusCode
         value={value}
@@ -30,7 +35,7 @@ describe('AssertionOpStatusCode', () => {
     onChangeSpy,
     onRemoveSpy,
   }: {
-    initialValue: StatusCodeOp;
+    initialValue: UptimeStatusCodeOp;
     onChangeSpy: jest.Mock;
     onRemoveSpy: jest.Mock;
   }) {
@@ -47,7 +52,7 @@ describe('AssertionOpStatusCode', () => {
     );
   }
 
-  const renderStatefulOp = async (initialValue: StatusCodeOp) => {
+  const renderStatefulOp = async (initialValue: UptimeStatusCodeOp) => {
     const result = render(
       <StatefulWrapper
         initialValue={initialValue}
@@ -69,7 +74,7 @@ describe('AssertionOpStatusCode', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
 
@@ -78,27 +83,52 @@ describe('AssertionOpStatusCode', () => {
   });
 
   it('displays equals operator symbol', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
     expect(getComparison('=')).toBeInTheDocument();
   });
 
   it('displays not equal operator symbol', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'not_equal'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.NOT_EQUAL},
+      value: 200,
+    });
     expect(getComparison('\u2260')).toBeInTheDocument();
   });
 
   it('displays less than operator symbol', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'less_than'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.LESS_THAN},
+      value: 200,
+    });
     expect(getComparison('<')).toBeInTheDocument();
   });
 
   it('displays greater than operator symbol', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'greater_than'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.GREATER_THAN},
+      value: 200,
+    });
     expect(getComparison('>')).toBeInTheDocument();
   });
 
   it('calls onChange when status code value changes', async () => {
-    await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderStatefulOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     const input = screen.getByRole('textbox');
     await userEvent.clear(input);
@@ -107,13 +137,18 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 404,
     });
   });
 
   it('calls onChange when comparison operator changes', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     // Click the operator button to open the dropdown
     await userEvent.click(getComparison('='));
@@ -124,13 +159,18 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'less_than'},
+      operator: {cmp: UptimeComparisonType.LESS_THAN},
       value: 200,
     });
   });
 
   it('calls onRemove when remove button is clicked', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
 
@@ -138,7 +178,12 @@ describe('AssertionOpStatusCode', () => {
   });
 
   it('uses numeric input mode for mobile keyboards', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     const input = screen.getByRole('textbox');
     if (!(input instanceof HTMLInputElement)) {
@@ -150,7 +195,12 @@ describe('AssertionOpStatusCode', () => {
   });
 
   it('allows typing status codes without immediate clamping', async () => {
-    await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderStatefulOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     const input = screen.getByRole('textbox');
     await userEvent.clear(input);
@@ -160,7 +210,7 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 5,
     });
 
@@ -169,13 +219,18 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 504,
     });
   });
 
   it('clamps value to min on blur when below range', async () => {
-    await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderStatefulOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     const input = screen.getByRole('textbox');
     await userEvent.clear(input);
@@ -188,13 +243,18 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 100,
     });
   });
 
   it('clamps value immediately when typing 3 digits above range', async () => {
-    await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderStatefulOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     const input = screen.getByRole('textbox');
     await userEvent.clear(input);
@@ -204,13 +264,18 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 599,
     });
   });
 
   it('rejects non-numeric input', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     const input = screen.getByRole('textbox');
     await userEvent.type(input, 'abc');
@@ -220,7 +285,12 @@ describe('AssertionOpStatusCode', () => {
   });
 
   it('resets to min on blur when controlled value is invalid', async () => {
-    await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 50});
+    await renderStatefulOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 50,
+    });
 
     const input = screen.getByRole('textbox');
     await userEvent.click(input);
@@ -229,13 +299,18 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 100,
     });
   });
 
   it('resets to default when input is cleared and blurred', async () => {
-    await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderStatefulOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     const input = screen.getByRole('textbox');
     await userEvent.clear(input);
@@ -246,13 +321,18 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'equals'},
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     });
   });
 
   it('displays all comparison operator options with correct symbols', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     // Click the operator button to open the dropdown
     await userEvent.click(getComparison('='));
@@ -280,7 +360,12 @@ describe('AssertionOpStatusCode', () => {
   });
 
   it('preserves value when changing operator', async () => {
-    await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
+    await renderOp({
+      id: 'test-id-1',
+      op,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    });
 
     // Click the operator button to open the dropdown
     await userEvent.click(getComparison('='));
@@ -292,8 +377,28 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
       op,
-      operator: {cmp: 'greater_than'},
+      operator: {cmp: UptimeComparisonType.GREATER_THAN},
       value: 200, // Original value preserved
     });
+  });
+
+  it('renders drag handle for reordering', async () => {
+    render(
+      <AssertionsDndContext>
+        <AssertionOpStatusCode
+          value={{
+            id: 'test-id-1',
+            op,
+            operator: {cmp: UptimeComparisonType.EQUALS},
+            value: 200,
+          }}
+          onChange={mockOnChange}
+          onRemove={mockOnRemove}
+        />
+      </AssertionsDndContext>
+    );
+
+    await screen.findByLabelText('Status Code');
+    expect(screen.getByRole('button', {name: 'Reorder assertion'})).toBeInTheDocument();
   });
 });

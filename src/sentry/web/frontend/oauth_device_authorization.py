@@ -28,8 +28,12 @@ class OAuthDeviceAuthorizationView(View):
     """
     OAuth 2.0 Device Authorization Endpoint (RFC 8628 §3.1/§3.2).
 
-    This endpoint initiates the device authorization flow for headless clients
-    (CLIs, Docker containers, CI/CD jobs) that cannot use browser-based OAuth.
+    Purpose
+    - Initiates the device authorization flow for headless clients (CLIs,
+      Docker containers, CI/CD jobs) that cannot use browser-based OAuth.
+    - Returns both `verification_uri` and `verification_uri_complete` as defined
+      by RFC 8628 §3.2. The corresponding verification endpoint decides how the
+      embedded `user_code` is presented to the user during the §3.3 interaction.
 
     Request (POST /oauth/device/code):
         client_id (required): The OAuth application's client ID
@@ -47,7 +51,11 @@ class OAuthDeviceAuthorizationView(View):
         invalid_client: Unknown or inactive client_id
         invalid_scope: Requested scope is invalid or exceeds app permissions
 
-    Reference: https://datatracker.ietf.org/doc/html/rfc8628#section-3.1
+    References:
+    - Device authorization request: https://datatracker.ietf.org/doc/html/rfc8628#section-3.1
+    - Device authorization response: https://datatracker.ietf.org/doc/html/rfc8628#section-3.2
+    - Non-textual verification URI optimization:
+      https://datatracker.ietf.org/doc/html/rfc8628#section-3.3.1
     """
 
     @csrf_exempt
@@ -160,7 +168,10 @@ class OAuthDeviceAuthorizationView(View):
                 status=500,
             )
 
-        # Build the verification URIs
+        # RFC 8628 §3.2 defines both verification_uri and
+        # verification_uri_complete. The latter carries the same user_code for
+        # convenience, while the verification endpoint remains responsible for
+        # the user interaction in §3.3/§3.3.1.
         verification_uri = absolute_uri("/oauth/device/")
         verification_uri_complete = f"{verification_uri}?user_code={device_code.user_code}"
 

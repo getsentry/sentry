@@ -1,9 +1,10 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {isOrphanSpan} from 'sentry/components/events/interfaces/spans/utils';
 import {t} from 'sentry/locale';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
-function Alerts({node}: {node: SpanNode}) {
+export function Alerts({node}: {node: SpanNode}) {
   if (!isOrphanSpan(node.value)) {
     return null;
   }
@@ -18,5 +19,3 @@ function Alerts({node}: {node: SpanNode}) {
     </Alert.Container>
   );
 }
-
-export default Alerts;

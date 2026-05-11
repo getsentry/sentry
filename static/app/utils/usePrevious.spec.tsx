@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 describe('usePrevious', () => {
   it('stores initial value', () => {
@@ -31,7 +31,7 @@ describe('usePrevious', () => {
 
   it('skips updates when needed', () => {
     const {result, rerender} = renderHook(
-      ([value, shouldUpdate]) => usePrevious<number>(value, shouldUpdate),
+      ([value, shouldUpdate]) => usePrevious(value, shouldUpdate),
       {initialProps: [0] as [number] | [number, boolean]}
     );
 

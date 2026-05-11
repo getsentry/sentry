@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('javascript-react onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
@@ -117,7 +117,7 @@ describe('javascript-react onboarding docs', () => {
       ],
     });
 
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
   });
 
   it('does not show Metrics in next steps when metrics is not selected', () => {
@@ -128,7 +128,7 @@ describe('javascript-react onboarding docs', () => {
       ],
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 
   it('shows Logging Integrations in next steps when logs is selected', () => {

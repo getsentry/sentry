@@ -3,7 +3,7 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 import GettingStarted from './gettingStarted';
@@ -44,7 +44,7 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sdks/`,
+    url: '/organizations/org-slug/sdks/',
     body: {},
   });
 }

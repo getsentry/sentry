@@ -1,19 +1,20 @@
 import {useCallback, useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useApi} from 'sentry/utils/useApi';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
   type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -31,10 +32,11 @@ export type ExploreQueryChangedReason = {
 };
 
 type ExploreSavedQueryRequest = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics';
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   name: string;
   projects: number[];
   changedReason?: ExploreQueryChangedReason;
+  crossEvents?: CrossEvent[];
   end?: DateString;
   environment?: string[];
   interval?: string;
@@ -56,7 +58,7 @@ type ExploreSavedQueryRequest = {
   start?: DateString;
 };
 
-function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
+function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
   const queryParams = useQueryParams();
@@ -198,6 +200,10 @@ export function useLogsSaveQuery() {
   return useSavedQueryForDataset('logs');
 }
 
+export function useReplaySaveQuery() {
+  return useSavedQueryForDataset('replays');
+}
+
 function convertQueryParamsToRequest({
   dataset,
   queryParams,
@@ -206,7 +212,7 @@ function convertQueryParamsToRequest({
   title,
   caseInsensitive,
 }: {
-  dataset: 'spans' | 'logs';
+  dataset: 'spans' | 'logs' | 'replays';
   interval: string;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
@@ -217,7 +223,7 @@ function convertQueryParamsToRequest({
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
 
-  const {sortBys, fields, search, mode} = queryParams;
+  const {sortBys, fields, search, mode, crossEvents} = queryParams;
   const query = search?.formatString() ?? '';
 
   const aggregateFields = queryParams.aggregateFields
@@ -247,6 +253,7 @@ function convertQueryParamsToRequest({
     name: title,
     projects,
     dataset,
+    crossEvents: crossEvents?.length ? [...crossEvents] : undefined,
     start,
     end,
     range: period ?? undefined,

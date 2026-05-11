@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest import mock
 
 from django.utils import timezone as django_timezone
 
@@ -9,6 +9,60 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
+
+
+@control_silo_test
+class UserDetailsSuspendSecurityActivityTest(APITestCase):
+    endpoint = "sentry-api-0-user-details"
+    method = "put"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.target_user = self.create_user(email="target@example.com")
+        self.superuser = self.create_user(email="su@example.com", is_superuser=True)
+        self.login_as(user=self.superuser, superuser=True)
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_suspend_emits_security_activity(self, mock_security_activity: mock.MagicMock) -> None:
+        self.get_success_response(self.target_user.id, isSuspended="true")
+
+        assert mock_security_activity.called
+        kwargs = mock_security_activity.call_args.kwargs
+        assert kwargs["type"] == "user.suspended"
+        assert kwargs["account"].id == self.target_user.id
+        assert kwargs["actor"].id == self.superuser.id
+        assert kwargs["send_email"] is False
+        assert kwargs["context"] == {"actor_id": self.superuser.id}
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_unsuspend_emits_security_activity(
+        self, mock_security_activity: mock.MagicMock
+    ) -> None:
+        self.target_user.update(is_suspended=True)
+
+        self.get_success_response(self.target_user.id, isSuspended="false")
+
+        assert mock_security_activity.called
+        kwargs = mock_security_activity.call_args.kwargs
+        assert kwargs["type"] == "user.unsuspended"
+        assert kwargs["account"].id == self.target_user.id
+        assert kwargs["send_email"] is False
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_idempotent_suspend_does_not_emit(self, mock_security_activity: mock.MagicMock) -> None:
+        self.target_user.update(is_suspended=True)
+
+        self.get_success_response(self.target_user.id, isSuspended="true")
+
+        assert not mock_security_activity.called
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_unrelated_update_does_not_emit_suspension_activity(
+        self, mock_security_activity: mock.MagicMock
+    ) -> None:
+        self.get_success_response(self.target_user.id, name="Renamed User")
+
+        assert not mock_security_activity.called
 
 
 @control_silo_test
@@ -22,11 +76,12 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         self.staff_user = self.create_user(email="staff@example.com", is_staff=True)
         self.login_as(self.staff_user, staff=True)
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    @override_options({"staff.ga-rollout": True})
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
     def test_soft_delete_records_analytics_and_security(
-        self, mock_security_activity, mock_analytics
-    ):
+        self, mock_security_activity: mock.MagicMock, mock_analytics: mock.MagicMock
+    ) -> None:
         before_delete = django_timezone.now()
 
         self.get_success_response(self.user.id, organizations=[], status_code=204)
@@ -58,11 +113,11 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert "scheduled_deletion_datetime" in security_call[1]["context"]
 
     @override_options({"staff.ga-rollout": True})
-    @patch("sentry.analytics.record")
-    @patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
     def test_hard_delete_records_analytics_and_security(
-        self, mock_security_activity, mock_analytics
-    ):
+        self, mock_security_activity: mock.MagicMock, mock_analytics: mock.MagicMock
+    ) -> None:
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         user_id = self.user.id
         user_email = self.user.email
@@ -96,16 +151,17 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert "scheduled_deletion_datetime" not in security_call[1]["context"]
 
     @override_options({"staff.ga-rollout": True})
-    @patch("sentry.analytics.record")
-    def test_hard_delete_timestamps_match(self, mock_analytics):
+    @mock.patch("sentry.analytics.record")
+    def test_hard_delete_timestamps_match(self, mock_analytics: mock.MagicMock) -> None:
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         self.get_success_response(self.user.id, organizations=[], hardDelete=True, status_code=204)
 
         call_args = mock_analytics.call_args[0][0]
         assert call_args.deletion_request_datetime == call_args.deletion_datetime
 
-    @patch("sentry.analytics.record")
-    def test_soft_delete_timestamps_differ_by_30_days(self, mock_analytics):
+    @override_options({"staff.ga-rollout": True})
+    @mock.patch("sentry.analytics.record")
+    def test_soft_delete_timestamps_differ_by_30_days(self, mock_analytics: mock.MagicMock) -> None:
         self.get_success_response(self.user.id, organizations=[], status_code=204)
 
         call_args = mock_analytics.call_args[0][0]

@@ -38,7 +38,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import (
@@ -130,8 +130,8 @@ def get_rules(
         NotificationRuleDetails(
             rule.id,
             rule.label,
-            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/",
-            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/details/",
+            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/",
+            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/details/",
         )
         for rule in rules
     ]
@@ -205,7 +205,7 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
-@region_silo_function
+@cell_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 
@@ -369,15 +369,15 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 
 
 def get_replay_id(event: Event | GroupEvent) -> str | None:
-    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    contexts = event.data.get("contexts") or {}
+    replay_id = (contexts.get("replay") or {}).get("replay_id")
     if (
         isinstance(event, GroupEvent)
         and event.occurrence is not None
         and event.occurrence.evidence_data
     ):
-        evidence_replay_id = (
-            event.occurrence.evidence_data.get("contexts", {}).get("replay", {}).get("replay_id")
-        )
+        evidence_contexts = event.occurrence.evidence_data.get("contexts") or {}
+        evidence_replay_id = (evidence_contexts.get("replay") or {}).get("replay_id")
 
         if evidence_replay_id:
             return evidence_replay_id

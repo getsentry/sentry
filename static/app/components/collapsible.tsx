@@ -1,6 +1,7 @@
 import {Children, Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t, tn} from 'sentry/locale';
 
 type CollapseButtonRenderProps = {
@@ -22,7 +23,7 @@ type Props = {
 /**
  * This component is used to show first X items and collapse the rest
  */
-function Collapsible({
+export function Collapsible({
   collapseButton,
   expandButton,
   maxVisibleItems = 5,
@@ -50,7 +51,7 @@ function Collapsible({
       {visibleItems}
 
       {showDefault && (
-        <Button priority="link" onClick={handleCollapseToggle}>
+        <Button variant="link" onClick={handleCollapseToggle}>
           {isCollapsed
             ? tn('Show %s hidden item', 'Show %s hidden items', numberOfHiddenItems)
             : t('Collapse')}
@@ -63,5 +64,3 @@ function Collapsible({
     </Fragment>
   );
 }
-
-export default Collapsible;

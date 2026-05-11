@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -105,7 +106,7 @@ export const getReplayConfigOptions = ({
   mask?: boolean;
 } = {}) => {
   if (mask && block) {
-    return ``;
+    return '';
   }
   if (mask) {
     return `{

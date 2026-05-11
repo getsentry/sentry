@@ -1,10 +1,9 @@
-import {Link} from 'sentry/components/core/link';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FieldGroup} from '@sentry/scraps/form';
+import {Link} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import SpikeProtectionProjectToggle from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 
@@ -12,7 +11,9 @@ interface SpikeProtectionProjectSettingsProps {
   project: Project;
 }
 
-function SpikeProtectionProjectSettings({project}: SpikeProtectionProjectSettingsProps) {
+export function SpikeProtectionProjectSettings({
+  project,
+}: SpikeProtectionProjectSettingsProps) {
   const organization = useOrganization();
   const helpText = tct(
     'Enables automated rate limits for errors when a spike is detected for this project. [link]',
@@ -26,19 +27,14 @@ function SpikeProtectionProjectSettings({project}: SpikeProtectionProjectSetting
   );
 
   return (
-    <Panel>
-      <PanelHeader>{t('Spike Protection')}</PanelHeader>
-      <PanelBody>
-        <SpikeProtectionProjectToggle
-          project={project}
-          label={t('Spike Protection')}
-          help={helpText}
-          analyticsView="project_settings"
-          disabled={!project.access.includes('project:write')}
-        />
-      </PanelBody>
-    </Panel>
+    <FieldGroup title={t('Spike Protection')}>
+      <SpikeProtectionProjectToggle
+        project={project}
+        label={t('Spike Protection')}
+        help={helpText}
+        analyticsView="project_settings"
+        disabled={!project.access.includes('project:write')}
+      />
+    </FieldGroup>
   );
 }
-
-export default SpikeProtectionProjectSettings;

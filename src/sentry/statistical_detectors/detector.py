@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict
+from typing import ClassVar
 
 import sentry_sdk
 
@@ -31,6 +31,7 @@ from sentry.seer.breakpoints import (
     BreakpointTransaction,
     detect_breakpoints,
 )
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.statistical_detectors.algorithm import DetectorAlgorithm
 from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
@@ -52,15 +53,14 @@ class TrendBundle:
     regression_group: RegressionGroup | None = None
 
 
-@dataclass(frozen=True)
 class RegressionDetector(ABC):
-    source: str
-    kind: str
-    regression_type: RegressionType
-    min_change: int
-    buffer_period: timedelta
-    resolution_rel_threshold: float
-    escalation_rel_threshold: float
+    source: ClassVar[str]
+    kind: ClassVar[str]
+    regression_type: ClassVar[RegressionType]
+    min_change: ClassVar[int]
+    buffer_period: ClassVar[timedelta]
+    resolution_rel_threshold: ClassVar[float]
+    escalation_rel_threshold: ClassVar[float]
 
     @classmethod
     @abstractmethod
@@ -222,6 +222,7 @@ class RegressionDetector(ABC):
         start: datetime,
         function: str,
         timeseries_per_batch=10,
+        viewer_context: SeerViewerContext | None = None,
     ) -> Generator[BreakpointData]:
         serializer = SnubaTSResultSerializer(None, None, None)
 
@@ -254,7 +255,7 @@ class RegressionDetector(ABC):
             }
 
             try:
-                yield from detect_breakpoints(request)["data"]
+                yield from detect_breakpoints(request, viewer_context=viewer_context)["data"]
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 metrics.incr(
@@ -271,7 +272,7 @@ class RegressionDetector(ABC):
         if ratelimit is None:
             ratelimit = options.get("statistical_detectors.ratelimit.ema")
 
-        regressions_by_project: DefaultDict[int, list[tuple[float, TrendBundle]]] = defaultdict(
+        regressions_by_project: defaultdict[int, list[tuple[float, TrendBundle]]] = defaultdict(
             list
         )
 

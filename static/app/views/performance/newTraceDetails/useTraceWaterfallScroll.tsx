@@ -1,7 +1,7 @@
 import {useCallback, useRef} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
@@ -34,7 +34,7 @@ export function useTraceWaterfallScroll({
   const previouslyScrolledToNodeRef = useRef<BaseNode | null>(null);
   const traceState = useTraceState();
 
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<

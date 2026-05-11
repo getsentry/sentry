@@ -9,8 +9,8 @@ import {
 
 import * as indicators from 'sentry/actionCreators/indicator';
 
-import DocIntegrationDetails from 'admin/views/docIntegrationDetails';
-import DocIntegrations from 'admin/views/docIntegrations';
+import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
+import {DocIntegrations} from 'admin/views/docIntegrations';
 
 describe('Doc Integrations', () => {
   it('renders', () => {
@@ -48,7 +48,7 @@ describe('Doc Integration Details', () => {
         location: {
           pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
         },
-        route: `/admin/doc-integrations/:docIntegrationSlug/`,
+        route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
 
@@ -83,7 +83,7 @@ describe('Doc Integration Details', () => {
         location: {
           pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
         },
-        route: `/admin/doc-integrations/:docIntegrationSlug/`,
+        route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
 
@@ -140,7 +140,7 @@ describe('Doc Integration Details', () => {
         location: {
           pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
         },
-        route: `/admin/doc-integrations/:docIntegrationSlug/`,
+        route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
     expect(
@@ -196,7 +196,7 @@ describe('Doc Integration Details', () => {
         location: {
           pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
         },
-        route: `/admin/doc-integrations/:docIntegrationSlug/`,
+        route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
 

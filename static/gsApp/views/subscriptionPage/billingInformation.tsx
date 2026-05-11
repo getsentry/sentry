@@ -1,20 +1,21 @@
 import {useTheme} from '@emotion/react';
 
-import {Flex} from 'sentry/components/core/layout';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Flex} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
-import CreditCardPanel from 'getsentry/components/creditCardEdit/panel';
-import withSubscription from 'getsentry/components/withSubscription';
+import {BillingDetailsPanel} from 'getsentry/components/billingDetails/panel';
+import {CreditCardPanel} from 'getsentry/components/creditCardEdit/panel';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {FTCConsentLocation, type Subscription} from 'getsentry/types';
-import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type Props = {
   subscription: Subscription;

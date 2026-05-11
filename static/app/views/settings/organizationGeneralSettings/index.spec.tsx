@@ -12,10 +12,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -27,7 +27,6 @@ describe('OrganizationGeneralSettings', () => {
   const ENDPOINT = '/organizations/org-slug/';
   const organization = OrganizationFixture();
   let configState: Config;
-  let membersRequest: jest.Mock;
 
   beforeEach(() => {
     configState = ConfigStore.getState();
@@ -41,10 +40,6 @@ describe('OrganizationGeneralSettings', () => {
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
       body: [GitHubIntegrationFixture()],
-    });
-    membersRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
     });
   });
 
@@ -176,15 +171,13 @@ describe('OrganizationGeneralSettings', () => {
     );
   });
 
-  it('disables the entire form if user does not have write access', async () => {
+  it('disables the entire form if user does not have write access', () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
     OrganizationStore.onUpdate(readOnlyOrg, {replace: true});
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
     });
-
-    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
     const formElements = [
       ...screen.getAllByRole('textbox'),
@@ -193,7 +186,11 @@ describe('OrganizationGeneralSettings', () => {
     ];
 
     for (const formElement of formElements) {
-      expect(formElement).toBeDisabled();
+      // New form system uses aria-disabled + readOnly instead of native disabled attribute
+      const isDisabled =
+        formElement.hasAttribute('disabled') ||
+        formElement.getAttribute('aria-disabled') === 'true';
+      expect(isDisabled).toBe(true);
     }
 
     expect(
@@ -203,15 +200,13 @@ describe('OrganizationGeneralSettings', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not have remove organization button without org:admin permission', async () => {
+  it('does not have remove organization button without org:admin permission', () => {
     const orgWithWriteAccess = OrganizationFixture({access: ['org:write']});
     OrganizationStore.onUpdate(orgWithWriteAccess, {replace: true});
 
     render(<OrganizationGeneralSettings />, {
       organization: orgWithWriteAccess,
     });
-
-    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
     expect(
       screen.queryByRole('button', {name: /remove organization/i})

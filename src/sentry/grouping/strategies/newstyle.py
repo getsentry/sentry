@@ -26,13 +26,13 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.strategies.base import (
     ComponentsByVariant,
-    GroupingContext,
     call_with_variants,
+    get_grouping_components_by_variant,
+    get_single_grouping_component,
     strategy,
 )
-from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
-from sentry.grouping.utils import hash_from_values
+from sentry.grouping.utils import hash_from_values, normalize_message_for_grouping
 from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
@@ -41,6 +41,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -491,7 +492,7 @@ def _single_stacktrace_variant(
     raw_frames = []
 
     for frame in frames:
-        frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        frame_component = get_single_grouping_component(frame, event, context, **kwargs)
         if _is_recursive_frame(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
 
@@ -581,9 +582,7 @@ def single_exception(
         with context:
             context["exception_data"] = exception.to_json()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
-                context.get_grouping_components_by_variant(
-                    exception.stacktrace, event=event, **kwargs
-                )
+                get_grouping_components_by_variant(exception.stacktrace, event, context, **kwargs)
             )
     else:
         stacktrace_components_by_variant = {
@@ -597,7 +596,9 @@ def single_exception(
 
         raw = exception.value
         if raw is not None:
-            normalized = normalize_message_for_grouping(raw, event)
+            normalized = normalize_message_for_grouping(
+                raw, context, reason="value_component", trim_message=True
+            )
             hint = "stripped event-specific values" if raw != normalized else None
             if normalized:
                 value_component.update(values=[normalized], hint=hint)
@@ -649,7 +650,7 @@ def chained_exception(
 
     # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
-        id(exception): context.get_grouping_components_by_variant(exception, event=event, **kwargs)
+        id(exception): get_grouping_components_by_variant(exception, event, context, **kwargs)
         for exception in all_exceptions
     }
 
@@ -853,7 +854,7 @@ def filter_exceptions_for_exception_groups(
     # When there's more than one distinct top-level exception, return one of each of them AND the root exception group.
     # NOTE: This deviates from the original RFC, because finding a common ancestor that shares
     # one of each top-level exception that is _not_ the root is overly complicated.
-    # Also, it's more likely the stack trace of the root exception will be more meaningful
+    # Also, it's more likely the stacktrace of the root exception will be more meaningful
     # than one of an inner exception group.
     if exception_tree[0].exception:
         distinct_top_level_exceptions.append(exception_tree[0].exception)
@@ -914,8 +915,8 @@ def _get_thread_components(
 
     thread_components_by_variant = {}
 
-    for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
-        stacktrace, event=event, **kwargs
+    for variant_name, stacktrace_component in get_grouping_components_by_variant(
+        stacktrace, event, context, **kwargs
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
             values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
@@ -957,6 +958,39 @@ JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = [
     "UndeliverableException",
 ]
 
+# (module, type) pairs for diagnostic wrapper exceptions added by Kotlin Coroutines
+# and Jetpack Compose runtime tooling. They have no useful stacktrace and a
+# placeholder message, so they should never determine the issue title — the real
+# error is always reachable via the mechanism parent_id chain.
+_DIAGNOSTIC_WRAPPER_EXCEPTIONS: tuple[tuple[str, str], ...] = (
+    ("kotlinx.coroutines.internal", "DiagnosticCoroutineContextException"),
+    ("androidx.compose.runtime.tooling", "DiagnosticComposeException"),
+)
+
+
+def _is_diagnostic_wrapper(exception: SingleException) -> bool:
+    return (exception.module, exception.type) in _DIAGNOSTIC_WRAPPER_EXCEPTIONS
+
+
+def _walk_to_non_wrapper_parent(
+    exception: SingleException, exceptions_by_id: dict[int, SingleException]
+) -> int | None:
+    # Bounded by the number of known exceptions to guard against malformed cycles.
+    current = exception
+    for _ in range(len(exceptions_by_id)):
+        if not (
+            current.mechanism
+            and current.mechanism.parent_id is not None
+            and current.mechanism.parent_id in exceptions_by_id
+        ):
+            return None
+        parent_id = current.mechanism.parent_id
+        parent = exceptions_by_id[parent_id]
+        if not _is_diagnostic_wrapper(parent):
+            return parent_id
+        current = parent
+    return None
+
 
 def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int | None:
     if len(exceptions) < 2:
@@ -969,7 +1003,6 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
             exception.module == "io.reactivex.rxjava3.exceptions"
             and exception.type in JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES
             and exception.mechanism
-            and exception.mechanism.type == "UncaughtExceptionHandler"
         ):
             rxjava_exception_id = exception.mechanism.exception_id
             break
@@ -987,9 +1020,35 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
     return None
 
 
+def kotlin_diagnostic_wrapper_exceptions(exceptions: list[SingleException]) -> int | None:
+    """
+    DiagnosticCoroutineContextException (Kotlin Coroutines) and DiagnosticComposeException
+    (Jetpack Compose) are debugging wrappers with no useful stacktrace or message. When
+    present in the chain, walk past any chained wrappers and return the first non-wrapper
+    ancestor as the main exception.
+    """
+    if len(exceptions) < 2 or not any(_is_diagnostic_wrapper(exc) for exc in exceptions):
+        return None
+
+    exceptions_by_id = {
+        exc.mechanism.exception_id: exc
+        for exc in exceptions
+        if exc.mechanism and exc.mechanism.exception_id is not None
+    }
+
+    for exception in exceptions:
+        if _is_diagnostic_wrapper(exception):
+            resolved = _walk_to_non_wrapper_parent(exception, exceptions_by_id)
+            if resolved is not None:
+                return resolved
+
+    return None
+
+
 MAIN_EXCEPTION_ID_FUNCS = [
     react_error_with_cause,
     java_rxjava_framework_exceptions,
+    kotlin_diagnostic_wrapper_exceptions,
 ]
 
 
@@ -1000,5 +1059,5 @@ def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleExcep
         if main_exception_id is not None:
             break
 
-    if main_exception_id:
+    if main_exception_id is not None:
         event.data["main_exception_id"] = main_exception_id

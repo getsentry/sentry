@@ -33,7 +33,6 @@ class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now: MagicMock) -> None:
-
         mock_now.return_value = before_now()
 
         event = load_data("transaction", timestamp=before_now(minutes=10))

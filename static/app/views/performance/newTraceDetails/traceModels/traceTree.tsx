@@ -7,6 +7,8 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {
   TraceError as TraceErrorType,
@@ -31,8 +33,6 @@ import {
   type RENDERABLE_MEASUREMENTS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {EapSpanNode} from './traceTreeNode/eapSpanNode';
@@ -140,12 +140,12 @@ export declare namespace TraceTree {
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
+    issue_type: number;
     level: Level;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    type: number;
     short_id?: string;
   };
 
@@ -365,7 +365,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: RootNode = new RootNode(null, null, null);
 
-  vital_types: Set<'web' | 'mobile'> = new Set();
+  vital_types = new Set<'web' | 'mobile'>();
   vitals = new Map<BaseNode, TraceTree.CollectedVital[]>();
 
   profiled_events = new Set<BaseNode>();
@@ -388,7 +388,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return trace;
   }
 
-  static Error(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
+  static ErrorState(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
     const trace = makeExampleTrace(metadata, organization);
     trace.type = 'error';
     trace.build();
@@ -436,6 +436,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       replayTraceSlug: options.replayTraceSlug,
     });
 
+    // Track visited event_ids to prevent cycles during tree construction.
+    // Cyclic nodes are skipped and logged for debugging.
+    const visitedIds = new Set<string>();
+
     function visit(
       parent: BaseNode,
       value:
@@ -445,6 +449,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         | TraceTree.EAPError
         | TraceTree.UptimeCheck
     ) {
+      const nodeId = 'event_id' in value ? value.event_id : undefined;
+      if (nodeId && visitedIds.has(nodeId)) {
+        Sentry.logger.warn('Cycle detected in trace tree structure', {nodeId});
+        return;
+      }
+      if (nodeId) {
+        visitedIds.add(nodeId);
+      }
+
       tree.projects.set(value.project_id, {
         slug: value.project_slug,
       });
@@ -803,8 +816,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let end = head.space[0] + head.space[1];
 
       while (
-        tail &&
-        tail.children.length === 1 &&
+        tail?.children.length === 1 &&
         tail.children[0]!.canAutogroup &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0]!.op !== 'default' &&
@@ -1200,16 +1212,43 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return node.depth;
     }
 
-    let depth = -2;
-    let start: BaseNode | null = node;
+    const visibleParent = TraceTree.VisibleParent(node);
+    node.depth = visibleParent ? TraceTree.Depth(visibleParent) + 1 : 0;
+    return node.depth;
+  }
+
+  static VisibleParent(node: BaseNode): BaseNode | null {
+    if (node.visibleParent !== undefined) {
+      return node.visibleParent;
+    }
+
+    let start = node.parent;
 
     while (start) {
-      depth++;
+      if (
+        start.directVisibleChildren.includes(node) &&
+        (start.isRootNodeChild() || TraceTree.VisibleParent(start) !== null)
+      ) {
+        node.visibleParent = start;
+        return node.visibleParent;
+      }
+
       start = start.parent;
     }
 
-    node.depth = depth;
-    return depth;
+    node.visibleParent = null;
+    return node.visibleParent;
+  }
+
+  static IsLastVisibleChild(node: BaseNode): boolean {
+    const visibleParent = TraceTree.VisibleParent(node);
+
+    if (!visibleParent) {
+      return node.isLastChild();
+    }
+
+    const visibleChildren = visibleParent.directVisibleChildren;
+    return visibleChildren[visibleChildren.length - 1] === node;
   }
 
   static ConnectorsTo(node: BaseNode): number[] {
@@ -1218,31 +1257,36 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const connectors: number[] = [];
-    let start: BaseNode | null = node.parent;
+    let start = TraceTree.VisibleParent(node);
 
-    if (start?.isRootNodeChild() && !node.isLastChild()) {
+    if (start?.isRootNodeChild() && !TraceTree.IsLastVisibleChild(node)) {
       node.connectors = [-TraceTree.Depth(node)];
       return node.connectors;
     }
 
-    if (!node.isLastChild()) {
+    if (!TraceTree.IsLastVisibleChild(node)) {
       connectors.push(TraceTree.Depth(node));
     }
 
     while (start) {
-      if (!start.value || !start.parent) {
+      if (!start.value) {
         break;
       }
 
-      if (start.isLastChild()) {
-        start = start.parent;
+      const visibleParent = TraceTree.VisibleParent(start);
+      if (!visibleParent) {
+        break;
+      }
+
+      if (TraceTree.IsLastVisibleChild(start)) {
+        start = visibleParent;
         continue;
       }
 
       connectors.push(
-        start.parent.isRootNodeChild() ? -TraceTree.Depth(start) : TraceTree.Depth(start)
+        visibleParent.isRootNodeChild() ? -TraceTree.Depth(start) : TraceTree.Depth(start)
       );
-      start = start.parent;
+      start = visibleParent;
     }
 
     node.connectors = connectors;

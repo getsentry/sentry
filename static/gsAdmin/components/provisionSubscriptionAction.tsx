@@ -8,19 +8,18 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
-import Form from 'sentry/components/deprecatedforms/form';
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {InputField} from 'sentry/components/deprecatedforms/inputField';
 import NumberField, {
   NumberField as NumberFieldNoContext,
 } from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -76,6 +75,8 @@ class DollarsFieldNoContext extends NumberFieldNoContext {
 
 const DollarsField = withFormContext(DollarsFieldNoContext);
 
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 class DollarsAndCentsFieldNoContext extends InputField<DollarsAndCentsFieldProps> {
   getField() {
     return (
@@ -194,24 +195,21 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const {subscription, billingConfig} = this.props;
 
     const provisionablePlans = billingConfig
-      ? billingConfig.planList.reduce(
-          (acc, plan) => {
-            if (
-              (isAmEnterprisePlan(plan.id) ||
-                plan.id === 'e1' ||
-                plan.id === 'mm2_a' ||
-                plan.id === 'mm2_b') &&
-              !plan.id.endsWith('_ac') &&
-              !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id) &&
-              !plan.isTestPlan
-            ) {
-              acc[plan.id] = plan;
-            }
-            return acc;
-          },
-          {} as Record<string, Plan>
-        )
+      ? billingConfig.planList.reduce<Record<string, Plan>>((acc, plan) => {
+          if (
+            (isAmEnterprisePlan(plan.id) ||
+              plan.id === 'e1' ||
+              plan.id === 'mm2_a' ||
+              plan.id === 'mm2_b') &&
+            !plan.id.endsWith('_ac') &&
+            !plan.id.endsWith('_auf') &&
+            !isTrialPlan(plan.id) &&
+            !plan.isTestPlan
+          ) {
+            acc[plan.id] = plan;
+          }
+          return acc;
+        }, {})
       : {};
 
     this.setState(state => ({
@@ -338,10 +336,17 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   // Same as above, but for Seer budgets
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
-      .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
+      .filter(
+        ([key, _]) =>
+          key.startsWith('reservedCpeSeerAutofix') ||
+          key.startsWith('reservedCpeSeerScanner')
+      )
       .every(([_, value]) => value !== null && value !== undefined) &&
-    Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSeer'))
-      .length >= 2;
+    Object.keys(this.state.data).filter(
+      key =>
+        key.startsWith('reservedCpeSeerAutofix') ||
+        key.startsWith('reservedCpeSeerScanner')
+    ).length >= 2;
 
   isSettingReservedBudget = (category: DataCategory) => {
     if (category === DataCategory.SPANS || category === DataCategory.SPANS_INDEXED) {
@@ -424,9 +429,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    const allCategories = Object.values(DATA_CATEGORY_INFO).map(
-      c => c.plural as DataCategory
-    );
+    const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
     const planCategories = allCategories.filter(c =>
       this.state.provisionablePlans[postData.plan]?.categories.includes(c)
     );
@@ -1122,7 +1125,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 const Columns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 `;
 
 const SectionHeader = styled('h5')`
@@ -1131,7 +1134,7 @@ const SectionHeader = styled('h5')`
 
 const SectionHeaderDescription = styled('small')`
   display: block;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const modalCss = css`
@@ -1171,7 +1174,5 @@ const Modal = withApi(ProvisionSubscriptionModal);
 
 type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'billingConfig'>;
 
-const triggerProvisionSubscription = (opts: Options) =>
+export const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});
-
-export default triggerProvisionSubscription;

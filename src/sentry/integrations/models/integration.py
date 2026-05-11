@@ -20,7 +20,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.integrations.base import (
@@ -45,7 +45,7 @@ class Integration(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Global
 
     provider = models.CharField(max_length=64)
-    external_id = models.CharField(max_length=64)
+    external_id = models.CharField(max_length=256)
     name = models.CharField(max_length=200)
     # metadata might be used to store things like credentials, but it should NOT
     # be used to store organization-specific information, as an Integration
@@ -98,9 +98,9 @@ class Integration(DefaultFieldsModelExisting):
                 shard_identifier=identifier,
                 object_identifier=identifier,
                 category=OutboxCategory.INTEGRATION_UPDATE,
-                region_name=region_name,
+                cell_name=cell_name,
             )
-            for region_name in find_regions_for_orgs(org_ids)
+            for cell_name in find_cells_for_orgs(org_ids)
         ]
 
     def add_organization(

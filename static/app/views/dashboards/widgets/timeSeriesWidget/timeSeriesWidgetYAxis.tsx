@@ -1,6 +1,8 @@
 import type {YAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
+import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
+
 import {Y_AXIS_INTEGER_TOLERANCE} from './settings';
 
 type TimeSeriesWidgetYAxisProps = YAXisComponentOption;
@@ -8,7 +10,7 @@ type TimeSeriesWidgetYAxisProps = YAXisComponentOption;
 export function TimeSeriesWidgetYAxis(
   props: TimeSeriesWidgetYAxisProps,
   yAxisFieldType: string,
-  yAxisRange: 'auto' | 'dataMin'
+  yAxisRange: AxisRange
 ): YAXisComponentOption {
   return merge(
     {

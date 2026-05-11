@@ -1,11 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {RenameIssueViewModal} from 'sentry/views/issueList/issueViews/renameIssueViewModal';
@@ -17,7 +18,7 @@ import {
   GroupSearchViewCreatedBy,
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
-import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
+import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewsTableProps = {
   handleDeleteView: (view: GroupSearchView) => void;
@@ -40,6 +41,8 @@ export function IssueViewsTable({
   type,
   hideCreatedBy = false,
 }: IssueViewsTableProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const user = useUser();
   const hasIssueViews = useHasIssueViews();

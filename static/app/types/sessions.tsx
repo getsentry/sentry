@@ -14,6 +14,7 @@ export enum SessionField {
   SESSION = 'session',
   SESSION_DURATION = 'session.duration',
   USER = 'user',
+  STATUS = 'session.status',
 }
 
 export type SessionsOperation =

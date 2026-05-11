@@ -54,9 +54,7 @@ def dispatch_check_missing(ts: datetime) -> None:
         MonitorEnvironment.objects.filter(
             IGNORE_MONITORS,
             next_checkin_latest__lte=ts,
-        ).values(
-            "id"
-        )[:MONITOR_LIMIT]
+        ).values("id")[:MONITOR_LIMIT]
     )
 
     metrics.gauge(

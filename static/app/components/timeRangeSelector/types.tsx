@@ -1,4 +1,4 @@
-import {type SelectOption} from 'sentry/components/core/compactSelect';
+import {type SelectOption} from '@sentry/scraps/compactSelect';
 
 export interface TimeRangeItem extends SelectOption<string> {
   /**

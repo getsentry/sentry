@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 
 import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
+import {HighlightCornerContainer} from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
@@ -51,7 +50,7 @@ function DemoSignUpModal({closeModal}: Props) {
         </TrialCheckInfo>
         <StyledButtonBar>
           <LinkButton
-            priority="primary"
+            variant="primary"
             href={signupUrl}
             onClick={() =>
               trackAnalytics('growth.demo_modal_clicked_signup', {
@@ -62,7 +61,7 @@ function DemoSignUpModal({closeModal}: Props) {
             {t('Start free trial')}
           </LinkButton>
           <LinkButton
-            priority="default"
+            variant="secondary"
             href={demoUrl}
             onClick={() =>
               trackAnalytics('growth.demo_modal_clicked_demo', {
@@ -82,7 +81,7 @@ function DemoSignUpModal({closeModal}: Props) {
 }
 
 const TrialCheckInfo = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   p {
     font-size: ${p => p.theme.font.size.lg};
     margin: 0;
@@ -105,15 +104,17 @@ export const modalCss = css`
 `;
 
 const Subheader = styled('h4')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   text-transform: uppercase;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
-  margin-top: ${space(2)};
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  margin-top: ${p => p.theme.space.xl};
   max-width: 250px;
 `;
 

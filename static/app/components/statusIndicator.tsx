@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {AlertVariant} from 'sentry/utils/theme';
 
 type StatusVariant = AlertVariant | 'resolved';
@@ -15,7 +16,7 @@ export interface StatusIndicatorProps {
  *
  */
 export function StatusIndicator({status, tooltipTitle}: StatusIndicatorProps) {
-  const color: AlertVariant = status === 'resolved' ? 'success' : status;
+  const color = status === 'resolved' ? 'success' : status;
 
   return (
     <Tooltip title={tooltipTitle} skipWrapper>

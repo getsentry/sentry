@@ -5,7 +5,6 @@ from sentry.api import client
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.seer.endpoints.utils import validate_date_params
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +48,28 @@ _LOG_BUILT_IN_NUMBER_FIELDS = [
 ]
 
 
+_METRIC_BUILT_IN_STRING_FIELDS = [
+    "metric.name",
+    "metric.type",
+    "metric.unit",
+    "timestamp",
+    "project",
+    "environment",
+    "release",
+    "trace",
+]
+
+_METRIC_BUILT_IN_NUMBER_FIELDS = [
+    "value",
+]
+
+
 def _get_built_in_fields(item_type: str = "spans") -> list[dict[str, Any]]:
     """
     Get built-in fields for the specified item type.
 
     Args:
-        item_type: Type of trace item ("spans" or "logs")
+        item_type: Type of trace item ("spans", "logs", or "tracemetrics")
 
     Returns:
         List of built-in field definitions with key and type.
@@ -62,6 +77,9 @@ def _get_built_in_fields(item_type: str = "spans") -> list[dict[str, Any]]:
     if item_type == "logs":
         string_fields = _LOG_BUILT_IN_STRING_FIELDS
         number_fields = _LOG_BUILT_IN_NUMBER_FIELDS
+    elif item_type == "tracemetrics":
+        string_fields = _METRIC_BUILT_IN_STRING_FIELDS
+        number_fields = _METRIC_BUILT_IN_NUMBER_FIELDS
     else:
         string_fields = _SPAN_BUILT_IN_STRING_FIELDS
         number_fields = _SPAN_BUILT_IN_NUMBER_FIELDS
@@ -114,8 +132,6 @@ def get_attribute_names(
         }
     """
     organization = Organization.objects.get(id=org_id)
-
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
@@ -185,8 +201,6 @@ def get_attribute_values_with_substring(
         return {}
 
     organization = Organization.objects.get(id=org_id)
-
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 

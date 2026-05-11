@@ -11,7 +11,7 @@ class ProjectRuleTaskDetailsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.project = self.create_project(fire_project_created=True)
-        self.rule = self.project.rule_set.all()[0]
+        self.rule = self.project.rule_set.order_by("id")[0]
         self.uuid = uuid4().hex
 
     @patch("sentry.integrations.slack.utils.rule_status.RedisRuleStatus.get_value")

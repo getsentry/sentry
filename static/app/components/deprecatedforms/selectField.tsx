@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {Select} from '@sentry/scraps/select';
+
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
-import FormField, {type FormFieldProps} from './formField';
+import {FormField, type FormFieldProps} from './formField';
 
 // Combined interface for SelectField props
 export interface SelectFieldProps extends FormFieldProps {
@@ -27,6 +28,9 @@ export interface SelectFieldProps extends FormFieldProps {
 /**
  * @deprecated Do not use this
  */
+
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 export class SelectField extends FormField<SelectFieldProps> {
   static defaultProps = {
     ...FormField.defaultProps,
@@ -69,7 +73,7 @@ export class SelectField extends FormField<SelectFieldProps> {
     if (defined(props.value)) {
       return props.value;
     }
-    if (form?.data.hasOwnProperty(props.name)) {
+    if (form && Object.hasOwn(form.data, props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : defaultValue;
     }
     return defined(props.defaultValue) ? props.defaultValue : defaultValue;
@@ -89,7 +93,7 @@ export class SelectField extends FormField<SelectFieldProps> {
     if (this.isMultiple()) {
       return value.map((v: any) => v.value);
     }
-    if (value.hasOwnProperty('value')) {
+    if (Object.hasOwn(value, 'value')) {
       return value.value;
     }
 
@@ -128,7 +132,7 @@ export class SelectField extends FormField<SelectFieldProps> {
       <StyledSelectControl
         creatable={creatable}
         inputId={this.getId()}
-        choices={choices}
+        choices={choices as any}
         options={options}
         placeholder={placeholder}
         disabled={disabled}

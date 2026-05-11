@@ -43,7 +43,6 @@ class GrantExchanger:
             operation_type=SentryAppInteractionType.AUTHORIZATIONS,
             event_type=SentryAppEventType.GRANT_EXCHANGER,
         ).capture() as lifecycle:
-
             with transaction.atomic(using=router.db_for_write(ApiToken)):
                 try:
                     lifecycle.add_extras(

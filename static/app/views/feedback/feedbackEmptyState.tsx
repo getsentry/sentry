@@ -4,17 +4,18 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   issueTab?: boolean;
@@ -63,7 +64,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       };
     };
 
-    if (hasAnyFeedback === false) {
+    if (!hasAnyFeedback) {
       // send to reload only due to higher event volume
       trackAnalytics('user_feedback.viewed', {
         organization,
@@ -83,7 +84,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   }
 
   // Show no user reports if waiting for projects to load or if there is no feedback
-  if (loadingProjects || hasAnyFeedback !== false) {
+  if (loadingProjects || hasAnyFeedback) {
     return (
       <EmptyStateWarning>
         <p>{t('Sorry, no user reports match your filters.')}</p>
@@ -100,12 +101,12 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       <h3>{t('What do users think?')}</h3>
       <p>
         {t(
-          `You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive.`
+          "You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
         )}
       </p>
       <ButtonList>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={activateSidebarIssueDetails}
           analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
           analyticsEventKey="feedback.issue-details-click-onboarding-setup"
@@ -128,6 +129,8 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   );
 }
 
-const ButtonList = styled(ButtonBar)`
+const ButtonList = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;

@@ -3,11 +3,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GroupStore from 'sentry/stores/groupStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
 describe('getIssueFieldRenderer', () => {
@@ -78,16 +76,15 @@ describe('getIssueFieldRenderer', () => {
 
   describe('Issue fields', () => {
     it('can render assignee', async () => {
-      MemberListStore.loadInitialData([
-        UserFixture({
-          name: 'Test User',
-          email: 'test@sentry.io',
-          avatar: {
-            avatarType: 'letter_avatar',
-            avatarUuid: null,
-          },
-        }),
-      ]);
+      const assignedUser = UserFixture({
+        id: '1',
+        name: 'Test User',
+        email: 'test@sentry.io',
+        avatar: {
+          avatarType: 'letter_avatar',
+          avatarUuid: null,
+        },
+      });
 
       const group = GroupFixture({
         project,
@@ -98,7 +95,18 @@ describe('getIssueFieldRenderer', () => {
           name: 'Test User',
         },
       });
-      GroupStore.add([group]);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: group,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [{user: assignedUser}],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: [{user: assignedUser}],
+      });
       const renderer = getIssueFieldRenderer('assignee', {});
 
       render(
@@ -108,8 +116,86 @@ describe('getIssueFieldRenderer', () => {
           theme,
         }) as React.ReactElement
       );
-      await userEvent.hover(screen.getByText('TU'));
-      expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
+      expect(await screen.findByText('TU')).toBeInTheDocument();
+    });
+
+    it('updates assignee when changed', async () => {
+      const users = [
+        UserFixture({
+          id: '1',
+          name: 'Test User',
+          email: 'test@sentry.io',
+        }),
+        UserFixture({
+          id: '2',
+          name: 'Next User',
+          email: 'next@sentry.io',
+        }),
+      ];
+
+      const group = GroupFixture({
+        id: data.id,
+        project,
+        assignedTo: {
+          email: 'test@sentry.io',
+          type: 'user',
+          id: '1',
+          name: 'Test User',
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: group,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: users.map(memberUser => ({user: memberUser})),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: users.map(memberUser => ({user: memberUser})),
+      });
+
+      const assignMock = MockApiClient.addMockResponse({
+        method: 'PUT',
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: {
+          ...group,
+          assignedTo: {
+            email: 'next@sentry.io',
+            type: 'user',
+            id: '2',
+            name: 'Next User',
+          },
+        },
+      });
+
+      const renderer = getIssueFieldRenderer('assignee', {});
+
+      render(
+        renderer(data, {
+          location,
+          organization,
+          theme,
+        }) as React.ReactElement
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Modify issue assignee'})
+      );
+      await userEvent.click(await screen.findByText('Next User'));
+
+      await waitFor(() =>
+        expect(assignMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/issues/${group.id}/`,
+          expect.objectContaining({
+            data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
+          })
+        )
+      );
+
+      expect(await screen.findByText('NU')).toBeInTheDocument();
     });
 
     it('can render counts', async () => {
@@ -122,9 +208,9 @@ describe('getIssueFieldRenderer', () => {
           theme,
         }) as React.ReactElement
       );
-      expect(screen.getByText('3k')).toBeInTheDocument();
-      expect(screen.getByText('6k')).toBeInTheDocument();
-      await userEvent.hover(screen.getByText('3k'));
+      expect(screen.getByText('3K')).toBeInTheDocument();
+      expect(screen.getByText('6K')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('3K'));
       expect(await screen.findByText('Total in last 7 days')).toBeInTheDocument();
       expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();

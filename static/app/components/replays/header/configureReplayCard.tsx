@@ -3,18 +3,19 @@ import styled from '@emotion/styled';
 import type {Key} from '@react-types/shared';
 import * as Sentry from '@sentry/react';
 
-import {Flex} from 'sentry/components/core/layout';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Flex} from '@sentry/scraps/layout';
+
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-export default function ConfigureReplayCard({
+export function ConfigureReplayCard({
   isMobile,
   replayRecord,
 }: {
@@ -22,6 +23,7 @@ export default function ConfigureReplayCard({
   replayRecord: ReplayRecord | undefined;
 }) {
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <DropdownMenu
@@ -33,7 +35,11 @@ export default function ConfigureReplayCard({
       }}
       items={isMobile ? getMobileItems(replayRecord) : getWebItems()}
       trigger={(triggerProps, isOpen) => (
-        <DropdownButton {...triggerProps} isOpen={isOpen} size="xs">
+        <DropdownButton
+          {...triggerProps}
+          isOpen={isOpen}
+          size={hasPageFrameFeature ? 'sm' : 'xs'}
+        >
           {t('Configure Replay')}
         </DropdownButton>
       )}
@@ -90,7 +96,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('general'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration',
     },
     {
       key: 'masking',
@@ -101,7 +108,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('masking'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration',
     },
     {
       key: 'users',
@@ -112,7 +120,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('users'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users',
     },
     {
       key: 'network',
@@ -123,7 +132,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('network'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details',
     },
     {
       key: 'canvas',
@@ -137,7 +147,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('canvas'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording',
     },
   ] satisfies MenuItemProps[];
 }
@@ -208,7 +219,7 @@ const ButtonContent = styled('div')`
   flex-direction: column;
   text-align: left;
   white-space: pre-line;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ButtonTitle = styled('div')`

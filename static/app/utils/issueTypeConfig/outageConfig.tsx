@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const outageConfig: IssueCategoryConfigMapping = {
+export const outageConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     usesIssuePlatform: true,
     autofix: false,
@@ -35,6 +35,7 @@ const outageConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true},
       graph: {enabled: true, type: 'cron-checks'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: true},
     },
@@ -69,6 +70,7 @@ const outageConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: true},
       graph: {enabled: true, type: 'uptime-checks'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: true, downtime: true},
     },
@@ -96,5 +98,3 @@ const outageConfig: IssueCategoryConfigMapping = {
     stats: {enabled: false},
   },
 };
-
-export default outageConfig;

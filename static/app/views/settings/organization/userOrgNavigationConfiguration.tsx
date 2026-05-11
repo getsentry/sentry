@@ -1,6 +1,8 @@
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
@@ -15,6 +17,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/details/`,
           title: t('Account Details'),
+          keywords: [t('user settings'), t('account settings')],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
@@ -27,6 +30,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/notifications/`,
           title: t('Notifications'),
+          keywords: [t('weekly report')],
           description: t('Configure what email notifications to receive'),
         },
         {
@@ -71,6 +75,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
+          keywords: [t('slug'), t('org slug'), t('organization slug')],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -78,6 +83,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/stats/`,
           title: t('Stats & Usage'),
+          keywords: [t('data retention'), t('event retention'), t('quota')],
           description: t('View organization stats and usage'),
           id: 'stats',
         },
@@ -102,6 +108,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
+          keywords: [
+            t('data scrubbing'),
+            t('privacy'),
+            t('pii'),
+            t('attachments'),
+            t('advanced data scrubbing'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
           ),
@@ -110,6 +123,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/auth/`,
           title: t('Auth'),
+          keywords: [t('sso'), t('single sign-on'), t('authentication'), t('login')],
           description: t('Configure single sign-on'),
           id: 'sso',
         },
@@ -131,32 +145,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Data Forwarding'),
           description: t('Manage data forwarding across your organization'),
           id: 'data-forwarding',
-          badge: () => <FeatureBadge type="beta" />,
           recordAnalytics: true,
-          show: ({organization}) =>
-            !!organization &&
-            organization.features.includes('data-forwarding-revamp-access'),
         },
         {
           path: `${organizationSettingsPathPrefix}/relay/`,
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
           id: 'relay',
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/repos/`,
-          title: t('Repositories'),
-          description: t('Manage repositories connected to the organization'),
-          id: 'repos',
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/integrations/`,
-          title: t('Integrations'),
-          description: t(
-            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
-          ),
-          id: 'integrations',
-          recordAnalytics: true,
         },
         {
           path: `${organizationSettingsPathPrefix}/early-features/`,
@@ -181,23 +176,114 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t('Set up feature flag integrations'),
         },
         {
-          path: `${organizationSettingsPathPrefix}/seer/`,
-          title: t('Seer'),
-          description: t(
-            "Manage settings for Seer's automated analysis across your organization"
-          ),
-          show: ({organization}) => !!organization && !organization.hideAiFeatures,
-          id: 'seer',
-        },
-        {
           path: `${organizationSettingsPathPrefix}/console-sdk-invites/`,
           title: t('Console SDK Invites'),
           description: t('Manage access to our private console SDK repositories'),
           show: ({organization}) =>
-            !!organization &&
-            organization.features.includes('github-console-sdk-self-invite') &&
-            (organization.enabledConsolePlatforms?.length ?? 0) > 0,
+            !!organization && (organization.enabledConsolePlatforms?.length ?? 0) > 0,
           id: 'console-sdk-invites',
+        },
+      ],
+    },
+    {
+      id: 'settings-seer',
+      name: t('Seer'),
+      items: [
+        {
+          path: `${organizationSettingsPathPrefix}/seer/`,
+          title: t('Issue Scans & Fixes'),
+          description: t("Manage Seer's automated issue analysis across your projects"),
+          id: 'seer-autofix-legacy',
+          index: true,
+          show: ({organization}) => !!organization && !showNewSeer(organization),
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/projects/`,
+          title: t('Autofix'),
+          description: t("Manage Seer's automated issue analysis across your projects"),
+          id: 'seer-autofix-new',
+          show: ({organization}) => !!organization && showNewSeer(organization),
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/repos/`,
+          title: t('Code Review'),
+          description: t("Manage Seer's automated code review settings"),
+          id: 'seer-code-review',
+          show: ({organization}) =>
+            !!organization &&
+            (organization.features.includes('seat-based-seer-enabled') ||
+              organization.features.includes('code-review-beta')),
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/advanced/`,
+          title: t('Advanced Settings'),
+          description: t('Configure advanced Seer settings'),
+          id: 'seer-advanced',
+          show: ({organization}) => !!organization && showNewSeer(organization),
+        },
+      ],
+    },
+    {
+      id: 'settings-integrations',
+      name: t('Integrations'),
+      items: [
+        {
+          path: `${organizationSettingsPathPrefix}/mcp-cli/`,
+          title: t('MCP & CLI'),
+          description: t('Connect to Sentry via MCP server or the Sentry CLI'),
+          id: 'mcp-cli',
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/integrations/`,
+          title: t('Integrations'),
+          keywords: [
+            t('slack'),
+            t('github'),
+            t('gitlab'),
+            t('bitbucket'),
+            t('jira'),
+            t('azure devops'),
+            t('vercel'),
+            t('pagerduty'),
+            t('opsgenie'),
+            t('discord'),
+            t('microsoft teams'),
+            t('msteams'),
+            t('aws lambda'),
+            t('perforce'),
+            t('heroku'),
+            t('splunk'),
+            t('trello'),
+            t('asana'),
+            t('twilio'),
+            t('victorops'),
+            t('segment'),
+            t('code mappings'),
+          ],
+          description: t(
+            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
+          ),
+          id: 'integrations',
+          recordAnalytics: true,
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/repos/`,
+          title: t('Repositories'),
+          description: t('Manage repositories connected to the organization'),
+          id: 'repos',
+          recordAnalytics: true,
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/developer-settings/`,
+          title: t('Custom Integrations'),
+          keywords: [
+            t('integration'),
+            t('internal integration'),
+            t('developer settings'),
+            t('webhooks'),
+          ],
+          description: t('Manage custom integrations'),
+          id: 'developer-settings',
         },
       ],
     },
@@ -208,25 +294,35 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
           title: t('Organization Tokens'),
+          keywords: [
+            t('auth'),
+            t('auth token'),
+            t('auth tokens'),
+            t('api token'),
+            t('token'),
+            t('credentials'),
+          ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
         },
         {
           path: `${userSettingsPathPrefix}/api/auth-tokens/`,
           title: t('Personal Tokens'),
+          keywords: [
+            t('auth'),
+            t('auth token'),
+            t('auth tokens'),
+            t('api token'),
+            t('token'),
+            t('credentials'),
+          ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
           ),
         },
         {
-          path: `${organizationSettingsPathPrefix}/developer-settings/`,
-          title: t('Custom Integrations'),
-          description: t('Manage custom integrations'),
-          id: 'developer-settings',
-        },
-        {
           path: `${userSettingsPathPrefix}/api/applications/`,
-          title: t('Applications'),
+          title: t('OAuth Applications'),
           description: t('Add and configure OAuth2 applications'),
         },
       ],

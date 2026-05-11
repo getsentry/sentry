@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   hasAccess: boolean;
@@ -14,7 +15,7 @@ type Props = {
   onEdit: () => void;
 };
 
-function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
+export function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
   const actionsDisabled = !hasAccess || !hasFeature;
 
   return (
@@ -72,5 +73,3 @@ function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
     />
   );
 }
-
-export default Actions;

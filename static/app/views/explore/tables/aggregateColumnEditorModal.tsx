@@ -4,24 +4,22 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -31,10 +29,14 @@ import {
 } from 'sentry/utils/discover/fields';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey,
   FieldKind,
   getFieldDefinition,
+  NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
@@ -45,6 +47,7 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
@@ -61,8 +64,10 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
+  booleanTags: TagCollection;
   columns: AggregateField[];
   numberTags: TagCollection;
   onColumnsChange: (columns: WritableAggregateField[]) => void;
@@ -76,6 +81,7 @@ export function AggregateColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
+  booleanTags,
   numberTags,
   stringTags,
 }: AggregateColumnEditorModalProps) {
@@ -83,13 +89,13 @@ export function AggregateColumnEditorModal({
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
-  const [tempColumns, setTempColumns] = useState<AggregateField[]>(columns);
+  const [tempColumns, setTempColumns] = useState(columns);
 
   const groupBys = useMemo(() => {
     return columns.filter(isGroupBy).map(groupBy => groupBy.groupBy);
   }, [columns]);
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     const newColumns: WritableAggregateField[] = [];
 
     for (const col of tempColumns) {
@@ -102,7 +108,7 @@ export function AggregateColumnEditorModal({
 
     onColumnsChange(newColumns);
     closeModal();
-  }, [closeModal, onColumnsChange, tempColumns]);
+  };
 
   const groupByColumnss = tempColumns.filter(isGroupBy);
   const visualizeColumns = tempColumns.filter(isVisualize);
@@ -122,7 +128,7 @@ export function AggregateColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={column.id}
+                  key={column.uniqueId}
                   organization={organization}
                   canDelete={
                     isGroupBy(column.column) ? canDeleteGroupBy : canDeleteVisualize
@@ -131,6 +137,7 @@ export function AggregateColumnEditorModal({
                   options={[]}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
+                  booleanTags={booleanTags}
                   numberTags={numberTags}
                   stringTags={stringTags}
                   groupBys={groupBys}
@@ -154,18 +161,13 @@ export function AggregateColumnEditorModal({
                     onAction: () =>
                       insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
-                  ...(organization.features.includes('visibility-explore-equations')
-                    ? [
-                        {
-                          key: 'add-equation',
-                          label: t('Equation'),
-                          details: t('ex. p50(span.duration) / 2'),
-                          disabled: !canAddVisualize,
-                          onAction: () =>
-                            insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
-                        },
-                      ]
-                    : []),
+                  {
+                    key: 'add-equation',
+                    label: t('Equation'),
+                    details: t('ex. p50(span.duration) / 2'),
+                    disabled: !canAddVisualize,
+                    onAction: () => insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
+                  },
                 ]}
                 trigger={triggerProps => (
                   <Button
@@ -180,14 +182,14 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar>
-              <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+            <Grid flow="column" align="center" gap="md">
+              <LinkButton variant="secondary" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
-              <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
+              <Button aria-label={t('Apply')} variant="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Footer>
         </Fragment>
       )}
@@ -196,6 +198,7 @@ export function AggregateColumnEditorModal({
 }
 
 interface ColumnEditorRowProps {
+  booleanTags: TagCollection;
   canDelete: boolean;
   column: Column<AggregateField>;
   groupBys: string[];
@@ -216,6 +219,7 @@ function ColumnEditorRow({
   onColumnDelete,
   numberTags,
   stringTags,
+  booleanTags,
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
@@ -232,13 +236,7 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledButton
-        aria-label={t('Drag to reorder')}
-        borderless
-        size="sm"
-        icon={<IconGrabbable size="sm" />}
-        {...listeners}
-      />
+      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
       {isGroupBy(column.column) ? (
         <GroupBySelector
           groupBy={column.column}
@@ -246,19 +244,21 @@ function ColumnEditorRow({
           numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
+          booleanTags={booleanTags}
         />
       ) : (
         <VisualizeSelector
           organization={organization}
           visualize={column.column}
           onChange={onColumnChange}
+          booleanTags={booleanTags}
           numberTags={numberTags}
           stringTags={stringTags}
         />
       )}
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        variant="transparent"
         disabled={!canDelete}
         size="sm"
         icon={<IconDelete size="sm" />}
@@ -269,6 +269,7 @@ function ColumnEditorRow({
 }
 
 interface GroupBySelectorProps {
+  booleanTags: TagCollection;
   groupBy: GroupBy;
   groupBys: string[];
   numberTags: TagCollection;
@@ -282,18 +283,76 @@ function GroupBySelector({
   numberTags,
   onChange,
   stringTags,
+  booleanTags,
 }: GroupBySelectorProps) {
-  const options: Array<SelectOption<string>> = useGroupByFields({
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'string'
+    );
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'number'
+    );
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'boolean'
+    );
+
+  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+
+  const baseOptions = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
+    booleanTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
+  const searchedOptions = useGroupByFields({
+    groupBys: [],
+    numberTags: searchedNumberTags,
+    stringTags: searchedStringTags,
+    booleanTags: searchedBooleanTags,
+    traceItemType: TraceItemDataset.SPANS,
+    hideEmptyOption: true,
+  });
+
+  // Always feed baseOptions to CompactSelect so its built-in matcher can filter
+  // synchronously while the user types. Merge in any server-only matches once
+  // the debounced search returns.
+  const options = useMemo(() => {
+    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searchedOptions.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
+  }, [hasSearch, baseOptions, searchedOptions]);
+
   const label = useMemo(() => {
-    const tag = options.find(option => option.value === groupBy.groupBy);
+    const tag =
+      options.find(option => option.value === groupBy.groupBy) ??
+      baseOptions.find(option => option.value === groupBy.groupBy);
     return <TriggerLabel>{tag?.label ?? groupBy.groupBy}</TriggerLabel>;
-  }, [groupBy.groupBy, options]);
+  }, [groupBy.groupBy, options, baseOptions]);
 
   const handleChange = useCallback(
     (option: SelectOption<SelectKey>) => {
@@ -308,7 +367,18 @@ function GroupBySelector({
       options={options}
       value={groupBy.groupBy}
       onChange={handleChange}
-      searchable
+      search={{
+        onChange: setSearch,
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.SPANS,
+            option,
+            searchText,
+          });
+        },
+      }}
+      loading={isSearchLoading}
+      emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
@@ -325,6 +395,7 @@ function GroupBySelector({
 }
 
 interface VisualizeSelectorProps {
+  booleanTags: TagCollection;
   numberTags: TagCollection;
   onChange: (visualize: Visualize) => void;
   organization: Organization;
@@ -344,6 +415,7 @@ function AggregateSelector({
   onChange,
   numberTags,
   stringTags,
+  booleanTags,
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
@@ -363,13 +435,6 @@ function AggregateSelector({
     });
   }, []);
 
-  const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
-    numberTags,
-    stringTags,
-    parsedFunction,
-    traceItemType: TraceItemDataset.SPANS,
-  });
-
   const handleFunctionChange = useCallback(
     (option: SelectOption<SelectKey>) => {
       const newYAxis = updateVisualizeAggregate({
@@ -382,21 +447,18 @@ function AggregateSelector({
     [parsedFunction, onChange, visualize]
   );
 
-  const handleArgumentChange = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
-        onChange(visualize.replace({yAxis: newYAxis}));
+  const handleArgumentChange = (index: number, option: SelectOption<SelectKey>) => {
+    if (typeof option.value === 'string') {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = option.value;
+      } else {
+        args = [option.value];
       }
-    },
-    [parsedFunction, onChange, visualize]
-  );
+      const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
+      onChange(visualize.replace({yAxis: newYAxis}));
+    }
+  };
 
   return (
     <Fragment>
@@ -405,7 +467,7 @@ function AggregateSelector({
         options={aggregateOptions}
         value={parsedFunction?.name}
         onChange={handleFunctionChange}
-        searchable
+        search
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
@@ -416,52 +478,185 @@ function AggregateSelector({
           />
         )}
       />
-      {aggregateDefinition?.parameters?.map((param, index) => {
-        return (
-          <DoubleWidthCompactSelect
-            key={param.name}
-            data-test-id="editor-visualize-argument"
-            options={argumentOptions}
-            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-            onChange={option => handleArgumentChange(index, option)}
-            searchable
-            disabled={argumentOptions.length === 1}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                style={{
-                  width: '100%',
-                }}
-              />
-            )}
-          />
-        );
-      })}
+      {aggregateDefinition?.parameters?.map((param, index) => (
+        <AttributeArgumentSelect
+          key={param.name}
+          numberTags={numberTags}
+          stringTags={stringTags}
+          booleanTags={booleanTags}
+          parsedFunction={parsedFunction}
+          value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+          onChange={option => handleArgumentChange(index, option)}
+        />
+      ))}
       {aggregateDefinition?.parameters?.length === 0 && (
-        <DoubleWidthCompactSelect
-          data-test-id="editor-visualize-argument"
-          options={argumentOptions}
+        <AttributeArgumentSelect
+          numberTags={numberTags}
+          stringTags={stringTags}
+          booleanTags={booleanTags}
+          parsedFunction={parsedFunction}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => handleArgumentChange(0, option)}
-          searchable
-          disabled
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              style={{
-                width: '100%',
-              }}
-            />
-          )}
+          forceDisabled
         />
       )}
     </Fragment>
   );
 }
 
+interface AttributeArgumentSelectProps {
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
+  onChange: (option: SelectOption<SelectKey>) => void;
+  parsedFunction: ReturnType<typeof parseFunction>;
+  stringTags: TagCollection;
+  value: string;
+  forceDisabled?: boolean;
+}
+
+function AttributeArgumentSelect({
+  numberTags,
+  stringTags,
+  booleanTags,
+  parsedFunction,
+  value,
+  onChange,
+  forceDisabled,
+}: AttributeArgumentSelectProps) {
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  const supportedKinds = getSupportedAttributeKinds(parsedFunction?.name);
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('string'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'string'
+    );
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('number'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'number'
+    );
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('boolean'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'boolean'
+    );
+
+  const isSearchLoading =
+    hasSearch &&
+    ((supportedKinds.includes('string') && stringLoading) ||
+      (supportedKinds.includes('number') && numberLoading) ||
+      (supportedKinds.includes('boolean') && booleanLoading));
+
+  const baseOptions = useVisualizeFields({
+    numberTags,
+    stringTags,
+    booleanTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  const searchedOptions = useVisualizeFields({
+    numberTags: searchedNumberTags,
+    stringTags: searchedStringTags,
+    booleanTags: searchedBooleanTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  // Always feed baseOptions to CompactSelect so its built-in matcher can filter
+  // synchronously while the user types. Merge in any server-only matches once
+  // the debounced search returns.
+  const options = useMemo(() => {
+    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searchedOptions.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
+  }, [hasSearch, baseOptions, searchedOptions]);
+
+  // CompactSelect's default trigger derives its label from the active option
+  // list, which can go blank when a search query doesn't match the current
+  // value. Match the sibling selectors and fall back to baseOptions, then to
+  // the raw value, so the trigger always reflects the current selection.
+  const label = useMemo(() => {
+    const tag =
+      options.find(option => option.value === value) ??
+      baseOptions.find(option => option.value === value);
+    return <TriggerLabel>{tag?.label ?? value}</TriggerLabel>;
+  }, [value, options, baseOptions]);
+
+  return (
+    <DoubleWidthCompactSelect
+      data-test-id="editor-visualize-argument"
+      options={options}
+      value={value}
+      onChange={onChange}
+      search={{
+        onChange: setSearch,
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.SPANS,
+            option,
+            searchText,
+          });
+        },
+      }}
+      loading={isSearchLoading}
+      emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
+      // Stay enabled whenever the function supports server-side search so the
+      // user can type to pull additional attributes, even when baseOptions has
+      // a single entry (e.g. only one number tag fetched in the initial load).
+      disabled={
+        forceDisabled || (supportedKinds.length === 0 && baseOptions.length === 1)
+      }
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          style={{
+            width: '100%',
+          }}
+        >
+          {label}
+        </OverlayTrigger.Button>
+      )}
+    />
+  );
+}
+
+type AttributeKind = 'string' | 'number' | 'boolean';
+
+function getSupportedAttributeKinds(
+  functionName: string | undefined
+): readonly AttributeKind[] {
+  if (!functionName) return ['number'];
+  // COUNT renders a fixed SPAN_DURATION option and ignores tag collections.
+  if (functionName === AggregationKey.COUNT) return [];
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) return [];
+  if (functionName === AggregationKey.COUNT_UNIQUE)
+    return ['string', 'number', 'boolean'];
+  return ['number'];
+}
+
 function EquationSelector({
   numberTags,
   stringTags,
+  booleanTags,
   onChange,
   visualize,
 }: VisualizeSelectorProps) {
@@ -504,6 +699,7 @@ function EquationSelector({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (
@@ -523,11 +719,16 @@ const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
+`;
+
+const StyledDragReorderButton = styled(DragReorderButton)`
+  padding-left: 0;
+  padding-right: 0;
 `;
 
 const StyledButton = styled(Button)`

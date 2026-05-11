@@ -7,7 +7,7 @@ import type {LineSeriesOption} from 'echarts';
  *
  * See https://echarts.apache.org/en/option.html#series-line.markLine
  */
-export default function MarkLine(
+export function MarkLine(
   props: LineSeriesOption['markLine']
 ): LineSeriesOption['markLine'] {
   return {

@@ -1,9 +1,12 @@
+from io import BytesIO
 from unittest import mock
 
 import pytest
 
+from sentry.models.files.file import File
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.models import (
+    UptimeResponseCapture,
     UptimeSubscriptionDataSourceHandler,
     get_active_auto_monitor_count_for_org,
     get_detector,
@@ -107,3 +110,35 @@ class GetDetectorTest(UptimeTestCase):
         )
         with pytest.raises(Detector.DoesNotExist):
             get_detector(uptime_subscription)
+
+
+class UptimeResponseCaptureDeleteTest(UptimeTestCase):
+    def test_delete_removes_associated_file(self) -> None:
+        uptime_subscription = self.create_uptime_subscription(url="https://example.com")
+
+        file = File.objects.create(name="test-response", type="uptime.response")
+        file.putfile(BytesIO(b"HTTP/1.1 500 Internal Server Error\r\n\r\nError"))
+
+        capture = UptimeResponseCapture.objects.create(
+            uptime_subscription=uptime_subscription,
+            file_id=file.id,
+            scheduled_check_time_ms=1234567890,
+        )
+
+        file_id = file.id
+        capture.delete()
+
+        assert not File.objects.filter(id=file_id).exists()
+
+    def test_delete_handles_missing_file(self) -> None:
+        uptime_subscription = self.create_uptime_subscription(url="https://example.com")
+
+        capture = UptimeResponseCapture.objects.create(
+            uptime_subscription=uptime_subscription,
+            file_id=99999999,  # Non-existent file
+            scheduled_check_time_ms=1234567890,
+        )
+
+        # Should not raise an exception
+        capture.delete()
+        assert not UptimeResponseCapture.objects.filter(id=capture.id).exists()

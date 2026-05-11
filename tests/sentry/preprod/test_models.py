@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
 class PreprodArtifactModelTestBase(TestCase):
     """Base test class with common setup for PreprodArtifact model tests."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -17,11 +17,11 @@ class PreprodArtifactModelTestBase(TestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
     """Tests for get_sibling_artifacts_for_commit method."""
 
-    def test_get_sibling_artifacts_for_commit_single_artifact(self):
+    def test_get_sibling_artifacts_for_commit_single_artifact(self) -> None:
         """Test getting artifacts when there's only one artifact for the commit."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -46,7 +46,7 @@ class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
         assert len(artifacts) == 1
         assert artifacts[0] == artifact
 
-    def test_get_sibling_artifacts_for_commit_multiple_artifacts_same_commit(self):
+    def test_get_sibling_artifacts_for_commit_multiple_artifacts_same_commit(self) -> None:
         """Test getting artifacts when multiple artifacts exist for the same commit (monorepo)."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -75,7 +75,7 @@ class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
         assert len(sibling_artifacts) == 3
         assert set(sibling_artifacts) == set(artifacts)
 
-    def test_get_sibling_artifacts_for_commit_different_commits_excluded(self):
+    def test_get_sibling_artifacts_for_commit_different_commits_excluded(self) -> None:
         """Test that artifacts from different commits are excluded."""
         commit_comparison_1 = self.create_commit_comparison(
             organization=self.organization,
@@ -121,7 +121,7 @@ class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
         assert len(artifacts_2) == 1
         assert artifacts_2[0] == artifact_2
 
-    def test_get_sibling_artifacts_for_commit_cross_org_security(self):
+    def test_get_sibling_artifacts_for_commit_cross_org_security(self) -> None:
         """Test that artifacts from different organizations are excluded for security."""
         # Create second organization
         other_org = self.create_organization(name="other_org")
@@ -176,7 +176,7 @@ class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
         assert len(artifacts_org2) == 1
         assert artifacts_org2[0] == artifact_org2
 
-    def test_get_sibling_artifacts_for_commit_no_commit_comparison(self):
+    def test_get_sibling_artifacts_for_commit_no_commit_comparison(self) -> None:
         """Test that method returns empty queryset when artifact has no commit_comparison."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -188,12 +188,59 @@ class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
         artifacts = list(artifact.get_sibling_artifacts_for_commit())
         assert len(artifacts) == 0
 
+    def test_get_sibling_artifacts_for_commit_different_build_configurations(self) -> None:
+        """Test that artifacts with same app_id/artifact_type but different build configs are all returned."""
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
 
-@region_silo_test
+        # Create build configurations
+        release_config = self.create_preprod_build_configuration(
+            project=self.project, name="Release"
+        )
+        adhoc_config = self.create_preprod_build_configuration(project=self.project, name="AdHoc")
+
+        # Create artifacts with same app_id and artifact_type but different build configs
+        release_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=commit_comparison,
+            build_configuration=release_config,
+        )
+
+        adhoc_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=commit_comparison,
+            build_configuration=adhoc_config,
+        )
+
+        # Both artifacts should be returned as siblings (different build configs = different artifacts)
+        siblings_from_release = list(release_artifact.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_release) == 2
+        assert set(siblings_from_release) == {release_artifact, adhoc_artifact}
+
+        siblings_from_adhoc = list(adhoc_artifact.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_adhoc) == 2
+        assert set(siblings_from_adhoc) == {release_artifact, adhoc_artifact}
+
+
+@cell_silo_test
 class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
     """Tests for base artifact related methods."""
 
-    def test_get_base_artifact_for_commit_single_artifact(self):
+    def test_get_base_artifact_for_commit_single_artifact(self) -> None:
         """Test getting base artifact when there's only one base artifact."""
         base_commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -236,7 +283,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         result = head_artifact.get_base_artifact_for_commit().first()
         assert result == base_artifact
 
-    def test_get_base_artifact_for_commit_multiple_artifacts_same_commit(self):
+    def test_get_base_artifact_for_commit_multiple_artifacts_same_commit(self) -> None:
         """Test getting base artifact when multiple artifacts exist for the same base commit (monorepo)."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -288,7 +335,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert result.app_id == head_artifact.app_id
         assert result.app_id == "com.example.android"
 
-    def test_get_base_artifact_for_commit_no_matching_app_id(self):
+    def test_get_base_artifact_for_commit_no_matching_app_id(self) -> None:
         """Test that method returns None when no base artifact has matching app_id."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -338,7 +385,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         result = head_artifact.get_base_artifact_for_commit().first()
         assert result is None
 
-    def test_get_base_artifact_for_commit_no_base_commit(self):
+    def test_get_base_artifact_for_commit_no_base_commit(self) -> None:
         """Test that method returns None when no base commit comparison exists."""
         # Create head commit comparison with a base_sha that doesn't exist
         head_commit_comparison = self.create_commit_comparison(
@@ -364,7 +411,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         artifacts = list(head_artifact.get_base_artifact_for_commit())
         assert len(artifacts) == 0
 
-    def test_get_base_artifact_for_commit_cross_org_security(self):
+    def test_get_base_artifact_for_commit_cross_org_security(self) -> None:
         """Test that base artifacts from different organizations are excluded for security."""
         # Create second organization
         other_org = self.create_organization(name="other_org")
@@ -433,7 +480,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert result == base_artifact_org1
         assert result != base_artifact_org2
 
-    def test_get_base_artifact_for_commit_no_commit_comparison(self):
+    def test_get_base_artifact_for_commit_no_commit_comparison(self) -> None:
         """Test that method returns None when artifact has no commit_comparison."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -445,7 +492,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         artifacts = list(artifact.get_base_artifact_for_commit())
         assert len(artifacts) == 0
 
-    def test_get_base_artifact_multiple_commit_comparisons_uses_oldest(self):
+    def test_get_base_artifact_multiple_commit_comparisons_uses_oldest(self) -> None:
         """Test that the oldest commit_comparison is used when more than one is found."""
         # Create multiple base commit comparisons with the same head_sha but different date_added
         # The older one (created first)
@@ -515,7 +562,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         result = head_artifact.get_base_artifact_for_commit().first()
         assert result == base_artifact_old
 
-    def test_get_head_artifacts_for_commit_single_artifact(self):
+    def test_get_head_artifacts_for_commit_single_artifact(self) -> None:
         """Test getting head artifacts when there's only one head artifact."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -562,7 +609,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert len(head_artifacts) == 1
         assert head_artifacts[0] == head_artifact
 
-    def test_get_head_artifacts_for_commit_multiple_artifacts_same_commit(self):
+    def test_get_head_artifacts_for_commit_multiple_artifacts_same_commit(self) -> None:
         """Test getting head artifacts when multiple head artifacts exist for the same base commit (monorepo)."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -623,7 +670,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         for artifact in result_artifacts:
             assert artifact.app_id == base_artifact.app_id
 
-    def test_get_head_artifacts_for_commit_no_matching_app_id(self):
+    def test_get_head_artifacts_for_commit_no_matching_app_id(self) -> None:
         """Test that method returns empty queryset when no head artifacts have matching app_id."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -669,7 +716,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         head_artifacts = list(base_artifact.get_head_artifacts_for_commit())
         assert len(head_artifacts) == 0
 
-    def test_get_head_artifacts_for_commit_no_head_commits(self):
+    def test_get_head_artifacts_for_commit_no_head_commits(self) -> None:
         """Test that method returns empty queryset when no head commit comparisons exist."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -695,7 +742,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         head_artifacts = list(base_artifact.get_head_artifacts_for_commit())
         assert len(head_artifacts) == 0
 
-    def test_get_head_artifacts_for_commit_cross_org_security(self):
+    def test_get_head_artifacts_for_commit_cross_org_security(self) -> None:
         """Test that head artifacts from different organizations are excluded for security."""
         # Create second organization
         other_org = self.create_organization(name="other_org")
@@ -791,7 +838,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert head_artifacts_org2[0] == head_artifact_org2
         assert head_artifact_org1 not in head_artifacts_org2
 
-    def test_get_head_artifacts_for_commit_no_commit_comparison(self):
+    def test_get_head_artifacts_for_commit_no_commit_comparison(self) -> None:
         """Test that method returns empty queryset when artifact has no commit_comparison."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -803,7 +850,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         head_artifacts = list(artifact.get_head_artifacts_for_commit())
         assert len(head_artifacts) == 0
 
-    def test_get_base_artifact_for_commit_with_artifact_type_filter(self):
+    def test_get_base_artifact_for_commit_with_artifact_type_filter(self) -> None:
         """Test getting base artifact with specific artifact type filter."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -875,7 +922,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         ).first()
         assert result is None
 
-    def test_get_base_artifact_for_commit_with_default_artifact_type(self):
+    def test_get_base_artifact_for_commit_with_default_artifact_type(self) -> None:
         """Test getting base artifact using default artifact type from the artifact itself."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -924,7 +971,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert result == base_artifact
         assert result.artifact_type == PreprodArtifact.ArtifactType.AAB
 
-    def test_get_head_artifacts_for_commit_with_artifact_type_filter(self):
+    def test_get_head_artifacts_for_commit_with_artifact_type_filter(self) -> None:
         """Test getting head artifacts with specific artifact type filter."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -1017,7 +1064,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert result_artifacts[0] == head_artifact_xcarchive
         assert result_artifacts[0].artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE
 
-    def test_get_head_artifacts_for_commit_with_default_artifact_type(self):
+    def test_get_head_artifacts_for_commit_with_default_artifact_type(self) -> None:
         """Test getting head artifacts using default artifact type from the artifact itself."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -1067,7 +1114,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert result_artifacts[0] == head_artifact
         assert result_artifacts[0].artifact_type == PreprodArtifact.ArtifactType.AAB
 
-    def test_get_base_artifact_for_commit_artifact_type_no_matches(self):
+    def test_get_base_artifact_for_commit_artifact_type_no_matches(self) -> None:
         """Test getting base artifact when no artifacts match the specified artifact type."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -1117,7 +1164,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         ).first()
         assert result is None
 
-    def test_get_head_artifacts_for_commit_artifact_type_no_matches(self):
+    def test_get_head_artifacts_for_commit_artifact_type_no_matches(self) -> None:
         """Test getting head artifacts when no artifacts match the specified artifact type."""
         # Create base commit comparison
         base_commit_comparison = self.create_commit_comparison(
@@ -1168,3 +1215,387 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
             )
         )
         assert len(result_artifacts) == 0
+
+
+@cell_silo_test
+class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
+    """Tests for get_base_artifacts_for_commit classmethod."""
+
+    def test_get_base_artifacts_for_commit_empty_list(self) -> None:
+        """Test that empty input returns empty dict."""
+        result = PreprodArtifact.get_base_artifacts_for_commit([])
+        assert result == {}
+
+    def test_get_base_artifacts_for_commit_no_commit_comparison(self) -> None:
+        """Test that artifacts without commit_comparison return empty dict."""
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=None,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([artifact])
+        assert result == {}
+
+    def test_get_base_artifacts_for_commit_no_base_sha(self) -> None:
+        """Test that artifacts with commit_comparison but no base_sha return empty dict."""
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha=None,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([artifact])
+        assert result == {}
+
+    def test_get_base_artifacts_for_commit_single_artifact(self) -> None:
+        """Test batch lookup with a single artifact."""
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert len(result) == 1
+        assert result[head_artifact.id] == base_artifact
+
+    def test_get_base_artifacts_for_commit_multiple_artifacts(self) -> None:
+        """Test batch lookup with multiple artifacts (monorepo scenario)."""
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        # Create base and head artifacts for multiple apps
+        app_ids = ["com.example.android", "com.example.ios", "com.example.web"]
+        head_artifacts = []
+        base_artifacts = {}
+
+        for app_id in app_ids:
+            base_artifact = self.create_preprod_artifact(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                app_id=app_id,
+                commit_comparison=base_commit_comparison,
+            )
+            head_artifact = self.create_preprod_artifact(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                app_id=app_id,
+                commit_comparison=head_commit_comparison,
+            )
+            head_artifacts.append(head_artifact)
+            base_artifacts[head_artifact.id] = base_artifact
+
+        result = PreprodArtifact.get_base_artifacts_for_commit(head_artifacts)
+
+        assert len(result) == 3
+        for head_artifact in head_artifacts:
+            assert result[head_artifact.id] == base_artifacts[head_artifact.id]
+
+    def test_get_base_artifacts_for_commit_no_matching_base(self) -> None:
+        """Test that artifacts without matching base artifacts are not in result."""
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        # Base artifact with different app_id
+        self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.other",
+            commit_comparison=base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert len(result) == 0
+
+    def test_get_base_artifacts_for_commit_different_commit_comparison_raises(self) -> None:
+        """Test that artifacts with different commit_comparisons raise ValueError."""
+        commit_comparison_1 = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        commit_comparison_2 = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        artifact_1 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app1",
+            commit_comparison=commit_comparison_1,
+        )
+
+        artifact_2 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app2",
+            commit_comparison=commit_comparison_2,
+        )
+
+        import pytest
+
+        with pytest.raises(ValueError, match="All artifacts must share the same commit_comparison"):
+            PreprodArtifact.get_base_artifacts_for_commit([artifact_1, artifact_2])
+
+    def test_get_base_artifacts_for_commit_returns_newest_base(self) -> None:
+        """Test that newest base artifact is returned when duplicates exist."""
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        # Create older base artifact
+        self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create newer base artifact (same key)
+        base_artifact_new = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert len(result) == 1
+        assert result[head_artifact.id] == base_artifact_new
+
+    def test_get_base_artifacts_for_commit_cross_org_security(self) -> None:
+        """Test that base artifacts from other organizations are excluded."""
+        other_org = self.create_organization(name="other_org")
+        other_project = self.create_project(organization=other_org, name="other_project")
+
+        # Create base commit comparison in other org with same head_sha
+        other_base_commit_comparison = self.create_commit_comparison(
+            organization=other_org,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        # Create base artifact in other org
+        self.create_preprod_artifact(
+            project=other_project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=other_base_commit_comparison,
+        )
+
+        # Create head commit comparison in our org
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Should not find base artifact from other org
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+        assert len(result) == 0
+
+    def test_get_base_artifacts_for_commit_different_repo_excluded(self) -> None:
+        """Test that base artifacts from different repos are excluded."""
+        # Create base commit comparison in different repo
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/different-repo",
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create head commit comparison in our repo
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Should not find base artifact from different repo
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+        assert len(result) == 0
+
+    def test_get_base_artifacts_for_commit_matches_by_build_configuration(self) -> None:
+        """Test that matching includes build_configuration_id."""
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        build_config = self.create_preprod_build_configuration(
+            project=self.project,
+            name="release",
+        )
+
+        # Base artifact with build config
+        base_artifact_with_config = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_configuration=build_config,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Base artifact without build config
+        self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_configuration=None,
+            commit_comparison=base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+        )
+
+        # Head artifact with same build config
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_configuration=build_config,
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert len(result) == 1
+        assert result[head_artifact.id] == base_artifact_with_config

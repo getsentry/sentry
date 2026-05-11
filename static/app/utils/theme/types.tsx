@@ -1,7 +1,12 @@
 /**
- * Font size constraint for typography.
+ * Font size constraint for body typography.
  */
-export type FontSize = SizeRange<'xs', '2xl'>;
+export type TextSize = SizeRange<'xs', '2xl'>;
+
+/**
+ * Font size constraint for heading typography.
+ */
+export type HeadingSize = SizeRange<'xs', '4xl'>;
 
 /**
  * Responsive breakpoint size constraint.
@@ -28,9 +33,7 @@ export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';
  */
 export type MotionDuration = 'fast' | 'moderate' | 'slow';
 
-// -----------------------------------------------------------------------------
 // Theme Variants
-// -----------------------------------------------------------------------------
 
 /**
  * Background surface level for layered UI elements.
@@ -64,11 +67,13 @@ export type GraphicsVariant = SemanticVariant;
 /**
  * Border color variant.
  */
-export type BorderVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
+export type BorderVariant =
+  | Exclude<SemanticVariant, 'neutral'>
+  | 'primary'
+  | 'secondary'
+  | 'muted';
 
-// -----------------------------------------------------------------------------
 // Component Variants (should be moved locally, aligned to SemanticVariant)
-// -----------------------------------------------------------------------------
 
 /**
  * Icon size constraint.
@@ -78,7 +83,7 @@ export type IconSize = SizeRange<'xs', '2xl'>;
 /**
  * Form element size constraint.
  *
- * Unless you are implementing a new component in the `sentry/components/core`
+ * Unless you are implementing a new component in the `@sentry/scraps`
  * directory, use `ComponentProps['size']` instead.
  * @internal
  */
@@ -100,11 +105,9 @@ export type TagVariant =
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 
-// -----------------------------------------------------------------------------
 // Internal types
-// -----------------------------------------------------------------------------
 
-type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'];
 type Size = SizeKeys[number];
 
 // Extracts a contiguous range of keys from the size scale

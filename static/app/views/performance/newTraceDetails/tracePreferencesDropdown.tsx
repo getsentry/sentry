@@ -1,15 +1,19 @@
 import {useCallback, useMemo} from 'react';
 
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
+import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -27,6 +31,8 @@ interface TracePreferencesDropdownProps {
 }
 
 export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const {projects} = useProjects();
 
@@ -51,7 +57,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     },
   ];
 
-  const values: string[] = useMemo(() => {
+  const values = useMemo(() => {
     const value: string[] = [];
     if (props.autogroup) {
       value.push('autogroup');
@@ -92,17 +98,6 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     [values, onAutogroupChange, onMissingInstrumentationChange]
   );
 
-  const menuFooter = (
-    <a
-      onClick={() => {
-        traceAnalytics.trackViewShortcuts(organization);
-        openModal(p => <TraceShortcutsModal {...p} />);
-      }}
-    >
-      {t('See Shortcuts')}
-    </a>
-  );
-
   return (
     <CompactSelect
       multiple
@@ -116,8 +111,17 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         />
       )}
       options={selectOptions}
+      menuFooter={
+        <MenuComponents.CTAButton
+          onClick={() => {
+            traceAnalytics.trackViewShortcuts(organization);
+            openModal(p => <TraceShortcutsModal {...p} />);
+          }}
+        >
+          {t('See Shortcuts')}
+        </MenuComponents.CTAButton>
+      }
       onChange={onChange}
-      menuFooter={menuFooter}
       menuWidth={300}
     />
   );

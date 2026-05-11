@@ -1,35 +1,36 @@
 import styled from '@emotion/styled';
+import type {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import type {ApiResult} from 'sentry/api';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import InfiniteListItems from 'sentry/components/infiniteList/infiniteListItems';
-import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ReplayListItem from 'sentry/components/replays/list/__stories__/replayListItem';
-import {t} from 'sentry/locale';
-import {type InfiniteData, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
+import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ReplayListItem} from 'sentry/components/replays/list/__stories__/replayListItem';
+import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 interface Props {
   onSelect: (replayId: string) => void;
   queryResult: UseInfiniteQueryResult<
-    InfiniteData<ApiResult<{data: ReplayListRecord[]}>>
+    InfiniteData<ApiResponse<{data: ReplayListRecord[]}>>
   >;
 }
 
-export default function ReplayList({onSelect, queryResult}: Props) {
+export function ReplayList({onSelect, queryResult}: Props) {
   return (
     <InfiniteListState
       queryResult={queryResult}
       backgroundUpdatingMessage={() => null}
       loadingMessage={() => <LoadingIndicator />}
     >
-      <InfiniteListItems<ReplayListRecord, ApiResult<{data: ReplayListRecord[]}>>
-        deduplicateItems={pages => pages.flatMap(page => uniqBy(page[0].data, 'id'))}
+      <InfiniteListItems<ReplayListRecord, ApiResponse<{data: ReplayListRecord[]}>>
+        deduplicateItems={pages => pages.flatMap(page => uniqBy(page.json.data, 'id'))}
         estimateSize={() => 24}
         queryResult={queryResult}
         itemRenderer={({item, virtualItem}) => (
@@ -43,11 +44,11 @@ export default function ReplayList({onSelect, queryResult}: Props) {
         )}
         emptyMessage={() => <NoReplays />}
         loadingMoreMessage={() => (
-          <Centered>
+          <Container justifySelf="center">
             <Tooltip title={t('Loading more replays...')}>
               <LoadingIndicator mini />
             </Tooltip>
-          </Centered>
+          </Container>
         )}
         loadingCompleteMessage={() => null}
       />
@@ -64,10 +65,6 @@ function NoReplays() {
     </NoReplaysWrapper>
   );
 }
-
-const Centered = styled('div')`
-  justify-self: center;
-`;
 
 const NoReplaysWrapper = styled('div')`
   padding: ${p => p.theme.space['3xl']};

@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExportQueryType} from 'sentry/components/dataExport';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {AuthLayoutContent as Layout} from 'sentry/views/auth/layout';
@@ -51,19 +51,23 @@ type BaseDownload = {
   };
   dateExpired?: string;
   dateFinished?: string;
+  export_format?: 'csv' | 'jsonl';
 };
 
 type ExploreDownload = BaseDownload & {
   query: {
     info: ExploreQueryInfo;
-    type: ExportQueryType.EXPLORE;
+    type: ExportQueryType.EXPLORE | ExportQueryType.TRACE_ITEM_FULL_EXPORT;
   };
 };
 
 type OtherDownload = BaseDownload & {
   query: {
     info: Record<PropertyKey, unknown>;
-    type: Exclude<ExportQueryType, ExportQueryType.EXPLORE>;
+    type: Exclude<
+      ExportQueryType,
+      ExportQueryType.EXPLORE | ExportQueryType.TRACE_ITEM_FULL_EXPORT
+    >;
   };
 };
 
@@ -80,9 +84,16 @@ export default function DataDownload() {
     isPending,
     isError,
     error,
-  } = useApiQuery<Download>([`/organizations/${orgSlug}/data-export/${dataExportId}/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Download>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/data-export/$dataExportId/', {
+        path: {organizationIdOrSlug: orgSlug, dataExportId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const navigate = useNavigate();
 
@@ -118,8 +129,9 @@ export default function DataDownload() {
       case ExportQueryType.ISSUES_BY_TAG:
         return `/organizations/${orgSlug}/issues/`;
       case ExportQueryType.DISCOVER:
-        return `/organizations/${orgSlug}/discover/queries/`;
+        return `/organizations/${orgSlug}/explore/discover/queries/`;
       case ExportQueryType.EXPLORE:
+      case ExportQueryType.TRACE_ITEM_FULL_EXPORT:
         if (traceItemDataset === TraceItemDataset.LOGS) {
           return `/organizations/${orgSlug}/explore/logs/`;
         }
@@ -167,7 +179,10 @@ export default function DataDownload() {
     const {query} = download;
     let actionLink: string;
 
-    if (query.type === ExportQueryType.EXPLORE) {
+    if (
+      query.type === ExportQueryType.EXPLORE ||
+      query.type === ExportQueryType.TRACE_ITEM_FULL_EXPORT
+    ) {
       const traceItemDataset = query.info.dataset;
       actionLink = getActionLink(query.type, traceItemDataset);
     } else {
@@ -189,7 +204,7 @@ export default function DataDownload() {
               'Make a new one with your latest data. Your old download will never see it coming.'
             )}
           </p>
-          <DownloadButton href={actionLink} priority="primary">
+          <DownloadButton href={actionLink} variant="primary">
             {t('Start a New Download')}
           </DownloadButton>
         </Body>
@@ -203,7 +218,7 @@ export default function DataDownload() {
     } = download;
 
     const to = {
-      pathname: `/organizations/${orgSlug}/discover/results/`,
+      pathname: `/organizations/${orgSlug}/explore/discover/results/`,
       query: info,
     };
 
@@ -213,7 +228,10 @@ export default function DataDownload() {
   const openInExplore = () => {
     const {query} = download;
 
-    if (query.type !== ExportQueryType.EXPLORE) {
+    if (
+      query.type !== ExportQueryType.EXPLORE &&
+      query.type !== ExportQueryType.TRACE_ITEM_FULL_EXPORT
+    ) {
       return;
     }
 
@@ -280,25 +298,26 @@ export default function DataDownload() {
   };
 
   const renderOpenInButton = () => {
-    const {
-      query = {
-        type: ExportQueryType.ISSUES_BY_TAG,
-        info: {},
-      },
-    } = download;
+    const {query} = download;
 
     // default to IssuesByTag because we don't want to
     // display this unless we're sure its a discover query
-    const {type = ExportQueryType.ISSUES_BY_TAG} = query;
+    const {type} = query;
 
-    return type === 'Discover' || type === 'Explore' ? (
+    return type === ExportQueryType.DISCOVER ||
+      type === ExportQueryType.EXPLORE ||
+      type === ExportQueryType.TRACE_ITEM_FULL_EXPORT ? (
       <Fragment>
         <p>{t('Need to make changes?')}</p>
         <Button
-          priority="primary"
-          onClick={() => (type === 'Discover' ? openInDiscover() : openInExplore())}
+          variant="primary"
+          onClick={() =>
+            type === ExportQueryType.DISCOVER ? openInDiscover() : openInExplore()
+          }
         >
-          {type === 'Discover' ? t('Open in Discover') : t('Open in Explore')}
+          {type === ExportQueryType.DISCOVER
+            ? t('Open in Discover')
+            : t('Open in Explore')}
         </Button>
         <br />
       </Fragment>
@@ -306,7 +325,8 @@ export default function DataDownload() {
   };
 
   const renderValid = (): React.ReactNode => {
-    const {dateExpired, checksum} = download;
+    const {dateExpired, checksum, export_format} = download;
+    const exportFormatLabel = export_format?.toUpperCase() ?? 'CSV';
 
     return (
       <Fragment>
@@ -316,11 +336,11 @@ export default function DataDownload() {
         <Body>
           <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
           <LinkButton
-            priority="primary"
+            variant="primary"
             icon={<IconDownload />}
             href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
           >
-            {t('Download CSV')}
+            {t('Download %s', exportFormatLabel)}
           </LinkButton>
           <p>
             {t("That link won't last forever — it expires:")}
@@ -372,21 +392,21 @@ export default function DataDownload() {
 
 const Header = styled('header')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(3)} 40px 0;
+  padding: ${p => p.theme.space['2xl']} 40px 0;
   h3 {
     font-size: 24px;
-    margin: 0 0 ${space(3)} 0;
+    margin: 0 0 ${p => p.theme.space['2xl']} 0;
   }
 `;
 
 const Body = styled('div')`
-  padding: ${space(2)} 40px;
+  padding: ${p => p.theme.space.xl} 40px;
   max-width: 500px;
   p {
-    margin: ${space(1.5)} 0;
+    margin: ${p => p.theme.space.lg} 0;
   }
 `;
 
 const DownloadButton = styled(LinkButton)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;

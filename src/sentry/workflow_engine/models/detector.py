@@ -7,13 +7,11 @@ from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -32,6 +30,11 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+def get_detector_project_type_cache_key(project_id: int, detector_type: str) -> str:
+    """Generate cache key for detector lookup by project and type."""
+    return f"detector:by_proj_type:{project_id}:{detector_type}"
 
 
 class DetectorSnapshot(TypedDict):
@@ -62,12 +65,12 @@ class DetectorManager(BaseManager["Detector"]):
         return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
 
 
-@region_silo_model
+@cell_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[DetectorManager] = DetectorManager()
-    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+    objects_for_deletion: ClassVar[BaseManager[Detector]] = BaseManager()
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
@@ -80,7 +83,10 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
     enabled = models.BooleanField(db_default=True)
 
-    # The detector's status - used for tracking deletion state
+    # The detector's status - used for tracking disabled and deletion state.
+    # A Detector that isn't allowed by plan or is effectively temporarily
+    # deleted for some other reason should have status=ObjectStatus.DISABLED.
+    # The 'enabled' field is for user-applied deactivation like snoozes.
     status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
     # Optionally set a description of the detector, this will be used in notifications
@@ -112,13 +118,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     CACHE_TTL = 60 * 10
 
     @classmethod
-    def _get_detector_project_type_cache_key(cls, project_id: int, detector_type: str) -> str:
-        """Generate cache key for detector lookup by project and type."""
-        return f"detector:by_proj_type:{project_id}:{detector_type}"
-
-    @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
-        cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
+        cache_key = get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)
         if detector is None:
             detector = cls.objects.get(project_id=project_id, type=detector_type)
@@ -146,7 +147,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_type
 
     @property
-    def detector_handler(self) -> DetectorHandler | None:
+    def detector_handler(self) -> DetectorHandler[Any] | None:
         group_type = self.group_type
 
         if self.settings.handler is None:
@@ -213,29 +214,20 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return conditions
 
+    def enforce_config_schema(self) -> None:
+        """
+        Ensures the detector type is valid in the grouptype registry.
+        This needs to be available independently so callers can validate configs
+        without saving.
+        """
+        group_type = self.group_type
+        if not group_type:
+            raise ValueError(f"No group type found with type {self.type}")
 
-def enforce_config_schema(instance: Detector) -> None:
-    """
-    Ensures the detector type is valid in the grouptype registry.
-    This needs to be available independently so callers can validate configs
-    without saving.
-    """
-    group_type = instance.group_type
-    if not group_type:
-        raise ValueError(f"No group type found with type {instance.type}")
+        if not group_type.detector_settings:
+            return
 
-    if not group_type.detector_settings:
-        return
+        if not isinstance(self.config, dict):
+            raise ValidationError("Detector config must be a dictionary")
 
-    if not isinstance(instance.config, dict):
-        raise ValidationError("Detector config must be a dictionary")
-
-    instance.validate_config(group_type.detector_settings.config_schema)
-
-
-@receiver(pre_save, sender=Detector)
-def enforce_config_schema_signal(sender, instance: Detector, **kwargs):
-    """
-    This needs to be a signal because the grouptype registry's entries are not available at import time.
-    """
-    enforce_config_schema(instance)
+        self.validate_config(group_type.detector_settings.config_schema)

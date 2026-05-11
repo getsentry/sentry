@@ -12,16 +12,61 @@ from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironm
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.silo.base import SiloMode
-from sentry.tasks.commits import fetch_commits, handle_invalid_identity
+from sentry.tasks.commits import (
+    GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
+    fetch_commits,
+    get_github_compare_commits_cache_key,
+    handle_invalid_identity,
+)
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils.cache import cache
 from social_auth.models import UserSocialAuth
 
 
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class FetchCommitsTest(TestCase):
+    def _github_compare_commits_result(self, repo_name: str, end_sha: str) -> list[dict[str, str]]:
+        return [
+            {"id": "62de626b7c7cfb8e77efb4273b1a3df4123e6216", "repository": repo_name},
+            {"id": "58de626b7c7cfb8e77efb4273b1a3df4123e6345", "repository": repo_name},
+            {"id": end_sha, "repository": repo_name},
+        ]
+
+    def _setup_github_compare_commits_cache_context(self):
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            provider="integrations:github",
+            organization_id=org.id,
+        )
+        previous_release = Release.objects.create(organization_id=org.id, version="old-release")
+        previous_commit = Commit.objects.create(
+            organization_id=org.id, repository_id=repo.id, key="a" * 40
+        )
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            release=previous_release,
+            commit=previous_commit,
+        )
+
+        refs = [{"repository": repo.name, "commit": "b" * 40}]
+        first_release = Release.objects.create(organization_id=org.id, version="new-release-1")
+        second_release = Release.objects.create(organization_id=org.id, version="new-release-2")
+        return org, repo, previous_release, first_release, second_release, refs
+
+    def test_github_compare_commits_cache_key_avoids_ambiguous_id_collisions(
+        self, mock_record: MagicMock
+    ) -> None:
+        key_one = get_github_compare_commits_cache_key(1, 23, "integrations:github", "a", "b")
+        key_two = get_github_compare_commits_cache_key(12, 3, "integrations:github", "a", "b")
+
+        assert key_one != key_two
+
     def _test_simple_action(self, user, org):
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
@@ -44,7 +89,7 @@ class FetchCommitsTest(TestCase):
                     release_id=release2.id,
                     user_id=user.id,
                     refs=refs,
-                    previous_release_id=release.id,
+                    prev_release_id=release.id,
                 )
 
         commit_list = list(
@@ -77,6 +122,24 @@ class FetchCommitsTest(TestCase):
         org = self.create_organization(owner=self.user, name="baz")
         self._test_simple_action(user=self.user, org=org)
 
+    def test_simple_passes_actor_to_plugin_provider(self, mock_record: MagicMock) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        original_compare_commits = DummyRepositoryProvider.compare_commits
+
+        with patch.object(
+            DummyRepositoryProvider,
+            "compare_commits",
+            autospec=True,
+            side_effect=original_compare_commits,
+        ) as mock_compare_commits:
+            self._test_simple_action(user=self.user, org=org)
+
+        assert any(
+            (actor := call.kwargs.get("actor")) is not None and actor.id == self.user.id
+            for call in mock_compare_commits.call_args_list
+        )
+
     def test_duplicate_repositories(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
@@ -85,6 +148,114 @@ class FetchCommitsTest(TestCase):
         )
         Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         self._test_simple_action(user=self.user, org=org)
+
+    @patch(
+        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
+    )
+    def test_github_compare_commits_cache_enabled_by_default(
+        self, mock_fetch_commits_for_compare_range: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self.login_as(user=self.user)
+        cache.clear()
+
+        _, repo, previous_release, first_release, second_release, refs = (
+            self._setup_github_compare_commits_cache_context()
+        )
+        mock_fetch_commits_for_compare_range.return_value = self._github_compare_commits_result(
+            repo.name, "b" * 40
+        )
+
+        with self.tasks():
+            fetch_commits(
+                release_id=first_release.id,
+                user_id=self.user.id,
+                refs=refs,
+                prev_release_id=previous_release.id,
+            )
+            fetch_commits(
+                release_id=second_release.id,
+                user_id=self.user.id,
+                refs=refs,
+                prev_release_id=previous_release.id,
+            )
+
+        assert mock_fetch_commits_for_compare_range.call_count == 1
+
+    @patch(
+        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
+    )
+    def test_github_compare_commits_cache_key_variance_on_end_sha(
+        self, mock_fetch_commits_for_compare_range: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self.login_as(user=self.user)
+        cache.clear()
+
+        _, repo, previous_release, first_release, second_release, refs_first = (
+            self._setup_github_compare_commits_cache_context()
+        )
+        refs_second = [{"repository": repo.name, "commit": "c" * 40}]
+        mock_fetch_commits_for_compare_range.side_effect = [
+            self._github_compare_commits_result(repo.name, "b" * 40),
+            self._github_compare_commits_result(repo.name, "c" * 40),
+        ]
+
+        with self.tasks():
+            fetch_commits(
+                release_id=first_release.id,
+                user_id=self.user.id,
+                refs=refs_first,
+                prev_release_id=previous_release.id,
+            )
+            fetch_commits(
+                release_id=second_release.id,
+                user_id=self.user.id,
+                refs=refs_second,
+                prev_release_id=previous_release.id,
+            )
+
+        assert mock_fetch_commits_for_compare_range.call_count == 2
+
+    @patch(
+        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
+    )
+    def test_github_compare_commits_cache_ttl(
+        self,
+        mock_fetch_commits_for_compare_range: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
+        self.login_as(user=self.user)
+        cache.clear()
+
+        _, repo, previous_release, first_release, _, refs = (
+            self._setup_github_compare_commits_cache_context()
+        )
+        mock_fetch_commits_for_compare_range.return_value = self._github_compare_commits_result(
+            repo.name, "b" * 40
+        )
+
+        with patch("sentry.tasks.commits.cache.set", wraps=cache.set) as mock_cache_set:
+            with self.tasks():
+                fetch_commits(
+                    release_id=first_release.id,
+                    user_id=self.user.id,
+                    refs=refs,
+                    prev_release_id=previous_release.id,
+                )
+
+        expected_cache_key = get_github_compare_commits_cache_key(
+            organization_id=repo.organization_id,
+            repository_id=repo.id,
+            provider=repo.provider,
+            start_sha="a" * 40,
+            end_sha="b" * 40,
+        )
+
+        assert mock_cache_set.call_args_list
+        assert any(
+            call.args[0] == expected_cache_key
+            and call.args[2] == GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS
+            for call in mock_cache_set.call_args_list
+        )
 
     def test_release_locked(self, mock_record_event: MagicMock) -> None:
         self.login_as(user=self.user)
@@ -108,7 +279,7 @@ class FetchCommitsTest(TestCase):
                 release_id=new_release.id,
                 user_id=self.user.id,
                 refs=refs,
-                previous_release_id=old_release.id,
+                prev_release_id=old_release.id,
             )
         count_query = ReleaseHeadCommit.objects.filter(release=new_release)
         # No release commits should be made as the task should return early.
@@ -141,10 +312,10 @@ class FetchCommitsTest(TestCase):
         mock_compare_commits.side_effect = InvalidIdentity(identity=usa)
 
         fetch_commits(
-            release_id=release2.id, user_id=self.user.id, refs=refs, previous_release_id=release.id
+            release_id=release2.id, user_id=self.user.id, refs=refs, prev_release_id=release.id
         )
 
-        mock_handle_invalid_identity.assert_called_once_with(identity=usa, commit_failure=True)
+        mock_handle_invalid_identity.assert_called_once_with(identity=usa)
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
@@ -178,54 +349,8 @@ class FetchCommitsTest(TestCase):
                 release_id=release2.id,
                 user_id=self.user.id,
                 refs=refs,
-                previous_release_id=release.id,
+                prev_release_id=release.id,
             )
-
-        msg = mail.outbox[-1]
-        assert msg.subject == "Unable to Fetch Commits"
-        assert msg.to == [self.user.email]
-        assert "secrets" not in msg.body
-
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_plugin_error_for_sentry_app(
-        self, mock_compare_commits: MagicMock, mock_record: MagicMock
-    ) -> None:
-        org = self.create_organization(owner=self.user, name="baz")
-        sentry_app = self.create_sentry_app(
-            organization=org, published=True, verify_install=False, name="Super Awesome App"
-        )
-
-        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
-        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-
-        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
-
-        ReleaseHeadCommit.objects.create(
-            organization_id=org.id, repository_id=repo.id, release=release, commit=commit
-        )
-
-        refs = [{"repository": repo.name, "commit": "b" * 40}]
-
-        release2 = Release.objects.create(organization_id=org.id, version="12345678")
-
-        mock_compare_commits.side_effect = Exception("secrets")
-
-        mock_record.reset_mock()
-
-        with self.tasks():
-            fetch_commits(
-                release_id=release2.id,
-                user_id=sentry_app.proxy_user_id,
-                refs=refs,
-                previous_release_id=release.id,
-            )
-
-        msg = mail.outbox[-1]
-        assert msg.subject == "Unable to Fetch Commits"
-        assert msg.to == [self.user.email]
-        assert "secrets" not in msg.body
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
 
@@ -259,13 +384,8 @@ class FetchCommitsTest(TestCase):
                 release_id=release2.id,
                 user_id=self.user.id,
                 refs=refs,
-                previous_release_id=release.id,
+                prev_release_id=release.id,
             )
-
-        msg = mail.outbox[-1]
-        assert msg.subject == "Unable to Fetch Commits"
-        assert msg.to == [self.user.email]
-        assert "You can read me" in msg.body
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
@@ -300,13 +420,10 @@ class FetchCommitsTest(TestCase):
                 release_id=release2.id,
                 user_id=self.user.id,
                 refs=refs,
-                previous_release_id=release.id,
+                prev_release_id=release.id,
             )
 
-        msg = mail.outbox[-1]
-        assert msg.subject == "Unable to Fetch Commits"
-        assert msg.to == [self.user.email]
-        assert "Repository not found" in msg.body
+        assert mail.outbox == []
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
@@ -323,16 +440,4 @@ class HandleInvalidIdentityTest(TestCase):
 
         msg = mail.outbox[-1]
         assert msg.subject == "Action Required"
-        assert msg.to == [self.user.email]
-
-    def test_commit_failure(self) -> None:
-        usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
-
-        with self.tasks():
-            handle_invalid_identity(usa, commit_failure=True)
-
-        assert not UserSocialAuth.objects.filter(id=usa.id).exists()
-
-        msg = mail.outbox[-1]
-        assert msg.subject == "Unable to Fetch Commits"
         assert msg.to == [self.user.email]

@@ -9,6 +9,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 import sentry_sdk
 from django.utils import timezone
 from sentry_relay.processing import validate_sampling_condition
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -49,7 +50,6 @@ from sentry.snuba.metrics.extraction import (
 )
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 
@@ -139,16 +139,13 @@ def get_on_demand_metric_specs(
     timeout.check()
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    prefilling_for_deprecation = (
-        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-    )
 
     with sentry_sdk.start_span(op="get_alert_metric_specs"):
         alert_specs = _get_alert_metric_specs(
             project,
             enabled_features,
             prefilling,
-            prefilling_for_deprecation=prefilling_for_deprecation,
+            prefilling_for_deprecation=False,
         )
     timeout.check()
     with sentry_sdk.start_span(op="get_widget_metric_specs"):
@@ -164,7 +161,6 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
         "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
         "organizations:on-demand-metrics-extraction-experimental",
         "organizations:on-demand-metrics-prefill",
-        "organizations:on-demand-gen-metrics-deprecation-prefill",
     ]
 
     enabled_features = set()

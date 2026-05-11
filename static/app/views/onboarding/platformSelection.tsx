@@ -2,12 +2,11 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import omit from 'lodash/omit';
 
-import PlatformPicker from 'sentry/components/platformPicker';
+import {PlatformPicker} from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
-import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
-import StepHeading from 'sentry/views/onboarding/components/stepHeading';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
+import {OnboardingStepHeading} from 'sentry/views/onboarding/components/onboardingStepHeading';
 import {useConfigureSdk} from 'sentry/views/onboarding/useConfigureSdk';
 
 import type {StepProps} from './types';
@@ -21,11 +20,10 @@ export function PlatformSelection(props: StepProps) {
 
   return (
     <Wrapper>
-      <StepHeading step={props.stepIndex}>
+      <OnboardingStepHeading step={props.stepIndex}>
         {t('Select the platform you want to monitor')}
-      </StepHeading>
+      </OnboardingStepHeading>
       <motion.div
-        transition={testableTransition()}
         variants={{
           initial: {y: 30, opacity: 0},
           animate: {y: 0, opacity: 1},

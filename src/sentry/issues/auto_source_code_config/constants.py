@@ -5,12 +5,13 @@ from typing import Any
 
 from sentry.integrations.types import IntegrationProviderSlug
 
+from .utils.java import find_java_source_roots
+
 METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
 SUPPORTED_INTEGRATIONS = [IntegrationProviderSlug.GITHUB.value]
 STACK_ROOT_MAX_LEVEL = 4
 
-# Any new languages should also require updating the stacktraceLink.tsx
 # The extensions do not need to be exhaustive but only include the ones that show up in stacktraces
 PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
     # C#, F#, VB, PowerShell, C# Script, F# Script
@@ -20,6 +21,7 @@ PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
         # e.g. com.foo.bar.Baz$handle$1, Baz.kt -> com/foo/bar/Baz.kt
         "extract_filename_from_module": True,
         "create_in_app_stack_trace_rules": True,
+        "source_roots_resolver": find_java_source_roots,
         "extensions": ["kt", "kts", "java", "jsp", "scala", "sc"],
     },
     "javascript": {"extensions": ["js", "jsx", "mjs", "tsx", "ts"]},

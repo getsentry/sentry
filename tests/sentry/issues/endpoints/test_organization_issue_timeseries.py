@@ -88,7 +88,10 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         )
         self.create_group(project=self.project2, status=2, first_seen=self.start, type=4)
         self.create_group(
-            project=self.project2, status=2, first_seen=self.start, type=FeedbackGroup.type_id
+            project=self.project2,
+            status=2,
+            first_seen=self.start,
+            type=FeedbackGroup.type_id,
         )
 
     def do_request(self, data: dict[str, Any], url: str | None = None) -> Any:
@@ -112,7 +115,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         response = self.do_request(
             {
                 "statsPeriod": "14d",
-                "interval": "1001",
+                "interval": "2",
                 "category": "issue",
                 "yAxis": "count(new_issues)",
                 "groupBy": ["release"],
@@ -387,7 +390,11 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         # Release issues.
         for release in self.releases:
             self.create_group(
-                project=self.project1, status=0, first_seen=self.end, first_release=release, type=1
+                project=self.project1,
+                status=0,
+                first_seen=self.end,
+                first_release=release,
+                type=1,
             )
 
         response = self.do_request(

@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-export default function FeedbackAlertBanner({
+import {tct} from 'sentry/locale';
+import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function FeedbackAlertBanner({
   filters,
   projectSlug,
 }: {
@@ -43,5 +43,5 @@ export default function FeedbackAlertBanner({
 }
 
 const StyledFeedbackAlert = styled(Alert)`
-  margin: ${space(1)} 0 0 0;
+  margin: ${p => p.theme.space.md} 0 0 0;
 `;
