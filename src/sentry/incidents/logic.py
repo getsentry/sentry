@@ -688,7 +688,7 @@ def subscribe_projects_to_alert_rule(
     alert_rule: AlertRule,
     projects: Iterable[Project],
     query_extra: str | None = None,
-):
+) -> list[QuerySubscription]:
     """
     Subscribes a list of projects to an alert rule
     :return: The list of created subscriptions
@@ -1388,8 +1388,8 @@ def update_alert_rule_trigger_action(
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
-    input_channel_id=None,
-    sentry_app_config=None,
+    input_channel_id: str | None = None,
+    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
     priority: str | None = None,
