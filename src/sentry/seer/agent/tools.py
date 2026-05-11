@@ -1014,6 +1014,8 @@ def _get_metric_alert_context(
     if group.issue_category != GroupCategory.METRIC:
         return None
 
+    # Metric issue group metadata only has the short summary string. The
+    # aggregate/query/window/condition evidence lives on the latest occurrence event.
     event = group.get_latest_event(start=start, end=end)
     if event is None:
         return None
