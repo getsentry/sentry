@@ -605,6 +605,11 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'SELECT pokemon FROM pokedex',
       problemSpan: ProblemSpan.OFFENDER,
     });
+    parentSpan.children[0]!.span.data = {
+      'code.filepath': '/app/pokedex/queries.py',
+      'code.function': 'fetchPokemon',
+      'code.lineno': 42,
+    };
 
     builder.addSpan(parentSpan);
 
@@ -645,6 +650,9 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('/app/pokedex/queries.py in fetchPokemon at line 42');
       expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
 
       expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
