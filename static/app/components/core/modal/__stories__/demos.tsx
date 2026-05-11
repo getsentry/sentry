@@ -14,7 +14,7 @@ export function BasicDemo() {
             <Header closeButton>Example Modal</Header>
             <Body>This is the modal content.</Body>
             <Footer>
-              <Button priority="primary" onClick={closeModal}>
+              <Button variant="primary" onClick={closeModal}>
                 Done
               </Button>
             </Footer>
@@ -54,7 +54,7 @@ export function CloseEventsDemo() {
                 <Header>No Auto-Close</Header>
                 <Body>This modal can only be closed via the button below.</Body>
                 <Footer>
-                  <Button priority="primary" onClick={closeModal}>
+                  <Button variant="primary" onClick={closeModal}>
                     Close
                   </Button>
                 </Footer>
@@ -100,8 +100,8 @@ export function SubComponentsDemo() {
         This is a standalone ModalBody — useful for previewing styles outside a modal.
       </ModalBody>
       <ModalFooter>
-        <Button priority="default">Cancel</Button>
-        <Button priority="primary">Confirm</Button>
+        <Button variant="secondary">Cancel</Button>
+        <Button variant="primary">Confirm</Button>
       </ModalFooter>
     </Flex>
   );

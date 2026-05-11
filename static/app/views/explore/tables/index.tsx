@@ -1,16 +1,15 @@
 import {Fragment, useEffect} from 'react';
 
-import {Badge} from '@sentry/scraps/badge';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -44,7 +43,11 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
+  const {openModal} = useModal();
+
+  const {setTab, tab} = props;
   const crossEvents = useQueryParamsCrossEvents();
+  const hasCrossEvents = !!crossEvents?.length;
 
   const aggregateFields = useQueryParamsAggregateFields();
   const setAggregateFields = useSetQueryParamsAggregateFields();
@@ -89,45 +92,53 @@ export function ExploreTables(props: ExploreTablesProps) {
   };
 
   useEffect(() => {
-    if (
-      props.tab === Tab.ATTRIBUTE_BREAKDOWNS &&
-      defined(crossEvents) &&
-      crossEvents.length > 0
-    ) {
-      props.setTab(Tab.SPAN);
+    if ((tab === Tab.TRACE || tab === Tab.ATTRIBUTE_BREAKDOWNS) && hasCrossEvents) {
+      setTab(Tab.SPAN);
     }
-  }, [crossEvents, props]);
+  }, [hasCrossEvents, setTab, tab]);
 
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
-        <Tabs value={props.tab} onChange={props.setTab} size="sm">
+        <Tabs value={tab} onChange={setTab} size="sm" disableOverflow>
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
-            <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
+            <TabList.Item
+              key={Tab.TRACE}
+              disabled={hasCrossEvents}
+              tooltip={{
+                title: hasCrossEvents
+                  ? t(
+                      'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
+                    )
+                  : undefined,
+              }}
+            >
+              {t('Trace Samples')}
+            </TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
             <TabList.Item
               key={Tab.ATTRIBUTE_BREAKDOWNS}
               textValue={t('Attribute Breakdowns')}
-              disabled={defined(crossEvents) && crossEvents.length > 0}
+              disabled={hasCrossEvents}
             >
               {t('Attribute Breakdowns')}
-              <Badge variant="beta">Beta</Badge>
+              <FeatureBadge type="beta" />
             </TabList.Item>
           </TabList>
         </Tabs>
-        {props.tab === Tab.SPAN ? (
+        {tab === Tab.SPAN ? (
           <Button onClick={openColumnEditor} icon={<IconEdit />} size="sm">
             {t('Edit Table')}
           </Button>
-        ) : props.tab === Mode.AGGREGATE ? (
+        ) : tab === Mode.AGGREGATE ? (
           <Button onClick={openAggregateColumnEditor} icon={<IconEdit />} size="sm">
             {t('Edit Table')}
           </Button>
         ) : (
           <Tooltip
             title={
-              props.tab === Tab.TRACE
+              tab === Tab.TRACE
                 ? t('Editing columns is available for span samples only')
                 : t('Use the Group By and Visualize controls to change table columns')
             }
@@ -138,10 +149,10 @@ export function ExploreTables(props: ExploreTablesProps) {
           </Tooltip>
         )}
       </Flex>
-      {props.tab === Tab.SPAN && <SpansTable {...props} />}
-      {props.tab === Tab.TRACE && <TracesTable {...props} />}
-      {props.tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
-      {props.tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
+      {tab === Tab.SPAN && <SpansTable {...props} />}
+      {tab === Tab.TRACE && <TracesTable {...props} />}
+      {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
+      {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );
 }

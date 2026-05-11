@@ -27,6 +27,7 @@ from requests_oauthlib import OAuth1
 
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
+from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.http import absolute_uri
 from social_auth.exceptions import (
     AuthCanceled,
@@ -192,6 +193,8 @@ class SocialAuthBackend:
         user = user_service.get_user(user_id=user_id)
         if user and user.is_active and not user.is_suspended:
             return user
+        if user and user.is_suspended:
+            record_suspended_user_rejection("social_get_user")
         return None
 
 

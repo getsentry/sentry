@@ -98,7 +98,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
   transition: {
-    duration: 1.0,
+    duration: 1,
     height: {
       type: 'spring',
       bounce: 0.2,
@@ -456,7 +456,7 @@ function AutofixRootCauseDisplay({
   );
 
   // Stores 'seer_solution' or an integration ID (e.g., 'agent:123')
-  const [preferredAction, setPreferredAction] = useLocalStorageState<string>(
+  const [preferredAction, setPreferredAction] = useLocalStorageState(
     'autofix:rootCauseActionPreference',
     'seer_solution'
   );

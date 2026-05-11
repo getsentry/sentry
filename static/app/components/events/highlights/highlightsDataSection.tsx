@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
@@ -48,6 +48,8 @@ function useOpenEditHighlightsModal({
   event: Event;
   detailedProject?: Project;
 }) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
   const isProjectAdmin = hasEveryAccess(['project:admin'], {

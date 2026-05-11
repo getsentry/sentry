@@ -8,6 +8,7 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import (
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class TestHasSupportedScmIntegration(TestCase):
@@ -21,7 +22,7 @@ class TestHasSupportedScmIntegration(TestCase):
             external_id="123",
         )
 
-        assert has_supported_scm_integration(self.organization.id)
+        assert has_supported_scm_integration(self.organization)
 
     def test_scm_integration_github_enterprise(self) -> None:
         self.create_integration(
@@ -31,10 +32,10 @@ class TestHasSupportedScmIntegration(TestCase):
             external_id="456",
         )
 
-        assert has_supported_scm_integration(self.organization.id)
+        assert has_supported_scm_integration(self.organization)
 
     def test_no_integration(self) -> None:
-        assert not has_supported_scm_integration(self.organization.id)
+        assert not has_supported_scm_integration(self.organization)
 
     def test_inactive_integration(self) -> None:
         self.create_integration(
@@ -45,7 +46,7 @@ class TestHasSupportedScmIntegration(TestCase):
             oi_params={"status": ObjectStatus.DISABLED},
         )
 
-        assert not has_supported_scm_integration(self.organization.id)
+        assert not has_supported_scm_integration(self.organization)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -59,8 +60,34 @@ class TestHasSupportedScmIntegration(TestCase):
             external_id="123",
         )
 
-        assert has_supported_scm_integration(org1.id)
-        assert not has_supported_scm_integration(org2.id)
+        assert has_supported_scm_integration(org1)
+        assert not has_supported_scm_integration(org2)
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_gitlab_integration_with_feature_flag(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            name="GitLab Test",
+            external_id="789",
+        )
+
+        assert has_supported_scm_integration(self.organization)
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_no_integration_with_gitlab_feature_flag(self) -> None:
+        assert not has_supported_scm_integration(self.organization)
+
+    def test_gitlab_integration_without_feature_flag(self) -> None:
+        # GitLab should not count as a supported SCM without the feature flag
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            name="GitLab Test",
+            external_id="789",
+        )
+
+        assert not has_supported_scm_integration(self.organization)
 
 
 class TestIsCodeReviewEnabled(TestCase):
@@ -74,7 +101,7 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=True,
         )
 
-        assert is_code_review_enabled(self.organization.id)
+        assert is_code_review_enabled(self.organization)
 
     def test_code_review_disabled(self) -> None:
         repo = self.create_repo(project=self.project)
@@ -84,7 +111,7 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_multiple_repositories(self) -> None:
         repo1 = self.create_repo(project=self.project)
@@ -100,10 +127,10 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert is_code_review_enabled(self.organization.id)
+        assert is_code_review_enabled(self.organization)
 
     def test_no_repositories(self) -> None:
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_inactive_repository(self) -> None:
         repo = self.create_repo(project=self.project)
@@ -115,11 +142,11 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=True,
         )
 
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_no_settings(self) -> None:
         self.create_repo(project=self.project)
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -141,8 +168,8 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert is_code_review_enabled(org1.id)
-        assert not is_code_review_enabled(org2.id)
+        assert is_code_review_enabled(org1)
+        assert not is_code_review_enabled(org2)
 
 
 class TestIsAutofixEnabled(TestCase):

@@ -49,6 +49,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import jwt, metrics
+from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -541,6 +542,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             raise AuthenticationFailed("User inactive or deleted")
 
         if not isinstance(token, SystemToken) and user and getattr(user, "is_suspended", False):
+            logger.info(
+                "api.token.suspended-user",
+                extra={
+                    "user_id": user.id,
+                    "token_id": getattr(token, "id", None),
+                    "ip_address": request.META.get("REMOTE_ADDR"),
+                },
+            )
+            record_suspended_user_rejection("token_auth")
             raise AuthenticationFailed("User account is suspended")
 
         if application_is_inactive:
@@ -850,6 +860,8 @@ class ViewerContextAuthentication(BaseAuthentication):
                     "path": request.path,
                 },
             )
+            if user is not None and getattr(user, "is_suspended", False):
+                record_suspended_user_rejection("viewer_context_auth")
             return None
 
         sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)

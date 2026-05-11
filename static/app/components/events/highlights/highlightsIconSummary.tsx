@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
-import {openModal} from 'sentry/actionCreators/modal';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -39,6 +39,8 @@ interface HighlightsIconSummaryProps {
 }
 
 export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
 

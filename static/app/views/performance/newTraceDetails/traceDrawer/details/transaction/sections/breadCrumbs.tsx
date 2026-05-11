@@ -32,11 +32,11 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
-  const [timeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
-  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
@@ -96,7 +96,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter Breadcrumbs')}
@@ -112,7 +112,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
         position="bottom-end"
         trigger={props => (
           <OverlayTrigger.IconButton
-            priority="transparent"
+            variant="transparent"
             icon={<IconSort />}
             aria-label={t('Sort Breadcrumbs')}
             title={t('Sort')}

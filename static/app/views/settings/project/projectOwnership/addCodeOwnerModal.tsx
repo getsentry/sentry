@@ -46,7 +46,6 @@ type TCodeownersPayload = {codeMappingId: string | null; raw: string};
 type TCodeownersData = CodeOwner;
 type TCodeownersError = RequestError;
 type TCodeownersVariables = [TCodeownersPayload];
-type TCodeownersContext = unknown;
 
 export function AddCodeOwnerModal({
   organization,
@@ -100,12 +99,7 @@ export function AddCodeOwnerModal({
     )
   );
 
-  const mutation = useMutation<
-    TCodeownersData,
-    TCodeownersError,
-    TCodeownersVariables,
-    TCodeownersContext
-  >({
+  const mutation = useMutation<TCodeownersData, TCodeownersError, TCodeownersVariables>({
     mutationFn: ([payload]: TCodeownersVariables) => {
       return fetchMutation({
         method: 'POST',
@@ -188,7 +182,7 @@ function ApplyCodeMappings({
   codeMappingId: string | null;
   codeMappings: RepositoryProjectPathConfig[];
   codeownersFile: CodeownersFile | undefined;
-  mutation: UseMutationResult<CodeOwner, RequestError, TCodeownersVariables, unknown>;
+  mutation: UseMutationResult<CodeOwner, RequestError, TCodeownersVariables>;
   organization: Organization;
   setCodeMappingId: Dispatch<SetStateAction<string | null>>;
 }) {

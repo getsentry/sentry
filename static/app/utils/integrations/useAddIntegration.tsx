@@ -113,7 +113,7 @@ export function useAddIntegration() {
   const organizationRef = useRef<Organization | null>(null);
   const onInstallRef = useRef<((data: IntegrationWithConfig) => void) | null>(null);
   const analyticsParamsRef = useRef<AddIntegrationParams['analyticsParams']>(undefined);
-  const suppressSuccessMessageRef = useRef<boolean>(false);
+  const suppressSuccessMessageRef = useRef(false);
 
   useEffect(() => {
     function handleMessage(message: MessageEvent) {

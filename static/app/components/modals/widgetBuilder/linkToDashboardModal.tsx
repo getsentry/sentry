@@ -49,7 +49,7 @@ export function LinkToDashboardModal({
   const organization = useOrganization();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
   const [_, setSelectedDashboard] = useState<DashboardDetails | null>(null);
-  const [isDashboardListLoading, setIsDashboardListLoading] = useState<boolean>(false);
+  const [isDashboardListLoading, setIsDashboardListLoading] = useState(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
 
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();

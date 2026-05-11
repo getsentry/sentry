@@ -30,7 +30,6 @@ import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
-import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 
@@ -42,7 +41,6 @@ function ConversationsOverviewPage() {
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
   });
-  useDefaultToAllProjects();
   const {
     showOnboarding,
     isLoading: isOnboardingLoading,

@@ -94,7 +94,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
    * without exposing the component globally.
    */
   if (initConfig.name === 'renderReact') {
-    if (!COMPONENT_MAP.hasOwnProperty(initConfig.component)) {
+    if (!Object.hasOwn(COMPONENT_MAP, initConfig.component)) {
       return;
     }
     const {default: Component} = await COMPONENT_MAP[initConfig.component]();

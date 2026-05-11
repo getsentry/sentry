@@ -149,7 +149,7 @@ function EventDisplay({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [selectedEventId, setSelectedEventId] = useState('');
 
   const {data, isPending, isError} = useFetchSampleEvents({
     start,

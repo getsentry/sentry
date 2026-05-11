@@ -85,6 +85,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             "raw": obj.raw,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
+            "dateSynced": obj.date_synced,
             "codeMappingId": str(obj.repository_project_path_config_id),
             "provider": attrs.get("provider", "unknown"),
         }

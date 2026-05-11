@@ -15,6 +15,8 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -244,6 +246,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   groupsRef.current = groups;
   const flatIndexRef = useRef(flatIndex);
   flatIndexRef.current = flatIndex;
+  const visibleGroupIdxRef = useRef(0);
   const handleScroll = useCallback(() => {
     cancelAnimationFrame(rafId.current);
     rafId.current = requestAnimationFrame(() => {
@@ -257,6 +260,7 @@ export const SnapshotListView = memo(function SnapshotListView({
       const rows = el.querySelectorAll<HTMLElement>('[data-index]');
       const ROW_THRESHOLD = 100;
       let visibleItemKey = groupsRef.current[0]?.itemKey ?? null;
+      let visibleGroupIdx = 0;
       for (const row of rows) {
         const idx = parseInt(row.dataset.index ?? '', 10);
         if (isNaN(idx)) {
@@ -265,8 +269,10 @@ export const SnapshotListView = memo(function SnapshotListView({
         const rowTop = row.getBoundingClientRect().top - containerTop;
         if (rowTop <= ROW_THRESHOLD) {
           visibleItemKey = groupsRef.current[idx]?.itemKey ?? null;
+          visibleGroupIdx = idx;
         }
       }
+      visibleGroupIdxRef.current = visibleGroupIdx;
       onVisibleGroupChangeRef.current?.(visibleItemKey);
 
       if (onScrollProgressRef.current) {
@@ -306,6 +312,20 @@ export const SnapshotListView = memo(function SnapshotListView({
       cancelAnimationFrame(rafId.current);
     };
   }, [groups, handleScroll]);
+
+  const prevDiffModeRef = useRef(diffMode);
+  useEffect(() => {
+    if (prevDiffModeRef.current === diffMode) {
+      return;
+    }
+    prevDiffModeRef.current = diffMode;
+    const idx = visibleGroupIdxRef.current;
+    if (idx >= 0 && idx < groups.length) {
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(idx, {align: 'start'});
+      });
+    }
+  }, [diffMode, groups, virtualizer]);
 
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
   const didInitialScroll = useRef(false);
@@ -573,10 +593,22 @@ const GroupContainer = memo(function GroupContainer({
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
 }) {
+  const organization = useOrganization();
   const cards = group.cards.map(card => {
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
+    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const onCopyLink = () =>
+      trackAnalytics('preprod.snapshots.details.image_link_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
+    const onCopyMetadata = () =>
+      trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
     return card.type === 'pair-card' ? (
       <PairCard
         key={card.id}
@@ -591,6 +623,8 @@ const GroupContainer = memo(function GroupContainer({
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     ) : (
       <ImageCard
@@ -604,6 +638,8 @@ const GroupContainer = memo(function GroupContainer({
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     );
   });
@@ -623,6 +659,16 @@ const ScrollContainer = styled('div')`
   overflow-y: auto;
   overflow-x: hidden;
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
+      p.theme.breakpoints.md}) {
+    padding-left: ${p => p.theme.space.xl};
+  }
   background: ${p => p.theme.tokens.background.secondary};
   contain: layout;
   overscroll-behavior: contain;

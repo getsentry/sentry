@@ -22,12 +22,8 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
-  // TODO: Remove when used
-  'static/app/views/settings/organizationRepositories/connectProviderDropdown.tsx',
-  'static/app/views/settings/organizationRepositories/noIntegrationsEmptyState.tsx',
-  'static/app/views/settings/organizationRepositories/scmRepositoryTable.tsx',
-  'static/app/views/settings/organizationRepositories/useRepoSearch.tsx',
-  'static/app/views/settings/organizationRepositoriesV2/index.tsx',
+  // TODO: Remove when integration into Explore has started
+  'static/app/views/dashboards/widgets/heatMapWidget/**/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [

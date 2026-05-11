@@ -191,7 +191,7 @@ export function CreateProject() {
     };
   }, [autoFill, defaultTeam, createdProject]);
 
-  const [formData, setFormData] = useState<FormData>(initialData);
+  const [formData, setFormData] = useState(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
   const hasUserModifiedProjectName = useRef(false);
 
@@ -241,7 +241,7 @@ export function CreateProject() {
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
     isNotifyingViaIntegration && validateChannel.error,
-  ].filter(value => value).length;
+  ].filter(Boolean).length;
 
   const submitTooltipText =
     isNotifyingViaIntegration && validateChannel.error

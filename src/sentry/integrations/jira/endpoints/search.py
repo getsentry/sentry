@@ -11,6 +11,10 @@ from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.jira.integration import JiraProjectMapping
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
@@ -61,10 +65,16 @@ class JiraSearchEndpoint(IntegrationEndpoint):
         if field in ("externalIssue", "parent"):
             if not query:
                 return Response([])
-            try:
-                resp = installation.search_issues(query)
-            except IntegrationError as e:
-                return Response({"detail": str(e)}, status=400)
+            with ProjectManagementEvent(
+                action_type=ProjectManagementActionType.SEARCH_ISSUES,
+                integration=integration,
+            ).capture() as lifecycle:
+                lifecycle.add_extra("field", field)
+                try:
+                    resp = installation.search_issues(query)
+                except IntegrationError as e:
+                    lifecycle.record_halt(e)
+                    return Response({"detail": str(e)}, status=400)
             return Response(
                 [
                     {"label": "({}) {}".format(i["key"], i["fields"]["summary"]), "value": i["key"]}
@@ -73,12 +83,18 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             )
 
         if field in ("assignee", "reporter"):
-            try:
-                response = jira_client.search_users_for_project(
-                    request.GET.get("project", ""), query
-                )
-            except (ApiUnauthorized, ApiError):
-                return Response({"detail": "Unable to fetch users from Jira"}, status=400)
+            with ProjectManagementEvent(
+                action_type=ProjectManagementActionType.SEARCH_USERS,
+                integration=integration,
+            ).capture() as lifecycle:
+                lifecycle.add_extra("field", field)
+                try:
+                    response = jira_client.search_users_for_project(
+                        request.GET.get("project", ""), query
+                    )
+                except (ApiUnauthorized, ApiError) as e:
+                    lifecycle.record_halt(e)
+                    return Response({"detail": "Unable to fetch users from Jira"}, status=400)
 
             user_tuples = filter(
                 None, [build_user_choice(user, jira_client.user_id_field()) for user in response]
@@ -87,10 +103,16 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             return Response(users)
 
         if field == "project":
-            try:
-                response = jira_client.get_projects_paginated(params={"query": query})
-            except (ApiUnauthorized, ApiError):
-                return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
+            with ProjectManagementEvent(
+                action_type=ProjectManagementActionType.SEARCH_PROJECTS,
+                integration=integration,
+            ).capture() as lifecycle:
+                lifecycle.add_extra("field", field)
+                try:
+                    response = jira_client.get_projects_paginated(params={"query": query})
+                except (ApiUnauthorized, ApiError) as e:
+                    lifecycle.record_halt(e)
+                    return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
 
             projects = [
                 JiraProjectMapping(label=f"{p['key']} - {p['name']}", value=p["id"])
@@ -99,13 +121,19 @@ class JiraSearchEndpoint(IntegrationEndpoint):
 
             return Response(projects)
 
-        try:
-            response = jira_client.get_field_autocomplete(name=field, value=query)
-        except (ApiUnauthorized, ApiError):
-            return Response(
-                {"detail": f"Unable to fetch autocomplete for {field} from Jira"},
-                status=400,
-            )
+        with ProjectManagementEvent(
+            action_type=ProjectManagementActionType.SEARCH_FIELD_AUTOCOMPLETE,
+            integration=integration,
+        ).capture() as lifecycle:
+            lifecycle.add_extra("field", field)
+            try:
+                response = jira_client.get_field_autocomplete(name=field, value=query)
+            except (ApiUnauthorized, ApiError) as e:
+                lifecycle.record_halt(e)
+                return Response(
+                    {"detail": f"Unable to fetch autocomplete for {field} from Jira"},
+                    status=400,
+                )
         choices = [
             {
                 "value": result["value"],
