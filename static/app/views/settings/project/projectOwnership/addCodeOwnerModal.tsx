@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {
   skipToken,
   useMutation,
@@ -11,15 +10,14 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -321,28 +319,30 @@ function LinkCodeOwners({organization}: {organization: Organization}) {
   if (integrations.length) {
     return (
       <Fragment>
-        <div>
+        <Text as="p">
           {t(
             "Configure code mapping to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
           )}
-        </div>
-        <IntegrationsList>
+        </Text>
+        <Stack gap="md" align="center" paddingTop="xl">
           {integrations.map(integration => (
             <LinkButton
               key={integration.id}
               to={`${baseUrl}${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
+              icon={getIntegrationIcon(integration.provider.key)}
             >
-              {getIntegrationIcon(integration.provider.key)}
-              <IntegrationName>{integration.name}</IntegrationName>
+              {integration.name}
             </LinkButton>
           ))}
-        </IntegrationsList>
+        </Stack>
       </Fragment>
     );
   }
   return (
     <Fragment>
-      <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
+      <Text as="p">
+        {t('Install a GitHub or GitLab integration to use this feature.')}
+      </Text>
       <Flex justify="center" paddingTop="xl">
         <LinkButton variant="primary" size="sm" to={baseUrl}>
           {t('Setup Integration')}
@@ -354,26 +354,26 @@ function LinkCodeOwners({organization}: {organization: Organization}) {
 
 function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   return (
-    <ResultPanel>
-      <SourceFileBody>
+    <Container border="primary" radius="md" padding="md">
+      <Grid columns="auto 1fr auto" align="center" gap="md">
         <IconCheckmark size="md" variant="success" />
-        {codeownersFile.filepath}
+        <Text>{codeownersFile.filepath}</Text>
         <LinkButton size="sm" href={codeownersFile.html_url} external>
           {t('Preview File')}
         </LinkButton>
-      </SourceFileBody>
-    </ResultPanel>
+      </Grid>
+    </Container>
   );
 }
 
 function NoSourceFile() {
   return (
-    <ResultPanel>
-      <NoSourceFileBody>
+    <Container border="primary" radius="md" padding="md">
+      <Grid columns="auto 1fr" align="center" gap="md">
         <IconNot size="md" variant="danger" />
-        {t('No codeowner file found.')}
-      </NoSourceFileBody>
-    </ResultPanel>
+        <Text>{t('No codeowner file found.')}</Text>
+      </Grid>
+    </Container>
   );
 }
 
@@ -421,30 +421,3 @@ function ErrorMessage({
     </Alert.Container>
   );
 }
-
-const ResultPanel = styled(Panel)`
-  margin-bottom: 0;
-`;
-const NoSourceFileBody = styled(PanelBody)`
-  display: grid;
-  padding: 12px;
-  grid-template-columns: 30px 1fr;
-  align-items: center;
-`;
-const SourceFileBody = styled(PanelBody)`
-  display: grid;
-  padding: 12px;
-  grid-template-columns: 30px 1fr auto;
-  align-items: center;
-`;
-
-const IntegrationsList = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  justify-items: center;
-  margin-top: ${p => p.theme.space.xl};
-`;
-
-const IntegrationName = styled('p')`
-  padding-left: 10px;
-`;
