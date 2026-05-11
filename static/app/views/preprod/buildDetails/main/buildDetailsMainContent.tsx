@@ -72,17 +72,13 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
 
-  const [selectedContentParam, setSelectedContentParam] = useQueryState(
+  const [selectedContent, setSelectedContent] = useQueryState(
     'view',
-    parseAsStringLiteral(['treemap', 'categories'] as const)
+    parseAsStringLiteral(['treemap', 'categories'] as const).withDefault('treemap')
   );
-  const selectedContent =
-    selectedContentParam === 'treemap' || selectedContentParam === 'categories'
-      ? selectedContentParam
-      : 'treemap';
 
   const handleContentChange = (value: 'treemap' | 'categories') => {
-    setSelectedContentParam(value === 'treemap' ? null : value);
+    setSelectedContent(value === 'treemap' ? null : value);
   };
   const [searchQuery, setSearchQuery] = useQueryState('search');
 

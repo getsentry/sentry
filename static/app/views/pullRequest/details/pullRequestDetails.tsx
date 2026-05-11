@@ -25,7 +25,7 @@ export default function PullRequestDetails() {
   const params = useParams() as {prId: string; repoName: string; repoOrg: string};
   const [selectedTab, setSelectedTab] = useQueryState(
     'tab',
-    parseAsStringLiteral(['files', 'size_analysis'] as const)
+    parseAsStringLiteral(['files', 'size_analysis'] as const).withDefault('files')
   );
 
   const pullRequestQuery = useApiQuery<PullRequestDetailsResponse>(
@@ -113,7 +113,7 @@ export default function PullRequestDetails() {
     >
       <Layout.Header>
         <PullRequestDetailsHeaderContent pullRequest={prSuccessData} />
-        <Layout.HeaderTabs value={selectedTab || 'files'} onChange={setSelectedTab}>
+        <Layout.HeaderTabs value={selectedTab} onChange={setSelectedTab}>
           <TabList>
             <TabList.Item key="files">{t('Files')}</TabList.Item>
             {hasSizeAnalysis ? (
