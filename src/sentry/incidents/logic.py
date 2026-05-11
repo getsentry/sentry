@@ -48,9 +48,7 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentTrigger,
     IncidentType,
-    TriggerStatus,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -244,12 +242,6 @@ def update_incident_status(
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-
-        if status == IncidentStatus.CLOSED and (
-            status_method == IncidentStatusMethod.MANUAL
-            or status_method == IncidentStatusMethod.RULE_UPDATED
-        ):
-            _trigger_incident_triggers(incident)
 
         return incident
 
@@ -471,10 +463,6 @@ def get_metric_issue_aggregates(
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]
-
-
-def get_incident_activity(incident: Incident) -> Iterable[IncidentActivity]:
-    return IncidentActivity.objects.filter(incident=incident).select_related("incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
@@ -1244,43 +1232,6 @@ def delete_alert_rule_trigger(trigger: AlertRuleTrigger) -> None:
 
 def get_triggers_for_alert_rule(alert_rule: AlertRule) -> QuerySet[AlertRuleTrigger]:
     return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-
-
-def _trigger_incident_triggers(incident: Incident) -> None:
-    incident_triggers = IncidentTrigger.objects.filter(incident=incident)
-    triggers = get_triggers_for_alert_rule(incident.alert_rule)
-    actions = deduplicate_trigger_actions(triggers=list(triggers))
-    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
-        for trigger in incident_triggers:
-            trigger.status = TriggerStatus.RESOLVED.value
-            trigger.save()
-
-        for action in actions:
-            for project in incident.projects.all():
-                _schedule_trigger_action(
-                    action_id=action.id,
-                    incident_id=incident.id,
-                    project_id=project.id,
-                    method="resolve",
-                    new_status=IncidentStatus.CLOSED.value,
-                )
-
-
-def _schedule_trigger_action(
-    action_id: int, incident_id: int, project_id: int, method: str, new_status: int
-) -> None:
-    from sentry.incidents.tasks import handle_trigger_action
-
-    transaction.on_commit(
-        lambda: handle_trigger_action.delay(
-            action_id=action_id,
-            incident_id=incident_id,
-            project_id=project_id,
-            method=method,
-            new_status=new_status,
-        ),
-        using=router.db_for_write(AlertRuleTrigger),
-    )
 
 
 def _sort_by_priority_list(
