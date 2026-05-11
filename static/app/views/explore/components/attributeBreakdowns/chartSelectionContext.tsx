@@ -2,6 +2,7 @@ import {createContext, useContext, useMemo} from 'react';
 import {createParser, useQueryState} from 'nuqs';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
+import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 
 export type ChartSelectionQueryParam = {
   chartIndex: number;
@@ -84,9 +85,11 @@ export function ChartSelectionProvider({children}: ChartSelectionProviderProps) 
   );
 
   return (
-    <ChartSelectionContext.Provider value={value}>
-      {children}
-    </ChartSelectionContext.Provider>
+    <UrlParamBatchProvider>
+      <ChartSelectionContext.Provider value={value}>
+        {children}
+      </ChartSelectionContext.Provider>
+    </UrlParamBatchProvider>
   );
 }
 
