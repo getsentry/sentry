@@ -33,6 +33,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     status: int = 0
     slug: str = ""
     cell_name: str = ""
+    date_created: datetime = Field(default_factory=timezone.now)
 
     # When not set, no change to customer id performed,
     # when set with a CustomerId, the customer_id set to either None or string
