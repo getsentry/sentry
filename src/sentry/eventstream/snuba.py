@@ -245,8 +245,14 @@ class SnubaProtocolEventStream(EventStream):
 
         missing_fields = self._missing_required_item_fields(event_data)
         if missing_fields:
-            logger.debug(
-                "Event data is missing required fields to forward to items: %s", missing_fields
+            logger.info(
+                "Event is missing required data fields to forward to items: %s",
+                missing_fields,
+                extra={
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "event_type": event_type,
+                },
             )
             return
 

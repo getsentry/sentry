@@ -66,8 +66,9 @@ repos:
         language: python
       - id: check-mypy-weaklist
         name: check mypy weaklist
-        entry: python3 -m tools.mypy_helpers.check_stronglist
-        files: ^pyproject\.toml$
+        entry: python3 -m tools.mypy_helpers.check_stronglist pyproject.toml
+        files: (^pyproject\.toml$|\.py$)
+        pass_filenames: false
         language: python
       - id: prevent-mypy-weaklist-additions
         name: prevent mypy weaklist additions

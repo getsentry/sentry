@@ -13,6 +13,7 @@ import {HookStore} from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function DetectorTypeForm() {
@@ -27,8 +28,11 @@ export function DetectorTypeForm() {
         })}
       </Text>
       <Text as="p" size="md">
-        {t(
-          'If you’re looking for an Error Monitors, those are created by Sentry. To customize an error monitor, click into an existing one.'
+        {tct(
+          'If you’re looking for [link:Error Monitors], those are created by Sentry. To customize an error monitor, click into an existing one.',
+          {
+            link: <Link to={`${makeMonitorBasePathname(organization.slug)}errors/`} />,
+          }
         )}
       </Text>
     </Stack>

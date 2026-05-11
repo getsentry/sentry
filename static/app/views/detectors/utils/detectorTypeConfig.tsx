@@ -42,7 +42,7 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
     systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
   preprod_size_analysis: {
-    label: t('Mobile Builds'),
+    label: t('Mobile Build'),
     path: 'mobile-builds',
     userCreateable: true,
   },

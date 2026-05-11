@@ -21,7 +21,7 @@ monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0004_notificationmessage_group_action_date_added_idx
+notifications: 0005_remove_notifmsg_rule_fire_history_constraints
 
 preprod: 0028_add_images_skipped_to_snapshot_comparison
 
@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0010_drop_legacy_columns
 
-sentry: 1084_delete_dashboardlastvisited
+sentry: 1085_add_date_synced_to_projectcodeowners
 
 social_auth: 0003_social_auth_json_field
 

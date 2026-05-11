@@ -3,12 +3,12 @@ import {useMutation} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -54,6 +54,8 @@ type OwnedOrg = {
 };
 
 function AccountClose() {
+  const {openModal} = useModal();
+
   const api = useApi();
 
   const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);

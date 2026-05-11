@@ -309,7 +309,7 @@ export const AM3_PLANS = {
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.0,
+    onDemandEventPrice: 0,
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
@@ -319,9 +319,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -633,9 +633,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -749,85 +749,85 @@ export const AM3_PLANS = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7400,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 12400,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 14900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 17400,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 22400,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 24900,
           onDemandPrice: 31.25,
         },
@@ -835,41 +835,41 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -1051,9 +1051,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -1149,9 +1149,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -1265,9 +1265,9 @@ export const AM3_PLANS = {
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -1399,117 +1399,117 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 6500,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13000,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19400,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 25900,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 52900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 79900,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 106900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 133900,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 160900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 187900,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 214900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 241900,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 268900,
           onDemandPrice: 31.25,
         },
@@ -1569,25 +1569,25 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 1_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       replays: [
         {
           events: 10_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spans: [
         {
           events: 100_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       monitorSeats: [
@@ -1627,7 +1627,7 @@ export const AM3_PLANS = {
           events: 1,
           unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       logBytes: [
@@ -1685,25 +1685,25 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 1_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       replays: [
         {
           events: 10_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spans: [
         {
           events: 100_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       monitorSeats: [
@@ -1743,7 +1743,7 @@ export const AM3_PLANS = {
           events: 1,
           unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       logBytes: [
@@ -1801,33 +1801,33 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 1_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       replays: [
         {
           events: 10_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spans: [
         {
           events: 0,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spansIndexed: [
         {
           events: 0,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       monitorSeats: [
@@ -1867,7 +1867,7 @@ export const AM3_PLANS = {
           events: 1,
           unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       logBytes: [
@@ -1925,33 +1925,33 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 1_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       replays: [
         {
           events: 10_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spans: [
         {
           events: 0,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spansIndexed: [
         {
           events: 0,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       monitorSeats: [
@@ -1991,7 +1991,7 @@ export const AM3_PLANS = {
           events: 1,
           unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       logBytes: [
@@ -2407,9 +2407,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -2505,9 +2505,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -2621,9 +2621,9 @@ export const AM3_PLANS = {
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -2755,117 +2755,117 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7400,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 12400,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 14900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 17400,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 22400,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 24900,
           onDemandPrice: 31.25,
         },
@@ -2925,9 +2925,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -3023,9 +3023,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -3139,9 +3139,9 @@ export const AM3_PLANS = {
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -3273,117 +3273,117 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 6500,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13000,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19400,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 25900,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 52900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 79900,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 106900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 133900,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 160900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 187900,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 214900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 241900,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 268900,
           onDemandPrice: 31.25,
         },

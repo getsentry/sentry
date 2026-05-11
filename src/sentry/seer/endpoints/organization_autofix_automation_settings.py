@@ -232,7 +232,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        queryset = Project.objects.filter(organization_id=organization.id)
+        accessible_projects = self.get_projects(request, organization, include_all_accessible=True)
+        queryset = Project.objects.filter(id__in={p.id for p in accessible_projects})
 
         query = serializer.validated_data.get("query")
         if query:

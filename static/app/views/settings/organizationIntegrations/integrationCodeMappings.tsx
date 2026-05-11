@@ -6,10 +6,10 @@ import sortBy from 'lodash/sortBy';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -129,6 +129,8 @@ function useDeletePathConfig({
 }
 
 export function IntegrationCodeMappings({integration}: {integration: Integration}) {
+  const {openModal} = useModal();
+
   const queryClient = useQueryClient();
   useRouteAnalyticsEventNames(
     'integrations.code_mappings_viewed',

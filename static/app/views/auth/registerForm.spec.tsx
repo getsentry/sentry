@@ -35,7 +35,7 @@ describe('Register', () => {
     });
   }
 
-  it.isKnownFlake('handles errors', async () => {
+  it('handles errors', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/register/',
       method: 'POST',
@@ -52,7 +52,7 @@ describe('Register', () => {
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
   });
 
-  it.isKnownFlake('handles success', async () => {
+  it('handles success', async () => {
     const userObject = {
       id: 1,
       name: 'Joe',

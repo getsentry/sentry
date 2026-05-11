@@ -283,12 +283,16 @@ function DataWidgetViewerModal(props: Props) {
     selectedQueryIndex = 0;
   }
 
-  // Top N widget charts (including widgets with limits) results rely on the sorting of the query
-  // Set the orderby of the widget chart to match the location query params
-  const primaryWidget =
-    widget.displayType === DisplayType.TOP_N || defined(widget.limit)
-      ? {...widget, queries: sortedQueries}
+  const resolvedWidget =
+    widget.displayType === DisplayType.TOP_N
+      ? {...widget, displayType: DisplayType.AREA}
       : widget;
+
+  // Widgets with limits rely on the sorting of the query
+  // Set the orderby of the widget chart to match the location query params
+  const primaryWidget = defined(resolvedWidget.limit)
+    ? {...resolvedWidget, queries: sortedQueries}
+    : resolvedWidget;
   const api = useApi();
 
   // Create Table widget
