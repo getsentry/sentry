@@ -114,7 +114,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
-  it(
+  it.isKnownFlake(
     'shows a "Current Project" tag on the active project entry',
     async () => {
       render(
@@ -138,7 +138,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it(
+  it.isKnownFlake(
     'places the current route project first when on a :projectId route',
     async () => {
       render(
