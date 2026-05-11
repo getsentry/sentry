@@ -109,9 +109,15 @@ export function ReleasesPromo({organization, project}: Props) {
 
   const api = useApi();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [tokenForApp, setTokenForApp] = useState<{slug: string; token: string} | null>(
+    null
+  );
   const [apps, setApps] = useState<SentryApp[]>([]);
   const [selectedApp, setSelectedApp] = useState<SentryApp | null>(null);
+  const inflightSlugRef = useRef<string | null>(null);
+
+  const token =
+    tokenForApp && tokenForApp.slug === selectedApp?.slug ? tokenForApp.token : null;
 
   useEffect(() => {
     if (!isPending && data) {
@@ -161,11 +167,17 @@ export function ReleasesPromo({organization, project}: Props) {
   }, [organization, project.id]);
 
   const generateAndSetNewToken = async (sentryAppSlug: string) => {
-    setToken(null);
+    inflightSlugRef.current = sentryAppSlug;
     try {
       const newToken = await generateToken(sentryAppSlug);
-      setToken(newToken);
+      if (inflightSlugRef.current !== sentryAppSlug) {
+        return;
+      }
+      setTokenForApp({slug: sentryAppSlug, token: newToken});
     } catch {
+      if (inflightSlugRef.current !== sentryAppSlug) {
+        return;
+      }
       const app = apps.find(a => a.slug === sentryAppSlug);
       addErrorMessage(
         tct('Unable to generate token for [name].', {name: app?.name ?? sentryAppSlug})
