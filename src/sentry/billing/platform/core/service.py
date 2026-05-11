@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from typing import Any, TypeVar
 
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
 from sentry.utils import metrics
@@ -120,6 +121,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
                 extra={
                     "duration_ms": duration_ms,
                     "response_type": type(result).__name__,
+                    "response": MessageToDict(result),
                     **extras,
                 },
             )

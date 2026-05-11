@@ -13,8 +13,7 @@ import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import {getFieldDefinition} from 'sentry/utils/fields';
-import {fzf} from 'sentry/utils/search/fzf';
+import {type GetFieldDefinitionType} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -22,6 +21,7 @@ import {
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarGroupByHeader() {
   return (
@@ -44,7 +44,7 @@ interface ToolbarGroupByDropdownProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
-  fieldDefinitionType?: Parameters<typeof getFieldDefinition>[1];
+  fieldDefinitionType?: GetFieldDefinitionType;
   loading?: boolean;
   onClose?: () => void;
   onSearch?: (search: string) => void;
@@ -93,24 +93,11 @@ export function ToolbarGroupByDropdown({
         search={{
           onChange: onSearch,
           filter: (option, search) => {
-            const text =
-              option.textValue ?? (typeof option.label === 'string' ? option.label : '');
-            const normalizedText = text.toLowerCase();
-            const normalizedSearch = search.toLowerCase();
-            // Keep Group By's existing substring filtering behavior while using fzf
-            // only to rank the matched options.
-            if (!normalizedText.includes(normalizedSearch)) {
-              return {score: 0};
-            }
-            const result = fzf(text, normalizedSearch, false);
-            if (result.end === -1) {
-              return {score: 0};
-            }
-            const isKnown =
-              getFieldDefinition(String(option.value), fieldDefinitionType) !== null;
-            const prefixBoost =
-              result.start === 0 && result.end === normalizedSearch.length ? 8 : 0;
-            return {score: Math.max(1, result.score) + prefixBoost + (isKnown ? 2 : 1)};
+            return sortSearchedAttributes({
+              fieldDefinitionType,
+              option,
+              searchText: search,
+            });
           },
         }}
         trigger={triggerProps => (

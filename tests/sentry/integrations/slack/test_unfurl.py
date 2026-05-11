@@ -3179,6 +3179,40 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
 
         assert params["query"] == 'release:["v1.0.0","v2.0.0"]'
 
+    def test_url_empty_release_falls_back_to_dashboard_release(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"release": ["v1.0.0"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release="))[0]
+
+        assert params["query"] == 'release:"v1.0.0"'
+
+    def test_url_empty_release_with_no_dashboard_release_omits_query(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release="))[0]
+
+        assert "query" not in params
+
+    def test_url_empty_project_falls_back_to_dashboard_projects(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a])
+
+        params = build_widget_timeseries_params(widget, QueryDict("project="))[0]
+
+        assert params["project"] == str(project_a.id)
+
+    def test_url_empty_environment_falls_back_to_dashboard_environment(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("environment="))[0]
+
+        assert params["environment"] == "prod"
+
     def test_dashboard_global_filter_applied_when_dataset_matches(self) -> None:
         widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
         widget.dashboard.filters = {
@@ -3247,6 +3281,19 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         params = build_widget_timeseries_params(widget, QueryDict(f"globalFilter={url_filter}"))[0]
 
         assert params["query"] == "env:prod"
+
+    def test_url_empty_global_filter_falls_back_to_dashboard_global_filter(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("globalFilter="))[0]
+
+        assert params["query"] == "span.op:http"
 
     def test_url_global_filter_invalid_json_is_skipped(self) -> None:
         widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)

@@ -161,7 +161,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
+  it('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -536,74 +536,67 @@ describe('MetricsTabContent', () => {
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
   });
 
-  it.isKnownFlake(
-    'should switch to aggregate mode when a group by is added',
-    async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/trace-items/attributes/`,
-        method: 'GET',
-        body: [
-          {
-            attributeType: 'string',
-            key: 'test.region',
-            name: 'test.region',
-          },
-          {
-            attributeType: 'string',
-            key: 'test.service',
-            name: 'test.service',
-          },
-        ],
-        match: [
-          MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']}),
-        ],
-      });
-
-      const {router} = render(
-        <ProviderWrapper>
-          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-        </ProviderWrapper>,
+  it('should switch to aggregate mode when a group by is added', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
         {
-          initialRouterConfig,
-          organization,
-        }
-      );
+          attributeType: 'string',
+          key: 'test.region',
+          name: 'test.region',
+        },
+        {
+          attributeType: 'string',
+          key: 'test.service',
+          name: 'test.service',
+        },
+      ],
+      match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
+    });
 
-      const toolbars = screen.getAllByTestId('metric-toolbar');
-      expect(toolbars).toHaveLength(1);
+    const {router} = render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
 
-      // Wait for the toolbar to load
-      await waitFor(() => {
-        expect(
-          within(toolbars[0]!).getByRole('button', {name: 'bar'})
-        ).toBeInTheDocument();
-      });
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
 
-      // Verify initial state is samples mode
-      const initialMetricQuery = JSON.parse(router.location.query.metric as string);
-      expect(initialMetricQuery.mode).toBe('samples');
+    // Wait for the toolbar to load
+    await waitFor(() => {
+      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
 
-      // Click on the Group by selector - use text content since prefix renders differently
-      const groupByButton = within(toolbars[0]!).getByText('Group by');
-      await userEvent.click(groupByButton);
+    // Verify initial state is samples mode
+    const initialMetricQuery = JSON.parse(router.location.query.metric as string);
+    expect(initialMetricQuery.mode).toBe('samples');
 
-      // Select a group by option (test.region)
-      const regionOption = await screen.findByRole('option', {name: 'test.region'});
-      await userEvent.click(regionOption);
+    // Click on the Group by selector - use text content since prefix renders differently
+    const groupByButton = within(toolbars[0]!).getByText('Group by');
+    await userEvent.click(groupByButton);
 
-      let metricQuery = router.location.query.metric;
-      expect(metricQuery).toBeDefined();
+    // Select a group by option (test.region)
+    const regionOption = await screen.findByRole('option', {name: 'test.region'});
+    await userEvent.click(regionOption);
 
-      // Verify that the mode switched to aggregate in the URL
-      let parsedQuery: ReturnType<typeof JSON.parse>;
-      await waitFor(() => {
-        metricQuery = router.location.query.metric;
-        parsedQuery = JSON.parse(metricQuery as string);
-        expect(parsedQuery.mode).toBe('aggregate');
-      });
-      expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
-    }
-  );
+    let metricQuery = router.location.query.metric;
+    expect(metricQuery).toBeDefined();
+
+    // Verify that the mode switched to aggregate in the URL
+    let parsedQuery: ReturnType<typeof JSON.parse>;
+    await waitFor(() => {
+      metricQuery = router.location.query.metric;
+      parsedQuery = JSON.parse(metricQuery as string);
+      expect(parsedQuery.mode).toBe('aggregate');
+    });
+    expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
+  });
 
   it('does not show the Add Equation button when the feature flag is disabled', async () => {
     render(
