@@ -7,17 +7,16 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 
 
 @instrumented_task(
     name="sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
     namespace=integrations_control_tasks,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=5, delay=60 * 5, on=(Exception,)),
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def kickoff_vsts_subscription_check() -> None:
     from sentry.integrations.vsts.tasks import vsts_subscription_check
 

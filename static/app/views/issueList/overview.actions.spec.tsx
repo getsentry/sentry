@@ -34,6 +34,10 @@ describe('IssueListOverview (actions)', () => {
     IssueListCacheStore.reset();
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
     });

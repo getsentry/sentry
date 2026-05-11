@@ -125,8 +125,10 @@ function useLogsAggregatesApiOptions({
   const aggregateCursor = useQueryParamsAggregateCursor();
   const [caseInsensitive] = useCaseInsensitivity();
   const fields: string[] = [];
-  fields.push(...groupBys.filter(Boolean));
-  fields.push(...visualizes.map(visualize => visualize.yAxis));
+  fields.push(
+    ...groupBys.filter(Boolean),
+    ...visualizes.map(visualize => visualize.yAxis)
+  );
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {

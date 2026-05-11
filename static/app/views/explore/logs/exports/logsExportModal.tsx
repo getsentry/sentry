@@ -56,10 +56,11 @@ export function LogsExportModal({
     [queryInfo]
   );
   const handleDataExport = useDataExport();
-  const rowCountOptions = generateLogExportRowCountOptions(estimatedRowCount);
+  const {rowCountDefault, rowCountOptions} =
+    generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
     format: 'csv',
-    limit: rowCountOptions[0]!.value,
+    limit: rowCountDefault.value,
   };
 
   const form = useScrapsForm({
@@ -137,7 +138,7 @@ export function LogsExportModal({
                   options={rowCountOptions}
                   onChange={field.handleChange}
                   value={field.state.value}
-                  defaultValue={rowCountOptions[0]}
+                  defaultValue={rowCountDefault}
                 />
               </field.Layout.Stack>
             )}

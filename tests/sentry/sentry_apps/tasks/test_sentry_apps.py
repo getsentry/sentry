@@ -133,13 +133,16 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        send_alert_webhook_v2(
-            instance_id=group_event.event_id,
-            group_id=group_event.group_id,
-            occurrence_id=None,
-            rule_label=self.rule.label,
-            sentry_app_id=9999,
-        )
+        # SentryAppSentryError is in the task's ignore list, this won't be
+        # raised in production.
+        with pytest.raises(SentryAppSentryError):
+            send_alert_webhook_v2(
+                instance_id=group_event.event_id,
+                group_id=group_event.group_id,
+                occurrence_id=None,
+                rule_label=self.rule.label,
+                sentry_app_id=9999,
+            )
 
         assert not safe_urlopen.called
 
@@ -163,13 +166,14 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         project = self.create_project()
         issue = self.create_group(project=project)
 
-        send_alert_webhook_v2(
-            instance_id=str(123),
-            group_id=issue.id,
-            occurrence_id=None,
-            rule_label=self.rule.label,
-            sentry_app_id=self.sentry_app.id,
-        )
+        with pytest.raises(SentryAppSentryError):
+            send_alert_webhook_v2(
+                instance_id=str(123),
+                group_id=issue.id,
+                occurrence_id=None,
+                rule_label=self.rule.label,
+                sentry_app_id=self.sentry_app.id,
+            )
 
         assert not safe_urlopen.called
 
@@ -603,8 +607,8 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
-        # The task should complete without retrying when RestrictedIPAddress is raised
-        # because it's in the ignore list of the retry decorator
+        # RestrictedIPAddress is swallowed by @ignore_unpublished_app_errors for
+        # unpublished apps. In production, it's also in silenced_exceptions on the task.
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -616,7 +620,6 @@ class TestProcessResourceChange(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # Verify that the exception was not captured by Sentry since it's ignored
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.called
 
@@ -629,8 +632,8 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
-        # The task should complete without reporting to sentry when Timeout is raised
-        # because it's in the on_silent list of the retry decorator
+        # Timeout is swallowed by @ignore_unpublished_app_errors for unpublished apps.
+        # In production, it's also in silenced_exceptions on the task.
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -642,7 +645,6 @@ class TestProcessResourceChange(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # Verify that the exception was not captured by Sentry since it's on_silent
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.called
 
@@ -655,8 +657,8 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
-        # The task should complete without reporting to sentry when ApiHostError is raised
-        # because it's in the on_silent list of the retry decorator
+        # ApiHostError is swallowed by @ignore_unpublished_app_errors for unpublished apps.
+        # In production, it's also in silenced_exceptions on the task.
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -668,7 +670,6 @@ class TestProcessResourceChange(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # Verify that the exception was not captured by Sentry since it's on_silent
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.called
 
@@ -681,8 +682,8 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
-        # The task should complete without reporting to sentry when ApiTimeoutError is raised
-        # because it's in the on_silent list of the retry decorator
+        # ApiTimeoutError is swallowed by @ignore_unpublished_app_errors for unpublished apps.
+        # In production, it's also in silenced_exceptions on the task.
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -694,7 +695,6 @@ class TestProcessResourceChange(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # Verify that the exception was not captured by Sentry since it's on_silent
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.called
 
@@ -707,8 +707,8 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
-        # The task should complete without reporting to sentry when ConnectionError is raised
-        # because it's in the on_silent list of the retry decorator
+        # ConnectionError is swallowed by @ignore_unpublished_app_errors for unpublished apps.
+        # In production, it's also in silenced_exceptions on the task.
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -720,7 +720,6 @@ class TestProcessResourceChange(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # Verify that the exception was not captured by Sentry since it's on_silent
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.called
 
@@ -733,8 +732,8 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
-        # The task should complete without reporting to sentry when HTTPError is raised
-        # because it's in the on_silent list of the retry decorator
+        # HTTPError is swallowed by @ignore_unpublished_app_errors for unpublished apps.
+        # In production, it's also in silenced_exceptions on the task.
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -746,16 +745,16 @@ class TestProcessResourceChange(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # Verify that the exception was not captured by Sentry since it's on_silent
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.called
 
     @patch("sentry_sdk.capture_exception")
-    def test_silently_retries_chunked_encoding_error_unpublished(
+    def test_silently_handles_chunked_encoding_error_unpublished(
         self, capture_exception, safe_urlopen
     ):
         """
-        Test that a chunked encoding error is ignored when the sentry app is unpublished
+        ChunkedEncodingError is swallowed by @ignore_unpublished_app_errors for
+        unpublished apps. In production, it's also in silenced_exceptions on the task.
         """
         with assume_test_silo_mode_of(SentryApp):
             SentryApp.objects.all().delete()
@@ -788,11 +787,12 @@ class TestProcessResourceChange(TestCase):
         assert safe_urlopen.call_count == 1
 
     @patch("sentry_sdk.capture_exception")
-    def test_silently_retries_chunked_encoding_error_published(
-        self, capture_exception, safe_urlopen
-    ):
+    def test_chunked_encoding_error_propagates_for_published(self, capture_exception, safe_urlopen):
         """
-        Test that a chunked encoding error raises a retry error
+        For published apps, ChunkedEncodingError is NOT swallowed by
+        @ignore_unpublished_app_errors — it propagates up to the
+        post_process_group pipeline error handler. In production, the
+        taskbroker worker handles this via silenced_exceptions.
         """
         with assume_test_silo_mode_of(SentryApp):
             SentryApp.objects.all().delete()
@@ -810,6 +810,8 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
+        # The exception propagates to the post_process_group pipeline's error
+        # handler (logger.exception), which triggers capture_exception once.
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -821,16 +823,18 @@ class TestProcessResourceChange(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # Just 1 from the RetryError
         assert len(capture_exception.mock_calls) == 1
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_no_event(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
-        process_resource_change_bound(
-            action="created", sender="Error", instance_id=str(123), project_id=1, group_id=1
-        )
+        # SentryAppSentryError is in the task's ignore list, this won't be
+        # raised in production.
+        with pytest.raises(SentryAppSentryError):
+            process_resource_change_bound(
+                action="created", sender="Error", instance_id=str(123), project_id=1, group_id=1
+            )
         assert len(safe_urlopen.mock_calls) == 0
 
         assert_failure_metric(
@@ -848,7 +852,10 @@ class TestProcessResourceChange(TestCase):
     def test_does_not_process_disallowed_event(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
-        process_resource_change_bound("delete", "Group", self.create_group().id)
+        # ValueError is in the task's ignore list, this won't be
+        # raised in production.
+        with pytest.raises(ValueError):
+            process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
 
         # We got an invalid event prior to lifecycle starting so we would exit early
@@ -1231,26 +1238,30 @@ class TestSendResourceChangeWebhook(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        assert len(safe_urlopen.mock_calls) == 2
-        call_urls = [call.kwargs["url"] for call in safe_urlopen.mock_calls]
-        assert self.sentry_app_1.webhook_url in call_urls
-        assert self.sentry_app_2.webhook_url in call_urls
+        # In ALWAYS_EAGER mode, the ClientError from the published app propagates
+        # (not caught by @ignore_unpublished_app_errors) and exits the for loop in
+        # _process_resource_change before the unpublished app's webhook is sent.
+        assert len(safe_urlopen.mock_calls) == 1
+        assert safe_urlopen.mock_calls[0].kwargs["url"] == self.sentry_app_1.webhook_url
 
-        # APP_CREATE (success) x 2 -> UPDATE_WEBHOOK (success) x2 -> GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success)
-        # -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (halt) x2
+        # APP_CREATE (success) x2 -> UPDATE_WEBHOOK (success) x2 -> GRANT_EXCHANGER (success) x2 ->
+        # PREPARE_WEBHOOK (failure, exception propagates) ->
+        # SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (halt) x1
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=13
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=10
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=11
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=8
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
         assert_many_halt_metrics(
             mock_record,
             [
-                f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_404",
                 f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_404",
             ],
         )
@@ -1361,18 +1372,17 @@ class TestSendResourceChangeWebhook(TestCase):
             )
 
         assert_success_metric(mock_record)
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
-        )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) ->
+        # PREPARE_WEBHOOK (failure, exception propagates from send_resource_change_webhook) ->
+        # SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=2
         )
 
 
@@ -1416,7 +1426,8 @@ class TestInstallationWebhook(TestCase):
     def test_gracefully_handles_missing_install(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
 
-        installation_webhook(999, self.user.id)
+        with pytest.raises(SentryAppSentryError):
+            installation_webhook(999, self.user.id)
         assert len(responses.calls) == 0
 
         # SLO assertions
@@ -1437,7 +1448,8 @@ class TestInstallationWebhook(TestCase):
     def test_gracefully_handles_missing_user(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
 
-        installation_webhook(self.install.id, 2147483647)
+        with pytest.raises(SentryAppSentryError):
+            installation_webhook(self.install.id, 2147483647)
         assert len(responses.calls) == 0
 
         # SLO assertions
@@ -1633,7 +1645,8 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
         # SLO assertions
@@ -1663,7 +1676,8 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
         # SLO assertions
