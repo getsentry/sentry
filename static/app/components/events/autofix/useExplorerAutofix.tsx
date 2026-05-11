@@ -1,12 +1,13 @@
 import {useCallback, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
@@ -517,6 +518,8 @@ export function useExplorerAutofix(
   groupId: string,
   options: UseExplorerAutofixOptions = {}
 ) {
+  const {openModal} = useModal();
+
   const {enabled = true} = options;
   const api = useApi();
   const queryClient = useQueryClient();
@@ -789,7 +792,16 @@ export function useExplorerAutofix(
         setWaitingForCodingAgent(false);
       }
     },
-    [api, orgSlug, groupId, queryClient, organization, user.id, appendCodingAgentErrors]
+    [
+      api,
+      orgSlug,
+      groupId,
+      queryClient,
+      organization,
+      user.id,
+      appendCodingAgentErrors,
+      openModal,
+    ]
   );
 
   // Clear waiting state when we get a response
