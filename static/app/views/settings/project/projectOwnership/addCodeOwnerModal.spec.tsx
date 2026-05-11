@@ -65,7 +65,7 @@ describe('AddCodeOwnerModal', () => {
     );
   });
 
-  it.isKnownFlake('renders codeowner file', async () => {
+  it('renders codeowner file', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',
@@ -86,7 +86,7 @@ describe('AddCodeOwnerModal', () => {
 
     await waitFor(() =>
       selectEvent.select(
-        screen.getByText('--'),
+        screen.getByRole('textbox', {name: 'Apply an existing code mapping'}),
         `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
       )
     );
@@ -119,7 +119,7 @@ describe('AddCodeOwnerModal', () => {
 
     await waitFor(() =>
       selectEvent.select(
-        screen.getByText('--'),
+        screen.getByRole('textbox', {name: 'Apply an existing code mapping'}),
         `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
       )
     );
@@ -155,7 +155,7 @@ describe('AddCodeOwnerModal', () => {
     );
     await waitFor(() =>
       selectEvent.select(
-        screen.getByText('--'),
+        screen.getByRole('textbox', {name: 'Apply an existing code mapping'}),
         `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
       )
     );
