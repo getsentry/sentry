@@ -2,6 +2,14 @@ import {z} from 'zod';
 
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
 
+/**
+ * z.enum but forward-compatible: accepts any string at runtime while preserving
+ * autocomplete for the known values via the `(string & {})` trick.
+ */
+function zLooseEnum<T extends string>(values: readonly [T, ...T[]]) {
+  return z.enum(values).or(z.custom<string & {}>(val => typeof val === 'string'));
+}
+
 // Schema definitions
 const todoItemSchema = z.object({
   content: z.string(),
@@ -18,7 +26,7 @@ export const repoPRStateSchema = z.object({
   branch_name: z.string().nullable(),
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
-  pr_creation_status: z.enum(['creating', 'completed', 'error']).nullable(),
+  pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
   pr_id: z.number().nullable(),
   pr_number: z.number().nullable(),
   pr_url: z.string().nullable(),
@@ -82,7 +90,6 @@ const codingAgentResultSchema = z.object({
   description: z.string(),
   repo_full_name: z.string(),
   repo_provider: z.string(),
-  branch_name: z.string().optional(),
   pr_url: z.string().nullable().optional(),
 });
 
@@ -91,7 +98,7 @@ export const explorerCodingAgentStateSchema = z.object({
   name: z.string(),
   provider: z.string(),
   started_at: z.string(),
-  status: z.enum(['pending', 'running', 'completed', 'failed']),
+  status: zLooseEnum(['pending', 'running', 'completed', 'failed']),
   agent_url: z.string().nullable().optional(),
   results: z.array(codingAgentResultSchema).optional(),
 });
