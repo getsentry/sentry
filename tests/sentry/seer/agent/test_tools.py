@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -19,6 +20,7 @@ from sentry.replays.testutils import mock_replay
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
+    _extract_metric_alert_context,
     _get_issue_event_timeseries,
     _get_recommended_event,
     execute_table_query,
@@ -1026,6 +1028,40 @@ def _validate_event_timeseries(timeseries: dict, expected_total: int | None = No
         )
 
 
+def test_extract_metric_alert_context_from_serialized_occurrence_event() -> None:
+    context = _extract_metric_alert_context(
+        {
+            "eventID": "75d35076ec874b95a0131d9e6959e788",
+            "occurrence": {
+                "subtitle": "Critical: count(span.duration) in the last hour below 1",
+                "evidenceData": {
+                    "alertId": 257662,
+                    "detectorId": 2809110,
+                    "value": 0,
+                    "conditions": [{"type": "lt", "comparison": 1}],
+                },
+                "evidenceDisplay": [],
+                "detectionTime": 1778515192.58846,
+                "level": "error",
+            },
+        }
+    )
+
+    assert context == {
+        "event_id": "75d35076ec874b95a0131d9e6959e788",
+        "subtitle": "Critical: count(span.duration) in the last hour below 1",
+        "evidence_data": {
+            "alertId": 257662,
+            "detectorId": 2809110,
+            "value": 0,
+            "conditions": [{"type": "lt", "comparison": 1}],
+        },
+        "evidence_display": [],
+        "detection_time": 1778515192.58846,
+        "level": "error",
+    }
+
+
 class TestGetIssueAndEventDetailsV2(
     APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin, SpanTestCase
 ):
@@ -1472,6 +1508,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert isinstance(result["timeseries_interval"], str | None)
         assert isinstance(result["tags_overview"], dict | None)
         assert isinstance(result["user_activity"], list | None)
+        assert isinstance(result["metric_alert_context"], dict | None)
         assert isinstance(result["project_id"], int)
         assert isinstance(result["project_slug"], str)
 
@@ -1632,6 +1669,49 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["tags_overview"] is None
         # Other fields still present
         assert result["issue"] is not None
+
+    # --- metric alert context ---
+
+    @patch("sentry.seer.agent.tools._get_metric_alert_context")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_metric_alert_context_forwarded(self, mock_tags, mock_ts, mock_metric_context):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+        expected_context = {
+            "event_id": "abc123",
+            "subtitle": "Critical: count(span.duration) in the last hour below 1",
+            "evidence_data": {
+                "alertId": 257662,
+                "detectorId": 2809110,
+                "value": 0,
+                "conditions": [{"type": "lt", "comparison": 1}],
+                "dataSources": [
+                    {
+                        "queryObj": {
+                            "snubaQuery": {
+                                "aggregate": "count(span.duration)",
+                                "query": "transaction:/v0/issues/similar-issues",
+                                "timeWindow": 3600,
+                            }
+                        }
+                    }
+                ],
+            },
+        }
+        mock_metric_context.return_value = expected_context
+
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["issue"]["issueType"] == MetricIssue.slug
+        assert result["metric_alert_context"] == expected_context
+        mock_metric_context.assert_called_once()
 
     # --- user activity ---
 
