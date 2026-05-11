@@ -313,15 +313,19 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   };
 
   // Closes the current section and pushes it to `sections` (if non-empty).
-  function finalizeSection() {
+  function finalizeSection({forceCompletion}: {forceCompletion: boolean}) {
     if (section.blocks.length) {
-      // Mark the section as completed if the last message is a terminal marker.
-      const lastBlock = section.blocks[section.blocks.length - 1];
-      if (isLastBlockOfSection(lastBlock)) {
+      if (
+        forceCompletion ||
+        // Mark the section as completed if the last message is a terminal marker.
+        isLastBlockOfSection(section.blocks[section.blocks.length - 1]) ||
+        // We have an artifact for the section so good enough to mark it as completed
+        section.artifacts.length > 0
+      ) {
         section.status = 'completed';
       }
 
-      if (section.step === 'code_changes') {
+      if (section.status === 'completed' && section.step === 'code_changes') {
         // Snapshot the accumulated file patches as an artifact for this section.
         section.artifacts.push(Array.from(mergedByFile.values()));
       }
@@ -348,7 +352,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     const metadata = message.metadata;
     if (defined(metadata) && defined(metadata.step)) {
       if (metadata.step !== section.step) {
-        finalizeSection();
+        // since there's a new section coming up, this section must be compelete
+        finalizeSection({forceCompletion: true});
       }
 
       section = {
@@ -366,7 +371,10 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   }
 
   // Finalize the last in-progress section.
-  finalizeSection();
+  finalizeSection({
+    // run is complete so last section must be complete as well
+    forceCompletion: runState?.status !== 'processing',
+  });
 
   // If there are any PR states, append a synthetic "pull_request" section.
   const pullRequests = Object.values(runState?.repo_pr_states ?? {});
