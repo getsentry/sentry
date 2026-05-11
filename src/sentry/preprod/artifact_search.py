@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import operator
 from collections.abc import Sequence
+from functools import reduce
 
 from django.db.models import Exists, OuterRef, Q
 
@@ -368,19 +370,16 @@ def apply_filters(
                     )
                 elif val == "requires_approval":
                     subqueries.append(
-                        Q(Exists(base_qs))
-                        & ~Q(
+                        Q(
                             Exists(
-                                base_qs.filter(
+                                base_qs.exclude(
                                     approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
                                 )
                             )
                         )
                     )
 
-            combined = subqueries[0]
-            for sq in subqueries[1:]:
-                combined |= sq
+            combined = reduce(operator.or_, subqueries)
 
             if token.is_negation:
                 queryset = queryset.filter(~combined)
