@@ -244,7 +244,7 @@ export function App() {
                       <LLMContextProvider>
                         <GlobalModal />
                         <Indicators className="indicators-container" />
-                        <Hook name="component:app-init" />
+                        <Hook name="component:replay-init" />
                         <ErrorBoundary>{renderBody()}</ErrorBoundary>
                       </LLMContextProvider>
                     </DemoToursProvider>

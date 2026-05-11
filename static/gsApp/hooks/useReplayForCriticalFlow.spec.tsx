@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useReplayForCriticalFlow} from 'getsentry/hooks/useReplayForCriticalFlow';
-import {useReplayInit} from 'getsentry/utils/useReplayInit';
+import {useReplayReady} from 'getsentry/utils/useReplayInit';
 
 jest.mock('getsentry/utils/useReplayInit');
 
@@ -11,14 +11,14 @@ describe('useReplayForCriticalFlow (gsApp)', () => {
   const flush = jest.fn();
   const setTag = Sentry.setTag as jest.Mock;
   const getReplay = Sentry.getReplay as jest.Mock;
-  const mockedUseReplayInit = jest.mocked(useReplayInit);
+  const mockedUseReplayReady = jest.mocked(useReplayReady);
 
   beforeEach(() => {
     flush.mockReset();
     setTag.mockReset();
     getReplay.mockReset();
-    mockedUseReplayInit.mockReset();
-    mockedUseReplayInit.mockReturnValue(true);
+    mockedUseReplayReady.mockReset();
+    mockedUseReplayReady.mockReturnValue(true);
   });
 
   // Math.random() returns [0, 1), so sampleRate=1 always forces, sampleRate=0
@@ -65,9 +65,9 @@ describe('useReplayForCriticalFlow (gsApp)', () => {
     expect(flush).not.toHaveBeenCalled();
   });
 
-  it('waits for replay init before tagging or flushing', () => {
+  it('waits for replay to be ready before tagging or flushing', () => {
     getReplay.mockReturnValue({flush});
-    mockedUseReplayInit.mockReturnValue(false);
+    mockedUseReplayReady.mockReturnValue(false);
 
     renderHookWithProviders(() => useReplayForCriticalFlow({flowName: 'scm_onboarding'}));
 

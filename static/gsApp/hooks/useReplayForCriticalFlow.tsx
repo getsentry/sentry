@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 
-import {useReplayInit} from 'getsentry/utils/useReplayInit';
+import {useReplayReady} from 'getsentry/utils/useReplayInit';
 
 export function useReplayForCriticalFlow({
   flowName,
@@ -16,11 +16,12 @@ export function useReplayForCriticalFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
-  // Replay is initialized at the App root (component:app-init), so this call
-  // is normally a no-op singleton check. We still invoke it to obtain the
-  // `ready` signal: App init runs an async dynamic import, so the integration
-  // may not be registered yet on the first render of this hook's consumer.
-  const ready = useReplayInit();
+  // Replay is registered at the App root (component:replay-init), but
+  // registration is async (dynamic import of @sentry/react). On a fresh
+  // load straight into a critical-flow route, this effect can fire before
+  // the integration resolves; `ready` flips when it does so the effect
+  // re-runs and `Sentry.getReplay()` returns non-null.
+  const ready = useReplayReady();
 
   useEffect(() => {
     if (!enabled || !shouldForce || !ready) {

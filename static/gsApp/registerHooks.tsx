@@ -9,7 +9,6 @@ import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupConfiguration} from 'getsentry/components/ai/aiSetupConfiguration';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
-import {AppInit} from 'getsentry/components/appInit';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
@@ -41,6 +40,7 @@ import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
+import {ReplayInit} from 'getsentry/components/replayInit';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import {
   shouldExcludeOrg,
@@ -176,11 +176,10 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   ),
 
   /**
-   * Top-level init for getsentry-only SDK integrations (Replay).
-   * Mounted at the App root so non-org routes like `/onboarding/*` are
-   * covered too.
+   * Drives Sentry Replay registration at the App root, so non-org routes
+   * like `/onboarding/*` are covered too.
    */
-  'component:app-init': AppInit,
+  'component:replay-init': ReplayInit,
 
   /**
    * Augment the header with the getsentry banners. This includes banners
