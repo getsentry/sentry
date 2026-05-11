@@ -6,9 +6,9 @@ import {
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -31,6 +31,8 @@ interface TracePreferencesDropdownProps {
 }
 
 export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const {projects} = useProjects();
 

@@ -294,12 +294,12 @@ export function tokenSupportsMultipleValues(
   }
 }
 
-// Filters support wildcards if they are string filters and it is not explicity disallowed
-function keySupportsWildcard(fieldDefinition: FieldDefinition | null) {
-  const isStringFilter =
-    !fieldDefinition || fieldDefinition?.valueType === FieldValueType.STRING;
-
-  return isStringFilter && fieldDefinition?.allowWildcard !== false;
+// Filters support wildcards if they are string filters and it is not explicitly disallowed
+function keySupportsWildcard(
+  fieldDefinition: FieldDefinition | null,
+  valueType: FieldValueType
+) {
+  return valueType === FieldValueType.STRING && fieldDefinition?.allowWildcard !== false;
 }
 
 function useSelectionIndex({
@@ -635,7 +635,10 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
-  const canUseWildcard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
+  const valueType = getFilterValueType(token, fieldDefinition);
+  const canUseWildcard = disallowWildcard
+    ? false
+    : keySupportsWildcard(fieldDefinition, valueType);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -793,7 +796,6 @@ export function SearchQueryBuilderValueCombobox({
         }
       }
 
-      const valueType = getFilterValueType(token, fieldDefinition);
       const valueForSaving =
         escapeSearchValue && valueType === FieldValueType.STRING
           ? escapeTagValueForSearch(value)
@@ -871,6 +873,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      valueType,
       getSuggestedFilterKey,
       canSelectMultipleValues,
       analyticsData,
@@ -1017,7 +1020,6 @@ export function SearchQueryBuilderValueCombobox({
     };
   }, [showDatePicker]);
 
-  const valueType = getFilterValueType(token, fieldDefinition);
   const placeholder =
     token.filter === FilterType.HAS
       ? prettifyTagKey(token.value.text)

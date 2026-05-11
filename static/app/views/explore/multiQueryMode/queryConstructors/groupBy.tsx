@@ -16,6 +16,7 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 type Props = {index: number; query: ReadableExploreQueryParts};
 
@@ -51,7 +52,15 @@ export function GroupBySection({query, index}: Props) {
         options={enabledOptions}
         value={query.groupBys}
         clearable
-        search
+        search={{
+          filter: (option, searchText) => {
+            return sortSearchedAttributes({
+              fieldDefinitionType: TraceItemDataset.SPANS,
+              option,
+              searchText,
+            });
+          },
+        }}
         onChange={options =>
           updateGroupBys({groupBys: options.map(value => value.value.toString())})
         }
