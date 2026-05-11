@@ -7,6 +7,7 @@ import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import {
   AssigneeSelectorDropdown,
   type AssignableEntity,
+  type AssigneeGroup,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
@@ -23,10 +24,6 @@ import {
 
 type HandleAssignOptions = {
   assignedBy?: AssignedBy;
-};
-
-type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
-  project: Pick<Group['project'], 'id' | 'slug'>;
 };
 
 interface AssigneeSelectorProps {

@@ -4,7 +4,10 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
+import {
+  getIssueFieldRenderer,
+  type IssueRowMetadata,
+} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -69,12 +72,6 @@ export type IssuesSeriesResponse = {
     end: number;
     start: number;
   };
-};
-
-type IssueRowMetadata = {
-  assignedTo: Group['assignedTo'];
-  links: Group['annotations'];
-  owners: Group['owners'];
 };
 
 export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {

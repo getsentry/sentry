@@ -33,7 +33,7 @@ type RenderFunctionBaggage = {
   eventView?: EventView;
 };
 
-type IssueRowMetadata = {
+export type IssueRowMetadata = {
   assignedTo: Group['assignedTo'];
   links: Group['annotations'];
   owners: Group['owners'];

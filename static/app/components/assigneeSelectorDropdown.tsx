@@ -57,7 +57,7 @@ type AssignableTeam = {
   team: Team;
 };
 
-type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
+export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
   project: Pick<Group['project'], 'id' | 'slug'>;
 };
 
