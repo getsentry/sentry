@@ -266,6 +266,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const leftYAxis = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
+        hideOverlap: true,
         formatter: (value: number) =>
           formatYAxisValue(value, leftYAxisType, unitForType[leftYAxisType] ?? undefined),
       },
@@ -279,6 +280,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     ? TimeSeriesWidgetYAxis(
         {
           axisLabel: {
+            hideOverlap: true,
             formatter: (value: number) =>
               formatYAxisValue(
                 value,

@@ -3,15 +3,12 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import type {Client} from 'sentry/api';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconDiamond} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
-import {withApi} from 'sentry/utils/withApi';
 import {withConfig} from 'sentry/utils/withConfig';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {ThresholdControl} from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
@@ -30,7 +27,6 @@ import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];
-  api: Client;
   comparisonType: AlertRuleComparisonType;
   config: Config;
 
@@ -133,12 +129,6 @@ type TriggerFormContainerProps = Omit<
 };
 
 class TriggerFormContainer extends Component<TriggerFormContainerProps> {
-  componentDidMount() {
-    const {api, organization} = this.props;
-
-    fetchOrgMembers(api, organization.slug);
-  }
-
   handleChangeTrigger =
     (triggerIndex: number) => (trigger: Trigger, changeObj: Partial<Trigger>) => {
       const {onChange} = this.props;
@@ -183,7 +173,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
 
   render() {
     const {
-      api,
       config,
       disabled,
       errors,
@@ -213,7 +202,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           return (
             <TriggerFormItem
               key={index}
-              api={api}
               config={config}
               disabled={disabled}
               error={errors?.get(index)}
@@ -252,7 +240,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           );
         })}
         <TriggerFormItem
-          api={api}
           config={config}
           disabled={disabled}
           error={errors?.get(2)}
@@ -293,4 +280,4 @@ const StyledField = styled(FieldGroup)`
   }
 `;
 
-export default withConfig(withApi(TriggerFormContainer));
+export default withConfig(TriggerFormContainer);

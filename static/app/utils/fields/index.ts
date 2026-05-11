@@ -3694,18 +3694,20 @@ function _getFieldFromMappings(
   }
 }
 
+export type GetFieldDefinitionType =
+  | 'event'
+  | 'replay'
+  | 'replay_click'
+  | 'feedback'
+  | 'preprod'
+  | 'span'
+  | 'log'
+  | 'uptime'
+  | 'tracemetric';
+
 export const getFieldDefinition = (
   key: string,
-  type:
-    | 'event'
-    | 'replay'
-    | 'replay_click'
-    | 'feedback'
-    | 'preprod'
-    | 'span'
-    | 'log'
-    | 'uptime'
-    | 'tracemetric' = 'event',
+  type: GetFieldDefinitionType = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   return _getFieldFromMappings(type, key, kind) ?? null;

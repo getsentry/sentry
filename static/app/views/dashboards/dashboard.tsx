@@ -14,7 +14,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
@@ -188,15 +187,6 @@ function DashboardInner({
     }
   }, [newWidget, handleAddCustomWidget, onSetNewWidget, api, organization.slug]);
 
-  const fetchMemberList = useCallback(() => {
-    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
-    fetchOrgMembers(
-      api,
-      organization.slug,
-      selection.projects?.map(projectId => String(projectId))
-    );
-  }, [api, organization.slug, selection.projects]);
-
   useEffect(() => {
     // Always load organization tags on dashboards
     loadOrganizationTags(api, organization.slug, selection);
@@ -205,9 +195,6 @@ function DashboardInner({
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
-
-    // Get member list data for issue widgets
-    fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
     trackEngagementAnalytics(
@@ -234,10 +221,6 @@ function DashboardInner({
       addNewWidget();
     }
   }, [newWidget, addNewWidget]);
-
-  useEffect(() => {
-    fetchMemberList();
-  }, [fetchMemberList]);
 
   const handleDeleteWidget = useCallback(
     (widgetToDelete: Widget) => () => {

@@ -8,7 +8,10 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
-from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
+from sentry.spans.consumers.process_segments.factory import (
+    DetectPerformanceIssuesStrategyFactory,
+    _check_span_duplicates,
+)
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
@@ -28,6 +31,7 @@ def build_mock_message(data, topic=None):
     {
         "spans.process-segments.consumer.enable": True,
         "spans.process-segments.semantic-partitioning": False,
+        "spans.process-segments.dedupe-ttl": 0,
     }
 )
 @mock.patch(
@@ -103,3 +107,34 @@ def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) ->
         headers = {k: v for k, v in payload.headers}
         assert headers["item_type"] == b"1"
         assert headers["project_id"] == b"1"
+
+
+class TestCheckSpanDuplicates:
+    @override_options({"spans.process-segments.dedupe-ttl": 0})
+    def test_disabled_when_ttl_is_zero(self):
+        spans = [build_mock_span(project_id=1, is_segment=True)]
+        with mock.patch("sentry.spans.consumers.process_segments.factory.redis") as mock_redis:
+            _check_span_duplicates(spans)
+            mock_redis.redis_clusters.get_binary.assert_not_called()
+
+    @override_options({"spans.process-segments.dedupe-ttl": 300})
+    def test_emits_metric_on_duplicate(self):
+        spans = [
+            build_mock_span(project_id=1, is_segment=True, span_id="span1"),
+            build_mock_span(project_id=1, is_segment=False, span_id="span2"),
+        ]
+        with (
+            mock.patch("sentry.spans.consumers.process_segments.factory.redis") as mock_redis,
+            mock.patch("sentry.spans.consumers.process_segments.factory.metrics") as mock_metrics,
+        ):
+            mock_client = mock.MagicMock()
+            mock_pipeline = mock.MagicMock()
+            mock_redis.redis_clusters.get_binary.return_value = mock_client
+            mock_client.pipeline.return_value.__enter__.return_value = mock_pipeline
+            mock_pipeline.execute.return_value = [False, True]
+
+            _check_span_duplicates(spans)
+
+            mock_metrics.incr.assert_called_once_with(
+                "spans.process-segments.duplicate_span", amount=1
+            )
