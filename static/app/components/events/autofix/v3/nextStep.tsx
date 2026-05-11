@@ -159,7 +159,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     autofix,
     runId,
     group,
-    step: 'root_cause',
+    step: 'solution',
     referrer,
   });
 
