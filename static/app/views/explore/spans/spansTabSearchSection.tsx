@@ -58,7 +58,7 @@ function SpansSearchBar({
     return <SpansTabSeerComboBox />;
   }
 
-  return <TraceItemSearchQueryBuilder autoFocus {...spanSearchQueryBuilderProps} />;
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
 }
 
 interface SpanTabSearchSectionProps {
