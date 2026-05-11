@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -203,22 +203,22 @@ function ApplyCodeMappings({
     <form.AppForm form={form}>
       <Header closeButton>{t('Add Code Owner File')}</Header>
       <Body>
-        <form.AppField name="codeMappingId">
-          {field => (
-            <field.Layout.Stack label={t('Apply an existing code mapping')} required>
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={codeMappings.map(cm => ({
-                  value: cm.id,
-                  label: `Repo Name: ${cm.repoName}, Stack Trace Root: ${cm.stackRoot}, Source Code Root: ${cm.sourceRoot}`,
-                }))}
-              />
-            </field.Layout.Stack>
-          )}
-        </form.AppField>
+        <Stack gap="xl">
+          <form.AppField name="codeMappingId">
+            {field => (
+              <field.Layout.Stack label={t('Apply an existing code mapping')} required>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={codeMappings.map(cm => ({
+                    value: cm.id,
+                    label: `Repo Name: ${cm.repoName}, Stack Trace Root: ${cm.stackRoot}, Source Code Root: ${cm.sourceRoot}`,
+                  }))}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
-        <FileResult>
           {codeownersFile ? (
             <SourceFile codeownersFile={codeownersFile} />
           ) : (
@@ -232,7 +232,7 @@ function ApplyCodeMappings({
               errorJSON={mutation.error.responseJSON as {raw?: string}}
             />
           ) : null}
-        </FileResult>
+        </Stack>
       </Body>
       <Footer>
         <Button
@@ -292,7 +292,7 @@ function LinkCodeOwners({
 
 function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   return (
-    <Panel>
+    <ResultPanel>
       <SourceFileBody>
         <IconCheckmark size="md" variant="success" />
         {codeownersFile.filepath}
@@ -300,18 +300,18 @@ function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
           {t('Preview File')}
         </LinkButton>
       </SourceFileBody>
-    </Panel>
+    </ResultPanel>
   );
 }
 
 function NoSourceFile() {
   return (
-    <Panel>
+    <ResultPanel>
       <NoSourceFileBody>
         <IconNot size="md" variant="danger" />
         {t('No codeowner file found.')}
       </NoSourceFileBody>
-    </Panel>
+    </ResultPanel>
   );
 }
 
@@ -360,8 +360,8 @@ function ErrorMessage({
   );
 }
 
-const FileResult = styled('div')`
-  width: inherit;
+const ResultPanel = styled(Panel)`
+  margin-bottom: 0;
 `;
 const NoSourceFileBody = styled(PanelBody)`
   display: grid;
