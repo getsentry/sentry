@@ -19,9 +19,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -41,7 +40,7 @@ import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/compon
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 import {hasPermissions} from 'getsentry/views/subscriptionPage/utils';
 
-import AllocationForm from './components/allocationForm';
+import {AllocationForm} from './components/allocationForm';
 import type {SpendAllocation} from './components/types';
 import {EnableSpendAllocations} from './enableSpendAllocations';
 import {ProjectAllocationsTable} from './projectAllocationsTable';
@@ -49,11 +48,11 @@ import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits} from './utils';
 
 type Props = {
-  organization: Organization;
   subscription: Subscription;
 };
 
-export function SpendAllocationsRoot({organization, subscription}: Props) {
+export function SpendAllocationsRoot({subscription}: Props) {
+  const organization = useOrganization();
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -293,7 +292,6 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           {...modalProps}
           fetchSpendAllocations={fetchSpendAllocations}
           initializedData={formData}
-          organization={organization}
           selectedMetric={selectedMetric}
           rootAllocation={rootAllocationForMetric}
           spendAllocations={currentAllocations}
@@ -528,7 +526,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   );
 }
 
-export default withOrganization(withSubscription(SpendAllocationsRoot));
+export default withSubscription(SpendAllocationsRoot);
 
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;

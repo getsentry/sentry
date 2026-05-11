@@ -37,7 +37,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
+import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import {MembersFilter} from './components/membersFilter';
 import {InviteRequestRow} from './inviteRequestRow';
