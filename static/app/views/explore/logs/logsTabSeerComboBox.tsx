@@ -317,7 +317,6 @@ export function LogsTabSeerComboBox() {
       strategy="Logs"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      feedbackSource="logs_ai_query"
       fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );

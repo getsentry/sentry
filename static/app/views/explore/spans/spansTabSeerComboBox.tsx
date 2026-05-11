@@ -346,7 +346,6 @@ export function SpansTabSeerComboBox() {
         strategy="Traces"
         applySeerSearchQuery={applySeerSearchQuery}
         transformResponse={transformResponse}
-        feedbackSource="trace_explorer_ai_query"
         fallbackMutationOptions={spansTabAskSeerMutationOptions}
       />
     );
@@ -357,7 +356,6 @@ export function SpansTabSeerComboBox() {
       initialQuery={initialSeerQuery}
       askSeerMutationOptions={spansTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
-      feedbackSource="trace_explorer_ai_query"
     />
   );
 }
