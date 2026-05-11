@@ -85,7 +85,7 @@ class TestNeedsRecompile:
 
 
 class TestFindProtoFile:
-    def test_finds_proto_for_pb2_module(self, proto_dir: Path):
+    def test_finds_proto_for_pb2_module(self, proto_dir: Path) -> None:
         result = find_proto_file("sentry_protos.test_domain.v1.example_pb2", [proto_dir])
         assert result is not None
         assert result.name == "example.proto"
@@ -94,7 +94,7 @@ class TestFindProtoFile:
         result = find_proto_file("sentry_protos.test_domain.v1.nonexistent_pb2", [proto_dir])
         assert result is None
 
-    def test_returns_none_for_non_pb2_module(self, proto_dir: Path):
+    def test_returns_none_for_non_pb2_module(self, proto_dir: Path) -> None:
         result = find_proto_file("sentry_protos.test_domain.v1.example", [proto_dir])
         assert result is None
 
@@ -278,7 +278,7 @@ class TestCLI:
         )
         assert exit_code == 0
 
-    def test_compile_returns_1_on_failure(self, proto_dir: Path, cache_dir: Path):
+    def test_compile_returns_1_on_failure(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         bad_proto = proto_dir / "sentry_protos" / "test_domain" / "v1" / "bad.proto"
