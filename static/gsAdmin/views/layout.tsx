@@ -14,7 +14,7 @@ import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-import SystemAlerts from 'sentry/views/app/systemAlerts';
+import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
 import {GlobalStyles} from 'admin/globalStyles';
 
