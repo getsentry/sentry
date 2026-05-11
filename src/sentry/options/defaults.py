@@ -3393,6 +3393,13 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When True (and dedupe-ttl > 0), actually filter out duplicate spans
+# instead of just detecting and emitting metrics.
+register(
+    "spans.process-segments.dedupe-filter-enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
