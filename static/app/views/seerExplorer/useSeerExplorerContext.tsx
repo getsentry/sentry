@@ -55,7 +55,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {isPolling, apiData} = useSeerExplorerPolling({runId});
   const blocks = apiData?.session?.blocks;
 
-  const [lastViewedAt, setLastViewedAt] = useState<number>(Date.now);
+  const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
   useEffect(() => {
     setLastViewedAt(Date.now());
   }, [runId]);
