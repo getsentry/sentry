@@ -34,7 +34,10 @@ import {
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {useLogsAutoRefreshEnabled, useSetLogsAutoRefresh} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  useLogsAutoRefreshEnabled,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {
   TraceItemDetailsResponse,
@@ -431,9 +434,7 @@ export const LogRowContent = memo(function LogRowContent({
                         break;
                       case Actions.COPY_LINK: {
                         const logId = String(dataRow[OurLogKnownFieldKey.ID]);
-                        const url = new URL(
-                          window.location.origin + location.pathname
-                        );
+                        const url = new URL(window.location.origin + location.pathname);
                         const params = new URLSearchParams(location.search);
                         params.set(LOGS_QUERY_KEY, `id:${logId}`);
                         url.search = params.toString();
