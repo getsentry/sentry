@@ -5,7 +5,6 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -84,13 +83,14 @@ describe('AddCodeOwnerModal', () => {
       />
     );
 
-    await waitFor(() =>
-      selectEvent.select(
-        screen.getByText('--'),
-        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
-      )
+    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {
+        name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
+      })
     );
-    expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Preview File'})).toHaveAttribute(
       'href',
@@ -117,11 +117,11 @@ describe('AddCodeOwnerModal', () => {
       />
     );
 
-    await waitFor(() =>
-      selectEvent.select(
-        screen.getByText('--'),
-        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
-      )
+    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {
+        name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
+      })
     );
 
     expect(screen.getByText('No codeowner file found.')).toBeInTheDocument();
@@ -153,14 +153,15 @@ describe('AddCodeOwnerModal', () => {
         project={project}
       />
     );
-    await waitFor(() =>
-      selectEvent.select(
-        screen.getByText('--'),
-        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
-      )
+
+    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {
+        name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
+      })
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add File'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add File'}));
 
     await waitFor(() => {
       expect(addFileRequest).toHaveBeenCalledWith(
