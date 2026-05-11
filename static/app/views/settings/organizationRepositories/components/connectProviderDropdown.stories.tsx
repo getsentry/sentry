@@ -1,6 +1,7 @@
 import * as Storybook from 'sentry/stories';
 import type {IntegrationProvider} from 'sentry/types/integrations';
-import {NoIntegrationsEmptyState} from 'sentry/views/settings/organizationRepositories/noIntegrationsEmptyState';
+
+import {ConnectProviderDropdown} from './connectProviderDropdown';
 
 function makeProvider(key: string, name: string): IntegrationProvider {
   return {
@@ -25,15 +26,25 @@ function makeProvider(key: string, name: string): IntegrationProvider {
 
 const SCM_PROVIDERS: IntegrationProvider[] = [
   makeProvider('github', 'GitHub'),
-  makeProvider('github_enterprise', 'GitHub Enterprise'),
   makeProvider('gitlab', 'GitLab'),
   makeProvider('bitbucket', 'Bitbucket'),
-  makeProvider('bitbucket_server', 'Bitbucket Server'),
   makeProvider('vsts', 'Azure DevOps'),
+  makeProvider('github_enterprise', 'GitHub Enterprise'),
+  makeProvider('bitbucket_server', 'Bitbucket Server'),
 ];
 
-export default Storybook.story('NoIntegrationsEmptyState', story => {
+export default Storybook.story('ConnectProviderDropdown', story => {
   story('Default', () => (
-    <NoIntegrationsEmptyState providers={SCM_PROVIDERS} onAddIntegration={() => {}} />
+    <ConnectProviderDropdown providers={SCM_PROVIDERS} onAddIntegration={() => {}} />
+  ));
+
+  story('Without Seer-compatible providers', () => (
+    <ConnectProviderDropdown
+      providers={[
+        makeProvider('bitbucket', 'Bitbucket'),
+        makeProvider('vsts', 'Azure DevOps'),
+      ]}
+      onAddIntegration={() => {}}
+    />
   ));
 });

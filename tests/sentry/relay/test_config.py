@@ -26,7 +26,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
@@ -786,9 +785,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Chrome",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome",
+                },
+            ],
         },
         "version": "1",
     }
@@ -825,9 +834,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Firefox",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Firefox",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Firefox",
+                },
+            ],
         },
         "version": "1",
     }
@@ -864,9 +883,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Safari",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Safari",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Safari",
+                },
+            ],
         },
         "version": "1",
     }
@@ -903,9 +932,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge",
+                },
+            ],
         },
         "version": "1",
     }
@@ -942,9 +981,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera",
+                },
+            ],
         },
         "version": "1",
     }
@@ -973,6 +1022,16 @@ def test_desktop_performance_calculate_score(default_project) -> None:
                     "name": "event.contexts.browser.name",
                     "value": "Google Chrome",
                 },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Google Chrome",
+                },
             ],
         },
         "version": "1",
@@ -990,9 +1049,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1009,9 +1078,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1061,9 +1140,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Chrome Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1100,9 +1189,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Firefox Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Firefox Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Firefox Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1139,9 +1238,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Mobile Safari",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Mobile Safari",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Mobile Safari",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1178,9 +1287,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1218,9 +1337,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1243,6 +1372,11 @@ def test_mobile_performance_calculate_score(default_project) -> None:
                     "name": "event.contexts.browser.name",
                     "value": "Chrome Mobile",
                 },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome Mobile",
+                },
             ],
         },
         "version": "1",
@@ -1259,9 +1393,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1277,9 +1421,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             }
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera Mobile",
+                },
+            ],
         },
         "version": "1",
     }

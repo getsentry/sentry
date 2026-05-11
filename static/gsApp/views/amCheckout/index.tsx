@@ -23,6 +23,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
@@ -564,6 +565,8 @@ function AMCheckout(props: Props) {
     loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
   }, []);
 
+  const hasIntercom = organization.features.includes('intercom-support');
+
   useEffect(() => {
     trackGetsentryAnalytics('am_checkout.viewed', {
       organization,
@@ -572,6 +575,15 @@ function AMCheckout(props: Props) {
 
     Sentry.getReplay()?.start();
   }, [organization, subscription]);
+
+  useEffect(() => {
+    if (hasIntercom) {
+      trackGetsentryAnalytics('intercom_link.viewed', {
+        organization,
+        source: 'checkout',
+      });
+    }
+  }, [hasIntercom, organization]);
 
   useEffect(() => {
     if (subscription.canSelfServe) {
@@ -750,7 +762,29 @@ function AMCheckout(props: Props) {
                   help: (
                     <ExternalLink href="https://www.sentry.help/en/collections/18842102-account-billing" />
                   ),
-                  contact: hasZendesk() ? (
+                  contact: hasIntercom ? (
+                    <Button
+                      size="zero"
+                      variant="link"
+                      onClick={async () => {
+                        trackGetsentryAnalytics('intercom_link.clicked', {
+                          organization,
+                          source: 'checkout',
+                        });
+                        try {
+                          await showIntercom(organization.slug);
+                        } catch {
+                          // Fall back to mailto
+                          const supportEmail = ConfigStore.get('supportEmail');
+                          if (supportEmail) {
+                            window.location.href = `mailto:${supportEmail}`;
+                          }
+                        }
+                      }}
+                    >
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </Button>
+                  ) : hasZendesk() ? (
                     <Button size="zero" variant="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </Button>
