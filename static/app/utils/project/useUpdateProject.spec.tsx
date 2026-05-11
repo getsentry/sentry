@@ -115,43 +115,4 @@ describe('useUpdateProject', () => {
       })
     );
   });
-
-  it('updates a summary project without a cached detailed project', async () => {
-    const queryClient = makeTestQueryClient();
-    const project = ProjectFixture({id: '2', slug: 'project-slug'});
-    const queryKey = makeDetailedProjectQueryKey({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-    });
-
-    const mock = MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      method: 'PUT',
-      body: {...DetailedProjectFixture(project), name: 'Updated Project'},
-    });
-
-    const {result} = renderHookWithProviders(() => useUpdateProject(project), {
-      organization,
-      additionalWrapper: ({children}: {children?: ReactNode}) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      ),
-    });
-
-    await act(async () => {
-      await result.current.mutateAsync({name: 'Updated Project'});
-    });
-
-    expect(mock).toHaveBeenCalledWith(
-      projectEndpoint,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {name: 'Updated Project'},
-      })
-    );
-    expect(queryClient.getQueryData(queryKey)?.json).toMatchObject({
-      id: project.id,
-      name: 'Updated Project',
-      slug: project.slug,
-    });
-  });
 });

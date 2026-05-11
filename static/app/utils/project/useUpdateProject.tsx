@@ -8,14 +8,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Variables extends Partial<DetailedProject> {}
 
-type OptimisticProject = Project & {
+type ProjectWithOptions = Project & {
   // ProjectSummary does not include options, but cached detailed projects can.
   options?: DetailedProject['options'];
 };
 
 function isValidProjectWithOptions(
-  project?: OptimisticProject
-): project is OptimisticProject {
+  project?: ProjectWithOptions
+): project is ProjectWithOptions {
   return (
     project !== undefined &&
     'options' in project &&
@@ -24,10 +24,15 @@ function isValidProjectWithOptions(
   );
 }
 
+function isDetailedProject(project?: Project): project is DetailedProject {
+  return project !== undefined && 'organization' in project && 'plugins' in project;
+}
+
 type Context =
   | {
-      previousProject: OptimisticProject;
+      previousProject: ProjectWithOptions;
       error?: never;
+      previousDetailedProject?: DetailedProject;
     }
   | {
       error: Error;
@@ -45,14 +50,24 @@ export function useUpdateProject(project: Project) {
 
   return useMutation<DetailedProject, Error, Variables, Context>({
     onMutate: (data: Variables) => {
-      const fromCache = queryClient.getQueryData(queryKey)?.json;
-      const fromStore = ProjectsStore.getById(project.id);
-      const fromProp = project;
+      const previousCachedDetailedProject = queryClient.getQueryData(queryKey)?.json;
+      const storeProject = ProjectsStore.getById(project.id);
 
-      const previousProject: OptimisticProject =
-        (isValidProjectWithOptions(fromCache) ? fromCache : null) ||
-        (isValidProjectWithOptions(fromStore) ? fromStore : null) ||
-        fromProp;
+      // Legacy behavior: ProjectsStore is typed as Project summaries, but update
+      // flows have historically written detailed project responses into it. Keep
+      // using that for optimistic store updates, but only seed the detailed query
+      // cache from objects that actually have detailed-project fields.
+      const previousDetailedProject =
+        previousCachedDetailedProject ||
+        (isDetailedProject(storeProject) ? storeProject : undefined) ||
+        (isDetailedProject(project) ? project : undefined);
+
+      const previousProject: ProjectWithOptions =
+        (isValidProjectWithOptions(previousDetailedProject)
+          ? previousDetailedProject
+          : null) ||
+        (isValidProjectWithOptions(storeProject) ? storeProject : null) ||
+        project;
 
       if (!previousProject) {
         return {error: new Error('Previous project not found')};
@@ -71,13 +86,26 @@ export function useUpdateProject(project: Project) {
 
       // Update caches optimistically
       ProjectsStore.onUpdateSuccess(updatedProject);
-      queryClient.setQueryData(queryKey, prev =>
-        prev
-          ? {...prev, json: updatedProject as DetailedProject}
-          : {headers: {}, json: updatedProject as DetailedProject}
-      );
+      if (previousDetailedProject) {
+        const updatedDetailedProject = {
+          ...previousDetailedProject,
+          ...data,
+          options: data.options
+            ? {
+                ...previousDetailedProject.options,
+                ...data.options,
+              }
+            : previousDetailedProject.options,
+        };
 
-      return {previousProject};
+        queryClient.setQueryData(queryKey, prev =>
+          prev
+            ? {...prev, json: updatedDetailedProject}
+            : {headers: {}, json: updatedDetailedProject}
+        );
+      }
+
+      return {previousProject, previousDetailedProject};
     },
     mutationFn: (data: Variables) => {
       return fetchMutation<DetailedProject>({
@@ -95,11 +123,12 @@ export function useUpdateProject(project: Project) {
     onError: (_error, _variables, context) => {
       if (context?.previousProject) {
         ProjectsStore.onUpdateSuccess(context.previousProject);
-        queryClient.setQueryData(queryKey, prev =>
-          prev
-            ? {...prev, json: context.previousProject as DetailedProject}
-            : {headers: {}, json: context.previousProject as DetailedProject}
-        );
+        const previousDetailedProject = context.previousDetailedProject;
+        if (previousDetailedProject) {
+          queryClient.setQueryData(queryKey, prev =>
+            prev ? {...prev, json: previousDetailedProject} : prev
+          );
+        }
       }
     },
     onSettled: () => {
