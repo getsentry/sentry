@@ -160,7 +160,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
    * Augment the global help search modal with a contat support button
    */
-  'help-modal:footer': props => <HelpSearchFooter key="help-search-footer" {...props} />,
+  'help-modal:footer': ({closeModal}) => (
+    <HelpSearchFooter key="help-search-footer" closeModal={closeModal} />
+  ),
 
   /**
    * Registers usage & billing org settings as globally-available CMDK actions.

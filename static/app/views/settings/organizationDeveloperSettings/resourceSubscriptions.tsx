@@ -6,7 +6,7 @@ import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
+import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 

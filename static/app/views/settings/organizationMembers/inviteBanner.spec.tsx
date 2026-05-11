@@ -48,12 +48,8 @@ describe('inviteBanner', () => {
     const org = OrganizationFixture();
 
     render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     expect(
@@ -75,12 +71,8 @@ describe('inviteBanner', () => {
     });
 
     const {container} = render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
@@ -97,12 +89,8 @@ describe('inviteBanner', () => {
     });
 
     const {container} = render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
@@ -119,12 +107,8 @@ describe('inviteBanner', () => {
     });
 
     const {container} = render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
@@ -135,12 +119,8 @@ describe('inviteBanner', () => {
     const org = OrganizationFixture({access: []});
 
     const {container} = render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -162,12 +142,8 @@ describe('inviteBanner', () => {
     });
 
     render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     expect(
@@ -193,12 +169,8 @@ describe('inviteBanner', () => {
     });
 
     const {container} = render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     await waitFor(() => expect(mockPrompt).toHaveBeenCalled());
@@ -242,12 +214,8 @@ describe('inviteBanner', () => {
     const org = OrganizationFixture();
 
     render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {organization: org}
     );
 
     expect(

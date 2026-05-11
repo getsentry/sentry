@@ -2,7 +2,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {tct} from 'sentry/locale';
 
-import ZendeskLink from 'getsentry/components/zendeskLink';
+import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import type {Subscription} from 'getsentry/types';
 
 type Props = {

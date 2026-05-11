@@ -7,7 +7,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
@@ -26,7 +26,6 @@ interface PowerFeatureHovercardProps {
    * is up to the parent component to decide whether this should be rendered.
    */
   features: Organization['features'];
-  organization: Organization;
 
   subscription: Subscription;
   children?: React.ReactNode;
@@ -58,12 +57,12 @@ function PowerFeatureHovercard({
   id,
   containerClassName,
   containerDisplayMode,
-  organization,
   subscription,
   partial,
   features,
   children,
 }: PowerFeatureHovercardProps) {
+  const organization = useOrganization();
   const recordAnalytics = () => {
     trackGetsentryAnalytics('power_icon.clicked', {
       organization,
@@ -146,6 +145,4 @@ const StyledHovercard = styled(Hovercard)`
   }
 `;
 
-export default withOrganization(
-  withSubscription(PowerFeatureHovercard, {noLoader: true})
-);
+export default withSubscription(PowerFeatureHovercard, {noLoader: true});

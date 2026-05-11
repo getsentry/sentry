@@ -25,7 +25,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {
   INSTALLED,
   NOT_INSTALLED,
@@ -55,7 +54,7 @@ function makePluginQueryKey({
   ];
 }
 
-function PluginDetailedView() {
+export function PluginDetailedView() {
   const {openModal} = useModal();
 
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
@@ -368,5 +367,3 @@ function PluginDetailedView() {
 const AddButton = styled(Button)`
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-export default withOrganization(PluginDetailedView);

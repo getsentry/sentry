@@ -22,7 +22,7 @@ import {HookStore} from 'sentry/stores/hookStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -37,7 +37,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';
@@ -94,7 +93,6 @@ type Props = WithRouterProps & {
   api: Client;
   isEditingDashboard: boolean;
   location: Location;
-  organization: Organization;
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -147,6 +145,7 @@ type Data = {
 };
 
 function WidgetCard(props: Props) {
+  const organization = useOrganization();
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
@@ -194,7 +193,6 @@ function WidgetCard(props: Props) {
 
   const {
     api,
-    organization,
     selection,
     widget,
     isMobile,
@@ -496,7 +494,7 @@ function WidgetCard(props: Props) {
 
 export default registerLLMContext(
   'widget',
-  withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))))
+  withApi(withPageFilters(withSentryRouter(WidgetCard)))
 );
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {

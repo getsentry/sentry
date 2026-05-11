@@ -22,7 +22,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
@@ -97,11 +97,8 @@ function TokenList({
   );
 }
 
-export function OrganizationAuthTokensIndex({
-  organization,
-}: {
-  organization: Organization;
-}) {
+export function OrganizationAuthTokensIndex() {
+  const organization = useOrganization();
   const api = useApi();
   const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
@@ -248,8 +245,6 @@ export function OrganizationAuthTokensIndex({
 export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
   return `${tokenPrefix}************${tokenLastCharacters}`;
 }
-
-export default withOrganization(OrganizationAuthTokensIndex);
 
 const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
