@@ -388,11 +388,7 @@ class SlackRequestParserTest(TestCase):
         }
 
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    def test_link_identity_stashes_response_url_and_returns_200(
-        self, mock_slack_task: MagicMock
-    ) -> None:
-        from sentry.integrations.slack.views.link_identity import pop_link_identity_response_url
-
+    def test_link_identity_handled_on_control_silo(self, mock_slack_task: MagicMock) -> None:
         response_url = "https://hooks.slack.com/actions/TXXXXXXX1/1234567890123/something"
         slack_user_id = "U1234567890"
         data = self._make_link_identity_action_data(
@@ -403,30 +399,8 @@ class SlackRequestParserTest(TestCase):
         response = parser.get_response()
 
         assert response.status_code == status.HTTP_200_OK
+        assert response.content == b"passthrough"
         mock_slack_task.apply_async.assert_not_called()
-        stashed = pop_link_identity_response_url(
-            integration_id=self.integration.id, slack_user_id=slack_user_id
-        )
-        assert stashed == response_url
-
-    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    def test_link_identity_without_response_url_skips_stash(
-        self, mock_slack_task: MagicMock
-    ) -> None:
-        from sentry.integrations.slack.views.link_identity import pop_link_identity_response_url
-
-        slack_user_id = "U1234567890"
-        data = self._make_link_identity_action_data(slack_user_id=slack_user_id)
-        request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
-        parser = SlackRequestParser(request, self.get_response)
-        response = parser.get_response()
-
-        assert response.status_code == status.HTTP_200_OK
-        mock_slack_task.apply_async.assert_not_called()
-        stashed = pop_link_identity_response_url(
-            integration_id=self.integration.id, slack_user_id=slack_user_id
-        )
-        assert stashed is None
 
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
     def test_seer_event_acks_200_and_enqueues_routing_task(self, mock_apply):

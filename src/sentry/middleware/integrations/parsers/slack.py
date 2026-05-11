@@ -368,17 +368,7 @@ class SlackRequestParser(BaseRequestParser):
             )
 
             if self.action_id == SlackAction.LINK_IDENTITY.value:
-                if self.response_url and self.slack_request.user_id:
-                    from sentry.integrations.slack.views.link_identity import (
-                        stash_link_identity_response_url,
-                    )
-
-                    stash_link_identity_response_url(
-                        integration_id=self.slack_request.integration.id,
-                        slack_user_id=self.slack_request.user_id,
-                        response_url=self.response_url,
-                    )
-                return HttpResponse(status=status.HTTP_200_OK)
+                return self.get_response_from_control_silo()
 
             # All actions other than those below are sent to every cell
             if self.action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
