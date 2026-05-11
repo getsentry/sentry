@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
@@ -10,12 +10,11 @@ export function useReplayForCriticalFlow({
   enabled = true,
   sampleRate = 1,
 }: UseReplayForCriticalFlowOptions) {
-  const shouldForce = useMemo(
-    () => Math.random() < sampleRate,
-    // sampleRate is captured once on mount on purpose
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
+  // Stable per-mount sampling decision: useState's lazy initializer runs
+  // exactly once. useMemo would not — React reserves the right to discard
+  // memoized values (e.g. offscreen prerendering), which would re-roll
+  // Math.random() and could flip the decision mid-session.
+  const [shouldForce] = useState(() => Math.random() < sampleRate);
   // Replay is registered at the App root (component:replay-init), but
   // registration is async (dynamic import of @sentry/react). On a fresh
   // load straight into a critical-flow route, this effect can fire before
