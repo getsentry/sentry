@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
     SlackSeerAgentResponded,
@@ -135,7 +136,7 @@ class ProcessMentionForSlackTest(TestCase):
         assert_failure_metric(mock_record, EntrypointSetupError("not found"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.entrypoints.slack.tasks._send_link_identity_prompt")
+    @patch("sentry.seer.entrypoints.slack.tasks.send_halt_message")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
@@ -144,7 +145,7 @@ class ProcessMentionForSlackTest(TestCase):
         mock_resolve_user,
         mock_agent_cls,
         mock_operator_cls,
-        mock_send_link,
+        mock_send_halt,
         mock_record,
     ):
         mock_resolve_user.return_value = None
@@ -156,8 +157,12 @@ class ProcessMentionForSlackTest(TestCase):
 
         self._run_task()
 
-        mock_send_link.assert_called_once_with(
-            entrypoint=mock_entrypoint, thread_ts="1234567890.123456"
+        mock_send_halt.assert_called_once_with(
+            integration=mock_entrypoint.integration,
+            slack_user_id=mock_entrypoint.slack_user_id,
+            channel_id=mock_entrypoint.channel_id,
+            thread_ts="1234567890.123456",
+            halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED,
         )
         mock_operator_cls.assert_not_called()
         assert_halt_metric(mock_record, ProcessMentionHaltReason.IDENTITY_NOT_LINKED)

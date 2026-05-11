@@ -259,16 +259,22 @@ describe('useSeerExplorer', () => {
         organization,
       });
 
-      await act(async () => {
+      act(() => {
         result.current.sendMessage('Test query');
         result.current.interruptRun();
+      });
+
+      // Wait for the interrupt mutation to complete before resetting
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
         result.current.startNewSession();
-        // Flush interrupt mutation
-        await Promise.resolve();
       });
 
       expect(result.current.runId).toBeNull();
-      expect(result.current.waitingForInterrupt).toBe(false);
+      expect(result.current.hasSentInterrupt).toBe(false);
     });
 
     it('switchToRun sets runId and resets session state', async () => {
@@ -278,16 +284,24 @@ describe('useSeerExplorer', () => {
         organization,
       });
 
-      await act(async () => {
+      act(() => {
         result.current.sendMessage('Test query');
         result.current.interruptRun();
-        result.current.switchToRun(456);
-        // Flush interrupt mutation
-        await Promise.resolve();
       });
 
-      expect(result.current.runId).toBe(456);
-      expect(result.current.waitingForInterrupt).toBe(false);
+      // Wait for the interrupt mutation to complete before switching
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.switchToRun(456);
+      });
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(456);
+        expect(result.current.hasSentInterrupt).toBe(false);
+      });
     });
   });
 
@@ -778,4 +792,181 @@ describe('useSeerExplorer', () => {
       expect(getMock).not.toHaveBeenCalled();
     });
   });
+
+  describe('Timeout Detection', () => {
+    const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+    const runId = 777;
+    const staleUpdatedAt = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+    it('returns isTimedOut=true and isPolling=false and does not re-poll', async () => {
+      const getMock = MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: runId,
+            status: 'processing',
+            updated_at: staleUpdatedAt,
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isTimedOut).toBe(true);
+      });
+
+      expect(result.current.isPolling).toBe(false);
+      expect(getMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('filters out loading blocks from sessionData when timed out', async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              {
+                id: 'msg-1',
+                message: {role: 'user', content: 'Hello'},
+                timestamp: staleUpdatedAt,
+                loading: false,
+              },
+              {
+                id: 'msg-2',
+                message: {role: 'assistant', content: 'Partial...'},
+                timestamp: staleUpdatedAt,
+                loading: true,
+              },
+              {
+                id: 'msg-3',
+                message: {role: 'tool_use', content: 'Running tool...'},
+                timestamp: staleUpdatedAt,
+                loading: true,
+              },
+            ],
+            run_id: runId,
+            status: 'processing',
+            updated_at: staleUpdatedAt,
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isTimedOut).toBe(true);
+      });
+
+      expect(result.current.isPolling).toBe(false);
+      expect(result.current.sessionData?.blocks).toHaveLength(1);
+      expect(result.current.sessionData?.blocks[0]?.id).toBe('msg-1');
+    });
+  });
+
+  describe('hasSentInterrupt', () => {
+    beforeEach(() => {
+      sessionStorage.setItem('seer-explorer-run-id', JSON.stringify(123));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+    });
+
+    it('clears after new message is sent', async () => {
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      expect(result.current.hasSentInterrupt).toBe(false);
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.sendMessage('Test 2');
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(false);
+      });
+    });
+
+    it('clears after respondToUserInput is called', async () => {
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      expect(result.current.hasSentInterrupt).toBe(false);
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.respondToUserInput('test-input-id', {});
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(false);
+      });
+    });
+
+    it('clears after createPR is called', async () => {
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      expect(result.current.hasSentInterrupt).toBe(false);
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.createPR('test-repo-name');
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(false);
+      });
+    });
+  });
+
+  describe('timeout logic', () => {});
 });

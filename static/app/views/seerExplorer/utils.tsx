@@ -1078,21 +1078,20 @@ function formatSessionData(
       lines.push(messageContent);
     }
     if (thinking_content) {
-      lines.push('');
-      lines.push('## THINKING CONTENT');
-      lines.push(thinking_content);
+      lines.push('', '## THINKING CONTENT', thinking_content);
     }
 
     if (toolCallsWithLinks.length > 0) {
-      lines.push('');
-      lines.push('## TOOL CALLS');
+      lines.push('', '## TOOL CALLS');
       toolCallsWithLinks.forEach((item, idx) => {
         const isError = !!item.metadata?.is_error;
         const emptyResults = !!item.metadata?.empty_results;
         const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
 
-        lines.push(`${item.tool_call.function} (${status}) (${item.tool_call.id}):`);
-        lines.push(`args: ${item.tool_call.args}`);
+        lines.push(
+          `${item.tool_call.function} (${status}) (${item.tool_call.id}):`,
+          `args: ${item.tool_call.args}`
+        );
         if (item.url) {
           lines.push(`URL: ${item.url}`);
         }
@@ -1196,7 +1195,11 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
  * - Organization has not disabled open membership
  * - Organization has not disabled AI features (hideAiFeatures is false)
  */
-export function isSeerExplorerEnabled(organization: Organization): boolean {
+export function isSeerExplorerEnabled(organization: Organization | null): boolean {
+  if (!organization) {
+    return false;
+  }
+
   return (
     organization.openMembership &&
     !organization.hideAiFeatures &&

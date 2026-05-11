@@ -1,22 +1,22 @@
 import {Fragment, useEffect} from 'react';
 
-import {Badge} from '@sentry/scraps/badge';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,
@@ -43,6 +43,8 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
+  const {openModal} = useModal();
+
   const {setTab, tab} = props;
   const crossEvents = useQueryParamsCrossEvents();
   const hasCrossEvents = !!crossEvents?.length;
@@ -121,7 +123,7 @@ export function ExploreTables(props: ExploreTablesProps) {
               disabled={hasCrossEvents}
             >
               {t('Attribute Breakdowns')}
-              <Badge variant="beta">Beta</Badge>
+              <FeatureBadge type="beta" />
             </TabList.Item>
           </TabList>
         </Tabs>

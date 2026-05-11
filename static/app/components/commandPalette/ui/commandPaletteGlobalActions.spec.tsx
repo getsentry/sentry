@@ -212,36 +212,33 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getByText('Current')).toBeInTheDocument();
   });
 
-  it.isKnownFlake(
-    'highlights all projects when multiple ?project= params are set',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {project: [projectA.id, projectB.id]},
-            },
+  it('highlights all projects when multiple ?project= params are set', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: [projectA.id, projectB.id]},
           },
-        }
-      );
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      // Both selected projects should appear with the Current tag
-      expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
-      expect(screen.getAllByText('Current')).toHaveLength(2);
-      // Unselected project should still be present but without a tag
-      expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
-    }
-  );
+    // Both selected projects should appear with the Current tag
+    expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
+    expect(screen.getAllByText('Current')).toHaveLength(2);
+    // Unselected project should still be present but without a tag
+    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+  });
 
   it('shows all projects without priority when not on a :projectId route', async () => {
     render(

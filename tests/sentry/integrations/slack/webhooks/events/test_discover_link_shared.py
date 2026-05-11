@@ -72,7 +72,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             (LinkType.DISCOVER, {"arg1": "value1"}),
-            (LinkType.DISCOVER, {"arg1", "value2"}),
+            (LinkType.DISCOVER, {"arg2": "value2"}),
             (LinkType.DISCOVER, {"arg1": "value1"}),
         ],
     )
@@ -103,7 +103,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             (LinkType.DISCOVER, {"arg1": "value1"}),
-            (LinkType.DISCOVER, {"arg1", "value2"}),
+            (LinkType.DISCOVER, {"arg2": "value2"}),
             (LinkType.DISCOVER, {"arg1": "value1"}),
         ],
     )
@@ -130,7 +130,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             (LinkType.DISCOVER, {"arg1": "value1"}),
-            (LinkType.DISCOVER, {"arg1", "value2"}),
+            (LinkType.DISCOVER, {"arg2": "value2"}),
             (LinkType.DISCOVER, {"arg1": "value1"}),
         ],
     )
