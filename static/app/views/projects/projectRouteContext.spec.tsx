@@ -30,7 +30,6 @@ describe('ProjectRouteProvider', () => {
     ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/users/`,
-      method: 'GET',
       body: [],
     });
   });
@@ -39,12 +38,10 @@ describe('ProjectRouteProvider', () => {
     ProjectsStore.loadInitialData([]);
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
-      method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
       statusCode: 404,
     });
 
@@ -65,10 +62,8 @@ describe('ProjectRouteProvider', () => {
 
   it('fetches data again if projectId changes', async () => {
     ProjectsStore.loadInitialData([project]);
-    let fetchMock = MockApiClient.addMockResponse({
+    const initialProjectRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      statusCode: 200,
       body: project,
     });
 
@@ -78,32 +73,28 @@ describe('ProjectRouteProvider', () => {
 
     const {rerender} = render(projectRoute, {organization: org});
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(initialProjectRequest).toHaveBeenCalledTimes(1));
 
     // Nothing should happen if we update and projectId is the same
     rerender(projectRoute);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(initialProjectRequest).toHaveBeenCalledTimes(1);
 
     const newProject = ProjectFixture({slug: 'new-slug'});
     act(() => ProjectsStore.loadInitialData([project, newProject]));
-    fetchMock = MockApiClient.addMockResponse({
+    const newProjectRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/new-slug/`,
-      method: 'GET',
-      statusCode: 200,
       body: newProject,
     });
 
     rerender(<ProjectRouteProvider projectSlug="new-slug">{null}</ProjectRouteProvider>);
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() => expect(newProjectRequest).toHaveBeenCalled());
   });
 
   it('renders children with the detailed project', async () => {
     ProjectsStore.loadInitialData([project]);
-    const fetchMock = MockApiClient.addMockResponse({
+    const detailedProjectRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      statusCode: 200,
       body: project,
     });
 
@@ -115,16 +106,14 @@ describe('ProjectRouteProvider', () => {
     );
 
     expect(await screen.findByText(project.slug)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(detailedProjectRequest).toHaveBeenCalledTimes(1);
   });
 
   it('renders children when the user has access but is not a project member', async () => {
     const nonMemberProject = ProjectFixture({hasAccess: true, isMember: false});
     ProjectsStore.loadInitialData([nonMemberProject]);
-    const fetchMock = MockApiClient.addMockResponse({
+    const detailedProjectRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${nonMemberProject.slug}/`,
-      method: 'GET',
-      statusCode: 200,
       body: nonMemberProject,
     });
 
@@ -136,22 +125,19 @@ describe('ProjectRouteProvider', () => {
     );
 
     expect(await screen.findByText(nonMemberProject.slug)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(detailedProjectRequest).toHaveBeenCalledTimes(1);
   });
 
   it('redirects when project was renamed (API returns different slug)', async () => {
     ProjectsStore.loadInitialData([]);
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
-      method: 'GET',
       body: [],
     });
     // Simulate a renamed project: request with old slug, API returns project with new slug
     // This happens because the backend follows the redirect internally
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      statusCode: 200,
       body: ProjectFixture({slug: 'renamed-project'}),
     });
 
@@ -174,6 +160,10 @@ describe('ProjectRouteProvider', () => {
   it('shows missing membership when user lacks access and membership', async () => {
     const noAccessProject = ProjectFixture({hasAccess: false, isMember: false});
     ProjectsStore.loadInitialData([noAccessProject]);
+    const detailedProjectRequest = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${noAccessProject.slug}/`,
+      body: noAccessProject,
+    });
 
     render(
       <ProjectRouteProvider projectSlug={noAccessProject.slug}>
@@ -187,14 +177,13 @@ describe('ProjectRouteProvider', () => {
         'No teams have access to this project yet. Ask an admin to add your team to this project.'
       )
     ).toBeInTheDocument();
+    expect(detailedProjectRequest).toHaveBeenCalledTimes(1);
   });
 
   it('redirects when project is in store but API returns a different slug', async () => {
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      statusCode: 200,
       body: ProjectFixture({slug: 'renamed-project'}),
     });
 

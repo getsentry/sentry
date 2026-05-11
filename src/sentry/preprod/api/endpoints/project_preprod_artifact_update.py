@@ -413,12 +413,37 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             if size_skip_reason == "quota":
                 error_code = PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
                 error_message = "Size analysis quota exceeded"
+                logger.info(
+                    "preprod.artifact.size_analysis_over_quota",
+                    extra={
+                        "preprod_artifact_id": head_artifact.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                    },
+                )
             elif size_skip_reason == "disabled":
                 error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
                 error_message = "Size analysis disabled for this project"
+                logger.info(
+                    "preprod.artifact.size_analysis_disabled",
+                    extra={
+                        "preprod_artifact_id": head_artifact.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                    },
+                )
             else:
                 error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
                 error_message = "Size analysis filtered out by project settings"
+                logger.info(
+                    "preprod.artifact.size_analysis_filtered",
+                    extra={
+                        "preprod_artifact_id": head_artifact.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                        "skip_reason": size_skip_reason,
+                    },
+                )
 
             PreprodArtifactSizeMetrics.objects.update_or_create(
                 preprod_artifact=head_artifact,
@@ -438,12 +463,37 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             if distro_skip_reason == "quota":
                 distro_error_code = PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
                 distro_error_message = "Distribution quota exceeded"
+                logger.info(
+                    "preprod.artifact.distribution_over_quota",
+                    extra={
+                        "preprod_artifact_id": head_artifact.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                    },
+                )
             elif distro_skip_reason == "disabled":
                 distro_error_code = PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_DISABLED
                 distro_error_message = "Distribution disabled for this project"
+                logger.info(
+                    "preprod.artifact.distribution_disabled",
+                    extra={
+                        "preprod_artifact_id": head_artifact.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                    },
+                )
             else:
                 distro_error_code = PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_FILTERED
                 distro_error_message = "Build filtered out by project settings"
+                logger.info(
+                    "preprod.artifact.distribution_filtered",
+                    extra={
+                        "preprod_artifact_id": head_artifact.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                        "skip_reason": distro_skip_reason,
+                    },
+                )
 
             head_artifact.installable_app_error_code = distro_error_code
             head_artifact.installable_app_error_message = distro_error_message

@@ -515,7 +515,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             </Stack>
           )}
           {openForm && (
-            <SeerFooter>
+            <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
                 icon={<IconMegaphone />}

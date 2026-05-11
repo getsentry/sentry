@@ -45,9 +45,9 @@ describe('useVisualizeFields', () => {
     });
 
     expect(result.current.map(field => field.value)).toEqual([
-      'score.ttfb',
       'span.duration',
       'span.self_time',
+      'score.ttfb',
     ]);
   });
 

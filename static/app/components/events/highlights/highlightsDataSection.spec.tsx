@@ -4,13 +4,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as modal from 'sentry/actionCreators/modal';
 import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -36,7 +36,6 @@ describe('HighlightsDataSection', () => {
   };
   const highlightContextTitles = ['User: email', 'Browser: name', 'Browser: version'];
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-  const modalSpy = jest.spyOn(modal, 'openModal');
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -55,6 +54,7 @@ describe('HighlightsDataSection', () => {
       body: {},
     });
     render(<HighlightsDataSection event={event} project={project} />, {organization});
+    renderGlobalModal();
     expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('HighlightsDataSection', () => {
       'highlights.issue_details.edit_clicked',
       expect.anything()
     );
-    expect(modalSpy).toHaveBeenCalled();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('renders highlights from the detailed project API response', async () => {

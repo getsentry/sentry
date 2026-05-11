@@ -16,6 +16,7 @@ from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidati
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.viewer_context import ActorType, get_viewer_context
 
@@ -215,6 +216,57 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         ):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+    @with_feature("organizations:jira-issue-updated-payload-logging")
+    @patch("sentry.integrations.jira.webhooks.issue_updated.sentry_sdk.capture_exception")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.webhooks.issue_updated.logger")
+    def test_payload_logging_failure_does_not_skip_handlers(
+        self,
+        mock_logger: MagicMock,
+        mock_sync_group_assignee_inbound: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        # The diagnostic payload-logging path can fail transiently (e.g. a
+        # broken `extra=` payload, or a flaky logging backend). Those failures
+        # must not prevent the real webhook handlers from running.
+        error = RuntimeError("simulated payload logging failure")
+
+        def raising_info(event_name: str, *args: object, **kwargs: object) -> None:
+            if event_name == "jira.issue-updated.payload":
+                raise error
+
+        mock_logger.info.side_effect = raising_info
+
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+        mock_sync_group_assignee_inbound.assert_called_with(
+            self.integration, "jess@sentry.io", "APP-123", assign=True
+        )
+        mock_capture_exception.assert_called_once_with(error)
+
+    @with_feature("organizations:jira-issue-updated-payload-logging")
+    @patch("sentry.integrations.jira.webhooks.issue_updated.logger")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
+    def test_payload_logging_logs_when_feature_enabled(
+        self,
+        mock_sync_group_assignee_inbound: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+        info_event_names = [call.args[0] for call in mock_logger.info.call_args_list]
+        assert "jira.issue-updated.payload" in info_event_names
 
 
 class MockErroringJiraEndpoint(JiraWebhookBase):

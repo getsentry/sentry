@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -27,6 +27,7 @@ import {
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -51,6 +52,7 @@ export function SnapshotHeaderActions({
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
   const organization = useOrganization();
+  const breakpoints = useBreakpoints();
   const isSentryEmployee = useIsSentryEmployee();
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -179,16 +181,20 @@ export function SnapshotHeaderActions({
               )}
             </Flex>
             {approvers.length > 0 && (
-              <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              <Container display={{'2xs': 'none', md: 'flex'}}>
+                <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              </Container>
             )}
           </Flex>
         ) : (
           <Flex align="center" gap="sm">
-            <Tag variant="warning" icon={<IconTimer />}>
-              {t('Requires approval')}
-            </Tag>
+            <Container display={{'2xs': 'none', lg: 'block'}}>
+              <Tag variant="warning" icon={<IconTimer />}>
+                {t('Needs approval')}
+              </Tag>
+            </Container>
             <Button
-              size="sm"
+              size={breakpoints.xs ? 'sm' : 'xs'}
               variant="primary"
               icon={<IconThumb />}
               onClick={handleApprove}

@@ -10,6 +10,8 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.roles import organization_roles
 from sentry.sentry_apps.alert_rule_action_creator import SentryAppAlertRuleActionCreator
 from sentry.sentry_apps.api.serializers.sentry_app_component import (
     SentryAppAlertRuleActionSerializer,
@@ -42,6 +44,29 @@ from sentry.sentry_apps.services.app.serial import (
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
+
+
+def _is_valid_creator_email(email: str, organization_id: int) -> bool:
+    return bool(
+        user_service.get_many_by_email(
+            emails=[email],
+            is_active=True,
+            is_verified=True,
+            organization_id=organization_id,
+        )
+    )
+
+
+def _get_org_owner_emails(organization_id: int) -> list[str]:
+    return list(
+        OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id,
+            role=organization_roles.get_top_dog().id,
+            user__is_active=True,
+            user__emails__is_verified=True,
+        ).values_list("user__emails__email", flat=True)
+    )
 
 
 class DatabaseBackedAppService(AppService):
@@ -432,3 +457,12 @@ class DatabaseBackedAppService(AppService):
             return None
         component = prepare_sentry_app_components(installation, component_type, project_slug)
         return serialize_sentry_app_component(component) if component else None
+
+    def get_notification_emails_for_sentry_app(
+        self, *, organization_id: int, creator_label: str | None
+    ) -> list[str]:
+        if creator_label and "@" in creator_label:
+            if _is_valid_creator_email(creator_label, organization_id):
+                return [creator_label]
+
+        return _get_org_owner_emails(organization_id)

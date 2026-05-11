@@ -44,12 +44,12 @@ from sentry.tasks.seer.night_shift.tweaks import (
     get_night_shift_tweaks,
 )
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.utils.hashlib import md5_text
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_DISPATCH_STEP_SECONDS = 37
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
 
 BATCH_FEATURE_NAMES = [
@@ -146,7 +146,7 @@ def schedule_night_shift(
         )
         eligible = _get_eligible_orgs_from_batch(org_batch)
         for org in eligible:
-            delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
+            delay = int(md5_text(str(org.id)).hexdigest(), 16) % spread_seconds
             run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
 
