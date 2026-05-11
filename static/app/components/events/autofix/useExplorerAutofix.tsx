@@ -373,7 +373,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   // Finalize the last in-progress section.
   finalizeSection({
     // run is complete so last section must be complete as well
-    forceCompletion: runState?.status === 'completed',
+    forceCompletion: runState?.status !== 'processing',
   });
 
   // If there are any PR states, append a synthetic "pull_request" section.
