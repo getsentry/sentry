@@ -66,7 +66,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
 
     const hasIntegration = Boolean(integration);
     const isAutomationEnabled =
-      projectDetails.seerScannerAutomation === true &&
+      projectDetails.seerScannerAutomation !== false &&
       projectDetails.autofixAutomationTuning !== 'off';
     const isConfigured =
       preference?.automation_handoff?.target === config.target && isAutomationEnabled;
@@ -95,7 +95,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       });
 
       const isAutomationDisabled =
-        projectDetails.seerScannerAutomation !== true ||
+        projectDetails.seerScannerAutomation === false ||
         projectDetails.autofixAutomationTuning === 'off';
 
       if (isAutomationDisabled) {

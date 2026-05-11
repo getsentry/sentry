@@ -101,7 +101,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   );
   const {starredViews: views} = useStarredIssueViews();
 
-  const {data: projectDetails} = useDetailedProject({
+  const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -128,8 +128,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     projectDetails !== undefined &&
     (projectDetails.autofixAutomationTuning === 'off' ||
       projectDetails.autofixAutomationTuning === undefined ||
-      projectDetails.seerScannerAutomation === false ||
-      projectDetails.seerScannerAutomation === undefined);
+      projectDetails.seerScannerAutomation === false);
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
     isStarredViewAllowed;
@@ -166,7 +165,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     }
 
     const isAutomationDisabled =
-      projectDetails?.seerScannerAutomation !== true ||
+      projectDetails?.seerScannerAutomation === false ||
       projectDetails.autofixAutomationTuning === 'off';
 
     if (isAutomationDisabled) {
@@ -197,11 +196,15 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const firstIncompleteIdx = incompleteStepIndices[0];
   const lastIncompleteIdx = incompleteStepIndices[incompleteStepIndices.length - 1];
   const anyStepIncomplete = incompleteStepIndices.length > 0;
+  const showOnboardingSteps =
+    !isLoadingPreferences && !isLoadingProject && anyStepIncomplete;
+  const showCollapsedSummary = showOnboardingSteps && stepsCollapsed;
+  const showFullGuidedSteps = showOnboardingSteps && !stepsCollapsed;
 
   return (
     <Stack align="stretch">
       {/* Collapsed summary */}
-      {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
+      {showCollapsedSummary && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
           <IconSeer animation="waiting" size="lg" style={{marginRight: 8}} />
           <span>
@@ -215,7 +218,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </CollapsedSummaryCard>
       )}
       {/* Full guided steps */}
-      {!isLoadingPreferences && anyStepIncomplete && !stepsCollapsed && (
+      {showFullGuidedSteps && (
         <AnimatePresence>
           <motion.div
             initial={{opacity: 0, y: 10, height: 0}}

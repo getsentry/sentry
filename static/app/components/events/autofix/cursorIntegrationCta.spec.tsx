@@ -447,6 +447,27 @@ describe('CursorIntegrationCta', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('treats missing scanner automation as enabled when tuning is enabled', async () => {
+      const projectWithAutomation = ProjectFixture({
+        autofixAutomationTuning: 'medium',
+      });
+      delete projectWithAutomation.seerScannerAutomation;
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
+      });
+
+      render(<CursorIntegrationCta project={projectWithAutomation} />, {
+        organization,
+      });
+
+      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
+      expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set Seer to hand off to Cursor'})
+      ).not.toBeInTheDocument();
+    });
+
     it('does not show setup button in configured stage', async () => {
       const projectWithAutomation = ProjectFixture({
         seerScannerAutomation: true,
