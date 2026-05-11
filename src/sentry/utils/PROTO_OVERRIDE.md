@@ -1,12 +1,10 @@
 # Proto Override System
 
-Compile and serve proto definitions directly from the sentry repo, replacing the pip-installed `sentry-protos` package for migrated domains.
+Temporarily override pip-installed `sentry-protos` modules with local `.proto` definitions for faster iteration, without waiting for a `sentry-protos` release.
 
 ## Why This Exists
 
-Proto definitions used to live exclusively in the `sentry-protos` repo, with a separate pip release cycle. Iterating on protos required publishing a new `sentry-protos` version before sentry could use the changes. This system moves proto source files into the sentry repo itself (`proto/`), compiling them at import time during development and pre-compiling them during CI/deploy for production.
-
-Domains are migrated incrementally. Non-migrated domains (snuba, seer, etc.) continue to be served from the `sentry-protos` pip package as a transparent fallback.
+Proto definitions live in the `sentry-protos` repo with a separate pip release cycle. Iterating on protos requires publishing a new `sentry-protos` version before sentry can use the changes. This system lets you place `.proto` files in `proto/` to override specific modules during development, CI, and production. Changes should eventually be published back to `sentry-protos`.
 
 ## Architecture
 
@@ -72,11 +70,11 @@ This works regardless of whether the module comes from `proto/` (override) or th
 ### Priority Order
 
 ```
-1. proto/            (in-repo, committed to git)        ← source of truth
-2. pip sentry-protos (installed package)                 ← fallback for non-migrated domains
+1. proto/            (in-repo overrides)                 ← highest priority
+2. pip sentry-protos (installed package)                 ← fallback
 ```
 
-Migrated domains (e.g., billing) are maintained in `proto/`. Non-migrated domains (snuba, seer, etc.) are served from the pip-installed `sentry-protos` package until they are migrated.
+Protos in `proto/` take precedence. Anything not overridden falls through to the pip package.
 
 ### getsentry
 
@@ -84,15 +82,13 @@ No setup required. Both repos share one venv with sentry editable-installed, so 
 
 Proto overrides placed in sentry's `proto/sentry_protos/` are picked up by getsentry with no getsentry-side changes.
 
-### Migrating a New Domain
+### Copying Protos from sentry-protos
 
-To migrate a domain from `sentry-protos` into this repo (one-time):
+To copy a domain's protos from a local sentry-protos checkout:
 
 ```bash
 bin/sync-protos /path/to/sentry-protos <domain>
 ```
-
-After the initial copy, maintain the protos in `proto/` — do not re-sync.
 
 ## Configuration
 
@@ -145,16 +141,16 @@ proto/                              ← .proto sources (in git)
 
 ## Helper Script: `bin/sync-protos`
 
-A one-time migration tool for copying proto files from a `sentry-protos` checkout into `proto/`. After the initial migration, protos are maintained directly in the sentry repo.
+Copies proto files from a `sentry-protos` checkout into `proto/`.
 
 ```bash
-# One-time migration: copy billing protos from sentry-protos
+# Copy billing protos from sentry-protos
 bin/sync-protos /path/to/sentry-protos billing
 
-# Migrate multiple domains at once
+# Copy multiple domains
 bin/sync-protos /path/to/sentry-protos billing snuba
 
-# Migrate all domains
+# Copy all domains
 bin/sync-protos --all
 
 # Show current override status
