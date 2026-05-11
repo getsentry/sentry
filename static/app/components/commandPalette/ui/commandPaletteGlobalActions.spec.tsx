@@ -1,11 +1,5 @@
 jest.unmock('lodash/debounce');
 
-jest.mock('@sentry-internal/global-search', () => ({
-  SentryGlobalSearch: jest.fn().mockImplementation(() => ({
-    query: jest.fn().mockResolvedValue([]),
-  })),
-}));
-
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
