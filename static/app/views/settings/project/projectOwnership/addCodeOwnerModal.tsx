@@ -389,13 +389,17 @@ function ErrorMessage({
   errorJSON: {raw?: string} | null;
 }) {
   const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
-  const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
+  const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => (
+    <Text as="p" key={i}>
+      {el}
+    </Text>
+  ));
   return (
     <Alert.Container>
       <Alert variant="danger">
         {errActors}
         {codeMapping && (
-          <p>
+          <Text as="p">
             {tct(
               'Configure [userMappingsLink:User Mappings] or [teamMappingsLink:Team Mappings] for any missing associations.',
               {
@@ -411,7 +415,7 @@ function ErrorMessage({
                 ),
               }
             )}
-          </p>
+          </Text>
         )}
         {tct(
           '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
