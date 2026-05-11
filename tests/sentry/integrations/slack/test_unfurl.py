@@ -2585,7 +2585,6 @@ class UnfurlTest(TestCase):
         assert chart_data["widget"]["widgetType"] == "spans"
         assert chart_data["widget"]["displayType"] == "line"
         assert chart_data["widget"]["queries"][0]["aggregates"] == ["avg(span.duration)"]
-        # Each timeSeries is tagged with the index of its widget query.
         assert all(pair[1] == 0 for pair in chart_data["timeSeries"])
         assert chart_data["timeSeries"][0][0]["yAxis"] == "avg(span.duration)"
 
@@ -2779,7 +2778,6 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         assert mock_client_get.call_count == 2
         chart_data = mock_generate_chart.call_args[0][1]
-        # ``timeSeries`` is a list of ``[ts, widget_query_index]`` tuples.
         pairs = chart_data["timeSeries"]
         assert [pair[0]["yAxis"] for pair in pairs] == [
             "avg(span.duration)",
@@ -2792,9 +2790,6 @@ class UnfurlTest(TestCase):
     def test_unfurl_dashboards_multi_query_same_aggregate(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
-        # The user's reported widget: two queries with identical aggregates,
-        # differing only by conditions. The widget query index lets
-        # chartcuterie tell them apart in the legend.
         mock_client_get.side_effect = [
             MagicMock(data=self._build_mock_timeseries_response(y_axis="count(span.duration)")),
             MagicMock(data=self._build_mock_timeseries_response(y_axis="count(span.duration)")),
@@ -2856,8 +2851,6 @@ class UnfurlTest(TestCase):
     def test_unfurl_dashboards_single_query_multi_series_share_query_index(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
-        # A single grouped query returns multiple TimeSeries (one per group).
-        # All series must be tagged with the same query index (0).
         def grouped_response(group_value: str):
             return {
                 "timeSeries": [
@@ -2874,7 +2867,6 @@ class UnfurlTest(TestCase):
                 ],
             }
 
-        # One HTTP call returns two grouped series.
         mock_client_get.return_value = MagicMock(
             data={
                 "timeSeries": [
@@ -2902,7 +2894,6 @@ class UnfurlTest(TestCase):
 
         chart_data = mock_generate_chart.call_args[0][1]
         pairs = chart_data["timeSeries"]
-        # Both series come from the same widget query.
         assert [pair[1] for pair in pairs] == [0, 0]
         assert [pair[0]["groupBy"][0]["value"] for pair in pairs] == [
             "/api/db",

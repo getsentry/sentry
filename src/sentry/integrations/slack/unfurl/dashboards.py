@@ -157,11 +157,6 @@ def _unfurl_dashboards(
         if not per_query_params:
             continue
 
-        # ``[ts, widget_query_index]`` tuples. A single widget query can yield
-        # multiple ``TimeSeries`` (multi-aggregate, ``yAxis=[...]``, grouped
-        # queries with ``topEvents``) so we tag each one with the index of
-        # the query that produced it; chartcuterie uses that to pair each
-        # series with its widget query and render the FE-equivalent legend.
         combined_time_series: list[list[Any]] = []
         request_failed = False
         for query_index, params in enumerate(per_query_params):
