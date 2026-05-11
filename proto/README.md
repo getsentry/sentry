@@ -1,12 +1,8 @@
 # Proto Sources
 
-This directory is the **source of truth** for proto definitions used by sentry. Proto files here are compiled on demand during development and pre-compiled during CI/deploy for production.
+This directory holds `.proto` files that override the pip-installed `sentry-protos` package. Proto files here are compiled on demand during development and pre-compiled during CI/deploy for production.
 
-Currently migrated domains:
-
-- `billing/` — billing service protos (data categories, usage, contracts, etc.)
-
-Other domains (snuba, seer, taskbroker, etc.) remain in the `sentry-protos` pip package until migrated.
+This is a temporary mechanism for faster iteration on proto definitions without waiting for a `sentry-protos` release. Changes here should eventually be published back to `sentry-protos`.
 
 ## Directory Structure
 
@@ -18,17 +14,10 @@ proto/
         data_category.proto
         date.proto
         usage_data.proto
-        common/
-          v1/
-            address.proto
-            ...
         services/
           usage/
             v1/
               endpoint_usage.proto
-          contract/
-            v1/
-              ...
 ```
 
 ## Usage
@@ -46,16 +35,12 @@ Edit `.proto` files in this directory directly. On next import, the `proto_loade
 ## How Overrides Work
 
 1. **This directory** (`proto/`) -- highest priority
-2. **pip-installed `sentry-protos`** -- fallback for non-migrated domains
+2. **pip-installed `sentry-protos`** -- fallback
 
 See `src/sentry/utils/PROTO_OVERRIDE.md` for full documentation.
 
-## Initial Migration
-
-To migrate a new domain from `sentry-protos` into this repo:
+## Copying Protos from sentry-protos
 
 ```bash
-bin/sync-protos /path/to/sentry-protos <domain>
+bin/sync-protos /path/to/sentry-protos billing
 ```
-
-After the initial copy, maintain the protos here -- do not re-sync.
