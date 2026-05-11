@@ -18,17 +18,7 @@ import {OrganizationAuthTokensIndex} from 'sentry/views/settings/organizationAut
 describe('OrganizationAuthTokensIndex', () => {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
   const PROJECTS_ENDPOINT = '/organizations/org-slug/projects/';
-  const {organization, project, router} = initializeOrg();
-
-  const defaultProps = {
-    organization,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
-    route: {},
-    routeParams: router.params,
-  };
+  const {organization, project} = initializeOrg();
 
   let projectsMock: jest.Mock;
 
@@ -72,7 +62,7 @@ describe('OrganizationAuthTokensIndex', () => {
       body: tokens,
     });
 
-    render(<OrganizationAuthTokensIndex {...defaultProps} />);
+    render(<OrganizationAuthTokensIndex />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -126,7 +116,7 @@ describe('OrganizationAuthTokensIndex', () => {
       body: tokens,
     });
 
-    render(<OrganizationAuthTokensIndex {...defaultProps} />);
+    render(<OrganizationAuthTokensIndex />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -143,7 +133,7 @@ describe('OrganizationAuthTokensIndex', () => {
       statusCode: 400,
     });
 
-    render(<OrganizationAuthTokensIndex {...defaultProps} />);
+    render(<OrganizationAuthTokensIndex />, {organization});
 
     expect(await screen.findByTestId('loading-error')).toHaveTextContent(
       'Failed to load organization tokens.'
@@ -163,7 +153,7 @@ describe('OrganizationAuthTokensIndex', () => {
       body: tokens,
     });
 
-    render(<OrganizationAuthTokensIndex {...defaultProps} />);
+    render(<OrganizationAuthTokensIndex />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -211,7 +201,7 @@ describe('OrganizationAuthTokensIndex', () => {
         method: 'DELETE',
       });
 
-      render(<OrganizationAuthTokensIndex {...defaultProps} />);
+      render(<OrganizationAuthTokensIndex />, {organization});
       renderGlobalModal();
 
       expect(await screen.findByText('My Token 1')).toBeInTheDocument();
@@ -260,7 +250,7 @@ describe('OrganizationAuthTokensIndex', () => {
         statusCode: 400,
       });
 
-      render(<OrganizationAuthTokensIndex {...defaultProps} />);
+      render(<OrganizationAuthTokensIndex />, {organization});
       renderGlobalModal();
 
       expect(await screen.findByText('My Token 1')).toBeInTheDocument();
@@ -295,18 +285,13 @@ describe('OrganizationAuthTokensIndex', () => {
         },
       ];
 
-      const props = {
-        ...defaultProps,
-        organization: org,
-      };
-
       MockApiClient.addMockResponse({
         url: ENDPOINT,
         method: 'GET',
         body: tokens,
       });
 
-      render(<OrganizationAuthTokensIndex {...props} />, {organization: org});
+      render(<OrganizationAuthTokensIndex />, {organization: org});
 
       expect(await screen.findByText('My Token 1')).toBeInTheDocument();
 

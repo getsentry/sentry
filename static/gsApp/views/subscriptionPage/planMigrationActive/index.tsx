@@ -7,7 +7,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-import ZendeskLink from 'getsentry/components/zendeskLink';
+import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import {ANNUAL} from 'getsentry/constants';
 import {CohortId, type PlanMigration, type Subscription} from 'getsentry/types';
 import {PanelBodyWithTable} from 'getsentry/views/subscriptionPage/styles';

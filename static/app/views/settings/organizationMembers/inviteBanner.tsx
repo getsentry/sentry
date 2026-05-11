@@ -18,12 +18,12 @@ import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingF
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
+import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_MEMBERS_TO_SHOW = 5;
 
@@ -31,15 +31,10 @@ type Props = {
   allowedRoles: OrgRole[];
   onModalClose: () => void;
   onSendInvite: () => void;
-  organization: Organization;
 };
 
-export function InviteBanner({
-  organization,
-  allowedRoles,
-  onSendInvite,
-  onModalClose,
-}: Props) {
+export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) {
+  const organization = useOrganization();
   const isEligibleForBanner = organization.access.includes('org:write');
   const [sendingInvite, setSendingInvite] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
@@ -217,8 +212,6 @@ export function InviteBanner({
     </Fragment>
   );
 }
-
-export default withOrganization(InviteBanner);
 
 type MemberCardsProps = {
   handleSendInvite: (email: string) => void;

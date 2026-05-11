@@ -2,28 +2,26 @@ import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {
   platformEventLinkMap,
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ExampleIntegrationButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
   analyticsView: IntegrationView['view'];
-  organization: Organization;
 }
 
 /**
  * Button to direct users to the Example App repository
  */
-function ExampleIntegrationButton({
-  organization,
+export function ExampleIntegrationButton({
   analyticsView,
   ...buttonProps
 }: ExampleIntegrationButtonProps) {
+  const organization = useOrganization();
   return (
     <LinkButton
       size="sm"
@@ -42,4 +40,3 @@ function ExampleIntegrationButton({
     </LinkButton>
   );
 }
-export default withOrganization(ExampleIntegrationButton);

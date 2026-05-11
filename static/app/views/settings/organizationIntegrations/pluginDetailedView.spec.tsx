@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PluginWithProjectList} from 'sentry/types/integrations';
-import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
+import {PluginDetailedView} from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
 
 describe('PluginDetailedView', () => {
   const organization = OrganizationFixture();

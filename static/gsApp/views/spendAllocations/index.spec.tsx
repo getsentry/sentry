@@ -58,9 +58,7 @@ describe('SpendAllocations feature enable flow', () => {
       'project:read',
       'project:admin',
     ];
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     await waitFor(() =>
       screen.findByRole('button', {
         name: 'Get started',
@@ -91,18 +89,14 @@ describe('SpendAllocations feature enable flow', () => {
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(await screen.findByTestId('partnership-note')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Get Started'})).not.toBeInTheDocument();
   });
 
   it('does not render enable button for non billing role for org that has not enabled spend allocations', async () => {
     organization.access = ['project:read', 'project:admin'];
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     // Waiting a tick for requests to finish
     await act(tick);
     expect(screen.queryByRole('button', {name: 'Get Started'})).not.toBeInTheDocument();
@@ -117,9 +111,7 @@ describe('SpendAllocations feature enable flow', () => {
       'project:read',
       'project:admin',
     ];
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     const enableSpendAllocations = await screen.findByRole('button', {
       name: 'Get started',
     });
@@ -188,9 +180,7 @@ describe('enabled Spend Allocations page', () => {
 
   it('Does not render with insufficient access', async () => {
     organization.access = ['org:read'];
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     // Waiting a tick for requests to finish
     await act(tick);
     expect(screen.queryByTestId('spend-allocation-form')).not.toBeInTheDocument();
@@ -198,25 +188,19 @@ describe('enabled Spend Allocations page', () => {
   });
 
   it('renders allocations table', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     await waitFor(() => screen.findByTestId('allocations-table'));
   });
 
   it('renders billing metric select dropdown', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(
       await screen.findByRole('button', {name: 'Category Errors'})
     ).toBeInTheDocument();
   });
 
   it('properly filters allocations by select dropdown', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
 
     const dropdown = await screen.findByRole('button', {name: 'Category Errors'});
     await selectEvent.select(dropdown, 'Transactions');
@@ -249,7 +233,7 @@ describe('enabled Spend Allocations page', () => {
       plan: 'am3_f',
       planTier: 'am3',
     });
-    render(<SpendAllocationsRoot organization={organization} subscription={am3Sub} />);
+    render(<SpendAllocationsRoot subscription={am3Sub} />, {organization});
 
     const dropdown = await screen.findByRole('button', {name: 'Category Errors'});
     await selectEvent.openMenu(dropdown);
@@ -261,9 +245,7 @@ describe('enabled Spend Allocations page', () => {
   // NOTE: Period navigation has been removed for now
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('refetches allocations on view period change', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     await screen.findAllByTestId('allocation-row');
     const tableRows = screen.getAllByTestId('allocation-row');
     expect(tableRows).toHaveLength(2); // default metric is error with 2 project mocks
@@ -292,9 +274,7 @@ describe('enabled Spend Allocations page', () => {
   });
 
   it('deletes allocations on disable', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     await waitFor(() => screen.findByTestId('allocations-table'));
     expect(
       screen.queryByRole('button', {
@@ -369,17 +349,13 @@ describe('enabled Spend Allocations page without root', () => {
   });
 
   it('renders missing root card', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(mockGet).toHaveBeenCalledTimes(1);
     await screen.findByTestId('missing-root');
   });
 
   it('creates root allocation for billing metric', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
 
     await screen.findByRole('button', {
       name: 'Create Organization-Level Allocation',
@@ -460,9 +436,7 @@ describe('POST Create spend allocation', () => {
   });
 
   it('opens and closes form', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(
       await screen.findByRole('button', {name: 'New Allocation'})
     ).toBeInTheDocument();
@@ -486,9 +460,7 @@ describe('POST Create spend allocation', () => {
   });
 
   it('prevents submit on incomplete form', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(
       await screen.findByRole('button', {name: 'New Allocation'})
     ).toBeInTheDocument();
@@ -546,9 +518,7 @@ describe('Disable Submit button in Spend Allocation', () => {
   });
 
   it('prevents submit with no root allocations', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(
       await screen.findByRole('button', {name: 'New Allocation'})
     ).toBeInTheDocument();
@@ -604,9 +574,7 @@ describe('DELETE spend allocation', () => {
     });
   });
   it('renders delete button for project allocations', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     await screen.findAllByTestId('allocation-row');
     const tableRows = screen.getAllByTestId('allocation-row');
     expect(tableRows).toHaveLength(2);
@@ -614,9 +582,7 @@ describe('DELETE spend allocation', () => {
     expect(within(tableRows[1]!).getByTestId('delete')).toBeInTheDocument();
   });
   it('fires delete request on click', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(mockGet.mock.calls).toHaveLength(1);
     await screen.findAllByTestId('allocation-row');
     const tableRows = screen.getAllByTestId('allocation-row');
@@ -679,9 +645,7 @@ describe('PUT edit spend allocation', () => {
   });
 
   it('opens, initializes form on edit, and submits PUT', async () => {
-    render(
-      <SpendAllocationsRoot organization={organization} subscription={subscription} />
-    );
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     await screen.findAllByTestId('allocation-row');
     const tableRows = screen.getAllByTestId('allocation-row');
     expect(tableRows).toHaveLength(2);

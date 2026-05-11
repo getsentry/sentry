@@ -989,9 +989,10 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':integrationSlug/',
           name: t('Integration Details'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
+          component: make(() =>
+            import('sentry/views/settings/organizationIntegrations/pluginDetailedView').then(
+              m => ({default: m.PluginDetailedView})
+            )
           ),
         },
       ],
@@ -1111,7 +1112,11 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/settings/organizationAuthTokens')),
+          component: make(() =>
+            import('sentry/views/settings/organizationAuthTokens').then(m => ({
+              default: m.OrganizationAuthTokensIndex,
+            }))
+          ),
         },
         {
           path: 'new-token/',
