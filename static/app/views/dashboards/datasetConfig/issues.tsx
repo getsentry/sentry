@@ -121,6 +121,17 @@ function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQu
   }));
 }
 
+function addIssueRowMetadata(
+  row: TableDataRow,
+  metadata: {
+    assignedTo: Group['assignedTo'];
+    links: Group['annotations'];
+    owners: Group['owners'];
+  }
+) {
+  return Object.assign(row, metadata);
+}
+
 export function transformIssuesResponseToTable(
   data: Group[],
   widgetQuery: WidgetQuery,
@@ -152,19 +163,23 @@ export function transformIssuesResponseToTable(
           transformedResultProps[key] = resultProps[key];
         });
 
-      const transformedTableResult: TableDataRow = {
-        ...transformedResultProps,
-        events: count,
-        users: userCount,
-        id,
-        'issue.id': id,
-        issue: shortId,
-        title,
-        project: project.slug,
-        assignedTo,
-        owners,
-        links: (annotations ?? []) as any,
-      };
+      const transformedTableResult = addIssueRowMetadata(
+        {
+          ...transformedResultProps,
+          events: count,
+          users: userCount,
+          id,
+          'issue.id': id,
+          issue: shortId,
+          title,
+          project: project.slug,
+        },
+        {
+          assignedTo,
+          owners,
+          links: annotations ?? [],
+        }
+      );
 
       // Get lifetime stats
       if (lifetime) {
