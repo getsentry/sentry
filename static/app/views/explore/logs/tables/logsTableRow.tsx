@@ -7,14 +7,18 @@ import omit from 'lodash/omit';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -38,6 +42,7 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
@@ -95,6 +100,7 @@ import {
   useQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 
 type LogsRowProps = {
@@ -115,6 +121,8 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  showCellActions?: boolean;
+  showExploreSimilarSpansLink?: boolean;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
@@ -122,6 +130,52 @@ const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.EXCLUDE,
   Actions.COPY_TO_CLIPBOARD,
 ];
+const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-logs-table-similar-spans';
+
+function getExploreSimilarSpansMenuItems({
+  message,
+  organization,
+  selection,
+  showExploreSimilarSpansLink,
+}: {
+  message: string | number | null | undefined;
+  organization: Organization;
+  selection: PageFilters;
+  showExploreSimilarSpansLink?: boolean;
+}): MenuItemProps[] | undefined {
+  const messageString = String(message ?? '');
+
+  if (!showExploreSimilarSpansLink || messageString.length === 0) {
+    return undefined;
+  }
+
+  return [
+    {
+      key: 'explore-similar-spans',
+      label: t('Explore similar spans'),
+      to: getExploreUrl({
+        organization,
+        selection: {
+          ...selection,
+          datetime: {
+            period: '24h',
+            start: null,
+            end: null,
+            utc: selection.datetime.utc,
+          },
+        },
+        mode: Mode.SAMPLES,
+        referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+        crossEvents: [
+          {
+            type: 'logs',
+            query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(messageString)}"`,
+          },
+        ],
+      }),
+    },
+  ];
+}
 
 function isInsideButton(element: Element | null): boolean {
   let i = 10;
@@ -153,9 +207,12 @@ export const LogRowContent = memo(function LogRowContent({
   onEmbeddedRowClick,
   logStart,
   logEnd,
+  showCellActions,
+  showExploreSimilarSpansLink,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const fields = useQueryParamsFields();
   const projects = useProjects();
 
@@ -401,9 +458,18 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           const shouldRenderActions =
-            !embedded &&
+            (showCellActions ?? !embedded) &&
             field !== OurLogKnownFieldKey.TIMESTAMP &&
             shouldRenderHoverElements;
+          const extraMenuItems =
+            field === OurLogKnownFieldKey.MESSAGE
+              ? getExploreSimilarSpansMenuItems({
+                  message: value,
+                  organization,
+                  selection,
+                  showExploreSimilarSpansLink,
+                })
+              : undefined;
 
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
@@ -434,6 +500,7 @@ export const LogRowContent = memo(function LogRowContent({
                     }
                   }}
                   allowActions={ALLOWED_CELL_ACTIONS}
+                  extraMenuItems={extraMenuItems}
                   triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
@@ -530,6 +597,7 @@ function LogRowDetails({
   }
 
   const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
+  const message = String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '');
 
   return (
     <DetailsWrapper ref={isPending ? undefined : ref}>
@@ -558,7 +626,7 @@ function LogRowDetails({
                     }}
                   />
                 ) : (
-                  <span>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</span>
+                  <span>{message}</span>
                 )}
               </DetailsBody>
               <LogAttributeTreeWrapper>
