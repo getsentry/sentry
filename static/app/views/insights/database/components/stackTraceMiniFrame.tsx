@@ -66,10 +66,11 @@ export function StackTraceMiniFrame({frame, event, projectId}: Props) {
 }
 
 type MissingFrameProps = {
+  source?: 'dateRange' | 'span';
   system?: string;
 };
 
-export function MissingFrame({system}: MissingFrameProps) {
+export function MissingFrame({source = 'dateRange', system}: MissingFrameProps) {
   const documentation = <ExternalLink href={`${MODULE_DOC_LINK}#query-sources`} />;
 
   const errorMessage =
@@ -78,10 +79,15 @@ export function MissingFrame({system}: MissingFrameProps) {
           'Query sources are not currently supported for MongoDB queries. Learn more in our [documentation:documentation].',
           {documentation}
         )
-      : tct(
-          'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
-          {documentation}
-        );
+      : source === 'span'
+        ? tct(
+            'Query source is not available for this span. Learn more in our [documentation:documentation].',
+            {documentation}
+          )
+        : tct(
+            'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
+            {documentation}
+          );
 
   return (
     <Flex background="secondary" borderTop="secondary" padding="md lg">

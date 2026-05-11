@@ -526,7 +526,7 @@ function SlowDBQueryEvidence({
             }}
           />
         ) : (
-          <MissingFrame />
+          <MissingFrame source="span" />
         )}
       </Stack>
       <Flex gap="md" padding="md lg" borderTop="muted">

@@ -657,6 +657,58 @@ describe('SpanEvidenceKeyValueList', () => {
 
       expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
     });
+
+    it('renders span-specific missing query source copy', () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+
+      const builderWithoutCodeLocation = new TransactionEventBuilder(
+        'a1',
+        '/',
+        IssueType.PERFORMANCE_SLOW_DB_QUERY
+      );
+      builderWithoutCodeLocation.getEventFixture().projectID = '123';
+
+      const parentSpanWithoutCodeLocation = new MockSpan({
+        startTimestamp: 0,
+        endTimestamp: 200,
+        op: 'pageload',
+        problemSpan: ProblemSpan.PARENT,
+      });
+
+      parentSpanWithoutCodeLocation.addChild({
+        startTimestamp: 10,
+        endTimestamp: 10100,
+        op: 'db',
+        description: 'SELECT pokemon FROM pokedex',
+        problemSpan: ProblemSpan.OFFENDER,
+      });
+
+      builderWithoutCodeLocation.addSpan(parentSpanWithoutCodeLocation);
+
+      render(
+        <SpanEvidenceKeyValueList
+          event={builderWithoutCodeLocation.getEventFixture()}
+          projectSlug={projectSlug}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['visibility-explore-view'],
+          }),
+        }
+      );
+
+      const slowDbQuery = screen.getByTestId(
+        'span-evidence-key-value-list.slow-db-query'
+      );
+
+      expect(slowDbQuery).toHaveTextContent(
+        'Query source is not available for this span.'
+      );
+      expect(slowDbQuery).not.toHaveTextContent('selected date range');
+    });
   });
 
   describe('Render Blocking Asset', () => {
