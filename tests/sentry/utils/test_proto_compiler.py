@@ -50,26 +50,26 @@ def cache_dir(tmp_path: Path) -> Path:
 
 
 class TestNeedsRecompile:
-    def test_returns_true_when_cache_missing(self, proto_dir: Path, tmp_path: Path):
+    def test_returns_true_when_cache_missing(self, proto_dir: Path, tmp_path: Path) -> None:
         proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
         cached = tmp_path / "nonexistent.py"
         assert needs_recompile(proto_file, cached) is True
 
-    def test_returns_true_when_proto_newer(self, proto_dir: Path, tmp_path: Path):
+    def test_returns_true_when_proto_newer(self, proto_dir: Path, tmp_path: Path) -> None:
         proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
         cached = tmp_path / "cached.py"
         cached.write_text("# cached")
         os.utime(cached, (proto_file.stat().st_mtime - 10, proto_file.stat().st_mtime - 10))
         assert needs_recompile(proto_file, cached) is True
 
-    def test_returns_false_when_cache_newer(self, proto_dir: Path, tmp_path: Path):
+    def test_returns_false_when_cache_newer(self, proto_dir: Path, tmp_path: Path) -> None:
         proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
         cached = tmp_path / "cached.py"
         cached.write_text("# cached")
         os.utime(cached, (proto_file.stat().st_mtime + 10, proto_file.stat().st_mtime + 10))
         assert needs_recompile(proto_file, cached) is False
 
-    def test_returns_false_when_same_mtime(self, proto_dir: Path, tmp_path: Path):
+    def test_returns_false_when_same_mtime(self, proto_dir: Path, tmp_path: Path) -> None:
         proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
         cached = tmp_path / "cached.py"
         cached.write_text("# cached")
@@ -77,7 +77,7 @@ class TestNeedsRecompile:
         os.utime(cached, (mtime, mtime))
         assert needs_recompile(proto_file, cached) is False
 
-    def test_returns_true_on_oserror(self, tmp_path: Path):
+    def test_returns_true_on_oserror(self, tmp_path: Path) -> None:
         proto_file = tmp_path / "missing.proto"
         cached = tmp_path / "cached.py"
         cached.write_text("# cached")
@@ -90,7 +90,7 @@ class TestFindProtoFile:
         assert result is not None
         assert result.name == "example.proto"
 
-    def test_returns_none_for_missing_proto(self, proto_dir: Path):
+    def test_returns_none_for_missing_proto(self, proto_dir: Path) -> None:
         result = find_proto_file("sentry_protos.test_domain.v1.nonexistent_pb2", [proto_dir])
         assert result is None
 
@@ -98,19 +98,19 @@ class TestFindProtoFile:
         result = find_proto_file("sentry_protos.test_domain.v1.example", [proto_dir])
         assert result is None
 
-    def test_returns_none_for_grpc_module(self, proto_dir: Path):
+    def test_returns_none_for_grpc_module(self, proto_dir: Path) -> None:
         result = find_proto_file("sentry_protos.test_domain.v1.example_pb2_grpc", [proto_dir])
         assert result is None
 
-    def test_returns_none_for_non_sentry_protos(self, proto_dir: Path):
+    def test_returns_none_for_non_sentry_protos(self, proto_dir: Path) -> None:
         result = find_proto_file("other_package.foo_pb2", [proto_dir])
         assert result is None
 
-    def test_returns_none_for_single_part_module(self, proto_dir: Path):
+    def test_returns_none_for_single_part_module(self, proto_dir: Path) -> None:
         result = find_proto_file("sentry_protos", [proto_dir])
         assert result is None
 
-    def test_searches_multiple_dirs(self, tmp_path: Path):
+    def test_searches_multiple_dirs(self, tmp_path: Path) -> None:
         dir1 = tmp_path / "dir1"
         dir2 = tmp_path / "dir2"
         pkg = dir2 / "sentry_protos" / "other" / "v1"
@@ -123,7 +123,7 @@ class TestFindProtoFile:
 
 
 class TestEnsureInitFiles:
-    def test_creates_init_chain(self, tmp_path: Path):
+    def test_creates_init_chain(self, tmp_path: Path) -> None:
         root = tmp_path / "output"
         root.mkdir()
         target = root / "a" / "b" / "c"
@@ -135,7 +135,7 @@ class TestEnsureInitFiles:
         assert (root / "a" / "b" / "__init__.py").exists()
         assert (root / "a" / "b" / "c" / "__init__.py").exists()
 
-    def test_does_not_overwrite_existing_init(self, tmp_path: Path):
+    def test_does_not_overwrite_existing_init(self, tmp_path: Path) -> None:
         root = tmp_path / "output"
         target = root / "pkg"
         target.mkdir(parents=True)
@@ -148,7 +148,7 @@ class TestEnsureInitFiles:
 
 
 class TestCompileProto:
-    def test_compile_succeeds(self, proto_dir: Path, cache_dir: Path):
+    def test_compile_succeeds(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
@@ -162,13 +162,15 @@ class TestCompileProto:
         assert (cache_dir / "sentry_protos" / "test_domain" / "__init__.py").exists()
         assert (cache_dir / "sentry_protos" / "test_domain" / "v1" / "__init__.py").exists()
 
-    def test_raises_without_grpc_tools(self, proto_dir: Path, cache_dir: Path):
+    def test_raises_without_grpc_tools(self, proto_dir: Path, cache_dir: Path) -> None:
         with mock.patch.dict("sys.modules", {"grpc_tools": None}):
             proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
             with pytest.raises(ImportError, match="grpcio-tools is required"):
                 compile_proto(proto_file, [proto_dir], cache_dir)
 
-    def test_returns_false_when_proto_not_under_include_path(self, tmp_path: Path, cache_dir: Path):
+    def test_returns_false_when_proto_not_under_include_path(
+        self, tmp_path: Path, cache_dir: Path
+    ) -> None:
         pytest.importorskip("grpc_tools")
 
         stray = tmp_path / "stray" / "example.proto"
@@ -181,7 +183,7 @@ class TestCompileProto:
         result = compile_proto(stray, [other_dir], cache_dir)
         assert result is False
 
-    def test_returns_false_on_protoc_failure(self, proto_dir: Path, cache_dir: Path):
+    def test_returns_false_on_protoc_failure(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         bad_proto = proto_dir / "sentry_protos" / "test_domain" / "v1" / "bad.proto"
@@ -192,7 +194,7 @@ class TestCompileProto:
 
 
 class TestCompileAll:
-    def test_compiles_all_protos(self, proto_dir: Path, cache_dir: Path):
+    def test_compiles_all_protos(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         compiled, skipped, failed = compile_all([proto_dir], cache_dir)
@@ -203,7 +205,7 @@ class TestCompileAll:
         generated = cache_dir / "sentry_protos" / "test_domain" / "v1" / "example_pb2.py"
         assert generated.exists()
 
-    def test_skips_when_cache_is_fresh(self, proto_dir: Path, cache_dir: Path):
+    def test_skips_when_cache_is_fresh(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         compile_all([proto_dir], cache_dir)
@@ -213,7 +215,7 @@ class TestCompileAll:
         assert skipped == 1
         assert failed == 0
 
-    def test_force_recompiles_fresh_cache(self, proto_dir: Path, cache_dir: Path):
+    def test_force_recompiles_fresh_cache(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         compile_all([proto_dir], cache_dir)
@@ -223,7 +225,7 @@ class TestCompileAll:
         assert skipped == 0
         assert failed == 0
 
-    def test_counts_failures(self, proto_dir: Path, cache_dir: Path):
+    def test_counts_failures(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         bad_proto = proto_dir / "sentry_protos" / "test_domain" / "v1" / "bad.proto"
@@ -233,7 +235,7 @@ class TestCompileAll:
         assert compiled == 1
         assert failed == 1
 
-    def test_handles_empty_dir(self, tmp_path: Path, cache_dir: Path):
+    def test_handles_empty_dir(self, tmp_path: Path, cache_dir: Path) -> None:
         empty_dir = tmp_path / "empty"
         empty_dir.mkdir()
 
@@ -244,21 +246,21 @@ class TestCompileAll:
 
 
 class TestClearCache:
-    def test_removes_existing_cache(self, cache_dir: Path):
+    def test_removes_existing_cache(self, cache_dir: Path) -> None:
         cache_dir.mkdir(parents=True)
         (cache_dir / "some_file.py").write_text("# generated")
 
         clear_cache(cache_dir)
         assert not cache_dir.exists()
 
-    def test_noop_when_cache_missing(self, cache_dir: Path):
+    def test_noop_when_cache_missing(self, cache_dir: Path) -> None:
         assert not cache_dir.exists()
         clear_cache(cache_dir)
         assert not cache_dir.exists()
 
 
 class TestCLI:
-    def test_compile_command(self, proto_dir: Path, cache_dir: Path):
+    def test_compile_command(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         exit_code = main(["compile", "--source", str(proto_dir), "--output", str(cache_dir)])
@@ -267,7 +269,7 @@ class TestCLI:
         generated = cache_dir / "sentry_protos" / "test_domain" / "v1" / "example_pb2.py"
         assert generated.exists()
 
-    def test_compile_with_force(self, proto_dir: Path, cache_dir: Path):
+    def test_compile_with_force(self, proto_dir: Path, cache_dir: Path) -> None:
         pytest.importorskip("grpc_tools")
 
         main(["compile", "--source", str(proto_dir), "--output", str(cache_dir)])
@@ -285,7 +287,9 @@ class TestCLI:
         exit_code = main(["compile", "--source", str(proto_dir), "--output", str(cache_dir)])
         assert exit_code == 1
 
-    def test_compile_multiple_sources(self, proto_dir: Path, tmp_path: Path, cache_dir: Path):
+    def test_compile_multiple_sources(
+        self, proto_dir: Path, tmp_path: Path, cache_dir: Path
+    ) -> None:
         pytest.importorskip("grpc_tools")
 
         extra_dir = tmp_path / "extra"
@@ -304,7 +308,7 @@ class TestCLI:
         )
         assert exit_code == 0
 
-    def test_clear_command(self, cache_dir: Path):
+    def test_clear_command(self, cache_dir: Path) -> None:
         cache_dir.mkdir(parents=True)
         (cache_dir / "generated.py").write_text("# cached")
 
@@ -312,6 +316,6 @@ class TestCLI:
         assert exit_code == 0
         assert not cache_dir.exists()
 
-    def test_no_command_raises(self):
+    def test_no_command_raises(self) -> None:
         with pytest.raises(SystemExit):
             main([])

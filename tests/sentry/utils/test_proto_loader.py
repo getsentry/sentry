@@ -21,7 +21,7 @@ from sentry.utils.proto_loader import (
 
 
 @pytest.fixture(autouse=True)
-def _clean_proto_loader_state():
+def _clean_proto_loader_state() -> None:
     """Reset proto loader state between tests."""
     import sentry.utils.proto_loader as loader
 
@@ -69,13 +69,13 @@ def override_dir(tmp_path: Path) -> Path:
 
 
 class TestGetOverrideDir:
-    def test_returns_env_var_path(self, tmp_path: Path):
+    def test_returns_env_var_path(self, tmp_path: Path) -> None:
         env_path = tmp_path / "custom_override"
         with mock.patch.dict(os.environ, {"SENTRY_PROTO_OVERRIDE_DIR": str(env_path)}):
             result = _get_override_dir()
             assert result == env_path.resolve()
 
-    def test_returns_default_when_env_not_set(self):
+    def test_returns_default_when_env_not_set(self) -> None:
         from sentry.utils.proto_loader import DEFAULT_OVERRIDE_DIR
 
         with mock.patch.dict(os.environ, {}, clear=False):
@@ -85,20 +85,20 @@ class TestGetOverrideDir:
 
 
 class TestGetDevDirs:
-    def test_returns_empty_when_nothing_configured(self, tmp_path: Path):
+    def test_returns_empty_when_nothing_configured(self, tmp_path: Path) -> None:
         with mock.patch("sentry.utils.proto_loader.LOCAL_PROTO_DIR", tmp_path / "nonexistent"):
             with mock.patch.dict(os.environ, {}, clear=False):
                 os.environ.pop("SENTRY_PROTO_DEV_DIR", None)
                 dirs = _get_dev_dirs()
                 assert (tmp_path / "nonexistent") not in dirs
 
-    def test_includes_env_var_dir(self, proto_dir: Path):
+    def test_includes_env_var_dir(self, proto_dir: Path) -> None:
         with mock.patch("sentry.utils.proto_loader.LOCAL_PROTO_DIR", Path("/nonexistent")):
             with mock.patch.dict(os.environ, {"SENTRY_PROTO_DEV_DIR": str(proto_dir)}):
                 dirs = _get_dev_dirs()
                 assert proto_dir.resolve() in dirs
 
-    def test_includes_local_dir_if_exists(self, tmp_path: Path):
+    def test_includes_local_dir_if_exists(self, tmp_path: Path) -> None:
         local_dir = tmp_path / "local_proto"
         local_dir.mkdir()
         with mock.patch("sentry.utils.proto_loader.LOCAL_PROTO_DIR", local_dir):
@@ -107,7 +107,7 @@ class TestGetDevDirs:
                 dirs = _get_dev_dirs()
                 assert local_dir in dirs
 
-    def test_local_dir_has_priority_over_env_dir(self, proto_dir: Path, tmp_path: Path):
+    def test_local_dir_has_priority_over_env_dir(self, proto_dir: Path, tmp_path: Path) -> None:
         local_dir = tmp_path / "local_proto"
         local_dir.mkdir()
         with mock.patch("sentry.utils.proto_loader.LOCAL_PROTO_DIR", local_dir):
@@ -117,19 +117,19 @@ class TestGetDevDirs:
 
 
 class TestCachedPb2Path:
-    def test_maps_module_to_file_path(self, override_dir: Path):
+    def test_maps_module_to_file_path(self, override_dir: Path) -> None:
         result = _cached_pb2_path("sentry_protos.billing.v1.data_category_pb2", override_dir)
         expected = override_dir / "sentry_protos" / "billing" / "v1" / "data_category_pb2.py"
         assert result == expected
 
-    def test_handles_deeply_nested_module(self, override_dir: Path):
+    def test_handles_deeply_nested_module(self, override_dir: Path) -> None:
         result = _cached_pb2_path("sentry_protos.a.b.c.d_pb2", override_dir)
         expected = override_dir / "sentry_protos" / "a" / "b" / "c" / "d_pb2.py"
         assert result == expected
 
 
 class TestPipPackageHas:
-    def test_returns_true_for_existing_package(self):
+    def test_returns_true_for_existing_package(self) -> None:
         sp = sys.modules.get("sentry_protos")
         if sp is None:
             pytest.skip("sentry_protos not installed")
@@ -142,10 +142,10 @@ class TestPipPackageHas:
             pytest.skip("sentry_protos has no sub-packages")
         assert _pip_package_has(f"sentry_protos.{subdirs[0]}") is True
 
-    def test_returns_false_for_nonexistent_package(self):
+    def test_returns_false_for_nonexistent_package(self) -> None:
         assert _pip_package_has("sentry_protos.nonexistent_domain_xyz") is False
 
-    def test_handles_missing_sentry_protos(self):
+    def test_handles_missing_sentry_protos(self) -> None:
         with mock.patch.dict(sys.modules, {"sentry_protos": None}):
             with mock.patch("importlib.util.find_spec", side_effect=ModuleNotFoundError):
                 assert _pip_package_has("sentry_protos.anything") is False
@@ -168,7 +168,7 @@ class TestProtoFinder:
         spec = finder.find_spec("sentry_protos.test_domain.v1.missing_pb2")
         assert spec is None
 
-    def test_returns_none_for_non_sentry_protos(self, override_dir: Path):
+    def test_returns_none_for_non_sentry_protos(self, override_dir: Path) -> None:
         finder = _ProtoFinder(override_dir=override_dir)
         spec = finder.find_spec("other_package.foo_pb2")
         assert spec is None
@@ -178,7 +178,7 @@ class TestProtoFinder:
         spec = finder.find_spec("sentry_protos.test_domain.v1.example_pb2_grpc")
         assert spec is None
 
-    def test_handles_intermediate_packages_for_new_domains(self, override_dir: Path):
+    def test_handles_intermediate_packages_for_new_domains(self, override_dir: Path) -> None:
         new_domain = override_dir / "sentry_protos" / "new_domain"
         new_domain.mkdir(parents=True)
 
@@ -187,7 +187,7 @@ class TestProtoFinder:
             spec = finder.find_spec("sentry_protos.new_domain")
             assert spec is not None
 
-    def test_returns_none_for_intermediate_packages_in_pip(self, override_dir: Path):
+    def test_returns_none_for_intermediate_packages_in_pip(self, override_dir: Path) -> None:
         existing_domain = override_dir / "sentry_protos" / "snuba"
         existing_domain.mkdir(parents=True)
 
@@ -212,7 +212,7 @@ class TestNoShadowing:
             spec = finder.find_spec("sentry_protos.snuba.v1")
             assert spec is None, "Finder must NOT claim sub-packages that pip already has"
 
-    def test_finder_claims_new_domain_not_in_pip(self, override_dir: Path):
+    def test_finder_claims_new_domain_not_in_pip(self, override_dir: Path) -> None:
         brand_new = override_dir / "sentry_protos" / "brand_new_domain"
         brand_new.mkdir(parents=True)
 
@@ -223,7 +223,7 @@ class TestNoShadowing:
 
 
 class TestDevMode:
-    def test_compiles_when_proto_source_newer(self, proto_dir: Path, override_dir: Path):
+    def test_compiles_when_proto_source_newer(self, proto_dir: Path, override_dir: Path) -> None:
         proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
         cached = override_dir / "sentry_protos" / "test_domain" / "v1" / "example_pb2.py"
         cached.parent.mkdir(parents=True)
@@ -240,7 +240,7 @@ class TestDevMode:
             finder.find_spec("sentry_protos.test_domain.v1.example_pb2")
             mock_compile.assert_called_once_with(proto_file, [proto_dir], override_dir)
 
-    def test_no_compile_when_cache_up_to_date(self, proto_dir: Path, override_dir: Path):
+    def test_no_compile_when_cache_up_to_date(self, proto_dir: Path, override_dir: Path) -> None:
         proto_file = proto_dir / "sentry_protos" / "test_domain" / "v1" / "example.proto"
         cached = override_dir / "sentry_protos" / "test_domain" / "v1" / "example_pb2.py"
         cached.parent.mkdir(parents=True)
@@ -257,7 +257,7 @@ class TestDevMode:
             finder.find_spec("sentry_protos.test_domain.v1.example_pb2")
             mock_compile.assert_not_called()
 
-    def test_no_compile_in_prod_mode(self, override_dir: Path):
+    def test_no_compile_in_prod_mode(self, override_dir: Path) -> None:
         finder = _ProtoFinder(override_dir=override_dir, dev_dirs=[])
 
         with mock.patch("sentry.utils.proto_compiler.compile_proto") as mock_compile:
@@ -266,7 +266,7 @@ class TestDevMode:
 
 
 class TestInstall:
-    def test_returns_false_when_no_dirs(self, tmp_path: Path):
+    def test_returns_false_when_no_dirs(self, tmp_path: Path) -> None:
         import sentry.utils.proto_loader as loader
 
         with mock.patch.object(loader, "_installed", False):
@@ -276,7 +276,7 @@ class TestInstall:
                 with mock.patch.object(loader, "_get_dev_dirs", return_value=[]):
                     assert install() is False
 
-    def test_returns_true_and_adds_finder(self, override_dir: Path):
+    def test_returns_true_and_adds_finder(self, override_dir: Path) -> None:
         import sentry.utils.proto_loader as loader
 
         with mock.patch.object(loader, "_installed", False):
@@ -286,7 +286,7 @@ class TestInstall:
                     assert result is True
                     assert any(isinstance(f, _ProtoFinder) for f in sys.meta_path)
 
-    def test_idempotent(self, override_dir: Path):
+    def test_idempotent(self, override_dir: Path) -> None:
         import sentry.utils.proto_loader as loader
 
         with mock.patch.object(loader, "_installed", False):
@@ -304,7 +304,7 @@ class TestEndToEnd:
         not importlib.util.find_spec("grpc_tools"),
         reason="grpcio-tools not installed",
     )
-    def test_import_compiles_and_loads_proto(self, proto_dir: Path, override_dir: Path):
+    def test_import_compiles_and_loads_proto(self, proto_dir: Path, override_dir: Path) -> None:
         import sentry.utils.proto_loader as loader
 
         with mock.patch.object(loader, "LOCAL_PROTO_DIR", Path("/nonexistent")):
