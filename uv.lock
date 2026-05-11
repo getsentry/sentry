@@ -1658,6 +1658,14 @@ wheels = [
 ]
 
 [[package]]
+name = "pygments"
+version = "2.20.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176" },
+]
+
+[[package]]
 name = "pyjwt"
 version = "2.12.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1688,15 +1696,16 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "8.1.2"
+version = "9.0.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "iniconfig", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pluggy", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pygments", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest-8.1.2-py3-none-any.whl", hash = "sha256:6c06dc309ff46a05721e6fd48e492a775ed8165d2ecdf57f156a80c7e95bb142" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest-9.0.3-py3-none-any.whl", hash = "sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9" },
 ]
 
 [[package]]
@@ -2378,7 +2387,7 @@ dev = [
     { name = "pip", specifier = ">=23.3.1" },
     { name = "pip-tools", specifier = ">=7.1.0" },
     { name = "prek", specifier = ">=0.3.6" },
-    { name = "pytest", specifier = ">=8.1.2" },
+    { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
     { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
