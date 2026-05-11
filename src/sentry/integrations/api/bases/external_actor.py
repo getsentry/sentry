@@ -19,7 +19,7 @@ from sentry.integrations.api.parsers.external_actor import (
 )
 from sentry.integrations.api.parsers.integrations import validate_provider
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.integrations.utils.providers import get_provider_choices
 from sentry.models.organization import Organization
 from sentry.models.team import Team
@@ -104,6 +104,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
+        actor_params["source"] = ExternalActorSource.MANUAL.value
 
         if validated_data["provider"] in CASE_INSENSITIVE_PROVIDERS:
             external_name = validated_data.pop("external_name")
