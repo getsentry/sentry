@@ -177,7 +177,7 @@ function WidgetBuilderSlideoutInner({
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS && !isTextWidget;
   const showQueryFilterBuilder =
     !isTextWidget &&
-    !isInEquationMode &&
+    !(state.dataset === WidgetType.TRACEMETRICS && isInEquationMode) &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
   // Group By is used by time-series chart widgets to break down data by a field.
