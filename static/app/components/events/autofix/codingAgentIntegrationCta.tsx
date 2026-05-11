@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -40,6 +41,15 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const organization = useOrganization();
     const user = useUser();
 
+    const hasFeatureFlag =
+      !config.featureFlag || organization.features.includes(config.featureFlag);
+    const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject(
+      {
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+      },
+      {enabled: hasFeatureFlag}
+    );
     const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
     const preference = data?.preference;
     const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
@@ -53,14 +63,10 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       i => i.provider === config.provider
     );
 
-    const hasFeatureFlag =
-      !config.featureFlag || organization.features.includes(config.featureFlag);
     const hasIntegration = Boolean(integration);
     const isAutomationEnabled =
-      // @ts-expect-error -- seerScannerAutomation is on DetailedProject
-      project.seerScannerAutomation !== false &&
-      // @ts-expect-error -- autofixAutomationTuning is on DetailedProject
-      project.autofixAutomationTuning !== 'off';
+      projectDetails?.seerScannerAutomation !== false &&
+      projectDetails?.autofixAutomationTuning !== 'off';
     const isConfigured =
       preference?.automation_handoff?.target === config.target && isAutomationEnabled;
 
@@ -88,10 +94,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       });
 
       const isAutomationDisabled =
-        // @ts-expect-error -- seerScannerAutomation is on DetailedProject
-        project.seerScannerAutomation === false ||
-        // @ts-expect-error -- autofixAutomationTuning is on DetailedProject
-        project.autofixAutomationTuning === 'off';
+        projectDetails?.seerScannerAutomation === false ||
+        projectDetails?.autofixAutomationTuning === 'off';
 
       if (isAutomationDisabled) {
         await updateProjectAutomation({
@@ -115,7 +119,12 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       return null;
     }
 
-    if (isLoadingPreferences || isLoadingIntegrations || isUpdatingPreferences) {
+    if (
+      isLoadingProject ||
+      isLoadingPreferences ||
+      isLoadingIntegrations ||
+      isUpdatingPreferences
+    ) {
       return (
         <Container
           padding="xl"

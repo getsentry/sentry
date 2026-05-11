@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {DetailedProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -8,14 +8,28 @@ import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('ClaudeCodeIntegrationCta', () => {
-  const project = DetailedProjectFixture();
+  const project = ProjectFixture();
+  const enabledProject = DetailedProjectFixture({
+    ...project,
+    seerScannerAutomation: true,
+    autofixAutomationTuning: 'medium',
+  });
   const organization = OrganizationFixture({
     features: ['integrations-claude-code'],
   });
 
+  function mockDetailedProject(projectBody = enabledProject) {
+    return MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${projectBody.slug}/`,
+      body: projectBody,
+    });
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
+
+    mockDetailedProject();
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
@@ -209,6 +223,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       const projectUpdateMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
@@ -256,6 +271,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       const updatedProject = {
         ...projectWithoutAutomation,
@@ -370,6 +386,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithoutAutomation} />, {
         organization,
@@ -423,6 +440,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,
@@ -440,6 +458,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,
