@@ -21,7 +21,7 @@ monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0005_remove_notifmsg_rule_fire_history_constraints
+notifications: 0006_drop_issue_alert_columns_notificationmessage
 
 preprod: 0028_add_images_skipped_to_snapshot_comparison
 
