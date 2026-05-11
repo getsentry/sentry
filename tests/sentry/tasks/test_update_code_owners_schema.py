@@ -53,13 +53,6 @@ class UpdateCodeOwnersSchemaTest(TestCase):
             update_code_owners_schema(self.organization.id, projects=[self.project.id])
         self.mock_update.assert_not_called()
 
-    def test_does_not_exist_exception(self) -> None:
-        ProjectCodeOwners.objects.filter(id=self.project_codeowner.id).delete()
-
-        with self.feature("organizations:integrations-codeowners"):
-            update_code_owners_schema(self.organization.id, projects=[self.project.id])
-        self.mock_update.assert_not_called()
-
     def test_update_schema_raises_exception(self) -> None:
         self.mock_update.side_effect = Exception("test error")
 

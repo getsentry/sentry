@@ -52,40 +52,30 @@ def update_code_owners_schema(
     if not features.has("organizations:integrations-codeowners", org):
         return
 
+    code_owners: Iterable[ProjectCodeOwners] = []
+    if projects:
+        code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
+
+    if integration is not None:
+        code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
+            organization_id=org.id,
+            integration_id=integration,
+        ).values_list("id", flat=True)
+
+        code_owners = ProjectCodeOwners.objects.filter(
+            repository_project_path_config__in=code_mapping_ids
+        )
+
     try:
-        code_owners: Iterable[ProjectCodeOwners] = []
-        if projects:
-            code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
-
-        if integration is not None:
-            code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
-                organization_id=org.id,
-                integration_id=integration,
-            ).values_list("id", flat=True)
-
-            code_owners = ProjectCodeOwners.objects.filter(
-                repository_project_path_config__in=code_mapping_ids
-            )
-
         for code_owner in code_owners:
             code_owner.update_schema(organization=org)
-
-    except (RepositoryProjectPathConfig.DoesNotExist, ProjectCodeOwners.DoesNotExist):
-        logger.warning(
-            "update_code_owners_schema.does_not_exist",
-            extra={
-                "organization_id": organization,
-                "integration_id": integration,
-                "projects": projects,
-            },
-        )
-        return
     except Exception:
         logger.exception(
             "update_code_owners_schema.unexpected_error",
             extra={
                 "organization_id": organization,
                 "integration_id": integration,
+                "project_ids": projects,
             },
         )
         raise
