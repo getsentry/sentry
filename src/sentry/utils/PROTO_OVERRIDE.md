@@ -51,15 +51,9 @@ When you edit a `.proto` file, the loader detects the mtime change and recompile
 
 ### Production
 
-Compile during your build/deploy step:
+Pre-compilation happens in the **getsentry Dockerfile** (`js-builder` stage), not in this repo. The build step installs `grpcio-tools`, compiles protos from `proto/` into `.proto_cache/`, then removes `grpcio-tools`. The final image only contains pre-compiled `_pb2.py` files — no compiler toolchain.
 
-```bash
-python -m sentry.utils.proto_compiler compile \
-    --source proto \
-    --output .proto_cache
-```
-
-Call `install()` in app startup. The loader serves pre-compiled files with no compilation at runtime — `grpcio-tools` is not required in the production image.
+At runtime, `install()` (called in `runner/initializer.py` before `django.setup()`) serves the pre-compiled files from `.proto_cache/`. No compilation happens at runtime, and `grpcio-tools` is not in the production image.
 
 ### Existing imports don't change
 
