@@ -1,8 +1,7 @@
 import {createContext, useContext, useMemo} from 'react';
+import {createParser, useQueryState} from 'nuqs';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
-import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 
 export type ChartSelectionQueryParam = {
   chartIndex: number;
@@ -17,7 +16,7 @@ type ChartSelectionState = {
 
 type ChartSelectionContextValue = {
   chartSelection: ChartSelectionState;
-  setChartSelection: (state: ChartSelectionState) => void;
+  setChartSelection: (state: ChartSelectionState | null) => void;
 };
 
 const ChartSelectionContext = createContext<ChartSelectionContextValue | undefined>(
@@ -28,63 +27,57 @@ interface ChartSelectionProviderProps {
   children: React.ReactNode;
 }
 
-function serializeChartSelection(state: ChartSelectionState): string {
-  if (!state) {
-    return '';
-  }
+const parseAsChartSelection = createParser<ChartSelectionState>({
+  parse(value: string): ChartSelectionState | null {
+    try {
+      const parsed = JSON.parse(value);
 
-  const chartSelection: ChartSelectionQueryParam = {
-    chartIndex: state.chartIndex,
-    range: state.selection.range,
-    panelId: state.selection.panelId,
-  };
-
-  return JSON.stringify(chartSelection);
-}
-
-function deserializeChartSelection(value: string | undefined): ChartSelectionState {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-
-    // Validate the parsed data
-    if (
-      typeof parsed.chartIndex === 'number' &&
-      Array.isArray(parsed.range) &&
-      parsed.range.length === 2 &&
-      typeof parsed.range[0] === 'number' &&
-      typeof parsed.range[1] === 'number' &&
-      typeof parsed.panelId === 'string'
-    ) {
-      return {
-        chartIndex: parsed.chartIndex,
-        selection: {
-          range: parsed.range as [number, number],
-          panelId: parsed.panelId,
-        },
-      };
+      if (
+        typeof parsed.chartIndex === 'number' &&
+        Array.isArray(parsed.range) &&
+        parsed.range.length === 2 &&
+        typeof parsed.range[0] === 'number' &&
+        typeof parsed.range[1] === 'number' &&
+        typeof parsed.panelId === 'string'
+      ) {
+        return {
+          chartIndex: parsed.chartIndex,
+          selection: {
+            range: parsed.range as [number, number],
+            panelId: parsed.panelId,
+          },
+        };
+      }
+    } catch {
+      return null;
     }
-  } catch {
+
     return null;
-  }
+  },
+  serialize(state: ChartSelectionState): string {
+    if (!state) {
+      return '';
+    }
 
-  return null;
-}
+    const chartSelection: ChartSelectionQueryParam = {
+      chartIndex: state.chartIndex,
+      range: state.selection.range,
+      panelId: state.selection.panelId,
+    };
 
-function ChartSelectionStateProvider({children}: ChartSelectionProviderProps) {
-  const [chartSelection, setChartSelection] = useQueryParamState<ChartSelectionState>({
-    fieldName: 'chartSelection',
-    deserializer: deserializeChartSelection,
-    serializer: serializeChartSelection,
-    syncStateWithUrl: true,
-  });
+    return JSON.stringify(chartSelection);
+  },
+});
+
+export function ChartSelectionProvider({children}: ChartSelectionProviderProps) {
+  const [chartSelection, setChartSelection] = useQueryState(
+    'chartSelection',
+    parseAsChartSelection
+  );
 
   const value = useMemo<ChartSelectionContextValue>(
     () => ({
-      chartSelection: chartSelection ?? null,
+      chartSelection,
       setChartSelection,
     }),
     [chartSelection, setChartSelection]
@@ -94,14 +87,6 @@ function ChartSelectionStateProvider({children}: ChartSelectionProviderProps) {
     <ChartSelectionContext.Provider value={value}>
       {children}
     </ChartSelectionContext.Provider>
-  );
-}
-
-export function ChartSelectionProvider({children}: ChartSelectionProviderProps) {
-  return (
-    <UrlParamBatchProvider>
-      <ChartSelectionStateProvider>{children}</ChartSelectionStateProvider>
-    </UrlParamBatchProvider>
   );
 }
 
