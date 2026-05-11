@@ -27,6 +27,10 @@ import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  sortKnownAttributes,
+  sortSearchedAttributes,
+} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
   booleanTags: TagCollection;
@@ -299,7 +303,16 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
-        search={{onChange: setSearch}}
+        search={{
+          onChange: setSearch,
+          filter: (option, searchText) => {
+            return sortSearchedAttributes({
+              fieldDefinitionType: traceItemType,
+              option,
+              searchText,
+            });
+          },
+        }}
         loading={isSearchLoading}
         emptyMessage={isSearchLoading ? t('Loading\u2026') : t('No matching attributes')}
         trigger={triggerProps => (
@@ -356,17 +369,7 @@ function buildColumnOptions({
       if (typeof option.label === 'string' && hidden.includes(option.label)) return false;
       return true;
     })
-    .toSorted((a, b) => {
-      const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
-      const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
-      if (aLabel < bLabel) {
-        return -1;
-      }
-      if (aLabel > bLabel) {
-        return 1;
-      }
-      return 0;
-    });
+    .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
 }
 
 const RowContainer = styled('div')`

@@ -4,13 +4,14 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -31,6 +32,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 const ROUTE_PREFIX = '/settings/account/api/';
 
 export default function ApiApplications() {
+  const {openModal} = useModal();
+
   const api = useApi();
   const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();

@@ -12,7 +12,7 @@ export function commonInitialization(config: Config) {
   if (NODE_ENV === 'development') {
     import(/* webpackMode: "eager" */ 'sentry/utils/silence-react-unsafe-warnings');
     if (UI_DEV_ENABLE_PROFILING) {
-      config.sentryConfig.profilesSampleRate = 1.0; // Enable profiling on dev for now.
+      config.sentryConfig.profilesSampleRate = 1; // Enable profiling on dev for now.
     }
   }
 

@@ -610,6 +610,12 @@ class SeerAgentOperator[CachePayloadT]:
                 }
             )
 
+            enable_code_mode_tools = "off"
+            if category_key == "slack_thread" and features.has(
+                "organizations:seer-slack-code-mode", organization
+            ):
+                enable_code_mode_tools = "only"
+
             try:
                 # RpcUser is not in SeerAgentClient's type signature but works at runtime
                 client = SeerAgentClient(
@@ -620,6 +626,7 @@ class SeerAgentOperator[CachePayloadT]:
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
                     enable_coding=False,
+                    enable_code_mode_tools=enable_code_mode_tools,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(

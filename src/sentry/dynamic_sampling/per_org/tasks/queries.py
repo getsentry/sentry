@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -22,6 +22,29 @@ from sentry.snuba.spans_rpc import Spans
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
     return int(row.get(column, 0))
+
+
+def run_eap_spans_table_query_in_chunks(
+    query: dict[str, Any],
+    chunk_size: int = 1000,
+) -> Iterator[list[dict[str, Any]]]:
+    offset = 0
+
+    while True:
+        result = Spans.run_table_query(**query, offset=offset, limit=chunk_size + 1)
+        data = result.get("data", [])
+        more_results = len(data) > chunk_size
+
+        if more_results:
+            data = data[:chunk_size]
+
+        if data:
+            yield data
+
+        if not more_results:
+            return
+
+        offset += chunk_size
 
 
 def get_eap_organization_volume(

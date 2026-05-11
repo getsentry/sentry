@@ -133,11 +133,8 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
             config=action_data.get("config", {}),
         )
 
-        # Annotate the action with the workflow id
-        setattr(action, "workflow_id", workflow_id)
-
         # Test fire the action and collect any exceptions
-        exceptions = test_fire_action(action, workflow_event_data)
+        exceptions = test_fire_action(action, workflow_event_data, workflow_id=workflow_id)
         if exceptions:
             action_exceptions.extend(exceptions)
 
