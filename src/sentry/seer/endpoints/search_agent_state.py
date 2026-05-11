@@ -17,7 +17,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     SearchAgentStateRequest,
@@ -128,6 +128,8 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
             except SeerRun.DoesNotExist:
                 return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
 
+            if run.mirror_status == SeerRunMirrorStatus.FAILED:
+                return Response({"session": {"status": "error"}})
             if run.seer_run_state_id is None:
                 return Response({"session": {"status": "processing"}})
             seer_run_id = run.seer_run_state_id

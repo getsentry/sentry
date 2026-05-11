@@ -10,7 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, metrics
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -28,6 +28,7 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_search_agent_start_request,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
