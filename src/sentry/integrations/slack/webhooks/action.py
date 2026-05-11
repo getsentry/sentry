@@ -890,20 +890,18 @@ class SlackActionEndpoint(Endpoint):
         return self.respond()
 
     def handle_link_identity(self, slack_request: SlackActionRequest) -> Response:
-        from sentry.silo.base import SiloMode
+        from sentry.integrations.slack.views.link_identity import (
+            stash_link_identity_response_url,
+        )
 
-        # In multi-silo, the control-silo parser handles this before cell dispatch.
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            from sentry.integrations.slack.views.link_identity import (
-                stash_link_identity_response_url,
+        # This should never trigger in production, as this request would return with 200
+        # in the control silo without reaching cell silos.
+        if slack_request.user_id and slack_request.response_url:
+            stash_link_identity_response_url(
+                integration_id=slack_request.integration.id,
+                slack_user_id=slack_request.user_id,
+                response_url=slack_request.response_url,
             )
-
-            if slack_request.user_id and slack_request.response_url:
-                stash_link_identity_response_url(
-                    integration_id=slack_request.integration.id,
-                    slack_user_id=slack_request.user_id,
-                    response_url=slack_request.response_url,
-                )
         return self.respond()
 
 
