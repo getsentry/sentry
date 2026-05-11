@@ -1191,10 +1191,10 @@ wheels = [
 
 [[package]]
 name = "mistune"
-version = "2.0.4"
+version = "3.2.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/mistune-2.0.4-py2.py3-none-any.whl", hash = "sha256:182cc5ee6f8ed1b807de6b7bb50155df7b66495412836b9a74c8fbdfc75fe36d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mistune-3.2.1-py3-none-any.whl", hash = "sha256:78cdb0ba5e938053ccf63651b352508d2efa9411dc8810bfb05f2dc5140c0048" },
 ]
 
 [[package]]
@@ -2291,7 +2291,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.20.0" },
     { name = "lxml", specifier = ">=5.3.0" },
     { name = "maxminddb", specifier = ">=2.3.0" },
-    { name = "mistune", specifier = ">=2.0.4" },
+    { name = "mistune", specifier = ">=3.2.1" },
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
