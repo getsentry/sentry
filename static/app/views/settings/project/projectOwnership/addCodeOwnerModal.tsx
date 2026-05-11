@@ -237,7 +237,13 @@ function CodeownersFileStatus({
 
   return (
     <Fragment>
-      {codeownersFile ? <SourceFile codeownersFile={codeownersFile} /> : <NoSourceFile />}
+      <Container border="primary" radius="md" padding="md">
+        {codeownersFile ? (
+          <SourceFile codeownersFile={codeownersFile} />
+        ) : (
+          <NoSourceFile />
+        )}
+      </Container>
       {mutationIsError && mutationError?.responseJSON?.raw ? (
         <ErrorMessage
           baseUrl={`/settings/${organization.slug}/integrations/`}
@@ -354,26 +360,22 @@ function LinkCodeOwners({organization}: {organization: Organization}) {
 
 function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   return (
-    <Container border="primary" radius="md" padding="md">
-      <Grid columns="auto 1fr auto" align="center" gap="md">
-        <IconCheckmark size="md" variant="success" />
-        <Text>{codeownersFile.filepath}</Text>
-        <LinkButton size="sm" href={codeownersFile.html_url} external>
-          {t('Preview File')}
-        </LinkButton>
-      </Grid>
-    </Container>
+    <Grid columns="auto 1fr auto" align="center" gap="md">
+      <IconCheckmark size="md" variant="success" />
+      <Text>{codeownersFile.filepath}</Text>
+      <LinkButton size="sm" href={codeownersFile.html_url} external>
+        {t('Preview File')}
+      </LinkButton>
+    </Grid>
   );
 }
 
 function NoSourceFile() {
   return (
-    <Container border="primary" radius="md" padding="md">
-      <Grid columns="auto 1fr" align="center" gap="md">
-        <IconNot size="md" variant="danger" />
-        <Text>{t('No codeowner file found.')}</Text>
-      </Grid>
-    </Container>
+    <Grid columns="auto 1fr" align="center" gap="md">
+      <IconNot size="md" variant="danger" />
+      <Text>{t('No codeowner file found.')}</Text>
+    </Grid>
   );
 }
 
