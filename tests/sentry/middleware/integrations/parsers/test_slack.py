@@ -398,6 +398,7 @@ class SlackRequestParserTest(TestCase):
         parser = SlackRequestParser(request, self.get_response)
         response = parser.get_response()
 
+        assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         mock_slack_task.apply_async.assert_not_called()
