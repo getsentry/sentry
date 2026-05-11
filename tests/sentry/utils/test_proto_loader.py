@@ -5,6 +5,7 @@ import importlib.util
 import os
 import sys
 import textwrap
+from collections.abc import Generator
 from pathlib import Path
 from unittest import mock
 
@@ -21,7 +22,7 @@ from sentry.utils.proto_loader import (
 
 
 @pytest.fixture(autouse=True)
-def _clean_proto_loader_state() -> None:
+def _clean_proto_loader_state() -> Generator[None]:
     """Reset proto loader state between tests."""
     import sentry.utils.proto_loader as loader
 
@@ -152,7 +153,7 @@ class TestPipPackageHas:
 
 
 class TestProtoFinder:
-    def test_returns_spec_for_pb2_when_cached_exists(self, override_dir: Path):
+    def test_returns_spec_for_pb2_when_cached_exists(self, override_dir: Path) -> None:
         pb2_dir = override_dir / "sentry_protos" / "test_domain" / "v1"
         pb2_dir.mkdir(parents=True)
         pb2_file = pb2_dir / "example_pb2.py"
@@ -163,7 +164,7 @@ class TestProtoFinder:
         assert spec is not None
         assert spec.name == "sentry_protos.test_domain.v1.example_pb2"
 
-    def test_returns_none_for_pb2_when_no_cached_file(self, override_dir: Path):
+    def test_returns_none_for_pb2_when_no_cached_file(self, override_dir: Path) -> None:
         finder = _ProtoFinder(override_dir=override_dir)
         spec = finder.find_spec("sentry_protos.test_domain.v1.missing_pb2")
         assert spec is None
@@ -173,7 +174,7 @@ class TestProtoFinder:
         spec = finder.find_spec("other_package.foo_pb2")
         assert spec is None
 
-    def test_returns_none_for_pb2_grpc(self, override_dir: Path):
+    def test_returns_none_for_pb2_grpc(self, override_dir: Path) -> None:
         finder = _ProtoFinder(override_dir=override_dir)
         spec = finder.find_spec("sentry_protos.test_domain.v1.example_pb2_grpc")
         assert spec is None
@@ -198,7 +199,9 @@ class TestProtoFinder:
 
 
 class TestNoShadowing:
-    def test_pip_pb2_still_importable_when_override_has_partial_files(self, override_dir: Path):
+    def test_pip_pb2_still_importable_when_override_has_partial_files(
+        self, override_dir: Path
+    ) -> None:
         snuba_dir = override_dir / "sentry_protos" / "snuba" / "v1"
         snuba_dir.mkdir(parents=True)
         (snuba_dir / "custom_pb2.py").write_text("# local override")
