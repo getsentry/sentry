@@ -1,10 +1,18 @@
+import qs from 'query-string';
 import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -337,6 +345,60 @@ describe('logsTableRow', () => {
       expect.anything(),
       expect.objectContaining({enabled: true})
     );
+  });
+
+  it('adds a similar spans action to the log message dropdown', async () => {
+    const rowDataWithQuotedMessage = {
+      ...rowData,
+      [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
+    };
+
+    render(
+      <LogRowContent
+        dataRow={rowDataWithQuotedMessage}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithQuotedMessage)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+        showExploreSimilarSpansLink
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+
+    const link = (await screen.findByText('Explore similar spans')).closest('a')!;
+    for (const label of ['Copy to clipboard', 'Add to filter', 'Exclude from filter']) {
+      const menuItem = await screen.findByText(label);
+      expect(menuItem.compareDocumentPosition(link)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+      );
+    }
+
+    const href = link.getAttribute('href')!;
+    expect(href.startsWith(`/organizations/${organization.slug}/explore/traces/?`)).toBe(
+      true
+    );
+
+    const parsedQuery = qs.parse(href.split('?')[1]!);
+    expect(parsedQuery).toEqual(
+      expect.objectContaining({
+        mode: 'samples',
+        project: project.id,
+        referrer: 'trace-logs-table-similar-spans',
+        statsPeriod: '24h',
+      })
+    );
+    expect(JSON.parse(parsedQuery.crossEvents as string)).toEqual([
+      {
+        type: 'logs',
+        query: 'message:"test \\"quoted\\" log body"',
+      },
+    ]);
   });
 
   it('shows a link when hovering over code file path in the table', async () => {

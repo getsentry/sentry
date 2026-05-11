@@ -177,6 +177,12 @@ type CellActionsOpts = {
   allowActions?: Actions[];
   children?: React.ReactNode;
   /**
+   * Caller-provided dropdown items for cell-specific destinations or actions that are
+   * not part of the built-in Actions enum. These are appended in addition to the
+   * default items filtered by allowActions.
+   */
+  extraMenuItems?: MenuItemProps[];
+  /**
    * Any parsed out internal links that should be added to the menu as an option
    */
   to?: string;
@@ -187,6 +193,7 @@ function makeCellActions({
   column,
   handleCellAction,
   allowActions,
+  extraMenuItems,
   to,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
@@ -296,6 +303,10 @@ function makeCellActions({
 
   if (isUrl(value)) {
     addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  }
+
+  if (extraMenuItems) {
+    actions.push(...extraMenuItems);
   }
 
   if (actions.length === 0) {
