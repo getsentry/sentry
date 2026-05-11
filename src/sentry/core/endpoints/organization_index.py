@@ -97,11 +97,12 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         attrs = super().validate(attrs)
 
         locality_name = attrs.get("dataStorageLocation")
-        if locality_name is None and SiloMode.get_current_mode() == SiloMode.CONTROL:
-            locality_name = settings.SENTRY_MONOLITH_REGION
 
-        if locality_name is not None:
+        if locality_name:
             attrs["cell_name"] = get_new_org_cell_for_locality(locality_name).name
+        else:
+            # TODO(cells) Remove this when cell silo compatibility is removed.
+            attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION
 
         return attrs
 
@@ -434,10 +435,12 @@ class OrganizationIndexEndpoint(Endpoint):
             )
 
             rpc_org = organization_provisioning_service.provision_organization_in_cell(
-                cell_name=result.get("cell_name"),
+                cell_name=result["cell_name"],
                 provisioning_options=provision_args,
             )
         except IntegrityError:
+            # TODO(cells) Remove this once all provisioning goes through control
+            # Instead we'll need to handle error messages from the RPC call.
             return Response(
                 {"detail": "An organization with this slug already exists."}, status=409
             )
