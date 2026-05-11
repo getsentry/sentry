@@ -28,7 +28,6 @@ from sentry.incidents.endpoints.serializers.incident import (
     IncidentSerializer,
 )
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
@@ -462,22 +461,15 @@ class SentryAppActionHandler(DefaultActionHandler):
 
         incident_serialized_response = serialize(incident, serializer=IncidentSerializer())
 
-        success = send_incident_alert_notification(
+        send_incident_alert_notification(
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
             incident_serialized_response=incident_serialized_response,
             organization=incident.organization,
+            project_id=project.id,
             notification_uuid=notification_uuid,
         )
-        if success:
-            self.record_alert_sent_analytics(
-                organization_id=incident.organization.id,
-                project_id=project.id,
-                alert_id=incident.alert_rule.id,
-                external_id=action.sentry_app_id,
-                notification_uuid=notification_uuid,
-            )
 
 
 def format_duration(minutes):
@@ -515,7 +507,6 @@ def generate_incident_trigger_email_context(
     notification_uuid: str | None = None,
     detector_serialized_response: DetectorSerializerResponse | None = None,
 ) -> dict[str, Any]:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
     snuba_query = metric_issue_context.snuba_query
@@ -583,40 +574,28 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    if should_fire_workflow_actions(organization, MetricIssue.type_id):
-        # lookup the incident_id from the open_period_identifier
-        try:
-            incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
-                group_open_period_id=metric_issue_context.open_period_identifier
-            )
-            incident_identifier = incident_group_open_period.incident_identifier
-        except IncidentGroupOpenPeriod.DoesNotExist:
-            # the corresponding metric detector was not dual written
-            incident_identifier = get_fake_id_from_object_id(
-                metric_issue_context.open_period_identifier
-            )
+    # lookup the incident_id from the open_period_identifier
+    try:
+        incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
+            group_open_period_id=metric_issue_context.open_period_identifier
+        )
+        incident_identifier = incident_group_open_period.incident_identifier
+    except IncidentGroupOpenPeriod.DoesNotExist:
+        # the corresponding metric detector was not dual written
+        incident_identifier = get_fake_id_from_object_id(
+            metric_issue_context.open_period_identifier
+        )
 
-        alert_link = organization.absolute_url(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "incident_id": incident_identifier,
-                },
-            ),
-            query=urlencode(alert_link_params),
-        )
-    else:
-        alert_link = organization.absolute_url(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "incident_id": metric_issue_context.open_period_identifier,
-                },
-            ),
-            query=urlencode(alert_link_params),
-        )
+    alert_link = organization.absolute_url(
+        reverse(
+            "sentry-metric-alert",
+            kwargs={
+                "organization_slug": organization.slug,
+                "incident_id": incident_identifier,
+            },
+        ),
+        query=urlencode(alert_link_params),
+    )
     # We don't have user muting for workflows in the new workflow engine system
     # so we don't need to show the snooze alert url
     snooze_alert_url = None

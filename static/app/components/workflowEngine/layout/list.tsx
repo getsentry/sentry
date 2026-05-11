@@ -1,15 +1,20 @@
+import {Fragment} from 'react';
+
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {OnboardingBanner} from 'sentry/components/workflowEngine/ui/alertsMonitorsOnboardingBanner';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface WorkflowEngineListLayoutProps {
   actions: React.ReactNode;
   /** The main content for this page */
   children: React.ReactNode;
-  description: string;
+  description: React.ReactNode;
   docsUrl: string;
   title: string;
 }
@@ -26,22 +31,34 @@ export function WorkflowEngineListLayout({
   docsUrl,
 }: WorkflowEngineListLayoutProps) {
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <Stack flex={1}>
       <NoProjectMessage organization={organization}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Layout.Title>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">
               {title}
               <PageHeadingQuestionTooltip docsUrl={docsUrl} title={description} />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>{actions}</Layout.HeaderActions>
-        </Layout.Header>
+            </TopBar.Slot>
+            <TopBar.Slot name="actions">{actions}</TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.Header unified>
+            <Layout.HeaderContent>
+              <Layout.Title>
+                {title}
+                <PageHeadingQuestionTooltip docsUrl={docsUrl} title={description} />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>{actions}</Layout.HeaderActions>
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main width="full">
             <Flex direction="column" gap="lg">
+              <OnboardingBanner />
               {children}
             </Flex>
           </Layout.Main>

@@ -40,7 +40,7 @@ function DateRangeQueryLimitFooter({
       <Flex gap="md">
         <UpgradeOrTrialButton
           subscription={subscription}
-          priority="primary"
+          variant="primary"
           size={BUTTON_SIZE}
           organization={organization}
           source={source}

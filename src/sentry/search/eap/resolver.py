@@ -106,6 +106,23 @@ class SearchResolver:
         ],
     ] = field(default_factory=dict)
     qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
+    _internal_name_to_column: dict[str, ResolvedAttribute] = field(default_factory=dict, repr=False)
+
+    def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
+        """Look up a column definition by its internal name (e.g. 'sentry.item_id' -> 'id' column).
+
+        Uses a lazily-built reverse mapping from internal_name -> column definition,
+        cached for the lifetime of this resolver instance.
+        """
+        if not self._internal_name_to_column:
+            self._internal_name_to_column.update(
+                {
+                    col.internal_name: col
+                    for col in self.definitions.columns.values()
+                    if not col.secondary_alias
+                }
+            )
+        return self._internal_name_to_column.get(internal_name)
 
     def get_function_definition(
         self, function_name: str
@@ -836,6 +853,7 @@ class SearchResolver:
         value: str | float | datetime | Sequence[float] | Sequence[str],
     ) -> AttributeValue:
         column.validate(value)
+        value = column.normalize(value)
         if isinstance(column.proto_definition, AttributeKey):
             column_type = column.proto_definition.type
             if column_type == constants.STRING:
@@ -961,6 +979,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
+        default_value: float | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedFunction,
         VirtualColumnDefinition | None,
@@ -969,7 +988,9 @@ class SearchResolver:
         resolve function"""
         match = fields.is_function(column)
         if match:
-            return self.resolve_function(column, match, public_alias_override)
+            return self.resolve_function(
+                column, match, public_alias_override, default_value=default_value
+            )
         else:
             return self.resolve_attribute(column, public_alias_override)
 
@@ -1023,6 +1044,17 @@ class SearchResolver:
                     internal_name=column_definition.internal_name,
                     search_type=column_definition.search_type,
                 )
+        elif (internal_match := self._find_column_by_internal_name(column)) is not None:
+            column_context = None
+            column_definition = ResolvedAttribute(
+                public_alias=alias,
+                internal_name=internal_match.internal_name,
+                search_type=internal_match.search_type,
+                internal_type=internal_match.internal_type,
+                validator=internal_match.validator,
+                normalizer=internal_match.normalizer,
+                processor=internal_match.processor,
+            )
         else:
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
                 raise InvalidSearchQuery(
@@ -1086,6 +1118,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
+        default_value: float | None = None,
     ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
         if match is None:
             match = fields.is_function(column)
@@ -1099,7 +1132,8 @@ class SearchResolver:
         if public_alias_override is not None:
             alias = public_alias_override
 
-        if alias in self._resolved_function_cache:
+        # Don't use cache if default_value is passed
+        if alias in self._resolved_function_cache and default_value is None:
             return self._resolved_function_cache[alias]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
 
@@ -1211,11 +1245,15 @@ class SearchResolver:
             snuba_params=self.params,
             query_result_cache=self._query_result_cache,
             search_config=self.config,
+            default_value=default_value,
         )
 
         resolved_context = None
-        self._resolved_function_cache[alias] = (resolved_function, resolved_context)
-        return self._resolved_function_cache[alias]
+        if default_value is None:
+            self._resolved_function_cache[alias] = (resolved_function, resolved_context)
+            return self._resolved_function_cache[alias]
+        else:
+            return resolved_function, resolved_context
 
     def resolve_equations(
         self, equations: list[str]
@@ -1320,7 +1358,8 @@ class SearchResolver:
             return Column(literal=LiteralValue(val_double=operation)), []
 
         # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
-        col, context = self.resolve_column(operation)
+        # Columns in equations must pass default_value=0 otherwise they may become a null and ruin the entire formula
+        col, context = self.resolve_column(operation, default_value=0)
         contexts = [context] if context is not None else []
         proto_definition = col.proto_definition
 

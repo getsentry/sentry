@@ -76,11 +76,11 @@ const renderComponent = ({
 };
 
 describe('TransactionReplays', () => {
-  let eventsMockApi: jest.Mock<any, any>;
+  let eventsMockApi: jest.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/sdk-updates/`,
+      url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -156,7 +156,14 @@ describe('TransactionReplays', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(mockApi).toHaveBeenCalledWith(
+        mockEventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
+          }),
+        })
+      );
     });
   });
 

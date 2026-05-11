@@ -1,13 +1,13 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -110,11 +110,8 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
-  const cursorHandler = useCallback<CursorHandler>(
-    (cursor, path, q) =>
-      navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}}),
-    [navigate]
-  );
+  const cursorHandler: CursorHandler = (cursor, path, q) =>
+    navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}});
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
@@ -122,13 +119,12 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   );
 
   const columns = useMemo(() => {
-    return eventView.getColumns().reduce(
-      (acc, col) => {
+    return eventView
+      .getColumns()
+      .reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
-      },
-      {} as Record<string, TableColumn<string>>
-    );
+      }, {});
   }, [eventView]);
 
   return (

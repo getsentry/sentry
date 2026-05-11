@@ -5,16 +5,17 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.db.models import Max, Prefetch, Q, prefetch_related_objects
+from django.db.models import Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
-from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -225,14 +226,7 @@ class RuleSerializer(Serializer):
                 result[rule]["errors"] = errors
 
         if "lastTriggered" in self.expand:
-            last_triggered_lookup = {
-                rfh["rule_id"]: rfh["date_added"]
-                for rfh in RuleFireHistory.objects.filter(rule__in=item_list)
-                .values("rule_id")
-                .annotate(date_added=Max("date_added"))
-            }
-
-            # Update lastTriggered with WorkflowFireHistory if available
+            last_triggered_lookup: dict[int, datetime] = {}
             if item_list:
                 rule_ids = [rule.id for rule in item_list]
                 workflow_rule_lookup = dict(
@@ -246,27 +240,10 @@ class RuleSerializer(Serializer):
                 for workflow_id, last_fire in workflow_fire_dates.items():
                     rule_id = workflow_rule_lookup.get(workflow_id)
                     if rule_id and last_fire:
-                        # Take the maximum date between RuleFireHistory and WorkflowFireHistory
-                        existing_date = last_triggered_lookup.get(rule_id)
-                        if (existing_date and last_fire > existing_date) or not existing_date:
-                            last_triggered_lookup[rule_id] = last_fire
+                        last_triggered_lookup[rule_id] = last_fire
 
-            # Set the results
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
-
-        neglected_rule_lookup = {
-            nr["rule_id"]: nr["disable_date"]
-            for nr in NeglectedRule.objects.filter(
-                rule__in=item_list,
-                opted_out=False,
-                sent_initial_email_date__isnull=False,
-            ).values("rule_id", "disable_date")
-        }
-        for rule in item_list:
-            disable_date = neglected_rule_lookup.get(rule.id, None)
-            if disable_date:
-                result[rule]["disable_date"] = disable_date
 
         rule_snooze_lookup = {
             snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
@@ -551,12 +528,10 @@ class WorkflowEngineRuleSerializer(Serializer):
         sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
         if self.prepare_component_fields:
             sentry_app_uuids = [
-                sentry_app_uuid
-                for sentry_app_uuid in (
-                    action_to_action_data[action].get("sentryAppInstallationUuid")
-                    for action in actions_with_handlers
-                )
-                if sentry_app_uuid is not None
+                action_to_action_data[action]["sentryAppInstallationUuid"]
+                for action in actions_with_handlers
+                if action_to_action_data.get(action)
+                and action_to_action_data[action].get("sentryAppInstallationUuid") is not None
             ]
             install_contexts = app_service.get_component_contexts(
                 filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
@@ -592,6 +567,22 @@ class WorkflowEngineRuleSerializer(Serializer):
                 for wdcg in wf.prefetched_wdcgs  # type: ignore[attr-defined]
             )
         actions_by_dcg = self._fetch_actions_by_dcg(all_dcg_ids)
+
+        # Batch-fetch integrations for all actions to avoid per-action RPC calls in render_label
+        all_integration_ids: set[int] = set()
+        for action_list in actions_by_dcg.values():
+            for action in action_list:
+                if action.integration_id is not None:
+                    all_integration_ids.add(action.integration_id)
+
+        integration_cache: dict[int, RpcIntegration] = {}
+        if all_integration_ids and item_list:
+            integrations = integration_service.get_integrations(
+                integration_ids=list(all_integration_ids),
+                organization_id=item_list[0].organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            integration_cache = {i.id: i for i in integrations}
 
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
@@ -640,12 +631,16 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except Exception:
                     continue  # just keep iterating through the actions in case we have valid ones in there
             actions_with_handlers = list(action_to_handler.keys())
-            action_to_action_data = {
-                action: action_to_handler[action].build_rule_action_blob(
-                    action, workflow.organization_id
-                )
-                for action in actions_with_handlers  # skip over actions w/o handlers
-            }
+
+            action_to_action_data = {}
+            for action in actions_with_handlers:
+                try:
+                    action_to_action_data[action] = action_to_handler[
+                        action
+                    ].build_rule_action_blob(action, workflow.organization_id)
+                except ValueError:
+                    # if we have a missing sentry app installation but the action is still connected to the sentry app, we skip so we can return the rest of the rule
+                    continue
 
             sentry_app_installations_by_uuid = self._fetch_sentry_app_installations_by_uuid(
                 workflow, action_to_action_data, actions_with_handlers
@@ -660,9 +655,12 @@ class WorkflowEngineRuleSerializer(Serializer):
                     }
                 )
             for action in actions_with_handlers:
-                action_data = action_to_action_data[action]
+                action_data = action_to_action_data.get(action)
+                if not action_data:
+                    continue
+
                 action_data["name"] = action_to_handler[action].render_label(
-                    workflow.organization_id, action_data
+                    workflow.organization_id, action_data, integration_cache=integration_cache
                 )
                 installation_uuid = action_data.get("sentryAppInstallationUuid")
                 install_context = None
@@ -796,9 +794,15 @@ class WorkflowEngineRuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [p.slug for p in attrs["projects"]],
-            "status": "active" if obj.enabled else "disabled",
-            "snooze": "snooze" in attrs,
+            # Workflow.enabled is toggled by snooze-for-everyone, but "disabled" in the
+            # UI means a broken/misconfigured rule (matching legacy Rule.status/ObjectStatus).
+            # Snooze state is communicated via the snooze fields instead.
+            "status": "active",
+            "snooze": not obj.enabled,
         }
+        if not obj.enabled:
+            workflow_rule["snoozeForEveryone"] = True
+
         if "last_triggered" in attrs:
             workflow_rule["lastTriggered"] = attrs["last_triggered"]
 

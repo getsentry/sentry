@@ -1,39 +1,47 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
 import {LoadingError} from 'sentry/components/loadingError';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {parseCursor} from 'sentry/utils/cursor';
+import {defined} from 'sentry/utils';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 const DEFAULT_DETECTORS_PER_PAGE = 10;
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   cursor: string | undefined;
-  /**
-   * If null, all detectors will be fetched.
-   */
-  detectorIds: Automation['detectorIds'] | null;
   onCursor: CursorHandler;
   connectedDetectorIds?: Set<string>;
+  /**
+   * Filters detectors to those with the given IDs.
+   */
+  detectorIds?: Automation['detectorIds'];
   emptyMessage?: string;
   limit?: number | null;
   openInNewTab?: boolean;
   projectIds?: number[];
   query?: string;
   toggleConnected?: (params: {detector: Detector}) => void;
+  /**
+   * Filters detectors by those connected to the given workflow.
+   */
+  workflowId?: string;
 };
 
 function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: number}) {
@@ -78,48 +86,41 @@ export function ConnectedMonitorsList({
   query,
   openInNewTab,
   projectIds,
+  workflowId,
   ...props
 }: Props) {
+  const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
+  const emptySelection = defined(detectorIds) && detectorIds.length === 0;
 
-  const {
-    data: detectors,
-    isLoading,
-    isError,
-    isSuccess,
-    getResponseHeader,
-  } = useDetectorsQuery(
-    {
-      ids: detectorIds ?? undefined,
+  const {data, isLoading, isError, isSuccess} = useQuery({
+    ...detectorListApiOptions(organization, {
+      ids: detectorIds,
       limit: limit ?? undefined,
       cursor,
-      query,
+      query: workflowId
+        ? new MutableSearch([query ?? '', `workflow:${workflowId}`]).formatString()
+        : query,
       includeIssueStreamDetectors: true,
-      projects: projectIds,
-    },
-    {enabled: detectorIds === null || detectorIds.length > 0}
-  );
+      projects: projectIds ?? [-1],
+    }),
+    select: selectJsonWithHeaders,
+    enabled: !defined(detectorIds) || !emptySelection,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
-  const totalCount = getResponseHeader?.('X-Hits');
-  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+  const detectors = data?.json;
+  const pageLinks = data?.headers.Link;
+  const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
-  const paginationCaption = useMemo(() => {
-    if (isLoading || !detectors || detectors?.length === 0 || limit === null) {
-      return undefined;
-    }
-
-    const currentCursor = parseCursor(cursor);
-    const offset = currentCursor?.offset ?? 0;
-    const startCount = offset * limit + 1;
-    const endCount = startCount + detectors.length - 1;
-
-    return tct('[start]-[end] of [total]', {
-      start: startCount.toLocaleString(),
-      end: endCount.toLocaleString(),
-      total: totalCountInt.toLocaleString(),
-    });
-  }, [detectors, isLoading, cursor, limit, totalCountInt]);
+  const paginationCaption =
+    isLoading || !detectors || limit === null
+      ? undefined
+      : getPaginationCaption({
+          cursor,
+          limit,
+          pageLength: detectors.length,
+          total: totalCountInt,
+        });
 
   return (
     <Container {...props}>
@@ -141,20 +142,19 @@ export function ConnectedMonitorsList({
           <Skeletons
             canEdit={canEdit}
             numberOfRows={
-              detectorIds === null
-                ? (limit ?? DEFAULT_DETECTORS_PER_PAGE)
-                : Math.min(detectorIds?.length ?? 0, DEFAULT_DETECTORS_PER_PAGE)
+              defined(detectorIds)
+                ? Math.min(detectorIds.length, DEFAULT_DETECTORS_PER_PAGE)
+                : (limit ?? DEFAULT_DETECTORS_PER_PAGE)
             }
           />
         )}
         {isError && <LoadingError />}
-        {((isSuccess && detectors.length === 0) ||
-          (detectorIds !== null && detectorIds.length === 0)) && (
+        {((isSuccess && detectors?.length === 0) || emptySelection) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
-          (detectorIds === null || detectorIds.length > 0) &&
-          detectors.map(detector => (
+          !emptySelection &&
+          detectors?.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>
                 <DetectorLink detector={detector} openInNewTab={openInNewTab} />
@@ -184,7 +184,7 @@ export function ConnectedMonitorsList({
         <Pagination
           onCursor={onCursor}
           pageLinks={pageLinks}
-          caption={totalCountInt > limit ? paginationCaption : null}
+          caption={paginationCaption}
         />
       )}
     </Container>

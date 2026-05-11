@@ -114,7 +114,7 @@ describe('Cart', () => {
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
-    expect(cart).toHaveTextContent('Plan Total$89/mo');
+    await waitFor(() => expect(cart).toHaveTextContent('Plan Total$89/mo'));
     expect(cart).toHaveTextContent('Default Amount');
   });
 
@@ -338,10 +338,10 @@ describe('Cart', () => {
     );
 
     const dueToday = await screen.findByTestId('summary-item-due-today');
-    expect(mockResponse).toHaveBeenCalled();
 
     // wait for preview to be loaded
     await waitFor(() => expect(dueToday).toHaveTextContent('$91')); // original price
+    expect(mockResponse).toHaveBeenCalled();
     expect(dueToday).toHaveTextContent('$80'); // price after credits + additional fees
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
     expect(screen.getByTestId('summary-item-sales_tax')).toHaveTextContent('$2');

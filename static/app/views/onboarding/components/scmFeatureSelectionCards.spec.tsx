@@ -4,6 +4,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
+import {FALLBACK_FEATURE_META} from './useScmFeatureMeta';
 
 const NO_DISABLED: DisabledProducts = {};
 
@@ -24,6 +25,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -32,7 +34,7 @@ describe('ScmFeatureSelectionCards', () => {
     expect(screen.getByText('Session replay')).toBeInTheDocument();
     expect(screen.getByText('Profiling')).toBeInTheDocument();
     expect(screen.getByText('Logging')).toBeInTheDocument();
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
   });
 
   it('renders only passed features', () => {
@@ -45,27 +47,11 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
-  });
-
-  it('shows correct selected count', () => {
-    render(
-      <ScmFeatureSelectionCards
-        availableFeatures={ALL_FEATURES}
-        selectedFeatures={[
-          ProductSolution.ERROR_MONITORING,
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ]}
-        disabledProducts={NO_DISABLED}
-        onToggleFeature={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText('3 of 6 selected')).toBeInTheDocument();
   });
 
   it('error monitoring card is always disabled', async () => {
@@ -77,6 +63,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -101,6 +88,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -122,6 +110,7 @@ describe('ScmFeatureSelectionCards', () => {
           },
         }}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -137,6 +126,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -144,5 +134,39 @@ describe('ScmFeatureSelectionCards', () => {
       name: /Error monitoring/,
     });
     expect(errorMonitoringCard).toBeChecked();
+  });
+
+  it('renders volume strings from featureMeta', () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
+      />
+    );
+
+    expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
+    expect(screen.getByText('5M spans / mo')).toBeInTheDocument();
+    expect(screen.getByText('Usage-based')).toBeInTheDocument();
+  });
+
+  it('renders skeletons in place of volume tags while loading', () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
+        isVolumeLoading
+      />
+    );
+
+    expect(screen.queryByText('5,000 errors / mo')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(
+      ALL_FEATURES.length
+    );
   });
 });

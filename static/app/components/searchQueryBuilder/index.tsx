@@ -31,10 +31,18 @@ import type {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-export type GetTagValues = (
-  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
-  searchQuery: string
-) => Promise<string[]>;
+export interface GetTagValuesParams {
+  /**
+   * The search query to use to fetch tag values.
+   */
+  searchQuery: string;
+  /**
+   * The tag to fetch values for.
+   */
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined};
+}
+
+export type GetTagValues = (params: GetTagValuesParams) => Promise<string[]>;
 
 export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 
@@ -209,15 +217,8 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {
-    dispatch,
-    handleSearch,
-    disabled,
-    query,
-    setDisplayAskSeerFeedback,
-    caseInsensitive,
-    onCaseInsensitiveClick,
-  } = useSearchQueryBuilder();
+  const {clearSearchQuery, disabled, query, caseInsensitive, onCaseInsensitiveClick} =
+    useSearchQueryBuilder();
 
   if (disabled) {
     return null;
@@ -236,7 +237,7 @@ function ActionButtons({
             aria-pressed={isCaseInsensitive}
             size="zero"
             icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
-            priority="transparent"
+            variant="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
               onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
@@ -249,12 +250,8 @@ function ActionButtons({
           aria-label={t('Clear search query')}
           size="zero"
           icon={<IconClose />}
-          priority="transparent"
-          onClick={() => {
-            setDisplayAskSeerFeedback(false);
-            dispatch({type: 'CLEAR'});
-            handleSearch('');
-          }}
+          variant="transparent"
+          onClick={() => clearSearchQuery()}
         />
       )}
     </ButtonsWrapper>

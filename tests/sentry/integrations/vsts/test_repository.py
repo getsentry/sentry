@@ -28,17 +28,17 @@ class VisualStudioRepositoryProviderTest(TestCase):
     def test_compare_commits(self) -> None:
         responses.add(
             responses.POST,
-            "https://visualstudio.com/_apis/git/repositories/None/commitsBatch",
+            "https://visualstudio.com/_apis/git/repositories/123/commitsBatch",
             body=COMPARE_COMMITS_EXAMPLE,
         )
         responses.add(
             responses.GET,
-            "https://visualstudio.com/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes",
+            "https://visualstudio.com/_apis/git/repositories/123/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes",
             body=FILE_CHANGES_EXAMPLE,
         )
         responses.add(
             responses.GET,
-            "https://visualstudio.com/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
+            "https://visualstudio.com/_apis/git/repositories/123/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
             body=COMMIT_DETAILS_EXAMPLE,
         )
 
@@ -65,6 +65,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
                 provider="visualstudio",
                 name="example",
                 organization_id=self.organization.id,
+                external_id="123",
                 config={"instance": self.base_url, "project": "project-name", "name": "example"},
                 integration_id=integration.id,
             )
@@ -122,6 +123,15 @@ class VisualStudioRepositoryProviderTest(TestCase):
         )
         result = self.provider.repository_external_slug(repo)
         assert result == repo.external_id
+
+    def test_repository_external_slug_without_external_id(self) -> None:
+        repo = Repository(
+            name="MyFirstProject",
+            url="https://mbittker.visualstudio.com/_git/MyFirstProject/",
+            external_id=None,
+        )
+        result = self.provider.repository_external_slug(repo)
+        assert result is None
 
 
 @control_silo_test

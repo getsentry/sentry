@@ -2,33 +2,85 @@ import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {withFieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import {FormContext} from 'sentry/components/forms/formContext';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
+import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 
-export function AutomateSection() {
-  const ref = useRef<HTMLButtonElement>(null);
+/**
+ * Section that lets the user connect, disconnect, and create automations
+ * for the detector being edited.
+ */
+export const AutomateSection = withFieldGroup({
+  defaultValues: {workflowIds: [] as string[]},
+  props: {} as {project: Project; step?: number},
+  render: ({group, step, project}) => (
+    <group.AppField name="workflowIds">
+      {field => (
+        <AutomateSectionInner
+          step={step}
+          project={project}
+          workflowIds={field.state.value}
+          setWorkflowIds={field.handleChange}
+        />
+      )}
+    </group.AppField>
+  ),
+});
+
+/**
+ * Legacy variant of {@link AutomateSection} for detector forms still using
+ * the legacy `FormModel` / `FormContext`. Reads and writes `workflowIds`
+ * via the surrounding form context.
+ *
+ * Remove once all detector forms have migrated to the new form system.
+ */
+export function AutomateSectionDeprecated({step}: {step?: number}) {
   const formContext = useContext(FormContext);
-  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
-
-  const {project} = useDetectorFormContext();
-  const workflowIds = useFormField('workflowIds') as string[];
+  const project = useDetectorFormProject();
+  const workflowIds = useFormField<string[]>('workflowIds') ?? [];
   const setWorkflowIds = useCallback(
-    (newWorkflowIds: string[]) =>
-      formContext.form?.setValue('workflowIds', newWorkflowIds),
+    (next: string[]) => formContext.form?.setValue('workflowIds', next),
     [formContext.form]
   );
+
+  return (
+    <AutomateSectionInner
+      step={step}
+      workflowIds={workflowIds}
+      setWorkflowIds={setWorkflowIds}
+      project={project}
+    />
+  );
+}
+
+interface AutomateSectionInnerProps {
+  project: Project;
+  setWorkflowIds: (workflowIds: string[]) => void;
+  workflowIds: string[];
+  step?: number;
+}
+
+function AutomateSectionInner({
+  step,
+  workflowIds,
+  setWorkflowIds,
+  project,
+}: AutomateSectionInnerProps) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -77,7 +129,7 @@ export function AutomateSection() {
   if (workflowIds.length > 0) {
     return (
       <Container>
-        <FormSection title={t('Connected Alerts')}>
+        <FormSection step={step} title={t('Connected Alerts')}>
           <ConnectedAutomationsList
             automationIds={workflowIds}
             cursor={undefined}
@@ -101,6 +153,7 @@ export function AutomateSection() {
   return (
     <Container>
       <FormSection
+        step={step}
         title={t('Alert')}
         description={t('Configure alerting on this Monitor to get notified on issues.')}
       >
@@ -109,7 +162,7 @@ export function AutomateSection() {
           cursor={undefined}
           onCursor={() => {}}
           emptyMessage={
-            <Stack gap="md" align="center" maxWidth="300px">
+            <ConnectedAlertsEmptyState project={project}>
               <Button
                 ref={ref}
                 size="sm"
@@ -118,18 +171,10 @@ export function AutomateSection() {
               >
                 {t('Connect Existing Alerts')}
               </Button>
-              <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+              <Button size="sm" onClick={openCreateDrawer}>
                 {t('Create New Alert')}
               </Button>
-              <Text variant="muted" align="center">
-                {tct(
-                  'Alerts configured for all Issues in [projectName] will also apply to this Monitor.',
-                  {
-                    projectName: <strong>{project.slug}</strong>,
-                  }
-                )}
-              </Text>
-            </Stack>
+            </ConnectedAlertsEmptyState>
           }
         />
       </FormSection>
@@ -140,5 +185,5 @@ export function AutomateSection() {
 const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.xl};
-  margin: -${p => p.theme.space.xl};
+  margin: -${p => p.theme.space.lg};
 `;

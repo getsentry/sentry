@@ -10,7 +10,7 @@
 //   node scripts/routes.ts --origin https://sentry.io --orgId sentry
 //   node scripts/routes.ts --all
 //
-// ─── AGENT MAINTENANCE GUIDE ─────────────────────────────────────────────────
+// AGENT MAINTENANCE GUIDE
 //
 // HOW THE PARSER WORKS
 //   This script reads static/app/router/routes.tsx line by line and builds full
@@ -73,8 +73,7 @@
 //   Used when --defaults is passed.  If a new :param appears in routes.tsx
 //   that isn't in PARAM_DEFAULTS, it will remain unresolved.  Add it with any
 //   realistic value (fixture IDs, slugs, etc. from tests/js/fixtures/).
-//
-// ─────────────────────────────────────────────────────────────────────────────
+
 import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
@@ -148,7 +147,7 @@ const useDefaults = (values.defaults as boolean) ?? false;
 if (!showAll && Object.keys(userParams).length === 0 && !useDefaults) {
   const bin = path.basename(process.argv[1] ?? '');
   console.error(`Usage: node ${bin} [OPTIONS] --<param> <value> [...]`);
-  console.error(`Run with --help for full usage.`);
+  console.error('Run with --help for full usage.');
   process.exit(1);
 }
 
@@ -207,6 +206,7 @@ const CONSTANTS: Record<string, string> = {
   'IssueTaxonomy.ERRORS_AND_OUTAGES': 'errors-outages',
   'IssueTaxonomy.BREACHED_METRICS': 'breached-metrics',
   'IssueTaxonomy.WARNINGS': 'warnings',
+  'IssueTaxonomy.SENTRY_CONFIGURATION': 'sentry-configuration',
 };
 
 function resolveTemplate(expr: string): string {

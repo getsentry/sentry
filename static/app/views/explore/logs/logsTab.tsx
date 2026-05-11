@@ -1,4 +1,6 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -23,7 +25,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
-import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -38,6 +39,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
@@ -52,9 +54,9 @@ import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
+import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwitch';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
-import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -69,7 +71,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {useOurLogsSchemaHintsRemoval} from 'sentry/views/explore/logs/tables/useOurLogsSchemaHintsRemoval';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -90,6 +92,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
 // eslint-disable-next-line boundaries/dependencies
@@ -97,6 +100,7 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
+  tableExpando: boolean;
 };
 
 interface LogsSearchBarProps {
@@ -173,6 +177,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const schemaHintsRemoval = useOurLogsSchemaHintsRemoval();
 
   return (
     <SearchQueryBuilderProvider
@@ -200,7 +205,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="default"
+                    variant="primary"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
@@ -215,29 +220,31 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          <ExploreSchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={supportedAggregates}
-              booleanTags={booleanAttributes}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={
-                numberAttributesLoading ||
-                stringAttributesLoading ||
-                booleanAttributesLoading
-              }
-              exploreQuery={logsSearchQuery}
-              source={SchemaHintsSources.LOGS}
-              searchBarWidthOffset={searchBarWidthOffset}
-            />
-          </ExploreSchemaHintsSection>
+          {!schemaHintsRemoval && (
+            <ExploreSchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={supportedAggregates}
+                booleanTags={booleanAttributes}
+                numberTags={numberAttributes}
+                stringTags={stringAttributes}
+                isLoading={
+                  numberAttributesLoading ||
+                  stringAttributesLoading ||
+                  booleanAttributesLoading
+                }
+                exploreQuery={logsSearchQuery}
+                source={SchemaHintsSources.LOGS}
+                searchBarWidthOffset={searchBarWidthOffset}
+              />
+            </ExploreSchemaHintsSection>
+          )}
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
   );
 });
 
-export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
+export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps) {
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
@@ -250,7 +257,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
-  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();
@@ -317,23 +324,20 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     aggregateSortBys,
   });
 
-  const refreshTable = useCallback(async () => {
+  const refreshTable = async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
-    queryClient.setQueryData(
-      tableData.queryKey,
-      (data: InfiniteData<OurLogsResponseItem[]>) => {
-        if (data?.pages) {
-          // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
-          return {
-            pages: data.pages.slice(0, 1),
-            pageParams: data.pageParams.slice(0, 1),
-          };
-        }
-        return data;
+    queryClient.setQueryData(tableData.queryKey, data => {
+      if (data?.pages) {
+        // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
+        return {
+          pages: data.pages.slice(0, 1),
+          pageParams: data.pageParams.slice(0, 1),
+        };
       }
-    );
+      return data;
+    });
     await tableData.refetch();
-  }, [tableData, queryClient]);
+  };
 
   const onColumnsChange = useCallback(
     (newFields: string[]) => {
@@ -346,7 +350,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     [setFields, setPersistentParams]
   );
 
-  const openColumnEditor = useCallback(() => {
+  const openColumnEditor = () => {
     openModal(
       modalProps => (
         <ColumnEditorModal
@@ -357,6 +361,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           numberTags={numberAttributes}
           booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
+          traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
           }}
@@ -365,20 +370,17 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [booleanAttributes, fields, numberAttributes, onColumnsChange, stringAttributes]);
+  };
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
-  const setTableTab = useCallback(
-    (tab: 'aggregates' | 'logs') => {
-      if (tab === 'aggregates') {
-        setSidebarOpen(true);
-        setMode(Mode.AGGREGATE);
-      } else {
-        setMode(Mode.SAMPLES);
-      }
-    },
-    [setSidebarOpen, setMode]
-  );
+  const setTableTab = (tab: 'aggregates' | 'logs') => {
+    if (tab === 'aggregates') {
+      setSidebarOpen(true);
+      setMode(Mode.AGGREGATE);
+    } else {
+      setMode(Mode.SAMPLES);
+    }
+  };
 
   /**
    * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 hour.
@@ -429,100 +431,121 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ExploreBodyContent>
-        <ExploreControlSection expanded={sidebarOpen}>
-          {sidebarOpen ? <LogsToolbar /> : null}
-        </ExploreControlSection>
-        <ExploreContentSection>
-          <OverChartButtonGroup>
-            <LogsSidebarCollapseButton
-              sidebarOpen={sidebarOpen}
-              aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-              size="xs"
-              icon={
-                <IconChevron
-                  isDouble
-                  direction={sidebarOpen ? 'left' : 'right'}
-                  size="xs"
-                />
-              }
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? null : t('Advanced')}
-            </LogsSidebarCollapseButton>
-            <LogsExportButton
-              isLoading={tableData.isPending}
-              tableData={tableData.data}
-              error={tableData.error}
-            />
-          </OverChartButtonGroup>
-          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
-          <LogsDownSamplingAlert
-            timeseriesResult={timeseriesResult}
-            tableResult={infiniteLogsQueryResult}
-          />
-          <LogsGraphContainer>
-            <LogsGraph rawLogCounts={rawLogCounts} timeseriesResult={timeseriesResult} />
-          </LogsGraphContainer>
-          <LogsTableActionsContainer>
-            <Tabs value={tableTab} onChange={setTableTab} size="sm">
-              <TabList variant="floating">
-                <TabList.Item key="logs">{t('Logs')}</TabList.Item>
-                <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
-              </TabList>
-            </Tabs>
-            {tableTab === 'logs' && (
-              <TableActionsContainer>
-                <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                <Tooltip
-                  title={manualRefreshDisabledReason}
-                  disabled={!manualRefreshDisabledReason}
-                  skipWrapper
-                >
-                  <Button
-                    size="sm"
-                    icon={<IconRefresh />}
-                    disabled={!canManuallyRefresh}
-                    onClick={refreshTable}
-                    aria-label={t('Refresh')}
+      <ViewportConstrainedPage
+        constrained={tableExpando && mode === Mode.SAMPLES}
+        hideFooter={tableExpando}
+      >
+        <ViewportConstrainedBody>
+          <LogsControlSection expanded={sidebarOpen}>
+            {sidebarOpen ? <LogsToolbar /> : null}
+          </LogsControlSection>
+          <ExploreContentSection gap="md">
+            <OverChartButtonGroup>
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
                   />
-                </Tooltip>
-                <TableActionButton
-                  mobile={
-                    <Button
-                      onClick={openColumnEditor}
-                      icon={<IconEdit />}
-                      size="sm"
-                      aria-label={t('Edit Table')}
-                    />
-                  }
-                  desktop={
-                    <Button
-                      onClick={openColumnEditor}
-                      icon={<IconEdit />}
-                      size="sm"
-                      aria-label={t('Edit Table')}
-                    >
-                      {t('Edit Table')}
-                    </Button>
-                  }
-                />
-              </TableActionsContainer>
-            )}
-          </LogsTableActionsContainer>
-          <LogsItemContainer>
-            {tableTab === 'logs' ? (
-              <LogsInfiniteTable
-                booleanAttributes={booleanAttributes}
-                numberAttributes={numberAttributes}
-                stringAttributes={stringAttributes}
+                }
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? null : t('Advanced')}
+              </LogsSidebarCollapseButton>
+              <LogsExportSwitch
+                isLoading={tableData.isPending}
+                tableData={tableData.data}
+                error={tableData.error}
               />
-            ) : (
-              <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
-            )}
-          </LogsItemContainer>
-        </ExploreContentSection>
-      </ExploreBodyContent>
+            </OverChartButtonGroup>
+            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            <LogsDownSamplingAlert
+              timeseriesResult={timeseriesResult}
+              tableResult={infiniteLogsQueryResult}
+            />
+            <LogsGraphContainer>
+              <LogsGraph
+                rawLogCounts={rawLogCounts}
+                timeseriesResult={timeseriesResult}
+              />
+            </LogsGraphContainer>
+            <LogsTableActionsContainer>
+              <Tabs value={tableTab} onChange={setTableTab} size="sm">
+                <TabList variant="floating">
+                  <TabList.Item key="logs">{t('Logs')}</TabList.Item>
+                  <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
+                </TabList>
+              </Tabs>
+              {tableTab === 'logs' && (
+                <TableActionsContainer>
+                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
+                  <Tooltip
+                    title={manualRefreshDisabledReason}
+                    disabled={!manualRefreshDisabledReason}
+                    skipWrapper
+                  >
+                    <Button
+                      size="sm"
+                      icon={<IconRefresh />}
+                      disabled={!canManuallyRefresh}
+                      onClick={refreshTable}
+                      aria-label={t('Refresh')}
+                    />
+                  </Tooltip>
+                  <TableActionButton
+                    mobile={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      />
+                    }
+                    desktop={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      >
+                        {t('Edit Table')}
+                      </Button>
+                    }
+                  />
+                </TableActionsContainer>
+              )}
+            </LogsTableActionsContainer>
+            <LogsItemContainer overflowX="auto">
+              {tableTab === 'logs' ? (
+                <LogsInfiniteTable
+                  analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+                  expanded={tableExpando}
+                  booleanAttributes={booleanAttributes}
+                  stringAttributes={stringAttributes}
+                  numberAttributes={numberAttributes}
+                />
+              ) : (
+                <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+              )}
+            </LogsItemContainer>
+          </ExploreContentSection>
+        </ViewportConstrainedBody>
+      </ViewportConstrainedPage>
     </Fragment>
   );
 }
+
+const ViewportConstrainedBody = styled(ExploreBodyContent)`
+  flex-direction: row;
+  min-height: 0;
+`;
+
+const LogsControlSection = styled(ExploreControlSection)`
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
+`;

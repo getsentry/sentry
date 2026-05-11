@@ -542,12 +542,7 @@ def get_sources_for_project(project):
     project_source = get_internal_source(project)
     sources.append(project_source)
 
-    # Check that the organization still has access to symbol sources. This
-    # controls both builtin and external sources.
     organization = project.organization
-
-    if not features.has("organizations:symbol-sources", organization):
-        return sources
 
     # Custom sources have their own feature flag. Check them independently.
     if features.has("organizations:custom-symbol-sources", organization):

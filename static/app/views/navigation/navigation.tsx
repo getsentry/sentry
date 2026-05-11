@@ -2,12 +2,12 @@ import {Fragment, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {
   useCommandPaletteState,
@@ -55,6 +55,8 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
@@ -226,33 +228,35 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </NavigationTourElement>
       </Feature>
 
-      <Feature features={['performance-view']}>
-        <NavigationTourElement
-          id={NavigationTour.INSIGHTS}
-          title={null}
-          description={null}
-        >
-          {tourProps => (
-            <PrimaryNavigation.ListItem>
-              <PrimaryNavigation.Link
-                to={`/${prefix}/insights/`}
-                analyticsKey="insights"
-                label={t('Insights')}
-                {...mergeProps(
-                  makeNavigationItemProps(
-                    'insights',
-                    `/${prefix}/insights/`,
-                    `/${prefix}/insights`
-                  ),
-                  tourProps
-                )}
-              >
-                <IconGraph type="area" />
-              </PrimaryNavigation.Link>
-            </PrimaryNavigation.ListItem>
-          )}
-        </NavigationTourElement>
-      </Feature>
+      {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
+        <Feature features={['performance-view']}>
+          <NavigationTourElement
+            id={NavigationTour.INSIGHTS}
+            title={null}
+            description={null}
+          >
+            {tourProps => (
+              <PrimaryNavigation.ListItem>
+                <PrimaryNavigation.Link
+                  to={`/${prefix}/insights/`}
+                  analyticsKey="insights"
+                  label={t('Insights')}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'insights',
+                      `/${prefix}/insights/`,
+                      `/${prefix}/insights`
+                    ),
+                    tourProps
+                  )}
+                >
+                  <IconGraph type="area" />
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.ListItem>
+            )}
+          </NavigationTourElement>
+        </Feature>
+      )}
 
       {hasPageFrame ? null : (
         <PrimaryNavigation.ListItem padding="0 md">
@@ -269,7 +273,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
             {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
           >
             <IconSiren />
-            <PrimaryNavigation.ButtonFeatureBadge type="alpha" />
           </PrimaryNavigation.Link>
         </PrimaryNavigation.ListItem>
       </Feature>
@@ -308,21 +311,30 @@ export function PrimaryNavigationFooterItems() {
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   return (
     <Fragment>
       {hasPageFrame ? (
         <PrimaryNavigation.Button
-          label={t('Search support, docs and more')}
+          label={
+            <Flex gap="xs" align="center">
+              {t('Open command palette')}
+              <Hotkey value="mod+k" variant="debossed" />
+            </Flex>
+          }
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,
             onClick: () => {
-              if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette({}, organization, state, dispatch, 'button');
-              } else {
-                openHelpSearchModal({organization});
-              }
+              toggleCommandPalette(
+                {},
+                organization,
+                state,
+                dispatch,
+                'button',
+                isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+              );
             },
           }}
         />

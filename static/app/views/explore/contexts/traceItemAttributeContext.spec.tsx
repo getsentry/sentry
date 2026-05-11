@@ -50,18 +50,16 @@ describe('shouldRemoveNumberKey', () => {
 });
 
 function addAttributeMock(
-  attributeType: string,
-  body: Array<{key: string; name: string; secondaryAliases?: string[]}>
+  body: Array<{
+    attributeType: 'string' | 'number' | 'boolean';
+    key: string;
+    name: string;
+    secondaryAliases?: string[];
+  }>
 ) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
     body,
-    match: [
-      (_url, options) => {
-        const query = options?.query || {};
-        return query.attributeType === attributeType;
-      },
-    ],
   });
 }
 
@@ -87,12 +85,11 @@ describe('useTraceItemAttributes number filtering', () => {
   it('filters out number attributes that overlap with boolean attributes', async () => {
     const organization = OrganizationFixture();
 
-    addAttributeMock('number', [
-      {key: 'is_transaction', name: 'is_transaction'},
-      {key: 'custom_metric', name: 'custom_metric'},
+    addAttributeMock([
+      {attributeType: 'number', key: 'is_transaction', name: 'is_transaction'},
+      {attributeType: 'number', key: 'custom_metric', name: 'custom_metric'},
+      {attributeType: 'boolean', key: 'is_transaction', name: 'is_transaction'},
     ]);
-    addAttributeMock('string', []);
-    addAttributeMock('boolean', [{key: 'is_transaction', name: 'is_transaction'}]);
 
     const {result} = renderHookWithProviders(
       () =>
@@ -117,12 +114,10 @@ describe('useTraceItemAttributes number filtering', () => {
   it('filters number attributes that overlap with default boolean attributes', async () => {
     const organization = OrganizationFixture();
 
-    addAttributeMock('number', [
-      {key: 'is_transaction', name: 'is_transaction'},
-      {key: 'custom_metric', name: 'custom_metric'},
+    addAttributeMock([
+      {attributeType: 'number', key: 'is_transaction', name: 'is_transaction'},
+      {attributeType: 'number', key: 'custom_metric', name: 'custom_metric'},
     ]);
-    addAttributeMock('string', []);
-    addAttributeMock('boolean', []);
 
     const {result} = renderHookWithProviders(
       () =>
@@ -147,13 +142,18 @@ describe('useTraceItemAttributes number filtering', () => {
   it('filters tags[key,number] format when boolean version exists', async () => {
     const organization = OrganizationFixture();
 
-    addAttributeMock('number', [
-      {key: 'tags[is_transaction,number]', name: 'tags[is_transaction,number]'},
-      {key: 'custom_metric', name: 'custom_metric'},
-    ]);
-    addAttributeMock('string', []);
-    addAttributeMock('boolean', [
-      {key: 'tags[is_transaction,boolean]', name: 'tags[is_transaction,boolean]'},
+    addAttributeMock([
+      {
+        attributeType: 'number',
+        key: 'tags[is_transaction,number]',
+        name: 'tags[is_transaction,number]',
+      },
+      {attributeType: 'number', key: 'custom_metric', name: 'custom_metric'},
+      {
+        attributeType: 'boolean',
+        key: 'tags[is_transaction,boolean]',
+        name: 'tags[is_transaction,boolean]',
+      },
     ]);
 
     const {result} = renderHookWithProviders(
@@ -179,16 +179,18 @@ describe('useTraceItemAttributes number filtering', () => {
   it('filters overlapping number secondary aliases when boolean version exists', async () => {
     const organization = OrganizationFixture();
 
-    addAttributeMock('number', [
+    addAttributeMock([
       {
+        attributeType: 'number',
         key: 'custom_metric',
         name: 'custom_metric',
         secondaryAliases: ['tags[is_transaction,number]', 'tags[custom_metric,number]'],
       },
-    ]);
-    addAttributeMock('string', []);
-    addAttributeMock('boolean', [
-      {key: 'tags[is_transaction,boolean]', name: 'tags[is_transaction,boolean]'},
+      {
+        attributeType: 'boolean',
+        key: 'tags[is_transaction,boolean]',
+        name: 'tags[is_transaction,boolean]',
+      },
     ]);
 
     const {result} = renderHookWithProviders(
@@ -214,12 +216,11 @@ describe('useTraceItemAttributes number filtering', () => {
   it('preserves non-overlapping number attributes', async () => {
     const organization = OrganizationFixture();
 
-    addAttributeMock('number', [
-      {key: 'custom_metric', name: 'custom_metric'},
-      {key: 'another_metric', name: 'another_metric'},
+    addAttributeMock([
+      {attributeType: 'number', key: 'custom_metric', name: 'custom_metric'},
+      {attributeType: 'number', key: 'another_metric', name: 'another_metric'},
+      {attributeType: 'boolean', key: 'is_transaction', name: 'is_transaction'},
     ]);
-    addAttributeMock('string', []);
-    addAttributeMock('boolean', [{key: 'is_transaction', name: 'is_transaction'}]);
 
     const {result} = renderHookWithProviders(
       () =>

@@ -1,11 +1,11 @@
-import {useCallback, useMemo, useRef} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {useMemo, useRef} from 'react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
@@ -48,6 +48,8 @@ function useOpenEditHighlightsModal({
   event: Event;
   detailedProject?: Project;
 }) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
@@ -63,7 +65,7 @@ function useOpenEditHighlightsModal({
     [isProjectAdmin]
   );
 
-  const openEditHighlightsModal = useCallback(() => {
+  const openEditHighlightsModal = () => {
     trackAnalytics('highlights.issue_details.edit_clicked', {organization});
     openModal(
       deps => (
@@ -78,7 +80,7 @@ function useOpenEditHighlightsModal({
       ),
       {modalCss: highlightModalCss(theme)}
     );
-  }, [organization, detailedProject, event, theme]);
+  };
 
   return {openEditHighlightsModal, editProps};
 }

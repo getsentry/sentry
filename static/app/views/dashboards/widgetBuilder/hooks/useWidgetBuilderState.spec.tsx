@@ -1490,8 +1490,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'environment', kind: FieldValueKind.FIELD},
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1524,7 +1524,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1557,8 +1557,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'environment', kind: FieldValueKind.FIELD},
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1593,7 +1593,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['crash_free_rate', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1953,13 +1953,7 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: [
-                'avg' as AggregationKeyWithAlias,
-                'value',
-                'other.metric',
-                'gauge',
-                '-',
-              ],
+              function: ['avg', 'value', 'other.metric', 'gauge', '-'],
             },
           ] as Column[],
         });
@@ -1995,23 +1989,11 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: [
-                'sum' as AggregationKeyWithAlias,
-                'value',
-                'my.metric',
-                'counter',
-                '-',
-              ],
+              function: ['sum', 'value', 'my.metric', 'counter', '-'],
             },
             {
               kind: 'function',
-              function: [
-                'avg' as AggregationKeyWithAlias,
-                'value',
-                'my.metric',
-                'counter',
-                '-',
-              ],
+              function: ['avg', 'value', 'my.metric', 'counter', '-'],
             },
           ] as Column[],
         });
@@ -2621,7 +2603,7 @@ describe('useWidgetBuilderState', () => {
       });
 
       // The URL description is moved into local textContent state
-      expect(result.current.state.textContent as string).toBe('existing description');
+      expect(result.current.state.textContent!).toBe('existing description');
       // And cleared from the URL-backed description field
       expect(result.current.state.description).toBeUndefined();
     });
@@ -2646,7 +2628,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.textContent as string).toBe('text widget content');
+      expect(result.current.state.textContent!).toBe('text widget content');
 
       act(() => {
         result.current.dispatch({
@@ -2680,7 +2662,7 @@ describe('useWidgetBuilderState', () => {
 
       jest.runAllTimers();
 
-      expect(result.current.state.textContent as string).toBe('new text content');
+      expect(result.current.state.textContent!).toBe('new text content');
       // Text content must not be written to the URL to avoid excessive URL length
       expect(mockNavigate).not.toHaveBeenCalled();
     });

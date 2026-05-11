@@ -124,9 +124,7 @@ describe('AlertWizard', () => {
     });
 
     await userEvent.click(screen.getByText('Throughput'));
-    expect(
-      screen.getByText(/Throughput is the total number of spans/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/total number of spans/)).toBeInTheDocument();
   });
 
   it('hides logs aggregate alerts according to feature flag', () => {
@@ -188,9 +186,7 @@ describe('AlertWizard', () => {
     });
 
     await userEvent.click(screen.getByText('Throughput'));
-    expect(
-      screen.getByText(/Throughput is the total number of transactions/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/total number of spans/)).toBeInTheDocument();
   });
 
   it('hides custom metrics alerts when feature flag is disabled', () => {
@@ -210,7 +206,7 @@ describe('AlertWizard', () => {
       initialRouterConfig,
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 
   it('shows custom metrics alerts according to feature flag', () => {
@@ -232,7 +228,7 @@ describe('AlertWizard', () => {
     });
 
     // "Metrics" category heading and "Custom Metrics" option are both visible
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
     expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
   });
 });

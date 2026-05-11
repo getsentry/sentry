@@ -7,16 +7,13 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
 from sentry.models.dashboard import (
     Dashboard,
-    DashboardFavoriteUser,
-    DashboardLastVisited,
-    DashboardTombstone,
+    DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -28,7 +25,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardWidgetDatasetSourcesTypes
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
@@ -133,36 +129,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
-    def test_get_prebuilt_dashboard(self) -> None:
-        # Pre-built dashboards should be accessible
-        response = self.do_request("get", self.url("default-overview"))
-        assert response.status_code == 200
-        assert response.data["id"] == "default-overview"
-
-    def test_get_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            response = self.do_request("get", self.url("default-overview"))
-            assert response.status_code == 200
-            assert response.data["widgets"][7]["widgetType"] == "spans"
-
-    def test_prebuilt_dashboard_with_discover_split_feature_flag(self) -> None:
-        response = self.do_request("get", self.url("default-overview"))
-        assert response.status_code == 200, response.data
-
-        for widget in response.data["widgets"]:
-            assert widget["widgetType"] in {"issue", "transaction-like", "error-events"}
-
-    def test_get_prebuilt_dashboard_tombstoned(self) -> None:
-        DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
-        # Pre-built dashboards should be accessible even when tombstoned
-        # This is to preserve behavior around bookmarks
-        response = self.do_request("get", self.url("default-overview"))
-        assert response.status_code == 200
-        assert response.data["id"] == "default-overview"
-
     def test_features_required(self) -> None:
         with self.feature({"organizations:dashboards-basic": False}):
-            response = self.do_request("get", self.url("default-overview"))
+            response = self.do_request("get", self.url(self.dashboard.id))
             assert response.status_code == 404
 
     def test_dashboard_widget_returns_limit(self) -> None:
@@ -789,33 +758,14 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
-    def test_delete_prebuilt_dashboard(self) -> None:
-        slug = "default-overview"
-        response = self.do_request("delete", self.url(slug))
-        assert response.status_code == 204
-        assert DashboardTombstone.objects.filter(organization=self.organization, slug=slug).exists()
-
     def test_delete_last_dashboard(self) -> None:
-        slug = "default-overview"
-        response = self.do_request("delete", self.url(slug))
-        assert response.status_code == 204
-        assert DashboardTombstone.objects.filter(organization=self.organization, slug=slug).exists()
-
-        response = self.do_request("delete", self.url(self.dashboard.id))
-        assert response.status_code == 409
-
-    def test_delete_last_default_dashboard(self) -> None:
         response = self.do_request("delete", self.url(self.dashboard.id))
         assert response.status_code == 204
-        assert self.client.get(self.url(self.dashboard.id)).status_code == 404
-
-        slug = "default-overview"
-        response = self.do_request("delete", self.url(slug))
-        assert response.status_code == 409
+        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
 
     def test_features_required(self) -> None:
         with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("delete", self.url("default-overview"))
+            response = self.do_request("delete", self.url(self.dashboard.id))
             assert response.status_code == 404
 
     def test_delete_dashboard_with_edit_permissions_not_granted(self) -> None:
@@ -978,7 +928,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "put", self.url(self.dashboard.id), data={"title": "Dashboard 2"}
         )
         assert response.status_code == 409, response.data
-        assert list(response.data) == ["Dashboard with that title already exists."]
+        assert response.data["detail"] == "Dashboard with that title already exists."
 
     def test_allow_put_when_no_project_access(self) -> None:
         # disable Open Membership
@@ -1330,6 +1280,28 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
             assert response.status_code == 200, response.data
             assert response.data["widgets"][1]["description"] == "x" * 256
+
+    def test_update_text_widget_description_exceeds_15000_chars(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "First dashboard",
+                "widgets": [
+                    {"id": str(self.widget_1.id)},
+                    {
+                        "id": str(self.widget_2.id),
+                        "title": "Text Widget",
+                        "displayType": "text",
+                        "description": "x" * 15001,
+                    },
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400, response.data
+            assert "description" in response.data["widgets"][1], response.data
+            assert (
+                response.data["widgets"][1]["description"][0]
+                == "Description must not exceed 15,000 characters"
+            )
 
     def test_add_widget_with_limit(self) -> None:
         data = {
@@ -2289,65 +2261,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         for widget in widgets:
             assert widget["layout"] == expected_layouts[int(widget["id"])]
 
-    def test_update_prebuilt_dashboard(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {
-                    "title": "New title",
-                    "displayType": "line",
-                    "queries": [
-                        {
-                            "name": "transactions",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:transaction",
-                        },
-                    ],
-                },
-            ],
-        }
-        slug = "default-overview"
-        response = self.do_request("put", self.url(slug), data=data)
-        assert response.status_code == 200, response.data
-        dashboard_id = response.data["id"]
-        assert dashboard_id != slug
-
-        # Ensure widget and query were saved
-        widgets = self.get_widgets(dashboard_id)
-        assert len(widgets) == 1
-        self.assert_serialized_widget(data["widgets"][0], widgets[0])
-
-        queries = self.get_widget_queries(widgets[0])
-        assert len(queries) == 1
-        assert DashboardTombstone.objects.filter(slug=slug).exists()
-
-    def test_update_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {
-                    "title": "New title",
-                    "displayType": "line",
-                    "widgetType": "transaction-like",
-                    "queries": [
-                        {
-                            "name": "transactions",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:transaction",
-                        },
-                    ],
-                },
-            ],
-        }
-        slug = "default-overview"
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            response = self.do_request("put", self.url(slug), data=data)
-            assert response.status_code == 400, response.data
-
     def test_update_unknown_prebuilt(self) -> None:
         data = {
             "title": "First dashboard",
@@ -3114,8 +3027,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:performance-use-metrics": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
@@ -3167,8 +3079,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:performance-use-metrics": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
@@ -4014,6 +3925,105 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert "queries" in response.data["widgets"][1], response.data
             assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
+    def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
+            )
+        assert response.status_code == 200, response.data
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
+
+    def test_put_does_not_create_revision_when_feature_disabled(self) -> None:
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
+        )
+        assert response.status_code == 200, response.data
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 0
+
+    def test_put_snapshot_contains_pre_save_state(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        # Snapshot reflects the state before the update
+        assert revision.snapshot["title"] == self.dashboard.title
+        assert revision.title == self.dashboard.title
+        # The dashboard itself was updated
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "New Title"
+
+    def test_put_snapshot_includes_widgets_and_queries(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        snapshot_widgets = revision.snapshot["widgets"]
+
+        assert len(snapshot_widgets) == 4
+        assert snapshot_widgets[0]["id"] == str(self.widget_1.id)
+        assert snapshot_widgets[0]["title"] == self.widget_1.title
+        assert len(snapshot_widgets[0]["queries"]) == 2
+        assert snapshot_widgets[1]["id"] == str(self.widget_2.id)
+        assert snapshot_widgets[1]["title"] == self.widget_2.title
+        assert len(snapshot_widgets[1]["queries"]) == 1
+        assert snapshot_widgets[2]["id"] == str(self.widget_3.id)
+        assert snapshot_widgets[3]["id"] == str(self.widget_4.id)
+
+    def test_put_snapshot_captures_widget_state_before_widget_edit(self) -> None:
+        original_widget_title = self.widget_1.title
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={
+                    "title": self.dashboard.title,
+                    "widgets": [
+                        {"id": str(self.widget_1.id), "title": "Updated Widget Title"},
+                        {"id": str(self.widget_2.id)},
+                        {"id": str(self.widget_3.id)},
+                        {"id": str(self.widget_4.id)},
+                    ],
+                },
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        snapshot_widget = revision.snapshot["widgets"][0]
+        # Snapshot reflects the widget state before the edit
+        assert snapshot_widget["id"] == str(self.widget_1.id)
+        assert snapshot_widget["title"] == original_widget_title
+        # The widget itself was updated
+        self.widget_1.refresh_from_db()
+        assert self.widget_1.title == "Updated Widget Title"
+
+    def test_put_revision_source_defaults_to_edit(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "Updated"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit"
+
+    def test_put_revision_source_edit_with_agent(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"title": "Updated", "revisionSource": "edit-with-agent"},
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit-with-agent"
+
+    def test_put_revision_source_ignores_unknown_values(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"title": "Updated", "revisionSource": "malicious-value"},
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit"
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
@@ -4651,43 +4661,6 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert dashboard.visits == 1
         assert dashboard.last_visited == last_visited
 
-    def test_user_visited_dashboard_creates_entry(self) -> None:
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        assert not DashboardLastVisited.objects.filter(
-            dashboard=self.dashboard,
-            member=member,
-        ).exists()
-
-        response = self.do_request("post", self.url(self.dashboard.id))
-        assert response.status_code == 204
-
-        visit = DashboardLastVisited.objects.get(
-            dashboard=self.dashboard,
-            member=member,
-        )
-        assert visit.last_visited.timestamp() == pytest.approx(timezone.now().timestamp())
-
-    def test_user_visited_dashboard_updates_entry(self) -> None:
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=self.dashboard,
-            member=member,
-            last_visited=timezone.now() - timedelta(days=10),
-        )
-
-        response = self.do_request("post", self.url(self.dashboard.id))
-        assert response.status_code == 204
-
-        visit = DashboardLastVisited.objects.get(
-            dashboard=self.dashboard,
-            member=member,
-        )
-        assert visit.last_visited.timestamp() == pytest.approx(timezone.now().timestamp())
-
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
     def setUp(self) -> None:
@@ -4744,130 +4717,3 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
         assert response.status_code == 204
         assert self.user_2.id not in self.dashboard.favorited_by
-
-
-class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTestCase):
-    """
-    These tests are intended to cover and eventually replace the existing
-    OrganizationDashboardFavoriteTest cases.
-
-    They are updated as necessary to match the new functionality and
-    constraints regarding the position maintenance of the dashboard favorites.
-    """
-
-    features = ["organizations:dashboards-starred-reordering"]
-
-    def do_request(self, *args, **kwargs):
-        with self.feature(self.features):
-            return super().do_request(*args, **kwargs)
-
-    def setUp(self) -> None:
-        super().setUp()
-        # Create two additional users
-        self.user_1 = self.create_user(email="user1@example.com")
-        self.user_2 = self.create_user(email="user2@example.com")
-        self.create_member(user=self.user_1, organization=self.organization)
-        self.create_member(user=self.user_2, organization=self.organization)
-
-        # Both users have favorited the dashboard
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=self.user_1.id,
-            dashboard=self.dashboard,
-        )
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=self.user_2.id,
-            dashboard=self.dashboard,
-        )
-
-    def url(self, dashboard_id):
-        return reverse(
-            "sentry-api-0-organization-dashboard-favorite",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "dashboard_id": dashboard_id,
-            },
-        )
-
-    # PUT tests
-    def test_favorite_dashboard(self) -> None:
-        assert self.user.id not in self.dashboard.favorited_by
-        self.login_as(user=self.user)
-
-        # Insert an initial starred dashboard for this user
-        initial_dashboard = Dashboard.objects.create(
-            title="Other Dashboard",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=self.user.id,
-            dashboard=initial_dashboard,
-        )
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": "true"})
-        assert response.status_code == 204
-
-        # Assert that the dashboard is added to the end of the list by its position
-        assert list(
-            DashboardFavoriteUser.objects.filter(
-                organization=self.organization,
-                user_id=self.user.id,
-            )
-            .order_by("position")
-            .values_list("dashboard_id", flat=True)
-        ) == [
-            initial_dashboard.id,
-            self.dashboard.id,
-        ]
-
-    def test_unfavorite_dashboard(self) -> None:
-        assert self.user_1.id in self.dashboard.favorited_by
-        self.login_as(user=self.user_1)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
-        assert response.status_code == 204
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization,
-                user_id=self.user_1.id,
-                dashboard=self.dashboard,
-            )
-            is None
-        )
-
-    def test_favorite_dashboard_no_dashboard_edit_access(self) -> None:
-        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
-        self.login_as(user=self.user_2)
-        dashboard_detail_url = reverse(
-            "sentry-api-0-organization-dashboard-details",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "dashboard_id": self.dashboard.id,
-            },
-        )
-        response = self.do_request("put", dashboard_detail_url, data={"title": "New Dashboard 9"})
-        # assert user cannot edit dashboard
-        assert response.status_code == 403
-
-        # assert if user can edit the favorite status of the dashboard
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization,
-                user_id=self.user_2.id,
-                dashboard=self.dashboard,
-            )
-            is not None
-        )
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
-
-        # The dashboard was successfully unfavorited
-        assert response.status_code == 204
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization,
-                user_id=self.user_2.id,
-                dashboard=self.dashboard,
-            )
-            is None
-        )

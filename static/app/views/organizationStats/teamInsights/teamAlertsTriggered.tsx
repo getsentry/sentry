@@ -57,7 +57,7 @@ export function TeamAlertsTriggered({
     refetch: refetchAlertsTriggered,
   } = useApiQuery<AlertsTriggered>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {
@@ -76,7 +76,7 @@ export function TeamAlertsTriggered({
     refetch: refetchAlertsTriggeredRule,
   } = useApiQuery<AlertsTriggeredRule[]>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered-index/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered-index/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {
@@ -160,10 +160,10 @@ export function TeamAlertsTriggered({
         emptyAction={
           <ButtonsContainer>
             <LinkButton
-              priority="primary"
+              variant="primary"
               size="sm"
               to={makeAlertsPathname({
-                path: `/rules/`,
+                path: '/rules/',
                 organization,
               })}
             >

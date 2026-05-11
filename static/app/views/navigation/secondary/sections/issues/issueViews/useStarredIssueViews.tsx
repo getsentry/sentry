@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
 import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 
@@ -11,10 +11,14 @@ export function useStarredIssueViews() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const {data: groupSearchViews} = useApiQuery<Array<StarredGroupSearchView | null>>(
-    makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-    {notifyOnChangeProps: ['data'], staleTime: 0}
-  );
+  const starredOptions = starredGroupSearchViewsApiOptions({
+    orgSlug: organization.slug,
+  });
+
+  const {data: groupSearchViews} = useQuery({
+    ...starredOptions,
+    staleTime: 0,
+  });
 
   const starredViews =
     groupSearchViews
@@ -28,13 +32,11 @@ export function useStarredIssueViews() {
 
   const setStarredIssueViews = useCallback(
     (newViews: IssueView[]) => {
-      setApiQueryData<StarredGroupSearchView[]>(
-        queryClient,
-        makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-        newViews.map(convertIssueViewToGSV)
+      queryClient.setQueryData(starredOptions.queryKey, prevData =>
+        prevData ? {...prevData, json: newViews.map(convertIssueViewToGSV)} : prevData
       );
     },
-    [queryClient, organization.slug]
+    [queryClient, starredOptions.queryKey]
   );
 
   return {starredViews, setStarredIssueViews};

@@ -291,7 +291,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         super().setUp()
         self.action = self.create_action(
             type=Action.Type.DISCORD,
-            integration_id="1234567890",
+            integration_id=1234567890,
             config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
@@ -311,6 +311,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 action=self.action,
                 detector=self.detector,
                 notification_uuid=notification_uuid,
+                workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)
 
@@ -372,7 +373,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         notification_context = self.handler.build_notification_context(self.action)
         assert isinstance(notification_context, NotificationContext)
         assert notification_context.target_identifier == "channel456"
-        assert notification_context.integration_id == "1234567890"
+        assert notification_context.integration_id == 1234567890
         assert notification_context.sentry_app_config is None
 
     def test_build_alert_context(self) -> None:
@@ -438,6 +439,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -522,6 +524,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -596,6 +599,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -666,6 +670,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 action=self.action,
                 detector=self.detector,
                 notification_uuid=notification_uuid,
+                workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)
 
@@ -695,5 +700,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 action=self.action,
                 detector=self.detector,
                 notification_uuid=notification_uuid,
+                workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)

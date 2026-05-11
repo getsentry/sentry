@@ -71,7 +71,7 @@ export function AssertionOpHeader({
                 <OverlayTrigger.Button
                   {...props}
                   size="zero"
-                  priority="transparent"
+                  variant="transparent"
                   showChevron={false}
                   tooltipProps={{title: keyCombinedTooltip}}
                   aria-label={t('key comparison %s', keyCombinedLabel)}
@@ -153,7 +153,7 @@ export function AssertionOpHeader({
                 <OverlayTrigger.Button
                   {...props}
                   size="zero"
-                  priority="transparent"
+                  variant="transparent"
                   showChevron={false}
                   tooltipProps={{title: valueCombinedTooltip}}
                   aria-label={t('value comparison %s', valueCombinedLabel)}

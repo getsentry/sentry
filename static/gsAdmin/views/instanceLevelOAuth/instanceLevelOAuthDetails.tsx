@@ -14,7 +14,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useParams} from 'sentry/utils/useParams';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
@@ -40,16 +40,16 @@ const fieldProps = {
 
 export function InstanceLevelOAuthDetails() {
   const api = useApi();
-  const router = useRouter();
+  const params = useParams<{clientID: string}>();
 
   const [clientDetails, setClientDetails] = useState<ClientDetails | null>();
   const [errorMessage, setErrorMessage] = useState<string | null>();
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchClientData = useCallback(async () => {
     try {
       const response = await api.requestPromise(
-        `/_admin/instance-level-oauth/${router.params.clientID}/`,
+        `/_admin/instance-level-oauth/${params.clientID}/`,
         {}
       );
 
@@ -72,7 +72,7 @@ export function InstanceLevelOAuthDetails() {
     } finally {
       setLoading(false);
     }
-  }, [router.params.clientID, api]);
+  }, [params.clientID, api]);
 
   useEffect(() => {
     fetchClientData();
@@ -157,7 +157,7 @@ export function InstanceLevelOAuthDetails() {
           <Flex justify="right">
             <StyledButton
               size="sm"
-              priority="danger"
+              variant="danger"
               onClick={() =>
                 openModal(deps => (
                   <ConfirmClientDeleteModal

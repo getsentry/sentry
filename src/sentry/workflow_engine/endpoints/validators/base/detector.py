@@ -1,6 +1,6 @@
 import builtins
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from jsonschema import ValidationError as JSONSchemaValidationError
@@ -24,10 +24,14 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
 )
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
+    DataConditionGroupInput,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_source import DataSourceInput
 from sentry.workflow_engine.endpoints.validators.utils import (
+    connect_detectors_to_workflows,
     get_unknown_detector_type_error,
     log_alerting_quota_hit,
-    toggle_detector,
     update_owner,
 )
 from sentry.workflow_engine.models import (
@@ -45,6 +49,17 @@ class DetectorQuota:
     has_exceeded: bool
     limit: int
     count: int
+
+
+class DetectorInput(TypedDict):
+    name: str
+    type: str
+    data_sources: NotRequired[list[DataSourceInput]]
+    config: NotRequired[dict[str, Any]]
+    condition_group: NotRequired[DataConditionGroupInput]
+    owner: NotRequired[str | int | None]
+    description: NotRequired[str]
+    enabled: NotRequired[bool]
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
@@ -66,6 +81,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         help_text="Name of the monitor.",
     )
     type = serializers.CharField(help_text="The type of monitor - `metric_issue`.")
+    workflow_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs.",
+    )
     data_sources = serializers.ListField(
         required=False,
         help_text=DATA_SOURCES_HELP_TEXT,
@@ -178,6 +198,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        organization = self.context["organization"]
+        request = self.context["request"]
+
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
                 instance.name = validated_data.get("name", instance.name)
@@ -190,7 +213,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             if "enabled" in validated_data:
                 enabled = validated_data.get("enabled")
                 assert isinstance(enabled, bool)
-                toggle_detector(instance, enabled)
+                instance.enabled = enabled
 
             # Handle owner field update
             if "owner" in validated_data:
@@ -198,7 +221,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                     validated_data.pop("owner")
                 )
 
-            if "condition_group" in validated_data:
+            if "condition_group" in validated_data and validated_data.get("condition_group"):
                 condition_group = validated_data.pop("condition_group")
                 data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
@@ -215,15 +238,27 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 except JSONSchemaValidationError as error:
                     raise serializers.ValidationError({"config": [str(error)]})
 
+            # Update detector connections
+            workflow_ids = None
+            if "workflow_ids" in validated_data:
+                workflow_ids = validated_data.pop("workflow_ids")
+            connect_detectors_to_workflows(
+                request,
+                organization,
+                instance.id,
+                workflow_ids,
+                update=True,
+            )
+
             instance.save()
 
-        create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
-            target_object=instance.id,
-            event=audit_log.get_event_id("DETECTOR_EDIT"),
-            data=instance.get_audit_log_data(),
-        )
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=instance.id,
+                event=audit_log.get_event_id("DETECTOR_EDIT"),
+                data=instance.get_audit_log_data(),
+            )
 
         return instance
 
@@ -257,10 +292,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         # Do not disable or prevent the users from updating existing detectors.
         self.enforce_quota(validated_data)
 
+        organization = self.context["organization"]
+        request = self.context["request"]
+
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,
-                organization_id=self.context["organization"].id,
+                organization_id=organization.id,
             )
 
             if "condition_group" in validated_data:
@@ -283,7 +321,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
-                created_by_id=self.context["request"].user.id,
+                created_by_id=request.user.id,
             )
 
             try:
@@ -298,9 +336,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 for validated_data_source in validated_data["data_sources"]:
                     self._create_data_source(validated_data_source, detector)
 
+            # connect workflows
+            workflow_ids = validated_data.get("workflow_ids")
+            connect_detectors_to_workflows(request, organization, detector.id, workflow_ids)
+
             create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
+                request=request,
+                organization=organization,
                 target_object=detector.id,
                 event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),

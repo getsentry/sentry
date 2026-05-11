@@ -196,7 +196,10 @@ async def proxy_cell_request(
                         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                         circuitbreaker.incr_failures()
                     return _adapt_response(resp, target_url)
-            except (httpx.TimeoutException, asyncio.CancelledError):
+            except asyncio.CancelledError:
+                metrics.incr("apigateway.proxy.request_aborted", tags=metric_tags)
+                raise
+            except httpx.TimeoutException:
                 metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
                 circuitbreaker.incr_failures()
                 # remote silo timeout. Use DRF timeout instead

@@ -43,7 +43,7 @@ export function DebounceSearch({
   const enterPress = useKeyPress('Enter', node);
   const escapePress = useKeyPress('Escape', node);
 
-  const [cursor, setCursor] = useState<number>(0);
+  const [cursor, setCursor] = useState(0);
 
   const api = useApi();
 
@@ -57,7 +57,7 @@ export function DebounceSearch({
       if (value) {
         try {
           const queryParams = {
-            query: [queryParam, value].filter(v => v).join(':'),
+            query: [queryParam, value].filter(Boolean).join(':'),
             per_page: 10,
           };
           const results = await api.requestPromise(searchPath, {
@@ -162,7 +162,7 @@ const Card = styled('div')<{highlight?: boolean}>`
     p.highlight
       ? p.theme.tokens.interactive.link.accent.active
       : p.theme.tokens.content.primary};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding: ${p => p.theme.space.xl};
 `;
 const Error = styled('div')`

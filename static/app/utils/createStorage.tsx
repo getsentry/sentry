@@ -10,7 +10,7 @@ const noopStorage: Storage = {
     return;
   },
   clear() {
-    return undefined;
+    return;
   },
   // Returns null if key doesn't exist:
   // https://developer.mozilla.org/en-US/docs/Web/API/Storage/getItem

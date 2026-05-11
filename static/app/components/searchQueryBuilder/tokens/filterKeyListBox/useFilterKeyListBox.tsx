@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -165,9 +166,7 @@ function useFilterKeySections({
     return customSections;
   }, [disallowLogicalOperators, filterKeySections, query, recentSearches?.length]);
 
-  const [selectedSection, setSelectedSection] = useState<string>(
-    sections[0]?.value ?? ''
-  );
+  const [selectedSection, setSelectedSection] = useState(sections[0]?.value ?? '');
 
   const numSections = sections.length;
   const previousNumSections = usePrevious(numSections);
@@ -202,6 +201,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     currentInputValueRef,
     disallowLogicalOperators,
   } = useSearchQueryBuilder();
+  const analyticsArea = useAnalyticsArea();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -423,6 +423,11 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
           organization,
           action: 'opened',
         });
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
+          action: 'opened',
+        });
         setDisplayAskSeer(true);
 
         if (currentInputValueRef.current?.trim()) {
@@ -439,11 +444,17 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
           organization,
           action: 'consent_accepted',
         });
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
+          action: 'consent_accepted',
+        });
         seerAcknowledgeMutate();
         return;
       }
     },
     [
+      analyticsArea,
       currentInputValueRef,
       organization,
       seerAcknowledgeMutate,

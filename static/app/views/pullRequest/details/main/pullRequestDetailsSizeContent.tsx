@@ -21,9 +21,7 @@ export function PullRequestDetailsSizeContent({
   buildDetails,
 }: PullRequestDetailsSizeContentProps) {
   const organization = useOrganization();
-  const [selectedBuildId, setSelectedBuildId] = useState<string | undefined>(
-    buildDetails[0]?.id
-  );
+  const [selectedBuildId, setSelectedBuildId] = useState(buildDetails[0]?.id);
 
   const appSizeQuery = useApiQuery<AppSizeApiResponse>(
     // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (should be organization prefix?)
@@ -84,7 +82,7 @@ export function PullRequestDetailsSizeContent({
           </SelectContainer>
         </Flex>
       )}
-      <Grid areas={`"main sidebar"`} columns="1fr 325px" gap="3xl">
+      <Grid areas='"main sidebar"' columns="1fr 325px" gap="3xl">
         <Flex area="sidebar">
           {buildDetails.length > 0 && (
             <BuildDetailsSidebarContent

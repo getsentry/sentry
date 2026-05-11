@@ -590,7 +590,7 @@ const InputGroup = styled('div')<{noPadding?: boolean}>`
   gap: ${p => p.theme.space.md};
 
   ${FieldWrapper} {
-    ${p => p.noPadding && `padding: 0;`};
+    ${p => p.noPadding && 'padding: 0;'};
   }
 `;
 

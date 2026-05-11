@@ -1,5 +1,6 @@
 import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -19,7 +20,7 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   organizationIntegrationsCodingAgents,
   useLaunchCodingAgent,
   type CodingAgentIntegration,
@@ -32,8 +33,6 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -42,7 +41,6 @@ import {useUser} from 'sentry/utils/useUser';
 
 import {AutofixHighlightPopup} from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
-
 function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -67,10 +65,10 @@ function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       addLoadingMessage(t('On it...'));
     },
@@ -99,8 +97,8 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 1.0,
+  transition: {
+    duration: 1,
     height: {
       type: 'spring',
       bounce: 0.2,
@@ -113,7 +111,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 export function replaceHeadersWithBold(markdown: string) {
@@ -269,7 +267,7 @@ function SolutionActionButton({
   isLoadingAgents: boolean;
   isSelectingRootCause: boolean;
   preferredAction: string;
-  primaryButtonPriority: React.ComponentProps<typeof Button>['priority'];
+  primaryButtonPriority: React.ComponentProps<typeof Button>['variant'];
   submitFindSolution: () => void;
 }) {
   // Support both 'agent:' (new) and 'cursor:' (legacy) prefixes for backwards compatibility
@@ -300,7 +298,7 @@ function SolutionActionButton({
     return (
       <Button
         size="sm"
-        priority={primaryButtonPriority}
+        variant={primaryButtonPriority}
         busy={isSelectingRootCause}
         onClick={submitFindSolution}
         tooltipProps={{title: findSolutionTitle}}
@@ -334,8 +332,12 @@ function SolutionActionButton({
         const actionLabel = needsSetup
           ? t('Setup %s', integration.name)
           : t('Send to %s', integration.name);
+        const textValue = hasDuplicateNames
+          ? `${actionLabel} (${integration.id ?? integration.provider})`
+          : actionLabel;
         return {
           key: `agent:${integration.id ?? integration.provider}`,
+          textValue,
           label: (
             <Flex gap="md" align="center">
               <PluginIcon pluginId={integration.provider} size={20} />
@@ -392,7 +394,7 @@ function SolutionActionButton({
     <ButtonBar>
       <Button
         size="sm"
-        priority={primaryButtonPriority}
+        variant={primaryButtonPriority}
         disabled={isLoadingAgents}
         {...primaryButtonProps}
       >
@@ -404,7 +406,7 @@ function SolutionActionButton({
           <DropdownTrigger
             {...triggerProps}
             size="sm"
-            priority={primaryButtonPriority}
+            variant={primaryButtonPriority}
             busy={isSelectingRootCause || isLaunchingAgent}
             disabled={isLoadingAgents}
             aria-label={t('More solution options')}
@@ -454,7 +456,7 @@ function AutofixRootCauseDisplay({
   );
 
   // Stores 'seer_solution' or an integration ID (e.g., 'agent:123')
-  const [preferredAction, setPreferredAction] = useLocalStorageState<string>(
+  const [preferredAction, setPreferredAction] = useLocalStorageState(
     'autofix:rootCauseActionPreference',
     'seer_solution'
   );
@@ -549,8 +551,8 @@ function AutofixRootCauseDisplay({
     rootCauseSelection && 'cause_id' in rootCauseSelection
   );
   const hasCodingAgents = Boolean(codingAgents && Object.keys(codingAgents).length > 0);
-  const primaryButtonPriority: React.ComponentProps<typeof Button>['priority'] =
-    isRootCauseAlreadySelected || hasCodingAgents ? 'default' : 'primary';
+  const primaryButtonPriority: React.ComponentProps<typeof Button>['variant'] =
+    isRootCauseAlreadySelected || hasCodingAgents ? 'secondary' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   if (!cause) {
@@ -606,7 +608,7 @@ function AutofixRootCauseDisplay({
           {t('Root Cause')}
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"
@@ -726,7 +728,7 @@ const CausesContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding: ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.primary};
 `;

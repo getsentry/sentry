@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from sentry.features.manager import FeatureCheckBatch
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+    from sentry.organizations.services.organization.model import RpcOrganization
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
@@ -43,6 +44,7 @@ class FeatureHandler:
         feature: Feature,
         actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
+        skip_experiment_exposure: bool = False,
     ) -> bool | None:
         raise NotImplementedError
 
@@ -59,15 +61,16 @@ class FeatureHandler:
         feature_names: Sequence[str],
         actor: User | RpcUser | AnonymousUser | None,
         projects: Sequence[Project] | None = None,
-        organization: Organization | None = None,
+        organization: Organization | RpcOrganization | None = None,
         batch: bool = True,
+        skip_experiment_exposure: bool = False,
     ) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError
 
     def batch_has_for_organizations(
         self,
         feature_name: str,
-        organizations: Sequence[Organization],
+        organizations: Sequence[Organization | RpcOrganization],
     ) -> dict[str, bool] | None:
         raise NotImplementedError
 
@@ -97,7 +100,7 @@ class BatchFeatureHandler(FeatureHandler):
     def _check_for_batch(
         self,
         feature_name: str,
-        entity: Organization | User | RpcUser | AnonymousUser | None,
+        entity: Organization | RpcOrganization | User | RpcUser | AnonymousUser | None,
         actor: User | RpcUser | AnonymousUser | None,
     ) -> bool | None:
         raise NotImplementedError
@@ -107,6 +110,7 @@ class BatchFeatureHandler(FeatureHandler):
         feature: Feature,
         actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
+        skip_experiment_exposure: bool = False,
     ) -> bool | None:
         return self._check_for_batch(feature.name, feature.get_subject(), actor)
 

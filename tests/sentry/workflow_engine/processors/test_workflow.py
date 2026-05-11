@@ -15,7 +15,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -201,8 +201,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
             event_id=self.event.event_id,
         )
 
+    @patch("sentry.workflow_engine.processors.action.fire_actions")
     @patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
-    def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
+    def test_populate_workflow_env_for_filters(
+        self, mock_filter: MagicMock, mock_fire_actions: MagicMock
+    ) -> None:
+        action = self.create_action()
+        mock_filter.return_value = (Action.objects.filter(id=action.id), {action.id: 1})
+
         # this should not pass because the environment is not None
         self.error_workflow.update(environment=self.group_event.get_environment())
         error_workflow_filters = self.create_data_condition_group(
@@ -327,6 +333,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
+        self.issue_stream_detector.delete()
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.msg == "No Detectors associated with the issue were found"
@@ -446,13 +453,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert len(result.data.triggered_actions) == 0
 
     def test_multiple_detectors__preferred(self) -> None:
-        _, issue_stream_detector, _, _ = self.create_detector_and_workflow(
-            name_prefix="issue_stream",
-            workflow_triggers=self.create_data_condition_group(),
-            detector_type=IssueStreamGroupType.slug,
-        )
         self.create_detector_workflow(
-            detector=issue_stream_detector,
+            detector=self.issue_stream_detector,
             workflow=self.error_workflow,
         )
 

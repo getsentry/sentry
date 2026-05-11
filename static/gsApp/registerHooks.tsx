@@ -4,6 +4,7 @@ import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupConfiguration} from 'getsentry/components/ai/aiSetupConfiguration';
@@ -62,24 +63,25 @@ import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/hooks/rootRoutes';
+import {ScmGithubMultiOrgInstall} from 'getsentry/hooks/scmGithubMultiOrgInstall';
 import {seerSettingsRoutes} from 'getsentry/hooks/seerSettingsRoutes';
-import {ComponentWrapper as EnhancedOrganizationStats} from 'getsentry/hooks/spendVisibility/enhancedIndex';
 import {SpikeProtectionProjectSettings} from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import {subscriptionSettingsRoutes} from 'getsentry/hooks/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
+import {useExperiment} from 'getsentry/hooks/useExperiment';
 import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
 import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
+import {useScmFeatureMeta} from 'getsentry/hooks/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
 
 import {CodecovSettingsLink} from './components/codecovSettingsLink';
+import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
 import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
 import {
-  ContinuousProfilingBetaAlertBanner,
-  ContinuousProfilingBetaSDKAlertBanner,
   ContinuousProfilingBillingRequirementBanner,
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
@@ -104,6 +106,16 @@ const DisabledAlertsPage = lazy(() => import('./components/features/disabledAler
 const DisabledDashboardPage = lazy(
   () => import('./components/features/disabledDashboardPage')
 );
+
+const EnhancedOrganizationStats = lazy(() =>
+  import('getsentry/hooks/spendVisibility/enhancedIndex').then(module => ({
+    default: module.EnhancedOrganizationStats,
+  }))
+);
+
+function LazyEnhancedOrganizationStats(props: OrganizationStatsProps) {
+  return <LazyLoad LazyComponent={EnhancedOrganizationStats} {...props} />;
+}
 
 const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
@@ -147,6 +159,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Augment the global help search modal with a contat support button
    */
   'help-modal:footer': props => <HelpSearchFooter key="help-search-footer" {...props} />,
+
+  /**
+   * Registers usage & billing org settings as globally-available CMDK actions.
+   */
+  'cmdk:global-settings-actions': () => <GsBillingCommandPaletteActions />,
 
   /**
    * Settings navigation configuration component
@@ -211,9 +228,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:ai-setup-configuration': () => AiSetupConfiguration,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
-  'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
-  'component:continuous-profiling-beta-sdk-banner': () =>
-    ContinuousProfilingBetaSDKAlertBanner,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,
   'component:header-date-page-filter-upsell-footer': () => DateRangeQueryLimitFooter,
@@ -229,10 +243,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
-  'component:enhanced-org-stats': () => EnhancedOrganizationStats,
+  'component:enhanced-org-stats': () => LazyEnhancedOrganizationStats,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
+  'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
   'component:replay-onboarding-alert': () => ReplayOnboardingAlert,
   'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
@@ -250,7 +265,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
+  'react-hook:use-experiment': useExperiment,
   'react-hook:use-product-billing-access': useProductBillingAccess,
+  'react-hook:use-scm-feature-meta': useScmFeatureMeta,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),

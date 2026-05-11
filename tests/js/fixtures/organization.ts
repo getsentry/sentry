@@ -1,5 +1,6 @@
 import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 
+import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 
 export function OrganizationFixture(params: Partial<Organization> = {}): Organization {
@@ -54,15 +55,13 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     dataScrubberDefaults: false,
     dateCreated: new Date().toISOString(),
     debugFilesRole: '',
+    defaultAutomatedRunStoppingPoint: AutofixStoppingPoint.ROOT_CAUSE,
     defaultCodeReviewTriggers: [],
     defaultCodingAgentIntegrationId: null,
     defaultCodingAgent: 'seer',
     defaultRole: '',
     enhancedPrivacy: false,
     eventsMemberAdmin: false,
-    githubNudgeInvite: false,
-    githubPRBot: false,
-    gitlabPRBot: false,
     hideAiFeatures: false,
     isDefault: false,
     isDynamicallySampled: true,
@@ -71,7 +70,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     metricAlertsThreadFlag: false,
     openMembership: false,
     pendingAccessRequests: 0,
-    targetSampleRate: 1.0,
+    targetSampleRate: 1,
     quota: {
       accountLimit: null,
       maxRate: null,

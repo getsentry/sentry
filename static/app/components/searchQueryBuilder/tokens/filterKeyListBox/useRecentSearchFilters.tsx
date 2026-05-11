@@ -92,7 +92,7 @@ function getFiltersFromRecentSearches(
       // and are valid filter keys
       return !filtersInCurrentQuery.has(filter) && !!filterKeys[filter];
     })
-    .reduce((acc, token) => {
+    .reduce<FilterCounter>((acc, token) => {
       const filter = getKeyName(token.key);
       if (acc[filter]) {
         acc[filter].count += 1;
@@ -103,7 +103,7 @@ function getFiltersFromRecentSearches(
         };
       }
       return acc;
-    }, {} as FilterCounter);
+    }, {});
 
   return Object.entries(filterCounts)
     .sort((a, b) => b[1].count - a[1].count)

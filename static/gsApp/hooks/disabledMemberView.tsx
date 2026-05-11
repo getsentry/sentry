@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
@@ -13,9 +15,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageOverlay} from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
@@ -32,6 +34,7 @@ type Props = {
 
 function DisabledMemberView(props: Props) {
   const {orgId} = useParams<{orgId: string}>();
+  const navigate = useNavigate();
   const api = useApi({persistInFlight: true});
   const [requested, setRequested] = useState(false);
 
@@ -43,16 +46,12 @@ function DisabledMemberView(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Organization>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/`, {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-      {query: {detailed: '0', include_feature_flags: '1'}},
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {detailed: '0', include_feature_flags: '1'},
       staleTime: 0,
-    }
+    })
   );
 
   useEffect(() => {
@@ -95,7 +94,7 @@ function DisabledMemberView(props: Props) {
         organization: organization!,
         subscription,
       });
-      redirectToRemainingOrganization({orgId, removeOrg: true});
+      redirectToRemainingOrganization({navigate, orgId, removeOrg: true});
     },
     onError: () => {
       addErrorMessage(t('Unable to leave organization'));
@@ -118,7 +117,7 @@ function DisabledMemberView(props: Props) {
     <Button
       onClick={() => handleUpgradeRequestMutation.mutate()}
       size="sm"
-      priority="primary"
+      variant="primary"
     >
       {t('Request Upgrade')}
     </Button>
@@ -165,7 +164,7 @@ function DisabledMemberView(props: Props) {
                       orgName,
                     })}
                   >
-                    <Button size="sm" priority="danger">
+                    <Button size="sm" variant="danger">
                       {t('Leave')}
                     </Button>
                   </Confirm>

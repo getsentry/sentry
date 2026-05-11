@@ -1,4 +1,5 @@
-import {useEffect} from 'react';
+import {useContext, useEffect} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -12,12 +13,10 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Project} from 'sentry/types/project';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import {withProject} from 'sentry/utils/withProject';
+import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
 
-type Props = {
+interface RouteErrorProps {
   /**
    * Disable logging to Sentry
    */
@@ -27,22 +26,22 @@ type Props = {
    */
   disableReport?: boolean;
   error?: Error;
-  project?: Project;
-};
+}
 
-function RouteError({error, disableLogSentry, disableReport, project}: Props) {
-  const routes = useRoutes();
+export function RouteError({error, disableLogSentry, disableReport}: RouteErrorProps) {
+  const matches = useMatches();
   const {organization} = useLegacyStore(OrganizationStore);
+  const project = useContext(ProjectRouteContext);
 
   useEffect(() => {
     if (disableLogSentry) {
-      return undefined;
+      return;
     }
     if (!error) {
-      return undefined;
+      return;
     }
 
-    const route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes({matches});
     const enrichScopeContext = (scope: Scope) => {
       scope.setExtra('route', route);
       scope.setExtra('orgFeatures', organization?.features ?? []);
@@ -112,7 +111,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
             </ListItem>
           )}
           <ListItem>
-            {tct(`Give it a few seconds and [link:reload the page].`, {
+            {tct('Give it a few seconds and [link:reload the page].', {
               link: (
                 <a
                   onClick={() => {
@@ -124,10 +123,10 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
           </ListItem>
           <ListItem>
             {tct(
-              `Still stuck? Our [link:troubleshooting guide] has tips for common browser-related issues.`,
+              'Still stuck? Our [link:troubleshooting guide] has tips for common browser-related issues.',
               {
                 link: (
-                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22088541158555-Why-Sentry-io-is-not-loading" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964425-why-sentry-io-is-not-loading" />
                 ),
               }
             )}
@@ -135,9 +134,9 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
         </List>
         <p style={{marginTop: '1em', marginBottom: 0}}>
           {tct(
-            `If the guide does not help, [link:contact support] — include as many of these details as you can:`,
+            'If the guide does not help, [link:contact support] — include as many of these details as you can:',
             {
-              link: <ExternalLink href="https://sentry.zendesk.com/hc/en-us" />,
+              link: <ExternalLink href="https://www.sentry.help" />,
             }
           )}
         </p>
@@ -164,5 +163,3 @@ const Heading = styled('h1')`
   line-height: 1.4;
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-export default withProject(RouteError);

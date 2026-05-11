@@ -99,6 +99,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  onSearchQueryClear?: () => void;
   openOnFocus?: boolean;
   placeholder?: string;
   ref?: React.Ref<HTMLInputElement>;
@@ -177,7 +178,7 @@ function menuIsOpen({
   return openState && totalOptions > hiddenOptions.size;
 }
 
-function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
+function useHiddenItems({
   items,
   filterValue,
   maxOptions,
@@ -185,7 +186,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   showAskSeerOption,
 }: {
   filterValue: string;
-  items: T[];
+  items: Array<SelectOptionOrSectionWithKey<string>>;
   showAskSeerOption: boolean;
   maxOptions?: number;
   shouldFilterResults?: boolean;
@@ -364,6 +365,7 @@ export function SearchQueryBuilderCombobox<
   onKeyUp,
   onInputChange,
   onOpenChange,
+  onSearchQueryClear,
   autoFocus,
   openOnFocus,
   onFocus,
@@ -379,7 +381,8 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {disabled, portalTarget, enableAISearch, wrapperRef} = useSearchQueryBuilder();
+  const {clearSearchQuery, disabled, portalTarget, enableAISearch, wrapperRef} =
+    useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -617,7 +620,18 @@ export function SearchQueryBuilderCombobox<
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={disabled}
-        onKeyDownCapture={e => onKeyDownCapture?.(e, {state})}
+        onKeyDownCapture={e => {
+          if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
+            e.preventDefault();
+            e.stopPropagation();
+            onSearchQueryClear?.();
+            state.close();
+            clearSearchQuery({reopenDropdown: true});
+            return;
+          }
+
+          onKeyDownCapture?.(e, {state});
+        }}
         data-test-id={dataTestId}
       />
       {description ? (

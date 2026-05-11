@@ -17,12 +17,11 @@ import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logs
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
-import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
@@ -38,8 +37,13 @@ import {
   useQueryParamsTitle,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+  Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   combineConfidenceForSeries,
@@ -65,7 +69,7 @@ interface UseTrackAnalyticsProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
   attributeBreakdownsMode?: 'breakdowns' | 'cohort_comparison';
-  crossEventQueries?: ReturnType<typeof useCrossEventQueries>;
+  crossEventQueries?: CrossEventQueryExtras;
   title?: string;
   tracesTableResult?: TracesTableResult;
 }
@@ -98,7 +102,7 @@ function useTrackAnalytics({
     queryType === 'aggregate'
       ? (aggregatesTableResult.result.error?.message ?? '')
       : queryType === 'traces'
-        ? (tracesTableResult?.result.error?.message ?? '')
+        ? (tracesTableResult?.error?.message ?? '')
         : (spansTableResult.result.error?.message ?? '');
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
@@ -151,6 +155,7 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
@@ -172,6 +177,7 @@ function useTrackAnalytics({
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
       cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `,
       {isAnalytics: true}
@@ -183,6 +189,7 @@ function useTrackAnalytics({
     aggregatesTableResult.result.isPending,
     aggregatesTableResult.result.meta?.dataScanned,
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     hasExceededPerformanceUsageLimit,
@@ -245,6 +252,7 @@ function useTrackAnalytics({
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
@@ -265,11 +273,13 @@ function useTrackAnalytics({
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
       cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     fields,
@@ -334,6 +344,7 @@ function useTrackAnalytics({
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
@@ -354,11 +365,13 @@ function useTrackAnalytics({
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
       cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     hasExceededPerformanceUsageLimit,
@@ -401,7 +414,7 @@ function useTrackAnalytics({
       'timestamp',
     ];
     const resultMissingRoot =
-      tracesTableResult?.result?.data?.data?.filter(trace => !defined(trace.name))
+      tracesTableResult?.result?.data?.json?.data?.filter(trace => !defined(trace.name))
         .length ?? 0;
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
@@ -417,7 +430,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: tracesTableResult.result.data?.data?.length || 0,
+      result_length: tracesTableResult.result.data?.json?.data?.length || 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -433,10 +446,12 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
   }, [
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     hasExceededPerformanceUsageLimit,
@@ -452,7 +467,7 @@ function useTrackAnalytics({
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
-    tracesTableResult?.result.data?.data,
+    tracesTableResult?.result.data?.json?.data,
     tracesTableResult?.result?.isPending,
     tracesTableResultDefined,
     visualizes,
@@ -466,6 +481,7 @@ export function useAnalytics({
   tracesTableResult,
   timeseriesResult,
   interval,
+  crossEventQueries,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -474,6 +490,7 @@ export function useAnalytics({
   | 'tracesTableResult'
   | 'timeseriesResult'
   | 'interval'
+  | 'crossEventQueries'
 >) {
   const dataset = useSpansDataset();
   const title = useQueryParamsTitle();
@@ -483,7 +500,6 @@ export function useAnalytics({
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
   const {chartSelection} = useChartSelection();
-  const crossEventQueries = useCrossEventQueries();
 
   const attributeBreakdownsMode =
     queryType === 'attribute_breakdowns'
@@ -570,7 +586,7 @@ export function useLogAnalytics({
   aggregateSortBys: readonly Sort[];
   interval: string;
   isTopN: boolean;
-  logsAggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
+  logsAggregatesTableResult: LogsAggregatesTableResult;
   logsTableResult: UseInfiniteLogsQueryResult;
   logsTimeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   mode: Mode;
@@ -841,7 +857,13 @@ export function useMetricsPanelAnalytics({
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualize = useMetricVisualize();
-  const aggregateFunctionBox = useBox(visualize.parsedFunction?.name ?? '');
+  const aggregateFunctionBox = useBox(
+    isVisualizeFunction(visualize)
+      ? (visualize.parsedFunction?.name ?? '')
+      : isVisualizeEquation(visualize)
+        ? visualize.expression.text
+        : ''
+  );
 
   const tableError =
     mode === Mode.AGGREGATE

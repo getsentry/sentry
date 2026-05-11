@@ -54,7 +54,6 @@ export function ProjectSessionsAnrRequest({
     const baseParams = {
       field: [yAxis, 'count_unique(user)'],
       interval: getSessionsInterval(datetime, {
-        highFidelity: organization.features.includes('minute-resolution-sessions'),
         dailyInterval: true,
       }),
       project: projects[0],
@@ -85,7 +84,7 @@ export function ProjectSessionsAnrRequest({
 
   const {data, isRefetching, isError} = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryParams},

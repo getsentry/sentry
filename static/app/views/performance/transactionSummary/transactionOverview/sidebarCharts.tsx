@@ -197,7 +197,7 @@ export function SidebarChartsContainer({
       // Link each x-axis together.
       link: [{xAxisIndex: [0, 1]}],
     },
-    xAxes: Array.from(new Array(2)).map((_i, index) => ({
+    xAxes: Array.from(Array.from({length: 2})).map((_i, index) => ({
       gridIndex: index,
       type: 'time',
       show: false,
@@ -218,7 +218,7 @@ export function SidebarChartsContainer({
         gridIndex: 1,
         splitNumber: 4,
         interval: 0.5,
-        max: 1.0,
+        max: 1,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
           color: theme.tokens.content.secondary,

@@ -65,7 +65,6 @@ from sentry.grouping.ingest.config import is_in_transition, update_or_set_groupi
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
     get_or_create_grouphashes,
-    maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     run_primary_grouping,
 )
@@ -1117,39 +1116,42 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 tags={"event_type": job["event"].data.get("type") or "null"},
             )
 
-        # Record processing errors to analytics at 1% sample rate
+        # Record processing errors to analytics. Sample at 100% for orgs <30 days old
+        # so new-customer cohorts are fully observable; 1% otherwise.
         processing_errors = job["data"].get("errors", [])
         event = job["event"]
-        if (
-            processing_errors
-            and features.has("organizations:processing-error-analytics", event.project.organization)
-            and random.random() < 0.01
+        if processing_errors and features.has(
+            "organizations:processing-error-analytics", event.project.organization
         ):
-            group_id = job["groups"][0].group.id if job["groups"] else None
-            for error in processing_errors:
-                try:
-                    error_type = error.get("type", "unknown")
-                    error_name = error.get("name")
-                    error_value = error.get("value")
-                    # Convert non-string values to JSON and truncate
-                    if error_value is not None:
-                        if not isinstance(error_value, str):
-                            error_value = orjson.dumps(error_value).decode()
-                        error_value = error_value[:256]
-                    analytics.record(
-                        EventProcessingErrorRecorded(
-                            organization_id=event.project.organization_id,
-                            project_id=event.project_id,
-                            event_id=event.event_id,
-                            group_id=group_id,
-                            error_type=error_type,
-                            platform=job["data"].get("platform"),
-                            name=error_name,
-                            value=error_value,
+            org_age = datetime.now(timezone.utc) - event.project.organization.date_added
+            sample_rate = 1.0 if org_age < timedelta(days=30) else 0.01
+            if random.random() < sample_rate:
+                group_id = job["groups"][0].group.id if job["groups"] else None
+                for error in processing_errors:
+                    try:
+                        error_type = error.get("type", "unknown")
+                        error_name = error.get("name")
+                        error_value = error.get("value")
+                        # Convert non-string values to JSON and truncate
+                        if error_value is not None:
+                            if not isinstance(error_value, str):
+                                error_value = orjson.dumps(error_value).decode()
+                            error_value = error_value[:256]
+                        analytics.record(
+                            EventProcessingErrorRecorded(
+                                organization_id=event.project.organization_id,
+                                project_id=event.project_id,
+                                event_id=event.event_id,
+                                group_id=group_id,
+                                error_type=error_type,
+                                platform=job["data"].get("platform"),
+                                sample_rate=sample_rate,
+                                name=error_name,
+                                value=error_value,
+                            )
                         )
-                    )
-                except Exception:
-                    logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
+                    except Exception:
+                        logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
 
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
@@ -1357,11 +1359,6 @@ def assign_event_to_group(
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
-
-    # Background grouping is a way for us to get performance metrics for a new
-    # config without having it actually affect on how events are grouped. It runs
-    # either before or after the main grouping logic, depending on the option value.
-    maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
         project, primary.config, primary.hashes, secondary.config, secondary.hashes, result
@@ -2006,7 +2003,7 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
-    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
+    from sentry.workflow_engine.receivers.project_workflows import PLATFORMS_WITH_PRIORITY_ALERTS
 
     if killswitch_matches_context(
         "issues.severity.skip-seer-requests", {"project_id": event.project_id}

@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -9,6 +10,8 @@ from requests import PreparedRequest
 from rest_framework.response import Response
 
 from sentry.api.client import ApiClient
+from sentry.constants import ObjectStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
 from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.link_identity import build_linking_url
@@ -22,6 +25,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial, assert_slo_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
@@ -285,6 +289,83 @@ class StatusActionTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_action_rejected_when_organization_integration_is_not_active(
+        self, verify: MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.org.id,
+                integration=self.integration,
+            ).update(status=ObjectStatus.PENDING_DELETION)
+
+        resp = self.post_webhook(action_type=ACTION_TYPE.ARCHIVE, archive_input="-1")
+
+        assert resp.status_code == 404
+        self.group1.refresh_from_db()
+        assert self.group1.get_status() == GroupStatus.UNRESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_action_rejected_when_group_org_not_linked_to_integration(
+        self, verify: MagicMock
+    ) -> None:
+        attacker = self.create_user(is_superuser=False)
+        other_org = self.create_organization(owner=attacker)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            other_integration = self.create_provider_integration(
+                provider="msteams",
+                name="Army of Mordor",
+                external_id="54rum4n",
+                metadata={
+                    "service_url": "https://smba.trafficmanager.net/amer",
+                    "access_token": "y0u_h4v3_ch053n_d347h",
+                    "expires_at": int(time.time()) + 86400,
+                },
+            )
+            self.create_organization_integration(
+                organization_id=other_org.id, integration=other_integration
+            )
+            other_idp = self.create_identity_provider(type="msteams", external_id="54rum4n")
+            Identity.objects.create(
+                external_id="7h3_gr3y",
+                idp=other_idp,
+                user=attacker,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
+
+        # Attacker references their own integration but a group from self.org.
+        payload = {
+            "type": "message",
+            "from": {"id": "7h3_gr3y"},
+            "channelData": {
+                "tenant": {"id": "m0rd0r"},
+                "team": {"id": "54rum4n"},
+                "channel": {"id": "54rum4n"},
+            },
+            "conversation": {"conversationType": "channel", "id": "54rum4n"},
+            "value": {
+                "payload": {
+                    "groupId": self.group1.id,
+                    "eventId": self.event1.event_id,
+                    "actionType": ACTION_TYPE.ARCHIVE,
+                    "rules": [],
+                    "integrationId": other_integration.id,
+                },
+                "archiveInput": "-1",
+            },
+            "replyToId": "12345",
+        }
+
+        webhook_url = reverse("sentry-integration-msteams-webhooks")
+        resp = self.client.post(webhook_url, data=payload)
+
+        assert resp.status_code == 404
+        self.group1.refresh_from_db()
+        assert self.group1.get_status() == GroupStatus.UNRESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_assign_to_me_multiple_identities(self, verify: MagicMock) -> None:
         org2 = self.create_organization(owner=None)
 
@@ -358,6 +439,31 @@ class StatusActionTest(APITestCase):
         expected_data = {"status": "resolved", "statusDetails": {"inRelease": "latest"}}
 
         assert_mock_called_once_with_partial(client_put, data=expected_data)
+
+    @responses.activate
+    @override_options({"viewer-context.enabled": True})
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_action_submitted_sets_viewer_context(self, verify: MagicMock) -> None:
+        """ViewerContext is set with org_id and actor_type=INTEGRATION during action handling."""
+        from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+
+        captured_contexts: list[ViewerContext | None] = []
+
+        original_refresh = Group.refresh_from_db
+
+        def capturing_refresh(self_group: Any, *args: Any, **kwargs: Any) -> None:
+            captured_contexts.append(get_viewer_context())
+            return original_refresh(self_group, *args, **kwargs)
+
+        with patch.object(Group, "refresh_from_db", capturing_refresh):
+            resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
+
+        assert resp.status_code == 200
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert ctx is not None
+        assert ctx.organization_id == self.org.id
+        assert ctx.actor_type == ActorType.INTEGRATION
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

@@ -72,7 +72,7 @@ export function ChartContextMenu({
             ui_source: 'chart',
             organization,
           });
-          return undefined;
+          return;
         },
       });
     } else {
@@ -95,7 +95,7 @@ export function ChartContextMenu({
             ui_source: 'chart',
             organization,
           });
-          return undefined;
+          return;
         },
       }));
 
@@ -128,7 +128,7 @@ export function ChartContextMenu({
       disabled: disableAddToDashboard,
       onAction: () => {
         if (disableAddToDashboard) {
-          return undefined;
+          return;
         }
         trackAnalytics('trace_explorer.save_as', {
           save_type: 'dashboard',
@@ -177,7 +177,7 @@ export function ChartContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}
@@ -187,6 +187,6 @@ export function ChartContextMenu({
   );
 }
 
-const DisabledText = styled('span')`
+export const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;

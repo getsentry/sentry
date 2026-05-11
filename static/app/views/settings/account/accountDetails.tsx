@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
@@ -18,7 +18,6 @@ import {
   fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';

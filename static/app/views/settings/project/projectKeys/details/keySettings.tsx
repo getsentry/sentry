@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -51,7 +51,7 @@ export function KeySettings({
   const {keyId, projectId} = params;
   const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
-  const handleRemove = useCallback(async () => {
+  const handleRemove = async () => {
     addLoadingMessage(t('Revoking key\u2026'));
 
     try {
@@ -67,10 +67,7 @@ export function KeySettings({
     } catch (_err) {
       addErrorMessage(t('Unable to revoke key'));
     }
-  }, [organization, api, onRemove, keyId, projectId]);
-
-  const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
-  const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
+  };
 
   return (
     <Fragment>
@@ -116,6 +113,7 @@ export function KeySettings({
               params={params}
               data={data}
               disabled={!hasAccess}
+              project={project}
               updateData={updateData}
             />
 
@@ -150,8 +148,8 @@ export function KeySettings({
                 <ProjectKeyCredentials
                   projectId={`${data.projectId}`}
                   data={data}
-                  showOtlpTraces={showOtlpTraces}
-                  showOtlpLogs={showOtlpLogs}
+                  showOtlpTraces
+                  showOtlpLogs
                   showPublicKey
                   showSecretKey
                   showProjectId
@@ -185,7 +183,7 @@ export function KeySettings({
                     confirmText={t('Revoke Key')}
                     disabled={!hasAccess}
                   >
-                    <Button priority="danger">{t('Revoke Key')}</Button>
+                    <Button variant="danger">{t('Revoke Key')}</Button>
                   </Confirm>
                 </div>
               </FieldGroup>

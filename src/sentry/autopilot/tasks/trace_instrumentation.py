@@ -9,8 +9,8 @@ from sentry.autopilot.tasks.common import AutopilotDetectorName, create_instrume
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.tools import get_trace_waterfall
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.tools import get_trace_waterfall
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
 from sentry.tasks.base import instrumented_task
@@ -213,7 +213,7 @@ def run_trace_instrumentation_detector_for_project_task(
     organization_id: int, project_id: int
 ) -> list[TraceInstrumentationIssue] | None:
     """
-    Analyze ONE trace from a project to identify instrumentation issues using SeerExplorerClient.
+    Analyze ONE trace from a project to identify instrumentation issues using SeerAgentClient.
 
     Returns:
         List of instrumentation issues found, or None if detection failed.
@@ -263,7 +263,7 @@ def run_trace_instrumentation_detector_for_project_task(
         return None
 
     try:
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user=None,
             category_key=AutopilotDetectorName.TRACE_INSTRUMENTATION,

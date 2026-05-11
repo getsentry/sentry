@@ -1,6 +1,11 @@
+import {Fragment} from 'react';
+
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -18,7 +23,14 @@ import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/co
 import {DetectorDetailsDefaultHeaderContent} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type ErrorDetectorDetailsProps = {
   detector: Detector;
@@ -72,23 +84,56 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
   const organization = useOrganization();
   const canEdit = useCanEditDetectorWorkflowConnections({projectId: project.id});
   const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <DetailLayout>
-      <DetailLayout.Header>
-        <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
-        <DetailLayout.Actions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Monitors'),
+                  to: makeMonitorBasePathname(organization.slug),
+                },
+                {
+                  label: getDetectorTypeLabel(detector.type),
+                  to: makeMonitorTypePathname(organization.slug, detector.type),
+                },
+                {
+                  label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                },
+              ]}
+            />
+          </TopBar.Slot>
           <MonitorFeedbackButton />
-          <EditDetectorAction detector={detector} canEdit={canEdit} />
-        </DetailLayout.Actions>
-      </DetailLayout.Header>
+        </Fragment>
+      ) : (
+        <DetailLayout.Header>
+          <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+          <DetailLayout.Actions>
+            <MonitorFeedbackButton />
+            <EditDetectorAction detector={detector} canEdit={canEdit} />
+          </DetailLayout.Actions>
+        </DetailLayout.Header>
+      )}
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DisabledAlert
             detector={detector}
             message={t('This monitor is disabled and not creating issues.')}
           />
-          <DatePageFilter />
+          {hasPageFrameFeature ? (
+            <Flex align="center" justify="between" gap="md">
+              <DatePageFilter />
+              <Flex flex={1} justify="end" gap="md">
+                <EditDetectorAction detector={detector} canEdit={canEdit} />
+              </Flex>
+            </Flex>
+          ) : (
+            <DatePageFilter />
+          )}
           <DetectorDetailsOngoingIssues
             detector={detector}
             dateTimeSelection={selection.datetime}

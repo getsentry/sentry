@@ -29,14 +29,14 @@ export function useHiddenExceptions(values: ExceptionValue[]) {
       )
   );
 
-  const toggleRelatedExceptions = useCallback((exceptionId: number) => {
+  const toggleRelatedExceptions = (exceptionId: number) => {
     setHiddenExceptions(old => {
       if (!defined(old[exceptionId])) {
         return old;
       }
       return {...old, [exceptionId]: !old[exceptionId]};
     });
-  }, []);
+  };
 
   const expandException = useCallback(
     (exceptionId: number) => {
@@ -89,7 +89,7 @@ export function ToggleRelatedExceptionsButton({
 
   return (
     <MonoButton
-      priority="link"
+      variant="link"
       size="xs"
       onClick={() => toggleRelatedExceptions(exceptionId)}
       data-test-id="toggle-related-exceptions"
@@ -198,7 +198,7 @@ function ExceptionTreeItem({
       <Circle />
       {link && defined(exceptionId) ? (
         <Button
-          priority="link"
+          variant="link"
           size="zero"
           onClick={() => {
             onExceptionClick(exceptionId);

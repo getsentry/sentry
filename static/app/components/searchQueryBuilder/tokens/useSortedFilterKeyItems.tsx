@@ -1,4 +1,5 @@
 import {useMemo, type ReactNode} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -21,7 +22,6 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 type FilterKeySearchItem = {
@@ -178,8 +178,8 @@ export function useSortedFilterKeyItems({
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['search-query-builder-tag-keys', debouncedFilterValue],
     queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
     enabled: shouldFetchAsync,
@@ -298,7 +298,12 @@ export function useSortedFilterKeyItems({
         }
 
         const {key} = filterSearchKeyItem.item;
-        return createItem(allKeysLookup[key]!, getFieldDefinition(key));
+        return createItem(
+          allKeysLookup[key]!,
+          getFieldDefinition(key),
+          undefined,
+          filterValue
+        );
       });
 
     // Partition so async-only keys always appear below static keys,

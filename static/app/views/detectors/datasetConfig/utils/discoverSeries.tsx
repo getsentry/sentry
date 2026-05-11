@@ -1,9 +1,8 @@
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   EAP_EXTRAPOLATION_MODE_MAP,
   ExtrapolationMode,
@@ -114,12 +113,11 @@ export function getDiscoverSeriesQueryOptions({
   start,
   end,
   extrapolationMode,
-}: DiscoverSeriesQueryOptions): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
+}: DiscoverSeriesQueryOptions) {
+  return apiOptions.as<EventsStats>()(
+    '/organizations/$organizationIdOrSlug/events-stats/',
     {
+      path: {organizationIdOrSlug: organization.slug},
       query: {
         interval: getDuration(interval, 0, false, true),
         project: [projectId],
@@ -142,6 +140,7 @@ export function getDiscoverSeriesQueryOptions({
         ...(query && {query}),
         ...(comparisonDelta && {comparisonDelta}),
       },
-    },
-  ];
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 }

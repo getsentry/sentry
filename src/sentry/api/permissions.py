@@ -203,9 +203,10 @@ class SentryPermission(ScopedPermission):
             rpc_user_org_context=org_context,
         )
 
-        if auth.is_user_signed_request(request):
-            # if the user comes from a signed request
-            # we let them pass if sso is enabled
+        if auth.is_user_signed_request(request) or auth.is_user_from_viewer_context(request):
+            # Signed requests and viewer-context-authenticated service
+            # callbacks already carry a trusted assertion of user identity, so
+            # they should not depend on browser-session SSO completion.
             logger.info(
                 "access.signed-sso-passthrough",
                 extra=extra,

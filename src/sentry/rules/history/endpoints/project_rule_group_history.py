@@ -19,7 +19,6 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.rules.history import fetch_rule_groups_paginated
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.workflow_engine.models.workflow import Workflow
@@ -58,7 +57,7 @@ class RuleGroupHistorySerializer(Serializer):
 @cell_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-projectrulegroupstats-get",
+        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
     }
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -78,7 +77,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         per_page = self.get_per_page(request)
         cursor = self.get_cursor_from_request(request)
         try:
@@ -86,7 +85,9 @@ class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid start and end dates")
 
-        results = fetch_rule_groups_paginated(rule, start, end, cursor, per_page)
+        results = fetch_rule_groups_paginated(
+            rule, start, end, cursor, per_page, project_id=project.id
+        )
 
         response = Response(serialize(results.results, request.user, RuleGroupHistorySerializer()))
         self.add_cursor_headers(request, response, results)

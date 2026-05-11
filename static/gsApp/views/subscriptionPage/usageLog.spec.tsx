@@ -80,7 +80,7 @@ describe('Subscription Usage Log', () => {
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByRole('heading', {name: /Activity Logs/i})).toBeInTheDocument();
-    expect(screen.getByText(/cancelled plan/i)).toBeInTheDocument();
+    expect(await screen.findByText(/cancelled plan/i)).toBeInTheDocument();
     expect(screen.getByText(/Sentry Staff/i)).toBeInTheDocument();
     expect(screen.getByText(/Jun/i)).toBeInTheDocument();
     await userEvent.click(screen.getByText(/Select Action/i));
@@ -97,7 +97,7 @@ describe('Subscription Usage Log', () => {
     render(<UsageLog />, {organization});
 
     await screen.findByText(/Select Action/i);
-    expect(screen.getByText(/No entries available/i)).toBeInTheDocument();
+    expect(await screen.findByText(/No entries available/i)).toBeInTheDocument();
   });
 
   it('keeps hyphens in on-demand and PAYG', async () => {
@@ -116,7 +116,7 @@ describe('Subscription Usage Log', () => {
     render(<UsageLog />, {organization});
 
     await screen.findByText(/Select Action/i);
-    expect(screen.getByText('On-demand Edit')).toBeInTheDocument();
+    expect(await screen.findByText('On-demand Edit')).toBeInTheDocument();
     expect(screen.getByText('Pay-as-you-go Edit')).toBeInTheDocument();
   });
 });

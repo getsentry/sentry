@@ -67,8 +67,8 @@ function useGuidedStepsContentValue({
   onStepChange,
 }: Pick<GuidedStepsProps, 'onStepChange' | 'initialStep'>): GuidedStepsContextState {
   const registeredStepsRef = useRef<RegisteredSteps>({});
-  const [totalSteps, setTotalSteps] = useState<number>(0);
-  const [currentStep, setCurrentStep] = useState<number>(initialStep ?? 1);
+  const [totalSteps, setTotalSteps] = useState(0);
+  const [currentStep, setCurrentStep] = useState(initialStep ?? 1);
 
   // Steps are registered on initial render to determine the step order and which step to start on.
   // This allows Steps to be wrapped in other components, but does require that they exist on first
@@ -299,8 +299,8 @@ const StepWrapper = styled('div')`
 const StepButton = styled('button')<{hasTrailingItems: boolean}>`
   ${p =>
     p.hasTrailingItems
-      ? `flex: 1; min-width: 0; text-align: left;`
-      : `grid-area: heading;`}
+      ? 'flex: 1; min-width: 0; text-align: left;'
+      : 'grid-area: heading;'}
 
   position: relative;
   background: none;
@@ -371,7 +371,6 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
 `;
 
 const StepDetails = styled('div')`
-  overflow: hidden;
   grid-area: details;
   min-width: 0;
 `;

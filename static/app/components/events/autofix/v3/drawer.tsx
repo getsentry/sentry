@@ -1,7 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
@@ -16,6 +17,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -31,6 +33,24 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
   const handleRestart = useHandleRestart({aiAutofix});
 
+  const referrer = useMemo(
+    () => getReferrerFromBlocks(aiAutofix.runState?.blocks ?? []),
+    [aiAutofix.runState?.blocks]
+  );
+
+  // For autoscroll, we only want to turn it on if we ever encounter a processing state.
+  // If not, it indicates the users is viewing an already completed autofix, so we do
+  // not want to enable autoscroll.
+  const enableAutoScroll = useRef(false);
+  if (aiAutofix.runState?.status === 'processing') {
+    enableAutoScroll.current = true;
+  }
+
+  const {containerRef, onScrollHandler} = useAutoScroll({
+    enabled: enableAutoScroll.current,
+    key: aiAutofix.runState,
+  });
+
   return (
     <Flex
       className="seer-drawer-container"
@@ -40,8 +60,12 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       direction="column"
       background="secondary"
     >
-      <SeerDrawerHeader onCopyMarkdown={handleCopyMarkdown} onReset={handleRestart} />
-      <SeerDrawerBody>
+      <SeerDrawerHeader
+        onCopyMarkdown={handleCopyMarkdown}
+        onReset={handleRestart}
+        referrer={referrer}
+      />
+      <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
         {aiConfig.isAutofixSetupLoading ? (
           <Flex data-test-id="ai-setup-loading-indicator" direction="column" gap="xl">
             <Placeholder height="10rem" />
@@ -65,7 +89,7 @@ function useHandleCopyMarkdown({
 
   return useMemo(() => {
     if (!aiAutofix.runState) {
-      return undefined;
+      return;
     }
 
     return () => {

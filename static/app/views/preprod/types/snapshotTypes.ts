@@ -8,6 +8,7 @@ export interface SnapshotImage {
   height: number;
   key: string;
   width: number;
+  content_hash: string;
 }
 
 export interface SnapshotDiffPair {
@@ -17,10 +18,26 @@ export interface SnapshotDiffPair {
   head_image: SnapshotImage;
 }
 
-export interface SnapshotComparisonRunInfo {
+interface SnapshotComparisonRunInfo {
   completed_at?: string;
   duration_ms?: number;
   state?: ComparisonState;
+}
+
+interface SnapshotApprover {
+  source: 'sentry' | 'github';
+  approved_at?: string | null;
+  avatar_url?: string | null;
+  email?: string | null;
+  id?: string | null;
+  name?: string | null;
+  username?: string | null;
+}
+
+interface SnapshotApprovalInfo {
+  approvers: SnapshotApprover[];
+  status: 'approved' | 'requires_approval';
+  is_auto_approved?: boolean;
 }
 
 export interface SnapshotDetailsApiResponse {
@@ -32,7 +49,13 @@ export interface SnapshotDetailsApiResponse {
   state: string;
   vcs_info: BuildDetailsVcsInfo;
 
+  app_id?: string | null;
+
   comparison_run_info?: SnapshotComparisonRunInfo | null;
+
+  approval_info?: SnapshotApprovalInfo | null;
+
+  diff_threshold?: number | null;
 
   // Diff fields
   added: SnapshotImage[];
@@ -67,12 +90,8 @@ export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
 }
 
-export function getImageGroup(image: SnapshotImage): string {
-  return image.group ?? image.image_file_name;
-}
-
 interface SidebarItemBase {
-  badge: string | null;
+  displayName: string;
   key: string;
   name: string;
 }

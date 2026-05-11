@@ -1050,13 +1050,16 @@ class SnubaTestCase(BaseTestCase):
 
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
+    reset_snuba_data: bool = True
 
     def setUp(self):
         super().setUp()
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
-    def initialize(self, reset_snuba, call_snuba):
+    def initialize(self, request, call_snuba):
+        if self.reset_snuba_data:
+            request.getfixturevalue("reset_snuba")
         self.call_snuba = call_snuba
 
     def create_project(self, **kwargs) -> Project:
@@ -2978,7 +2981,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
@@ -4044,6 +4047,90 @@ class ReplayEAPTestCase(BaseTestCase):
         if category == "ui.click":
             breadcrumb_data["click_is_dead"] = click_is_dead
             breadcrumb_data["click_is_rage"] = click_is_rage
+
+        breadcrumb_data.update(attributes)
+
+        attributes_proto = {}
+        for k, v in breadcrumb_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=retention_days,
+            attributes=attributes_proto,
+            client_sample_rate=1.0,
+            server_sample_rate=1.0,
+        )
+
+    def create_replay_breadcrumb(
+        self,
+        *,
+        project,
+        replay_id,
+        segment_id,
+        breadcrumb_type,
+        timestamp=None,
+        organization=None,
+        trace_id=None,
+        retention_days=30,
+        **attributes,
+    ):
+        """create_eap_replay_breadcrumb is wrong so making another create event that's tested against what we see in
+        production. can also check `src/sentry/replays/usecases/ingest/event_parser.py` for these names too"""
+
+        if organization is None:
+            organization = self.organization
+        if timestamp is None:
+            timestamp = datetime.now(UTC)
+        if trace_id is None:
+            trace_id = replay_id
+
+        if breadcrumb_type == ReplayBreadcrumbType.CLICK:
+            category = "ui.click"
+            click_is_dead = 0
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.DEAD_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.RAGE_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 1
+        elif breadcrumb_type == ReplayBreadcrumbType.ERROR:
+            category = "error"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.WARNING:
+            category = "warning"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.INFO:
+            category = "info"
+            click_is_dead = None
+            click_is_rage = None
+        else:
+            raise ValueError(f"Unknown breadcrumb type: {breadcrumb_type}")
+
+        breadcrumb_data = {
+            "replay_id": replay_id,
+            "segment_id": segment_id,
+            "category": category,
+        }
+
+        if category == "ui.click":
+            breadcrumb_data["is_dead"] = click_is_dead
+            breadcrumb_data["is_rage"] = click_is_rage
 
         breadcrumb_data.update(attributes)
 

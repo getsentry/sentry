@@ -180,11 +180,11 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
   const regionHost = organization?.links.regionUrl;
 
   const [projectConfig, setProjectConfig] = useState<ProjectConfig>();
-  const [selectedConfigId, setSelectedConfigId] = useState<string>('');
+  const [selectedConfigId, setSelectedConfigId] = useState('');
 
   async function invalidateProjectConfig() {
     try {
-      await api.requestPromise(`/internal/project-config/`, {
+      await api.requestPromise('/internal/project-config/', {
         host: regionHost,
         method: 'POST',
         data: {projectId},
@@ -215,7 +215,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
               return id;
             }
 
-            return undefined;
+            return;
           }
         );
 
@@ -281,7 +281,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
 }
 
 function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null}) {
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const rules = dsnConfig?.config?.sampling?.rules ?? [];
 
@@ -336,7 +336,7 @@ function DynamicSamplingRulesTable({
       return `${round(samplingValue.value * 100)}%`;
     }
     if (samplingValue.type === 'reservoir') {
-      return `100%`;
+      return '100%';
     }
     return `* ${round(samplingValue.value)}`;
   };

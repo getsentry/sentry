@@ -7,6 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -15,7 +16,6 @@ import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/onboarding/featureFlagOtherPlatformOnboarding';
 import {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
@@ -294,7 +294,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     <Fragment>
       <div>
         {tct(
-          'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python and JavaScript projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
+          'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python, JavaScript, and Node.js projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/" />

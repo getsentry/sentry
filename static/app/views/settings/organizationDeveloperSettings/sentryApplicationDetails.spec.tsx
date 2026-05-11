@@ -98,6 +98,9 @@ describe('Sentry Application Details', () => {
         screen.getByRole('textbox', {name: 'Issue & Event'}),
         'Admin'
       );
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
+      );
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
@@ -114,6 +117,7 @@ describe('Sentry Application Details', () => {
           'member:admin',
           'event:read',
           'event:admin',
+          'org:ci',
         ]),
         events: ['issue'],
         isInternal: false,
@@ -121,6 +125,7 @@ describe('Sentry Application Details', () => {
         isAlertable: true,
         allowedOrigins: [],
         schema: {},
+        overview: '',
       };
 
       expect(createAppRequest).toHaveBeenCalledWith(
@@ -167,7 +172,7 @@ describe('Sentry Application Details', () => {
   describe('Renders public app', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -229,7 +234,7 @@ describe('Sentry Application Details', () => {
   describe('Renders for internal apps', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -295,7 +300,7 @@ describe('Sentry Application Details', () => {
   describe('Renders masked values', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -342,7 +347,7 @@ describe('Sentry Application Details', () => {
   describe('Editing internal app tokens', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -429,7 +434,7 @@ describe('Sentry Application Details', () => {
   describe('Editing an existing public Sentry App', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -517,7 +522,7 @@ describe('Sentry Application Details', () => {
   describe('Editing an existing public Sentry App with a scope error', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -536,6 +541,7 @@ describe('Sentry Application Details', () => {
           scopes: [
             "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
             "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+            "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change.",
           ],
         },
       });
@@ -559,7 +565,7 @@ describe('Sentry Application Details', () => {
 
       expect(
         await screen.findByText(
-          "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
+          "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change."
         )
       ).toBeInTheDocument();
     });

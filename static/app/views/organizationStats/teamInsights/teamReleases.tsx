@@ -22,7 +22,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {toArray} from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
@@ -58,7 +58,7 @@ export function TeamReleases({
     refetch: refetchPeriodReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {
@@ -77,7 +77,7 @@ export function TeamReleases({
     refetch: refetchWeekReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {

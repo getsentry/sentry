@@ -130,7 +130,7 @@ export const onboarding: OnboardingConfig = {
     ...(params.isMetricsSelected
       ? ([
           {
-            title: t('Metrics'),
+            title: t('Application Metrics'),
             content: [metricsVerify(params)],
           },
         ] satisfies OnboardingStep[])

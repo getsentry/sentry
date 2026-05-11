@@ -206,9 +206,52 @@ describe('FilterSelector', () => {
     });
     await userEvent.click(button);
 
-    expect(screen.getByRole('row', {name: 'North America'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Northern Europe'})).toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: '21'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: '154'})).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('gridcell', {name: /North America/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
+  });
+
+  it('allows searching for values over 70 characters', async () => {
+    // Create a long transaction name that exceeds 70 characters
+    const longValue =
+      'GET /api/organizations/{organization_slug}/projects/{project_slug}/events/{event_id}/committers/';
+    const shortValue = 'chrome';
+    const longValueSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve([longValue, shortValue]),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={mockGlobalFilter}
+        searchBarData={longValueSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    await userEvent.click(button);
+
+    // Wait for options to load - both values should be visible initially
+    expect(await screen.findByText(shortValue)).toBeInTheDocument();
+    // Verify we have 2 checkboxes (one for each option)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+
+    // Search for the entire long value to test that search works on the full textValue
+    // even though the displayed label is truncated at 70 characters
+    const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
+    await userEvent.click(searchInput);
+    await userEvent.paste(longValue);
+
+    // After searching, only the long value should match
+    // Verify we now have only 1 checkbox (the matching long value)
+    await waitFor(() => {
+      expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+    });
+    // The short value should be filtered out
+    expect(screen.queryByText(shortValue)).not.toBeInTheDocument();
   });
 });

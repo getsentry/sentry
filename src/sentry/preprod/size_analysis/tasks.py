@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from io import BytesIO
 from typing import Any
 
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import features
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.preprod.artifact_search import get_sequential_base_artifact
@@ -53,6 +53,7 @@ def compare_preprod_artifact_size_analysis(
     project_id: int,
     org_id: int,
     artifact_id: int,
+    triggered_at: str,
     **kwargs: Any,
 ) -> None:
     logger.info(
@@ -266,7 +267,9 @@ def compare_preprod_artifact_size_analysis(
             except (ValueError, AttributeError, TypeError):
                 artifact_type_name = "unknown"
 
-            e2e_size_analysis_compare_duration = timezone.now() - artifact.date_added
+            e2e_size_analysis_compare_duration = timezone.now() - datetime.fromisoformat(
+                triggered_at
+            )
             metrics.distribution(
                 "preprod.size_analysis.compare.results_e2e",
                 e2e_size_analysis_compare_duration.total_seconds(),
@@ -577,16 +580,6 @@ def _maybe_emit_issues_from_diff_size_results(
     project = artifact.project
     project_id = project.id
 
-    if not features.has("organizations:preprod-issues", project.organization):
-        logger.info(
-            "preprod.size_analysis.diff_results.issues.disabled",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-            },
-        )
-        return
-
     detectors = list(
         Detector.objects.filter(
             project_id=project_id,
@@ -735,17 +728,6 @@ def _maybe_emit_issues_from_absolute_size_results(
 ) -> None:
     project = head_metric.preprod_artifact.project
     project_id = project.id
-    organization_id = project.organization.id
-
-    if not features.has("organizations:preprod-issues", project.organization):
-        logger.info(
-            "preprod.size_analysis.size_results.issues.disabled",
-            extra={
-                "project_id": project_id,
-                "organization_id": organization_id,
-            },
-        )
-        return
 
     detectors = list(
         Detector.objects.filter(

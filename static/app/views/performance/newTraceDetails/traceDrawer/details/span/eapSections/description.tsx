@@ -16,7 +16,7 @@ import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
@@ -203,7 +203,7 @@ export function SpanDescription({
             <LinkHint value={spanURL} />
           </Flex>
           <CopyToClipboardButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
@@ -234,7 +234,7 @@ export function SpanDescription({
           {span.name}
         </Flex>
         <CopyToClipboardButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={span.name}
           aria-label={t('Copy span name to clipboard')}
@@ -250,7 +250,7 @@ export function SpanDescription({
               <LinkHint value={formattedDescription} />
             </Flex>
             <CopyToClipboardButton
-              priority="transparent"
+              variant="transparent"
               size="zero"
               text={formattedDescription}
               aria-label={t('Copy formatted description to clipboard')}
@@ -346,7 +346,7 @@ function ResourceImage(props: {
 }) {
   const [hasError, setHasError] = useState(false);
 
-  const {fileName, size, src, showImage = true} = props;
+  const {fileName, size, src, showImage} = props;
 
   return (
     <Stack align="center" gap="xs" width="100%">
@@ -355,7 +355,7 @@ function ResourceImage(props: {
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}

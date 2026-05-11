@@ -161,19 +161,16 @@ export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
     [aggregation, fieldsArray, traceItemType]
   );
 
-  const handleArgumentChange = useCallback(
-    (index: number, value: string) => {
-      let args = cloneDeep(aggregateFuncArgs);
-      if (args) {
-        args[index] = value;
-      } else {
-        args = [value];
-      }
-      const newYAxis = `${aggregation}(${args.join(',')})`;
-      onChange(newYAxis, {});
-    },
-    [aggregateFuncArgs, aggregation, onChange]
-  );
+  const handleArgumentChange = (index: number, value: string) => {
+    let args = cloneDeep(aggregateFuncArgs);
+    if (args) {
+      args[index] = value;
+    } else {
+      args = [value];
+    }
+    const newYAxis = `${aggregation}(${args.join(',')})`;
+    onChange(newYAxis, {});
+  };
 
   const handleOperationChange = useCallback(
     (option: any) => {

@@ -19,14 +19,12 @@ describe('queryClient', () => {
       const mock = MockApiClient.addMockResponse({
         url: '/api-tokens/',
         body: {value: 5},
-        headers: {'Custom-Header': 'header value'},
       });
 
       function TestComponent() {
-        const {data, getResponseHeader} = useApiQuery<ResponseData>(
-          [getApiUrl('/api-tokens/')],
-          {staleTime: 0}
-        );
+        const {data} = useApiQuery<ResponseData>([getApiUrl('/api-tokens/')], {
+          staleTime: 0,
+        });
 
         if (!data) {
           return null;
@@ -35,7 +33,6 @@ describe('queryClient', () => {
         return (
           <Fragment>
             <div>{data.value}</div>
-            <div>{getResponseHeader?.('Custom-Header')}</div>
           </Fragment>
         );
       }
@@ -43,7 +40,6 @@ describe('queryClient', () => {
       render(<TestComponent />);
 
       expect(await screen.findByText('5')).toBeInTheDocument();
-      expect(screen.getByText('header value')).toBeInTheDocument();
 
       expect(mock).toHaveBeenCalledWith('/api-tokens/', expect.anything());
     });

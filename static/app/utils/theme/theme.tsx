@@ -195,40 +195,14 @@ const commonTheme = {
     initial: 1,
     truncationFullValue: 10,
 
-    monitorCreationForms: {
-      schedulePreview: 2,
-    },
-
-    // @TODO(jonasbadalic) This should exist on traceView component
-    traceView: {
-      spanTreeToggler: 900,
-      dividerLine: 909,
-      rowInfoMessage: 910,
-      minimapContainer: 999,
-    },
-
     header: 1000,
-    errorMessage: 1000,
     dropdown: 1001,
 
-    dropdownAutocomplete: {
-      // needs to be below actor but above other page elements (e.g. pagination)
-      // (e.g. Issue Details "seen" dots on chart is 2)
-      // stream header is 1000
-      menu: 1007,
-      // needs to be above menu
-      // @TODO(jonasbadalic) why does it need to be above menu?
-      actor: 1008,
-    },
-
-    globalSelectionHeader: 1009,
-
-    // needs to be below sidebar
-    // @TODO(jonasbadalic) why does it need to be below sidebar?
+    // dashboard widget builder backdrop sits behind the sidebar
+    // because it renders on the right next to the sidebar
+    // @TODO(design-engineering): resolve this inconsistency
     widgetBuilderDrawer: 1016,
 
-    settingsSidebarNavMask: 1017,
-    settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
 
@@ -244,19 +218,6 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
-
-    tour: {
-      blur: 10100,
-      element: 10101,
-      overlay: 10102,
-    },
-
-    // On mobile views issue list dropdowns overlap
-    issuesList: {
-      stickyHeader: 2,
-      sortOptions: 3,
-      displayOptions: 4,
-    },
   },
 
   form: {
@@ -688,12 +649,12 @@ function makeChartColorPalette<T extends ChartColorPalette>(
     length: Length | number | 'all'
   ): T[Length] {
     if (length === 'all') {
-      return palette.at(-1) as T[Length];
+      return palette.at(-1) as unknown as T[Length];
     }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
-    return palette[index] as T[Length];
+    return palette[index] as unknown as T[Length];
   };
 }
 
@@ -835,28 +796,11 @@ const darkColors: Colors = {
   },
 };
 
-// @TODO(jonasbadalic): are these final?
-const lightShadows = {
-  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
-  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
-  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
-};
-
-// @TODO(jonasbadalic): are these final?
-const darkShadows = {
-  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
-  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
-  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
-};
-
 const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseLightTheme,
-  ...lightShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
@@ -896,7 +840,8 @@ export const darkTheme: SentryTheme = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseDarkTheme,
-  ...darkShadows,
+  // This sems to be a bug in the rule. baseShadow is optional.
+  // eslint-disable-next-line @typescript-eslint/no-useless-default-assignment
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,

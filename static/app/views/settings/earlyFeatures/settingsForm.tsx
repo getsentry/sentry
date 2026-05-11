@@ -26,7 +26,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
   const {data: authProvider, isPending: authProviderIsLoading} =
     useApiQuery<OrganizationAuthProvider>(
       [
-        getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
       ],
@@ -42,7 +42,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
 
   const initialData: Record<string, boolean> = {};
   for (const flag in featureFlags) {
-    if (featureFlags.hasOwnProperty(flag)) {
+    if (Object.hasOwn(featureFlags, flag)) {
       const obj = featureFlags[flag]!;
       initialData[flag] = obj.value;
     }

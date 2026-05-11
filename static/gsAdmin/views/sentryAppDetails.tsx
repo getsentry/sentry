@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
@@ -12,25 +14,20 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
-import type {ActionItem} from 'admin/components/detailsPage';
+import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {SentryAppUpdateModal} from 'admin/components/sentryAppUpdateModal';
 
 export function SentryAppDetails() {
   const {sentryAppSlug} = useParams<{sentryAppSlug: string}>();
-  const ENDPOINT = getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+  const ENDPOINT = getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
     path: {sentryAppIdOrSlug: sentryAppSlug},
   });
   const api = useApi();
@@ -53,7 +50,7 @@ export function SentryAppDetails() {
     onSuccess: updatedData => {
       addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
       clearIndicators();
-      setApiQueryData<any>(queryClient, [ENDPOINT], updatedData);
+      setApiQueryData(queryClient, [ENDPOINT], updatedData);
     },
     onError: () => {
       addErrorMessage('There was an internal error with updating the resource.');
@@ -93,6 +90,20 @@ export function SentryAppDetails() {
       publishingAction = undefined;
   }
 
+  const disableAction: ActionItem = data.isDisabled
+    ? {
+        key: 'enable',
+        name: 'Enable App',
+        help: 'Re-enables this Sentry App',
+        onAction: () => onUpdateMutation.mutate({isDisabled: false}),
+      }
+    : {
+        key: 'disable',
+        name: 'Disable App',
+        help: 'Disables this Sentry App, blocking all API access and webhook delivery',
+        onAction: () => onUpdateMutation.mutate({isDisabled: true}),
+      };
+
   const updateDetailsAction = {
     key: 'update-details',
     name: 'Update Details',
@@ -110,8 +121,12 @@ export function SentryAppDetails() {
 
   const actions =
     publishingAction === undefined
-      ? [updateDetailsAction]
-      : [updateDetailsAction, publishingAction];
+      ? [updateDetailsAction, disableAction]
+      : [updateDetailsAction, publishingAction, disableAction];
+  const sentryAppBadgeLevel: Partial<Record<string, NonNullable<BadgeItem['level']>>> = {
+    unpublished: 'danger',
+    internal: 'warning',
+  };
 
   const overview = (
     <DetailsContainer>
@@ -123,6 +138,7 @@ export function SentryAppDetails() {
           <Link to={`/_admin/customers/${data.owner.slug}/`}>{data.owner.slug}</Link>
         </DetailLabel>
         <DetailLabel title="isAlertable" yesNo={data.isAlertable} />
+        <DetailLabel title="Enabled" yesNo={!data.isDisabled} />
         <DetailLabel title="Popularity">{data.popularity}</DetailLabel>
         <DetailLabel title="Scopes">
           {data.scopes.map((scope: any) => (
@@ -160,9 +176,9 @@ export function SentryAppDetails() {
       badges={[
         {
           name: data.status,
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          level: {unpublished: 'error', internal: 'warning'}[data.status] ?? 'success',
+          level: sentryAppBadgeLevel[data.status] ?? 'success',
         },
+        ...(data.isDisabled ? [{name: 'disabled', level: 'danger' as const}] : []),
       ]}
       actions={actions}
       sections={[{content: overview}]}

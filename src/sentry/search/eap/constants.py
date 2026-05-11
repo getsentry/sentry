@@ -20,7 +20,18 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.PREPROD: TraceItemType.TRACE_ITEM_TYPE_PREPROD,
     SupportedTraceItemType.ATTACHMENTS: TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
     SupportedTraceItemType.PROCESSING_ERRORS: TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+    SupportedTraceItemType.OCCURRENCES: TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
 }
+
+
+PROTOBUF_TYPE_TO_SEARCH_TYPE: dict[str, Literal["string", "number", "boolean"]] = {
+    "string_value": "string",
+    "bytes_value": "string",
+    "bool_value": "boolean",
+    "int_value": "number",
+    "double_value": "number",
+}
+
 
 SUPPORTED_STATS_TYPES = {"attributeDistributions"}
 
@@ -76,11 +87,13 @@ STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
+ARRAY = AttributeKey.TYPE_ARRAY
 TYPE_TO_STRING_MAP = {
     STRING: "string",
     BOOLEAN: "boolean",
     DOUBLE: "double",
     INT: "integer",
+    ARRAY: "array",
 }
 
 # TODO: we need a datetime type
@@ -136,6 +149,7 @@ VALID_GRANULARITIES = frozenset(
         2 * 3600,
         3 * 3600,
         4 * 3600,
+        6 * 3600,
         12 * 3600,
         24 * 3600,  # hours
     }

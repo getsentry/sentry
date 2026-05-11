@@ -26,7 +26,7 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         --------------------------------------------------
 
         :pparam string user ID: user ID, or 'me'
-        :qparam string provider: optional provider to filter by
+        :qparam string provider: optional provider(s) to filter by (may be specified multiple times)
         :auth: required
         """
         organizations = (
@@ -46,13 +46,13 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
             status=ObjectStatus.ACTIVE,
             integration__status=ObjectStatus.ACTIVE,
         )
-        provider = request.GET.get("provider")
-        if provider:
-            queryset = queryset.filter(integration__provider=provider.lower())
+        providers = request.GET.getlist("provider")
+        if providers:
+            queryset = queryset.filter(integration__provider__in=[p.lower() for p in providers])
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: [item for item in serialize(x, request.user) if item is not None],
             paginator_cls=OffsetPaginator,
         )

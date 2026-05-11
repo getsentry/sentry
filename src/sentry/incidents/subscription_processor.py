@@ -15,6 +15,7 @@ from sentry.incidents.utils.process_update_helpers import (
     get_comparison_aggregation_value,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
+from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
     AnomalyDetectionUpdate,
@@ -220,28 +221,6 @@ class SubscriptionProcessor:
             )
         return results
 
-    def has_downgraded(self, dataset: str, organization: Organization) -> bool:
-        """
-        Check if the organization has downgraded since the subscription was created, return early if True
-        """
-        if dataset == "events" and not features.has("organizations:incidents", organization):
-            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
-            return True
-
-        elif dataset == "transactions" and not features.has(
-            "organizations:performance-view", organization
-        ):
-            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
-            return True
-
-        elif dataset == "generic_metrics" and not features.has(
-            "organizations:on-demand-metrics-extraction", organization
-        ):
-            metrics.incr("incidents.alert_rules.ignore_update_missing_on_demand")
-            return True
-
-        return False
-
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
         Core processing method. Assumes subscription has cached project/organization
@@ -250,8 +229,19 @@ class SubscriptionProcessor:
         dataset = self.subscription.snuba_query.dataset
         organization = self.subscription.project.organization
 
-        if self.has_downgraded(dataset, organization):
+        if not is_metric_subscription_allowed(dataset, organization):
+            metrics.incr(
+                "incidents.alert_rules.ignore_update_not_enabled",
+                tags={"dataset": dataset},
+            )
             return False
+
+        if not features.has("organizations:incidents", organization):
+            metrics.incr(
+                "incidents.alert_rules.no_incidents_not_downgraded",
+                sample_rate=1.0,
+                tags={"dataset": dataset},
+            )
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")

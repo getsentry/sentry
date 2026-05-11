@@ -78,7 +78,11 @@ export function OpenPeriodTimelineSection({
   groupId,
   eventId,
 }: OpenPeriodTimelineSectionProps) {
-  const {openPeriod, isPending, isError} = useEventOpenPeriod({
+  const {
+    data: openPeriod,
+    isPending,
+    isError,
+  } = useEventOpenPeriod({
     groupId,
     eventId,
   });

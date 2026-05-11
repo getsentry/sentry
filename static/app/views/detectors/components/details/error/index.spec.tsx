@@ -15,6 +15,10 @@ describe('ErrorDetectorDetails', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: ProjectFixture(),
@@ -35,19 +39,19 @@ describe('ErrorDetectorDetails', () => {
       body: UserFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/`,
+      url: '/organizations/org-slug/issues/1/',
       body: GroupFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/`,
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/`,
+      url: '/organizations/org-slug/detectors/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/workflows/`,
+      url: '/organizations/org-slug/workflows/',
       body: [],
     });
   });

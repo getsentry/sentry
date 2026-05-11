@@ -13,7 +13,7 @@ type Props = {
 };
 
 export function GroupListHeader({
-  withChart = true,
+  withChart,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
   return (

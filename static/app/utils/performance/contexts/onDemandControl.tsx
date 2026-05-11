@@ -144,9 +144,9 @@ export function ToggleOnDemand() {
   const org = useOrganization();
   const onDemand = _useOnDemandControl();
 
-  const toggle = useCallback(() => {
+  const toggle = () => {
     onDemand.setForceOnDemand(!onDemand.forceOnDemand);
-  }, [onDemand]);
+  };
 
   if (!onDemand) {
     return null;
@@ -159,7 +159,7 @@ export function ToggleOnDemand() {
   return (
     <FlexContainer
       style={{
-        opacity: onDemand.isControlEnabled ? 1.0 : 0.5,
+        opacity: onDemand.isControlEnabled ? 1 : 0.5,
         gap: theme.space.md,
       }}
     >

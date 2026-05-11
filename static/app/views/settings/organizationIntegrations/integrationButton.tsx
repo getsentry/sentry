@@ -6,6 +6,7 @@ import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
@@ -16,7 +17,7 @@ type Props = {
    */
   buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
   >;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
@@ -32,8 +33,14 @@ export function IntegrationButton({
   buttonProps,
 }: Props) {
   const organization = useOrganization();
-  const {provider, type, installStatus, analyticsParams, modalParams} =
-    useContext(IntegrationContext) ?? {};
+  const {
+    provider,
+    type,
+    installStatus,
+    analyticsParams,
+    modalParams,
+    suppressSuccessMessage,
+  } = useContext(IntegrationContext) ?? {};
   if (!provider || !type) {
     return null;
   }
@@ -44,6 +51,15 @@ export function IntegrationButton({
       <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
   }
+  if (metadata.aspects.directEnable) {
+    return provider.canAdd ? (
+      <DirectEnableButton
+        providerSlug={provider.slug}
+        buttonProps={buttonProps}
+        userHasAccess={userHasAccess}
+      />
+    ) : null;
+  }
   if (provider.canAdd) {
     return (
       <AddIntegrationButton
@@ -52,6 +68,7 @@ export function IntegrationButton({
         installStatus={installStatus}
         analyticsParams={analyticsParams}
         modalParams={modalParams}
+        suppressSuccessMessage={suppressSuccessMessage}
         {...buttonProps}
         organization={organization}
       />

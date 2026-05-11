@@ -48,18 +48,13 @@ describe('marked', () => {
     }
   });
 
-  it('normal images get rendered as html', () => {
+  it('strips images from markdown output', () => {
     for (const test of [
-      ['![](http://example.com)', '<img src="http://example.com" alt="">'],
-      ['![x](http://example.com)', '<img src="http://example.com" alt="x">'],
-      ['![x](https://example.com)', '<img src="https://example.com" alt="x">'],
+      ['![](http://example.com)', ''],
+      ['![x](http://example.com)', ''],
+      ['![x](https://example.com)', ''],
+      ['![x](javascript:foo)', ''],
     ]) {
-      expectMarkdown(test);
-    }
-  });
-
-  it("rejected images shouldn't be rendered at all", () => {
-    for (const test of [['![x](javascript:foo)', '<img alt="x">']]) {
       expectMarkdown(test);
     }
   });
@@ -84,13 +79,13 @@ describe('marked', () => {
 
   it('allows custom html within code blocks', () => {
     expect(sanitizedMarked('```html\n<div>Hello</div>\n```')).toBe(
-      `<pre><code class="language-html">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n`
+      '<pre><code class="language-html">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n'
     );
     expect(sanitizedMarked('```tsx\n<div>Hello</div>\n```')).toBe(
-      `<pre><code class="language-tsx">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n`
+      '<pre><code class="language-tsx">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n'
     );
     expect(sanitizedMarked('```jsx\n<Component>Hello</Component>\n```')).toBe(
-      `<pre><code class="language-jsx">&lt;Component&gt;Hello&lt;/Component&gt;\n</code></pre>\n`
+      '<pre><code class="language-jsx">&lt;Component&gt;Hello&lt;/Component&gt;\n</code></pre>\n'
     );
   });
 
@@ -111,9 +106,9 @@ describe('marked', () => {
   it('single line renderer should not render paragraphs', () => {
     expect(singleLineRenderer('foo')).toBe('foo');
     expect(sanitizedMarked('foo')).toBe('<p>foo</p>\n');
-    expect(singleLineRenderer('Reading `file.py`')).toBe(`Reading <code>file.py</code>`);
+    expect(singleLineRenderer('Reading `file.py`')).toBe('Reading <code>file.py</code>');
     expect(sanitizedMarked('Reading `file.py`')).toBe(
-      `<p>Reading <code>file.py</code></p>\n`
+      '<p>Reading <code>file.py</code></p>\n'
     );
   });
 
@@ -143,7 +138,7 @@ describe('marked', () => {
   it('does not render syntax highlighting via sanitizedMarked', () => {
     const markdown = '```javascript\nconst x = 1;\n```';
     expect(sanitizedMarked(markdown)).toBe(
-      `<pre><code class="language-javascript">const x = 1;\n</code></pre>\n`
+      '<pre><code class="language-javascript">const x = 1;\n</code></pre>\n'
     );
   });
 
@@ -191,7 +186,7 @@ describe('marked', () => {
 
   it('strips event handler attributes', () => {
     const imgResult = sanitizedMarked('<img src="x" onerror="alert(1)">');
-    expect(imgResult).toContain('<img src="x">');
+    expect(imgResult).not.toContain('<img');
     expect(imgResult).not.toContain('onerror');
 
     const linkResult = sanitizedMarked(
@@ -232,14 +227,14 @@ describe('marked', () => {
   it('renders syntax highlighting via asyncSanitizedMarked', async () => {
     const markdown = '```javascript\nconst x = 1;\n```';
     expect(await asyncSanitizedMarked(markdown)).toBe(
-      `<pre><code class="language-javascript"><span class="token keyword">const</span> x <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>\n</code></pre>`
+      '<pre><code class="language-javascript"><span class="token keyword">const</span> x <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>\n</code></pre>'
     );
   });
 
   it('renders unknown language code blocks as plaintext via asyncSanitizedMarked', async () => {
     const markdown = '```unknown\nconst x = 1;\n```';
     expect(await asyncSanitizedMarked(markdown)).toBe(
-      `<pre><code class="language-unknown">const x = 1;\n</code></pre>`
+      '<pre><code class="language-unknown">const x = 1;\n</code></pre>'
     );
   });
 });

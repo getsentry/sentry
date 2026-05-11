@@ -553,11 +553,6 @@ urlpatterns += [
         name="sentry-accept-project-transfer",
     ),
     re_path(
-        r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        GenericReactPageView.as_view(auth_required=False),
-        name="sentry-accept-invite",
-    ),
-    re_path(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-accept-invite",
@@ -1296,6 +1291,10 @@ urlpatterns += [
                 re_path(
                     r"^slack/",
                     include("sentry.integrations.slack.urls"),
+                ),
+                re_path(
+                    r"^slack-staging/",
+                    include("sentry.integrations.slack.staging.urls"),
                 ),
                 re_path(
                     r"^github/",

@@ -135,7 +135,7 @@ export function usePendingUserInput({
   // ===== Ask User Question State =====
   const [questionIndex, setQuestionIndex] = useState(0);
   const [questionAnswers, setQuestionAnswers] = useState<string[]>([]);
-  const [selectedOption, setSelectedOption] = useState<number>(0); // Start with first option selected
+  const [selectedOption, setSelectedOption] = useState(0); // Start with first option selected
   const [customText, setCustomText] = useState('');
 
   // Reset question state when pendingInput changes

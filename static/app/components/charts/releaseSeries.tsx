@@ -22,7 +22,7 @@ import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 type ReleaseMetaBasic = {
   date: string;

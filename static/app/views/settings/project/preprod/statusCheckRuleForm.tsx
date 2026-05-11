@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -65,9 +65,9 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
     });
   };
 
-  const handleQueryChange = useCallback((query: string) => {
+  const handleQueryChange = (query: string) => {
     setFilterQuery(query);
-  }, []);
+  };
 
   const handleDelete = () => {
     const ruleDisplayValue =
@@ -145,7 +145,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       </Stack>
 
       <Flex gap="md" marginTop="sm">
-        <Button priority="primary" onClick={handleSave} disabled={!isDirty}>
+        <Button variant="primary" onClick={handleSave} disabled={!isDirty}>
           {t('Save Rule')}
         </Button>
         <Button onClick={handleDelete}>{t('Delete Rule')}</Button>

@@ -43,7 +43,6 @@ describe('AutofixSection', () => {
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: true,
-        autofixEnabled: true,
       }),
     });
 
@@ -161,7 +160,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('renders solution artifact', async () => {
@@ -203,7 +202,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('renders code changes preview from merged file patches', async () => {
@@ -263,7 +262,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('2 files changed in 1 repo')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('renders pull request previews from repo_pr_states', async () => {
@@ -323,7 +322,7 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Pull Requests')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'org/repo#42'});
     expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('shows loading placeholder while event is pending', async () => {
@@ -485,7 +484,7 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('shows org setup UI when SCM integration is missing', async () => {
@@ -524,37 +523,6 @@ describe('AutofixSection', () => {
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: false,
-        autofixEnabled: true,
-      }),
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {
-      name: 'Set Up Seer for This Project',
-    });
-    expect(link).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
-    );
-  });
-
-  it('shows project setup UI when autofix is not enabled', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-        seerReposLinked: true,
-        autofixEnabled: false,
       }),
     });
 

@@ -81,7 +81,7 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
 // inline elements cannot be transformed. The filter _must_ be inline to
 // support text wrapping.
 const shakeAnimation = keyframes`
-  ${new Array(4)
+  ${Array.from({length: 4})
     .fill(0)
     .map((_, i) => `${i * (100 / 4)}% { left: ${3 * (i % 2 === 0 ? 1 : -1)}px; }`)
     .join('\n')}
@@ -311,7 +311,7 @@ function makeSearchTokenVariants(theme: Theme) {
     searchTokenBackground: {
       valid: theme.tokens.background.transparent.accent.muted,
       validActive: modifyColor(theme.tokens.background.transparent.accent.muted)
-        .opaquer(1.0)
+        .opaquer(1)
         .string(),
       invalid: theme.tokens.background.transparent.danger.muted,
       invalidActive: modifyColor(theme.tokens.background.transparent.danger.muted)

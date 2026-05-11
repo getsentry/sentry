@@ -13,7 +13,7 @@ export function ReplaySidebarToggleButton({isOpen, setIsOpen}: Props) {
     <Button
       size="sm"
       onClick={() => setIsOpen(!isOpen)}
-      icon={<IconChevron direction={isOpen ? 'right' : 'left'} />}
+      icon={<IconChevron direction={isOpen ? 'right' : 'left'} isDouble />}
     >
       {isOpen ? t('Collapse Sidebar') : t('Open Sidebar')}
     </Button>

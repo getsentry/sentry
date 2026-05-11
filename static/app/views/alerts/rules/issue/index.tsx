@@ -127,8 +127,6 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
-type RouteParams = {projectId?: string; ruleId?: string};
-
 type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
@@ -143,7 +141,7 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams>;
+} & RouteComponentProps;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
@@ -159,7 +157,7 @@ type State = DeprecatedAsyncComponent['state'] & {
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
-  return rule?.hasOwnProperty('id') ?? false;
+  return Object.hasOwn(rule ?? {}, 'id');
 }
 
 /**
@@ -438,7 +436,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           success: true,
         });
       })
-      .catch(error => {
+      .catch((error: any) => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
         this.setState({detailedError: error.responseJSON || null});
         trackAnalytics('edit_alert_rule.notification_test', {
@@ -600,7 +598,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     router.push(
       makeAlertsPathname({
-        path: `/rules/`,
+        path: '/rules/',
         organization,
       })
     );
@@ -613,7 +611,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       return false;
     }
 
-    return detailedError.hasOwnProperty(field);
+    return Object.hasOwn(detailedError, field);
   };
 
   handleEnvironmentChange = (val: string) => {
@@ -800,18 +798,6 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     if (conditions === null) {
       return null;
-    }
-
-    if (
-      !organization.features.includes(
-        'event-unique-user-frequency-condition-with-conditions'
-      )
-    ) {
-      conditions = conditions?.filter(
-        condition =>
-          condition.id !==
-          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
-      );
     }
 
     conditions = conditions?.map(condition =>
@@ -1229,7 +1215,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   rule.name
                 )}
               >
-                <Button priority="danger">{t('Delete Rule')}</Button>
+                <Button variant="danger">{t('Delete Rule')}</Button>
               </Confirm>
             ) : null
           }
@@ -1593,7 +1579,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...new Array(filters.length).keys()],
+        filterIndices: [...Array.from({length: filters.length}).keys()],
       };
     }
   }

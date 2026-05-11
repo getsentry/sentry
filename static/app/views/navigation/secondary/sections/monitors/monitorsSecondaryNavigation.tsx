@@ -35,14 +35,17 @@ export function MonitorsSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="monitors-data-types" title={t('By Data Type')}>
+        <SecondaryNavigation.Section
+          id="monitors-data-types"
+          title={t('By Monitor Type')}
+        >
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/errors/`}
                 analyticsItemName="monitors_errors"
               >
-                {t('Errors')}
+                {t('Error')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             <SecondaryNavigation.ListItem>
@@ -50,7 +53,7 @@ export function MonitorsSecondaryNavigation() {
                 to={`${baseUrl}/metrics/`}
                 analyticsItemName="monitors_metrics"
               >
-                {t('Metrics')}
+                {t('Metric')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             <SecondaryNavigation.ListItem>
@@ -58,7 +61,7 @@ export function MonitorsSecondaryNavigation() {
                 to={`${baseUrl}/crons/`}
                 analyticsItemName="monitors_crons"
               >
-                {t('Crons')}
+                {t('Cron')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             <Feature features={['uptime']}>
@@ -77,7 +80,7 @@ export function MonitorsSecondaryNavigation() {
                   to={`${baseUrl}/mobile-builds/`}
                   analyticsItemName="monitors_mobile_builds"
                 >
-                  {t('Mobile Builds')}
+                  {t('Mobile Build')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>

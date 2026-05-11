@@ -24,14 +24,16 @@ def main() -> int:
     count = len(selected_files)
 
     if count == 0:
-        prompt = (
-            "The full test suite will be run, usually due to a change in a file that triggers the full suite (see logs above).\n"
-            "Continue? [y/N] "
+        raise SystemExit(
+            "All tests selected (a changed file triggers the full suite — see logs above).\n"
+            "You likely do not want to run the entire test suite locally. Selective testing is more conservative sometimes so that we don't undertest in CI. In some cases this won't translate well to local selective testing."
         )
     elif count >= LARGE_SELECTION_THRESHOLD:
         prompt = f"{count} test files selected, a large amount to run locally. Continue? [y/N] "
     else:
-        print(f"{count} test files selected")
+        print(f"{count} test files selected:")
+        for f in selected_files:
+            print(f"  {f}")
         return 0
 
     try:

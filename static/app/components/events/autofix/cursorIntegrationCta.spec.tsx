@@ -9,9 +9,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('CursorIntegrationCta', () => {
   const project = ProjectFixture();
-  const organization = OrganizationFixture({
-    features: ['integrations-cursor'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -32,28 +30,6 @@ describe('CursorIntegrationCta', () => {
       body: {
         integrations: [],
       },
-    });
-  });
-
-  describe('Feature Flag', () => {
-    it('does not render without integrations-cursor feature flag', () => {
-      const orgWithoutFlag = OrganizationFixture({
-        features: [],
-      });
-
-      const {container} = render(<CursorIntegrationCta project={project} />, {
-        organization: orgWithoutFlag,
-      });
-
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it('renders with integrations-cursor feature flag', async () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
-
-      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
     });
   });
 
@@ -113,7 +89,7 @@ describe('CursorIntegrationCta', () => {
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
       expect(docsLink).toHaveAttribute(
         'href',
-        'https://docs.sentry.io/organization/integrations/cursor/'
+        'https://docs.sentry.io/organization/integrations/coding-agents/cursor/'
       );
     });
   });

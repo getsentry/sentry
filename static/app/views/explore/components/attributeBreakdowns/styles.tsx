@@ -13,7 +13,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import {CHART_AXIS_LABEL_FONT_SIZE, CHARTS_COLUMN_COUNT} from './constants';
@@ -105,9 +105,9 @@ const ERROR_STATE_CONFIG: Record<
   },
 };
 
-function ErrorState({error}: {error: RequestError}) {
-  const config =
-    ERROR_STATE_CONFIG[error?.status ?? 'default'] ?? ERROR_STATE_CONFIG.default;
+function ErrorState({error}: {error: Error}) {
+  const status = error instanceof RequestError ? (error.status ?? 'default') : 'default';
+  const config = ERROR_STATE_CONFIG[status] ?? ERROR_STATE_CONFIG.default;
 
   return (
     <Flex direction="column" gap="2xl" padding="3xl" align="center" justify="center">

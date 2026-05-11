@@ -26,7 +26,7 @@ export function ExtrapolationEnabledAlert() {
             </ExternalLink>
           ),
           toggle: (
-            <Button priority="link" onClick={() => setExtrapolate(true)}>
+            <Button variant="link" onClick={() => setExtrapolate(true)}>
               {t('Re-enable')}
             </Button>
           ),

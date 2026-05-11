@@ -143,6 +143,18 @@ class ReleaseModelManager(BaseManager["Release"]):
             organization_id, operator, value, project_ids, environments
         )
 
+    def filter_by_environment(
+        self,
+        value: str | Sequence[str],
+        project_ids: Sequence[int],
+        *,
+        lookup: str = "in",
+        negated: bool = False,
+    ) -> ReleaseQuerySet:
+        return self.get_queryset().filter_by_environment(
+            value, project_ids, lookup=lookup, negated=negated
+        )
+
     def order_by_recent(self):
         return self.get_queryset().order_by_recent()
 
@@ -714,8 +726,10 @@ class Release(Model):
         """
         qs = (
             ArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
+                organization_id=self.organization_id,
+                releaseartifactbundle__organization_id=self.organization_id,
                 releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__organization_id=self.organization_id,
                 projectartifactbundle__project_id__in=project_ids,
             )
             .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))

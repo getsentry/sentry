@@ -17,6 +17,7 @@ export enum DashboardFilter {
   SHARED = 'shared',
   EXCLUDE_PREBUILT = 'excludePrebuilt',
   ONLY_PREBUILT = 'onlyPrebuilt',
+  ALL = 'all',
   SHOW_HIDDEN = 'showHidden',
 }
 
@@ -166,9 +167,9 @@ export type Widget = {
   exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
-  legendType?: LegendType;
+  legendType?: LegendType | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
-  limit?: number;
+  limit?: number | null;
   // Used for table widget column widths, currently is not saved
   tableWidths?: number[];
   tempId?: string;

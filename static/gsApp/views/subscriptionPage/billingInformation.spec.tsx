@@ -218,7 +218,7 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={sub} />, {organization});
 
     await screen.findByText('Billing Information');
-    expect(screen.getByText('Account balance: $100')).toBeInTheDocument();
+    expect(await screen.findByText('Account balance: $100')).toBeInTheDocument();
   });
 
   it('renders with credit if account balance < 0', async () => {
@@ -233,7 +233,7 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={sub} />, {organization});
 
     await screen.findByText('Billing Information');
-    expect(screen.getByText('Account balance: $100 credit')).toBeInTheDocument();
+    expect(await screen.findByText('Account balance: $100 credit')).toBeInTheDocument();
   });
 
   it('hides account balance when it is 0', async () => {

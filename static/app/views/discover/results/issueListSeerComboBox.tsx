@@ -1,5 +1,7 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
@@ -10,7 +12,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -41,6 +43,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -234,6 +237,11 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         organization,
         query: queryToUse,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+      });
 
       // Apply the search query
       onSearch(queryToUse);
@@ -281,6 +289,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       );
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
@@ -302,7 +311,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
       analyticsSource="errors"
-      feedbackSource="errors_ai_query"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

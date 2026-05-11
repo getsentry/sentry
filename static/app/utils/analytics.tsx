@@ -224,15 +224,6 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-/**
- * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
- * an analytics function.
- */
-export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
-  data,
-  options
-) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
-
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {
     /**
@@ -326,7 +317,7 @@ metric.mark = function metricMark({name, data = {}}) {
  * Performs a measurement between `start` and `end` (or now if `end` is not
  * specified) Calls `metric` with `name` and the measured time difference.
  */
-metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup} = {}) {
+metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;

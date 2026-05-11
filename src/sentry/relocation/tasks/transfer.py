@@ -15,8 +15,8 @@ from sentry.relocation.models.relocationtransfer import (
     RelocationTransferState,
 )
 from sentry.relocation.services.relocation_export.service import (
+    cell_relocation_export_service,
     control_relocation_export_service,
-    region_relocation_export_service,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -78,8 +78,8 @@ def _find_relocation_transfer(
             extra={
                 "relocation_uuid": item.relocation_uuid,
                 "org_slug": item.org_slug,
-                "requesting_region": item.requesting_region,
-                "exporting_region": item.exporting_region,
+                "requesting_cell": item.requesting_cell,
+                "exporting_cell": item.exporting_cell,
             },
         )
         item.delete()
@@ -108,12 +108,12 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
         if public_key:
             public_key = bytes(public_key)
 
-        # Forward the export request to the exporting region.
+        # Forward the export request to the exporting cell.
         try:
-            region_relocation_export_service.request_new_export(
+            cell_relocation_export_service.request_new_export(
                 relocation_uuid=str(transfer.relocation_uuid),
-                requesting_region_name=transfer.requesting_region,
-                replying_region_name=transfer.exporting_region,
+                requesting_region_name=transfer.requesting_cell,
+                replying_region_name=transfer.exporting_cell,
                 org_slug=transfer.org_slug,
                 encrypt_with_public_key=public_key,
             )
@@ -131,7 +131,7 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
     elif transfer.state == RelocationTransferState.Reply:
         # We expect the `ProxyRelocationExportService::reply_with_export` implementation to have
         # written the export data to the control silo's local relocation-specific GCS bucket. Here,
-        # we just read it into memory and attempt the RPC back to the requesting region.
+        # we just read it into memory and attempt the RPC back to the requesting cell.
         uuid = transfer.relocation_uuid
         slug = transfer.org_slug
 
@@ -152,11 +152,11 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
 
         try:
             with encrypted_bytes:
-                # Move encrypted bytes to the requesting region.
-                region_relocation_export_service.reply_with_export(
+                # Move encrypted bytes to the requesting cell.
+                cell_relocation_export_service.reply_with_export(
                     relocation_uuid=str(transfer.relocation_uuid),
-                    requesting_region_name=transfer.requesting_region,
-                    replying_region_name=transfer.exporting_region,
+                    requesting_region_name=transfer.requesting_cell,
+                    replying_region_name=transfer.exporting_cell,
                     org_slug=slug,
                     # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
                     encrypted_contents=None,
@@ -218,8 +218,8 @@ def process_relocation_transfer_region(transfer_id: int) -> None:
         with encrypted_bytes:
             control_relocation_export_service.reply_with_export(
                 relocation_uuid=uuid,
-                requesting_region_name=transfer.requesting_region,
-                replying_region_name=transfer.exporting_region,
+                requesting_region_name=transfer.requesting_cell,
+                replying_region_name=transfer.exporting_cell,
                 org_slug=slug,
                 # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
                 encrypted_contents=None,

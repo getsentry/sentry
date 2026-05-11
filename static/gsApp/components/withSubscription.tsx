@@ -119,15 +119,13 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
       // Needed to solve type errors with DisabledDateRange hook.
       if (organization === undefined) {
         // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-        return (
-          <WrappedComponent {...(otherProps as P as any)} subscription={subscription} />
-        );
+        return <WrappedComponent {...(otherProps as any)} subscription={subscription} />;
       }
 
       return (
         <WrappedComponent
           // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-          {...(this.props as P as any)}
+          {...(this.props as any)}
           organization={organization}
           subscription={subscription}
         />

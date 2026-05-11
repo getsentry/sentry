@@ -41,7 +41,7 @@ export function rc<T>(
 
     // A resolver can return undefined to indicate that the value should be omitted.
     if (resolvedValue === undefined) {
-      return undefined;
+      return;
     }
 
     if (first) {
@@ -103,7 +103,7 @@ function isResponsive(prop: unknown): prop is Partial<Record<BreakpointSize, any
  */
 function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
   if (sizeComponent === undefined) {
-    return undefined;
+    return;
   }
 
   return theme.radius[sizeComponent];
@@ -111,7 +111,7 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
 
 function resolveSpacing(sizeComponent: SpaceSize, theme: Theme) {
   if (sizeComponent === undefined) {
-    return undefined;
+    return;
   }
 
   return theme.space[sizeComponent] ?? theme.space['0'];
@@ -119,7 +119,7 @@ function resolveSpacing(sizeComponent: SpaceSize, theme: Theme) {
 
 function resolveMargin(sizeComponent: Margin, theme: Theme) {
   if (sizeComponent === undefined) {
-    return undefined;
+    return;
   }
 
   if (sizeComponent === 'auto') {
@@ -169,7 +169,7 @@ export function getRadius(
 
   if (radius.length < 3) {
     // This can only be a single radius value, so we can resolve it directly.
-    return resolveRadius(radius as RadiusSize, theme) as string;
+    return resolveRadius(radius as RadiusSize, theme);
   }
 
   return radius
@@ -189,7 +189,7 @@ export function getSpacing(
 
   if (spacing.length < 3) {
     // This can only be a single spacing value, so we can resolve it directly.
-    return resolveSpacing(spacing as SpaceSize, theme) as string;
+    return resolveSpacing(spacing as SpaceSize, theme);
   }
 
   return spacing
@@ -204,12 +204,12 @@ export function getMargin(
   theme: Theme
 ) {
   if (margin === undefined) {
-    return undefined;
+    return;
   }
 
   if (margin.length < 3) {
     // This can only be a single margin value, so we can resolve it directly.
-    return resolveMargin(margin as Margin, theme) as string;
+    return resolveMargin(margin as Margin, theme)!;
   }
 
   return margin
@@ -267,7 +267,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     }
   }
 
-  return value as ResponsiveValue<T>;
+  return value!;
 }
 
 export function useActiveBreakpoint(): BreakpointSize {

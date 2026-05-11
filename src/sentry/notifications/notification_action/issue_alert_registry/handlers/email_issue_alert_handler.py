@@ -58,7 +58,9 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
         return final_blob
 
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+    def render_label(
+        cls, organization_id: int, blob: dict[str, Any], integration_cache: Any = None
+    ) -> str:
         target_type = blob["targetType"]
         fallthrough_type = blob.get("fallthrough_type", FallthroughChoiceType.ACTIVE_MEMBERS.value)
         label = f"Send a notification to {target_type} and if none can be found then send a notification to {fallthrough_type}"

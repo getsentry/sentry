@@ -438,7 +438,7 @@ class ResourceChangeBoundsTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        delay.assert_called_once_with(action="created", sender="Group", instance_id=group.id)
+        delay.assert_called_once_with(action="created", sender="Group", instance_id=str(group.id))
 
     @with_feature("organizations:integrations-event-hooks")
     @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
@@ -3070,6 +3070,58 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
 
+class KickOffLightweightRCAClusterTestMixin(BasePostProcessGroupMixin):
+    @patch("sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task.delay")
+    def test_kick_off_lightweight_rca_cluster_when_enabled(self, mock_task):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature("organizations:supergroups-lightweight-rca-clustering-write"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+        mock_task.assert_called_once_with(event.group.id)
+
+    @patch("sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task.delay")
+    def test_kick_off_lightweight_rca_cluster_skips_when_not_enabled(self, mock_task):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_task.assert_not_called()
+
+    @patch("sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task.delay")
+    def test_kick_off_lightweight_rca_cluster_skips_when_not_new(self, mock_task):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature("organizations:supergroups-lightweight-rca-clustering-write"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        mock_task.assert_not_called()
+
+
 @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
 class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     """Tests for the triage signals V0 flow."""
@@ -3497,6 +3549,7 @@ class PostProcessGroupErrorTest(
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
     KickOffSeerAutomationTestMixin,
+    KickOffLightweightRCAClusterTestMixin,
     TriageSignalsV0TestMixin,
     SeerAutomationHelperFunctionsTestMixin,
     WorkflowEngineTestMixin,
@@ -3571,7 +3624,7 @@ class PostProcessGroupPerformanceTest(
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -3582,7 +3635,7 @@ class PostProcessGroupPerformanceTest(
         transaction_processed_signal_mock,
         mock_process_workflows_event,
         run_post_process_job_mock,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
@@ -3595,11 +3648,11 @@ class PostProcessGroupPerformanceTest(
         call_order = [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         mock_handle_owner_assignment.side_effect = None
         mock_handle_auto_assignment.side_effect = None
-        mock_process_workflow_engine_issue_alerts.side_effect = None
+        mock_process_workflow_engine.side_effect = None
 
         post_process_group(
             is_new=True,
@@ -3618,7 +3671,7 @@ class PostProcessGroupPerformanceTest(
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
 
 
@@ -3733,7 +3786,7 @@ class PostProcessGroupGenericTest(
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     @patch("sentry.signals.event_processed.send_robust")
@@ -3744,7 +3797,7 @@ class PostProcessGroupGenericTest(
         event_processed_signal_mock,
         mock_process_workflows_event,
         run_post_process_job_mock,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
@@ -3752,11 +3805,11 @@ class PostProcessGroupGenericTest(
         call_order = [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         mock_handle_owner_assignment.side_effect = None
         mock_handle_auto_assignment.side_effect = None
-        mock_process_workflow_engine_issue_alerts.side_effect = None
+        mock_process_workflow_engine.side_effect = None
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
@@ -3769,7 +3822,7 @@ class PostProcessGroupGenericTest(
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         assert snuba_raw_query_mock.call_count == 0
 
@@ -4091,7 +4144,7 @@ class PostProcessGroupFeedbackTest(
         )
 
         mock_delay.assert_called_once_with(
-            action="created", sender="Group", instance_id=event.group.id
+            action="created", sender="Group", instance_id=str(event.group.id)
         )
 
 
@@ -4367,12 +4420,12 @@ class PostProcessGroupInstrumentationIssueTest(
                 eventstream_type=EventStreamEventType.Generic.value,
             )
 
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     def test_instrumentation_issues_do_not_trigger_alerts(
         self,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
     ):
-        """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
+        """Instrumentation issues should not trigger process_rules or process_workflow_engine."""
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -4385,4 +4438,4 @@ class PostProcessGroupInstrumentationIssueTest(
             event=event,
         )
 
-        mock_process_workflow_engine_issue_alerts.assert_not_called()
+        mock_process_workflow_engine.assert_not_called()

@@ -6,14 +6,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueListContainer} from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 
-const QUERY = `is:unresolved has:issue.seer_last_run`;
+const QUERY = 'is:unresolved has:issue.seer_last_run';
 const label = t('Recently Run');
 
 export default function AutofixRecentlyRunPage() {
   const organization = useOrganization();
 
   return (
-    <Feature features="seer-issue-view" renderDisabled>
+    <Feature features="autofix-on-explorer" renderDisabled>
       <IssueListContainer title={label}>
         <PageFiltersContainer>
           <NoProjectMessage organization={organization}>

@@ -9,8 +9,6 @@ import {loadPrismLanguage} from 'sentry/utils/prism';
 // Only https and mailto, (e.g. no javascript, vbscript, data protocols)
 const safeLinkPattern = /^(https?:|mailto:)/i;
 
-const safeImagePattern = /^https?:\/\/./i;
-
 function isSafeHref(href: string, pattern: RegExp) {
   try {
     return pattern.test(decodeURIComponent(unescape(href)));
@@ -34,15 +32,6 @@ class SafeRenderer extends marked.Renderer {
       ALLOWED_TAGS,
       ALLOWED_ATTR,
     });
-  }
-
-  image(tokens: Tokens.Image) {
-    // For a bad image, return an empty string
-    if (!isSafeHref(tokens.href, safeImagePattern)) {
-      return '';
-    }
-
-    return super.image(tokens);
   }
 }
 
@@ -89,7 +78,6 @@ const ALLOWED_TAGS = [
   'td',
   // Inline elements
   'a',
-  'img',
   'code',
   'em',
   'strong',
@@ -101,7 +89,7 @@ const ALLOWED_TAGS = [
   'sup',
 ];
 
-const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'class', 'id', 'align'];
+const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'id', 'align'];
 
 function postprocess(html: string) {
   return dompurify.sanitize(html, {

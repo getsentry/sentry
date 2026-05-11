@@ -38,14 +38,14 @@ describe('ProjectDetail > ProjectCharts', () => {
   let mockSessions: jest.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/stats/`,
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
 
     mockSessions = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsFieldFixture(`sum(session)`),
+      body: SessionsFieldFixture('sum(session)'),
     });
   });
 

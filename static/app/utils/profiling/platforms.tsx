@@ -177,11 +177,11 @@ export function getProfilingDocsForPlatform(platform: string | undefined): strin
   }
 
   if (docsPlatform === 'react-native') {
-    return `https://docs.sentry.io/platforms/react-native/profiling/`;
+    return 'https://docs.sentry.io/platforms/react-native/profiling/';
   }
 
   if (docsPlatform === 'java-spring-boot') {
-    return `https://docs.sentry.io/platforms/java/guides/spring-boot/profiling/`;
+    return 'https://docs.sentry.io/platforms/java/guides/spring-boot/profiling/';
   }
 
   const [language, framework] = docsPlatform.split('-');

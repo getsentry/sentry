@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 interface AutofixInsightCardProps {
   groupId: string;
@@ -34,8 +33,8 @@ export const cardAnimationProps = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 1.0,
+  transition: {
+    duration: 1,
     height: {
       type: 'spring',
       bounce: 0.2,
@@ -48,7 +47,7 @@ export const cardAnimationProps = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 export function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
@@ -178,7 +177,7 @@ export function AutofixInsightCard({
                 </Button>
                 <Button
                   type="submit"
-                  priority="primary"
+                  variant="primary"
                   size="sm"
                   tooltipProps={{title: t('Redo work from here')}}
                   aria-label={t('Redo work from here')}
@@ -219,7 +218,7 @@ export function AutofixInsightCard({
             {isExpandable && (
               <Button
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 tooltipProps={{
                   title: isExpanded ? t('Hide evidence') : t('Show evidence'),
                 }}
@@ -231,7 +230,7 @@ export function AutofixInsightCard({
             )}
             <EditButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               onClick={handleEdit}
               icon={<FlippedReturnIcon />}
               aria-label={t('Edit insight')}
@@ -340,7 +339,7 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
-  box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
+  box-shadow: ${p => (p.expanded ? p.theme.shadow.medium : 'none')};
 `;
 
 const MiniHeader = styled('p')<{expanded?: boolean}>`

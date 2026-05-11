@@ -42,21 +42,6 @@ export function extractTraceMetricFromColumn(column: Column): TraceMetric | unde
 }
 
 /**
- * Finds the first function column in the list and extracts its trace metric info.
- */
-export function extractTraceMetricFromAggregates(
-  columns: Column[] | undefined
-): TraceMetric | undefined {
-  for (const column of columns ?? []) {
-    const traceMetric = extractTraceMetricFromColumn(column);
-    if (traceMetric) {
-      return traceMetric;
-    }
-  }
-  return undefined;
-}
-
-/**
  * Returns the aggregate columns for trace metric widgets based on display type.
  * Time-series uses yAxis, categorical bar filters to FUNCTION fields only,
  * and all other display types use fields directly.

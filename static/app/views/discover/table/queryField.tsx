@@ -631,7 +631,7 @@ class _QueryField extends Component<Props> {
       );
     });
 
-    const selectProps: ControlProps<FieldValueOption> = {
+    const selectProps: ControlProps = {
       name: 'field',
       options: Object.values(allFieldOptions),
       placeholder: placeholder ?? t('(Required)'),
@@ -678,7 +678,7 @@ class _QueryField extends Component<Props> {
     const containerColumns =
       parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
 
-    let gridColumnsQuantity: undefined | number = undefined;
+    let gridColumnsQuantity: undefined | number;
 
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
@@ -742,7 +742,7 @@ const Container = styled('div')<{
   display: grid;
   ${p =>
     p.tripleLayout
-      ? `grid-template-columns: 1fr 2fr;`
+      ? 'grid-template-columns: 1fr 2fr;'
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
   gap: ${p => p.theme.space.md};
   align-items: center;

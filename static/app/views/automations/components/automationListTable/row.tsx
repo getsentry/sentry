@@ -30,7 +30,7 @@ export function AutomationListRow({
   const canEditAutomations = hasEveryAccess(['alerts:write'], {organization});
 
   const actions = getAutomationActions(automation);
-  const {enabled, lastTriggered, detectorIds = []} = automation;
+  const {enabled, lastTriggered, detectorIds} = automation;
 
   return (
     <AutomationSimpleTableRow

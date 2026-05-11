@@ -20,6 +20,7 @@ import type {
   MetricCondition,
   MetricDetector,
 } from 'sentry/types/workflowEngine/detectors';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -115,7 +116,7 @@ export function getConditionDescription({
 
     if (condition.conditionResult === DetectorPriorityLevel.OK) {
       return t(
-        `Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+        'Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s',
         {
           comparisonValue: deltaComparison,
           unit,
@@ -126,7 +127,7 @@ export function getConditionDescription({
     }
 
     return t(
-      `%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+      '%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s',
       {
         comparisonValue: deltaComparison,
         unit,
@@ -160,7 +161,9 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
           </Flex>
           <Text>
             {getConditionDescription({
-              aggregate: detector.dataSources[0].queryObj.snubaQuery.aggregate,
+              aggregate: stripEquationPrefix(
+                detector.dataSources[0].queryObj.snubaQuery.aggregate
+              ),
               condition,
               config: detector.config,
             })}
@@ -201,7 +204,9 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
           <Value>
             <Flex>
               <FilterWrapper>
-                {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+                {datasetConfig.fromApiAggregate(
+                  stripEquationPrefix(dataSource.queryObj.snubaQuery.aggregate)
+                )}
               </FilterWrapper>
             </Flex>
           </Value>

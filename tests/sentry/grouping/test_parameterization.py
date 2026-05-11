@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -13,14 +13,16 @@ from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
     ParameterizationRegex,
     Parameterizer,
+    _log_example_data,
     experimental_parameterizer,
+    is_valid_ip,
     parameterizer,
 )
 from sentry.grouping.variants import ComponentVariant, CustomFingerprintVariant
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.mocking import count_matching_calls
+from sentry.testutils.pytest.mocking import capture_results, count_matching_calls
 
 standard_cases = [
     ("email", "maisey@dogsaregreat.com", "<email>"),
@@ -30,7 +32,14 @@ standard_cases = [
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
     ("url - with path/trailing slash", "http://dogsaregreat.com/adopt/dont/shop/", "<url>"),
+    ("url - with internal comma", "http://dogsaregreat.com?tricks=spin,kangaroo", "<url>"),
+    (
+        "url - with trailing comma",
+        "http://dogsaregreat.com, http://numberonedog.com",
+        "<url>, <url>",
+    ),
     ("url - with path/filename", "http://dogsaregreat.com/adopt/dont/shop.js", "<url>"),
+    ("url - with trailing period", "The URL is http://dogsaregreat.com.", "The URL is <url>."),
     (
         "url - with querystring",
         "http://dogsaregreat.com/adopt/dont/shop.js?command=sit&trick=spin",
@@ -38,7 +47,14 @@ standard_cases = [
     ),
     ("url - with anchor", "http://dogsaregreat.com/adopt/dont/shop.html#shelters", "<url>"),
     ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
+    ("url - with encoding", "http://dogsaregreat.com/%F0%9F%90%B6", "<url>"),
     ("url - localhost", "http://localhost:8000", "<url>"),
+    ("url - single-segment domain", "http://dogserver", "<url>"),
+    ("url - one-character path", "http://d ogsaregreat", "<url> ogsaregreat"),
+    ("url - tcp", "tcp://dogsaregreat.com:10", "<url>"),
+    ("url - filepath", "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg", "<url>"),
+    ("url - postgres", "postgresql:///dogdb", "<url>"),
+    ("url - app-specific scheme", "best-dogs-app://number-one-dog", "<url>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
@@ -48,7 +64,16 @@ standard_cases = [
     ("ip - v4", "11.21.12.31", "<ip>"),
     ("ip - v6 unspecified", "::", "<ip>"),
     ("ip - v6 loopback", "::1", "<ip>"),
+    ("ip - v6 loopback with port", "[::1]:1121", "[<ip>]:<int>"),
+    ("ip - v6 ULA", "fc00::/7", "<ip>"),
+    ("ip - v6 initial compressed segment", "::cbe:908:2013", "<ip>"),
+    ("ip - v6 compressed segment in middle", "2012:d157::cbe:908:2013", "<ip>"),
+    ("ip - v6 final compressed segment", "2012:d157::", "<ip>"),
+    ("ip - v4 mapped to v6", "::ffff:192.168.1.1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
+    ("ip - v4 too many segments", "11.21.12.31.12", "<int>.<int>.<int>.<int>.<int>"),
+    ("ip - v4 segment > 255", "12.31.12.908", "<int>.<int>.<int>.<int>"),
+    ("ip - v4 leading zeros", "11.21.12.001", "<int>.<int>.<int>.<int>"),
     ("ip - double colon object property", "Option::unwrap()", "Option::unwrap()"),
     ("ip - double colon object property including hex", "Bee::buzz()", "Bee::buzz()"),
     (
@@ -56,8 +81,15 @@ standard_cases = [
         "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
         "traceparent: <traceparent>",
     ),
-    ("ip - too many initial characters", "12345:6:789", "<int>:<int>:<int>"),
-    ("ip - too many final characters", "123:4:56789", "<int>:<int>:<int>"),
+    ("ip - too few segments", "12:31:99", "<int>:<int>:<int>"),
+    ("ip - too many initial characters", "12345::6:789", "<int>::<int>:<int>"),
+    ("ip - too many final characters", "123:4::56789", "<int>:<int>::<int>"),
+    ("ip - too many initial colons", ":::1121", ":::<int>"),
+    ("ip - too many interior colons", "1231:::1121", "<int>:::<int>"),
+    ("ip - too many final colons", "1231:::", "<int>:::"),
+    ("ip - three colons alone", ":::", ":::"),
+    ("ip - single leading colon", "Script error. :0:0", "Script error. :<int>:<int>"),
+    ("ip - single trailing colon", "12::31:", "<int>::<int>:"),
     ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
     (
         "traceparent - aws, but not word boundary",
@@ -72,6 +104,14 @@ standard_cases = [
     ),
     ("sha1", "5fc35719b9cf96ec602dbc748ff31c587a46961d", "<sha1>"),
     ("md5", "0751007cd28df267e8e051b51f918c60", "<md5>"),
+    ("mac address - lowercase with colons", "e4:55:a8:26:1e:2d", "<mac_addr>"),
+    ("mac address - uppercase with colons", "E4:55:A8:26:1E:2D", "<mac_addr>"),
+    ("mac address - lowercase with dashes", "e4-55-a8-26-1e-2d", "<mac_addr>"),
+    ("mac address - uppercase with dashes", "E4-55-A8-26-1E-2D", "<mac_addr>"),
+    ("mac address - lowercase with spaces", "e4 55 a8 26 1e 2d", "<mac_addr>"),
+    ("mac address - uppercase with spaces", "E4 55 A8 26 1E 2D", "<mac_addr>"),
+    ("mac address - lowercase with dots", "e455.a826.1e2d", "<mac_addr>"),
+    ("mac address - uppercase with dots", "E455.A826.1E2D", "<mac_addr>"),
     ("date", "2024-02-20T22:16:36", "<date>"),
     ("date - RFC822", "Mon, 02 Jan 06 15:04 MST", "<date>"),
     ("date - RFC822Z", "Mon, 02 Jan 06 15:04 -0700", "<date>"),
@@ -180,10 +220,23 @@ standard_cases = [
     ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
     ("hex without prefix - no letters, 8+ digits, negative", "-12345678", "<hex>"),
+    ("hex without prefix - leading underscore", "img_3f26.jpg", "img_<hex>.jpg"),
+    ("hex without prefix - trailing underscore", "3f26_thumbnail.jpg", "<hex>_thumbnail.jpg"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
+    ("random id", "k9Mtd2gDcgG", "<random_id>"),
+    ("random id - too short ", "k9M", "k9M"),
+    ("random id - insufficient letter/number switches", "k92MtdgDcgG", "k92MtdgDcgG"),
+    ("random id - no capitals", "k9mtd2gdcgg", "k9mtd2gdcgg"),
+    ("random id - no capitals until later", "k9mtd2gdcgg DOGS", "k9mtd2gdcgg DOGS"),
+    ("random id - no lowercase", "K9MTD2GDCGG", "K9MTD2GDCGG"),
+    ("random id - no lowercase until later", "K9MTD2GDCGG dogs", "K9MTD2GDCGG dogs"),
+    ("random id - no numbers", "kMtdgDcgG", "kMtdgDcgG"),
+    ("random id - no numbers until later", "kMtdgDcgG 1121", "kMtdgDcgG <int>"),
     ("float", "0.23", "<float>"),
+    ("float - postive, too many segments", "1.2.3", "<int>.<int>.<int>"),
+    ("float - negative, too many segments", "-1.2.3", "<int>.<int>.<int>"),
     ("int", "23", "<int>"),
     ("int - negative", "-23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
@@ -191,6 +244,8 @@ standard_cases = [
     ("int - separator negative with space", "value: -17502", "value: <int>"),
     ("int - in dashed string with numbers", "415-908", "<int>-<int>"),
     ("int - in dashed string with letters", "maisey-908", "maisey-<int>"),
+    ("int - leading underscore", "img_1121.jpg", "img_<int>.jpg"),
+    ("int - trailing underscore", "1231_thumbnail.jpg", "<int>_thumbnail.jpg"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
     ("int - date - invalid day", "2006-01-40", "<int>-<int>-<int>"),
     ("int - date - invalid month", "2006-20-02", "<int>-<int>-<int>"),
@@ -261,6 +316,18 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "date - slashes, day-month-year",
+        "31/Dec/2012",
+        "<date>",
+        "<int>/Dec/<int>",
+    ),
+    (
+        "date - colon btwn date and time",
+        "21/Nov/2012:12:31:12",
+        "<date>",
+        "<int>/Nov/<int>:<date>",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -279,24 +346,6 @@ incorrect_cases = [
         "<ip>() called too early",
     ),
     (
-        "ip - v4 mapped to v6",
-        "::ffff:192.168.1.1",
-        "<ip>",
-        "<ip>.<float>.<int>",
-    ),
-    (
-        "ip - v6 compressed",
-        "2012:d157::cbe:908:2013",
-        "<ip>",
-        "<ip>:<int>:<int>",
-    ),
-    (
-        "ip - v6 ULA",
-        "fc00::/7",
-        "<ip>",
-        "<ip>/<int>",
-    ),
-    (
         "json - double quotes",
         '{"dogs are great": true, "dog_id": "greatdog1231"}',
         '{"dogs are great": <bool>, "dog_id": <id>}',
@@ -309,24 +358,6 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
         "{'dogs are great': <bool>, 'dog_id': '<id>'}",
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
-    ),
-    (
-        "random sequence as id",
-        "invoice k9Mtd2gDcgG",
-        "invoice <random_str>",
-        "invoice k9Mtd2gDcgG",
-    ),
-    (
-        "url - non-http protocol with username/password/port",
-        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
-        "<url> had a problem",
-        "tcp://charlie:<email>:<int> had a problem",
-    ),
-    (
-        "url - tcp",
-        "tcp://dogsaregreat.com:10",
-        "<url>",
-        "tcp://<hostname>:<int>",
     ),
 ]
 
@@ -629,4 +660,170 @@ def test_uses_callback_for_replacement_value() -> None:
     assert (
         callback_parameterizer.parameterize(input_str)
         == "Dog number <callback_result>, #<callback_result> dog"  # Callback function was used
+    )
+
+
+def test_replacement_callback_false_positive_triggers_individual_regex_fallback() -> None:
+    # `12:31:99` matches the IPv6 regex pattern but isn't a valid IP address, so including it in
+    # our input should trigger the false positive fallback behavior
+    real_parameterizer_regexes = parameterizer.compiled_regexes_by_name
+    real_ip_regex = real_parameterizer_regexes["ip"]
+    assert real_ip_regex.fullmatch("12:31:99")
+    assert not is_valid_ip("12:31:99")
+
+    input_str = "1a2b3c4d5e6f 12:31:99"
+
+    # Mock a whole bunch of things, to prove various points:
+    #
+    #   - To show that we're indeed landing in the false positive fallback block, mock the
+    #     individual regexes' `sub` methods and the tags we attach to the timing metric.
+    #
+    #   - To show that parameterization runs twice, and that the fallback is necessary, mock the
+    #     regular combo regex's `sub` method, and capture its return value.
+    #
+    #   - To show we're counting correctly, even though we're parameterizing twice, mock the counter
+    #     metric.
+    #
+    # Note: Mocking the `sub` methods is made more complicated by the fact that regex objects' `sub`
+    # attributes are read-only, and therefore can't be directly replaced by pytest. Instead, we have
+    # to use nested mocks to replace the entire regex object. And for the timer tags, we need to
+    # mock the tags dictionary itself (in other words, what's returned by the timer's context
+    # manager's `__enter__` method) - rather than just asserting on the timer's call args - because
+    # when the initial `metrics.timer` call happens, the `false_positive` tag hasn't yet been set.
+    combo_regex_sub_method_return_values: list[str] = []
+    metrics_timer_tags: dict[str, bool] = {}
+    mock_hex_regex = MagicMock(sub=MagicMock(side_effect=real_parameterizer_regexes["hex"].sub))
+    mock_ip_regex = MagicMock(sub=MagicMock(side_effect=real_parameterizer_regexes["ip"].sub))
+    mock_int_regex = MagicMock(sub=MagicMock(side_effect=real_parameterizer_regexes["int"].sub))
+    mock_metrics_timer_context_manager = MagicMock(
+        __enter__=MagicMock(return_value=metrics_timer_tags)
+    )
+    mock_combo_regex = MagicMock(
+        sub=MagicMock(
+            side_effect=capture_results(
+                parameterizer.combined_regex.sub, combo_regex_sub_method_return_values
+            )
+        )
+    )
+
+    with (
+        patch.dict(
+            parameterizer.compiled_regexes_by_name,
+            {"hex": mock_hex_regex, "ip": mock_ip_regex, "int": mock_int_regex},
+        ),
+        patch(
+            "sentry.grouping.parameterization.metrics.timer",
+            return_value=mock_metrics_timer_context_manager,
+        ),
+        patch.object(parameterizer, "combined_regex", mock_combo_regex),
+        patch("sentry.grouping.parameterization.metrics.incr") as mock_metrics_incr,
+    ):
+        # First check that the fallback behavior produces the desired result - even though the IP
+        # pattern matches, we still go on to find the int pattern match
+        assert parameterizer.parameterize(input_str) == "<hex> <int>:<int>:<int>"
+
+        # We can see that it was indeed the fallback saving us from getting the wrong answer by
+        # checking what's returned by the combo regex, before the fallback runs
+        assert combo_regex_sub_method_return_values[0] == "<hex> 12:31:99"
+
+        # Check that parameterization ran twice, once the regular way and once using the fallback.
+        # (We can see we landed in the fallback both because the individual regexes' `sub` methods
+        # were called and by looking at the tags on the timing metric.)
+        mock_combo_regex.sub.assert_called()
+        mock_hex_regex.sub.assert_called()
+        mock_ip_regex.sub.assert_called()
+        mock_int_regex.sub.assert_called()
+        assert metrics_timer_tags == {"false_positive": True, "changed": True}
+
+        # Even though the parameterization ran twice, the counts (as reflected in the count metric
+        # calls) are still correct - one hex param, three int params, and no ip params
+        expected_count_metric_calls = [("hex", 1), ("int", 3)]
+        for key, amount in expected_count_metric_calls:
+            mock_metrics_incr.assert_any_call(
+                "grouping.value_parameterized",
+                amount=amount,
+                tags={"key": key},
+            )
+        assert (
+            count_matching_calls(
+                mock_metrics_incr,
+                "grouping.value_parameterized",
+                amount=ANY,
+                tags={"key": "ip"},
+            )
+            == 0
+        )
+
+        # We also only counted the false positive once, even though we hit it both during the main
+        # combo-regex parameterization and during fallback
+        assert (
+            count_matching_calls(
+                mock_metrics_incr, "grouping.parameterization_false_positive", tags={"key": "ip"}
+            )
+            == 1
+        )
+
+
+# Cases where we might or might not trigger a false positive with our IP regex (necessitating use of
+# the slower fallback parameterization method if we do). The goal is to have as many of these as
+# possible have `False` for their third parameter while still keeping our regex relatively
+# straightforward.
+ip_false_positive_cases = [
+    # (name, input, whether callback is expected to have been called)
+    ("ip - too many initial characters", "12345::6:789", False),
+    ("ip - too many final characters", "123:4::56789", False),
+    ("ip - too many initial colons", ":::1121", False),
+    ("ip - too many interior colons", "1231:::1121", True),
+    ("ip - too many final colons", "1231:::", False),
+    ("ip - three colons alone", ":::", False),
+    ("ip - single leading colon", "Script error. :0:0", False),
+    ("ip - single trailing colon", "12::31:", False),
+    ("ip - too few segments", "12:31:99", True),
+    ("ip - v4 leading zeros", "11.21.12.001", False),
+    ("ip - v4 segment > 255", "12.31.12.908", False),
+    ("ip - v4 too many segments", "11.21.12.31.12", False),
+    ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
+]
+
+
+@pytest.mark.parametrize(("name", "input", "callback_call_expected"), ip_false_positive_cases)
+@patch("sentry.grouping.parameterization.is_valid_ip", wraps=is_valid_ip)
+def test_ip_false_positives(
+    mock_is_valid_ip: MagicMock, name: str, input: str, callback_call_expected: bool
+) -> None:
+    parameterizer.parameterize(input)
+
+    if callback_call_expected:
+        mock_is_valid_ip.assert_called()
+    else:
+        mock_is_valid_ip.assert_not_called()
+
+
+@patch("sentry.grouping.parameterization.logger")
+def test_example_data_logging(mock_logger: MagicMock) -> None:
+    for i in range(15):
+        _log_example_data("dog_fact_1", extra={"input_str": "dogs are great", "num": i}, limit=10)
+
+    for i in range(105):
+        _log_example_data("dog_fact_2", extra={"input_str": "all dogs are good dogs", "num": i})
+
+    # In the first loop, we specified a limit of 10, so the logger was called 10 times, even though
+    # we called the helper 15 times
+    assert (
+        count_matching_calls(
+            mock_logger.info,
+            "grouping.parameterization.dog_fact_1",
+            extra={"input_str": "dogs are great", "num": ANY},
+        )
+        == 10
+    )
+    # In the second loop, we didn't specify a limit, so the logger was called 100 times (the
+    # default limit), even though we called the helper 105 times
+    assert (
+        count_matching_calls(
+            mock_logger.info,
+            "grouping.parameterization.dog_fact_2",
+            extra={"input_str": "all dogs are good dogs", "num": ANY},
+        )
+        == 100
     )

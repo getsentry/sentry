@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, type QueryStatus} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
@@ -8,13 +8,12 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import type {EAPTraceMeta, TraceMeta} from './types';
 
@@ -182,16 +181,13 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   // used to query a demo transaction event from the backend.
   const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
 
-  const query = useQuery<
-    {
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const query = useQuery({
+    queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
+    queryFn: async (): Promise<{
       apiErrors: Error[];
       meta: TraceMeta | EAPTraceMeta;
-    },
-    Error
-  >({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
-    queryFn: async () => {
+    }> => {
       const result = await fetchTraceMetaInBatches(
         isEAP ? 'eap' : 'non-eap',
         api,

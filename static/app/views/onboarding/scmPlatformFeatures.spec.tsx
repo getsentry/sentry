@@ -1,6 +1,8 @@
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -10,6 +12,8 @@ import {
   OnboardingContextProvider,
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
@@ -59,7 +63,10 @@ function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
   };
 }
 
-const mockRepository = RepositoryFixture({id: '42'});
+const mockRepository = RepositoryFixture({
+  id: '42',
+  provider: {id: 'integrations:github', name: 'GitHub'},
+});
 
 describe('ScmPlatformFeatures', () => {
   const organization = OrganizationFixture({
@@ -69,6 +76,8 @@ describe('ScmPlatformFeatures', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorageWrapper.clear();
+    ProjectsStore.loadInitialData([]);
+    TeamStore.loadInitialData([]);
   });
 
   afterEach(() => {
@@ -137,7 +146,9 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    expect(await screen.findByText('What do you want to set up?')).toBeInTheDocument();
+    expect(
+      await screen.findByText('What do you want to instrument?')
+    ).toBeInTheDocument();
   });
 
   it('clicking "Change platform" shows manual picker', async () => {
@@ -174,7 +185,7 @@ describe('ScmPlatformFeatures', () => {
     });
     await userEvent.click(changeButton);
 
-    expect(screen.getByRole('heading', {name: 'Select a platform'})).toBeInTheDocument();
+    expect(screen.getByText('Select a platform')).toBeInTheDocument();
   });
 
   it('falls back to manual picker when platform detection fails', async () => {
@@ -198,10 +209,10 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
+    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', {name: 'Select a platform'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+      screen.queryByText('Auto-detected from your repository')
+    ).not.toBeInTheDocument();
   });
 
   it('renders manual picker when no repository in context', async () => {
@@ -217,10 +228,10 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
+    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', {name: 'Select a platform'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+      screen.queryByText('Auto-detected from your repository')
+    ).not.toBeInTheDocument();
   });
 
   it('continue button is disabled when no platform selected', async () => {
@@ -237,7 +248,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for the component to fully settle (CompactSelect triggers async popper updates)
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
@@ -297,7 +308,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for feature cards to appear
-    await screen.findByText('What do you want to set up?');
+    await screen.findByText('What do you want to instrument?');
 
     // Neither profiling nor tracing should be checked initially
     expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
@@ -325,7 +336,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     // Type into the Select to search and pick a base language
     await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
@@ -354,7 +365,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     // Type into the Select to search and pick a console platform
     await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
@@ -404,7 +415,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for feature cards to appear
-    await screen.findByText('What do you want to set up?');
+    await screen.findByText('What do you want to instrument?');
 
     // Both should be checked initially
     expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
@@ -415,6 +426,48 @@ describe('ScmPlatformFeatures', () => {
 
     expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
     expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
+  });
+
+  it('clears persisted project details form when detected platform changes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/42/platforms/`,
+      body: {
+        platforms: [
+          DetectedPlatformFixture(),
+          DetectedPlatformFixture({
+            platform: 'python-django',
+            language: 'Python',
+            priority: 2,
+          }),
+        ],
+      },
+    });
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedRepository: mockRepository,
+          projectDetailsForm: {
+            projectName: 'stale-name',
+            teamSlug: 'stale-team',
+          },
+        }),
+      }
+    );
+
+    const djangoCard = await screen.findByRole('radio', {name: /Django/});
+    await userEvent.click(djangoCard);
+
+    await waitFor(() => {
+      const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
+      expect(stored.projectDetailsForm).toBeUndefined();
+    });
   });
 
   describe('analytics', () => {
@@ -437,7 +490,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByRole('heading', {name: 'Select a platform'});
+      await screen.findByText('Select a platform');
 
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'onboarding.scm_platform_features_step_viewed',
@@ -487,6 +540,46 @@ describe('ScmPlatformFeatures', () => {
       );
     });
 
+    it('fires platform selected event once when auto-detection resolves', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [
+            DetectedPlatformFixture(),
+            DetectedPlatformFixture({
+              platform: 'python-django',
+              language: 'Python',
+              priority: 2,
+            }),
+          ],
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      await screen.findByText('What do you want to instrument?');
+
+      const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
+        ([event, params]) =>
+          event === 'onboarding.scm_platform_selected' &&
+          params.platform === 'javascript-nextjs' &&
+          params.source === 'detected'
+      );
+      expect(detectedCalls).toHaveLength(1);
+    });
+
     it('fires feature toggled event when toggling a feature', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/42/platforms/`,
@@ -510,7 +603,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('What do you want to set up?');
+      await screen.findByText('What do you want to instrument?');
 
       await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
 
@@ -553,6 +646,281 @@ describe('ScmPlatformFeatures', () => {
         'onboarding.scm_platform_change_platform_clicked',
         expect.objectContaining({organization})
       );
+    });
+  });
+
+  describe('project-details step skipped (control group)', () => {
+    const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
+    const nextJsPlatform = {
+      key: 'javascript-nextjs' as const,
+      name: 'Next.js',
+      language: 'javascript' as const,
+      link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+      type: 'framework' as const,
+      category: 'browser' as const,
+    };
+
+    beforeEach(() => {
+      TeamStore.loadInitialData([adminTeam]);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        body: organization,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [adminTeam],
+      });
+    });
+
+    it('auto-creates the project on Continue and forwards selected features', async () => {
+      const onComplete = jest.fn();
+      const createdProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }),
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(createRequest).toHaveBeenCalledWith(
+          `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              platform: 'javascript-nextjs',
+              name: 'javascript-nextjs',
+              default_rules: true,
+            }),
+          })
+        );
+      });
+      expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+        product: [ProductSolution.ERROR_MONITORING],
+      });
+    });
+
+    it('reuses the existing project when the platform is unchanged', async () => {
+      const onComplete = jest.fn();
+      const existingProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      ProjectsStore.loadInitialData([existingProject]);
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: existingProject,
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+            createdProjectSlug: existingProject.slug,
+          }),
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+          product: [ProductSolution.ERROR_MONITORING],
+        });
+      });
+      expect(createRequest).not.toHaveBeenCalled();
+    });
+
+    it('creates a new project when the platform changed from the existing one', async () => {
+      const onComplete = jest.fn();
+      const stalePythonProject = ProjectFixture({
+        slug: 'python',
+        platform: 'python',
+      });
+      ProjectsStore.loadInitialData([stalePythonProject]);
+      const newProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: newProject,
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+            createdProjectSlug: stalePythonProject.slug,
+          }),
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(createRequest).toHaveBeenCalled();
+      });
+      expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+        product: [ProductSolution.ERROR_MONITORING],
+      });
+    });
+
+    it('forwards the detected platform to onComplete when the user did not click a card', async () => {
+      // Regression: if the user hits Continue without explicitly selecting a
+      // detected platform, selectedPlatform stays undefined in context while
+      // currentPlatformKey falls back to the detected key. Passing undefined
+      // to onComplete here would trip goNextStep's SETUP_DOCS guard because
+      // the captured closure still sees selectedPlatform as undefined.
+      const onComplete = jest.fn();
+      const createdProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [
+            DetectedPlatformFixture({
+              platform: 'javascript-nextjs',
+              language: 'javascript',
+            }),
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      await screen.findByRole('radio', {name: /Next.js/});
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalledWith(
+          expect.objectContaining({key: 'javascript-nextjs'}),
+          {product: [ProductSolution.ERROR_MONITORING]}
+        );
+      });
+    });
+  });
+
+  describe('project-details step enabled (experiment group)', () => {
+    const experimentOrganization = OrganizationFixture({
+      features: [
+        'performance-view',
+        'session-replay',
+        'profiling-view',
+        'onboarding-scm-project-details-experiment',
+      ],
+    });
+    const nextJsPlatform = {
+      key: 'javascript-nextjs' as const,
+      name: 'Next.js',
+      language: 'javascript' as const,
+      link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+      type: 'framework' as const,
+      category: 'browser' as const,
+    };
+
+    it('advances without creating a project on Continue', async () => {
+      const onComplete = jest.fn();
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/teams/${experimentOrganization.slug}/team-slug/projects/`,
+        method: 'POST',
+        body: ProjectFixture(),
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization: experimentOrganization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }),
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalledWith();
+      });
+      expect(createRequest).not.toHaveBeenCalled();
     });
   });
 });

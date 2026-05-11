@@ -90,14 +90,18 @@ export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
 }
 
 export function getDefaultWidgetHeight(displayType: DisplayType): number {
-  if (displayType === DisplayType.BIG_NUMBER || displayType === DisplayType.DETAILS) {
+  if (
+    displayType === DisplayType.BIG_NUMBER ||
+    displayType === DisplayType.DETAILS ||
+    displayType === DisplayType.TEXT
+  ) {
     return 1;
   }
   return 2;
 }
 
 export function getInitialColumnDepths() {
-  return new Array(NUM_DESKTOP_COLS).fill(0);
+  return Array.from<number>({length: NUM_DESKTOP_COLS}).fill(0);
 }
 
 /**
@@ -112,7 +116,7 @@ export function calculateColumnDepths(
   layouts.forEach(({x, w, y, h}) => {
     // Adjust the column depths for each column the widget takes up
     for (let col = x; col < x + w; col++) {
-      depths[col] = Math.max(y + h, depths[col]);
+      depths[col] = Math.max(y + h, depths[col]!);
     }
   });
 

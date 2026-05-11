@@ -56,10 +56,14 @@ export interface StackTraceProviderProps {
   children: ReactNode;
   event: Event;
   stacktrace: StacktraceType;
+  /** When true, all frames start collapsed regardless of their position. */
+  collapseAll?: boolean;
   /** Optional exception index in the full exception values list. */
   exceptionIndex?: number;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
+  /** Whether the SCM source context feature is enabled for this org. */
+  hasScmSourceContext?: boolean;
   /** Hide the source maps debugger button entirely. */
   hideSourceMapDebugger?: boolean;
   /** Cap the number of frames rendered. Frames beyond this depth are omitted. */

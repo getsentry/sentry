@@ -1,11 +1,7 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 
-export type StaffErrorDetail =
-  | string
-  | {code?: string; message?: string}
-  | null
-  | undefined;
+type StaffErrorDetail = string | {code?: string; message?: string} | null | undefined;
 
 export function handleStaffPermissionError(responseDetail: StaffErrorDetail) {
   if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {

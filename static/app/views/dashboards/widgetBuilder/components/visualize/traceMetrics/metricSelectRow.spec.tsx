@@ -24,6 +24,12 @@ describe('MetricSelectRow', () => {
     mockedUseNavigate.mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [
@@ -37,6 +43,21 @@ describe('MetricSelectRow', () => {
             ['metric.type']: 'counter',
             ['count(metric.name)']: 1,
           },
+          {
+            ['metric.name']: 'counter_metric',
+            ['metric.type']: 'counter',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'distribution_metric',
+            ['metric.type']: 'distribution',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'gauge_metric',
+            ['metric.type']: 'gauge',
+            ['count(metric.name)']: 1,
+          },
         ],
       },
     });
@@ -44,6 +65,7 @@ describe('MetricSelectRow', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders the same metric for all rows', async () => {
@@ -65,7 +87,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['sum' as AggregationKeyWithAlias, 'value', undefined, undefined],
+            function: ['sum', 'value', undefined, undefined],
           }}
           index={0}
           disabled={false}
@@ -116,13 +138,7 @@ describe('MetricSelectRow', () => {
       },
       {
         kind: 'function',
-        function: [
-          'sum' as AggregationKeyWithAlias,
-          'value',
-          'alpha_metric',
-          'counter',
-          '-',
-        ],
+        function: ['sum', 'value', 'alpha_metric', 'counter', '-'],
       },
     ];
     render(
@@ -165,37 +181,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('replaces invalid aggregates when changing to an incompatible metric type', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'p50' as AggregationKeyWithAlias,
-              'value',
-              'distribution_metric',
-              'distribution',
-              '-',
-            ],
+            function: ['p50', 'value', 'distribution_metric', 'distribution', '-'],
           }}
           index={0}
           disabled={false}
@@ -231,13 +222,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'sum' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
+                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
               },
             ]),
           }),
@@ -248,37 +233,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('preserves valid aggregates when changing metric type', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'sum' as AggregationKeyWithAlias,
-              'value',
-              'counter_metric',
-              'counter',
-              '-',
-            ],
+            function: ['sum', 'value', 'counter_metric', 'counter', '-'],
           }}
           index={0}
           disabled={false}
@@ -314,13 +274,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'sum' as AggregationKeyWithAlias,
-                  'value',
-                  'distribution_metric',
-                  'distribution',
-                  '-',
-                ],
+                function: ['sum', 'value', 'distribution_metric', 'distribution', '-'],
               },
             ]),
           }),
@@ -331,37 +285,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('handles mixed valid and invalid aggregates on metric change', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'sum' as AggregationKeyWithAlias,
-              'value',
-              'distribution_metric',
-              'distribution',
-              '-',
-            ],
+            function: ['sum', 'value', 'distribution_metric', 'distribution', '-'],
           }}
           index={0}
           disabled={false}
@@ -411,23 +340,11 @@ describe('MetricSelectRow', () => {
               },
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'sum' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
+                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
               },
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'sum' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
+                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
               },
             ]),
           }),
@@ -438,37 +355,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('replaces invalid aggregates for big number display', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'gauge_metric',
-            ['metric.type']: 'gauge',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'avg' as AggregationKeyWithAlias,
-              'value',
-              'gauge_metric',
-              'gauge',
-              '-',
-            ],
+            function: ['avg', 'value', 'gauge_metric', 'gauge', '-'],
           }}
           index={0}
           disabled={false}
@@ -502,13 +394,7 @@ describe('MetricSelectRow', () => {
             field: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'sum' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
+                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
               },
             ]),
           }),
@@ -519,36 +405,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('uses avg for gauge metrics', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'gauge_metric',
-            ['metric.type']: 'gauge',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'p50' as AggregationKeyWithAlias,
-              'value',
-              'distribution_metric',
-              'distribution',
-              '-',
-            ],
+            function: ['p50', 'value', 'distribution_metric', 'distribution', '-'],
           }}
           index={0}
           disabled={false}
@@ -584,13 +446,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'avg' as AggregationKeyWithAlias,
-                  'value',
-                  'gauge_metric',
-                  'gauge',
-                  '-',
-                ],
+                function: ['avg', 'value', 'gauge_metric', 'gauge', '-'],
               },
             ]),
           }),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -15,6 +16,7 @@ class SnapshotDiffSection(StrEnum):
     CHANGED = "changed"
     UNCHANGED = "unchanged"
     ERRORED = "errored"
+    SKIPPED = "skipped"
 
 
 # GET response
@@ -45,6 +47,22 @@ class SnapshotComparisonRunInfo(BaseModel):
     duration_ms: int | None = None
 
 
+class SnapshotApprover(BaseModel):
+    id: str | None = None
+    name: str | None = None
+    email: str | None = None
+    username: str | None = None
+    avatar_url: str | None = None
+    approved_at: str | None = None
+    source: Literal["sentry", "github"] = "sentry"
+
+
+class SnapshotApprovalInfo(BaseModel):
+    status: Literal["approved", "requires_approval"]
+    approvers: list[SnapshotApprover] = []
+    is_auto_approved: bool = False
+
+
 class SnapshotDetailsApiResponse(BaseModel):
     head_artifact_id: str
     base_artifact_id: str | None = None
@@ -52,6 +70,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     comparison_type: str
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
+    app_id: str | None = None
 
     # Solo fields (comparison_type == SOLO)
     images: list[SnapshotImageResponse] = []
@@ -76,7 +95,14 @@ class SnapshotDetailsApiResponse(BaseModel):
     errored: list[SnapshotDiffPair] = []
     errored_count: int = 0
 
+    skipped: list[SnapshotImageResponse] = []
+    skipped_count: int = 0
+
     comparison_run_info: SnapshotComparisonRunInfo | None = None
+
+    approval_info: SnapshotApprovalInfo | None = None
+
+    diff_threshold: float | None = None
 
 
 # TODO: POST request in the future when we migrate away from current schemas

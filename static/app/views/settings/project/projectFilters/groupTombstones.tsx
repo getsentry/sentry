@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,7 +15,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -22,9 +23,8 @@ import {t} from 'sentry/locale';
 import type {GroupTombstone} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -122,21 +122,23 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {
-    data: tombstones,
+    data: tombstonesResp,
     isPending,
     isError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<GroupTombstone[]>(
-    [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/`, {
+  } = useQuery({
+    ...apiOptions.as<GroupTombstone[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/',
+      {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
-      {query: {...location.query}},
-    ],
-    {staleTime: 0}
-  );
-  const tombstonesPageLinks = getResponseHeader?.('Link');
+        query: {...location.query},
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const tombstones = tombstonesResp?.json;
+  const tombstonesPageLinks = tombstonesResp?.headers.Link;
 
   const handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
     api
@@ -185,10 +187,10 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
                 <CenteredAlignedColumn key="member">{t('Member')}</CenteredAlignedColumn>,
                 <CenteredAlignedColumn key="actions" />,
               ]}
-              isEmpty={!tombstones.length}
+              isEmpty={!tombstones?.length}
               emptyMessage={t('You have no discarded issues')}
             >
-              {tombstones.map(data => (
+              {tombstones?.map(data => (
                 <GroupTombstoneRow
                   key={data.id}
                   data={data}

@@ -1,13 +1,12 @@
-import type React from 'react';
-
 import {Button} from '@sentry/scraps/button';
 
-import {DataExport, ExportQueryType} from 'sentry/components/dataExport';
+import {DataExport} from 'sentry/components/exports/dataExport';
+import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface QueryInfo {
@@ -22,11 +21,11 @@ interface QueryInfo {
 }
 
 type BaseExploreExportProps = {
-  disabled: boolean;
   hasReachedCSVLimit: boolean;
   isDataEmpty: boolean;
   isDataError: boolean;
   isDataLoading: boolean;
+  disabled?: boolean;
   downloadAsCsv?: () => void;
 };
 
@@ -42,28 +41,9 @@ type OtherExploreExportProps = BaseExploreExportProps & {
 
 type ExploreExportProps = LogsExploreExportProps | OtherExploreExportProps;
 
-function getDisabledTooltip(
-  props: ExploreExportProps,
-  _organization: Organization
-): string | undefined {
-  if (props.isDataLoading) {
-    return t('Loading...');
-  }
-  if (props.isDataError) {
-    return t('Unable to export due to an error');
-  }
-  if (props.isDataEmpty) {
-    return t('No data to export');
-  }
-  return undefined;
-}
-
-export function ExploreExport(props: LogsExploreExportProps): React.ReactElement;
-export function ExploreExport(props: OtherExploreExportProps): React.ReactElement;
 export function ExploreExport(props: ExploreExportProps) {
   const organization = useOrganization();
-
-  const disabledTooltip = getDisabledTooltip(props, organization);
+  const disabledTooltip = getExportDisabledTooltip(props);
   const disabled = props.disabled || !!disabledTooltip;
 
   const handleExport = () => {
@@ -71,7 +51,7 @@ export function ExploreExport(props: ExploreExportProps) {
       organization,
       traceItemDataset: props.traceItemDataset,
       ...props.queryInfo,
-      export_type: 'browser_csv',
+      export_type: 'browser_sync',
     });
 
     if (props.downloadAsCsv) {
@@ -118,7 +98,7 @@ export function ExploreExport(props: ExploreExportProps) {
           organization,
           traceItemDataset: props.traceItemDataset,
           ...props.queryInfo,
-          export_type: 'download',
+          export_type: 'export_download',
         });
       }}
     >

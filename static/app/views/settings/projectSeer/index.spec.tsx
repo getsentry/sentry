@@ -128,6 +128,28 @@ describe('ProjectSeer', () => {
       await within(modal).findByRole('button', {name: /getsentry\/seer/})
     );
 
+    // Override GET mock to return updated data before mutation triggers refetch
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+      method: 'GET',
+      body: {
+        code_mapping_repos: [
+          {
+            provider: 'github',
+            owner: 'getsentry',
+            name: 'sentry',
+            external_id: '101',
+          },
+          {
+            provider: 'github',
+            owner: 'getsentry',
+            name: 'seer',
+            external_id: '102',
+          },
+        ],
+      },
+    });
+
     // Save changes in the modal
     await userEvent.click(within(modal).getByRole('button', {name: 'Add 1 Repository'}));
 
@@ -244,6 +266,16 @@ describe('ProjectSeer', () => {
 
     // Open the row and click remove
     await userEvent.click(repoItem);
+
+    // Override GET mock to return updated data before mutation triggers refetch
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+      method: 'GET',
+      body: {
+        code_mapping_repos: [],
+      },
+    });
+
     await userEvent.click(screen.getByRole('button', {name: 'Remove Repository'}));
 
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
@@ -418,7 +450,7 @@ describe('ProjectSeer', () => {
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
     const orgWithCursorFeature = OrganizationFixture({
-      features: ['integrations-cursor'],
+      features: [],
     });
 
     const initialProject: Project = {
@@ -676,7 +708,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -755,7 +787,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -863,7 +895,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -953,7 +985,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -1076,7 +1108,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithBothFeatures = OrganizationFixture({
-        features: ['integrations-cursor', 'integrations-claude-code'],
+        features: ['integrations-claude-code'],
       });
 
       const initialProject: Project = {
@@ -1158,7 +1190,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {

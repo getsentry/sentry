@@ -28,6 +28,10 @@ describe('GroupDetailsLayout', () => {
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       body: {data: []},
     });
@@ -41,7 +45,7 @@ describe('GroupDetailsLayout', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/repos/`,
+      url: '/organizations/org-slug/repos/',
       body: {},
     });
     MockApiClient.addMockResponse({

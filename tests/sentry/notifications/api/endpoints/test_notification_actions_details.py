@@ -409,6 +409,50 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.test_put_simple()
 
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_org_member_org_wide_action(self) -> None:
+        # Org members cannot call PUT on org-wide actions
+        org_wide_action = self.create_notification_action(organization=self.organization)
+        original = serialize(org_wide_action)
+
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[self.team])
+        self.login_as(user)
+
+        self.get_error_response(
+            self.organization.slug,
+            org_wide_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="PUT",
+            **self.base_data,
+        )
+        org_wide_action.refresh_from_db()
+        assert serialize(org_wide_action) == original
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_manager_org_wide_action(self) -> None:
+        # Managers can call PUT on org-wide actions
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
+        _mock_register(self.base_data)(MockActionRegistration)
+
+        org_wide_action = self.create_notification_action(organization=self.organization)
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
+
+        self.get_success_response(
+            self.organization.slug,
+            org_wide_action.id,
+            status_code=status.HTTP_202_ACCEPTED,
+            method="PUT",
+            **self.base_data,
+        )
+
     def test_delete_invalid_action(self) -> None:
         self.get_error_response(
             self.organization.slug,
@@ -470,6 +514,54 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.login_as(user)
 
         self.test_delete_simple()
+
+    def test_delete_org_member_org_wide_action(self) -> None:
+        # Org members cannot call DELETE on org-wide actions
+        org_wide_action = self.create_notification_action(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+
+        self.get_error_response(
+            self.organization.slug,
+            org_wide_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+        assert NotificationAction.objects.filter(id=org_wide_action.id).exists()
+
+    def test_delete_manager_org_wide_action(self) -> None:
+        # Managers can call DELETE on org-wide actions
+        org_wide_action = self.create_notification_action(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
+
+        self.get_success_response(
+            self.organization.slug,
+            org_wide_action.id,
+            status_code=status.HTTP_204_NO_CONTENT,
+            method="DELETE",
+        )
+        assert not NotificationAction.objects.filter(id=org_wide_action.id).exists()
+
+    def test_get_org_member_org_wide_action(self) -> None:
+        # Org members can call GET on org-wide actions
+        org_wide_action = self.create_notification_action(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            org_wide_action.id,
+            status_code=status.HTTP_200_OK,
+            method="GET",
+        )
+        assert response.data == serialize(org_wide_action)
 
     def test_get_respects_multiple_project_access(self) -> None:
         # Disable open membership

@@ -50,10 +50,10 @@ export function TeamsPreview({
             Copy JSON
           </Button>
           <LinkButton
-            to={MSTEAMS_PREVIEW_URL}
+            href={MSTEAMS_PREVIEW_URL}
             size="xs"
             icon={<PluginIcon pluginId="msteams" size={24} />}
-            target="_blank"
+            external
           >
             Designer
           </LinkButton>

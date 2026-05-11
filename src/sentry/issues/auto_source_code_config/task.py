@@ -212,7 +212,9 @@ def create_configurations(
     tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
     with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
         for code_mapping in code_mappings:
-            repository = create_repository(code_mapping.repo.name, org_integration, tags)
+            repository = create_repository(
+                code_mapping.repo.name, org_integration, tags, code_mapping.repo.external_id
+            )
             create_code_mapping(code_mapping, repository, project, org_integration, tags)
 
     in_app_stack_trace_rules: list[str] = []

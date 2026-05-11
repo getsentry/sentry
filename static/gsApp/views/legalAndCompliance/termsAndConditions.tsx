@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
@@ -14,7 +15,7 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -42,7 +43,7 @@ interface TermsProps {
 
 function makeFetchPoliciesQueryKey(subscription: Subscription): ApiQueryKey {
   return [
-    getApiUrl(`/customers/$organizationIdOrSlug/policies/`, {
+    getApiUrl('/customers/$organizationIdOrSlug/policies/', {
       path: {organizationIdOrSlug: subscription.slug},
     }),
   ];
@@ -140,7 +141,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
               <div>
                 <Button
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   icon={<IconBusiness />}
                   onClick={() =>
                     openUpsellModal({organization, source: 'legal_and_compliance.baa'})

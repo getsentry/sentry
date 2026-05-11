@@ -98,9 +98,8 @@ def validate_id(self, value):
 
 
 def is_table_display_type(display_type):
-    return (
-        display_type
-        == DashboardWidgetDisplayTypes.as_text_choices()[DashboardWidgetDisplayTypes.TABLE][0]
+    return display_type == DashboardWidgetDisplayTypes.get_type_name(
+        DashboardWidgetDisplayTypes.TABLE
     )
 
 
@@ -383,6 +382,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"widget_type": "Text widgets don't have a widget type or dataset"}
             )
 
+        description = data.get("description")
+        if description is not None and len(description) > 15000:
+            raise serializers.ValidationError(
+                {"description": "Description must not exceed 15,000 characters"}
+            )
+
         queries = data.get("queries")
         if queries and len(queries) > 0:
             raise serializers.ValidationError({"queries": "Text widgets don't have queries"})
@@ -528,9 +533,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # Validate limit on chart widgets with group-by columns:
         # if there are too many groups the server cannot serve the
         # request to get widget data and hence the chart fails to load.
+        # WHEEL and DETAILS widgets render a single row and don't use `limit`,
+        # so they're exempted from this check.
         if (
             data.get("display_type") != DashboardWidgetDisplayTypes.TABLE
             and data.get("display_type") != DashboardWidgetDisplayTypes.BIG_NUMBER
+            and data.get("display_type") != DashboardWidgetDisplayTypes.WHEEL
+            and data.get("display_type") != DashboardWidgetDisplayTypes.DETAILS
             and data.get("limit") is None
             and has_columns
         ):
@@ -549,7 +558,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 f"Dashboard Widget limit was not set. Suggested maximum limit is {limit}."
             )
             raise serializers.ValidationError(
-                {"limit": f"limit is required. The maximum limit is ${limit}."}
+                {"limit": f"limit is required. The maximum limit is {limit}."}
             )
         # Validate limit based on display type: categorical bar charts allow up to 25,
         # all other chart types allow up to 10.
@@ -862,6 +871,19 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     # Create a new widget.
                     self.create_widget(instance, data)
                 else:
+                    sentry_sdk.set_context(
+                        "dashboard",
+                        {
+                            "org_slug": instance.organization.slug,
+                            "dashboard_id": instance.id,
+                            "widget_id": widget_id,
+                            "existing_widget_ids": list(existing_map.keys()),
+                            "requested_widget_ids": widget_ids,
+                        },
+                    )
+                    sentry_sdk.capture_message(
+                        "Attempted to update widget not belonging to dashboard."
+                    )
                     raise serializers.ValidationError(
                         "You cannot update widgets that are not part of this dashboard."
                     )

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
@@ -28,19 +29,12 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
     def setUp(self) -> None:
         super().setUp()
 
-    @staticmethod
-    def _sort_triggers(data: dict[str, Any]) -> dict[str, Any]:
-        """Sort triggers by id so ordering doesn't affect comparison."""
-        result = data.copy()
-        result["triggers"] = sorted(result.get("triggers", []), key=lambda t: t["id"])
-        return result
-
     def test_simple(self) -> None:
         self.add_warning_trigger()
         serialized_detector = serialize(
             self.detector, self.user, WorkflowEngineDetectorSerializer()
         )
-        assert self._sort_triggers(serialized_detector) == self._sort_triggers(self.expected)
+        assert serialized_detector == self.expected
 
     def test_latest_incident(self) -> None:
         self.add_warning_trigger()
@@ -188,7 +182,7 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
             self.user,
             WorkflowEngineDetectorSerializer(prepare_component_fields=True),
         )
-        assert self._sort_triggers(serialized_detector) == self._sort_triggers(sentry_app_expected)
+        assert serialized_detector == sentry_app_expected
 
     def test_snooze_enabled_detector(self) -> None:
         serialized = serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
@@ -198,6 +192,22 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         self.detector.update(enabled=False)
         serialized = serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
         assert serialized["snooze"] is True
+
+    def test_orphaned_trigger_without_detector(self) -> None:
+        serializer = WorkflowEngineDetectorSerializer()
+        result: defaultdict[Any, dict[str, Any]] = defaultdict(dict)
+        detectors = {self.detector.id: self.detector}
+
+        serialized_data_conditions: list[dict[str, Any]] = [
+            {
+                "alertRuleId": None,
+                "actions": [],
+                "alertThreshold": "100",
+                "label": "critical",
+            },
+        ]
+        serializer.add_triggers_and_actions(result, detectors, {}, serialized_data_conditions, {})
+        assert self.detector not in result
 
     def test_new_models_only(self) -> None:
         # test that we can still serialize if objects do not have lookup table entries

@@ -7,6 +7,7 @@ import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/me
 import {TrendsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import {withProjects} from 'sentry/utils/withProjects';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
@@ -52,6 +53,7 @@ const fields = [{field: 'transaction'}, {field: 'project'}];
 
 export function TrendsWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const {projects} = useProjects();
 
   const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
@@ -67,7 +69,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
   const trendFunctionField = TrendFunctionField.P95;
 
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
 
   const eventView = _eventView.clone();
   eventView.fields = fields;
@@ -180,6 +182,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                 excludeTransaction(listItem.transaction, {
                   eventView: props.eventView,
                   location,
+                  navigate,
                 })
               }
             />

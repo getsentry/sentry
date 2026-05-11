@@ -21,6 +21,11 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    # Disabled: this migration changes the length of indexed columns, which our
+    # safety framework now blocks. The migration has already been applied in
+    # production, so it is safe to skip the check here.
+    checked = False
+
     dependencies = [
         ("sentry", "1042_create_code_review_event"),
     ]

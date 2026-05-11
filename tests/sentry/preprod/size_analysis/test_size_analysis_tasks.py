@@ -81,32 +81,17 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         )
         self._create_diff_detector()
 
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+        with patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-            assert mock_produce.call_count == 1
+        assert mock_produce.call_count == 1
 
     def test_no_detectors(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
         head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
-
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
-
-            assert mock_produce.call_count == 0
-
-    def test_feature_flag_disabled(self) -> None:
-        now = timezone.now()
-        self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
-        head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
-        self._create_diff_detector()
 
         with patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
@@ -131,25 +116,24 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         )
         self._create_diff_detector()
 
-        with self.feature("organizations:preprod-issues"):
-            with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
-                mock_process.return_value = {}
-                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+        with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
+            mock_process.return_value = {}
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-            assert mock_process.call_count == 1
-            data_packet = mock_process.call_args[0][0]
-            packet = data_packet.packet
-            metadata = packet["metadata"]
+        assert mock_process.call_count == 1
+        data_packet = mock_process.call_args[0][0]
+        packet = data_packet.packet
+        metadata = packet["metadata"]
 
-            assert metadata["platform"] == "android"
-            assert metadata["head_artifact_id"] == head.id
-            assert metadata["base_artifact_id"] == base.id
-            assert metadata["head_artifact"].id == head.id
-            assert metadata["base_artifact"].id == base.id
-            assert packet["head_install_size_bytes"] == 5000000
-            assert packet["head_download_size_bytes"] == 2000000
-            assert packet["base_install_size_bytes"] == 4000000
-            assert packet["base_download_size_bytes"] == 1500000
+        assert metadata["platform"] == "android"
+        assert metadata["head_artifact_id"] == head.id
+        assert metadata["base_artifact_id"] == base.id
+        assert metadata["head_artifact"].id == head.id
+        assert metadata["base_artifact"].id == base.id
+        assert packet["head_install_size_bytes"] == 5000000
+        assert packet["head_download_size_bytes"] == 2000000
+        assert packet["base_install_size_bytes"] == 4000000
+        assert packet["base_download_size_bytes"] == 1500000
 
     def test_skips_absolute_detectors(self) -> None:
         now = timezone.now()
@@ -173,37 +157,34 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+        with patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-            assert mock_produce.call_count == 0
+        assert mock_produce.call_count == 0
 
     def test_skips_when_no_base(self) -> None:
         head = self._create_artifact_with_metrics()
         self._create_diff_detector()
 
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+        with patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-            assert mock_produce.call_count == 0
+        assert mock_produce.call_count == 0
 
     def test_skips_when_no_head_metrics(self) -> None:
         head = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
         self._create_diff_detector()
 
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+        with patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-            assert mock_produce.call_count == 0
+        assert mock_produce.call_count == 0
 
     def test_batches_queries(self) -> None:
         now = timezone.now()
@@ -214,15 +195,14 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         self._create_diff_detector(threshold_type="absolute_diff")
         self._create_diff_detector(threshold_type="relative_diff")
 
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.preprod.size_analysis.tasks.get_sequential_base_artifact"
-            ) as mock_lookup:
-                mock_lookup.return_value = None
-                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+        with patch(
+            "sentry.preprod.size_analysis.tasks.get_sequential_base_artifact"
+        ) as mock_lookup:
+            mock_lookup.return_value = None
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-            # Should only be called once for the shared empty query
-            assert mock_lookup.call_count == 1
+        # Should only be called once for the shared empty query
+        assert mock_lookup.call_count == 1
 
     def test_creates_comparison_record(self) -> None:
         now = timezone.now()
@@ -236,8 +216,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         )
         self._create_diff_detector()
 
-        with self.feature("organizations:preprod-issues"):
-            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+        maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
         assert PreprodArtifactSizeComparison.objects.count() == 1
         comparison = PreprodArtifactSizeComparison.objects.first()
@@ -275,13 +254,12 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_absolute_size_results(head_metric=metric)
+        with patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            maybe_emit_issues_from_absolute_size_results(head_metric=metric)
 
-            assert mock_produce.call_count == 1
+        assert mock_produce.call_count == 1
 
     def test_skips_diff_detectors(self) -> None:
         """Diff-based detectors should not fire from the single-build path."""
@@ -309,42 +287,6 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             project=self.project,
             type=PreprodSizeAnalysisGroupType.slug,
             config={"threshold_type": "absolute_diff", "measurement": "install_size"},
-            workflow_condition_group=condition_group,
-        )
-
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_absolute_size_results(head_metric=metric)
-
-            assert mock_produce.call_count == 0
-
-    def test_feature_flag_disabled(self) -> None:
-        artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-        metric = self.create_preprod_artifact_size_metrics(
-            artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=5000000,
-            max_download_size=2000000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        condition_group = self.create_data_condition_group(
-            organization=self.project.organization,
-        )
-        self.create_data_condition(
-            condition_group=condition_group,
-            type=Condition.GREATER,
-            comparison=1000000,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-        self.create_detector(
-            name="absolute-detector",
-            project=self.project,
-            type=PreprodSizeAnalysisGroupType.slug,
-            config={"threshold_type": "absolute", "measurement": "install_size"},
             workflow_condition_group=condition_group,
         )
 
@@ -387,22 +329,21 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        with self.feature("organizations:preprod-issues"):
-            with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
-                mock_process.return_value = {}
-                maybe_emit_issues_from_absolute_size_results(head_metric=metric)
+        with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
+            mock_process.return_value = {}
+            maybe_emit_issues_from_absolute_size_results(head_metric=metric)
 
-            assert mock_process.call_count == 1
-            data_packet = mock_process.call_args[0][0]
-            metadata = data_packet.packet["metadata"]
+        assert mock_process.call_count == 1
+        data_packet = mock_process.call_args[0][0]
+        metadata = data_packet.packet["metadata"]
 
-            assert metadata["platform"] == "android"
-            assert metadata["head_metric_id"] == metric.id
-            assert metadata["head_artifact_id"] == artifact.id
-            assert metadata["head_artifact"].id == artifact.id
-            assert "base_metric_id" not in metadata
-            assert "base_artifact_id" not in metadata
-            assert "base_artifact" not in metadata
+        assert metadata["platform"] == "android"
+        assert metadata["head_metric_id"] == metric.id
+        assert metadata["head_artifact_id"] == artifact.id
+        assert metadata["head_artifact"].id == artifact.id
+        assert "base_metric_id" not in metadata
+        assert "base_artifact_id" not in metadata
+        assert "base_artifact" not in metadata
 
     def test_no_detectors(self) -> None:
         artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
@@ -415,13 +356,12 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with self.feature("organizations:preprod-issues"):
-            with patch(
-                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-            ) as mock_produce:
-                maybe_emit_issues_from_absolute_size_results(head_metric=metric)
+        with patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            maybe_emit_issues_from_absolute_size_results(head_metric=metric)
 
-            assert mock_produce.call_count == 0
+        assert mock_produce.call_count == 0
 
 
 class GetPlatformTest(TestCase):

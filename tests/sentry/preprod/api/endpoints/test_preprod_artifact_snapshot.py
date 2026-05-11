@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
 
 
@@ -34,6 +34,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "abc123def456": {
+                    "content_hash": "abc123def456",
                     "display_name": "Test Screen",
                     "image_file_name": "test.png",
                     "width": 375,
@@ -72,6 +73,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "pr_number": 123,
             "images": {
                 "img1": {
+                    "content_hash": "img1",
                     "display_name": "Screen 1",
                     "image_file_name": "screen1.png",
                     "width": 100,
@@ -102,6 +104,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "hash1": {
+                    "content_hash": "hash1",
                     "display_name": "Screen 1",
                     "image_file_name": "screen1.png",
                     "width": 100,
@@ -250,6 +253,145 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
         assert response.status_code == 400
 
+    def _selective_data(self, **overrides):
+        data = {
+            "app_id": "com.test.app",
+            "images": {"screen.png": {"content_hash": "screen", "width": 100, "height": 200}},
+            "selective": True,
+            "all_image_file_names": ["screen.png", "skipped.png"],
+            "head_sha": "a" * 40,
+            "base_sha": "b" * 40,
+            "provider": "github.com",
+            "head_repo_name": "org/repo",
+            "head_ref": "feature",
+        }
+        data.update(overrides)
+        return data
+
+    def _post_selective(self, **overrides):
+        with self.feature("organizations:preprod-snapshots"):
+            return self.client.post(
+                self._get_create_url(), self._selective_data(**overrides), format="json"
+            )
+
+    def test_all_image_file_names_rejects_empty_list(self):
+        response = self._post_selective(images={}, all_image_file_names=[])
+        assert response.status_code == 400
+        assert "empty" in response.data["detail"]
+
+    def test_selective_requires_base_sha(self):
+        response = self._post_selective(base_sha=None)
+        assert response.status_code == 400
+        assert "base_sha" in response.data["detail"]
+
+    def test_all_image_file_names_must_contain_all_images(self):
+        response = self._post_selective(all_image_file_names=["other.png"])
+        assert response.status_code == 400
+        assert "all_image_file_names" in response.data["detail"]
+
+    def test_all_image_file_names_requires_selective(self):
+        response = self._post_selective(selective=False)
+        assert response.status_code == 400
+        assert "selective" in response.data["detail"]
+
+    def test_selective_without_all_image_file_names_accepted(self):
+        data = self._selective_data()
+        del data["all_image_file_names"]
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(self._get_create_url(), data, format="json")
+        assert response.status_code == 200
+
+    def test_selective_with_all_image_file_names_accepted(self):
+        response = self._post_selective()
+        assert response.status_code == 200
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.compare_snapshots")
+    def test_base_upload_triggers_comparison_for_waiting_head(
+        self, mock_compare_snapshots, mock_get_session
+    ) -> None:
+        """
+        When a head snapshot is uploaded before its base, uploading the base should
+        retroactively trigger a comparison for the waiting head.
+        """
+        head_sha = "a" * 40
+        base_sha = "b" * 40
+        repo_name = "owner/repo"
+        app_id = "com.example.app"
+
+        # Simulate a head artifact that was uploaded before its base was available.
+        # It has a commit_comparison with base_sha pointing to the not-yet-uploaded base.
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.org.id,
+            head_repo_name=repo_name,
+            head_sha=head_sha,
+            base_sha=base_sha,
+            provider="github",
+            head_ref="feature-branch",
+            base_repo_name=repo_name,
+        )
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id=app_id,
+            commit_comparison=head_commit_comparison,
+        )
+        head_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            image_count=1,
+            extras={
+                "manifest_key": f"{self.org.id}/{self.project.id}/{head_artifact.id}/manifest.json"
+            },
+        )
+
+        # No comparison exists yet — the base was missing when the head was uploaded.
+        assert not PreprodSnapshotComparison.objects.filter(
+            head_snapshot_metrics=head_metrics
+        ).exists()
+
+        # Upload the base snapshot. Its head_sha matches the head artifact's base_sha.
+        url = self._get_create_url()
+        data = {
+            "app_id": app_id,
+            "head_sha": base_sha,
+            "provider": "github",
+            "head_repo_name": repo_name,
+            "head_ref": "main",
+            "images": {
+                "img1": {
+                    "content_hash": "img1",
+                    "display_name": "Screen 1",
+                    "width": 375,
+                    "height": 812,
+                },
+            },
+        }
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(url, data, format="json")
+
+        assert response.status_code == 200
+
+        base_artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        base_metrics = PreprodSnapshotMetrics.objects.get(preprod_artifact=base_artifact)
+
+        # A pending comparison record should have been created linking head to base.
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+
+        # The comparison task should have been queued for the waiting head.
+        mock_compare_snapshots.apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "org_id": self.org.id,
+                "head_artifact_id": head_artifact.id,
+                "base_artifact_id": base_artifact.id,
+            }
+        )
+
 
 class ProjectPreprodSnapshotGetTest(APITestCase):
     def setUp(self) -> None:
@@ -269,11 +411,13 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         if images is None:
             images = {
                 "img1": {
+                    "content_hash": "img1",
                     "display_name": "Screen1",
                     "width": 375,
                     "height": 812,
                 },
                 "img2": {
+                    "content_hash": "img2",
                     "display_name": "Screen2",
                     "width": 1080,
                     "height": 1920,
@@ -356,6 +500,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
     def test_get_snapshot_details_returns_all_images(self, mock_get_session):
         images = {
             f"img{i:03d}": {
+                "content_hash": f"img{i:03d}",
                 "display_name": f"Image {i}",
                 "image_file_name": f"image{i}.png",
                 "width": 100,
@@ -436,3 +581,61 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 404
         assert response.data["detail"] == "Snapshot metrics not found"
+
+    def test_get_snapshot_returns_404_for_member_without_project_access(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        artifact, _, _, _, _ = self._create_artifact_with_manifest()
+        team = self.create_team(organization=self.org)
+        outsider = self.create_user(is_superuser=False)
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[team])
+        self.login_as(user=outsider)
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 404
+
+
+class ProjectPreprodSnapshotDeleteTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+
+    def _delete_url(self, snapshot_id):
+        return reverse(
+            "sentry-api-0-project-preprod-snapshots-detail",
+            args=[self.org.slug, snapshot_id],
+        )
+
+    def _create_snapshot_artifact(self):
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.app",
+        )
+        PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=artifact,
+            image_count=0,
+            extras={"manifest_key": f"{self.org.id}/{self.project.id}/{artifact.id}/manifest.json"},
+        )
+        return artifact
+
+    def test_delete_returns_404_for_member_without_project_access(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        artifact = self._create_snapshot_artifact()
+        team = self.create_team(organization=self.org)
+        outsider = self.create_user(is_superuser=False)
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[team])
+        self.login_as(user=outsider)
+
+        url = self._delete_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.delete(url)
+
+        assert response.status_code == 404
+        assert PreprodArtifact.objects.filter(id=artifact.id).exists()

@@ -21,6 +21,7 @@ class CategorizedComparison(BaseModel):
     unchanged: list[SnapshotImageResponse] = []
     renamed: list[SnapshotDiffPair] = []
     errored: list[SnapshotDiffPair] = []
+    skipped: list[SnapshotImageResponse] = []
 
 
 def _base_image_from_comparison(name: str, img: ComparisonImageResult) -> SnapshotImageResponse:
@@ -41,8 +42,7 @@ def _build_base_images(
     for key, meta in base_images.items():
         result[key] = SnapshotImageResponse(
             **{k: v for k, v in meta.dict().items() if k not in first_class},
-            key=meta.content_hash
-            or key,  # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+            key=meta.content_hash,
             display_name=meta.display_name,
             image_file_name=key,
             group=meta.group,
@@ -109,6 +109,8 @@ def categorize_comparison_images(
                     head_image=head,
                 )
             )
+        elif img.status == "skipped":
+            result.skipped.append(base_img or _base_image_from_comparison(name, img))
 
     result.changed.sort(key=lambda p: p.diff or 0, reverse=True)
     return result

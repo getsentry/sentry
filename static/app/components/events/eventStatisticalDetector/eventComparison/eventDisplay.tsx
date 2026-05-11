@@ -149,7 +149,7 @@ function EventDisplay({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [selectedEventId, setSelectedEventId] = useState('');
 
   const {data, isPending, isError} = useFetchSampleEvents({
     start,
@@ -183,7 +183,7 @@ function EventDisplay({
     }
   }, [eventIds, selectedEventId]);
 
-  const eventIdIndex = eventIds?.findIndex(eventId => eventId === selectedEventId);
+  const eventIdIndex = eventIds?.indexOf(selectedEventId);
   const hasNext =
     defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
   const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;

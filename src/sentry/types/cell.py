@@ -325,7 +325,7 @@ def get_global_directory() -> CellDirectory:
     # For now, assume that all cell configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    _global_directory = load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES)
+    _global_directory = load_from_config(settings.SENTRY_CELLS, settings.SENTRY_LOCALITIES)
     return _global_directory
 
 
@@ -340,6 +340,15 @@ def get_cell_by_name(name: str) -> Cell:
         raise CellResolutionError(
             f"No cell with name: {name!r} (expected one of {cell_names!r} or a single-tenant name)"
         )
+
+
+def get_new_org_cell_for_locality(name: str) -> Cell:
+    """
+    For the provided locality name, get the Cell
+    that new organizations should be created in.
+    """
+    locality = get_locality_by_name(name)
+    return get_cell_by_name(locality.new_org_cell)
 
 
 def get_locality_by_name(name: str) -> Locality:
@@ -388,10 +397,6 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     return get_cell_by_name(name=mapping.cell_name)
 
 
-# TOOD(cells): Remove alias once getsentry import sites are updated
-get_region_for_organization = get_cell_for_organization
-
-
 def get_local_locality() -> Locality:
     """Get the locality for the cell this server instance is running in."""
     cell = get_local_cell()
@@ -433,12 +438,12 @@ def get_local_cell() -> Cell:
     if single_process_cell is not None:
         return single_process_cell
 
-    if not settings.SENTRY_REGION:
+    if not settings.SENTRY_LOCAL_CELL:
         if in_test_environment():
             return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         else:
-            raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
-    return get_cell_by_name(settings.SENTRY_REGION)
+            raise Exception("SENTRY_LOCAL_CELL must be set when server is in CELL silo mode")
+    return get_cell_by_name(settings.SENTRY_LOCAL_CELL)
 
 
 @control_silo_function

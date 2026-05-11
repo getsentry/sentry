@@ -55,7 +55,7 @@ import {
   isWebVitalFrame,
   NodeType,
 } from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface ReplayReaderParams {
   /**
@@ -864,7 +864,7 @@ function findCanvasInMutation(event: incrementalSnapshotEvent) {
   }
 
   return event.data.adds.find(
-    add => add.node && add.node.type === 2 && add.node.tagName === 'canvas'
+    add => add.node?.type === 2 && add.node.tagName === 'canvas'
   );
 }
 

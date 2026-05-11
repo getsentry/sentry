@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
@@ -12,10 +13,8 @@ import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDispl
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {useFeatureFilter, type PreprodEnabledWriteKey} from './useFeatureFilter';
@@ -88,24 +87,17 @@ export function FeatureFilter({
   const queryParams: Record<string, string | number> = {
     per_page: EXAMPLE_BUILDS_COUNT,
     project: project.id,
+    display: display ?? PreprodBuildsDisplay.SIZE,
   };
 
   if (localQuery) {
     queryParams.query = localQuery;
   }
 
-  const buildsQuery = useApiQuery<BuildDetailsApiResponse[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: 0,
-      enabled,
-    }
-  );
+  const buildsQuery = useQuery({
+    ...buildDetailsApiOptions({organization, queryParams}),
+    enabled,
+  });
 
   const builds = buildsQuery.data ?? [];
 

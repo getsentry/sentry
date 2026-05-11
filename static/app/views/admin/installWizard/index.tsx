@@ -185,7 +185,7 @@ const Version = styled('small')`
 const SetupWizard = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.shadow.high};
   padding: 40px 40px 20px;
   max-width: 1000px;
   margin: ${p => p.theme.space['2xl']};

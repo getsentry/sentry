@@ -1,6 +1,7 @@
 import {createContext, Fragment, useContext, useState} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -21,19 +22,13 @@ import {t, tct} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-const IsPrimaryUserContext = createContext<boolean>(false);
+const IsPrimaryUserContext = createContext(false);
 
 const ENDPOINT = getApiUrl('/auth-v2/merge-accounts/');
 const VERIFICATION_CODE_ENDPOINT = getApiUrl('/auth-v2/user-merge-verification-codes/');
@@ -89,6 +84,8 @@ function MergeAccounts() {
     onSuccess: data => {
       addSuccessMessage(t('Accounts merged!'));
       setSelectedUserIds([]);
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<UserWithOrganizations[]>(
         queryClient,
         makeMergeAccountsEndpointKey(),
@@ -153,7 +150,7 @@ function MergeAccounts() {
         <SettingsPageHeader title={t('Merge Accounts')} />
         <div>
           {t(
-            `Only one account was found with your primary email address. You're all set.`
+            "Only one account was found with your primary email address. You're all set."
           )}
         </div>
       </Fragment>
@@ -166,10 +163,10 @@ function MergeAccounts() {
       <SettingsPageHeader title={t('Merge Accounts')} />
       <List symbol="colored-numeric">
         <StyledListItem>{t('Generate Verification Code')}</StyledListItem>
-        <div>{t(`Check your email for your code. You'll need it in Step 3.`)}</div>
+        <div>{t("Check your email for your code. You'll need it in Step 3.")}</div>
         <ButtonSection>
           <Button
-            priority="primary"
+            variant="primary"
             disabled={verificationCodeSent}
             onClick={() => handlePostVerificationCode()}
           >
@@ -199,7 +196,7 @@ function MergeAccounts() {
         />
         <div>
           <Button
-            priority="danger"
+            variant="danger"
             onClick={() => handleSubmit(selectedUserIds, tokenValue)}
             disabled={isSubmitPending}
           >
@@ -241,11 +238,11 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
           }
         )}
       </TextBlock>
-      <TextBlock>{t(`Your currently active account:`)}</TextBlock>
+      <TextBlock>{t('Your currently active account:')}</TextBlock>
       <IsPrimaryUserContext value>
         <Users users={currentAccount} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>
-      <TextBlock>{t(`Your other accounts:`)}</TextBlock>
+      <TextBlock>{t('Your other accounts:')}</TextBlock>
       <IsPrimaryUserContext value={false}>
         <Users users={otherAccounts} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>

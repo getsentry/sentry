@@ -27,7 +27,11 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    HaltReason,
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
@@ -253,7 +257,7 @@ class OAuthCallbackView:
                 )
 
 
-class BitbucketServerIntegration(RepositoryIntegration):
+class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """
@@ -278,17 +282,31 @@ class BitbucketServerIntegration(RepositoryIntegration):
     def error_message_from_json(self, data):
         return data.get("error", {}).get("message", "unknown error")
 
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiError):
+            if exc.code == 403:
+                return "unauthorized"
+            if exc.code == 404:
+                return "configuration_error"
+        return super().is_broken_integration_error(exc)
+
     # RepositoryIntegration methods
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
-    ) -> list[dict[str, Any]]:
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
+        use_cache: bool = False,
+        raise_on_page_limit: bool = False,
+    ) -> list[RepositoryInfo]:
         if not query:
             resp = self.get_client().get_repos()
 
             return [
                 {
                     "identifier": repo["project"]["key"] + "/" + repo["slug"],
+                    "external_id": self.get_repo_external_id(repo),
                     "project": repo["project"]["key"],
                     "repo": repo["slug"],
                     "name": repo["project"]["name"] + "/" + repo["name"],
@@ -301,6 +319,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
         return [
             {
                 "identifier": repo["project"]["key"] + "/" + repo["slug"],
+                "external_id": self.get_repo_external_id(repo),
                 "project": repo["project"]["key"],
                 "repo": repo["slug"],
                 "name": repo["project"]["name"] + "/" + repo["name"],

@@ -5,15 +5,19 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 function createWrapper({
   queryParams,
@@ -43,9 +47,7 @@ function setupMocks(orgSlug: string) {
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/events-timeseries/`,
     method: 'GET',
-    body: {
-      timeSeries: [TimeSeriesFixture()],
-    },
+    body: {timeSeries: [TimeSeriesFixture()]},
   });
 
   // Catch-all for /events/ requests not matched by specific referrer mocks
@@ -101,162 +103,142 @@ describe('MetricPanel', () => {
     aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
   });
 
-  describe('flag OFF (tracemetrics-enabled only)', () => {
-    const {
-      organization,
-      project,
-      setupPageFilters,
-      setupEventsMock,
-      setupTraceItemsMock,
-    } = initializeTraceMetricsTest({
+  const {organization, project, setupPageFilters, setupEventsMock, setupTraceItemsMock} =
+    initializeTraceMetricsTest({
       orgFeatures: ['tracemetrics-enabled'],
     });
 
-    beforeEach(() => {
-      MockApiClient.clearMockResponses();
-      setupPageFilters();
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    setupPageFilters();
 
-      const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
-      setupTraceItemsMock(metricFixtures.detailedFixtures);
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    setupTraceItemsMock(metricFixtures.detailedFixtures);
 
-      setupEventsMock(metricFixtures.detailedFixtures, [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-options',
-        }),
-      ]);
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-options',
+      }),
+    ]);
 
-      setupEventsMock(metricFixtures.detailedFixtures, [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-aggregates-table',
-        }),
-      ]);
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-aggregates-table',
+      }),
+    ]);
 
-      setupEventsMock(metricFixtures.detailedFixtures, [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-samples-table',
-        }),
-      ]);
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-samples-table',
+      }),
+    ]);
 
-      setupMocks(organization.slug);
-    });
-
-    it('renders the metric panel', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      });
-
-      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-    });
-
-    it('does not render the visualize label badge', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('metric-panel')).toBeInTheDocument();
-      });
-
-      // The visualize label badge ("A") should NOT be present
-      expect(screen.queryByText('A')).not.toBeInTheDocument();
-    });
+    setupMocks(organization.slug);
   });
 
-  describe('flag ON (tracemetrics-enabled + tracemetrics-ui-refresh)', () => {
-    const {
+  it('renders the metric panel', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
       organization,
-      project,
-      setupPageFilters,
-      setupEventsMock,
-      setupTraceItemsMock,
-    } = initializeTraceMetricsTest({
-      orgFeatures: ['tracemetrics-enabled', 'tracemetrics-ui-refresh'],
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
 
-    beforeEach(() => {
-      MockApiClient.clearMockResponses();
-      setupPageFilters();
+    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+  });
 
-      const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
-      setupTraceItemsMock(metricFixtures.detailedFixtures);
+  it('renders the visualize label badge', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
 
-      setupEventsMock(metricFixtures.detailedFixtures, [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-options',
+    // The visualize label badge "A" should be present
+    expect(await screen.findByText('A')).toBeInTheDocument();
+  });
+
+  it('does not render orientation controls', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+
+    // Orientation controls should NOT be present in the refreshed UI
+    expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
+  });
+
+  it('uses the internal expression as the chart title for equations', async () => {
+    const equationQueryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeEquation('equation|sum(value) + avg(value)')],
+      aggregateSortBys: [{field: 'equation|sum(value) + avg(value)', kind: 'desc'}],
+    });
+
+    const equationOrg = {
+      ...organization,
+      features: [...organization.features, 'tracemetrics-equations-in-explore'],
+    };
+
+    render(
+      <MetricPanel
+        traceMetric={traceMetric}
+        queryIndex={0}
+        queryLabel="ƒ1"
+        referenceMap={{A: 'sum(value)', B: 'avg(value)'}}
+      />,
+      {
+        organization: equationOrg,
+        additionalWrapper: createWrapper({
+          queryParams: equationQueryParams,
+          traceMetric,
         }),
-      ]);
+      }
+    );
 
-      setupEventsMock(metricFixtures.detailedFixtures, [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-aggregates-table',
-        }),
-      ]);
+    // The chart title should display the unresolved/internal expression (A + B),
+    // not the resolved form (sum(value) + avg(value))
+    expect(await screen.findByText('A + B')).toBeInTheDocument();
+    expect(screen.queryByText('sum(value) + avg(value)')).not.toBeInTheDocument();
+  });
 
-      setupEventsMock(metricFixtures.detailedFixtures, [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-samples-table',
-        }),
-      ]);
+  it('renders the samples column order', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
 
-      setupMocks(organization.slug);
-    });
+    render(
+      <MetricsSamplesTable overrideTableData={[metricFixtures.detailedFixtures[0]!]} />,
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
+    );
 
-    it('renders the metric panel', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      });
+    const samplesTable = await screen.findByRole('table');
+    const columnHeaders = await within(samplesTable).findAllByRole('columnheader');
+    expect(columnHeaders.map(header => header.textContent?.trim() ?? '')).toEqual([
+      '',
+      'Trace ID',
+      'Project',
+      'Value',
+      'Timestamp',
+    ]);
+  });
 
-      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-    });
+  it('renders project and relative timestamp cells', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
 
-    it('renders the visualize label badge', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      });
+    render(
+      <MetricsSamplesTable overrideTableData={[metricFixtures.detailedFixtures[0]!]} />,
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
+    );
 
-      // The visualize label badge "A" (from getVisualizeLabel(0)) should be present
-      expect(await screen.findByText('A')).toBeInTheDocument();
-    });
-
-    it('does not render telemetry column headers in the samples table', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      });
-
-      // Wait for the samples table to render
-      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
-
-      expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-      expect(screen.queryByText('Spans')).not.toBeInTheDocument();
-      expect(screen.queryByText('Errors')).not.toBeInTheDocument();
-    });
-
-    it('does not render orientation controls', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('metric-panel')).toBeInTheDocument();
-      });
-
-      // Orientation controls should NOT be present in the refreshed UI
-      expect(
-        screen.queryByRole('button', {name: 'Table bottom'})
-      ).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
-    });
+    expect(await screen.findByText(project.slug)).toBeInTheDocument();
+    expect(screen.getAllByText(/ago$/).length).toBeGreaterThan(0);
   });
 });

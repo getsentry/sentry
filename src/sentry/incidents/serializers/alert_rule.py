@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import logging
 import operator
 from datetime import timedelta
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sentry.models.environment import Environment
 
 import sentry_sdk
 from django import forms
 from django.db import router, transaction
 from parsimonious.exceptions import ParseError
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
@@ -54,7 +61,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
      - `user`: The user from `request.user`
     """
 
-    environment = EnvironmentField(required=False, allow_null=True)
+    environment = serializers.CharField(required=False, allow_null=True)
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
         required=False,
@@ -119,6 +126,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         AlertRuleThresholdType.ABOVE: lambda threshold: threshold + 100,
         AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
     }
+
+    def validate_environment(self, value: str | None) -> Environment | None:
+        field = EnvironmentField()
+        field.bind("environment", self)
+        return field.to_internal_value(value)
 
     def validate_threshold_type(self, threshold_type):
         try:
@@ -210,13 +222,6 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 threshold_type, warning, data.get("resolve_threshold")
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
-
-        if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
-            time_window = data["time_window"]
-            if time_window < 5:
-                raise serializers.ValidationError(
-                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
-                )
 
         return data
 
@@ -318,6 +323,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except forms.ValidationError as e:
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
+            except APIException:
+                raise
             except Exception as e:
                 logger.exception(
                     "Error when creating alert rule",
@@ -372,6 +379,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except forms.ValidationError as e:
                 # if we fail in update_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
+            except APIException:
+                raise
             except Exception as e:
                 logger.exception(
                     "Error when updating alert rule",

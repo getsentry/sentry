@@ -63,6 +63,15 @@ class TestAccounts(TestCase):
         self.assertContains(resp, "The account you are trying to recover is managed")
         assert 0 == len(LostPasswordHash.objects.all())
 
+    def test_post_suspended_user_no_email_sent(self) -> None:
+        user = self.create_user()
+        user.update(is_suspended=True)
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/account/recover/sent.html")
+        assert 0 == len(LostPasswordHash.objects.all())
+
     def test_post_multiple_users(self) -> None:
         user = self.create_user(email="bob")
         user.email = "bob@example.com"
@@ -109,6 +118,29 @@ class TestAccounts(TestCase):
         )
         assert resp.status_code == 200
         assert b"The password is too similar to the username." in resp.content
+
+    def test_suspended_user_cannot_recover_password(self) -> None:
+        user = self.create_user()
+        old_password = user.password
+        user.update(is_suspended=True)
+
+        lost_password = LostPasswordHash.objects.create(user=user)
+
+        resp = self.client.get(
+            self.password_recover_path(lost_password.user_id, lost_password.hash),
+        )
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/account/recover/failure.html")
+
+        resp = self.client.post(
+            self.password_recover_path(lost_password.user_id, lost_password.hash),
+            {"password": "new_password_123"},
+        )
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/account/recover/failure.html")
+
+        user.refresh_from_db()
+        assert user.password == old_password
 
     def test_relocate_recovery_no_inputs(self) -> None:
         user = self.create_user()

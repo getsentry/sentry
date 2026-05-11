@@ -82,7 +82,7 @@ type RuleReplace = RuleBase & {
   placeholder?: string;
 } & Pick<RuleDefault, 'type'>;
 
-export type KeysOfUnion<T> = T extends any ? keyof T : never;
+type KeysOfUnion<T> = T extends any ? keyof T : never;
 
 type RuleReplaceAndPattern = Omit<RulePattern, 'method'> & Omit<RuleReplace, 'type'>;
 
@@ -132,6 +132,8 @@ export enum AllowedDataScrubbingDatasets {
   DEFAULT = 'default',
   // This is the dataset that is used for data scrubbing. When this is selected, the user will be shown a trace item attribute picker.
   LOGS = 'logs',
+  // Trace metrics dataset. When selected, the user will be shown a trace item attribute picker for metrics.
+  METRICS = 'metrics',
 }
 
 export type PiiConfig =

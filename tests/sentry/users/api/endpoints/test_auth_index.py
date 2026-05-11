@@ -176,6 +176,16 @@ class AuthVerifyEndpointTest(APITestCase):
             not in mock_metrics.incr.call_args_list
         )
 
+    def test_suspended_user_cannot_verify(self) -> None:
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        user.update(is_suspended=True)
+        resp = self.client.put(
+            self.path,
+            data={"password": "admin"},
+        )
+        assert resp.status_code == 401
+
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limit(self) -> None:
         user = self.create_user("foo@example.com")

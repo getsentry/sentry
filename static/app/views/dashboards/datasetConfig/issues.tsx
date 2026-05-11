@@ -84,6 +84,7 @@ export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
   transformSeries: transformIssuesResponseToSeries,
   filterYAxisOptions,
   getTableSortOptions,
+  getTimeseriesSortOptions: () => ({}),
   getTableFieldOptions: (organization, _tags, _customMeasurements, _api, displayType) =>
     generateIssueWidgetFieldOptions(organization, displayType),
   getFieldHeaderMap: () => ISSUE_FIELD_TO_HEADER_MAP,

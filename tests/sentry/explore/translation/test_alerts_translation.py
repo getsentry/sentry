@@ -112,6 +112,50 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         assert snuba_query.query_snapshot is None
 
+    def test_snapshot_snuba_query_with_metrics_to_transactions_flag(self) -> None:
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
+            query="transaction.duration:>100",
+            aggregate="p95(transaction.duration)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
+        )
+        snuba_query.query_snapshot = {"metrics_to_transactions": True}
+        snuba_query.save()
+
+        snapshot_snuba_query(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot["type"] == snuba_query.type
+        assert snuba_query.query_snapshot["dataset"] == Dataset.Transactions.value
+        assert snuba_query.query_snapshot["query"] == "transaction.duration:>100"
+        assert snuba_query.query_snapshot["aggregate"] == "p95(transaction.duration)"
+        assert snuba_query.query_snapshot["time_window"] == snuba_query.time_window
+
+    def test_snapshot_snuba_query_with_metrics_to_transactions_flag_incorrect_dataset(self) -> None:
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Events,
+            query="transaction.duration:>100",
+            aggregate="p95(transaction.duration)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.ERROR],
+            resolution=timedelta(minutes=1),
+        )
+        snuba_query.query_snapshot = {"metrics_to_transactions": True}
+        snuba_query.save()
+
+        snapshot_snuba_query(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot == {"metrics_to_transactions": True}
+
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_translate_alert_rule_simple_count(self, mock_create_rpc) -> None:

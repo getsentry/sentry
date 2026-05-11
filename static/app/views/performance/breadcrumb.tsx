@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
@@ -24,30 +23,28 @@ type Props = {
   };
 };
 
-export function Breadcrumb(props: Props) {
-  function getCrumbs() {
-    const crumbs: Crumb[] = [];
-    const {organization, location, transaction, spanSlug, eventSlug, traceSlug} = props;
+export function getCrumbs(props: Props) {
+  const crumbs: Crumb[] = [];
+  const {organization, location, transaction, spanSlug, eventSlug, traceSlug} = props;
 
+  if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
     crumbs.push({
       label: DOMAIN_VIEW_BASE_TITLE,
     });
-
-    crumbs.push(
-      ...getTabCrumbs({
-        location,
-        organization,
-        transaction,
-        spanSlug,
-        eventSlug,
-        traceSlug,
-      })
-    );
-
-    return crumbs;
   }
 
-  return <Breadcrumbs crumbs={getCrumbs()} />;
+  crumbs.push(
+    ...getTabCrumbs({
+      location,
+      organization,
+      transaction,
+      spanSlug,
+      eventSlug,
+      traceSlug,
+    })
+  );
+
+  return crumbs;
 }
 
 export const getTabCrumbs = ({

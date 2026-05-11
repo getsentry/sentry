@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import Color from 'color';
+import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {BarSeries} from 'sentry/components/charts/series/barSeries';
@@ -36,6 +36,8 @@ interface BarsConfig extends CategoricalDataSeriesConfig {
  * A plottable that renders a categorical bar series.
  */
 export class Bars
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   extends CategoricalDataSeries<BarsConfig>
   implements CategoricalPlottable
 {
@@ -69,8 +71,8 @@ export class Bars
   toSeries(
     plottingOptions: CategoricalPlottingOptions
   ): Array<BarSeriesOption | LineSeriesOption> {
-    const color = plottingOptions.color ?? this.config?.color ?? undefined;
-    const colorObject = color ? Color(color) : undefined;
+    const colorOption = plottingOptions.color ?? this.config?.color ?? undefined;
+    const colorObject = colorOption ? color(colorOption) : undefined;
 
     return [
       BarSeries({
@@ -78,7 +80,7 @@ export class Bars
         stack: this.config?.stack,
         yAxisIndex: 0,
         xAxisIndex: 0,
-        color,
+        color: colorOption,
         emphasis: {
           itemStyle: colorObject
             ? {
@@ -91,7 +93,7 @@ export class Bars
         },
         animation: false,
         itemStyle: {
-          opacity: 1.0,
+          opacity: 1,
         },
         data: this.categoricalSeries.values.map(
           item =>

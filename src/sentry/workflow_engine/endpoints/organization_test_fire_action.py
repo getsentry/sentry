@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class TestActionsValidator(CamelSnakeSerializer[Any]):
     actions = serializers.ListField(required=True)
+    project_slug = serializers.CharField(required=False)
 
     def validate_actions(self, value: Any) -> Any:
         validated_actions = []
@@ -85,17 +86,17 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=HTTP_401_UNAUTHORIZED)
 
-        # Get the alphabetically first project associated with the organization
-        # This is because we don't have a project when test firing actions
-        project = (
-            Project.objects.filter(
-                organization=organization,
-                teams__organizationmember__user_id=request.user.id,
-                status=ObjectStatus.ACTIVE,
-            )
-            .order_by("name")
-            .first()
-        )
+        qs = Project.objects.filter(
+            organization=organization,
+            teams__organizationmember__user_id=request.user.id,
+            status=ObjectStatus.ACTIVE,
+        ).order_by("slug")
+
+        project_slug = data.get("project_slug")
+        if project_slug:
+            qs = qs.filter(slug=project_slug)
+
+        project = qs.first()
 
         if not project:
             return Response(
@@ -132,11 +133,8 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
             config=action_data.get("config", {}),
         )
 
-        # Annotate the action with the workflow id
-        setattr(action, "workflow_id", workflow_id)
-
         # Test fire the action and collect any exceptions
-        exceptions = test_fire_action(action, workflow_event_data)
+        exceptions = test_fire_action(action, workflow_event_data, workflow_id=workflow_id)
         if exceptions:
             action_exceptions.extend(exceptions)
 

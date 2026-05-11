@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -37,7 +38,6 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {withProjects} from 'sentry/utils/withProjects';
 import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
@@ -59,6 +59,7 @@ import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/trans
 import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -110,7 +111,6 @@ function EAPSummaryContentInner({
   projectId,
   transactionName,
 }: Props) {
-  const theme = useTheme();
   const navigate = useNavigate();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
@@ -154,13 +154,10 @@ function EAPSummaryContentInner({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      makeVitalGroups(theme).some(group =>
-        group.vitals.some(vital => {
-          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
-          const field = functionName;
-          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
-        })
-      ));
+      EAP_WEB_VITALS.some(vital => {
+        const field = `percentile(${vital},${VITAL_PERCENTILE})`;
+        return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
+      }));
 
   const isFrontendView = isSummaryViewFrontend(eventView, projects);
 
@@ -201,10 +198,12 @@ function EAPSummaryContentInner({
     }
 
     if (organization.features.includes('continuous-profiling')) {
-      fields.push({field: 'profiler.id'});
-      fields.push({field: 'thread.id'});
-      fields.push({field: 'precise.start_ts'});
-      fields.push({field: 'precise.finish_ts'});
+      fields.push(
+        {field: 'profiler.id'},
+        {field: 'thread.id'},
+        {field: 'precise.start_ts'},
+        {field: 'precise.finish_ts'}
+      );
     }
   }
 
@@ -318,7 +317,7 @@ function SummaryContent({
   onChangeFilter,
 }: Props) {
   const theme = useTheme();
-  const routes = useRoutes();
+  const matches = useMatches();
   const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
   const domainViewFilters = useDomainViewFilters();
@@ -472,10 +471,12 @@ function SummaryContent({
     }
 
     if (organization.features.includes('continuous-profiling')) {
-      fields.push({field: 'profiler.id'});
-      fields.push({field: 'thread.id'});
-      fields.push({field: 'precise.start_ts'});
-      fields.push({field: 'precise.finish_ts'});
+      fields.push(
+        {field: 'profiler.id'},
+        {field: 'thread.id'},
+        {field: 'precise.start_ts'},
+        {field: 'precise.finish_ts'}
+      );
     }
   }
 
@@ -600,7 +601,7 @@ function SummaryContent({
                 eventView.normalizeDateSelection(location),
                 domainViewFilters.view
               ),
-              replayId: generateReplayLink(routes),
+              replayId: generateReplayLink(matches),
               'profile.id': generateProfileLink(),
             }}
             handleCellAction={handleCellAction}

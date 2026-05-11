@@ -1,5 +1,7 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -10,7 +12,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,6 +55,7 @@ export function LogsTabSeerComboBox() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useQueryParams();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -244,11 +247,18 @@ export function LogsTabSeerComboBox() {
         query: queryToUse,
         group_by_count: groupBys.length,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+      });
 
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
@@ -313,7 +323,6 @@ export function LogsTabSeerComboBox() {
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
       analyticsSource="logs"
-      feedbackSource="logs_ai_query"
       fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );

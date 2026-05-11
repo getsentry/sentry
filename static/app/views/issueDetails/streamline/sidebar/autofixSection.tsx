@@ -1,5 +1,6 @@
-import {useCallback, useMemo, type CSSProperties} from 'react';
+import {type CSSProperties, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -9,6 +10,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
+  type AutofixSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
   isCodeChangesSection,
@@ -20,7 +22,6 @@ import {
   isSolutionArtifact,
   isSolutionSection,
   useExplorerAutofix,
-  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
@@ -32,6 +33,7 @@ import {
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -39,10 +41,10 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -124,7 +126,9 @@ export interface AutofixContentProps {
 export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
   const organization = useOrganization();
   const autofix = useExplorerAutofix(group.id);
-  const {data: setupCheck, isPending} = useSeerOnboardingCheck();
+  const {data: setupCheck, isPending} = useQuery(
+    getSeerOnboardingCheckQueryOptions({organization})
+  );
 
   useAutoTriggerAutofix({autofix, group});
 
@@ -149,9 +153,7 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
 
   const needProjSetup =
     // scm integration not linked to project
-    !aiConfig.seerReposLinked ||
-    // autofix setting not enabled
-    !aiConfig.autofixEnabled;
+    !aiConfig.seerReposLinked;
 
   if (needOrgSetup || needProjSetup) {
     return (
@@ -256,10 +258,18 @@ function AutofixEmptyState({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const handleStartRootCause = useCallback(() => {
-    startStep('root_cause');
+  const [startingRun, setStartingRun] = useState(false);
+  const handleStartRootCause = async () => {
+    setStartingRun(true);
+    try {
+      await startStep('root_cause');
+    } catch {
+      return;
+    } finally {
+      setStartingRun(false);
+    }
     openSeerDrawer();
-  }, [startStep, openSeerDrawer]);
+  };
 
   return (
     <Flex direction="column" gap="md">
@@ -290,14 +300,14 @@ function AutofixEmptyState({
       </Flex>
       <Button
         size="md"
-        icon={<IconBug />}
+        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
         aria-label={t('Start Analysis')}
-        tooltipProps={{title: t('Start Analysis')}}
-        priority="primary"
+        variant="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
+        disabled={startingRun}
       >
         {t('Start Analysis')}
       </Button>
@@ -381,8 +391,8 @@ function AutofixPreviews({
       <Button
         size="md"
         icon={<IconSeer />}
-        aria-label={t('Open Seer')}
-        priority="primary"
+        aria-label={t('Open Autofix')}
+        variant="primary"
         onClick={openSeerDrawer}
         analyticsEventKey="issue_details.seer_opened"
         analyticsEventName="Issue Details: Seer Opened"
@@ -400,7 +410,7 @@ function AutofixPreviews({
           referrer,
         }}
       >
-        {t('Open Seer')}
+        {t('Open Autofix')}
       </Button>
     </Flex>
   );

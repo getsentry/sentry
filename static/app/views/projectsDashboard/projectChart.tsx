@@ -64,7 +64,7 @@ export function ProjectChart({
       emphasis: {
         itemStyle: {
           color: theme.tokens.dataviz.semantic.neutral,
-          opacity: 1.0,
+          opacity: 1,
         },
       },
     });
@@ -129,7 +129,7 @@ export function ProjectChart({
     tooltip: {
       trigger: 'axis' as const,
     },
-    xAxes: Array.from(new Array(series.length)).map((_i, index) => ({
+    xAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
       axisLine: {
         show: false,
@@ -150,7 +150,7 @@ export function ProjectChart({
         },
       },
     })),
-    yAxes: Array.from(new Array(series.length)).map((_i, index) => ({
+    yAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
       interval: Infinity,
       max(value: {max: number}) {

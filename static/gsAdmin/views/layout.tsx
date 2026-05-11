@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {GlobalModal} from '@sentry/scraps/modal';
 
-import {GlobalModal} from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
@@ -80,10 +80,11 @@ export function Layout() {
                 Spike Projection Generation
               </NavLink>
               <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+              <NavLink to="/_admin/seer/">Seer</NavLink>
             </Navigation>
             <div>
               <ThemeToggle
-                priority="transparent"
+                variant="transparent"
                 size="zero"
                 onClick={toggleTheme}
                 icon={
@@ -116,7 +117,7 @@ const AppContainer = styled('div')`
   padding-left: var(--sidebarWidth);
 `;
 
-const Content = styled(`main`)`
+const Content = styled('main')`
   width: 100%;
   max-width: var(--contentWidth);
   padding: 0 ${p => p.theme.space['2xl']};

@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
-import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -49,18 +48,14 @@ export function ProjectSampling() {
 
   const projectRates = useMemo(
     () =>
-      (sampleRatesQuery.data || []).reduce(
-        (acc, item) => {
-          acc[item.id.toString()] = (item.sampleRate * 100).toString();
-          return acc;
-        },
-        {} as Record<string, string>
-      ),
+      (sampleRatesQuery.data || []).reduce<Record<string, string>>((acc, item) => {
+        acc[item.id.toString()] = (item.sampleRate * 100).toString();
+        return acc;
+      }, {}),
     [sampleRatesQuery.data]
   );
 
-  const [savedProjectRates, setSavedProjectRates] =
-    useState<Record<string, string>>(projectRates);
+  const [savedProjectRates, setSavedProjectRates] = useState(projectRates);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -175,15 +170,12 @@ export function ProjectSampling() {
                   savedProjectRates={savedProjectRates}
                   actions={
                     <Fragment>
-                      <Button
-                        disabled={!isDirty || updateSamplingProjectRates.isPending}
-                        onClick={() => {
-                          form.reset();
-                          setEditMode('single');
-                        }}
+                      <form.ResetButton
+                        disabled={updateSamplingProjectRates.isPending}
+                        onClick={() => setEditMode('single')}
                       >
                         {t('Reset')}
-                      </Button>
+                      </form.ResetButton>
                       <form.SubmitButton disabled={!hasAccess} formNoValidate>
                         {t('Apply Changes')}
                       </form.SubmitButton>

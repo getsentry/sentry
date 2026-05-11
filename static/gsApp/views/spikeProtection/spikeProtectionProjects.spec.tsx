@@ -8,8 +8,10 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -234,13 +236,13 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/notifications/available-actions/`,
+      url: '/organizations/org-slug/notifications/available-actions/',
       method: 'GET',
       body: AvailableNotificationActionsFixture(),
       statusCode: 200,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/notifications/actions/`,
+      url: '/organizations/org-slug/notifications/actions/',
       match: [MockApiClient.matchQuery({triggerType: 'spike-protection'})],
       method: 'GET',
       body: [],
@@ -312,7 +314,7 @@ describe('project renders and toggles', () => {
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 
-    const enableAll = await screen.findByTestId(`sp-enable-all`);
+    const enableAll = await screen.findByTestId('sp-enable-all');
 
     await userEvent.click(enableAll);
     await userEvent.click(await screen.findByTestId('confirm-button'));
@@ -333,7 +335,7 @@ describe('project renders and toggles', () => {
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 
-    const disableAll = await screen.findByTestId(`sp-disable-all`);
+    const disableAll = await screen.findByTestId('sp-disable-all');
 
     await userEvent.click(disableAll);
     await userEvent.click(await screen.findByTestId('confirm-button'));
@@ -367,6 +369,28 @@ describe('project renders and toggles', () => {
 
     expect(mockGetProjectNotificationActions).toHaveBeenCalled();
     expect(await screen.findByTestId('sentry_notification-action')).toBeInTheDocument();
+  });
+
+  it('updates ProjectsStore on successful toggle', async () => {
+    const project = projects[0]!;
+    jest.spyOn(ProjectsStore, 'onUpdateSuccess');
+
+    render(<SpikeProtectionProjects />);
+    const {toggle} = await validateComponents(project, false);
+
+    await userEvent.click(toggle);
+    expect(mockPost).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(ProjectsStore.onUpdateSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: project.id,
+          options: expect.objectContaining({
+            [SPIKE_PROTECTION_OPTION_DISABLED]: false,
+          }),
+        })
+      );
+    });
   });
 
   it('closes the accordion upon disable', async () => {

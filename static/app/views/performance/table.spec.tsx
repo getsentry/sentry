@@ -176,7 +176,7 @@ describe('Performance > Table', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/key-transactions-list/`,
+      url: '/organizations/org-slug/key-transactions-list/',
       body: [],
     });
   });
@@ -331,7 +331,7 @@ describe('Performance > Table', () => {
         {
           query: 'event.type:transaction transaction:/api*',
         },
-        ['performance-use-metrics']
+        ['dynamic-sampling']
       );
 
       render(

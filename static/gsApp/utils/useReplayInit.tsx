@@ -17,7 +17,7 @@ export function useReplayInit() {
 
   useEffect(() => {
     async function init(sessionSampleRate: number, errorSampleRate: number) {
-      const {replayIntegration, replayCanvasIntegration} = await import('@sentry/react');
+      const {replayIntegration} = await import('@sentry/react');
 
       if (!replayRef) {
         const client = getClient();
@@ -66,7 +66,6 @@ export function useReplayInit() {
           ],
         });
 
-        client.addIntegration(replayCanvasIntegration());
         client.addIntegration(replayRef);
       }
     }
@@ -79,8 +78,8 @@ export function useReplayInit() {
       return;
     }
 
-    const sessionSampleRate = user.isStaff ? 1.0 : 0.05;
-    const errorSampleRate = 1.0;
+    const sessionSampleRate = user.isStaff ? 1 : 0.05;
+    const errorSampleRate = 1;
 
     init(sessionSampleRate, errorSampleRate);
 

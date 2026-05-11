@@ -134,7 +134,7 @@ describe('spansWidgetQueries', () => {
     });
 
     const normalModeMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: {
         data: [
           [1, [{count: 1}]],
@@ -189,7 +189,7 @@ describe('spansWidgetQueries', () => {
     });
 
     const normalModeMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [{a: 'normal mode'}],
       },

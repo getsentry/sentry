@@ -136,7 +136,7 @@ export function UsageAlert({subscription, usage}: Props) {
               <h3>{t('Projected Overage')}</h3>
               <Description>
                 {tct(
-                  `Based on your previous usage, we predict your organization will need at least [totals].`,
+                  'Based on your previous usage, we predict your organization will need at least [totals].',
                   {totals: oxfordizeArray(projectedOverages)}
                 )}{' '}
                 {getActionSentence()}
@@ -185,7 +185,7 @@ export function UsageAlert({subscription, usage}: Props) {
         ([category]) =>
           category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
       )
-      .reduce((acc, [category, currentHistory]) => {
+      .reduce<string[]>((acc, [category, currentHistory]) => {
         if (currentHistory.usageExceeded) {
           acc.push(
             getPlanCategoryName({
@@ -197,7 +197,7 @@ export function UsageAlert({subscription, usage}: Props) {
           );
         }
         return acc;
-      }, [] as string[]);
+      }, []);
 
     const quotasExceeded =
       exceededList.length > 0
@@ -223,7 +223,7 @@ export function UsageAlert({subscription, usage}: Props) {
               <h3>{t('Usage Exceeded')}</h3>
               <Description>
                 {tct(
-                  `Your organization has depleted its [quotasExceeded] capacity for the current usage period.`,
+                  'Your organization has depleted its [quotasExceeded] capacity for the current usage period.',
                   {quotasExceeded}
                 )}{' '}
                 {getActionSentence()}

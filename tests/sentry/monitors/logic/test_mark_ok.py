@@ -214,7 +214,7 @@ class MarkOkTestCase(TestCase):
             mark_ok(checkin, checkin.date_added)
 
         # recovery has hit threshold, monitor should be in an ok state
-        incident.refresh_from_db()
+        incident = MonitorIncident.objects.get(id=incident.id)
         monitor_environment.refresh_from_db()
 
         assert monitor_environment.status == MonitorStatus.OK

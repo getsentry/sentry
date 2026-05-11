@@ -16,7 +16,6 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.rules.history import fetch_rule_hourly_stats
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.workflow_engine.models.workflow import Workflow
@@ -41,7 +40,7 @@ class TimeSeriesValueSerializer(Serializer):
 @cell_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-projectrulegroupstats-get",
+        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
     }
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -61,10 +60,10 @@ class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
         Note that results are returned in hourly buckets.
         """
         start, end = get_date_range_from_params(request.GET)
-        results = fetch_rule_hourly_stats(rule, start, end)
+        results = fetch_rule_hourly_stats(rule, start, end, project_id=project.id)
         return Response(serialize(results, request.user, TimeSeriesValueSerializer()))

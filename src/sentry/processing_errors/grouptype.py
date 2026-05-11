@@ -243,8 +243,8 @@ class ProcessingErrorDetectorHandler(
 class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
     error_types = JS_SOURCEMAP_ERROR_TYPES
     fingerprint_key = "sourcemap"
-    issue_title = "Broken source maps detected"
-    issue_subtitle = "Source maps are not configured correctly for this project"
+    issue_title = "Source maps are misconfigured"
+    issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
 
 
 @dataclass(frozen=True)
@@ -253,7 +253,6 @@ class SourcemapConfigurationType(GroupType):
     slug = "sourcemap_configuration"
     description = "Source Map Configuration Issue"
     category = GroupCategory.CONFIGURATION.value
-    category_v2 = GroupCategory.CONFIGURATION.value
     released = False
     default_priority = PriorityLevel.LOW
     enable_auto_resolve = False

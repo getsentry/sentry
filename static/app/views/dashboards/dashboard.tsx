@@ -14,7 +14,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
@@ -26,12 +25,16 @@ import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
@@ -99,7 +102,7 @@ interface LayoutState extends Record<string, Layout[]> {
   [MOBILE]: Layout[];
 }
 
-export function Dashboard({
+function DashboardInner({
   dashboard,
   handleAddCustomWidget,
   handleUpdateWidgetList,
@@ -121,7 +124,27 @@ export function Dashboard({
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi();
+
   const {selection} = usePageFilters();
+  const {projects} = useProjects();
+  const selectedProjectSlugs =
+    !selection.projects.length || selection.projects.includes(-1)
+      ? []
+      : projects.filter(p => selection.projects.includes(Number(p.id))).map(p => p.slug);
+
+  // Push dashboard metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. Use telemetry_live_search or telemetry_index_list_nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
+    title: dashboard.title,
+    widgetCount: dashboard.widgets.length,
+    queryHints: getQueryHintLegend(dashboard.widgets),
+    filters: dashboard.filters,
+    isEditingDashboard,
+    dateRange: selection.datetime,
+    environments: selection.environments,
+    projectSlugs: selectedProjectSlugs,
+  });
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
@@ -164,15 +187,6 @@ export function Dashboard({
     }
   }, [newWidget, handleAddCustomWidget, onSetNewWidget, api, organization.slug]);
 
-  const fetchMemberList = useCallback(() => {
-    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
-    fetchOrgMembers(
-      api,
-      organization.slug,
-      selection.projects?.map(projectId => String(projectId))
-    );
-  }, [api, organization.slug, selection.projects]);
-
   useEffect(() => {
     // Always load organization tags on dashboards
     loadOrganizationTags(api, organization.slug, selection);
@@ -181,9 +195,6 @@ export function Dashboard({
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
-
-    // Get member list data for issue widgets
-    fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
     trackEngagementAnalytics(
@@ -210,10 +221,6 @@ export function Dashboard({
       addNewWidget();
     }
   }, [newWidget, addNewWidget]);
-
-  useEffect(() => {
-    fetchMemberList();
-  }, [fetchMemberList]);
 
   const handleDeleteWidget = useCallback(
     (widgetToDelete: Widget) => () => {
@@ -285,29 +292,26 @@ export function Dashboard({
     [organization, dashboard.widgets, onEditWidget]
   );
 
-  const handleChangeSplitDataset = useCallback(
-    (widget: Widget, index: number) => {
-      const widgetCopy = cloneDeep({
-        ...widget,
-        id: undefined,
-      });
+  const handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
 
-      const nextList = [...dashboard.widgets];
-      const nextWidgetData = {
-        ...widgetCopy,
-        widgetType: WidgetType.TRANSACTIONS,
-        datasetSource: DatasetSource.USER,
-        id: widget.id,
-      };
-      nextList[index] = nextWidgetData;
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
 
-      onUpdate(nextList);
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [dashboard.widgets, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
@@ -424,7 +428,7 @@ export function Dashboard({
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             icon={<IconResize />}
           />
         }
@@ -475,6 +479,7 @@ const AddWidgetWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
+// eslint-disable-next-line @sentry/no-calling-components-as-functions
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${p => p.theme.space.xl};
 
@@ -496,3 +501,5 @@ const ResizeHandle = styled(Button)`
     display: none;
   }
 `;
+
+export const Dashboard = registerLLMContext('dashboard', DashboardInner);

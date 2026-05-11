@@ -27,7 +27,7 @@ export function NewDetectorFooter({
       {({form}) => (
         <EditLayout.Footer label={t('Step 2 of 2')} maxWidth={maxWidth}>
           <LinkButton
-            priority="default"
+            variant="secondary"
             to={`${makeMonitorBasePathname(organization.slug)}new/`}
           >
             {t('Back')}
@@ -36,14 +36,10 @@ export function NewDetectorFooter({
           <Observer>
             {() => (
               <Button
-                priority="primary"
+                variant="primary"
                 type="submit"
-                disabled={
-                  !!disabledCreate ||
-                  form?.isFormIncomplete ||
-                  form?.isError ||
-                  form?.isSaving
-                }
+                busy={form?.isSaving}
+                disabled={!!disabledCreate || form?.isFormIncomplete || form?.isError}
                 tooltipProps={{
                   title: form
                     ? getSubmitButtonTitle(form, disabledCreate)

@@ -1,5 +1,11 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
+import {
+  skipToken,
+  useQuery,
+  useMutation,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -24,14 +30,10 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  type UseMutationResult,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
@@ -44,7 +46,6 @@ type TCodeownersPayload = {codeMappingId: string | null; raw: string};
 type TCodeownersData = CodeOwner;
 type TCodeownersError = RequestError;
 type TCodeownersVariables = [TCodeownersPayload];
-type TCodeownersContext = unknown;
 
 export function AddCodeOwnerModal({
   organization,
@@ -59,14 +60,15 @@ export function AddCodeOwnerModal({
     data: codeMappings,
     isPending: isCodeMappingsPending,
     isError: isCodeMappingsError,
-  } = useApiQuery<RepositoryProjectPathConfig[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+  } = useQuery(
+    apiOptions.as<RepositoryProjectPathConfig[]>()(
+      '/organizations/$organizationIdOrSlug/code-mappings/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {project: project.id}},
-    ],
-    {staleTime: Infinity}
+        query: {project: project.id},
+        staleTime: Infinity,
+      }
+    )
   );
 
   const {
@@ -75,7 +77,7 @@ export function AddCodeOwnerModal({
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {features: ['codeowners']}},
@@ -85,27 +87,19 @@ export function AddCodeOwnerModal({
 
   const [codeMappingId, setCodeMappingId] = useState<string | null>(null);
 
-  const {data: codeownersFile} = useApiQuery<CodeownersFile>(
-    [
-      getApiUrl(
-        `/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/`,
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            configId: codeMappingId!,
-          },
-        }
-      ),
-    ],
-    {staleTime: Infinity, enabled: Boolean(codeMappingId)}
+  const {data: codeownersFile} = useQuery(
+    apiOptions.as<CodeownersFile>()(
+      '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
+      {
+        path: codeMappingId
+          ? {organizationIdOrSlug: organization.slug, configId: codeMappingId}
+          : skipToken,
+        staleTime: Infinity,
+      }
+    )
   );
 
-  const mutation = useMutation<
-    TCodeownersData,
-    TCodeownersError,
-    TCodeownersVariables,
-    TCodeownersContext
-  >({
+  const mutation = useMutation<TCodeownersData, TCodeownersError, TCodeownersVariables>({
     mutationFn: ([payload]: TCodeownersVariables) => {
       return fetchMutation({
         method: 'POST',
@@ -167,7 +161,7 @@ export function AddCodeOwnerModal({
         <Button
           disabled={codeownersFile ? false : true}
           aria-label={t('Add File')}
-          priority="primary"
+          variant="primary"
           onClick={addFile}
         >
           {t('Add File')}
@@ -188,7 +182,7 @@ function ApplyCodeMappings({
   codeMappingId: string | null;
   codeMappings: RepositoryProjectPathConfig[];
   codeownersFile: CodeownersFile | undefined;
-  mutation: UseMutationResult<CodeOwner, RequestError, TCodeownersVariables, unknown>;
+  mutation: UseMutationResult<CodeOwner, RequestError, TCodeownersVariables>;
   organization: Organization;
   setCodeMappingId: Dispatch<SetStateAction<string | null>>;
 }) {
@@ -262,7 +256,7 @@ function LinkCodeOwners({
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
       <Flex justify="center" paddingTop="xl">
-        <LinkButton priority="primary" size="sm" to={baseUrl}>
+        <LinkButton variant="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
       </Flex>

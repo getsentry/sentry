@@ -74,7 +74,7 @@ describe('Performance > Widgets > Query Batching', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: {
         'epm()': {
           data: [
@@ -82,7 +82,7 @@ describe('Performance > Widgets > Query Batching', () => {
               1636822800,
               [
                 {
-                  count: 30.0,
+                  count: 30,
                 },
               ],
             ],

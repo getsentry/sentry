@@ -7,6 +7,7 @@ import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
@@ -14,7 +15,6 @@ import {DiscoverButton} from 'sentry/components/discoverButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -44,14 +44,6 @@ enum IssuesQuery {
   ALL = '',
 }
 
-type Count = {
-  all: number;
-  new: number;
-  regressed: number;
-  resolved: number;
-  unhandled: number;
-};
-
 type Props = {
   api: Client;
   location: Location;
@@ -67,7 +59,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
     ...parseAsStringLiteral(Object.values(IssuesType)),
     defaultValue: IssuesType.UNHANDLED,
   });
-  const [issuesCount, setIssuesCount] = useState<Count>({
+  const [issuesCount, setIssuesCount] = useState({
     all: 0,
     new: 0,
     regressed: 0,
@@ -150,7 +142,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
   function getDiscoverUrl() {
     return {
       pathname: makeDiscoverPathname({
-        path: `/results/`,
+        path: '/results/',
         organization,
       }),
       query: {
@@ -201,7 +193,6 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
       <Panel>
         <PanelBody>
           <NoGroupsHandler
-            api={api}
             organization={organization}
             query={issueQuery}
             selectedProjectIds={[projectId]}

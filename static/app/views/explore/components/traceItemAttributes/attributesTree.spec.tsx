@@ -25,17 +25,17 @@ describe('attributesTree', () => {
         type: 'str',
         value: 'test value 1',
         name: 'test.attribute1',
-      } as TraceItemResponseAttribute,
+      },
       {
         type: 'float',
         value: 42,
         name: 'test.attribute2',
-      } as TraceItemResponseAttribute,
+      },
       {
         type: 'bool',
         value: true,
         name: 'test.attribute3',
-      } as TraceItemResponseAttribute,
+      },
     ];
 
     const renderers = {
@@ -90,17 +90,17 @@ describe('attributesTree', () => {
         type: 'str',
         value: 'test value 1',
         name: 'test.attribute1',
-      } as TraceItemResponseAttribute,
+      },
       {
         type: 'str',
         value: 'test value 2',
         name: 'test',
-      } as TraceItemResponseAttribute,
+      },
       {
         type: 'str',
         value: 'test value 3',
         name: 'test.some-inner-thing.value',
-      } as TraceItemResponseAttribute,
+      },
     ];
 
     render(

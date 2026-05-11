@@ -105,6 +105,7 @@ export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = ['on_ready_for_
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
 export type IntegrationRepository = {
+  externalId: string;
   /**
    * ex - getsentry/sentry
    */
@@ -112,6 +113,7 @@ export type IntegrationRepository = {
   isInstalled: boolean;
   name: string;
   defaultBranch?: string | null;
+  url?: string | null;
 };
 
 export type Commit = {
@@ -261,6 +263,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
+  allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;
@@ -378,6 +381,7 @@ type IntegrationAspects = {
   configure_integration?: {
     title: string;
   };
+  directEnable?: boolean;
   disable_dialog?: IntegrationDialog;
   externalInstall?: {
     buttonText: string;
@@ -595,6 +599,7 @@ export type CodeOwner = {
    */
   codeOwnersUrl: string | 'unknown';
   dateCreated: string;
+  dateSynced: string | null;
   dateUpdated: string;
   errors: {
     missing_external_teams: string[];

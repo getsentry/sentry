@@ -1,14 +1,14 @@
 import {useCallback, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   useLogsQueryHighFidelity,
-  useLogsQueryKeyWithInfinite,
+  useLogsApiOptionsWithInfinite,
 } from 'sentry/views/explore/logs/useLogsQuery';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
@@ -127,11 +127,12 @@ export function useSetLogsAutoRefresh() {
   const location = useLocation();
   const navigate = useNavigate();
   const highFidelity = useLogsQueryHighFidelity();
-  const {queryKey} = useLogsQueryKeyWithInfinite({
+  const {infiniteApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: true,
     highFidelity,
   });
+  const queryKey = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
   const {setPausedAt, pausedAt: currentPausedAt} = useLogsAutoRefresh();
 
