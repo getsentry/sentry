@@ -35,6 +35,7 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.web.decorators import set_referrer_policy
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
@@ -73,7 +74,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization_id_or_slug: int | str,
-        data_forwarder_id: int,
+        data_forwarder_id: str,
         *args,
         **kwargs,
     ):
@@ -86,7 +87,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
 
         try:
             data_forwarder = DataForwarder.objects.get(
-                id=data_forwarder_id,
+                id=to_valid_int_id("data_forwarder_id", data_forwarder_id, raise_404=True),
                 organization=kwargs["organization"],
             )
         except DataForwarder.DoesNotExist:
