@@ -272,7 +272,7 @@ const AVG_FRAME_DELAY_WIDGET: Widget = {
 const APP_START_TABLE: Widget = {
   id: 'app-start-table',
   title: t('App Starts'),
-  description: '',
+  description: t('On iOS, cold and warm app start classification may be inaccurate.'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
