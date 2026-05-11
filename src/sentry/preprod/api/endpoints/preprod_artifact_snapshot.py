@@ -301,8 +301,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 **{
                     k: v
                     for k, v in metadata.dict().items()
-                    if k not in first_class
-                    and k not in ("diff_threshold", "content_hash", "description", "tags")
+                    if k not in first_class and k not in ("diff_threshold", "content_hash")
                 },
                 key=metadata.content_hash,
                 display_name=metadata.display_name,
