@@ -188,10 +188,6 @@ export function IssueListSeerComboBox() {
         end: resultEnd,
       });
 
-      trackAnalytics('issue.list.ai_query_applied', {
-        organization,
-        query: queryToUse,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
@@ -257,7 +253,6 @@ export function IssueListSeerComboBox() {
       strategy="Issues"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="issue.list"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

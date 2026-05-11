@@ -33,7 +33,7 @@ describe('ResultsSearchQueryBuilder', () => {
     });
   });
 
-  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
+  it('does not show function tags in has: dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
         query=""
@@ -70,7 +70,7 @@ describe('ResultsSearchQueryBuilder', () => {
     });
   });
 
-  it.isKnownFlake('shows normal tags, e.g. transaction, in the dropdown', async () => {
+  it('shows normal tags, e.g. transaction, in the dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
         query=""

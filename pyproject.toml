@@ -16,7 +16,7 @@ dependencies = [
   "cryptography>=46.0.7",
   "cssselect>=1.0.3",
   "datadog>=0.49.1",
-  "django>=5.2.11",
+  "django>=5.2.14",
   "django-crispy-forms>=1.14.0",
   "django-csp>=3.8",
   "django-pg-zero-downtime-migrations>=0.18",
@@ -47,9 +47,9 @@ dependencies = [
   "hiredis>=2.3.2",
   "httpx>=0.28.1",
   "jsonschema>=4.20.0",
-  "lxml>=5.3.0",
+  "lxml>=6.1.0",
   "maxminddb>=2.3.0",
-  "mistune>=2.0.4",
+  "mistune>=3.2.1",
   "mmh3>=4.0.0",
   "msgspec>=0.19.0",
   "msgpack>=1.1.0",
@@ -82,7 +82,7 @@ dependencies = [
   "rfc3339-validator>=0.1.2",
   "rfc3986-validator>=0.1.1",
   # [end] jsonschema format validators
-  "sentry-arroyo>=2.39.1",
+  "sentry-arroyo>=2.39.2",
   "sentry-conventions>=0.6.0",
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=2.1.27",
@@ -114,7 +114,7 @@ dependencies = [
   #       and will be used
   "urllib3>=2.2.2",
   "vroomrs>=0.1.20",
-  "xmlsec>=1.3.14",
+  "xmlsec>=1.3.17",
   "zstandard>=0.18.0",
   # [begin] getsentry
   # there's very few here so just include them here otherwise if they're
@@ -161,7 +161,7 @@ dev = [
   "pip>=23.3.1",
   "pip-tools>=7.1.0",
   "prek>=0.3.6",
-  "pytest>=8.1.2",
+  "pytest>=9.0.3",
   "pytest-cov>=4.0.0",
   "pytest-django>=4.12.0",
   "pytest-fail-slow>=0.3.0",
