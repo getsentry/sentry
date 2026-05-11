@@ -73,26 +73,22 @@ describe('MetricsEquationVisualize', () => {
   });
 
   it('selects a row and syncs yAxis to widget builder', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <MetricsEquationVisualize onEquationRemoved={jest.fn()} />
-      </WidgetBuilderProvider>,
-      {
-        organization: OrganizationFixture({features: EQUATION_FEATURES}),
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-              yAxis: [
-                'equation|sum(value,alpha_metric,counter,none) + sum(value,beta_metric,counter,none)',
-              ],
-            },
+    render(<MetricsEquationVisualize onEquationRemoved={jest.fn()} />, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + sum(value,beta_metric,counter,none)',
+            ],
           },
         },
-      }
-    );
+      },
+    });
 
     const toolbars = await screen.findAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);
@@ -123,26 +119,22 @@ describe('MetricsEquationVisualize', () => {
   it('calls onEquationRemoved when the equation row is deleted', async () => {
     const onEquationRemoved = jest.fn();
 
-    render(
-      <WidgetBuilderProvider>
-        <MetricsEquationVisualize onEquationRemoved={onEquationRemoved} />
-      </WidgetBuilderProvider>,
-      {
-        organization: OrganizationFixture({features: EQUATION_FEATURES}),
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-              yAxis: [
-                'equation|sum(value,alpha_metric,counter,none) + sum(value,beta_metric,counter,none)',
-              ],
-            },
+    render(<MetricsEquationVisualize onEquationRemoved={onEquationRemoved} />, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + sum(value,beta_metric,counter,none)',
+            ],
           },
         },
-      }
-    );
+      },
+    });
 
     const toolbars = await screen.findAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);
@@ -176,27 +168,23 @@ describe('MetricsEquationVisualize', () => {
   });
 
   it('hydrates initial rows from a saved equation widget', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <MetricsEquationVisualize onEquationRemoved={jest.fn()} />
-      </WidgetBuilderProvider>,
-      {
-        organization: OrganizationFixture({features: EQUATION_FEATURES}),
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-              yAxis: [
-                'equation|sum_if(`environment:prod`,value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
-              ],
-              query: 'environment:[prod,dev]',
-            },
+    render(<MetricsEquationVisualize onEquationRemoved={jest.fn()} />, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'equation|sum_if(`environment:prod`,value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+            ],
+            query: 'environment:[prod,dev]',
           },
         },
-      }
-    );
+      },
+    });
 
     const toolbars = await screen.findAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);

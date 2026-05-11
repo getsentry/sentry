@@ -132,11 +132,13 @@ export function MetricsEquationVisualize({
       let selected = newQueries.find(q => q.label === selectedLabel);
       if (!selected && newQueries.length > 0) {
         selected = newQueries[0];
-        setSelectedLabel(selected!.label);
-        dispatch({
-          type: BuilderStateAction.SET_QUERY,
-          payload: [selected!.queryParams.query],
-        });
+        if (selected) {
+          setSelectedLabel(selected.label);
+          dispatch({
+            type: BuilderStateAction.SET_QUERY,
+            payload: [selected.queryParams.query],
+          });
+        }
       }
       if (selected) {
         const yAxis = selected.queryParams.visualizes[0]?.yAxis;
