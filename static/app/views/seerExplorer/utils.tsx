@@ -406,7 +406,7 @@ export function getToolsStringFromBlock(block: Block): string[] {
   });
 
   for (const tool of toolCalls) {
-    const toolLink = toolLinkByCallId.get(tool.id) ?? null;
+    const toolLink = (tool.id ? toolLinkByCallId.get(tool.id) : undefined) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {

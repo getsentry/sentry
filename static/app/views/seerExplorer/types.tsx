@@ -16,13 +16,13 @@ const todoItemSchema = z.object({
   status: z.enum(['pending', 'in_progress', 'completed']),
 });
 
-export const explorerFilePatchSchema = z.object({
+const explorerFilePatchSchema = z.object({
   diff: z.string(),
   patch: z.custom<FilePatch>(isFilePatch),
   repo_name: z.string(),
 });
 
-export const repoPRStateSchema = z.object({
+const repoPRStateSchema = z.object({
   branch_name: z.string().nullable(),
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
@@ -93,7 +93,7 @@ const codingAgentResultSchema = z.object({
   pr_url: z.string().nullable().optional(),
 });
 
-export const explorerCodingAgentStateSchema = z.object({
+const explorerCodingAgentStateSchema = z.object({
   id: z.string(),
   name: z.string(),
   provider: z.string(),
