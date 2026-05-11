@@ -30,6 +30,6 @@ const noop = (_: UseReplayForCriticalFlowOptions) => {};
  * through to a noop.
  */
 export function useReplayForCriticalFlow(options: UseReplayForCriticalFlowOptions) {
-  const impl = HookStore.get('react-hook:use-replay-for-critical-flow')[0] ?? noop;
-  impl(options);
+  const useImpl = HookStore.get('react-hook:use-replay-for-critical-flow')[0] ?? noop;
+  useImpl(options);
 }
