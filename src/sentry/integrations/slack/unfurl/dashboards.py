@@ -13,6 +13,7 @@ from django.http.request import QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
+from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardWidgetSerializer
 from sentry.charts import backend as charts
@@ -157,7 +158,7 @@ def _unfurl_dashboards(
         if not per_query_params:
             continue
 
-        combined_time_series: list[list[Any]] = []
+        combined_time_series: list[tuple[TimeSeries, int]] = []
         request_failed = False
         for query_index, params in enumerate(per_query_params):
             try:
@@ -173,7 +174,7 @@ def _unfurl_dashboards(
                 break
 
             for ts in resp.data.get("timeSeries", []):
-                combined_time_series.append([ts, query_index])
+                combined_time_series.append((ts, query_index))
 
         if request_failed:
             continue
