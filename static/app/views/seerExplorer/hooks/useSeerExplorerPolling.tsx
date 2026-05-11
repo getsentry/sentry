@@ -107,7 +107,7 @@ export const useSeerExplorerPolling = ({
     },
   });
 
-  // Wall clock timer for when updated_at stops changing
+  // Wall clock timer for when updated_at stops changing (e.g. backend task killed)
   const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
     timeMs: STALE_TIME_MS,
     onTimeout: () => {
