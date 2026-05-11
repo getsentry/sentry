@@ -10,7 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, metrics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -116,9 +116,14 @@ def send_search_agent_start_request(
                     },
                 ).save()
         except OutboxFlushError:
+            metrics.incr("seer.outbox_flush_error", tags={"type": "assisted_query"})
             logger.exception(
                 "search_agent.outbox_flush_error",
-                extra={"organization_id": organization.id},
+                extra={
+                    "organization_id": organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
             )
         run.refresh_from_db()
         return run
