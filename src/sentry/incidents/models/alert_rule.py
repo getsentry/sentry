@@ -26,7 +26,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
+from sentry.incidents.models.incident import IncidentTrigger
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -479,46 +479,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{type}")
             return None
-
-    def fire(
-        self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-        metric_value: int | float | None,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ) -> None:
-        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
-        if handler:
-            return handler.fire(
-                action=action,
-                incident=incident,
-                project=project,
-                new_status=new_status,
-                metric_value=metric_value,
-                notification_uuid=notification_uuid,
-            )
-
-    def resolve(
-        self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-        metric_value: int | float | None,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ) -> None:
-        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
-        if handler:
-            return handler.resolve(
-                action=action,
-                incident=incident,
-                project=project,
-                metric_value=metric_value,
-                new_status=new_status,
-                notification_uuid=notification_uuid,
-            )
 
     def get_single_sentry_app_config(self) -> dict[str, Any] | None:
         value = self.sentry_app_config

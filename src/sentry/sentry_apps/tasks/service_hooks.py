@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
@@ -65,10 +65,9 @@ def kick_off_service_hooks(event: GroupEvent, has_alert: bool) -> None:
 @instrumented_task(
     name="sentry.sentry_apps.tasks.service_hooks.process_service_hook",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(times=3, delay=60 * 5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def process_service_hook(
     servicehook_id: int, project_id: int, group_id: int, event_id: str
 ) -> None:

@@ -176,14 +176,14 @@ export function BlockComponent({
       block.tool_links || [],
       block.tool_results || [],
       block.message.tool_calls || [],
-      organization.slug,
+      organization,
       projects
     );
   }, [
     block.tool_links,
     block.tool_results,
     block.message.tool_calls,
-    organization.slug,
+    organization,
     projects,
   ]);
 
@@ -364,7 +364,7 @@ export function BlockComponent({
                     const toolUrl = hasLink
                       ? buildToolLinkUrl(
                           sortedToolLinks[correspondingLinkIndex],
-                          organization.slug,
+                          organization,
                           projects
                         )
                       : null;
