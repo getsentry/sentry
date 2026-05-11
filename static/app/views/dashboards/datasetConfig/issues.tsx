@@ -71,6 +71,12 @@ export type IssuesSeriesResponse = {
   };
 };
 
+type IssueRowMetadata = {
+  assignedTo: Group['assignedTo'];
+  links: Group['annotations'];
+  owners: Group['owners'];
+};
+
 export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
   defaultField: DEFAULT_FIELD,
   defaultSeriesField: DEFAULT_SERIES_FIELD,
@@ -121,23 +127,13 @@ function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQu
   }));
 }
 
-function addIssueRowMetadata(
-  row: TableDataRow,
-  metadata: {
-    assignedTo: Group['assignedTo'];
-    links: Group['annotations'];
-    owners: Group['owners'];
-  }
-) {
-  return Object.assign(row, metadata);
-}
-
 export function transformIssuesResponseToTable(
   data: Group[],
   widgetQuery: WidgetQuery,
   _organization: Organization,
   pageFilters: PageFilters
 ): TableData {
+  const issueRowMetadata: Record<string, IssueRowMetadata> = {};
   const transformedTableResults: TableDataRow[] = [];
   data.forEach(
     ({
@@ -163,23 +159,22 @@ export function transformIssuesResponseToTable(
           transformedResultProps[key] = resultProps[key];
         });
 
-      const transformedTableResult = addIssueRowMetadata(
-        {
-          ...transformedResultProps,
-          events: count,
-          users: userCount,
-          id,
-          'issue.id': id,
-          issue: shortId,
-          title,
-          project: project.slug,
-        },
-        {
-          assignedTo,
-          owners,
-          links: annotations ?? [],
-        }
-      );
+      issueRowMetadata[id] = {
+        assignedTo,
+        owners,
+        links: annotations ?? [],
+      };
+
+      const transformedTableResult: TableDataRow = {
+        ...transformedResultProps,
+        events: count,
+        users: userCount,
+        id,
+        'issue.id': id,
+        issue: shortId,
+        title,
+        project: project.slug,
+      };
 
       // Get lifetime stats
       if (lifetime) {
@@ -214,7 +209,7 @@ export function transformIssuesResponseToTable(
 
   return {
     data: transformedTableResults,
-    meta: {fields: ISSUE_TABLE_FIELDS},
+    meta: {fields: ISSUE_TABLE_FIELDS, issueRowMetadata},
   };
 }
 
