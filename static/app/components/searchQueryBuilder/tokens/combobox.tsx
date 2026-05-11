@@ -593,6 +593,7 @@ export function SearchQueryBuilderCombobox<
     });
 
     if (firstVisibleOptionKey === null) {
+      shouldFocusFirstOptionRef.current = false;
       return;
     }
 
