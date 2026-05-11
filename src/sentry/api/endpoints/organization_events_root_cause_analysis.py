@@ -43,8 +43,7 @@ class RootCauseAnalysisQuerySerializer(serializers.Serializer):
     )
 
     def validate_transaction(self, value):
-        # `transaction` is interpolated into a `transaction:"..."` filter; reject
-        # characters that would close the quoted value and inject extra predicates.
+        # Restrict to characters that are safe for downstream query construction.
         if '"' in value or "\\" in value:
             raise serializers.ValidationError(
                 "Transaction name cannot contain quote or backslash characters."
@@ -54,8 +53,8 @@ class RootCauseAnalysisQuerySerializer(serializers.Serializer):
     def validate_breakpoint(self, value):
         try:
             return parse_datetime_string(value)
-        except InvalidQuery as e:
-            raise serializers.ValidationError(str(e))
+        except InvalidQuery:
+            raise serializers.ValidationError("Must be an ISO 8601 datetime or unix timestamp.")
 
 
 def init_query_builder(
