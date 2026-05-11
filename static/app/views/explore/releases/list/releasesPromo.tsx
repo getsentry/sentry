@@ -161,6 +161,7 @@ export function ReleasesPromo({organization, project}: Props) {
   }, [organization, project.id]);
 
   const generateAndSetNewToken = async (sentryAppSlug: string) => {
+    setToken(null);
     try {
       const newToken = await generateToken(sentryAppSlug);
       setToken(newToken);
