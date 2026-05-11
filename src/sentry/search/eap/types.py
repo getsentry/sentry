@@ -36,7 +36,7 @@ class SearchResolverConfig:
     stable_timestamp_quantization: bool = True
     # Whether to 0 when timeseries results have missing data
     zerofill_timeseries: bool = True
-    # When True, ResolvedAttributes whose internal_type is ARRAY are silently based on
+    # When True, ResolvedAttributes whose internal_type is ARRAY are silently dropped based on
     # feature flag organizations:trace-item-details-array-fields
     disable_array_attributes: bool = True
 
