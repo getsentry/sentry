@@ -31,7 +31,7 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
   organization: Organization;
@@ -138,6 +138,10 @@ function ApplyCodeMappings({
         data: payload,
       }),
     onError: err => {
+      if (!(err instanceof RequestError)) {
+        addErrorMessage(t('Something went wrong'));
+        return;
+      }
       if (err.responseJSON && !('raw' in err.responseJSON)) {
         addErrorMessage(
           Object.values(err.responseJSON ?? {})
@@ -146,7 +150,6 @@ function ApplyCodeMappings({
         );
       }
     },
-    gcTime: 0,
   });
 
   const form = useScrapsForm({
