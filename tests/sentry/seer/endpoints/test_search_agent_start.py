@@ -50,3 +50,20 @@ class SendSearchAgentStartRequestTest(TestCase):
                     natural_language_query="errors today",
                     viewer_context=viewer_context,
                 )
+
+    @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
+    def test_terminal_seer_failure_raises(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=400, json=Mock(return_value={}))
+        viewer_context = SeerViewerContext(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
+        with self.feature("organizations:seer-run-mirror"):
+            with pytest.raises(SeerApiError):
+                send_search_agent_start_request(
+                    organization=self.organization,
+                    user_id=self.user.id,
+                    project_ids=[self.project.id],
+                    natural_language_query="errors today",
+                    viewer_context=viewer_context,
+                )

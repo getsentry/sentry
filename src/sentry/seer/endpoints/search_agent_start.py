@@ -130,6 +130,8 @@ def send_search_agent_start_request(
             run.save(update_fields=["mirror_status"])
             raise SeerApiError("Outbox flush failed", 500)
         run.refresh_from_db()
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise SeerApiError("Seer run failed during outbox drain", 500)
         return run
 
     response = make_search_agent_start_request(body, timeout=30, viewer_context=viewer_context)
