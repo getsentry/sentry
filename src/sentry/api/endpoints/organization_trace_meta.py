@@ -39,19 +39,10 @@ class SerializedResponse(TypedDict, total=False):
     metricsCount: int
     performanceIssuesCount: int
     spansCount: int
-    uptimeCount: int
+    uptimeCount: int  # Only present when include_uptime is True
 
     transactionChildCountMap: SnubaData
     spansCountMap: dict[str, int]
-
-    # These are deprecated
-    logs: int
-    errors: int
-    performance_issues: int
-    span_count: int
-    transaction_child_count_map: SnubaData
-    span_count_map: dict[str, int]
-    uptime_checks: int  # Only present when include_uptime is True
 
 
 def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
@@ -282,31 +273,21 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             "spansCountMap": {
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },
-            # these are deprecated
-            "logs": results["logs_meta"]["data"][0].get("count()") or 0,
-            "errors": errors_count,
-            "performance_issues": perf_issues,
-            "span_count": results["spans_meta"]["data"][0].get("count()") or 0,
-            "transaction_child_count_map": results["transaction_children"]["data"],
-            "span_count_map": {
-                row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
-            },
         }
 
         sentry_sdk.metrics.distribution(
             "performance.trace.logs.count",
-            response["logs"],
+            response["logsCount"],
         )
         sentry_sdk.metrics.distribution(
             "performance.trace.span.count",
-            response["span_count"],
+            response["spansCount"],
         )
         sentry_sdk.metrics.distribution(
             "performance.trace.errors.count",
-            response["errors"],
+            response["errorsCount"],
         )
 
         if uptime_count is not None:
-            response["uptime_checks"] = uptime_count
             response["uptimeCount"] = uptime_count
         return response
