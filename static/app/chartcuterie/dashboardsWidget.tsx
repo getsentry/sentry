@@ -10,12 +10,7 @@ import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
 /**
- * One ``TimeSeries`` paired with the index of the widget query that produced
- * it. A single widget query can yield multiple ``TimeSeries`` (multi-aggregate
- * queries, ``yAxis=[...]``, grouped queries with ``topEvents``), so we can't
- * just zip ``timeSeries`` against ``widget.queries`` positionally. The
- * backend already has the pairing for free at request time (one HTTP call
- * per widget query), so it tags each series with its query index here.
+ * a tuple of a TimeSeries and the index of the widget query that produced it
  */
 export type WidgetQueryTimeSeries = [timeSeries: TimeSeries, widgetQueryIndex: number];
 
@@ -30,9 +25,6 @@ export const makeDashboardsWidgetCharts = (
   {
     key: ChartType.SLACK_DASHBOARDS_WIDGET,
     getOption: (data: ChartData) => {
-      // ``buildTimeseriesChartOption`` works on flat ``TimeSeries[]`` (and
-      // re-sorts grouped series internally), so we look up the query index
-      // by TimeSeries identity rather than relying on positional index.
       const queryIndexByTimeSeries = new Map<TimeSeries, number>(data.timeSeries);
       const flatTimeSeries = data.timeSeries.map(([ts]) => ts);
 
@@ -43,9 +35,6 @@ export const makeDashboardsWidgetCharts = (
           const widgetQueryIndex = queryIndexByTimeSeries.get(ts) ?? 0;
           const widgetQuery =
             data.widget.queries[widgetQueryIndex] ?? data.widget.queries[0];
-          // ``alias`` flows into the plottable's ``label`` getter, which the
-          // legend and tooltip read from — the same path
-          // ``visualizationWidget`` uses for its own legend labels.
           const alias = widgetQuery
             ? formatTimeSeriesLabelForWidgetQuery(ts, data.widget, widgetQuery)
             : undefined;
