@@ -38,19 +38,20 @@ def update_code_owners_schema(
         org = load_model_from_db(Organization, organization)
     except Organization.DoesNotExist:
         logger.warning(
-            "Skipping update_code_owners_schema: organization does not exist",
+            "update_code_owners_schema.org_not_found",
             extra={"organization_id": organization, "integration_id": integration},
         )
         return
     if org.status == OrganizationStatus.DELETION_IN_PROGRESS:
         logger.warning(
-            "Skipping update_code_owners_schema: organization deletion in progress",
+            "update_code_owners_schema.org_deletion_in_progress",
             extra={"organization_id": organization, "integration_id": integration},
         )
         return
 
     if not features.has("organizations:integrations-codeowners", org):
         return
+
     try:
         code_owners: Iterable[ProjectCodeOwners] = []
         if projects:
@@ -69,6 +70,22 @@ def update_code_owners_schema(
         for code_owner in code_owners:
             code_owner.update_schema(organization=org)
 
-    # TODO(nisanthan): May need to add logging  for the cases where we might want to have more information if something fails
     except (RepositoryProjectPathConfig.DoesNotExist, ProjectCodeOwners.DoesNotExist):
+        logger.warning(
+            "update_code_owners_schema.does_not_exist",
+            extra={
+                "organization_id": organization,
+                "integration_id": integration,
+                "projects": projects,
+            },
+        )
         return
+    except Exception:
+        logger.exception(
+            "update_code_owners_schema.unexpected_error",
+            extra={
+                "organization_id": organization,
+                "integration_id": integration,
+            },
+        )
+        raise
