@@ -114,6 +114,16 @@ function cloneSchemaFields(
         depends_on: field.depends_on ? [...field.depends_on] : field.depends_on,
       };
 
+      // Apply textarea ergonomics regardless of whether the field has a
+      // schema `default`. `getFieldDefault` mutates these as a side effect,
+      // but only runs when `default` is set — so a textarea without a default
+      // would otherwise render unbounded. Honor schema-provided values when
+      // present.
+      if (nextField.type === 'textarea') {
+        if (nextField.maxRows === undefined) nextField.maxRows = 10;
+        if (nextField.autosize === undefined) nextField.autosize = true;
+      }
+
       if (nextField.default && getFieldDefault) {
         nextField.defaultValue = getFieldDefault(nextField);
       }
