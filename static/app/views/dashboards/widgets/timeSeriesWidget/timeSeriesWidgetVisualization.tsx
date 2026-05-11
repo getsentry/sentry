@@ -803,6 +803,7 @@ const HIDDEN_AXIS = {
   axisLine: {show: false},
   axisTick: {show: false},
   axisLabel: {show: false},
+  axisPointer: {label: {show: false}},
 } satisfies XAXisComponentOption | YAXisComponentOption;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
