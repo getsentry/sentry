@@ -17,7 +17,6 @@ import {
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
@@ -293,14 +292,15 @@ sentry-cli releases finalize "$VERSION"`;
               </MenuComponents.CTAButton>
             )}
             trigger={triggerProps => (
-              <Tooltip title={generateTokenDisabledReason} disabled={canGenerateToken}>
-                <OverlayTrigger.Button
-                  {...triggerProps}
-                  prefix={selectedApp ? t('Token From') : undefined}
-                >
-                  {selectedApp ? triggerProps.children : t('Select Integration')}
-                </OverlayTrigger.Button>
-              </Tooltip>
+              <OverlayTrigger.Button
+                {...triggerProps}
+                prefix={selectedApp ? t('Token From') : undefined}
+                tooltipProps={{
+                  title: canGenerateToken ? undefined : generateTokenDisabledReason,
+                }}
+              >
+                {selectedApp ? triggerProps.children : t('Select Integration')}
+              </OverlayTrigger.Button>
             )}
             onChange={option => {
               const app = apps.find(i => i.slug === option.value)!;
