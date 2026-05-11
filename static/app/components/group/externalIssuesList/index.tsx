@@ -97,7 +97,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                     <LinkedIssueName>{linkedIssue.title}</LinkedIssueName>
                     <HorizontalSeparator />
                     <UnlinkButton
-                      priority="link"
+                      variant="link"
                       size="zero"
                       onClick={linkedIssue.onUnlink}
                     >
@@ -126,7 +126,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
             const sharedButtonProps: ButtonProps = {
               size: 'zero',
               icon: integration.displayIcon,
-              priority: 'transparent',
+              variant: 'transparent',
               children: <IssueActionName>{integration.displayName}</IssueActionName>,
             };
 

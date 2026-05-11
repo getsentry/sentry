@@ -1,13 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {useModal} from '@sentry/scraps/modal';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
-import {
-  cmdkQueryOptions,
-  type CMDKQueryOptions,
-} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
@@ -15,8 +14,9 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
-import {IconBookmark, IconFilter, IconIssues, IconSort} from 'sentry/icons';
+import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -33,12 +33,14 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {IssueListMarkAllCommandPaletteAction} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
@@ -47,10 +49,14 @@ import {
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
 interface IssueListCommandPaletteActionsProps {
+  groupIds: string[];
   onQueryChange: (query: string) => void;
   onSortChange: (sort: string) => void;
   query: string;
+  queryCount: number;
+  selection: PageFilters;
   sort: IssueSortOptions;
+  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
 
 /**
@@ -82,6 +88,7 @@ function FilterActions({
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
   const api = useApi();
   const organization = useOrganization();
+  const user = useUser();
   const {selection: pageFilters} = usePageFilters();
   const filterKeys = useIssueListFilterKeys();
 
@@ -183,42 +190,58 @@ function FilterActions({
       display: {label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`},
       keywords: [tag.key],
       prompt: t('Select a value...'),
-      resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+      limit: 4,
+      resource: (_q: string, ctx: CMDKResourceContext) =>
         // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {
-            const values = hasPredefined ? predefined : await loadTagValues(tag.key);
-            return values.map(value => ({
-              display: {label: value},
-              onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
-            }));
+            return hasPredefined ? predefined : await loadTagValues(tag.key);
           },
+          select: data =>
+            data.map(value => ({
+              display: {
+                label: value,
+                icon:
+                  tag.key === FieldKey.ASSIGNED && value === 'me' ? (
+                    <UserAvatar user={user} size={16} hasTooltip={false} />
+                  ) : undefined,
+              },
+              onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
+            })),
           enabled: hasPredefined || ctx.state === 'selected',
           staleTime: hasPredefined ? Infinity : 30_000,
         }),
     };
   };
 
-  const makeSectionResource =
-    (
-      tags: Tag[],
-      cacheKey: string
-    ): ((q: string, ctx: CMDKResourceContext) => CMDKQueryOptions) =>
-    () =>
-      // Feed query in key ensures onAction closures reference the current query.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-      cmdkQueryOptions({
-        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
-        queryFn: () => tags.map(makeFilterKeyItem),
-        staleTime: Infinity,
-      });
+  const makeSectionResource = (tags: Tag[], cacheKey: string) => (_q: string) =>
+    // Feed query in key ensures onAction closures reference the current query.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    cmdkQueryOptions({
+      queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
+      queryFn: () => tags.map(makeFilterKeyItem),
+      staleTime: Infinity,
+    });
 
   return (
     <CMDKAction
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
+      <CMDKAction
+        display={{
+          label: t('Assigned to me'),
+          icon: <UserAvatar user={user} size={16} hasTooltip={false} />,
+        }}
+        keywords={['mine', 'my issues', 'assign', 'assigned', 'me']}
+        onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'me'))}
+      />
+      <CMDKAction
+        display={{label: t('Assigned to my teams'), icon: <IconGroup />}}
+        keywords={['my teams', 'assign', 'assigned', 'teams']}
+        onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'my_teams'))}
+      />
       <CMDKAction
         display={{label: t('Issues')}}
         prompt={t('Select a filter...')}
@@ -282,6 +305,8 @@ function SaveViewActions({
   query,
   sort,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'sort'>) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const user = useUser();
   const {viewId} = useParams();
@@ -352,6 +377,10 @@ function SaveViewActions({
 }
 
 export function IssueListCommandPaletteActions({
+  groupIds,
+  queryCount,
+  selection,
+  onActionTaken,
   query,
   sort,
   onSortChange,
@@ -361,6 +390,13 @@ export function IssueListCommandPaletteActions({
     <CommandPaletteSlot name="page">
       <CMDKAction display={{label: t('Issues Feed'), icon: <IconIssues />}}>
         <FilterActions query={query} onQueryChange={onQueryChange} />
+        <IssueListMarkAllCommandPaletteAction
+          groupIds={groupIds}
+          query={query}
+          queryCount={queryCount}
+          selection={selection}
+          onActionTaken={onActionTaken}
+        />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
       </CMDKAction>

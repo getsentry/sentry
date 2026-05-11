@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -38,6 +39,12 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWorkflowTest):
+    def setUp(self) -> None:
+        super().setUp()
+        patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_simple(self) -> None:
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)

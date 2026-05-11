@@ -41,11 +41,8 @@ from sentry.constants import (
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_COMMENT_BOT_DEFAULT,
-    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
@@ -140,7 +137,6 @@ class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
 
 
-@extend_schema_serializer(exclude_fields=["requireEmailVerification"])
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
     id: str
     slug: str
@@ -149,7 +145,6 @@ class OrganizationSummarySerializerResponse(OrganizationSummarySerializerRespons
     dateCreated: datetime
     isEarlyAdopter: bool
     require2FA: bool
-    requireEmailVerification: bool
     avatar: SerializedAvatarFields
     links: _Links
     hasAuthProvider: bool
@@ -394,8 +389,12 @@ class OrganizationSummarySerializer(Serializer):
         feature_set = set()
 
         with sentry_sdk.start_span(op="features.check", name="check batch features"):
-            # Check features in batch using the entity handler
-            batch_features = features.batch_has(org_features, actor=user, organization=obj)
+            # Evaluate flags purely to populate the response — the user has not
+            # actually encountered any experiments yet, so suppress the auto
+            # exposure events the entity handler would otherwise log.
+            batch_features = features.batch_has(
+                org_features, actor=user, organization=obj, skip_experiment_exposure=True
+            )
 
             # batch_has has found some features
             if batch_features:
@@ -481,8 +480,6 @@ class OrganizationSummarySerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            # requireEmailVerification has been deprecated
-            "requireEmailVerification": False,
             "avatar": avatar,
             "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
@@ -592,9 +589,6 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     pendingAccessRequests: int
     codecovAccess: bool
     hideAiFeatures: bool
-    githubPRBot: bool
-    githubNudgeInvite: bool
-    gitlabPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -605,7 +599,6 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     defaultCodingAgent: str
     defaultCodingAgentIntegrationId: str | None
@@ -715,8 +708,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             ),
             "openMembership": bool(obj.flags.allow_joinleave),
             "require2FA": bool(obj.flags.require_2fa),
-            # The requireEmailVerification feature has been removed, this field is deprecated.
-            "requireEmailVerification": False,
             "allowSharedIssues": not obj.flags.disable_shared_issues,
             "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
             "dataScrubber": bool(
@@ -756,11 +747,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
-            "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubNudgeInvite": bool(
-                obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
-            "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -783,12 +769,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "enableSeerEnhancedAlerts": bool(
-                obj.get_option(
-                    "sentry:enable_seer_enhanced_alerts",
-                    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
-                )
             ),
             "enableSeerCoding": bool(
                 obj.get_option(
@@ -885,7 +865,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
 @extend_schema_serializer(
     exclude_fields=[
         "availableRoles",
-        "requireEmailVerification",
         "genAIConsent",
         "quota",
         "rollbackEnabled",

@@ -40,7 +40,7 @@ export function useSortNetwork({items}: Opts) {
   const sortConfig = useMemo(
     () =>
       ({
-        asc: sortAsc === true,
+        asc: sortAsc,
         by: sortBy,
         getValue: SortStrategies[sortBy],
       }) as SortConfig,

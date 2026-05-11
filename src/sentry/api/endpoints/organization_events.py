@@ -5,6 +5,7 @@ from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +23,12 @@ from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
@@ -149,13 +155,14 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationEventsResponseDict", EventsApiResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
-            404: api_constants.RESPONSE_NOT_FOUND,
+            403: api_constants.RESPONSE_FORBIDDEN,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
@@ -171,7 +178,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         - The `meta` key contains information about the response, including the unit or type of the fields requested
         """
         if not self.has_feature(organization, request):
-            return Response(status=404)
+            return Response(
+                {
+                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         referrer = request.GET.get("referrer")
 
@@ -210,7 +222,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         save_discover_dataset_decision = True
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)

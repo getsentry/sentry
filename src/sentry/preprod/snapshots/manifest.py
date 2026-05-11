@@ -11,6 +11,9 @@ class ImageMetadata(BaseModel):
     group: str | None = None
     width: int = Field(ge=0)
     height: int = Field(ge=0)
+    diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
+    description: str | None = None
+    tags: list[str] | None = None
 
     class Config:
         extra = "allow"

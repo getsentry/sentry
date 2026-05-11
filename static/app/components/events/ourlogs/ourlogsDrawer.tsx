@@ -27,7 +27,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
@@ -150,7 +150,7 @@ export function OurlogsDrawer({
               <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
             </Flex>
             {exploreUrl && (
-              <LinkButton size="sm" href={exploreUrl} target="_blank">
+              <LinkButton size="sm" to={exploreUrl} openInNewTab>
                 {t('Open in explore')}
               </LinkButton>
             )}

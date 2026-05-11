@@ -14,7 +14,7 @@ import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEff
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {IconRefresh, IconSeer} from 'sentry/icons';
@@ -157,7 +157,7 @@ function ActiveLogDisplay({
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
           size="xs"
-          priority="transparent"
+          variant="transparent"
           aria-label={t('Retry step')}
           tooltipProps={{title: t('Retry step')}}
           onClick={() =>
@@ -237,10 +237,10 @@ export function AutofixOutputStream({
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       addSuccessMessage(t('Thanks for the input.'));
     },
@@ -326,7 +326,7 @@ export function AutofixOutputStream({
               />
               <StyledButton
                 type="submit"
-                priority="transparent"
+                variant="transparent"
                 aria-label={t('Submit Comment')}
                 size="zero"
               >

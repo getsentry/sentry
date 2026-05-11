@@ -1,9 +1,32 @@
 from django.contrib.contenttypes.models import ContentType
 
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import no_silo_test
+from sentry.testutils.silo import control_silo_test, no_silo_test
 from sentry.users.services.user.serial import serialize_rpc_user
+from social_auth.backends import SocialAuthBackend
 from social_auth.utils import ctype_to_model, model_to_ctype
+
+
+@control_silo_test
+class TestSocialAuthBackendGetUser(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.backend = SocialAuthBackend()
+
+    def test_get_user_returns_none_for_suspended_user(self) -> None:
+        self.user.update(is_suspended=True)
+        result = self.backend.get_user(self.user.id)
+        assert result is None
+
+    def test_get_user_returns_user_for_active_user(self) -> None:
+        result = self.backend.get_user(self.user.id)
+        assert result is not None
+        assert result.id == self.user.id
+
+    def test_get_user_returns_none_for_inactive_user(self) -> None:
+        self.user.update(is_active=False)
+        result = self.backend.get_user(self.user.id)
+        assert result is None
 
 
 @no_silo_test

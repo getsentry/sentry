@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {
   useCommandPaletteState,
@@ -56,6 +55,8 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
@@ -310,30 +311,30 @@ export function PrimaryNavigationFooterItems() {
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   return (
     <Fragment>
       {hasPageFrame ? (
         <PrimaryNavigation.Button
           label={
-            organization.features.includes('cmd-k-supercharged') ? (
-              <Flex gap="xs" align="center">
-                {t('Open command palette')}
-                <Hotkey value="command+k" variant="debossed" />
-              </Flex>
-            ) : (
-              t('Search support, docs and more')
-            )
+            <Flex gap="xs" align="center">
+              {t('Open command palette')}
+              <Hotkey value="mod+k" variant="debossed" />
+            </Flex>
           }
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,
             onClick: () => {
-              if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette({}, organization, state, dispatch, 'button');
-              } else {
-                openHelpSearchModal({organization});
-              }
+              toggleCommandPalette(
+                {},
+                organization,
+                state,
+                dispatch,
+                'button',
+                isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+              );
             },
           }}
         />

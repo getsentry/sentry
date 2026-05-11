@@ -35,7 +35,7 @@ export function MEPDataProvider({
 
   const setIsMetricsData = useCallback(
     (value?: boolean) => {
-      if (WIDGET_MAP_DENY_LIST.includes(chartSetting as PerformanceWidgetSetting)) {
+      if (WIDGET_MAP_DENY_LIST.includes(chartSetting!)) {
         // Certain widgets shouldn't update their sampled tags or have the page info change eg. Auto(...)
         return;
       }

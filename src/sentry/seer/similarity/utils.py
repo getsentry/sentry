@@ -8,7 +8,7 @@ from typing import Any, TypedDict, TypeVar
 import sentry_sdk
 from tokenizers import Tokenizer
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import (
     DATA_ROOT,
 )
@@ -22,7 +22,6 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     get_org_default_seer_automation_handoff,
     is_seer_seat_based_tier_enabled,
-    set_project_seer_preference,
     write_preference_to_sentry_db,
 )
 from sentry.seer.models import (
@@ -576,7 +575,6 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
 
     stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)
 
-    # We need to make an API call to Seer to set this preference
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
@@ -586,19 +584,9 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
     )
 
     try:
-        set_project_seer_preference(preference)
+        write_preference_to_sentry_db(project, preference)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        return
-
-    if features.has("organizations:seer-project-settings-dual-write", organization):
-        try:
-            write_preference_to_sentry_db(project, preference)
-        except Exception:
-            logger.exception(
-                "seer.write_preferences.failed",
-                extra={"project_id": project.id, "organization_id": organization.id},
-            )
 
 
 def report_token_count_metric(

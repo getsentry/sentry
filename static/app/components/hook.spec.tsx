@@ -65,6 +65,35 @@ describe('Hook', () => {
     expect(screen.getByText(/Old Hook/)).toBeInTheDocument();
   });
 
+  it('re-fetches hooks when name prop changes', () => {
+    HookStore.add('sidebar:help-menu', ({organization}) => (
+      <HookWrapper key="help" organization={organization}>
+        Help Hook
+      </HookWrapper>
+    ));
+
+    HookStore.add('sidebar:organization-dropdown-menu', () => (
+      <HookWrapper key="bottom">Bottom Hook</HookWrapper>
+    ));
+
+    const {rerender} = render(
+      <Hook name="sidebar:help-menu" organization={OrganizationFixture()} />
+    );
+
+    expect(screen.getByText(/Help Hook/)).toBeInTheDocument();
+    expect(screen.queryByText(/Bottom Hook/)).not.toBeInTheDocument();
+
+    rerender(
+      <Hook
+        name="sidebar:organization-dropdown-menu"
+        organization={OrganizationFixture()}
+      />
+    );
+
+    expect(screen.queryByText(/Help Hook/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Bottom Hook/)).toBeInTheDocument();
+  });
+
   it('can use children as a render prop', () => {
     let idx = 0;
     render(

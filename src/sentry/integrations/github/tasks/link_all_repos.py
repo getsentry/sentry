@@ -15,7 +15,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 
 logger = logging.getLogger(__name__)
@@ -38,11 +38,11 @@ def get_repo_config(repo: Mapping[str, Any], integration_id: int) -> GitHubRepoI
 @instrumented_task(
     name="sentry.integrations.github.tasks.link_all_repos",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3),
+    retry=Retry(times=3, on=(Exception,), ignore=(KeyError,)),
     processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(KeyError,),
 )
-@retry(exclude=(KeyError,))
 def link_all_repos(
     integration_key: str,
     integration_id: int,

@@ -46,7 +46,6 @@ type TCodeownersPayload = {codeMappingId: string | null; raw: string};
 type TCodeownersData = CodeOwner;
 type TCodeownersError = RequestError;
 type TCodeownersVariables = [TCodeownersPayload];
-type TCodeownersContext = unknown;
 
 export function AddCodeOwnerModal({
   organization,
@@ -100,12 +99,7 @@ export function AddCodeOwnerModal({
     )
   );
 
-  const mutation = useMutation<
-    TCodeownersData,
-    TCodeownersError,
-    TCodeownersVariables,
-    TCodeownersContext
-  >({
+  const mutation = useMutation<TCodeownersData, TCodeownersError, TCodeownersVariables>({
     mutationFn: ([payload]: TCodeownersVariables) => {
       return fetchMutation({
         method: 'POST',
@@ -167,7 +161,7 @@ export function AddCodeOwnerModal({
         <Button
           disabled={codeownersFile ? false : true}
           aria-label={t('Add File')}
-          priority="primary"
+          variant="primary"
           onClick={addFile}
         >
           {t('Add File')}
@@ -188,7 +182,7 @@ function ApplyCodeMappings({
   codeMappingId: string | null;
   codeMappings: RepositoryProjectPathConfig[];
   codeownersFile: CodeownersFile | undefined;
-  mutation: UseMutationResult<CodeOwner, RequestError, TCodeownersVariables, unknown>;
+  mutation: UseMutationResult<CodeOwner, RequestError, TCodeownersVariables>;
   organization: Organization;
   setCodeMappingId: Dispatch<SetStateAction<string | null>>;
 }) {
@@ -262,7 +256,7 @@ function LinkCodeOwners({
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
       <Flex justify="center" paddingTop="xl">
-        <LinkButton priority="primary" size="sm" to={baseUrl}>
+        <LinkButton variant="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
       </Flex>

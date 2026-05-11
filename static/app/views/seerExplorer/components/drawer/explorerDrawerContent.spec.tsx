@@ -13,10 +13,12 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
+  errorStatusCode: null,
+  isTimedOut: false,
   runId: null,
-  waitingForInterrupt: false,
   overrideCtxEngEnable: true,
-  overrideCodeModeEnable: false,
+  overrideCodeModeEnable: 'off',
+  hasSentInterrupt: false,
   sendMessage: jest.fn(),
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
@@ -30,7 +32,8 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 describe('ExplorerDrawerContent', () => {
   const organization = OrganizationFixture({
     openMembership: true,
-    features: ['seer-explorer'],
+    features: ['seer-explorer', 'gen-ai-features'],
+    hideAiFeatures: false,
   });
 
   beforeEach(() => {
@@ -76,7 +79,7 @@ describe('ExplorerDrawerContent', () => {
       });
       expect(
         await screen.findByPlaceholderText(
-          'Ask seer a question, or press / for commands.'
+          'Ask Seer a question, or press / for commands.'
         )
       ).toBeInTheDocument();
     });
@@ -107,6 +110,7 @@ describe('ExplorerDrawerContent', () => {
         ...defaultHookReturn,
         runId: 123,
         isError: true,
+        errorStatusCode: null,
       });
 
       render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
@@ -114,11 +118,44 @@ describe('ExplorerDrawerContent', () => {
       });
 
       expect(
-        await screen.findByText('Error loading this session (ID=123).')
+        await screen.findByText(/Error loading this session \(run_id=123\)./)
       ).toBeInTheDocument();
+    });
+
+    it('shows 404-specific error message', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        errorStatusCode: 404,
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
       expect(
-        screen.queryByText('Ask Seer anything about your application.')
-      ).not.toBeInTheDocument();
+        await screen.findByText(/Session not found \(run_id=123\)./)
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/404/)).not.toBeInTheDocument();
+    });
+
+    it('shows generic error message when for non-404 errors', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        errorStatusCode: 444,
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
+      expect(
+        await screen.findByText(/Error loading this session \(run_id=123\)./)
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/444/)).not.toBeInTheDocument();
     });
   });
 
@@ -169,6 +206,25 @@ describe('ExplorerDrawerContent', () => {
       expect(textarea).toHaveValue('Test message');
     });
 
+    it('calls sendMessage and clears input when send button is clicked', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessage,
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'Test message');
+      await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+
+      expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
+      expect(textarea).toHaveValue('');
+    });
+
     it('calls sendMessage and clears input when Enter is pressed', async () => {
       const sendMessage = jest.fn();
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
@@ -184,7 +240,7 @@ describe('ExplorerDrawerContent', () => {
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
-      expect(sendMessage).toHaveBeenCalledWith('Test message');
+      expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
       expect(textarea).toHaveValue('');
     });
 
@@ -294,6 +350,49 @@ describe('ExplorerDrawerContent', () => {
 
       expect(sendMessage).not.toHaveBeenCalled();
     });
+
+    it('sends message with correct index when session has existing blocks', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessage,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'First message'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'msg-2',
+              message: {role: 'assistant', content: 'First response'},
+              timestamp: '2024-01-01T00:01:00Z',
+              loading: false,
+            },
+            {
+              id: 'msg-3',
+              message: {role: 'user', content: 'Second message'},
+              timestamp: '2024-01-01T00:02:00Z',
+              loading: false,
+            },
+          ],
+          run_id: 123,
+          status: 'completed',
+          updated_at: '2024-01-01T00:02:00Z',
+        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'New message');
+      await userEvent.keyboard('{Enter}');
+
+      expect(sendMessage).toHaveBeenCalledWith('New message', 3);
+    });
   });
 
   describe('Read-only State', () => {
@@ -343,7 +442,7 @@ describe('ExplorerDrawerContent', () => {
       await waitFor(() => expect(textarea).toBeEnabled());
       expect(textarea).toHaveAttribute(
         'placeholder',
-        'Ask seer a question, or press / for commands.'
+        'Ask Seer a question, or press / for commands.'
       );
     });
 

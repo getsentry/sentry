@@ -236,8 +236,8 @@ export const useFetchIssueTags = ({
 
 function builtInIssuesFields({
   currentTags,
-  assigneeFieldValues = [],
-  bookmarksValues = [],
+  assigneeFieldValues,
+  bookmarksValues,
   organization,
 }: {
   assigneeFieldValues: SearchGroup[] | string[];
@@ -374,6 +374,13 @@ function builtInIssuesFields({
       isInput: true,
       // Below values are required or else SearchBar will attempt to get values
       // This is required or else SearchBar will attempt to get values
+      values: [],
+      predefined: true,
+    },
+    [FieldKey.USER_COUNT]: {
+      ...PREDEFINED_FIELDS[FieldKey.USER_COUNT]!,
+      name: 'User Count',
+      isInput: true,
       values: [],
       predefined: true,
     },

@@ -85,11 +85,25 @@ describe('ProjectKeys', () => {
     expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
 
     // Verify tabs are present
+    expect(screen.getByRole('tab', {name: 'OpenTelemetry (OTLP)'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Security Header'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Minidump'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Unreal Engine'})).toBeInTheDocument();
 
-    // Security Header should be visible by default (first tab)
+    const otlpEndpoint = screen.getByRole('textbox', {name: 'OTLP Endpoint'});
+    expect(otlpEndpoint).toHaveValue(`${projectKeys[0]!.dsn.integration}otlp`);
+
+    const otlpLogsEndpoint = screen.getByRole('textbox', {
+      name: 'OTLP Logs Endpoint',
+    });
+    expect(otlpLogsEndpoint).toHaveValue(projectKeys[0]!.dsn.otlp_logs);
+
+    const otlpTracesEndpoint = screen.getByRole('textbox', {
+      name: 'OTLP Traces Endpoint',
+    });
+    expect(otlpTracesEndpoint).toHaveValue(projectKeys[0]!.dsn.otlp_traces);
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Security Header'}));
     const securityHeaderEndpoint = screen.getByRole('textbox', {
       name: 'Security Header Endpoint URL',
     });

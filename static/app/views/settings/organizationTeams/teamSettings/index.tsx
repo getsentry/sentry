@@ -153,7 +153,7 @@ export default function TeamSettings() {
                 )}
               </form.Subscribe>
               <Flex gap="sm" flexShrink={0}>
-                <Button onClick={() => form.reset()}>{t('Cancel')}</Button>
+                <form.ResetButton>{t('Cancel')}</form.ResetButton>
                 <form.SubmitButton>{t('Save')}</form.SubmitButton>
               </Flex>
             </Flex>
@@ -183,7 +183,7 @@ export default function TeamSettings() {
             >
               <Button
                 icon={<IconDelete />}
-                priority="danger"
+                variant="danger"
                 data-test-id="button-remove-team"
               >
                 {t('Remove Team')}

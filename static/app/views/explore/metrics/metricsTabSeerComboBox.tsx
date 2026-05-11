@@ -396,7 +396,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         }}
         applySeerSearchQuery={applySeerSearchQuery}
         transformResponse={transformResponse}
-        analyticsSource="metrics"
         fallbackMutationOptions={metricsTabAskSeerMutationOptions}
       />
     );
@@ -407,7 +406,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       initialQuery={initialSeerQuery}
       askSeerMutationOptions={metricsTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
-      analyticsSource="metrics"
     />
   );
 }

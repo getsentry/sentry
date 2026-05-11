@@ -527,7 +527,6 @@ class PerforceIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.COMMITS,
         ]
     )
-    requires_feature_flag = True
 
     def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return []

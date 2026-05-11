@@ -137,7 +137,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{projectId?: string; ruleId?: string}> & {
+} & RouteComponentProps & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & DeprecatedAsyncComponent['props'];
 
@@ -723,7 +723,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         !validRule && t('name'),
         !validRule && !validTriggers && t('and'),
         !validTriggers && t('critical threshold'),
-      ].filter(x => x);
+      ].filter(Boolean);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
       return false;
@@ -1118,7 +1118,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   timeWindowsAreConsistent() {
-    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const {currentData, historicalData, timeWindow} = this.state;
     const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
     const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
     return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
@@ -1488,7 +1488,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                         this.handleDeleteRule();
                       }}
                     >
-                      <Button priority="danger">{t('Delete Rule')}</Button>
+                      <Button variant="danger">{t('Delete Rule')}</Button>
                     </Confirm>
                   ) : null
                 }

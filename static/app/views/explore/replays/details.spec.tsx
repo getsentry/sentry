@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -7,6 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ReplayDetails from './details';
 
@@ -30,6 +32,17 @@ mockUseLoadReplayReader.mockReturnValue({
   }),
   status: 'success' as const,
 });
+
+function TopBarWrapper({children}: {children: ReactNode}) {
+  return (
+    <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="title">
+        {props => <div {...props} data-test-id="topbar-title-slot" />}
+      </TopBar.Slot.Outlet>
+      {children}
+    </TopBar.Slot.Provider>
+  );
+}
 
 describe('ReplayDetails', () => {
   const user = UserFixture({id: '1'});
@@ -64,6 +77,7 @@ describe('ReplayDetails', () => {
     render(<ReplayDetails />, {
       organization,
       initialRouterConfig,
+      additionalWrapper: TopBarWrapper,
     });
 
     // Should not show access denied message

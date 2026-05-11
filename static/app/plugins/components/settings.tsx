@@ -202,7 +202,7 @@ export class PluginSettings<
               {data.config_error}
             </Alert>
           </Alert.Container>
-          <LinkButton priority="primary" href={authUrl}>
+          <LinkButton variant="primary" href={authUrl}>
             {t('Associate Identity')}
           </LinkButton>
         </div>

@@ -39,7 +39,7 @@ export function DisabledCustomSymbolSources({organization}: Props) {
       action={
         <Grid flow="column" align="center" gap="sm">
           <StyledButton
-            priority="primary"
+            variant="primary"
             icon={<IconBusiness />}
             onClick={() =>
               openUpsellModal({

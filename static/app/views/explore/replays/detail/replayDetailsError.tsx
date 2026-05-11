@@ -6,6 +6,7 @@ import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type ReaderResult = ReturnType<typeof useLoadReplayReader>;
 
@@ -20,7 +21,7 @@ export function ReplayDetailsError({fetchError, onRetry}: Props) {
     t('The replay has been deleted by a member in your organization'),
     t('There is an internal systems error'),
   ];
-  return fetchError?.status === 404 ? (
+  return fetchError instanceof RequestError && fetchError.status === 404 ? (
     <NotFound />
   ) : (
     <DetailedError

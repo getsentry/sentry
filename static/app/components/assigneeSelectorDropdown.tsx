@@ -21,9 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
@@ -213,10 +211,9 @@ export function AssigneeSelectorDropdown({
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
-  const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = useUser();
 
-  const currentMemberList = memberList ?? memberLists?.members ?? [];
+  const currentMemberList = memberList ?? [];
 
   const getSuggestedAssignees = (): SuggestedAssignee[] => {
     const currAssignableTeams = getAssignableTeams();
@@ -323,11 +320,11 @@ export function AssigneeSelectorDropdown({
     let assignee: User | Actor;
 
     if (type === 'user') {
-      assignee = currentMemberList.find(member => member.id === assigneeId) as User;
+      assignee = currentMemberList.find(member => member.id === assigneeId)!;
     } else {
       const assignedTeam = getAssignableTeams().find(
         assignableTeam => assignableTeam.team.id === assigneeId
-      ) as AssignableTeam;
+      )!;
       // Convert AssingableTeam to Actor
       assignee = {
         id: assignedTeam.id,
@@ -520,7 +517,7 @@ export function AssigneeSelectorDropdown({
         )}
         {!loading && !noDropdown && (
           <AssigneeTrigger
-            priority="transparent"
+            variant="transparent"
             data-test-id="assignee-selector"
             {...props}
           >
@@ -555,7 +552,7 @@ export function AssigneeSelectorDropdown({
           <Flex gap="md">
             <MenuComponents.CTAButton
               disabled={loading}
-              onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.preventDefault();
                 openInviteMembersModal({source: 'assignee_selector'});
               }}

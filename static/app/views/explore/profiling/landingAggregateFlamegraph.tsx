@@ -211,7 +211,7 @@ export function LandingAggregateFlamegraph({
     [setVisualization]
   );
 
-  const [hideRegressions, setHideRegressions] = useLocalStorageState<boolean>(
+  const [hideRegressions, setHideRegressions] = useLocalStorageState(
     'flamegraph-hide-regressions',
     false
   );

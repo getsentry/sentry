@@ -208,7 +208,7 @@ export function transformToSeriesMap(
           return;
         }
 
-        const seriesData = groupData[axis] as EventsStats;
+        const seriesData = groupData[axis]!;
         const [, timeSeries] = convertEventsStatsToTimeSeriesData(
           axis,
           seriesData,

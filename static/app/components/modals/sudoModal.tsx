@@ -301,7 +301,7 @@ function SudoModal({
                       {t('COPS/CSM')}
                     </Button>
                   ) : (
-                    <Button priority="transparent" size="sm" onClick={handleChangeReason}>
+                    <Button variant="transparent" size="sm" onClick={handleChangeReason}>
                       {t('Change reason')}
                     </Button>
                   )}
@@ -321,7 +321,7 @@ function SudoModal({
               )}
             </Form>
           ) : (
-            <LinkButton priority="primary" href={getAuthLoginPath()}>
+            <LinkButton variant="primary" href={getAuthLoginPath()}>
               {t('Continue')}
             </LinkButton>
           )}

@@ -46,7 +46,7 @@ export function OrganizationApiKeysList({
 
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       icon={<IconAdd />}
       busy={busy}
@@ -104,7 +104,7 @@ export function OrganizationApiKeysList({
                   onConfirm={() => onRemove(id)}
                   message={t('Are you sure you want to remove this API key?')}
                 >
-                  <Button priority="danger" size="sm" icon={<IconDelete />}>
+                  <Button variant="danger" size="sm" icon={<IconDelete />}>
                     {t('Remove API Key')}
                   </Button>
                 </Confirm>

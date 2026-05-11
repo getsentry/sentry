@@ -178,8 +178,8 @@ function JsonForm({
       {forms?.map((formGroup, i) => (
         <Fragment key={i}>{renderForm({formPanelProps, ...formGroup})}</Fragment>
       ))}
-      {typeof forms === 'undefined' &&
-        typeof propFields !== 'undefined' &&
+      {forms === undefined &&
+        propFields !== undefined &&
         renderForm({fields: propFields, formPanelProps, title})}
     </div>
   );

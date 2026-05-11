@@ -303,8 +303,8 @@ export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
-  const [title, setTitle] = useQueryParamState<string>({fieldName: 'title'});
-  const [description, setDescription] = useQueryParamState<string>({
+  const [title, setTitle] = useQueryParamState({fieldName: 'title'});
+  const [description, setDescription] = useQueryParamState({
     fieldName: 'description',
   });
   const [displayType, setDisplayType] = useQueryParamState<DisplayType>({
@@ -788,9 +788,7 @@ export function useWidgetBuilderState(): {
                     ? [
                         {
                           kind: sort?.[0]?.kind ?? 'desc',
-                          field: generateFieldAsString(
-                            validSortOptions[0] as QueryFieldValue
-                          ),
+                          field: generateFieldAsString(validSortOptions[0]!),
                         },
                       ]
                     : [],
@@ -803,9 +801,7 @@ export function useWidgetBuilderState(): {
                   [
                     {
                       kind: sort?.[0]?.kind ?? 'desc',
-                      field: generateFieldAsString(
-                        action.payload[changedFieldIndex] as QueryFieldValue
-                      ),
+                      field: generateFieldAsString(action.payload[changedFieldIndex]!),
                     },
                   ],
                   options
@@ -1292,7 +1288,7 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
           field: maybeLinkedDashboard.field,
         } satisfies LinkedDashboard;
       }
-      return undefined;
+      return;
     })
     .filter(defined);
 }

@@ -120,7 +120,7 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
-        return undefined;
+        return;
     }
   }
 

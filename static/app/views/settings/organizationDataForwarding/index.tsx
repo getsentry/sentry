@@ -66,7 +66,7 @@ export default function OrganizationDataForwarding() {
                 <Access access={['org:write']}>
                   {({hasAccess}) => (
                     <LinkButton
-                      priority="primary"
+                      variant="primary"
                       to={`/settings/${organization.slug}/data-forwarding/setup/`}
                       icon={<IconAdd />}
                       size="sm"

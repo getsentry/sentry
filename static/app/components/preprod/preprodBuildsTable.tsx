@@ -1,10 +1,10 @@
 import React, {Fragment, useMemo} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -56,7 +56,7 @@ export function PreprodBuildsTable({
     display === PreprodBuildsDisplay.DISTRIBUTION
       ? 'https://docs.sentry.io/product/build-distribution/'
       : display === PreprodBuildsDisplay.SNAPSHOT
-        ? 'https://docs.sentry.io/product/snapshot-testing/'
+        ? 'https://docs.sentry.io/product/snapshots/'
         : 'https://docs.sentry.io/product/size-analysis/';
 
   const hasMultiplePlatforms = useMemo(() => {

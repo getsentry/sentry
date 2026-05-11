@@ -296,9 +296,7 @@ function useWrappedDiscoverQueryBase<T>({
 
   const queryExtras: Record<string, string | string[]> = {};
   if (
-    [DiscoverDatasets.SPANS, DiscoverDatasets.TRACEMETRICS].includes(
-      eventView.dataset as DiscoverDatasets
-    )
+    [DiscoverDatasets.SPANS, DiscoverDatasets.TRACEMETRICS].includes(eventView.dataset!)
   ) {
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
@@ -385,7 +383,7 @@ function processDiscoverTimeseriesResult(
   eventView: EventView
 ) {
   if (!result) {
-    return undefined;
+    return;
   }
 
   if (!eventView.yAxis) {

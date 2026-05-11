@@ -59,14 +59,20 @@ repos:
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
         language: pygrep
         types: [python]
-      - id: sort-stronger-mypy-list
-        name: sort stronger mypy list
+      - id: sort-mypy-weaklist
+        name: sort mypy weaklist
         entry: python3 -m tools.mypy_helpers.sort_stronger_modules
         files: ^pyproject\.toml$
         language: python
-      - id: check-mypy-stronglist
-        name: check mypy stronglist
-        entry: python3 -m tools.mypy_helpers.check_stronglist
+      - id: check-mypy-weaklist
+        name: check mypy weaklist
+        entry: python3 -m tools.mypy_helpers.check_stronglist pyproject.toml
+        files: (^pyproject\.toml$|\.py$)
+        pass_filenames: false
+        language: python
+      - id: prevent-mypy-weaklist-additions
+        name: prevent mypy weaklist additions
+        entry: python3 -m tools.mypy_helpers.prevent_weaklist_additions
         files: ^pyproject\.toml$
         language: python
       - id: prevent-push
@@ -101,6 +107,10 @@ repos:
         name: format
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown, json]
+        # Mirror ignorePatterns from .oxfmtrc.json; oxfmt errors with
+        # "Expected at least one target file" when its config drops every
+        # input file, so skip them at the hook level instead.
+        exclude: ^(api-docs|fixtures)/.*\.json$
         entry: ./node_modules/.bin/oxfmt
 
       - id: knip

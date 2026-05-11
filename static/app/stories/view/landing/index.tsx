@@ -34,7 +34,7 @@ const frontmatter = {
       {
         children: 'Get Started',
         to: '/stories/principles/tokens/',
-        priority: 'primary',
+        variant: 'primary',
       },
       {
         children: 'View on GitHub',

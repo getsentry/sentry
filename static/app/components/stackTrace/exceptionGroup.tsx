@@ -89,7 +89,7 @@ export function ToggleRelatedExceptionsButton({
 
   return (
     <MonoButton
-      priority="link"
+      variant="link"
       size="xs"
       onClick={() => toggleRelatedExceptions(exceptionId)}
       data-test-id="toggle-related-exceptions"
@@ -198,7 +198,7 @@ function ExceptionTreeItem({
       <Circle />
       {link && defined(exceptionId) ? (
         <Button
-          priority="link"
+          variant="link"
           size="zero"
           onClick={() => {
             onExceptionClick(exceptionId);

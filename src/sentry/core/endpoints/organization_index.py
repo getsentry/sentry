@@ -1,6 +1,5 @@
 import logging
 
-import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Q, Subquery
@@ -10,12 +9,8 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, features, options
+from sentry import features, options
 from sentry import ratelimits as ratelimiter
-from sentry.analytics.events.data_consent_org_creation import (
-    AggregatedDataConsentOrganizationCreatedEvent,
-)
-from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -38,7 +33,6 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
 from sentry.services.organization import (
     OrganizationOptions,
@@ -46,8 +40,8 @@ from sentry.services.organization import (
     PostProvisionOptions,
 )
 from sentry.services.organization.provisioning import organization_provisioning_service
-from sentry.signals import org_setup_complete, terms_accepted
 from sentry.silo.base import SiloMode
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.pagination_factory import PaginatorLike
 
@@ -173,16 +167,6 @@ class OrganizationIndexEndpoint(Endpoint):
                         for u in user_service.get_many_by_email(emails=value, is_verified=False)
                     }
                     queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
-                elif key == "platform":
-                    # Note: platform filtering is kept here but is not present in the control version
-                    # of this endpoint, since the data is not in control and our UI isn't
-                    # passing this anymore.
-                    sentry_sdk.capture_message("organization_index.platform_filter_used")
-                    queryset = queryset.filter(
-                        project__in=ProjectPlatform.objects.filter(platform__in=value).values(
-                            "project_id"
-                        )
-                    )
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
                 elif key == "status":
@@ -207,11 +191,6 @@ class OrganizationIndexEndpoint(Endpoint):
             queryset = queryset.annotate(member_count=Count("member_set"))
             order_by = "-member_count"
             paginator_cls = OffsetPaginator
-        elif sort_by == "projects":
-            sentry_sdk.capture_message("organization_index.sort_by_projects_used")
-            queryset = queryset.annotate(project_count=Count("project"))
-            order_by = "-project_count"
-            paginator_cls = OffsetPaginator
         else:
             order_by = "-date_added"
             paginator_cls = DateTimePaginator
@@ -220,7 +199,7 @@ class OrganizationIndexEndpoint(Endpoint):
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, include_feature_flags=False),
             paginator_cls=paginator_cls,
         )
 
@@ -317,10 +296,6 @@ class OrganizationIndexEndpoint(Endpoint):
             queryset = queryset.annotate(member_count=Coalesce(Subquery(member_count_subquery), 0))
             order_by = "-member_count"
             paginator_cls = OffsetPaginator
-        elif sort_by == "projects":
-            queryset = queryset.none()
-            order_by = "-date_created"
-            paginator_cls = OffsetPaginator
         else:
             order_by = "-date_created"
             paginator_cls = DateTimePaginator
@@ -390,20 +365,40 @@ class OrganizationIndexEndpoint(Endpoint):
 
         result = serializer.validated_data
 
+        getsentry_options = None
+        getsentry_options = {
+            # Define a self-serve free account for saas. Historically
+            # these were not trial accounts.
+            # See getsentry/utils/provisioning.py
+            "subscription": {
+                "channel": 0,
+                "type": 0,
+            },
+            "ip_address": request.META["REMOTE_ADDR"],
+            "provisioning_user_id": request.user.id,
+            "sender": "in-app",
+            "referrer": "in-app",
+        }
+
         try:
             create_default_team = bool(result.get("defaultTeam"))
+            rpc_user = serialize_generic_user(request.user)
+            assert rpc_user  # narrow type
+
             provision_args = OrganizationProvisioningOptions(
                 provision_options=OrganizationOptions(
                     name=result["name"],
                     slug=result.get("slug") or result["name"],
                     owning_user_id=request.user.id,
+                    owner=rpc_user,
                     create_default_team=create_default_team,
                     ip_address=request.META["REMOTE_ADDR"],
                     aggregated_data_consent=result.get("aggregatedDataConsent"),
                     agree_terms=result.get("agreeTerms"),
                 ),
                 post_provision_options=PostProvisionOptions(
-                    getsentry_options=None, sentry_options=None
+                    getsentry_options=getsentry_options,
+                    sentry_options=None,
                 ),
             )
 
@@ -413,59 +408,11 @@ class OrganizationIndexEndpoint(Endpoint):
             )
             org = Organization.objects.get(id=rpc_org.id)
 
-            org_setup_complete.send_robust(
-                instance=org, user=request.user, sender=self.__class__, referrer="in-app"
-            )
-
-            self.create_audit_entry(
-                request=request,
-                organization=org,
-                target_object=org.id,
-                event=audit_log.get_event_id("ORG_ADD"),
-                data=org.get_audit_log_data(),
-            )
-
-            try:
-                analytics.record(
-                    OrganizationCreatedEvent(
-                        id=org.id,
-                        name=org.name,
-                        slug=org.slug,
-                        actor_id=request.user.id if request.user.is_authenticated else None,
-                    )
-                )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
         # TODO(hybrid-cloud): We'll need to catch a more generic error
         # when the internal RPC is implemented.
         except IntegrityError:
             return Response(
                 {"detail": "An organization with this slug already exists."}, status=409
             )
-
-        # failure on sending this signal is acceptable
-        if result.get("agreeTerms"):
-            terms_accepted.send_robust(
-                user=request.user,
-                organization_id=org.id,
-                ip_address=request.META["REMOTE_ADDR"],
-                sender=type(self),
-            )
-
-        if result.get("aggregatedDataConsent"):
-            org.update_option("sentry:aggregated_data_consent", True)
-
-            try:
-                analytics.record(
-                    AggregatedDataConsentOrganizationCreatedEvent(
-                        organization_id=org.id,
-                    )
-                )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
-        # New organizations should not see the legacy UI
-        org.update_option("sentry:streamline_ui_only", True)
 
         return Response(serialize(org, request.user), status=201)

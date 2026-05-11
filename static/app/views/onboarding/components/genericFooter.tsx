@@ -21,10 +21,7 @@ const footerChromeStyles = (theme: Theme) => css`
   height: 72px;
   z-index: 100;
   background-color: ${theme.tokens.background.primary};
-  /* TODO(design-engineering): Replace with a directional shadow token when one exists */
-  box-shadow:
-    0px -4px 0px 2px ${theme.tokens.elevation.high},
-    0px -1px 0px 1px ${theme.tokens.elevation.high};
+  border-top: 1px solid ${theme.tokens.border.secondary};
 `;
 
 export function GenericFooter(
