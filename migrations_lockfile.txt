@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0010_drop_legacy_columns
+seer: 0011_add_project_repository_fk_to_seer
 
 sentry: 1087_add_projectrepository
 
