@@ -9,11 +9,6 @@ export enum LogsAnalyticsPageSource {
 }
 
 export type LogsAnalyticsEventParameters = {
-  'logs.ai_query_applied': {
-    group_by_count: number;
-    organization: Organization;
-    query: string;
-  };
   'logs.auto_refresh.timeout': {
     organization: Organization;
     page_source: LogsAnalyticsPageSource;
