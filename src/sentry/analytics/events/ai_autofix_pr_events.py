@@ -1,6 +1,3 @@
-import time
-from dataclasses import field
-
 from sentry import analytics
 
 
@@ -12,7 +9,7 @@ class AiAutofixPrEvent(analytics.Event):
     run_id: int
     integration: str
     github_app: str
-    sent_at: int = field(default_factory=lambda: int(time.time() * 1000))
+    sent_at: int
     referrer: str | None = None
 
 
