@@ -15,7 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
@@ -97,23 +97,30 @@ def send_search_agent_start_request(
         body["options"] = options
 
     if features.has("organizations:seer-run-mirror", organization):
-        with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=False):
-            run = SeerRun.objects.create(
-                organization=organization,
-                user_id=user_id,
-                type=SeerRunType.ASSISTED_QUERY,
-                last_triggered_at=now(),
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+                run = SeerRun.objects.create(
+                    organization=organization,
+                    user_id=user_id,
+                    type=SeerRunType.ASSISTED_QUERY,
+                    last_triggered_at=now(),
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": dict(body),
+                        "viewer_context": dict(viewer_context) if viewer_context else None,
+                    },
+                ).save()
+        except OutboxFlushError:
+            logger.exception(
+                "search_agent.outbox_flush_error",
+                extra={"organization_id": organization.id},
             )
-            CellOutbox(
-                shard_scope=OutboxScope.SEER_SCOPE,
-                shard_identifier=run.id,
-                category=OutboxCategory.SEER_RUN_CREATE,
-                object_identifier=run.id,
-                payload={
-                    "body": dict(body),
-                    "viewer_context": dict(viewer_context) if viewer_context else None,
-                },
-            ).save()
+        run.refresh_from_db()
         return run
 
     response = make_search_agent_start_request(body, timeout=30, viewer_context=viewer_context)

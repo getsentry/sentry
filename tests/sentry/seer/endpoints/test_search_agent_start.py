@@ -1,5 +1,5 @@
-from sentry.hybridcloud.models.outbox import CellOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from unittest.mock import Mock, patch
+
 from sentry.seer.endpoints.search_agent_start import send_search_agent_start_request
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -7,7 +7,9 @@ from sentry.testutils.cases import TestCase
 
 
 class SendSearchAgentStartRequestTest(TestCase):
-    def test_outbox_path_creates_run_and_enqueues_outbox(self) -> None:
+    @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
+    def test_outbox_path_creates_run_and_flushes(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
         viewer_context = SeerViewerContext(
             organization_id=self.organization.id, user_id=self.user.id
         )
@@ -24,14 +26,27 @@ class SendSearchAgentStartRequestTest(TestCase):
 
         assert isinstance(result, SeerRun)
         assert result.type == SeerRunType.ASSISTED_QUERY
-        assert result.mirror_status == SeerRunMirrorStatus.PENDING
-        assert result.seer_run_state_id is None
+        assert result.mirror_status == SeerRunMirrorStatus.LIVE
+        assert result.seer_run_state_id == 42
         assert result.user_id == self.user.id
+        mock_request.assert_called_once()
+        sent_body = mock_request.call_args[0][0]
+        assert sent_body["natural_language_query"] == "errors today"
 
-        outbox = CellOutbox.objects.get(
-            category=OutboxCategory.SEER_RUN_CREATE,
-            object_identifier=result.id,
+    def test_outbox_flush_error_still_returns_run(self) -> None:
+        viewer_context = SeerViewerContext(
+            organization_id=self.organization.id, user_id=self.user.id
         )
-        assert outbox.shard_scope == OutboxScope.SEER_SCOPE
-        assert outbox.shard_identifier == result.id
-        assert outbox.payload["body"]["natural_language_query"] == "errors today"
+
+        with self.feature("organizations:seer-run-mirror"):
+            result = send_search_agent_start_request(
+                organization=self.organization,
+                user_id=self.user.id,
+                project_ids=[self.project.id],
+                natural_language_query="errors today",
+                viewer_context=viewer_context,
+            )
+
+        assert isinstance(result, SeerRun)
+        assert result.uuid is not None
+        assert result.seer_run_state_id is None
