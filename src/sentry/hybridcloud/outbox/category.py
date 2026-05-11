@@ -239,6 +239,8 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "api_token_id"):
                     shard_identifier = model.api_token_id
+            if scope == OutboxScope.SEER_SCOPE:
+                shard_identifier = model.id
 
         assert (model is not None) or shard_identifier is not None, (
             "Either model or shard_identifier must be specified"
@@ -286,7 +288,6 @@ class OutboxScope(IntEnum):
             OutboxCategory.PROJECT_KEY_UPDATE,
             OutboxCategory.SCM_INTEGRATION_CONFIG_BACKFILL,
             OutboxCategory.ORGANIZATION_AVATAR_UPDATE,
-            OutboxCategory.SEER_RUN_CREATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -339,6 +340,7 @@ class OutboxScope(IntEnum):
     )
     API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
+    SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
 
     def __str__(self) -> str:
         return self.name
@@ -361,6 +363,8 @@ class OutboxScope(IntEnum):
             return "app_id"
         if scope == OutboxScope.API_TOKEN_SCOPE:
             return "api_token_id"
+        if scope == OutboxScope.SEER_SCOPE:
+            return "seer_run_id"
 
         return "shard_identifier"
 
