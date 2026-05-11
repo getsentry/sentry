@@ -10,7 +10,7 @@ def extract_packages(package_specs: list[str]) -> set[str]:
     names = set()
     for spec in package_specs:
         # Split on version specifiers or extras bracket
-        for sep in (">=", "==", "~=", "<=", "<", ">", "["):
+        for sep in ("[", ">=", "==", "~=", "<=", "<", ">"):
             if sep in spec:
                 names.add(spec.split(sep)[0])
                 break
