@@ -1,11 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
@@ -120,8 +125,6 @@ function ApplyCodeMappings({
   organization: Organization;
   project: Project;
 }) {
-  const baseUrl = `/settings/${organization.slug}/integrations/`;
-
   const defaultValues: FormValues = {codeMappingId: null};
 
   const mutation = useMutation<
@@ -154,36 +157,6 @@ function ApplyCodeMappings({
     validators: {onDynamic: schema},
   });
 
-  const codeMappingId = useStore(form.store, state => state.values.codeMappingId);
-
-  const {data: codeownersFile} = useQuery(
-    apiOptions.as<CodeownersFile>()(
-      '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
-      {
-        path: codeMappingId
-          ? {organizationIdOrSlug: organization.slug, configId: codeMappingId}
-          : skipToken,
-        staleTime: Infinity,
-      }
-    )
-  );
-
-  const addFile = () => {
-    if (!codeownersFile || !codeMappingId) {
-      return;
-    }
-    mutation.mutate(
-      {codeMappingId, raw: codeownersFile.raw},
-      {
-        onSuccess: data => {
-          const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
-          onSave?.({...data, codeMapping});
-          closeModal();
-        },
-      }
-    );
-  };
-
   return (
     <form.AppForm form={form}>
       <Header closeButton>{t('Add Code Owner File')}</Header>
@@ -204,32 +177,127 @@ function ApplyCodeMappings({
             )}
           </form.AppField>
 
-          {codeownersFile ? (
-            <SourceFile codeownersFile={codeownersFile} />
-          ) : (
-            <NoSourceFile />
-          )}
-          {mutation.isError && mutation.error.responseJSON?.raw ? (
-            <ErrorMessage
-              baseUrl={baseUrl}
-              codeMappingId={codeMappingId}
-              codeMappings={codeMappings}
-              errorJSON={mutation.error.responseJSON as {raw?: string}}
-            />
-          ) : null}
+          <form.Subscribe selector={state => state.values.codeMappingId}>
+            {codeMappingId => (
+              <CodeownersFileStatus
+                codeMappingId={codeMappingId}
+                codeMappings={codeMappings}
+                organization={organization}
+                mutationError={mutation.error}
+                mutationIsError={mutation.isError}
+              />
+            )}
+          </form.Subscribe>
         </Stack>
       </Body>
       <Footer>
-        <Button
-          disabled={!codeownersFile}
-          aria-label={t('Add File')}
-          variant="primary"
-          onClick={addFile}
-        >
-          {t('Add File')}
-        </Button>
+        <form.Subscribe selector={state => state.values.codeMappingId}>
+          {codeMappingId => (
+            <AddFileButton
+              codeMappingId={codeMappingId}
+              codeMappings={codeMappings}
+              organization={organization}
+              mutation={mutation}
+              onSave={onSave}
+              closeModal={closeModal}
+            />
+          )}
+        </form.Subscribe>
       </Footer>
     </form.AppForm>
+  );
+}
+
+function useCodeownersFile(organization: Organization, codeMappingId: string | null) {
+  return useQuery(
+    apiOptions.as<CodeownersFile>()(
+      '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
+      {
+        path: codeMappingId
+          ? {organizationIdOrSlug: organization.slug, configId: codeMappingId}
+          : skipToken,
+        staleTime: Infinity,
+      }
+    )
+  );
+}
+
+function CodeownersFileStatus({
+  codeMappingId,
+  codeMappings,
+  organization,
+  mutationError,
+  mutationIsError,
+}: {
+  codeMappingId: string | null;
+  codeMappings: RepositoryProjectPathConfig[];
+  mutationError: RequestError | null;
+  mutationIsError: boolean;
+  organization: Organization;
+}) {
+  const {data: codeownersFile} = useCodeownersFile(organization, codeMappingId);
+
+  return (
+    <Fragment>
+      {codeownersFile ? <SourceFile codeownersFile={codeownersFile} /> : <NoSourceFile />}
+      {mutationIsError && mutationError?.responseJSON?.raw ? (
+        <ErrorMessage
+          baseUrl={`/settings/${organization.slug}/integrations/`}
+          codeMappingId={codeMappingId}
+          codeMappings={codeMappings}
+          errorJSON={mutationError.responseJSON as {raw?: string}}
+        />
+      ) : null}
+    </Fragment>
+  );
+}
+
+function AddFileButton({
+  codeMappingId,
+  codeMappings,
+  organization,
+  mutation,
+  onSave,
+  closeModal,
+}: {
+  closeModal: ModalRenderProps['closeModal'];
+  codeMappingId: string | null;
+  codeMappings: RepositoryProjectPathConfig[];
+  mutation: UseMutationResult<
+    CodeOwner,
+    RequestError,
+    {codeMappingId: string; raw: string}
+  >;
+  onSave: ((data: CodeOwner) => void) | undefined;
+  organization: Organization;
+}) {
+  const {data: codeownersFile} = useCodeownersFile(organization, codeMappingId);
+
+  const addFile = () => {
+    if (!codeownersFile || !codeMappingId) {
+      return;
+    }
+    mutation.mutate(
+      {codeMappingId, raw: codeownersFile.raw},
+      {
+        onSuccess: data => {
+          const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
+          onSave?.({...data, codeMapping});
+          closeModal();
+        },
+      }
+    );
+  };
+
+  return (
+    <Button
+      disabled={!codeownersFile}
+      aria-label={t('Add File')}
+      variant="primary"
+      onClick={addFile}
+    >
+      {t('Add File')}
+    </Button>
   );
 }
 
