@@ -8,7 +8,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -264,8 +264,15 @@ export function ProjectAddRepoModal({
               {field => (
                 <field.Layout.Row
                   label={t('Handoff to Agent')}
-                  hintText={t(
-                    'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR.'
+                  hintText={tct(
+                    'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR. [manage:Manage Coding Agents]',
+                    {
+                      manage: (
+                        <ExternalLink
+                          href={`/settings/${organization.slug}/integrations/?category=coding+agent`}
+                        />
+                      ),
+                    }
                   )}
                 >
                   {agentOptions.isPending ? (
@@ -273,27 +280,15 @@ export function ProjectAddRepoModal({
                   ) : agentOptions.isError ? (
                     <LoadingError />
                   ) : (
-                    <Stack gap="md">
-                      <field.Select
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                        options={agentOptions.data}
-                        isValueEqual={(a, b) =>
-                          a === b ||
-                          (typeof a === 'object' &&
-                            typeof b === 'object' &&
-                            a.id === b.id)
-                        }
-                      />
-                      <Link
-                        to={{
-                          pathname: `/settings/${organization.slug}/integrations/`,
-                          query: {category: 'coding agent'},
-                        }}
-                      >
-                        {t('Manage Coding Agents')}
-                      </Link>
-                    </Stack>
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={agentOptions.data}
+                      isValueEqual={(a, b) =>
+                        a === b ||
+                        (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                      }
+                    />
                   )}
                 </field.Layout.Row>
               )}
