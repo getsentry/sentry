@@ -84,6 +84,10 @@ export function ChartSelectionProvider({children}: ChartSelectionProviderProps) 
     [chartSelection, setChartSelection]
   );
 
+  // TODO: Remove UrlParamBatchProvider once all child components using useQueryParamState
+  // have been migrated to nuqs. Current remaining usages:
+  // - attributeDistributionContent.tsx
+  // - cohortComparisonContent.tsx
   return (
     <UrlParamBatchProvider>
       <ChartSelectionContext.Provider value={value}>
