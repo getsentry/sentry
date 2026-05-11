@@ -378,6 +378,10 @@ export function SentryAppExternalFormNew({
   const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
   const dependentFetchVersionRef = useRef(0);
   const [isFetchingDependentFields, setIsFetchingDependentFields] = useState(false);
+  // Mount-time cascade only. Drives the whole-form <LoadingIndicator/> so the
+  // form doesn't render with empty selects on open. Click-time cascades use
+  // isFetchingDependentFields above, which only disables submit.
+  const [isFetchingInitialCascade, setIsFetchingInitialCascade] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
 
   const fetchFieldChoices = useCallback(
@@ -448,6 +452,102 @@ export function SentryAppExternalFormNew({
     ]
   );
 
+  // BFS over the dependency graph. A newly-defaulted field can itself be a
+  // trigger for fields that depend on it (transitive cascade A → B → C),
+  // so we process triggers level by level until no further dependents
+  // remain. processedTriggers and fetchedFields prevent re-processing on
+  // diamond shapes (A → B, A → C, B → D, C → D) and cycles.
+  const cascadeFetchDependents = useCallback(
+    async ({
+      seedTriggers,
+      initialFieldGroups,
+      initialDefaultValues,
+      initialValues,
+      requestVersion,
+    }: {
+      initialDefaultValues: Record<string, unknown>;
+      initialFieldGroups: FieldGroups;
+      initialValues: Record<string, unknown>;
+      requestVersion: number;
+      seedTriggers: string[];
+    }): Promise<{
+      defaultValues: Record<string, unknown>;
+      fieldGroups: FieldGroups;
+      impactedNames: Set<string>;
+      values: Record<string, unknown>;
+    } | null> => {
+      const triggerQueue = [...seedTriggers];
+      const processedTriggers = new Set<string>();
+      const fetchedFields = new Set<string>();
+      const impactedNames = new Set<string>();
+      let workingFieldGroups = initialFieldGroups;
+      let workingDefaults = initialDefaultValues;
+      let workingValues = initialValues;
+
+      while (triggerQueue.length > 0) {
+        const trigger = triggerQueue.shift()!;
+        if (processedTriggers.has(trigger)) continue;
+        processedTriggers.add(trigger);
+
+        const dependentFields = getAllSchemaFields(workingFieldGroups).filter(
+          field => field.depends_on?.includes(trigger) && !fetchedFields.has(field.name)
+        );
+        if (!dependentFields.length) continue;
+
+        for (const field of dependentFields) {
+          fetchedFields.add(field.name);
+          impactedNames.add(field.name);
+        }
+
+        // Snapshot the working state for this iteration so the closure
+        // below doesn't capture vars reassigned by later iterations.
+        const iterFieldGroups = workingFieldGroups;
+        const iterDefaults = workingDefaults;
+        const iterValues = workingValues;
+
+        const results = await Promise.all(
+          dependentFields.map(async field => ({
+            fieldName: field.name,
+            ...(await fetchFieldChoices({
+              currentValues: iterValues,
+              defaultValues: iterDefaults,
+              field,
+              input: '',
+              nextFieldGroups: iterFieldGroups,
+            })),
+          }))
+        );
+
+        if (requestVersion !== dependentFetchVersionRef.current) return null;
+
+        const folded = foldChoiceResults(workingFieldGroups, workingDefaults, results);
+        workingFieldGroups = folded.updatedFieldGroups;
+        workingDefaults = folded.nextDefaultValues;
+
+        for (const result of results) {
+          if (result.defaultValue === undefined) continue;
+          // Preserve saved/user values: only apply a fetched defaultValue if
+          // the field doesn't already have an effective value. Without this
+          // check, the mount-time cascade clobbers a saved selection (e.g.
+          // alert-rule-action settings round-tripping from the DB) with the
+          // schema's default, and the next BFS iteration fetches its
+          // dependents with the wrong parent value.
+          if (hasValue(workingValues[result.fieldName])) continue;
+          workingValues = {...workingValues, [result.fieldName]: result.defaultValue};
+          triggerQueue.push(result.fieldName);
+        }
+      }
+
+      return {
+        defaultValues: workingDefaults,
+        fieldGroups: workingFieldGroups,
+        impactedNames,
+        values: workingValues,
+      };
+    },
+    [fetchFieldChoices]
+  );
+
   // Reset all derived state whenever the form's identity changes. `action` is
   // included even though the body doesn't read it: when create/link share an
   // identical schema, `resolvedFieldGroups` is reference-stable, so without
@@ -463,6 +563,23 @@ export function SentryAppExternalFormNew({
     const nextInitialValues =
       element === 'alert-rule-action' ? getResetInitialValues(normalizedResetValues) : {};
 
+    // Start in the loading state if any field already has a value at mount;
+    // the prefetch effect below cascades from those seeds and will clear the
+    // flag in its finally block. Avoids the "empty select rendered before
+    // options arrive" flash since the form renders <LoadingIndicator/> until
+    // the cascade resolves.
+    const willCascade = getAllSchemaFields(nextFieldGroups).some(field =>
+      hasValue(
+        getEffectiveFieldValue({
+          currentFormValues: {},
+          externalDefaultValues: {},
+          fieldGroups: nextFieldGroups,
+          fieldName: field.name,
+          resetValues: normalizedResetValues,
+        })
+      )
+    );
+
     dependentFetchVersionRef.current += 1;
     currentFormValuesRef.current = nextInitialValues;
     setFieldGroups(nextFieldGroups);
@@ -473,32 +590,31 @@ export function SentryAppExternalFormNew({
     setExternalDefaultValues({});
     setAsyncOptionsCache({});
     setIsFetchingDependentFields(false);
+    setIsFetchingInitialCascade(willCascade);
   }, [action, element, normalizedResetValues, resolvedFieldGroups]);
 
-  // After the reset above, prefetch choices for any field whose dependencies
-  // already have values.
+  // After the reset above, cascade-fetch dependent fields starting from any
+  // field that already has a value (schema-baked defaultValue, resetValues
+  // entry, or getFieldDefault result). Seeding the BFS this way lets chained
+  // schemas (A → B → C) populate transitively on mount, matching the same
+  // behavior as user-driven changes via handleFieldChange.
   useEffect(() => {
     const nextFieldGroups = cloneFieldGroups(resolvedFieldGroups);
-    const fieldsToPrefetch = getAllSchemaFields(nextFieldGroups).filter(
-      field =>
-        field.depends_on?.length &&
-        field.depends_on.every(dependentField =>
-          hasValue(
-            getEffectiveFieldValue({
-              currentFormValues: {},
-              externalDefaultValues: {},
-              fieldGroups: nextFieldGroups,
-              fieldName: dependentField,
-              resetValues: normalizedResetValues,
-            })
-          )
-        )
-    );
-
-    if (!fieldsToPrefetch.length) return;
-
-    const nextInitialValues =
-      element === 'alert-rule-action' ? getResetInitialValues(normalizedResetValues) : {};
+    const initialFieldValues: Record<string, unknown> = {};
+    for (const field of getAllSchemaFields(nextFieldGroups)) {
+      const value = getEffectiveFieldValue({
+        currentFormValues: {},
+        externalDefaultValues: {},
+        fieldGroups: nextFieldGroups,
+        fieldName: field.name,
+        resetValues: normalizedResetValues,
+      });
+      if (hasValue(value)) {
+        initialFieldValues[field.name] = value;
+      }
+    }
+    const seedTriggers = Object.keys(initialFieldValues);
+    if (!seedTriggers.length) return;
 
     const requestVersion = dependentFetchVersionRef.current + 1;
     dependentFetchVersionRef.current = requestVersion;
@@ -506,36 +622,43 @@ export function SentryAppExternalFormNew({
     let isCancelled = false;
 
     const runPrefetch = async () => {
-      const results = await Promise.all(
-        fieldsToPrefetch.map(async field => ({
-          fieldName: field.name,
-          ...(await fetchFieldChoices({
-            currentValues: {},
-            defaultValues: {},
-            field,
-            input: '',
-            nextFieldGroups,
-          })),
-        }))
-      );
+      try {
+        const cascadeResult = await cascadeFetchDependents({
+          seedTriggers,
+          initialFieldGroups: nextFieldGroups,
+          initialDefaultValues: {},
+          initialValues: initialFieldValues,
+          requestVersion,
+        });
 
-      if (isCancelled || requestVersion !== dependentFetchVersionRef.current) {
-        return;
+        if (isCancelled || !cascadeResult?.impactedNames.size) {
+          return;
+        }
+
+        // cascadeResult.values is the merged effective state: seeded
+        // initialFieldValues (which already includes resetValues entries and
+        // baked schema defaults via getEffectiveFieldValue) with
+        // cascade-fetched defaults layered on only for fields that had no
+        // value yet. Using it directly preserves a saved selection through
+        // the mount cascade — e.g. an alert-rule-action's settings
+        // round-tripping from the DB no longer get clobbered by the
+        // schema's default for that field.
+        setFieldGroups(cascadeResult.fieldGroups);
+        setFormInitialValues(cascadeResult.values);
+        setExternalDefaultValues(cascadeResult.defaultValues);
+        setFormVersion(version => version + 1);
+      } finally {
+        if (!isCancelled && requestVersion === dependentFetchVersionRef.current) {
+          setIsFetchingInitialCascade(false);
+        }
       }
-
-      const {updatedFieldGroups, nextDefaultValues} = foldChoiceResults(
-        nextFieldGroups,
-        {},
-        results
-      );
-
-      setFieldGroups(updatedFieldGroups);
-      setFormInitialValues({...nextInitialValues, ...nextDefaultValues});
-      setExternalDefaultValues(nextDefaultValues);
-      setFormVersion(version => version + 1);
     };
 
     runPrefetch().catch(error => {
+      // Match the click-cascade error handling: surface a toast so the user
+      // knows a dependent fetch failed instead of silently leaving the
+      // affected select blank.
+      addErrorMessage(t("Couldn't load options for some fields."));
       Sentry.captureException(error, {
         tags: {
           sentry_app: appName,
@@ -545,7 +668,7 @@ export function SentryAppExternalFormNew({
         extra: {
           sentryAppInstallationUuid,
           configUri: config.uri,
-          fieldsToPrefetch: fieldsToPrefetch.map(field => field.name),
+          seedTriggers,
         },
       });
     });
@@ -556,9 +679,9 @@ export function SentryAppExternalFormNew({
   }, [
     action,
     appName,
+    cascadeFetchDependents,
     config.uri,
     element,
-    fetchFieldChoices,
     normalizedResetValues,
     resolvedFieldGroups,
     sentryAppInstallationUuid,
@@ -746,102 +869,62 @@ export function SentryAppExternalFormNew({
       const requestVersion = dependentFetchVersionRef.current + 1;
       dependentFetchVersionRef.current = requestVersion;
 
-      // Stage the cascade: clear directly-impacted fields' values and defaults
-      // so they re-resolve from the fresh fetch. Transitively-impacted fields
-      // keep their previous values until their level of the cascade resolves.
+      // Compute the BFS seed state without touching React state mid-flight.
+      // The user's pick is already visible through TanStack form's own internal
+      // state (fieldApi.handleChange ran before us), so we don't need to remount
+      // the form via setFormInitialValues / setExternalDefaultValues here. Doing
+      // that synchronously triggered a re-render that could bump
+      // dependentFetchVersionRef during the cascade's await, aborting the BFS
+      // and leaving the dependent fields stuck with their pre-cascade values.
       const directlyImpactedNames = new Set(
         directlyImpactedFields.map(field => field.name)
       );
-      const stagedCurrentValues = omitValues(
+      const nextCurrentValues = omitValues(
         {...currentFormValuesRef.current, [fieldName]: value},
         directlyImpactedNames
       );
-      const stagedDefaultValues = {...externalDefaultValues};
-      for (const name of directlyImpactedNames) delete stagedDefaultValues[name];
+      const nextDefaultValues = {...externalDefaultValues};
+      for (const name of directlyImpactedNames) delete nextDefaultValues[name];
 
-      currentFormValuesRef.current = stagedCurrentValues;
-      setDynamicFieldValues(
-        getTriggerFieldValues(stagedCurrentValues, triggerFieldNames)
-      );
-      setFormInitialValues(stagedCurrentValues);
-      setExternalDefaultValues(stagedDefaultValues);
+      currentFormValuesRef.current = nextCurrentValues;
       setIsFetchingDependentFields(true);
 
-      // BFS over the dependency graph. A newly-defaulted field can itself be a
-      // trigger for fields that depend on it (transitive cascade A → B → C),
-      // so we process triggers level by level until no further dependents
-      // remain. processedTriggers and fetchedFields prevent re-processing on
-      // diamond shapes (A → B, A → C, B → D, C → D) and cycles.
-      const triggerQueue: string[] = [fieldName];
-      const processedTriggers = new Set<string>();
-      const fetchedFields = new Set<string>();
-      const allImpactedNames = new Set<string>();
-      let workingFieldGroups = fieldGroups;
-      let workingDefaults = stagedDefaultValues;
-      let workingValues = stagedCurrentValues;
-
+      let allImpactedNames = new Set<string>();
       try {
-        while (triggerQueue.length > 0) {
-          const trigger = triggerQueue.shift()!;
-          if (processedTriggers.has(trigger)) continue;
-          processedTriggers.add(trigger);
+        const cascadeResult = await cascadeFetchDependents({
+          seedTriggers: [fieldName],
+          initialFieldGroups: fieldGroups,
+          initialDefaultValues: nextDefaultValues,
+          initialValues: nextCurrentValues,
+          requestVersion,
+        });
+        if (!cascadeResult) return;
+        allImpactedNames = cascadeResult.impactedNames;
 
-          const dependentFields = getAllSchemaFields(workingFieldGroups).filter(
-            field => field.depends_on?.includes(trigger) && !fetchedFields.has(field.name)
-          );
-          if (!dependentFields.length) continue;
-
-          for (const field of dependentFields) {
-            fetchedFields.add(field.name);
-            allImpactedNames.add(field.name);
-          }
-
-          // Snapshot the working state for this iteration so the closure
-          // below doesn't capture vars reassigned by later iterations.
-          const iterFieldGroups = workingFieldGroups;
-          const iterDefaults = workingDefaults;
-          const iterValues = workingValues;
-
-          const results = await Promise.all(
-            dependentFields.map(async field => ({
-              fieldName: field.name,
-              ...(await fetchFieldChoices({
-                currentValues: iterValues,
-                defaultValues: iterDefaults,
-                field,
-                input: '',
-                nextFieldGroups: iterFieldGroups,
-              })),
-            }))
-          );
-
-          if (requestVersion !== dependentFetchVersionRef.current) return;
-
-          const folded = foldChoiceResults(workingFieldGroups, workingDefaults, results);
-          workingFieldGroups = folded.updatedFieldGroups;
-          workingDefaults = folded.nextDefaultValues;
-
-          for (const result of results) {
-            if (result.defaultValue !== undefined) {
-              workingValues = {...workingValues, [result.fieldName]: result.defaultValue};
-              triggerQueue.push(result.fieldName);
-            }
+        // Only apply newly-resolved defaults for the impacted fields.
+        // Spreading the full defaultValues here would clobber the user's
+        // just-picked trigger value (the field that started the cascade)
+        // with its previous schema default.
+        const impactedDefaults: Record<string, unknown> = {};
+        for (const name of allImpactedNames) {
+          if (Object.prototype.hasOwnProperty.call(cascadeResult.defaultValues, name)) {
+            impactedDefaults[name] = cascadeResult.defaultValues[name];
           }
         }
 
         const mergedFormValues = {
           ...omitValues(currentFormValuesRef.current, allImpactedNames),
-          ...workingDefaults,
+          ...impactedDefaults,
         };
 
         currentFormValuesRef.current = mergedFormValues;
-        setFieldGroups(workingFieldGroups);
+        setFieldGroups(cascadeResult.fieldGroups);
         setDynamicFieldValues(getTriggerFieldValues(mergedFormValues, triggerFieldNames));
         setFormInitialValues(mergedFormValues);
-        setExternalDefaultValues(workingDefaults);
+        setExternalDefaultValues(cascadeResult.defaultValues);
         setFormVersion(version => version + 1);
       } catch (error) {
-        addErrorMessage(t('Unable to load dependent options.'));
+        addErrorMessage(t("Couldn't load options for some fields."));
         Sentry.captureException(error, {
           tags: {
             sentry_app: appName,
@@ -863,10 +946,10 @@ export function SentryAppExternalFormNew({
     [
       action,
       appName,
+      cascadeFetchDependents,
       config.uri,
       element,
       externalDefaultValues,
-      fetchFieldChoices,
       fieldGroups,
       sentryAppInstallationUuid,
       triggerFieldNames,
@@ -902,7 +985,7 @@ export function SentryAppExternalFormNew({
     return lookup;
   }, [asyncOptionsCache, fieldGroups, normalizedResetValues]);
 
-  const submitDisabled = isFetchingDependentFields;
+  const submitDisabled = isFetchingDependentFields || isFetchingInitialCascade;
 
   const {mutateAsync: createExternalIssue} = useMutation<
     unknown,
@@ -995,6 +1078,7 @@ export function SentryAppExternalFormNew({
       key={formKey}
       fields={adapterFields}
       initialValues={formInitialValues}
+      isLoading={isFetchingInitialCascade}
       onSubmit={handleSubmit}
       submitLabel={t('Save Changes')}
       submitDisabled={submitDisabled}
