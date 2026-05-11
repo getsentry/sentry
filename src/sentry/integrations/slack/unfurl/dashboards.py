@@ -16,7 +16,6 @@ from sentry.api import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
-from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -39,6 +38,7 @@ from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import json
 
 
 class DashboardsUnfurlArgs(TypedDict):
@@ -63,9 +63,7 @@ DASHBOARDS_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 _TIMESERIES_DISPLAY_TYPES = {
     DashboardWidgetDisplayTypes.LINE_CHART: "line",
     DashboardWidgetDisplayTypes.AREA_CHART: "area",
-    DashboardWidgetDisplayTypes.STACKED_AREA_CHART: "area",
     DashboardWidgetDisplayTypes.BAR_CHART: "bar",
-    DashboardWidgetDisplayTypes.TOP_N: "area",
 }
 
 
@@ -247,9 +245,10 @@ def build_widget_timeseries_params(
         raise ValueError(f"Unsupported widget type: {widget.widget_type}")
 
     dashboard_filters = widget.dashboard.get_filters()
+    global_filters = _dashboard_filter_conditions(url_params, dashboard_filters, widget.widget_type)
 
     return [
-        _params_for_widget_query(wq, url_params, config, dashboard_filters)
+        _params_for_widget_query(wq, url_params, config, dashboard_filters, global_filters)
         for wq in widget.dashboardwidgetquery_set.all()
     ]
 
@@ -259,6 +258,7 @@ def _params_for_widget_query(
     url_params: QueryDict,
     config: _WidgetUnfurlConfig,
     dashboard_filters: Mapping[str, Any],
+    global_filters: str,
 ) -> dict[str, str | list[str]]:
     params: dict[str, str | list[str]] = {}
 
@@ -271,8 +271,13 @@ def _params_for_widget_query(
         params["groupBy"] = columns
         params["topEvents"] = str(TOP_N)
 
-    if widget_query.conditions:
-        params["query"] = widget_query.conditions
+    base_query = widget_query.conditions or ""
+    if base_query and global_filters:
+        params["query"] = f"({base_query}) {global_filters}"
+    elif global_filters:
+        params["query"] = global_filters
+    elif base_query:
+        params["query"] = base_query
 
     if widget_query.orderby:
         params["sort"] = widget_query.orderby
@@ -302,18 +307,17 @@ def _apply_page_filters(
     reachable from a webhook context.
     """
     # project: URL wins. Otherwise fall back to the dashboard's projects.
-    # An unconfigured dashboard (no projects, no all_projects) falls through
-    # to "All Projects" so the unfurl shows data instead of an empty chart.
-    project_values = url_params.getlist("project")
+    # An unconfigured dashboard (no projects, no all_projects) omits the
+    # param so the API defaults to "My Projects", matching the dashboard FE.
+    project_values = [project for project in url_params.getlist("project") if project]
     if not project_values:
         project_values = [str(p) for p in dashboard_filters.get("projects") or []]
-    if not project_values:
-        project_values = [str(ALL_ACCESS_PROJECT_ID)]
-    params["project"] = project_values if len(project_values) > 1 else project_values[0]
+    if project_values:
+        params["project"] = project_values if len(project_values) > 1 else project_values[0]
 
     # environment: URL wins. Otherwise fall back to dashboard, or omit (no
     # filter) to match the FE default of "All Environments".
-    env_values = url_params.getlist("environment")
+    env_values = [environment for environment in url_params.getlist("environment") if environment]
     if not env_values:
         env_values = list(dashboard_filters.get("environment") or [])
     if env_values:
@@ -349,6 +353,64 @@ def _apply_page_filters(
     interval_value = url_params.get("interval")
     if interval_value:
         params["interval"] = interval_value
+
+
+def _dashboard_filter_conditions(
+    url_params: QueryDict,
+    dashboard_filters: Mapping[str, Any],
+    widget_type: int,
+) -> str:
+    """Build the extra query string contributed by dashboard global filters.
+
+    Mirrors ``dashboardFiltersToString`` in
+    ``static/app/views/dashboards/utils.tsx``. URL overrides win per-key
+    (matching ``getMergedDashboardFilters``). Only ``globalFilter`` entries
+    whose ``dataset`` matches the widget's type are applied.
+
+    Storage uses snake_case (``global_filter``); URL params use camelCase
+    (``globalFilter``), each value JSON-encoded.
+    """
+    url_release = [release for release in url_params.getlist("release") if release]
+    release = url_release if url_release else list(dashboard_filters.get("release") or [])
+
+    url_global = [
+        global_filter for global_filter in url_params.getlist("globalFilter") if global_filter
+    ]
+    if url_global:
+        global_filters: list[dict[str, Any]] = []
+        for raw in url_global:
+            try:
+                parsed = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(parsed, dict):
+                global_filters.append(parsed)
+    else:
+        global_filters = [
+            global_filter
+            for global_filter in (dashboard_filters.get("global_filter") or [])
+            if isinstance(global_filter, dict)
+        ]
+
+    parts: list[str] = []
+
+    if release:
+        if len(release) == 1:
+            parts.append(f'release:"{release[0]}"')
+        else:
+            quoted = ",".join(f'"{r}"' for r in release)
+            parts.append(f"release:[{quoted}]")
+
+    widget_type_name = dict(DashboardWidgetTypes.TYPES).get(widget_type)
+    if widget_type_name:
+        for global_filter in global_filters:
+            if global_filter.get("dataset") != widget_type_name:
+                continue
+            value = global_filter.get("value")
+            if value:
+                parts.append(str(value))
+
+    return " ".join(parts)
 
 
 def map_dashboards_query_args(url: str, args: Mapping[str, str | None]) -> DashboardsUnfurlArgs:

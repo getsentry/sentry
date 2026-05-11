@@ -10,8 +10,8 @@ import {
 } from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useModal} from '@sentry/scraps/modal';
 
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
@@ -31,7 +31,7 @@ type SeerExplorerContextValue = {
   unreadCount: number;
 };
 
-export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
+const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
   openSeerExplorer: () => {},
@@ -150,7 +150,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     ]
   );
 
-  const {visible: isModalOpen} = useGlobalModal();
+  const {visible: isModalOpen} = useModal();
 
   // Deep link effect while drawer closed (drawer content handles when open)
   const deepLinkCallback = useCallback(
@@ -168,7 +168,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       ? []
       : [
           {
-            match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
+            match: [
+              'mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
+              'mod+.', // macOS-friendly alternative
+              'mod+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
+              'mod+shift+.', // AZERTY (French, Belgian): / === Shift+.
+              'mod+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
+            ],
             callback: () => {
               toggleSeerExplorerDrawer();
             },

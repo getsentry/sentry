@@ -208,6 +208,15 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
+    def request(self, *args: Any, **kwargs: Any):
+        credentials_set = kwargs.pop("credentials_set", None)
+        if credentials_set == "application":
+            if "headers" not in kwargs:
+                kwargs["headers"] = {}
+            kwargs["headers"]["X-Sentry-Credentials-Set"] = "application"
+
+        return super().request(*args, **kwargs)
+
     class AccessTokenData(TypedDict):
         access_token: str
         permissions: dict[str, str] | None
@@ -314,8 +323,12 @@ class GithubProxyClient(IntegrationProxyClient):
             "integration_id": getattr(self.integration, "id", "unknown"),
         }
 
+        credentials_set = prepared_request.headers.pop("X-Sentry-Credentials-Set", None)
         # Only certain routes are authenticated with JWTs....
-        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
+        if (
+            any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES)
+            or credentials_set == "application"
+        ):
             jwt = self._get_jwt()
             logger.info("token.jwt", extra=logger_extra)
             return jwt

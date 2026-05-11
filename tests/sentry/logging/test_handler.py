@@ -13,6 +13,7 @@ from sentry.logging.handlers import (
     SamplingFilter,
     StructLogHandler,
 )
+from sentry.testutils.helpers.sdk import reset_trace_context
 from sentry.utils.sdk import get_trace_id
 
 
@@ -99,7 +100,8 @@ def make_logrecord(
 )
 def test_emit(record, out, handler, logger) -> None:
     record = make_logrecord(**record)
-    handler.emit(record, logger=logger)
+    with reset_trace_context():
+        handler.emit(record, logger=logger)
     expected = {
         "level": logging.INFO,
         "event": "msg",
@@ -190,7 +192,10 @@ def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu) -> None
 
 def test_gke_emit() -> None:
     logger = mock.Mock()
-    GKEStructLogHandler().emit(make_logrecord(), logger=logger)
+    # Isolate from any ambient trace left by a previous test; get_trace_id()
+    # must return None when no span is active.
+    with reset_trace_context():
+        GKEStructLogHandler().emit(make_logrecord(), logger=logger)
     logger.log.assert_called_once_with(
         name="name",
         level=logging.INFO,

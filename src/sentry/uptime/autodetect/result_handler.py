@@ -10,7 +10,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry import audit_log
-from sentry.uptime.autodetect.notifications import send_auto_detected_notifications
 from sentry.uptime.autodetect.tasks import set_failed_url
 from sentry.uptime.models import UptimeSubscription, get_audit_log_data
 from sentry.uptime.subscriptions.subscriptions import (
@@ -121,8 +120,6 @@ def handle_onboarding_result(
                 event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
                 data=get_audit_log_data(detector),
             )
-
-            send_auto_detected_notifications.delay(detector.id)
 
             metrics.incr(
                 "uptime.result_processor.autodetection.graduated_onboarding",

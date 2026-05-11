@@ -70,7 +70,6 @@ type SharedIssueStackTraceProps =
  * - {@link IssueStackTraceFrameContext}: calls stacktrace-coverage API (Codecov)
  * - {@link StacktraceBanners}: depends on authenticated project context
  * - {@link SuspectCommits}: requires group and project data
- * - {@link LineCoverageProvider}: no coverage data without auth
  *
  * Uses {@link DefaultFrameActions} and {@link FrameContent} instead, which
  * render entirely from local event data.

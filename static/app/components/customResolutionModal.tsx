@@ -203,7 +203,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
       <Footer>
         <Flex gap="sm" align="center" justify="end">
           <Button onClick={props.closeModal}>{t('Cancel')}</Button>
-          <Button type="submit" priority="primary">
+          <Button type="submit" variant="primary">
             {t('Resolve')}
           </Button>
         </Flex>

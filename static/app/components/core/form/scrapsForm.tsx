@@ -28,6 +28,8 @@ import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const InvalidInput = document.querySelector(
       `#${CSS.escape(formApi.formId)} [aria-invalid="true"]`
     ) as HTMLInputElement;
@@ -57,11 +59,12 @@ const fieldComponents = {
 
 export type BoundFieldComponents = typeof fieldComponents;
 
-const {useAppForm, withFieldGroup} = createFormHook({
+const {useAppForm, withFieldGroup, withForm} = createFormHook({
   fieldComponents,
   formComponents: {
     FieldGroup,
     SubmitButton,
+    ResetButton,
     AppForm,
   },
   fieldContext,
@@ -75,11 +78,29 @@ function SubmitButton(props: ButtonProps) {
       {isSubmitting => (
         <Button
           {...props}
-          priority="primary"
+          variant="primary"
           type="submit"
           form={form.formId}
           busy={isSubmitting}
           disabled={isSubmitting || props.disabled}
+        />
+      )}
+    </form.Subscribe>
+  );
+}
+
+function ResetButton(props: ButtonProps) {
+  const form = useFormContext();
+  return (
+    <form.Subscribe selector={state => state.isPristine}>
+      {isPristine => (
+        <Button
+          {...props}
+          disabled={props.disabled || isPristine}
+          onClick={e => {
+            form.reset();
+            props.onClick?.(e);
+          }}
         />
       )}
     </form.Subscribe>
@@ -99,6 +120,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      noValidate
       data-test-id={form.formId}
       id={form.formId}
       style={{width: '100%', flexGrow: 1}}
@@ -113,7 +135,8 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 }
 
 export const useScrapsForm = useAppForm;
-export {withFieldGroup};
+/** @public */
+export {formOptions, withFieldGroup, withForm};
 
 /**
  * Type for field errors that can be set after form submission (e.g., from backend validation).

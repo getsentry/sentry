@@ -234,44 +234,46 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")
     def test_get_incidents_from_detector(self) -> None:
-        self.create_detector()  # dummy so detector ID != alert rule ID
-        detector = self.create_detector(project=self.project)
-        alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
-        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
-        incident = self.create_incident(
-            date_started=must_parse_datetime("2022-05-16T18:55:00Z"),
-            status=IncidentStatus.CRITICAL.value,
-            alert_rule=alert_rule,
+        group = self.create_group(
+            project=self.project, type=MetricIssue.type_id, priority=PriorityLevel.HIGH
         )
-        # create incident activity the same way we do in logic.py create_incident
-        detected_activity = self.create_incident_activity(
-            incident,
-            IncidentActivityType.DETECTED.value,
-            date_added=incident.date_started,
+        DetectorGroup.objects.create(detector=self.detector, group=group)
+        group_open_period = GroupOpenPeriod.objects.get(group=group)
+
+        opened_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=group_open_period.date_added,
+            group_open_period=group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=group.priority,
         )
-        created_activity = self.create_incident_activity(
-            incident,
-            IncidentActivityType.CREATED.value,
+        closed_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=group_open_period.date_added + datetime.timedelta(minutes=5),
+            group_open_period=group_open_period,
+            type=OpenPeriodActivityType.CLOSED,
         )
 
-        time_period = incident_date_range(60, incident.date_started, incident.date_closed)
+        time_period = incident_date_range(
+            60, group_open_period.date_started, group_open_period.date_ended
+        )
 
-        chart_data = fetch_metric_issue_open_periods(self.organization, detector.id, time_period)
-        assert chart_data[0]["alertRule"]["id"] == str(alert_rule.id)
+        chart_data = fetch_metric_issue_open_periods(
+            self.organization, self.detector.id, time_period
+        )
+        assert chart_data[0]["alertRule"]["id"] == str(self.alert_rule.id)
         assert chart_data[0]["projects"] == [self.project.slug]
-        assert chart_data[0]["dateStarted"] == incident.date_started
+        assert chart_data[0]["dateStarted"] == group_open_period.date_started
 
         assert len(chart_data[0]["activities"]) == 2
-        detected_activity_resp = chart_data[0]["activities"][0]
-        created_activity_resp = chart_data[0]["activities"][1]
+        opened_activity_resp = chart_data[0]["activities"][0]
+        closed_activity_resp = chart_data[0]["activities"][1]
 
-        assert detected_activity_resp["incidentIdentifier"] == str(incident.identifier)
-        assert detected_activity_resp["type"] == IncidentActivityType.DETECTED.value
-        assert detected_activity_resp["dateCreated"] == detected_activity.date_added
+        assert opened_activity_resp["id"] == str(opened_gopa.id)
+        assert opened_activity_resp["type"] == IncidentActivityType.STATUS_CHANGE.value
+        assert opened_activity_resp["dateCreated"] == opened_gopa.date_added
 
-        assert created_activity_resp["incidentIdentifier"] == str(incident.identifier)
-        assert created_activity_resp["type"] == IncidentActivityType.CREATED.value
-        assert created_activity_resp["dateCreated"] == created_activity.date_added
+        assert closed_activity_resp["id"] == str(closed_gopa.id)
+        assert closed_activity_resp["type"] == IncidentActivityType.STATUS_CHANGE.value
+        assert closed_activity_resp["dateCreated"] == closed_gopa.date_added
 
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")

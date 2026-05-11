@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {Pagination} from 'sentry/components/pagination';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
@@ -38,10 +38,10 @@ function getConversationDetailUrl(orgSlug: string, conversation: Conversation): 
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
   if (conversation.startTimestamp) {
-    params.set('start', String(conversation.startTimestamp));
+    params.set('start', new Date(conversation.startTimestamp).toISOString());
   }
   if (conversation.endTimestamp) {
-    params.set('end', String(conversation.endTimestamp));
+    params.set('end', new Date(conversation.endTimestamp).toISOString());
   }
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
@@ -155,12 +155,27 @@ type CellContentProps = ComponentPropsWithRef<'div'> & {
   text: string;
 };
 
-function CellContent({text, ...props}: CellContentProps) {
+function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
-    <SingleLineMarkdown {...props}>
+    <SingleLineMarkdown ref={ref} {...props}>
       <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
+  );
+}
+
+export function InputOutputTooltipCell({text}: {text: string}) {
+  return (
+    <Tooltip
+      title={<TooltipContent text={text} />}
+      showOnlyOnOverflow
+      maxWidth={800}
+      isHoverable
+      skipWrapper
+      position="right"
+    >
+      <CellContent text={text} />
+    </Tooltip>
   );
 }
 
@@ -226,16 +241,7 @@ const BodyCell = memo(function BodyCell({
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
-                <Tooltip
-                  title={<TooltipContent text={dataRow.firstInput} />}
-                  showOnlyOnOverflow
-                  maxWidth={800}
-                  isHoverable
-                  skipWrapper
-                  position="right"
-                >
-                  <CellContent text={dataRow.firstInput} />
-                </Tooltip>
+                <InputOutputTooltipCell text={dataRow.firstInput} />
               ) : (
                 <Text variant="muted">&mdash;</Text>
               )}
@@ -245,16 +251,7 @@ const BodyCell = memo(function BodyCell({
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
-                <Tooltip
-                  title={<TooltipContent text={dataRow.lastOutput} />}
-                  showOnlyOnOverflow
-                  maxWidth={800}
-                  isHoverable
-                  skipWrapper
-                  position="right"
-                >
-                  <CellContent text={dataRow.lastOutput} />
-                </Tooltip>
+                <InputOutputTooltipCell text={dataRow.lastOutput} />
               ) : (
                 <Text variant="muted">&mdash;</Text>
               )}

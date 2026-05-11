@@ -881,7 +881,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## SCM
 /src/sentry/scm/                                                        @getsentry/scm
-/src/sentry/integrations/source_code_management/                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/source_code_management/                        @getsentry/product-owners-settings-integrations @getsentry/coding-workflows-sentry-backend @getsentry/scm
 /src/sentry/integrations/repository/                                    @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/github_enterprise/                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/gitlab/                                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
@@ -890,7 +890,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/vsts/                                          @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/vsts_extension/                                @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/perforce/                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm @getsentry/gdx
-/tests/sentry/integrations/source_code_management/                      @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/source_code_management/                      @getsentry/coding-workflows-sentry-backend @getsentry/scm
 /tests/sentry/integrations/repository/                                  @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/github_enterprise/                           @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/gitlab/                                      @getsentry/ecosystem @getsentry/scm

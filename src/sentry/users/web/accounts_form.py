@@ -38,6 +38,10 @@ class RecoverPasswordForm(forms.Form):
         if len(users) > 1:
             return None
 
+        users = [u for u in users if not getattr(u, "is_suspended", False)]
+        if not users:
+            return None
+
         users = [u for u in users if not u.is_managed]
         if not users:
             raise forms.ValidationError(

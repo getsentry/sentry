@@ -8,7 +8,6 @@ export interface SnapshotImage {
   height: number;
   key: string;
   width: number;
-  content_hash: string;
 }
 
 export interface SnapshotDiffPair {
@@ -90,12 +89,8 @@ export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
 }
 
-export function getImageGroup(image: SnapshotImage): string {
-  return image.group ?? image.image_file_name;
-}
-
 interface SidebarItemBase {
-  badge: string | null;
+  displayName: string;
   key: string;
   name: string;
 }

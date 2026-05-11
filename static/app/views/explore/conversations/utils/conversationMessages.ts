@@ -153,7 +153,8 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   const seenAssistantContent = new Set<string>();
 
   for (const turn of turns) {
-    const timestamp = getNodeTimestamp(turn.generation);
+    const startTs = getNodeStartTimestamp(turn.generation);
+    const genEnd = getNodeEndTimestamp(turn.generation);
 
     if (
       turn.userContent &&
@@ -164,7 +165,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         id: `user-${turn.generation.id}`,
         role: 'user',
         content: turn.userContent,
-        timestamp,
+        timestamp: startTs,
         nodeId: turn.generation.id,
         userEmail: turn.userEmail,
       });
@@ -177,9 +178,6 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
     ) {
       seenAssistantContent.add(turn.assistantContent);
 
-      // Duration: from start of generation span to end of last span (generation or tool)
-      const startTs = getNodeStartTimestamp(turn.generation);
-      const genEnd = getNodeEndTimestamp(turn.generation);
       const toolSpanNodes = turn.toolSpanNodes ?? [];
       const lastToolEnd =
         toolSpanNodes.length > 0
@@ -201,7 +199,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         id: `assistant-${turn.generation.id}`,
         role: 'assistant',
         content: turn.assistantContent,
-        timestamp: timestamp + 1,
+        timestamp: endTs,
         nodeId: turn.generation.id,
         toolCalls: turn.toolCalls.length > 0 ? turn.toolCalls : undefined,
         duration,

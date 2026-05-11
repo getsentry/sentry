@@ -23,7 +23,8 @@ const DRAWER_LABEL = 'Seer Explorer Drawer';
 
 const enabledOrg = OrganizationFixture({
   openMembership: true,
-  features: ['seer-explorer'],
+  features: ['seer-explorer', 'gen-ai-features'],
+  hideAiFeatures: false,
 });
 
 function queryDrawer(): HTMLElement | null {

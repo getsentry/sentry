@@ -5,11 +5,11 @@ import type {Location, LocationDescriptor} from 'history';
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {DiscoverButton} from 'sentry/components/discoverButton';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -117,11 +117,11 @@ type Props = {
   /**
    * The callback for when View All Events is clicked.
    */
-  handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
+  handleOpenAllEventsClick?: (e: React.MouseEvent) => void;
   /**
    * The callback for when Open in Discover is clicked.
    */
-  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  handleOpenInDiscoverClick?: (e: React.MouseEvent) => void;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**

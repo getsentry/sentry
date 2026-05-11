@@ -578,7 +578,7 @@ class StatefulDetectorHandler(
             )
 
             # Set the event data with the necessary fields
-            event_data["environment"] = self.detector.config.get("environment")
+            event_data.setdefault("environment", self.detector.config.get("environment"))
             event_data["timestamp"] = detector_result.detection_time
             event_data["project_id"] = detector_result.project_id
             event_data["event_id"] = detector_result.event_id

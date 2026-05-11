@@ -58,7 +58,7 @@ export function ReplayIndexTable({
 
   const {options} = parseQueryKey(queryKey);
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
-    search: options?.query?.query,
+    search: options?.query?.query as string | undefined,
   });
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({

@@ -61,6 +61,7 @@ export type KnownGetsentryApiUrls =
   | '/invoices/$invoiceId/retry-payment/'
   | '/organizations/$organizationIdOrSlug/codecov-jwt/'
   | '/organizations/$organizationIdOrSlug/console-sdk-invites/'
+  | '/organizations/$organizationIdOrSlug/data-consent/'
   | '/organizations/$organizationIdOrSlug/issues/force-auto-assignment/'
   | '/organizations/$organizationIdOrSlug/monitor-count/'
   | '/organizations/$organizationIdOrSlug/partnership-agreements/'

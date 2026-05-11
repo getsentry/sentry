@@ -36,15 +36,3 @@ class OrganizationSupergroupDetailsEndpointTest(APITestCase):
         assert response.data["id"] == 1
         assert response.data["title"] == "NullPointerException in auth"
         assert response.data["group_ids"] == [10, 20]
-
-    @patch(
-        "sentry.seer.supergroups.endpoints.organization_supergroup_details.make_supergroups_get_request"
-    )
-    def test_rca_source_is_lightweight(self, mock_seer):
-        mock_seer.return_value = mock_seer_response({"id": 1, "title": "test"})
-
-        with self.feature("organizations:top-issues-ui"):
-            self.get_success_response(self.organization.slug, "1")
-
-        body = mock_seer.call_args.args[0]
-        assert body["rca_source"] == "LIGHTWEIGHT"

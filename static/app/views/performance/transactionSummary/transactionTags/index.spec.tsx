@@ -96,7 +96,7 @@ describe('Performance > Transaction Tags', () => {
           {
             tags_key: 'hardwareConcurrency',
             tags_value: '4',
-            sumdelta: 45773.0,
+            sumdelta: 45773,
             count: 83,
             frequency: 0.05,
             comparison: 1.45,
@@ -105,7 +105,7 @@ describe('Performance > Transaction Tags', () => {
           {
             tags_key: 'effectiveConnectionType',
             tags_value: '4g',
-            sumdelta: 45773.0,
+            sumdelta: 45773,
             count: 83,
             frequency: 0.05,
             comparison: 1.45,
@@ -114,7 +114,7 @@ describe('Performance > Transaction Tags', () => {
           {
             tags_key: 'release',
             tags_value: TEST_RELEASE_NAME,
-            sumdelta: 45773.0,
+            sumdelta: 45773,
             count: 83,
             frequency: 0.05,
             comparison: 1.45,
@@ -161,6 +161,15 @@ describe('Performance > Transaction Tags', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      match: [
+        (_url, options) => {
+          return options.query?.dataset === 'spans';
+        },
+      ],
     });
   });
 

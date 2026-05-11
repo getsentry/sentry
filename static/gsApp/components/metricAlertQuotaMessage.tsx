@@ -15,7 +15,7 @@ function UpgradeLink({children}: {children?: React.ReactNode}) {
 
   return (
     <Button
-      priority="link"
+      variant="link"
       onClick={() => {
         openUpsellModal({
           organization,

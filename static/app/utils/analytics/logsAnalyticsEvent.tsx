@@ -9,11 +9,6 @@ export enum LogsAnalyticsPageSource {
 }
 
 export type LogsAnalyticsEventParameters = {
-  'logs.ai_query_applied': {
-    group_by_count: number;
-    organization: Organization;
-    query: string;
-  };
   'logs.auto_refresh.timeout': {
     organization: Organization;
     page_source: LogsAnalyticsPageSource;
@@ -53,6 +48,11 @@ export type LogsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
+  'logs.export_modal': {
+    action: 'cancel' | 'open';
+    organization: Organization;
+    close_reason?: 'backdrop_click' | 'cancel_button' | 'close_button' | 'escape_key';
+  };
   'logs.issue_details.drawer_opened': {
     organization: Organization;
   };
@@ -82,6 +82,10 @@ export type LogsAnalyticsEventParameters = {
     log_id: string;
     page_source: LogsAnalyticsPageSource;
   };
+  'logs.table.row_link_copied': {
+    log_id: string;
+    organization: Organization;
+  };
   'logs.timestamp_tooltip.add_timezone_clicked': {
     organization: Organization;
   };
@@ -105,6 +109,7 @@ type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
   'logs.auto_refresh.timeout': 'Log Auto-refresh Timeout',
   'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
+  'logs.export_modal': 'Logs Export Modal',
   'logs.explorer.continue_searching_clicked': 'Log Explorer Continue Searching Clicked',
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
@@ -123,5 +128,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
-  'logs.ai_query_applied': 'Logs AI Query Applied',
+  'logs.table.row_link_copied': 'Logs Row Link Copied',
 };

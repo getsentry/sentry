@@ -79,7 +79,9 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 1.0,
     "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket": 1.0,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
@@ -309,20 +311,17 @@ class Dsns(NamedTuple):
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
-    sdk_options["send_client_reports"] = True
     sdk_options["add_full_stack"] = True
-    sdk_options["enable_http_request_source"] = True
     sdk_options["traces_sampler"] = traces_sampler
-    sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
+    sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["enable_logs"] = True
+    sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=options.get("sdk_http2_experiment.enabled"),
-        before_send_log=before_send_log,
-        enable_logs=True,
-        enable_metrics=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN

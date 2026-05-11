@@ -15,7 +15,7 @@ import {
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsItemContainer} from 'sentry/views/explore/logs/styles';
 import {
@@ -80,7 +80,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const replay = useReplayReader();
 
   const {infiniteLogsQueryResult} = useLogsPageData();
-  const {data: logItems = [], isPending} = infiniteLogsQueryResult;
+  const {data: logItems, isPending} = infiniteLogsQueryResult;
 
   const filterProps = useOurLogFilters({logItems});
   const {items: filteredLogItems, setSearchTerm} = filterProps;

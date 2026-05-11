@@ -6,7 +6,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/teamAccessRequestModal';
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 

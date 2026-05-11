@@ -1,8 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -25,6 +26,8 @@ type Props = {
 };
 
 export function IntegrationExternalTeamMappings(props: Props) {
+  const {openModal} = useModal();
+
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();

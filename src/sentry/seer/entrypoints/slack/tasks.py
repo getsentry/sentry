@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple
 
-from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
+from slack_sdk.models.blocks import MarkdownBlock
 from taskbroker_client.retry import Retry
 
 from sentry import analytics
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.seer.entrypoints.metrics import (
@@ -21,11 +23,20 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentResponded,
 )
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackAgentEntrypoint
-from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
+from sentry.seer.entrypoints.slack.mention import (
+    SlackMessageLink,
+    build_linked_messages_context,
+    build_thread_context,
+    extract_prompt,
+    extract_slack_message_links,
+    find_message_in_attachments,
+)
+from sentry.seer.entrypoints.slack.messaging import send_halt_message
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
 )
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.users.services.user import RpcUser
@@ -50,6 +61,7 @@ def process_mention_for_slack(
     text: str,
     slack_user_id: str,
     bot_user_id: str,
+    attachments: Sequence[Mapping[str, Any]] | None = None,
     conversation_type: SlackSeerAgentConversation = SlackSeerAgentConversation.DIRECT_MESSAGE,
 ) -> None:
     """
@@ -110,9 +122,12 @@ def process_mention_for_slack(
         if not user:
             lifecycle.record_halt(ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
             # In a thread, show the prompt in the thread; top-level, show in the channel.
-            _send_link_identity_prompt(
-                entrypoint=entrypoint,
+            send_halt_message(
+                integration=entrypoint.integration,
+                slack_user_id=entrypoint.slack_user_id,
+                channel_id=entrypoint.channel_id,
                 thread_ts=thread_ts if thread_ts else "",
+                halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED,
             )
             entrypoint.install.set_thread_status(
                 channel_id=channel_id,
@@ -137,6 +152,12 @@ def process_mention_for_slack(
 
         prompt = extract_prompt(text, bot_user_id)
 
+        linked_result = _resolve_linked_messages(
+            text=text,
+            entrypoint=entrypoint,
+            attachments=attachments,
+        )
+
         # Only fetch thread context when actually in a thread.
         messages: list[dict] = []
         thread_context: str | None = None
@@ -146,12 +167,23 @@ def process_mention_for_slack(
             )
             thread_context = build_thread_context(messages) or None
 
+        parts = [p for p in (linked_result.block, thread_context) if p]
+        on_page_context = "\n\n".join(parts) if parts else None
+
+        if linked_result.unresolved_channel_ids or linked_result.private_channel_ids:
+            _send_inaccessible_links_prompt(
+                entrypoint=entrypoint,
+                thread_ts=thread_ts or ts,
+                unresolved_channel_ids=linked_result.unresolved_channel_ids,
+                private_channel_ids=linked_result.private_channel_ids,
+            )
+
         operator = SeerAgentOperator(entrypoint=entrypoint)
         run_id = operator.trigger_agent(
             organization=organization,
             user=user,
             prompt=prompt,
-            on_page_context=thread_context,
+            on_page_context=on_page_context,
             category_key="slack_thread",
             category_value=f"{channel_id}:{entrypoint.thread_ts}",
         )
@@ -194,6 +226,21 @@ def process_mention_for_slack(
             analytics.record(analytics_event)
         except Exception as e:
             _logger.warning("seer.slack.process_mention.analytics_failed", exc_info=e)
+
+        _logger.info(
+            "seer.slack.process_mention.success",
+            extra={
+                "referrer": SeerEntrypointKey.SLACK,
+                "organization_id": organization.id,
+                "user_id": user.id,
+                "integration_id": integration_id,
+                "run_id": run_id,
+                "thread_ts": thread_ts or ts,
+                "channel_id": channel_id,
+                "slack_user_id": slack_user_id,
+                "conversation_type": conversation_type,
+            },
+        )
 
 
 def _resolve_user(
@@ -246,44 +293,6 @@ def _count_linked_users(
     return len(identities)
 
 
-def _send_link_identity_prompt(
-    *,
-    entrypoint: SlackAgentEntrypoint,
-    thread_ts: str,
-) -> None:
-    """Send an ephemeral message prompting the user to link their Slack identity to Sentry."""
-    associate_url = build_linking_url(
-        integration=entrypoint.integration,
-        slack_id=entrypoint.slack_user_id,
-        channel_id=entrypoint.channel_id,
-        response_url=None,
-    )
-    renderable = _build_link_identity_renderable(associate_url)
-    entrypoint.install.send_threaded_ephemeral_message(
-        slack_user_id=entrypoint.slack_user_id,
-        channel_id=entrypoint.channel_id,
-        renderable=renderable,
-        thread_ts=thread_ts,
-    )
-
-
-def _build_link_identity_renderable(associate_url: str) -> SlackRenderable:
-    """Build a SlackRenderable prompting the user to link their Slack identity to Sentry."""
-    message = "Link your Slack identity to Sentry to use Seer Agent in Slack."
-    return SlackRenderable(
-        blocks=[
-            MarkdownBlock(text=message),
-            ActionsBlock(
-                elements=[
-                    LinkButtonElement(text="Link", url=associate_url),
-                    ButtonElement(text="Cancel", value="ignore"),
-                ]
-            ),
-        ],
-        text=message,
-    )
-
-
 def _send_not_org_member_message(
     *,
     entrypoint: SlackAgentEntrypoint,
@@ -298,9 +307,154 @@ def _send_not_org_member_message(
         blocks=[MarkdownBlock(text=message)],
         text=message,
     )
-    entrypoint.install.send_threaded_ephemeral_message(
-        slack_user_id=entrypoint.slack_user_id,
-        channel_id=entrypoint.channel_id,
-        renderable=renderable,
-        thread_ts=thread_ts,
+    try:
+        entrypoint.install.send_threaded_ephemeral_message(
+            slack_user_id=entrypoint.slack_user_id,
+            channel_id=entrypoint.channel_id,
+            renderable=renderable,
+            thread_ts=thread_ts,
+        )
+    except Exception as e:
+        _logger.warning("seer.slack.process_mention.send_not_org_member_message_failed", exc_info=e)
+
+
+class _LinkedMessagesResult(NamedTuple):
+    block: str
+    unresolved_channel_ids: list[str]
+    private_channel_ids: list[str]
+
+
+def _resolve_linked_messages(
+    *,
+    text: str,
+    entrypoint: SlackAgentEntrypoint,
+    attachments: Sequence[Mapping[str, Any]] | None = None,
+) -> _LinkedMessagesResult:
+    """Fetch the single linked message for any Slack permalinks in ``text`` and
+    render them as a Seer context block.
+
+    Resolution strategy per link:
+
+    1. If the inbound event already includes the message as an auto-unfurl
+       attachment, use that.
+    2. Otherwise, skip private channels and fetch only the single linked message
+    via ``conversations.history`` / ``conversations.replies`` for public channels.
+
+    Returns the rendered block plus the deduped lists of channel ids we
+    couldn't read (unresolved = bot not invited / scope missing) or
+    intentionally skipped (private).
+    """
+    domain_name = entrypoint.integration.metadata.get("domain_name")
+    links = extract_slack_message_links(text, domain_name=domain_name)
+    if not links:
+        return _LinkedMessagesResult(block="", unresolved_channel_ids=[], private_channel_ids=[])
+
+    msgs_to_include: list[tuple[SlackMessageLink, list[Mapping[str, Any]]]] = []
+    unresolved: set[str] = set()
+    private_channels: set[str] = set()
+    for link in links:
+        attachment_message = find_message_in_attachments(link, attachments)
+        if attachment_message is not None:
+            msgs_to_include.append((link, [attachment_message]))
+            continue
+
+        try:
+            conversation_info = entrypoint.install.get_conversations_info(
+                channel_id=link.channel_id
+            )
+        except Exception as e:
+            _logger.warning("seer.slack.process_mention.get_conversations_info_failed", exc_info=e)
+            unresolved.add(link.channel_id)
+            continue
+
+        if conversation_info.get("channel", {}).get("is_private"):
+            private_channels.add(link.channel_id)
+            continue
+
+        # This will only fetch the single message that was linked PLUS the parent message,
+        # if that linked message was in a thread.
+        try:
+            messages = entrypoint.install.get_thread_history(
+                channel_id=link.channel_id,
+                thread_ts=link.thread_ts or link.ts,
+                latest=link.ts,
+                oldest=link.ts,
+                inclusive=True,
+                limit=1,
+            )
+        except Exception as e:
+            _logger.warning("seer.slack.process_mention.get_thread_history_failed", exc_info=e)
+            unresolved.add(link.channel_id)
+            continue
+
+        # If the parent message is also included, ignore that
+        message = next((m for m in messages if m.get("ts") == link.ts), None)
+        if message is None:
+            unresolved.add(link.channel_id)
+            continue
+        msgs_to_include.append((link, [message]))
+
+    _logger.info(
+        "seer.slack.process_mention.linked_messages_resolved",
+        extra={
+            "requested": len(links),
+            "fetched": len(msgs_to_include),
+        },
     )
+
+    return _LinkedMessagesResult(
+        block=build_linked_messages_context(msgs_to_include),
+        unresolved_channel_ids=list(unresolved),
+        private_channel_ids=list(private_channels),
+    )
+
+
+def _send_inaccessible_links_prompt(
+    *,
+    entrypoint: SlackAgentEntrypoint,
+    thread_ts: str,
+    unresolved_channel_ids: list[str],
+    private_channel_ids: list[str],
+) -> None:
+    """Tell the user we couldn't read some linked messages."""
+    renderable = _build_inaccessible_links_renderable(
+        unresolved_channel_ids=unresolved_channel_ids,
+        private_channel_ids=private_channel_ids,
+    )
+    try:
+        entrypoint.install.send_threaded_ephemeral_message(
+            slack_user_id=entrypoint.slack_user_id,
+            channel_id=entrypoint.channel_id,
+            renderable=renderable,
+            thread_ts=thread_ts,
+        )
+    except Exception as e:
+        _logger.warning(
+            "seer.slack.process_mention.send_inaccessible_links_prompt_failed", exc_info=e
+        )
+
+
+def _build_inaccessible_links_renderable(
+    *,
+    unresolved_channel_ids: list[str],
+    private_channel_ids: list[str],
+) -> SlackRenderable:
+    """Build the ephemeral explaining which linked messages we skipped and why."""
+    sections: list[str] = []
+
+    if unresolved_channel_ids:
+        unresolved_channel_links = [f"<#{cid}>" for cid in unresolved_channel_ids]
+        unresolved_channel_text = ", ".join(unresolved_channel_links)
+        sections.append(
+            f"I need to be invited to read from some channels: {unresolved_channel_text}"
+        )
+
+    if private_channel_ids:
+        private_channel_links = [f"<#{cid}>" for cid in private_channel_ids]
+        private_channel_text = ", ".join(private_channel_links)
+        sections.append(
+            f"For privacy, I don't read messages from private channels: {private_channel_text}"
+        )
+
+    message = "\n\n".join(sections)
+    return SlackRenderable(blocks=[MarkdownBlock(text=message)], text=message)

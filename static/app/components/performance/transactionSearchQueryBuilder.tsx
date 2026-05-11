@@ -78,17 +78,15 @@ export function TransactionSearchQueryBuilder({
       ...tags,
     };
 
-    if (organization.features.includes('performance-transaction-summary-eap')) {
-      combinedTags['request.method'] = {
-        key: 'request.method',
-        name: 'request.method',
-        kind: FieldKind.FIELD,
-      };
-    }
+    combinedTags['request.method'] = {
+      key: 'request.method',
+      name: 'request.method',
+      kind: FieldKind.FIELD,
+    };
 
     combinedTags.has = getHasTag(combinedTags);
     return combinedTags;
-  }, [organization.features, tags]);
+  }, [tags]);
 
   const filterKeySections = useMemo(
     () => [

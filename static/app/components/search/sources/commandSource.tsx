@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -80,19 +79,10 @@ const ACTIONS: Action[] = [
       window.location.reload();
     },
   },
-
-  {
-    title: t('Search Documentation and FAQ'),
-    description: t('Open the Documentation and FAQ search modal.'),
-    requiresSuperuser: false,
-    action: () => {
-      openHelpSearchModal();
-    },
-  },
 ];
 
 // Add a command palette option for opening in production when using dev-ui
-if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false) {
+if (NODE_ENV === 'development' && !window?.__initialData?.isSelfHosted) {
   const customerUrl = new URL(
     USING_CUSTOMER_DOMAIN && window?.__initialData?.customerDomain?.organizationUrl
       ? window.__initialData.customerDomain.organizationUrl

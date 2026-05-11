@@ -28,9 +28,11 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
+export type SortKind = 'asc' | 'desc';
+
 export type Sort = {
   field: string;
-  kind: 'asc' | 'desc';
+  kind: SortKind;
 };
 
 // Contains the URL field value & the related table column width.
@@ -920,7 +922,7 @@ export function isMeasurement(field: string): boolean {
 }
 
 export function measurementType(field: string): MeasurementType {
-  if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(MEASUREMENT_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
@@ -1092,7 +1094,7 @@ export function generateAggregateFields(
     const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {
@@ -1101,7 +1103,7 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => param.defaultValue !== undefined)) {
       const newField = `${func}(${parameters
         .map((param: any) => param.defaultValue)
         .join(',')})`;
@@ -1161,7 +1163,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
-  const parameters = value.function.slice(1).filter(i => i);
+  const parameters = value.function.slice(1).filter(Boolean);
   return `${aggregation}(${parameters.join(',')})`;
 }
 
@@ -1279,7 +1281,7 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+  if (firstArg && Object.hasOwn(SESSIONS_FIELDS, firstArg)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
@@ -1364,7 +1366,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!result) {
     return 'area';
   }
-  if (!AGGREGATIONS.hasOwnProperty(result.name)) {
+  if (!Object.hasOwn(AGGREGATIONS, result.name)) {
     return 'area';
   }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

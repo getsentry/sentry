@@ -726,8 +726,10 @@ class Release(Model):
         """
         qs = (
             ArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
+                organization_id=self.organization_id,
+                releaseartifactbundle__organization_id=self.organization_id,
                 releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__organization_id=self.organization_id,
                 projectartifactbundle__project_id__in=project_ids,
             )
             .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))

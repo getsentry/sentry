@@ -186,16 +186,32 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             if integration_provider != IntegrationProviderSlug.GITHUB.value:
                 continue
 
-            queryset = _get_missing_organization_members(
-                organization, integration_provider, integration_ids, shared_domain
-            )
-
-            missing_members_for_integration = {
-                "integration": integration_provider,
-                "users": serialize(queryset, request.user, serializer=MissingOrgMemberSerializer()),
+            nudge_enabled_ids = {
+                oi.integration_id
+                for oi in integration_service.get_organization_integrations(
+                    organization_id=organization.id,
+                    providers=[integration_provider],
+                    status=ObjectStatus.ACTIVE,
+                )
+                if oi.config.get("nudge_invite", False)
             }
+            enabled_ids = [iid for iid in integration_ids if iid in nudge_enabled_ids]
+            enabled = bool(enabled_ids)
 
-            missing_org_members.append(missing_members_for_integration)
+            users = []
+            if enabled:
+                queryset = _get_missing_organization_members(
+                    organization, integration_provider, enabled_ids, shared_domain
+                )
+                users = serialize(queryset, request.user, serializer=MissingOrgMemberSerializer())
+
+            missing_org_members.append(
+                {
+                    "integration": integration_provider,
+                    "enabled": enabled,
+                    "users": users,
+                }
+            )
 
         return Response(
             missing_org_members,

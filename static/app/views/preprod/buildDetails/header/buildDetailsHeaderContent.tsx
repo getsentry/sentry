@@ -123,7 +123,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  let versionTitle: string | undefined = undefined;
+  let versionTitle: string | undefined;
   if (version) {
     versionTitle = `v${version}`;
     if (buildNumber) {
@@ -185,7 +185,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
         <React.Fragment>
           <TopBar.Slot name="actions">
             <Button
-              priority="default"
+              variant="secondary"
               icon={<IconTelescope />}
               onClick={handleCompareClick}
               disabled={!areActionsEnabled}
@@ -310,7 +310,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions} />
             <Button
               size="sm"
-              priority="default"
+              variant="secondary"
               icon={<IconTelescope />}
               onClick={handleCompareClick}
               disabled={!areActionsEnabled}

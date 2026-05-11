@@ -44,7 +44,7 @@ export function InstanceLevelOAuthDetails() {
 
   const [clientDetails, setClientDetails] = useState<ClientDetails | null>();
   const [errorMessage, setErrorMessage] = useState<string | null>();
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchClientData = useCallback(async () => {
     try {
@@ -157,7 +157,7 @@ export function InstanceLevelOAuthDetails() {
           <Flex justify="right">
             <StyledButton
               size="sm"
-              priority="danger"
+              variant="danger"
               onClick={() =>
                 openModal(deps => (
                   <ConfirmClientDeleteModal

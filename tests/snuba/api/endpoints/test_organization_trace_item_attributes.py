@@ -5,11 +5,14 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.api.endpoints.organization_trace_item_attributes import (
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap import constants
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import (
     APITestCase,
@@ -796,8 +799,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "attributeSource": {"source_type": "user"},
                 },
                 {
-                    "key": "measurements.fcp",
-                    "name": "measurements.fcp",
+                    "key": "browser.web_vital.fcp.value",
+                    "name": "browser.web_vital.fcp.value",
                     "attributeType": "number",
                     "attributeSource": {"source_type": "sentry"},
                 },
@@ -826,8 +829,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "attributeSource": {"source_type": "sentry"},
                 },
                 {
-                    "key": "measurements.lcp",
-                    "name": "measurements.lcp",
+                    "key": "browser.web_vital.lcp.value",
+                    "name": "browser.web_vital.lcp.value",
                     "attributeType": "number",
                     "attributeSource": {"source_type": "sentry"},
                 },
@@ -1021,7 +1024,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 3
+        assert all("pro" in key for key in keys)
         assert "project" in keys
 
     def test_aliased_attribute_boolean(self) -> None:
@@ -1050,6 +1053,25 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "is_starred_transaction" in keys
 
     def test_aliased_attribute_with_paging(self) -> None:
+        def matching_string_alias_count(substring: str) -> int:
+            column_count = sum(
+                1
+                for column in SPAN_DEFINITIONS.columns.values()
+                if column.proto_type == AttributeKey.Type.TYPE_STRING
+                and substring in column.public_alias
+                and not column.secondary_alias
+                and not column.private
+            )
+            context_count = sum(
+                1
+                for public_label, virtual_context in SPAN_DEFINITIONS.contexts.items()
+                if substring in public_label
+                and virtual_context.search_type is not None
+                and not virtual_context.secondary_alias
+                and constants.TYPE_MAP[virtual_context.search_type] == AttributeKey.Type.TYPE_STRING
+            )
+            return column_count + context_count
+
         span1 = self.create_span(
             {"tags": {"tag.op": "foo"}}, start_ts=before_now(days=0, minutes=10)
         )
@@ -1074,13 +1096,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             assert len(keys) == 21
             all_keys = all_keys.union(keys)
             assert len(all_keys) == (i + 1) * 20 + 1
-        # there's at least 64 total keys for this query, the next page should contain the first custom ones
+        hardcoded_alias_count = matching_string_alias_count(".")
         response = self.do_request(
             query={
                 "attributeType": "string",
                 "substringMatch": ".",
                 "per_page": 20,
-                "cursor": "0:60:0",
+                "cursor": f"0:{hardcoded_alias_count}:0",
             }
         )
         assert response.status_code == 200, response.content

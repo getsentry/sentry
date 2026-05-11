@@ -16,7 +16,7 @@ import {
   type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -191,10 +191,10 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {
@@ -229,7 +229,7 @@ function DiffHunkContent({
   }, [lines]);
 
   const [editingGroup, setEditingGroup] = useState<number | null>(null);
-  const [editedContent, setEditedContent] = useState<string>('');
+  const [editedContent, setEditedContent] = useState('');
   const [editedLines, setEditedLines] = useState<string[]>([]);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [hoveredGroup, setHoveredGroup] = useState<number | null>(null);
@@ -554,7 +554,7 @@ function DiffHunkContent({
             <OverlayFooter>
               <OverlayButtonGroup>
                 <Button onClick={handleCancelEdit}>{t('Cancel')}</Button>
-                <Button priority="primary" onClick={handleSaveEdit}>
+                <Button variant="primary" onClick={handleSaveEdit}>
                   {t('Save')}
                 </Button>
               </OverlayButtonGroup>
@@ -600,7 +600,7 @@ function FileDiff({
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
-            priority="transparent"
+            variant="transparent"
           />
         </FileHeader>
       )}

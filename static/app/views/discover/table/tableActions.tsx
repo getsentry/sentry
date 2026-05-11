@@ -6,7 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import {DataExport, ExportQueryType} from 'sentry/components/dataExport';
+import {DataExport} from 'sentry/components/exports/dataExport';
+import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -54,7 +55,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
 
 function renderBrowserExportButton(canEdit: boolean, props: Props) {
   const {isLoading, error} = props;
-  const disabled = isLoading || error !== null || canEdit === false;
+  const disabled = isLoading || error !== null || !canEdit;
   const onClick = disabled ? undefined : () => handleDownloadAsCsv(props.title, props);
 
   return (
@@ -79,7 +80,7 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
 
 function renderAsyncExportButton(canEdit: boolean, props: Props) {
   const {isLoading, error, location, eventView} = props;
-  const disabled = isLoading || error !== null || canEdit === false;
+  const disabled = isLoading || error !== null || !canEdit;
   return (
     <DataExport
       payload={{

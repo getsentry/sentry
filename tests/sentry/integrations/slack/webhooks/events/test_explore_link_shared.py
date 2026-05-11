@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 
 import orjson
 import pytest
+from django.http.request import QueryDict
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.unfurl.types import Handler, LinkType, make_type_coercer
@@ -47,7 +48,7 @@ class ExploreLinkSharedEvent(BaseEventTest):
         "sentry.integrations.slack.webhooks.event.match_link",
         side_effect=[
             (LinkType.EXPLORE, {"arg1": "value1"}),
-            (LinkType.EXPLORE, {"arg1", "value2"}),
+            (LinkType.EXPLORE, {"arg2": "value2"}),
             (LinkType.EXPLORE, {"arg1": "value1"}),
         ],
     )
@@ -71,7 +72,7 @@ class ExploreLinkSharedEvent(BaseEventTest):
         "sentry.integrations.slack.webhooks.event.match_link",
         side_effect=[
             (LinkType.EXPLORE, {"arg1": "value1"}),
-            (LinkType.EXPLORE, {"arg1", "value2"}),
+            (LinkType.EXPLORE, {"arg2": "value2"}),
             (LinkType.EXPLORE, {"arg1": "value1"}),
         ],
     )
@@ -98,10 +99,7 @@ class ExploreLinkSharedEvent(BaseEventTest):
         blocks = orjson.loads(data["blocks"])
 
         assert blocks[0]["type"] == "section"
-        assert (
-            blocks[0]["text"]["text"]
-            == "Link your Slack identity to Sentry to unfurl Discover charts."
-        )
+        assert blocks[0]["text"]["text"] == "Link with Slack to preview charts."
 
         assert blocks[1]["type"] == "actions"
         assert len(blocks[1]["elements"]) == 2
@@ -117,3 +115,45 @@ class ExploreLinkSharedEvent(BaseEventTest):
         assert len(unfurls) == 2
         assert unfurls["link1"] == "unfurl"
         assert unfurls["link2"] == "unfurl"
+
+    def test_unique_explore_links_with_same_arg_shape(self) -> None:
+        """Three explore URLs whose args dicts share the same key set but
+        carry different QueryDicts must each unfurl separately."""
+        self.link_identity(slack_user_id=LINK_SHARED_EVENT["user"])
+
+        handler_fn = Mock(return_value={"l1": "u1", "l2": "u2", "l3": "u3"})
+
+        with (
+            patch(
+                "sentry.integrations.slack.webhooks.event.match_link",
+                side_effect=[
+                    (LinkType.EXPLORE, {"org_slug": "o", "query": QueryDict("q=foo")}),
+                    (LinkType.EXPLORE, {"org_slug": "o", "query": QueryDict("q=bar")}),
+                    (LinkType.EXPLORE, {"org_slug": "o", "query": QueryDict("q=baz")}),
+                ],
+            ),
+            patch(
+                "sentry.integrations.slack.requests.event.has_explore_links",
+                return_value=True,
+            ),
+            patch(
+                "sentry.integrations.slack.webhooks.event.link_handlers",
+                {
+                    LinkType.EXPLORE: Handler(
+                        matcher=[re.compile(r"test")],
+                        arg_mapper=make_type_coercer({}),
+                        fn=handler_fn,
+                    )
+                },
+            ),
+        ):
+            resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
+            assert resp.status_code == 200, resp.content
+
+        passed_links = handler_fn.call_args.args[1]
+        assert len(passed_links) == 3
+        assert {link.args["query"].urlencode() for link in passed_links} == {
+            "q=foo",
+            "q=bar",
+            "q=baz",
+        }

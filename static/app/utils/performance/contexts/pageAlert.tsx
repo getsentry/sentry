@@ -7,7 +7,7 @@ import {IconClose} from 'sentry/icons';
 import type {AlertVariant} from 'sentry/utils/theme';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-export enum DismissId {
+enum DismissId {
   RESOURCE_SIZE_ALERT = 0,
 }
 

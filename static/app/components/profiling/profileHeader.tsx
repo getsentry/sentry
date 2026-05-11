@@ -7,13 +7,13 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -31,10 +31,12 @@ function getTransactionName(input: Profiling.ProfileInput): string {
 interface ProfileHeaderProps {
   eventId: string;
   projectId: string;
-  transaction: Event | null;
+  transactionSpan:
+    | Pick<SpanResponse, 'trace' | 'span_id' | 'precise.finish_ts'>
+    | undefined;
 }
 
-function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
+function ProfileHeader({transactionSpan, projectId, eventId}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
   const profiles = useProfiles();
@@ -45,11 +47,11 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const profileId = eventId ?? '';
   const projectSlug = projectId ?? '';
 
-  const transactionTarget = transaction?.id
+  const transactionTarget = transactionSpan?.span_id
     ? generateLinkToEventInTraceView({
-        timestamp: transaction.endTimestamp ?? '',
-        eventId: transaction.id,
-        traceSlug: transaction.contexts?.trace?.trace_id ?? '',
+        timestamp: transactionSpan['precise.finish_ts'],
+        targetId: transactionSpan.span_id,
+        traceSlug: transactionSpan.trace,
         location,
         organization,
       })

@@ -24,14 +24,14 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const, {
-  providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
-});
+const Slot = slot(['title', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
+
+  const organization = useOrganization({allowNull: true});
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
@@ -40,16 +40,15 @@ function TopBarContent() {
     };
   }, [contentTop]);
 
-  const organization = useOrganization({allowNull: true});
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
   const [seerExplorerRunId] = useSeerExplorerRunId();
 
   const feedbackOptions = useMemo(() => {
-    if (isSeerExplorerOpen && organization && isSeerExplorerEnabled(organization)) {
+    if (isSeerExplorerOpen) {
       return getExplorerFeedbackOptions(seerExplorerRunId);
     }
     return {tags: {['feedback.source']: 'top_navigation'}};
-  }, [organization, isSeerExplorerOpen, seerExplorerRunId]);
+  }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   if (!hasPageFrame) {
     return null;
@@ -82,7 +81,7 @@ function TopBarContent() {
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
 
-          <AskSeerButton />
+          {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
 
           <Slot.Outlet name="feedback">
             {props => (

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from difflib import SequenceMatcher
 from typing import NamedTuple
 
 import orjson
@@ -55,6 +56,32 @@ class _ImageDiffResult(NamedTuple):
     skipped: set[str]
 
 
+# When multiple added/removed files share the same content hash (e.g. dark/light
+# theme variants), greedily pair them by filename similarity for rename detection.
+def _match_by_name_similarity(
+    added_names: list[str], removed_names: list[str]
+) -> list[tuple[str, str]]:
+    scored: list[tuple[float, int, int]] = []
+    for ai, a in enumerate(added_names):
+        for ri, r in enumerate(removed_names):
+            scored.append((SequenceMatcher(None, a, r).ratio(), ai, ri))
+
+    scored.sort(reverse=True)
+
+    pairs: list[tuple[str, str]] = []
+    used_added: set[int] = set()
+    used_removed: set[int] = set()
+
+    for _, ai, ri in scored:
+        if ai in used_added or ri in used_removed:
+            continue
+        pairs.append((added_names[ai], removed_names[ri]))
+        used_added.add(ai)
+        used_removed.add(ri)
+
+    return pairs
+
+
 def categorize_image_diff(
     head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
 ) -> _ImageDiffResult:
@@ -93,11 +120,19 @@ def categorize_image_diff(
         r_names = removed_hash_to_names[h]
         if len(a_names) == 1 and len(r_names) == 1:
             renamed_pairs.append((a_names[0], r_names[0]))
+        else:
+            renamed_pairs.extend(_match_by_name_similarity(a_names, r_names))
 
     for new_name, old_name in renamed_pairs:
         added.discard(new_name)
         removed.discard(old_name)
-        added_hash_to_names.pop(head_by_name[new_name], None)
+        h = head_by_name[new_name]
+        if h in added_hash_to_names:
+            names = added_hash_to_names[h]
+            if new_name in names:
+                names.remove(new_name)
+            if not names:
+                del added_hash_to_names[h]
 
     if skipped:
         skipped_hash_to_names: dict[str, list[str]] = {}
@@ -109,9 +144,13 @@ def categorize_image_diff(
             a_names = added_hash_to_names[h]
             s_names = skipped_hash_to_names[h]
             if len(a_names) == 1 and len(s_names) == 1:
-                renamed_pairs.append((a_names[0], s_names[0]))
-                added.discard(a_names[0])
-                skipped.discard(s_names[0])
+                matched_pairs = [(a_names[0], s_names[0])]
+            else:
+                matched_pairs = _match_by_name_similarity(a_names, s_names)
+            for a_name, s_name in matched_pairs:
+                renamed_pairs.append((a_name, s_name))
+                added.discard(a_name)
+                skipped.discard(s_name)
 
     return _ImageDiffResult(
         renamed_pairs, added, removed, matched, head_by_name, base_by_name, skipped
@@ -619,7 +658,14 @@ def compare_snapshots(
                         if diff_result.total_pixels > 0
                         else 0
                     )
-                    effective_threshold = diff_threshold if diff_threshold is not None else 0.0
+                    specific_image_diff_threshold = head_images[name].diff_threshold
+                    effective_threshold = (
+                        specific_image_diff_threshold
+                        if specific_image_diff_threshold is not None
+                        else diff_threshold
+                        if diff_threshold is not None
+                        else 0.0
+                    )
                     is_changed = diff_pct > effective_threshold
                     if is_changed:
                         changed_count += 1
@@ -627,9 +673,11 @@ def compare_snapshots(
                         unchanged_count += 1
 
                     logger.debug(
-                        "compare_snapshots: %s diff_pct=%.6f threshold=%s is_changed=%s pixels=%d/%d",
+                        "compare_snapshots: %s diff_pct=%.6f threshold=%s (per_image=%s global=%s) is_changed=%s pixels=%d/%d",
                         name,
                         diff_pct,
+                        effective_threshold,
+                        specific_image_diff_threshold,
                         diff_threshold,
                         is_changed,
                         diff_result.changed_pixels,

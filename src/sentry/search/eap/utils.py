@@ -128,6 +128,17 @@ SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, 
 }
 
 
+SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP: dict[SupportedTraceItemType, dict[str, set[str]]] = {}
+for _item_type, _replacement_map in SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.items():
+    _internal_mapping = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(_item_type, {})
+    _reverse: dict[str, set[str]] = {}
+    for _deprecated_alias, _replacement in _replacement_map.items():
+        _resolved = _internal_mapping.get(_deprecated_alias)
+        _internal_name = _resolved.internal_name if _resolved else _deprecated_alias
+        _reverse.setdefault(_replacement, set()).add(_internal_name)
+    SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP[_item_type] = _reverse
+
+
 INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
     SupportedTraceItemType.SPANS: SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -143,6 +154,16 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_DEFINITIONS,
     SupportedTraceItemType.OCCURRENCES: OCCURRENCE_DEFINITIONS,
 }
+
+
+def translate_search_type_for_internal_column(
+    internal_name: str,
+    item_type: SupportedTraceItemType,
+) -> Literal["string", "number", "boolean"] | None:
+    for search_type, mapping in INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).items():
+        if internal_name in mapping:
+            return search_type
+    return None
 
 
 def translate_internal_to_public_alias(
@@ -220,6 +241,12 @@ def is_sentry_convention_replacement_attribute(
     public_alias: str, item_type: SupportedTraceItemType
 ) -> bool:
     return public_alias in SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES.get(item_type, {})
+
+
+def get_deprecated_source_internal_names(
+    replacement: str, item_type: SupportedTraceItemType
+) -> set[str]:
+    return SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP.get(item_type, {}).get(replacement, set())
 
 
 def translate_to_sentry_conventions(public_alias: str, item_type: SupportedTraceItemType) -> str:

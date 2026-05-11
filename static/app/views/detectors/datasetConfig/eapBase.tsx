@@ -1,4 +1,5 @@
 import type {SelectValue} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -40,6 +41,10 @@ interface EapDatasetOptions {
   name: string;
   SearchBar?: DetectorDatasetConfig<EventsStats>['SearchBar'];
   supportsEquations?: boolean;
+  transformSeriesQueryData?: (
+    data: EventsStats | undefined,
+    aggregate: string
+  ) => Series[];
 }
 
 /**
@@ -58,6 +63,7 @@ export function createEapDetectorConfig(
     formatAggregateForTitle,
     SearchBar: CustomSearchBar,
     supportsEquations,
+    transformSeriesQueryData,
   } = options;
 
   const config: DetectorDatasetConfig<EapSeriesResponse> = {
@@ -84,6 +90,9 @@ export function createEapDetectorConfig(
     },
     toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
     transformSeriesQueryData: (data, aggregate) => {
+      if (transformSeriesQueryData) {
+        return transformSeriesQueryData(data, aggregate);
+      }
       return [transformEventsStatsToSeries(data, aggregate)];
     },
     transformComparisonSeriesData: data => {

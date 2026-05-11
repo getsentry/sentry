@@ -66,9 +66,7 @@ from sentry.models.counter import Counter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
     DashboardRevision,
-    DashboardTombstone,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -100,7 +98,7 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
+from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
@@ -513,13 +511,6 @@ class ExhaustiveFixtures(Fixtures):
             rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
         )
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=org,
-            disable_date=timezone.now(),
-            sent_initial_email_date=timezone.now(),
-            sent_final_email_date=timezone.now(),
-        )
 
         # Environment*
         self.create_environment(project=project)
@@ -573,11 +564,6 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             organization=org,
         )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard,
-            member=invited,
-            last_visited=timezone.now(),
-        )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
         )
@@ -607,7 +593,6 @@ class ExhaustiveFixtures(Fixtures):
             title=dashboard.title,
             snapshot_schema_version=1,
         )
-        DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
         # *Search
         RecentSearch.objects.create(

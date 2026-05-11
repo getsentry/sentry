@@ -233,10 +233,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         columns,
       });
 
-      trackAnalytics('errors.ai_query_applied', {
-        organization,
-        query: queryToUse,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
@@ -294,8 +290,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       location,
       navigate,
       onSearch,
-      organization,
       pageFilters.selection.datetime,
+      organization,
     ]
   );
 
@@ -310,7 +306,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       strategy="Errors"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="errors"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

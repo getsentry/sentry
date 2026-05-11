@@ -13,7 +13,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
@@ -23,21 +22,21 @@ import {PageHeader} from 'admin/components/pageHeader';
 
 export function LaunchpadAdminPage() {
   const api = useApi();
-  const [rerunArtifactId, setRerunArtifactId] = useState<string>('');
-  const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
-  const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState<string>('');
-  const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState<string>('');
-  const [downloadArtifactId, setDownloadArtifactId] = useState<string>('');
+  const [rerunArtifactId, setRerunArtifactId] = useState('');
+  const [deleteArtifactId, setDeleteArtifactId] = useState('');
+  const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState('');
+  const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState('');
+  const [downloadArtifactId, setDownloadArtifactId] = useState('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
   const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
+  const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate: rerunAnalysis} = useMutation({
     mutationFn: () => {
       const ids = rerunArtifactId
         .split(',')
         .map(id => id.trim())
-        .filter(id => id);
+        .filter(Boolean);
       return fetchMutation({
         url: '/internal/preprod-artifact/batch-rerun-analysis/',
         method: 'POST',
@@ -125,7 +124,7 @@ export function LaunchpadAdminPage() {
           preprod_artifact_ids: batchDeleteArtifactIds
             .split(',')
             .map(id => id.trim())
-            .filter(id => id),
+            .filter(Boolean),
         },
         options: {
           host: region?.url,
@@ -243,7 +242,7 @@ export function LaunchpadAdminPage() {
     const artifactIds = batchDeleteArtifactIds
       .split(',')
       .map(id => id.trim())
-      .filter(id => id);
+      .filter(Boolean);
     const artifactCount = artifactIds.length;
 
     openAdminConfirmModal({
@@ -335,7 +334,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
                   disabled={!fetchInfoArtifactId.trim() || !region}
                   css={css`
@@ -366,7 +365,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
                   disabled={!deleteArtifactId.trim() || !region}
                   css={css`
@@ -398,7 +397,7 @@ export function LaunchpadAdminPage() {
                   placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="primary"
+                  variant="primary"
                   type="submit"
                   disabled={!rerunArtifactId.trim() || !region}
                   css={css`
@@ -429,7 +428,7 @@ export function LaunchpadAdminPage() {
                   placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
                   disabled={!batchDeleteArtifactIds.trim() || !region}
                   css={css`
@@ -460,7 +459,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
                   disabled={!downloadArtifactId.trim() || !region}
                   css={css`
@@ -502,7 +501,7 @@ export function LaunchpadAdminPage() {
               <InfoDisplay>
                 <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
               </InfoDisplay>
-              <Button priority="default" onClick={() => setFetchedArtifactInfo(null)}>
+              <Button variant="secondary" onClick={() => setFetchedArtifactInfo(null)}>
                 Clear Info
               </Button>
             </Flex>

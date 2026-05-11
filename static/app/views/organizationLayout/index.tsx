@@ -23,7 +23,7 @@ import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAn
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
-import SystemAlerts from 'sentry/views/app/systemAlerts';
+import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
@@ -31,7 +31,6 @@ import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryN
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import {ExplorerFloatingActionButton} from 'sentry/views/seerExplorer/components/panel/explorerFAB';
 import {SeerExplorerUnreadTitle} from 'sentry/views/seerExplorer/components/seerExplorerUnreadTitle';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
@@ -46,7 +45,6 @@ export function OrganizationLayout() {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const hasPageFrame = useHasPageFrameFeature();
 
   useInitSentryToolbar(organization);
 
@@ -57,7 +55,6 @@ export function OrganizationLayout() {
         <GlobalDrawer>
           <SeerExplorerContextProvider>
             <SeerExplorerUnreadTitle />
-            {hasPageFrame ? null : <ExplorerFloatingActionButton />}
             <AppLayout organization={organization} />
           </SeerExplorerContextProvider>
         </GlobalDrawer>

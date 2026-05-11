@@ -62,7 +62,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                 {provided.children({
                   data,
                   isLoading: loading,
-                  hasData: !loading && (data?.[0]?.['count()'] as number) > 0,
+                  hasData: !loading && data?.[0]?.['count()']! > 0,
                 })}
               </Fragment>
             );

@@ -15,10 +15,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             contents = f.read()
 
         rest = contents
-        b1, m1, rest = rest.partition("# begin: stronger typing\n")
+        b1, m1, rest = rest.partition("# begin: not yet strongly typed\n")
         b2, m2, rest = rest.partition("module = [\n")
         b3, m3, rest = rest.partition("]\n")
-        b4, m4, rest = rest.partition("# end: stronger typing\n")
+        b4, m4, rest = rest.partition("# end: not yet strongly typed\n")
 
         b3 = "".join(sorted(frozenset(b3.splitlines(True))))
 

@@ -48,7 +48,7 @@ export function transformEventsResponseToSeries(
           return;
         }
 
-        const seriesData = groupData[seriesName] as EventsStats;
+        const seriesData = groupData[seriesName]!;
         const prefixedName = queryAlias
           ? `${queryAlias}${SERIES_QUERY_DELIMITER}${groupName} : ${seriesName}`
           : `${groupName} : ${seriesName}`;

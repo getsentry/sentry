@@ -12,7 +12,7 @@ import {
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsMode,
@@ -70,7 +70,7 @@ export const SpansTabCrossEventSearchBar = memo(
                     "This key won't affect the results because samples mode does not support aggregate functions"
                   );
                 }
-                return undefined;
+                return;
               }
             : undefined,
         supportedAggregates:

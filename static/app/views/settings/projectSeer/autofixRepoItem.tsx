@@ -33,7 +33,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   const [isEditingBranch, setIsEditingBranch] = useState(false);
   const [branchInputValue, setBranchInputValue] = useState(settings.branch);
   const [instructionsValue, setInstructionsValue] = useState(settings.instructions);
-  const [branchOverridesValue, setBranchOverridesValue] = useState<BranchOverride[]>(
+  const [branchOverridesValue, setBranchOverridesValue] = useState(
     settings.branch_overrides || []
   );
   const [originalValues, setOriginalValues] = useState({
@@ -170,7 +170,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <InputGroup.TrailingItems>
                         <ClearButton
                           size="xs"
-                          priority="transparent"
+                          variant="transparent"
                           icon={<IconClose size="xs" />}
                           onClick={() => {
                             setBranchInputValue('');
@@ -189,7 +189,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     size="xs"
                     icon={<IconAdd />}
                     onClick={addBranchOverride}
-                    priority="transparent"
+                    variant="transparent"
                   >
                     {t('Add an override for a tag')}
                   </AddOverrideButton>
@@ -256,7 +256,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       </Flex>
                       <Button
                         size="sm"
-                        priority="transparent"
+                        variant="transparent"
                         icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
@@ -295,7 +295,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                   <Button size="md" onClick={cancelChanges}>
                     {t('Cancel')}
                   </Button>
-                  <Button size="md" priority="primary" onClick={saveChanges}>
+                  <Button size="md" variant="primary" onClick={saveChanges}>
                     {t('Save')}
                   </Button>
                 </Grid>

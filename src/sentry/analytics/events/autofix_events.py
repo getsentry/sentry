@@ -39,26 +39,6 @@ class AiAutofixCodeChangesCompletedEvent(AiAutofixPhaseEvent):
     pass
 
 
-@analytics.eventclass("ai.autofix.impact_assessment.started")
-class AiAutofixImpactAssessmentStartedEvent(AiAutofixPhaseEvent):
-    pass
-
-
-@analytics.eventclass("ai.autofix.impact_assessment.completed")
-class AiAutofixImpactAssessmentCompletedEvent(AiAutofixPhaseEvent):
-    pass
-
-
-@analytics.eventclass("ai.autofix.triage.started")
-class AiAutofixTriageStartedEvent(AiAutofixPhaseEvent):
-    pass
-
-
-@analytics.eventclass("ai.autofix.triage.completed")
-class AiAutofixTriageCompletedEvent(AiAutofixPhaseEvent):
-    pass
-
-
 @analytics.eventclass("ai.autofix.pr_created.started")
 class AiAutofixPrCreatedStartedEvent(AiAutofixPhaseEvent):
     pass
@@ -81,10 +61,6 @@ analytics.register(AiAutofixCodeChangesStartedEvent)
 analytics.register(AiAutofixRootCauseCompletedEvent)
 analytics.register(AiAutofixSolutionCompletedEvent)
 analytics.register(AiAutofixCodeChangesCompletedEvent)
-analytics.register(AiAutofixImpactAssessmentStartedEvent)
-analytics.register(AiAutofixImpactAssessmentCompletedEvent)
-analytics.register(AiAutofixTriageStartedEvent)
-analytics.register(AiAutofixTriageCompletedEvent)
 analytics.register(AiAutofixPrCreatedStartedEvent)
 analytics.register(AiAutofixPrCreatedCompletedEvent)
 analytics.register(AiAutofixAgentHandoffEvent)

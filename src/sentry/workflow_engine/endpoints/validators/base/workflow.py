@@ -83,6 +83,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
     action_filters = serializers.ListField(
+        child=serializers.DictField(),
         required=False,
         help_text=ACTION_FILTERS_HELP_TEXT,
     )

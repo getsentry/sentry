@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
+import {DeprecatedLine} from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
@@ -42,7 +42,6 @@ describe('Frame - Line', () => {
     isANR: false,
     threadId: undefined,
     registers: {},
-    components: [],
   } satisfies Partial<React.ComponentProps<typeof DeprecatedLine>>;
 
   describe('renderOriginalSourceInfo()', () => {

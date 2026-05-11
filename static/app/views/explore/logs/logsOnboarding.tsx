@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -50,6 +51,7 @@ import {
   ExploreBodySearch,
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
+import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 
 // eslint-disable-next-line boundaries/dependencies
@@ -491,6 +493,9 @@ export function LogsTabOnboarding({
             <EnvironmentPageFilter />
             <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
+          <Flex align="center" justify="end">
+            <SetupLogsButton />
+          </Flex>
         </ExploreFilterSection>
         <OnboardingContainer>
           <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />

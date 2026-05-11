@@ -115,7 +115,7 @@ export function FlamegraphPreview({
   // when we register/unregister these top level listeners.
   useLayoutEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
-      return undefined;
+      return;
     }
 
     const onTransformConfigView = (
@@ -141,7 +141,7 @@ export function FlamegraphPreview({
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !flamegraphRenderer || !textRenderer) {
-      return undefined;
+      return;
     }
 
     const clearOverlayCanvas = () => {
