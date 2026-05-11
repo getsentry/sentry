@@ -31,10 +31,10 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import type {
   useMultiQueryTableAggregateMode,
