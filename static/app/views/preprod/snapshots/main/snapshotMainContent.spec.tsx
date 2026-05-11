@@ -198,7 +198,6 @@ describe('SnapshotMainContent', () => {
         image_file_name: 'button.light.old.png',
         width: 320,
       },
-      diff: null,
       head_image: {
         display_name: 'Button / light',
         group: 'components',

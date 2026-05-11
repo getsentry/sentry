@@ -320,7 +320,7 @@ function MetadataInfoButton({
   const {copy} = useCopyToClipboard();
   const json = JSON.stringify(
     copyData,
-    (k, v) => (METADATA_BLOCKLIST.has(k) ? undefined : v),
+    (k, v) => (METADATA_BLOCKLIST.has(k) || v === null ? undefined : v),
     2
   );
 
