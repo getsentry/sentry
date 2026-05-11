@@ -1,13 +1,15 @@
 import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 
 export function useInvalidateStarredDashboards() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   return useCallback(() => {
-    queryClient.invalidateQueries({queryKey: getStarredDashboardsQueryKey(organization)});
+    queryClient.invalidateQueries(
+      dashboardsApiOptions(organization, {query: {filter: 'onlyFavorites'}})
+    );
   }, [queryClient, organization]);
 }

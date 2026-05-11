@@ -10,10 +10,10 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   DashboardFilter,
   DisplayType,
@@ -166,7 +166,9 @@ export async function updateDashboardFavorite(
       }
     );
     queryClient.invalidateQueries({
-      queryKey: getStarredDashboardsQueryKey(organization),
+      // Use just the URL portion so prefix matching invalidates all dashboard list queries
+      // regardless of query params (per_page, sort, filter, etc.)
+      queryKey: [dashboardsApiOptions(organization).queryKey[0]],
     });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
@@ -282,7 +284,9 @@ export function deleteDashboard(
 
   promise.then(() => {
     queryClient.invalidateQueries({
-      queryKey: getStarredDashboardsQueryKey(organization),
+      // Use just the URL portion so prefix matching invalidates all dashboard list queries
+      // regardless of query params (per_page, sort, filter, etc.)
+      queryKey: [dashboardsApiOptions(organization).queryKey[0]],
     });
   });
 
