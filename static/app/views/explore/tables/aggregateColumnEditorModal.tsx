@@ -64,6 +64,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   booleanTags: TagCollection;
@@ -366,7 +367,16 @@ function GroupBySelector({
       options={options}
       value={groupBy.groupBy}
       onChange={handleChange}
-      search={{onChange: setSearch}}
+      search={{
+        onChange: setSearch,
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.SPANS,
+            option,
+            searchText,
+          });
+        },
+      }}
       loading={isSearchLoading}
       emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
       trigger={triggerProps => (
@@ -597,7 +607,16 @@ function AttributeArgumentSelect({
       options={options}
       value={value}
       onChange={onChange}
-      search={{onChange: setSearch}}
+      search={{
+        onChange: setSearch,
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.SPANS,
+            option,
+            searchText,
+          });
+        },
+      }}
       loading={isSearchLoading}
       emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
       // Stay enabled whenever the function supports server-side search so the
