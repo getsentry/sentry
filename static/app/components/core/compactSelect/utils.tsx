@@ -238,9 +238,8 @@ export function getHiddenOptions<Value extends SelectKey>(
     if (item) {
       if ('options' in item) {
         const startingIndex = i === threshold[0] ? threshold[1] : 0;
-        for (let j = startingIndex; j < item.options.length; j++) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          hiddenOptionsSet.add(item.options[j]!.key);
+        for (const option of item.options.slice(startingIndex)) {
+          hiddenOptionsSet.add(option.key);
         }
       } else {
         hiddenOptionsSet.add(item.key);

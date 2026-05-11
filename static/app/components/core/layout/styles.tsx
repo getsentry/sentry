@@ -218,12 +218,12 @@ export function getMargin(
 type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
 export function useResponsivePropValue<T extends Responsive<any>>(
   prop: T
-): ResponsiveValue<T> {
+): T | ResponsiveValue<T> {
   const activeBreakpoint = useActiveBreakpoint();
 
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
-    return prop as unknown as ResponsiveValue<T>;
+    return prop;
   }
 
   if (Object.keys(prop).length === 0) {
