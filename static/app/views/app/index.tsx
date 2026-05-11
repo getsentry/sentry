@@ -14,7 +14,6 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
-import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import {AlertStore} from 'sentry/stores/alertStore';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -22,22 +21,16 @@ import {GuideStore} from 'sentry/stores/guideStore';
 import {HookStore} from 'sentry/stores/hookStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
-import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
-import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
-import {OrganizationContextProvider} from 'sentry/views/organizationContext';
-import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
-import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {AppProviders} from 'sentry/views/app/appProviders';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -219,42 +212,16 @@ export function App() {
     return <Outlet />;
   }
 
-  const renderOrganizationContextProvider = useCallback(
-    (content: React.ReactNode) => {
-      // Skip loading organization-related data before the user is logged in,
-      // because it triggers a 401 error in the UI.
-      if (!preloadData) {
-        return content;
-      }
-      return <OrganizationContextProvider>{content}</OrganizationContextProvider>;
-    },
-    [preloadData]
-  );
-
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <UserTimezoneProvider>
-        <LastKnownRouteContextProvider>
-          <RouteAnalyticsContextProvider>
-            {renderOrganizationContextProvider(
-              <AsyncSDKIntegrationContextProvider>
-                <GlobalFeedbackForm>
-                  <MainContainer tabIndex={-1}>
-                    <DemoToursProvider>
-                      <LLMContextProvider>
-                        <GlobalModal />
-                        <Indicators className="indicators-container" />
-                        <Hook name="component:replay-init" />
-                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                      </LLMContextProvider>
-                    </DemoToursProvider>
-                  </MainContainer>
-                </GlobalFeedbackForm>
-              </AsyncSDKIntegrationContextProvider>
-            )}
-          </RouteAnalyticsContextProvider>
-        </LastKnownRouteContextProvider>
-      </UserTimezoneProvider>
+      <AppProviders preloadData={preloadData}>
+        <MainContainer tabIndex={-1}>
+          <GlobalModal />
+          <Indicators className="indicators-container" />
+          <Hook name="component:replay-init" />
+          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+        </MainContainer>
+      </AppProviders>
     </Profiler>
   );
 }
