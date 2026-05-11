@@ -297,7 +297,8 @@ def main() -> int:
         affected_test_files = existing_files
 
     output_tests = sorted(affected_test_files)
-    print(f"Selected {len(output_tests)} test files")
+    if selective_applied or output_tests:
+        print(f"Selected {len(output_tests)} test files")
 
     if args.output and (output_tests or selective_applied):
         output_path = Path(args.output)
