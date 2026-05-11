@@ -27,6 +27,7 @@ from sentry.notifications.api.serializers.notification_action_response import (
     OutgoingNotificationActionSerializer,
 )
 from sentry.notifications.models.notificationaction import NotificationAction
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +51,16 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
 
     permission_classes = (NotificationActionsPermission,)
 
-    def convert_args(self, request: Request, action_id: int, *args, **kwargs):
+    def convert_args(self, request: Request, action_id: str, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
 
         # Get the relevant action associated with the organization and request
         try:
-            action = NotificationAction.objects.get(id=action_id, organization_id=organization.id)
+            action = NotificationAction.objects.get(
+                id=to_valid_int_id("action_id", action_id, raise_404=True),
+                organization_id=organization.id,
+            )
         except NotificationAction.DoesNotExist:
             raise ResourceDoesNotExist
 
