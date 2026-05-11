@@ -101,7 +101,6 @@ export function ProjectAddRepoModal({
         project: z.string(),
         repoEntries: z.array(repoEntrySchema),
       }),
-      // onChange: formSchema,
       onDynamic: formSchema,
     },
     onSubmit: ({value}) => {
