@@ -1195,7 +1195,11 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
  * - Organization has not disabled open membership
  * - Organization has not disabled AI features (hideAiFeatures is false)
  */
-export function isSeerExplorerEnabled(organization: Organization): boolean {
+export function isSeerExplorerEnabled(organization: Organization | null): boolean {
+  if (!organization) {
+    return false;
+  }
+
   return (
     organization.openMembership &&
     !organization.hideAiFeatures &&

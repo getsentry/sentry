@@ -20,7 +20,7 @@ import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExp
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
-export type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
+type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
