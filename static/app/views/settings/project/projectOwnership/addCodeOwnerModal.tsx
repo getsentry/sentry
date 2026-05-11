@@ -26,9 +26,8 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
@@ -70,24 +69,10 @@ export function AddCodeOwnerModal({
     )
   );
 
-  const {
-    data: integrations,
-    isPending: isIntegrationsPending,
-    isError: isIntegrationsError,
-  } = useApiQuery<Integration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {features: ['codeowners']}},
-    ],
-    {staleTime: Infinity}
-  );
-
-  if (isCodeMappingsPending || isIntegrationsPending) {
+  if (isCodeMappingsPending) {
     return <LoadingIndicator />;
   }
-  if (isCodeMappingsError || isIntegrationsError) {
+  if (isCodeMappingsError) {
     return <LoadingError />;
   }
 
@@ -96,7 +81,7 @@ export function AddCodeOwnerModal({
       <Fragment>
         <Header closeButton>{t('Add Code Owner File')}</Header>
         <Body>
-          <LinkCodeOwners integrations={integrations} organization={organization} />
+          <LinkCodeOwners organization={organization} />
         </Body>
       </Fragment>
     );
@@ -248,14 +233,28 @@ function ApplyCodeMappings({
   );
 }
 
-function LinkCodeOwners({
-  integrations,
-  organization,
-}: {
-  integrations: Integration[];
-  organization: Organization;
-}) {
+function LinkCodeOwners({organization}: {organization: Organization}) {
   const baseUrl = `/settings/${organization.slug}/integrations/`;
+
+  const {
+    data: integrations,
+    isPending,
+    isError,
+  } = useQuery(
+    apiOptions.as<Integration[]>()('/organizations/$organizationIdOrSlug/integrations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {features: ['codeowners']},
+      staleTime: Infinity,
+    })
+  );
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+  if (isError) {
+    return <LoadingError />;
+  }
+
   if (integrations.length) {
     return (
       <Fragment>
