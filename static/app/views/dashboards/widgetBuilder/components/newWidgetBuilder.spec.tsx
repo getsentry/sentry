@@ -121,7 +121,12 @@ describe('NewWidgetBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {project: '-1'},
+            query: {
+              project: '-1',
+              dataset: WidgetType.ERRORS,
+              displayType: DisplayType.TABLE,
+              query: '',
+            },
           },
         },
       }
@@ -188,9 +193,9 @@ describe('NewWidgetBuilder', () => {
               project: '-1',
               displayType: 'line',
               dataset: 'error-events',
-              yAxis: ['count_unique(user)'],
-              sort: ['-count_unique(user)'],
-              query: ['is:unresolved'],
+              yAxis: 'count_unique(user)',
+              sort: '-count_unique(user)',
+              query: 'is:unresolved',
             },
           },
         },
@@ -205,7 +210,9 @@ describe('NewWidgetBuilder', () => {
     });
     // add a field and see if delete buttons are there
     await userEvent.click(screen.getByText('+ Add Filter'));
-    expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
+    });
   });
 
   it('does not render the filter alias field and add filter button on other widgets', async () => {
@@ -258,9 +265,9 @@ describe('NewWidgetBuilder', () => {
               project: '-1',
               displayType: 'line',
               dataset: 'error-events',
-              yAxis: ['count_unique(user)'],
-              sort: ['-count_unique(user)'],
-              query: [''],
+              yAxis: 'count_unique(user)',
+              sort: '-count_unique(user)',
+              query: '',
             },
           },
         },

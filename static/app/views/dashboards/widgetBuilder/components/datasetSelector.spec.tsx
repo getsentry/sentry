@@ -28,10 +28,8 @@ describe('DatasetSelector', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'Issues'}));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'issue'}),
-      }),
-      expect.anything()
+      expect.stringContaining('dataset=issue'),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -88,10 +86,8 @@ describe('DatasetSelector', () => {
     await userEvent.click(transactionsOption);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'transaction-like'}),
-      }),
-      expect.anything()
+      expect.stringContaining('dataset=transaction-like'),
+      expect.objectContaining({replace: true})
     );
   });
 });

@@ -22,9 +22,11 @@ describe('WidgetBuilderSortBySelector', () => {
     location: {
       pathname: '/organizations/org-slug/dashboard/1/',
       query: {
+        dataset: 'error-events',
         displayType: 'line',
-        fields: ['transaction.duration', 'count()', 'id'],
-        yAxis: ['count()', 'count_unique(transaction.duration)'],
+        field: 'transaction.duration,count(),id',
+        yAxis: 'count(),count_unique(transaction.duration)',
+        limit: '5',
       },
     },
   };
@@ -121,23 +123,21 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(await screen.findByText('count()'));
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['-count()']}),
-      }),
-      expect.anything()
+      expect.stringContaining('sort=-count()'),
+      expect.objectContaining({replace: true})
     );
 
     await userEvent.click(sortDirectionSelector);
     await userEvent.click(await screen.findByText('Low to high'));
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['count()']}),
-      }),
-      expect.anything()
+      expect.stringContaining('sort=count()'),
+      expect.objectContaining({replace: true})
     );
   });
 
   it('renders the correct limit options', async () => {
+    mockUseNavigate.mockReturnValue(jest.fn());
+
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
@@ -163,7 +163,8 @@ describe('WidgetBuilderSortBySelector', () => {
             pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
             query: {
               ...defaultRouterConfig.location?.query,
-              yAxis: ['count()', 'count_unique(transaction.duration)', 'eps()'],
+              yAxis: 'count(),count_unique(transaction.duration),eps()',
+              limit: '3',
             },
           },
         },
@@ -193,10 +194,8 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(await screen.findByText('Limit to 3 results'));
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({limit: 3}),
-      }),
-      expect.anything()
+      expect.stringContaining('limit=3'),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -224,9 +223,9 @@ describe('WidgetBuilderSortBySelector', () => {
             pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               displayType: 'line',
-              fields: ['transaction.duration', 'count()', 'id'],
-              yAxis: ['count()', 'count_unique(span.op)'],
-              sort: ['-count(span.duration)'],
+              field: ['transaction.duration', 'count()', 'id'],
+              yAxis: 'count(),count_unique(span.op)',
+              sort: '-count(span.duration)',
               dataset: 'spans',
             },
           },
@@ -241,10 +240,8 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(screen.getByText(`count_unique(${ELLIPSIS})`));
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['-count_unique(span.op)']}),
-      }),
-      expect.anything()
+      expect.stringContaining('sort=-count_unique(span.op)'),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -268,7 +265,7 @@ describe('WidgetBuilderSortBySelector', () => {
             pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
             query: {
               ...defaultRouterConfig.location?.query,
-              yAxis: ['count()', 'equation|count_unique(transaction.duration) + 100'],
+              yAxis: 'count(),equation|count_unique(transaction.duration) + 100',
             },
           },
         },
@@ -286,19 +283,15 @@ describe('WidgetBuilderSortBySelector', () => {
     );
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['-equation[0]']}),
-      }),
-      expect.anything()
+      expect.stringContaining('sort=-equation[0]'),
+      expect.objectContaining({replace: true})
     );
 
     await userEvent.click(sortDirectionSelector);
     await userEvent.click(await screen.findByText('Low to high'));
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['equation[0]']}),
-      }),
-      expect.anything()
+      expect.stringContaining('sort=equation[0]'),
+      expect.objectContaining({replace: true})
     );
   });
   it('renders a limit selector for categorical bar widgets', async () => {
@@ -314,8 +307,8 @@ describe('WidgetBuilderSortBySelector', () => {
             pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
             query: {
               displayType: 'categorical_bar',
-              fields: ['transaction.duration', 'count()'],
-              limit: 20,
+              field: 'transaction.duration,count()',
+              limit: '20',
               dataset: 'spans',
             },
           },
@@ -366,8 +359,8 @@ describe('WidgetBuilderSortBySelector', () => {
             pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
             query: {
               displayType: 'categorical_bar',
-              fields: ['transaction.duration', 'count()'],
-              limit: 20,
+              field: 'transaction.duration,count()',
+              limit: '20',
               dataset: 'spans',
             },
           },
@@ -380,10 +373,8 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(await screen.findByText('Limit to 15 results'));
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({limit: 15}),
-      }),
-      expect.anything()
+      expect.stringContaining('limit=15'),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -408,7 +399,7 @@ describe('WidgetBuilderSortBySelector', () => {
             query: {
               ...defaultRouterConfig.location?.query,
               displayType: 'table',
-              yAxis: ['count()', 'equation|count_unique(transaction.duration) + 100'],
+              yAxis: 'count(),equation|count_unique(transaction.duration) + 100',
             },
           },
         },
@@ -426,19 +417,15 @@ describe('WidgetBuilderSortBySelector', () => {
     );
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['-equation[0]']}),
-      }),
-      expect.anything()
+      expect.stringContaining('sort=-equation[0]'),
+      expect.objectContaining({replace: true})
     );
 
     await userEvent.click(sortDirectionSelector);
     await userEvent.click(await screen.findByText('Low to high'));
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['equation[0]']}),
-      }),
-      expect.anything()
+      expect.stringContaining('sort=equation[0]'),
+      expect.objectContaining({replace: true})
     );
   });
 });

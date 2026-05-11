@@ -21,7 +21,15 @@ describe('TypeSelector', () => {
     render(
       <WidgetBuilderProvider>
         <TypeSelector />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {displayType: 'table', dataset: 'error-events'},
+          },
+        },
+      }
     );
 
     // click dropdown
@@ -30,10 +38,8 @@ describe('TypeSelector', () => {
     await userEvent.click(await screen.findByText('Bar (Time Series)'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({displayType: 'bar'}),
-      }),
-      expect.anything()
+      expect.stringContaining('displayType=bar'),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -56,6 +62,12 @@ describe('TypeSelector', () => {
       </WidgetBuilderProvider>,
       {
         organization: OrganizationFixture({features: ['dashboards-text-widgets']}),
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {displayType: 'table', dataset: 'error-events'},
+          },
+        },
       }
     );
 
@@ -72,6 +84,12 @@ describe('TypeSelector', () => {
       </WidgetBuilderProvider>,
       {
         organization: OrganizationFixture({features: []}),
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {displayType: 'table', dataset: 'error-events'},
+          },
+        },
       }
     );
 
@@ -101,28 +119,16 @@ describe('TypeSelector', () => {
     await userEvent.click(await screen.findByText('Table'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          displayType: 'table',
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('displayType=table'),
+      expect.objectContaining({replace: true})
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: WidgetType.ISSUE,
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('dataset=issue'),
+      expect.objectContaining({replace: true})
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['issue', 'assignee', 'title'],
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('field=issue,assignee,title'),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -149,28 +155,16 @@ describe('TypeSelector', () => {
     await userEvent.click(await screen.findByText('Table'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          displayType: 'table',
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('displayType=table'),
+      expect.objectContaining({replace: true})
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: WidgetType.ERRORS,
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('dataset=error-events'),
+      expect.objectContaining({replace: true})
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count_unique(user)'],
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('field=count_unique(user)'),
+      expect.objectContaining({replace: true})
     );
   });
 });

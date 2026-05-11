@@ -54,7 +54,7 @@ describe('QueryFilterBuilder', () => {
           location: {
             pathname: '/mock-pathname/',
             query: {
-              query: [],
+              query: '',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -78,7 +78,7 @@ describe('QueryFilterBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
+            query: {query: '', dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
           },
         },
       }
@@ -102,7 +102,7 @@ describe('QueryFilterBuilder', () => {
           location: {
             pathname: '/mock-pathname/',
             query: {
-              query: [],
+              query: '',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -128,7 +128,7 @@ describe('QueryFilterBuilder', () => {
           location: {
             pathname: '/mock-pathname/',
             query: {
-              query: [],
+              query: '',
               dataset: WidgetType.SPANS,
               displayType: DisplayType.DETAILS,
             },
@@ -157,7 +157,7 @@ describe('QueryFilterBuilder', () => {
           location: {
             pathname: '/mock-pathname/',
             query: {
-              query: [],
+              query: '',
               dataset: WidgetType.SPANS,
               displayType: DisplayType.DETAILS,
             },
@@ -186,7 +186,7 @@ describe('QueryFilterBuilder', () => {
           location: {
             pathname: '/mock-pathname/',
             query: {
-              query: [],
+              query: '',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -219,7 +219,7 @@ describe('QueryFilterBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.LINE},
+            query: {query: '', dataset: WidgetType.SPANS, displayType: DisplayType.LINE},
           },
         },
       }
@@ -246,7 +246,7 @@ describe('QueryFilterBuilder', () => {
           location: {
             pathname: '/mock-pathname/',
             query: {
-              query: [],
+              query: '',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -275,7 +275,7 @@ describe('QueryFilterBuilder', () => {
           location: {
             pathname: '/mock-pathname/',
             query: {
-              query: [],
+              query: '',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },

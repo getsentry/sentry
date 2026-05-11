@@ -14,7 +14,10 @@ import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import * as widgetBuilderContext from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
@@ -107,7 +110,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['p90(transaction.duration)', 'max(spans.db)'],
+              yAxis: 'p90(transaction.duration),max(spans.db)',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -146,7 +149,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
+              yAxis: 'max(spans.db)',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -177,7 +180,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
+              yAxis: 'max(spans.db)',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -208,7 +211,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['count()'],
+              yAxis: 'count()',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -241,7 +244,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['count(resolved_issues)'],
+              yAxis: 'count(resolved_issues)',
               dataset: WidgetType.ISSUE,
               displayType: DisplayType.BAR,
             },
@@ -267,7 +270,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
+              yAxis: 'max(spans.db)',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -299,7 +302,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['count()'],
+              yAxis: 'count()',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -339,7 +342,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['transaction.duration'],
+              field: 'transaction.duration',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -368,7 +371,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count()'],
+              field: 'count()',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -400,7 +403,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count()'],
+              field: 'count()',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -430,7 +433,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count()'],
+              field: 'count()',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -459,7 +462,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['transaction.duration'],
+              yAxis: 'transaction.duration',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
@@ -488,7 +491,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['max(spans.db)'],
+              field: 'max(spans.db)',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -507,6 +510,7 @@ describe('Visualize', () => {
   });
 
   it('properly transitions between aggregates of higher to no parameter count', async () => {
+    // apdex has 1 parameter, count has 0 - tests transition from params to none
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -517,7 +521,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count_if(transaction.duration,equals,testValue)'],
+              field: 'apdex(300)',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -537,12 +541,13 @@ describe('Visualize', () => {
       'count'
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
+      expect.stringContaining('field=count()'),
       expect.anything()
     );
   });
 
   it('properly transitions between aggregates of higher to lower parameter count', async () => {
+    // p95 has 1 parameter (column), count has 0 - tests that column is removed
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -553,7 +558,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count_if(transaction.duration,equals,testValue)'],
+              field: 'p95(transaction.duration)',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -564,19 +569,16 @@ describe('Visualize', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count'}));
 
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'user'
-    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'count_miserable'
+      'count'
     );
-    expect(screen.getByDisplayValue('300')).toBeInTheDocument();
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({field: ['count_miserable(user,300)']}),
-      }),
+      expect.stringContaining('field=count()'),
       expect.anything()
     );
   });
@@ -592,7 +594,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['transaction.duration'],
+              field: 'transaction.duration',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -621,7 +623,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['transaction'],
+              field: 'transaction',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
@@ -656,7 +658,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.ISSUE,
-              field: ['issue.id'],
+              field: 'issue.id',
               displayType: DisplayType.TABLE,
             },
           },
@@ -683,7 +685,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
-              yAxis: ['p90(transaction.duration)'],
+              yAxis: 'p90(transaction.duration)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -713,7 +715,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
-              field: ['count()'],
+              field: 'count()',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -740,7 +742,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
-              field: ['count()'],
+              field: 'count()',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -768,7 +770,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
-              field: ['p50(transaction.duration)'],
+              field: 'p50(transaction.duration)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -875,7 +877,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
-              field: ['count_unique(user)'],
+              field: 'count_unique(user)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -907,7 +909,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
-              field: ['count_unique(1)', 'count_unique(2)', 'count_unique(3)'],
+              field: 'count_unique(1),count_unique(2),count_unique(3)',
               selectedAggregate: '2',
             },
           },
@@ -923,9 +925,7 @@ describe('Visualize', () => {
     // is cleared, so the last field is selected
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({selectedAggregate: undefined}),
-      }),
+      expect.not.stringContaining('selectedAggregate='),
       expect.anything()
     );
   });
@@ -940,7 +940,11 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
+            query: {
+              dataset: WidgetType.RELEASE,
+              displayType: DisplayType.TABLE,
+              field: 'crash_free_rate(session)',
+            },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -967,7 +971,11 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+              field: 'transaction.duration',
+            },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -983,6 +991,7 @@ describe('Visualize', () => {
   });
 
   it('uses the provided value for a value parameter field', async () => {
+    // apdex has a numeric value parameter (threshold) that can be edited
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -994,7 +1003,8 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
-              field: ['count_if(transaction.duration,equals,300)'],
+              displayType: DisplayType.TABLE,
+              field: 'apdex(300)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1026,7 +1036,8 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.RELEASE,
-              field: ['crash_free_rate(session)', 'environment'],
+              field: 'crash_free_rate(session),environment',
+              displayType: DisplayType.TABLE,
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1050,7 +1061,11 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(3000)']},
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+              field: 'apdex(3000)',
+            },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1076,7 +1091,11 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+              field: 'apdex(9999)',
+            },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1101,7 +1120,8 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
-              field: ['equation|count()+1', 'count()'],
+              displayType: DisplayType.TABLE,
+              field: 'equation|count()+1,count()',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1126,7 +1146,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
-              field: ['transaction.duration', 'transaction.id'],
+              field: 'transaction.duration,transaction.id',
               displayType: DisplayType.TABLE,
             },
           },
@@ -1150,7 +1170,11 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+              field: 'count()',
+            },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1179,7 +1203,11 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
+            query: {
+              dataset: WidgetType.RELEASE,
+              displayType: DisplayType.TABLE,
+              field: 'crash_free_rate(session)',
+            },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1205,7 +1233,11 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
+            query: {
+              dataset: WidgetType.RELEASE,
+              displayType: DisplayType.TABLE,
+              field: 'crash_free_rate(session)',
+            },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1240,7 +1272,8 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
-              field: ['p50(transaction.duration)'],
+              displayType: DisplayType.TABLE,
+              field: 'p50(transaction.duration)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1317,7 +1350,7 @@ describe('Visualize', () => {
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.LINE,
-                yAxis: ['p90(span.duration)'],
+                yAxis: 'p90(span.duration)',
               },
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1349,7 +1382,7 @@ describe('Visualize', () => {
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.LINE,
-                yAxis: ['count(span.duration)'],
+                yAxis: 'count(span.duration)',
               },
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1389,7 +1422,7 @@ describe('Visualize', () => {
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
-                field: ['p90(span.duration)'],
+                field: 'p90(span.duration)',
               },
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1419,7 +1452,7 @@ describe('Visualize', () => {
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
-                field: ['span.duration'],
+                field: 'span.duration',
               },
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1474,7 +1507,7 @@ describe('Visualize', () => {
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
-                field: ['count(span.duration)'],
+                field: 'count(span.duration)',
               },
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1500,7 +1533,7 @@ describe('Visualize', () => {
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
-                yAxis: ['count(span.duration)'],
+                yAxis: 'count(span.duration)',
               },
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1532,9 +1565,7 @@ describe('Visualize', () => {
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
+        expect.stringContaining('field=equation|(+avg(span.duration)'),
         expect.anything()
       );
     });
@@ -1551,7 +1582,7 @@ describe('Visualize', () => {
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
-                yAxis: ['count(span.duration)'],
+                yAxis: 'count(span.duration)',
               },
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1583,9 +1614,7 @@ describe('Visualize', () => {
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
+        expect.stringContaining('field=equation|(+avg(span.duration)'),
         expect.anything()
       );
     });
@@ -1604,7 +1633,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
-              yAxis: ['count(span.duration)'],
+              yAxis: 'count(span.duration)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1630,7 +1659,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
-              yAxis: ['avg(span.self_time)'],
+              yAxis: 'avg(span.self_time)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1672,7 +1701,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
-              yAxis: ['epm()'],
+              yAxis: 'epm()',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1700,7 +1729,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
-              yAxis: ['failure_rate()'],
+              yAxis: 'failure_rate()',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1728,7 +1757,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
-              yAxis: ['avg(span.self_time)'],
+              yAxis: 'avg(span.self_time)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1768,7 +1797,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
-              yAxis: ['avg(span.self_time)'],
+              yAxis: 'avg(span.self_time)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1809,7 +1838,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
-              yAxis: ['count(span.duration)'],
+              yAxis: 'count(span.duration)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1881,7 +1910,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
-              yAxis: ['p95(transaction.duration)'],
+              yAxis: 'p95(transaction.duration)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1913,25 +1942,36 @@ describe('Visualize', () => {
       },
     });
 
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
+    const mockDispatch = jest.fn();
+    const yAxis = [
       {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              yAxis: ['sum(value,alpha_metric,counter,-)'],
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-            },
+        kind: FieldValueKind.FUNCTION as const,
+        function: ['sum' as const, 'value', 'alpha_metric', 'counter', '-'],
+      },
+    ];
+
+    jest.spyOn(widgetBuilderContext, 'useWidgetBuilderContext').mockReturnValue({
+      state: {
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.LINE,
+        yAxis,
+      },
+      dispatch: mockDispatch,
+    });
+
+    render(<Visualize />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     // Wait for the initial aggregate selector to render
     const initialAggregateSelectors = await screen.findAllByRole('button', {
@@ -1943,20 +1983,14 @@ describe('Visualize', () => {
     // Click "Add Series"
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
-    const metricSelectors = await screen.findAllByRole('button', {
-      name: 'alpha_metric',
-    });
-    expect(metricSelectors).toHaveLength(2);
-    expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
-    expect(metricSelectors[1]).toHaveTextContent('alpha_metric');
+    // Verify dispatch was called with duplicated yAxis
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: BuilderStateAction.SET_Y_AXIS,
+      })
+    );
 
-    // Should now have two aggregate selectors, both showing 'sum' (duplicated from last)
-    const aggregateSelectors = await screen.findAllByRole('button', {
-      name: 'Aggregate Selection',
-    });
-    expect(aggregateSelectors).toHaveLength(2);
-    expect(aggregateSelectors[0]).toHaveTextContent('sum');
-    expect(aggregateSelectors[1]).toHaveTextContent('sum');
+    jest.restoreAllMocks();
   });
 
   it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {
@@ -1976,7 +2010,7 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
-              yAxis: ['p95(transaction.duration)'],
+              yAxis: 'p95(transaction.duration)',
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,

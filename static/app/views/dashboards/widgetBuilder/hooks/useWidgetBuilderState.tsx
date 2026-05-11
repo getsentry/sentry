@@ -1,5 +1,6 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import partition from 'lodash/partition';
+import {createParser, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils';
 import {
@@ -12,13 +13,7 @@ import {
   type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
-import {
-  decodeInteger,
-  decodeList,
-  decodeScalar,
-  decodeSorts,
-} from 'sentry/utils/queryString';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {decodeInteger, decodeSorts} from 'sentry/utils/queryString';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -299,80 +294,257 @@ function fixupTableSortOnRemoval(
     : [];
 }
 
+const parseAsDisplayType = createParser<DisplayType>({
+  parse: deserializeDisplayType,
+  serialize: String,
+});
+
+const parseAsDataset = createParser<WidgetType>({
+  parse: deserializeDataset,
+  serialize: String,
+});
+
+const parseAsColumns = createParser<Column[]>({
+  parse(value) {
+    return deserializeFields(value.split(','));
+  },
+  serialize(columns) {
+    return serializeFields(columns).join(',');
+  },
+});
+
+const parseAsStringList = createParser<string[]>({
+  parse(value) {
+    return deserializeQuery(value.split(','));
+  },
+  serialize(values) {
+    return values.join(',');
+  },
+});
+
+const parseAsLimit = createParser<number>({
+  parse(value) {
+    return deserializeLimit(value);
+  },
+  serialize: String,
+});
+
+const parseAsLegendType = createParser<LegendType>({
+  parse(value) {
+    return deserializeLegendType(value) ?? null;
+  },
+  serialize: String,
+});
+
+const parseAsSelectedAggregate = createParser<number>({
+  parse(value) {
+    return deserializeSelectedAggregate(value) ?? null;
+  },
+  serialize: String,
+});
+
+const parseAsThresholds = createParser<ThresholdsConfig>({
+  parse(value) {
+    return deserializeThresholds(value) ?? null;
+  },
+  serialize(thresholds) {
+    return serializeThresholds(thresholds);
+  },
+});
+
+const parseAsLinkedDashboards = createParser<LinkedDashboard[]>({
+  parse(value) {
+    return deserializeLinkedDashboards(value.split(','));
+  },
+  serialize(dashboards) {
+    return serializeLinkedDashboards(dashboards).join(',');
+  },
+});
+
+const parseAsAxisRange = createParser<AxisRange>({
+  parse(value) {
+    return getAxisRange(value) ?? null;
+  },
+  serialize: String,
+});
+
+const widgetBuilderParsers = {
+  title: createParser<string>({parse: v => v, serialize: v => v}),
+  description: createParser<string>({parse: v => v, serialize: v => v}),
+  displayType: parseAsDisplayType,
+  dataset: parseAsDataset,
+  field: parseAsColumns,
+  yAxis: parseAsColumns,
+  query: parseAsStringList,
+  sort: parseAsStringList,
+  limit: parseAsLimit,
+  legendAlias: parseAsStringList,
+  legendType: parseAsLegendType,
+  selectedAggregate: parseAsSelectedAggregate,
+  thresholds: parseAsThresholds,
+  linkedDashboards: parseAsLinkedDashboards,
+  axisRange: parseAsAxisRange,
+};
+
+type UrlState = {
+  [K in keyof typeof widgetBuilderParsers]: ReturnType<
+    (typeof widgetBuilderParsers)[K]['parse']
+  > | null;
+};
+
 export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
-  const [title, setTitle] = useQueryParamState({fieldName: 'title'});
-  const [description, setDescription] = useQueryParamState({
-    fieldName: 'description',
+  const [urlState, setUrlState] = useQueryStates(widgetBuilderParsers, {
+    throttleMs: 300,
   });
-  const [displayType, setDisplayType] = useQueryParamState<DisplayType>({
-    fieldName: 'displayType',
-    deserializer: deserializeDisplayType,
-  });
-  const [dataset, setDataset] = useQueryParamState<WidgetType>({
-    fieldName: 'dataset',
-    deserializer: deserializeDataset,
-  });
-  const [fields, setFields] = useQueryParamState<Column[]>({
-    fieldName: 'field',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [yAxis, setYAxis] = useQueryParamState<Column[]>({
-    fieldName: 'yAxis',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [query, setQuery] = useQueryParamState<string[]>({
-    fieldName: 'query',
-    decoder: decodeList,
-    deserializer: deserializeQuery,
-  });
-  const [sort, setSort] = useQueryParamState<Sort[]>({
-    fieldName: 'sort',
-    decoder: decodeSorts,
-    deserializer: deserializeSorts(dataset),
-    serializer: serializeSorts(dataset),
-  });
-  const [limit, setLimit] = useQueryParamState<number>({
-    fieldName: 'limit',
-    decoder: decodeScalar,
-    deserializer: deserializeLimit,
-  });
-  const [legendAlias, setLegendAlias] = useQueryParamState<string[]>({
-    fieldName: 'legendAlias',
-    decoder: decodeList,
-  });
-  const [legendType, setLegendType] = useQueryParamState<LegendType | undefined>({
-    fieldName: 'legendType',
-    deserializer: deserializeLegendType,
-  });
-  const [selectedAggregate, setSelectedAggregate] = useQueryParamState<number>({
-    fieldName: 'selectedAggregate',
-    decoder: decodeScalar,
-    deserializer: deserializeSelectedAggregate,
-  });
-  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig | null>({
-    fieldName: 'thresholds',
-    decoder: decodeScalar,
-    deserializer: deserializeThresholds,
-    serializer: serializeThresholds,
-  });
-  const [linkedDashboards, setLinkedDashboards] = useQueryParamState<LinkedDashboard[]>({
-    fieldName: 'linkedDashboards',
-    decoder: decodeList,
-    deserializer: deserializeLinkedDashboards,
-    serializer: serializeLinkedDashboards,
-  });
-  const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
-    fieldName: 'axisRange',
-    decoder: decodeScalar,
-    deserializer: getAxisRange,
-  });
+
+  // Local state buffer for the updateUrl: false pattern.
+  // When updateUrl is false, we store pending changes here and re-render
+  // without writing to the URL. When updateUrl is true (default), we flush
+  // through to nuqs which updates both React state and the URL.
+  const [localOverrides, setLocalOverrides] = useState<Partial<UrlState>>({});
+  const localOverridesRef = useRef(localOverrides);
+  localOverridesRef.current = localOverrides;
+
+  // Merged state: URL state with local overrides on top
+  const merged = useMemo(
+    () => ({...urlState, ...localOverrides}),
+    [urlState, localOverrides]
+  );
+
+  // Helper to create individual setters that respect updateUrl option
+  const setParam = useCallback(
+    <K extends keyof typeof widgetBuilderParsers>(
+      key: K,
+      value: UrlState[K] | undefined,
+      options?: WidgetBuilderStateActionOptions
+    ) => {
+      const nuqsValue = value === undefined ? null : value;
+      if (options?.updateUrl === false) {
+        setLocalOverrides(prev => ({...prev, [key]: nuqsValue}));
+      } else {
+        // Flush local override for this key and write to URL
+        setLocalOverrides(prev => {
+          const next = {...prev};
+          delete next[key];
+          return next;
+        });
+        setUrlState({[key]: nuqsValue} as Partial<UrlState>);
+      }
+    },
+    [setUrlState]
+  );
+
+  // Convenience setters matching the old interface
+  const setTitle = useCallback(
+    (v: string | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('title', v ?? null, o),
+    [setParam]
+  );
+  const setDescription = useCallback(
+    (v: string | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('description', v ?? null, o),
+    [setParam]
+  );
+  const setDisplayType = useCallback(
+    (v: DisplayType | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('displayType', v ?? null, o),
+    [setParam]
+  );
+  const setDataset = useCallback(
+    (v: WidgetType | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('dataset', v ?? null, o),
+    [setParam]
+  );
+  const setFields = useCallback(
+    (v: Column[] | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('field', v ?? null, o),
+    [setParam]
+  );
+  const setYAxis = useCallback(
+    (v: Column[] | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('yAxis', v ?? null, o),
+    [setParam]
+  );
+  const setQuery = useCallback(
+    (v: string[] | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('query', v ?? null, o),
+    [setParam]
+  );
+  const setSort = useCallback(
+    (v: Sort[] | string[] | undefined, o?: WidgetBuilderStateActionOptions) => {
+      if (!v || v.length === 0) {
+        setParam('sort', null, o);
+        return;
+      }
+      // Sort[] needs to be serialized with dataset awareness
+      const currentDataset = localOverridesRef.current.dataset ?? urlState.dataset;
+      const serialized = serializeSorts(currentDataset ?? undefined)(v as Sort[]);
+      setParam('sort', serialized, o);
+    },
+    [setParam, urlState.dataset]
+  );
+  const setLimit = useCallback(
+    (v: number | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('limit', v ?? null, o),
+    [setParam]
+  );
+  const setLegendAlias = useCallback(
+    (v: string[] | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('legendAlias', v ?? null, o),
+    [setParam]
+  );
+  const setLegendType = useCallback(
+    (v: LegendType | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('legendType', v ?? null, o),
+    [setParam]
+  );
+  const setSelectedAggregate = useCallback(
+    (v: number | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('selectedAggregate', v ?? null, o),
+    [setParam]
+  );
+  const setThresholds = useCallback(
+    (v: ThresholdsConfig | null | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('thresholds', v ?? null, o),
+    [setParam]
+  );
+  const setLinkedDashboards = useCallback(
+    (v: LinkedDashboard[] | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('linkedDashboards', v ?? null, o),
+    [setParam]
+  );
+  const setAxisRange = useCallback(
+    (v: AxisRange | undefined, o?: WidgetBuilderStateActionOptions) =>
+      setParam('axisRange', v ?? null, o),
+    [setParam]
+  );
+
+  // Derive typed state from merged URL + local values
+  const title = merged.title ?? '';
+  const description = merged.description ?? '';
+  const displayType = merged.displayType ?? undefined;
+  const dataset = merged.dataset ?? undefined;
+  const fields = merged.field ?? undefined;
+  const yAxis = merged.yAxis ?? undefined;
+  const query = merged.query ?? undefined;
+  const rawSort = merged.sort;
+  const sort = useMemo(() => {
+    if (!rawSort || rawSort.length === 0) {
+      return;
+    }
+    const decoded = decodeSorts(rawSort);
+    return deserializeSorts(dataset)(decoded);
+  }, [rawSort, dataset]);
+  const limit = merged.limit ?? undefined;
+  const legendAlias = merged.legendAlias ?? undefined;
+  const legendType = merged.legendType ?? undefined;
+  const selectedAggregate = merged.selectedAggregate ?? undefined;
+  const thresholds = merged.thresholds ?? undefined;
+  const linkedDashboards = merged.linkedDashboards ?? undefined;
+  const axisRange = merged.axisRange ?? undefined;
   const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
     string | undefined
   >(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, undefined);

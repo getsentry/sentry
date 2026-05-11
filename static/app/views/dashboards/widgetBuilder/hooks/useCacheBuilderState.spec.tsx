@@ -23,9 +23,7 @@ jest.mock('sentry/utils/useLocation');
 
 jest.mock('sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext', () => ({
   useWidgetBuilderContext: jest.fn(),
-  WidgetBuilderProvider: jest.requireActual(
-    'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext'
-  ).WidgetBuilderProvider,
+  WidgetBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
 
 const mockUseWidgetBuilderContext = jest.mocked(useWidgetBuilderContext);

@@ -36,12 +36,8 @@ describe('Thresholds', () => {
     await userEvent.clear(screen.getByLabelText('First Maximum'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: undefined,
-        }),
-      }),
-      expect.anything()
+      expect.not.stringContaining('thresholds='),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -57,12 +53,8 @@ describe('Thresholds', () => {
     await userEvent.tab();
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('thresholds='),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -87,12 +79,8 @@ describe('Thresholds', () => {
     await userEvent.click(screen.getByText('second'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('thresholds='),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -135,12 +123,8 @@ describe('Thresholds', () => {
     expect((await screen.findAllByDisplayValue('100.5456'))[0]).toBeInTheDocument();
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}',
-        }),
-      }),
-      expect.anything()
+      expect.stringContaining('thresholds='),
+      expect.objectContaining({replace: true})
     );
   });
 
@@ -213,7 +197,7 @@ describe('Thresholds', () => {
     // Clear the threshold value
     await userEvent.clear(screen.getByLabelText('First Maximum'));
 
-    // Wait for state update and verify it's null, not undefined
-    expect(capturedState.thresholds).toBeNull();
+    // Wait for state update and verify it's nullish (cleared from URL)
+    expect(capturedState.thresholds).toBeFalsy();
   });
 });

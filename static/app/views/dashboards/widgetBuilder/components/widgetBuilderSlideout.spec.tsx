@@ -83,10 +83,11 @@ describe('WidgetBuilderSlideout', () => {
           location: {
             pathname: '/dashboards/',
             query: {
-              field: ['project'],
-              yAxis: ['count()'],
+              field: 'project',
+              yAxis: 'count()',
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
+              limit: '5',
             },
           },
         },

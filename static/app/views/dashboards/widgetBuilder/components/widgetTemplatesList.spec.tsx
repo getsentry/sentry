@@ -121,15 +121,22 @@ describe('WidgetTemplatesList', () => {
     jest.runAllTimers();
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          description: 'some description',
-          title: 'Duration Distribution',
-          displayType: 'line',
-          dataset: 'transactions-like',
-        }),
-      }),
-      expect.anything()
+      expect.stringMatching(
+        /description=some\+description|description=some%20description/
+      ),
+      expect.objectContaining({replace: true})
+    );
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.stringContaining('title=Duration+Distribution'),
+      expect.objectContaining({replace: true})
+    );
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.stringContaining('displayType=line'),
+      expect.objectContaining({replace: true})
+    );
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.stringContaining('dataset=transactions-like'),
+      expect.objectContaining({replace: true})
     );
   });
 
