@@ -97,11 +97,13 @@ export type TraceMeta = {
 };
 
 export type EAPTraceMeta = {
-  errors: number;
-  logs: number;
-  performance_issues: number;
-  span_count: number;
-  span_count_map: Record<string, number>;
-  transaction_child_count_map: Record<string, number>;
-  uptime_checks: number;
+  errorsCount: number;
+  logsCount: number;
+  metricsCount: number;
+  performanceIssuesCount: number;
+  spansCount: number;
+  spansCountMap: Record<string, number>;
+  transactionChildCountMap: Record<string, number>;
+  transactionsCount: number;
+  uptimeCount: number;
 };

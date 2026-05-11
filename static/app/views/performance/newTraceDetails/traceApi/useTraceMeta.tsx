@@ -34,7 +34,11 @@ type TraceMetaQueryParams =
     };
 
 function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
-  return meta.span_count === 0 && meta.errors === 0 && meta.performance_issues === 0;
+  return (
+    getTraceMetaSpanCount(meta) === 0 &&
+    getTraceMetaErrorCount(meta) === 0 &&
+    getTraceMetaPerformanceIssueCount(meta) === 0
+  );
 }
 
 function getMetaQueryParams(
@@ -58,12 +62,63 @@ function getMetaQueryParams(
   };
 }
 
-// export function isEAPTraceMeta(
-//   meta: TraceMeta | EAPTraceMeta | undefined
-// ): meta is EAPTraceMeta {
-//   if (!meta) return false;
-//   return 'uptime_checks' in meta && !('transactions' in meta);
-// }
+type MetaArg = TraceMeta | EAPTraceMeta | null | undefined;
+
+export function isEAPTraceMeta(meta: MetaArg): meta is EAPTraceMeta {
+  if (!meta) return false;
+  return 'uptimeCount' in meta && !('transactions' in meta);
+}
+
+export function getTraceMetaErrorCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? meta.errorsCount : meta.errors;
+}
+
+export function getTraceMetaPerformanceIssueCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? meta.performanceIssuesCount : meta.performance_issues;
+}
+
+export function getTraceMetaSpanCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? meta.spansCount : meta.span_count;
+}
+
+export function getTraceMetaLogsCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? meta.logsCount : undefined;
+}
+
+export function getTraceMetaTransactionChildCountMap(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta)
+    ? meta.transactionChildCountMap
+    : meta.transaction_child_count_map;
+}
+
+function mergeCountMap(acc: Record<string, number>, value: Record<string, number>): void {
+  Object.entries(value).forEach(([key, count]) => {
+    acc[key] = (acc[key] ?? 0) + count;
+  });
+}
+
+type TransactionChildCountMap =
+  | Record<string, number>
+  | Array<{count: number; 'transaction.id': string}>;
+
+function mergeTransactionChildCountMap(
+  acc: Record<string, number>,
+  value: TransactionChildCountMap
+): void {
+  if (Array.isArray(value)) {
+    value.forEach(({'transaction.id': id, count}) => {
+      acc[id] = (acc[id] ?? 0) + count;
+    });
+    return;
+  }
+
+  mergeCountMap(acc, value);
+}
 
 async function fetchTraceMetaInBatches(
   type: 'non-eap' | 'eap',
@@ -78,13 +133,15 @@ async function fetchTraceMetaInBatches(
   const meta: TraceMeta | EAPTraceMeta =
     type === 'eap'
       ? {
-          errors: 0,
-          logs: 0,
-          performance_issues: 0,
-          span_count: 0,
-          span_count_map: {},
-          transaction_child_count_map: {},
-          uptime_checks: 0,
+          errorsCount: 0,
+          logsCount: 0,
+          metricsCount: 0,
+          performanceIssuesCount: 0,
+          spansCount: 0,
+          spansCountMap: {},
+          transactionChildCountMap: {},
+          transactionsCount: 0,
+          uptimeCount: 0,
         }
       : {
           errors: 0,
@@ -134,33 +191,41 @@ async function fetchTraceMetaInBatches(
 
     results.reduce((acc, result) => {
       if (result.status === 'fulfilled') {
+        if (isEAPTraceMeta(acc)) {
+          if (!isEAPTraceMeta(result.value)) {
+            return acc;
+          }
+
+          acc.errorsCount += result.value.errorsCount;
+          acc.logsCount += result.value.logsCount;
+          acc.metricsCount += result.value.metricsCount;
+          acc.performanceIssuesCount += result.value.performanceIssuesCount;
+          acc.spansCount += result.value.spansCount;
+          acc.transactionsCount += result.value.transactionsCount;
+          acc.uptimeCount += result.value.uptimeCount;
+          mergeCountMap(acc.spansCountMap, result.value.spansCountMap);
+          mergeTransactionChildCountMap(
+            acc.transactionChildCountMap,
+            result.value.transactionChildCountMap
+          );
+
+          return acc;
+        }
+
+        if (isEAPTraceMeta(result.value)) {
+          return acc;
+        }
+
         acc.errors += result.value.errors;
         acc.performance_issues += result.value.performance_issues;
-
-        if ('projects' in acc && 'projects' in result.value) {
-          acc.projects = Math.max(acc.projects, result.value.projects);
-        }
-        if ('transactions' in acc && 'transactions' in result.value) {
-          acc.transactions += result.value.transactions;
-        }
-        if ('logs' in acc && 'logs' in result.value) {
-          acc.logs += result.value.logs;
-        }
-
-        // Turn the transaction_child_count_map array into a map of transaction id to child count
-        // for more efficient lookups.
-        if (Array.isArray(result.value.transaction_child_count_map)) {
-          result.value.transaction_child_count_map.forEach(
-            ({'transaction.id': id, count}: any) => {
-              acc.transaction_child_count_map[id] = count;
-            }
-          );
-        }
-
+        acc.projects = Math.max(acc.projects, result.value.projects);
+        acc.transactions += result.value.transactions;
         acc.span_count += result.value.span_count;
-        Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
-          acc.span_count_map[span_op] = (acc.span_count_map[span_op] ?? 0) + count;
-        });
+        mergeCountMap(acc.span_count_map, result.value.span_count_map);
+        mergeTransactionChildCountMap(
+          acc.transaction_child_count_map,
+          result.value.transaction_child_count_map
+        );
       } else {
         apiErrors.push(new Error(result?.reason));
       }
@@ -251,13 +316,15 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
       isLoading: false,
       data: isEAP
         ? {
-            errors: 0,
-            logs: 0,
-            performance_issues: 0,
-            span_count: 0,
-            span_count_map: {},
-            transaction_child_count_map: {},
-            uptime_checks: 0,
+            errorsCount: 0,
+            logsCount: 0,
+            metricsCount: 0,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+            spansCountMap: {},
+            transactionChildCountMap: {},
+            transactionsCount: 0,
+            uptimeCount: 0,
           }
         : {
             errors: 0,
