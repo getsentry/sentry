@@ -239,6 +239,19 @@ describe('traceItemAttributeKeysOptions', () => {
 });
 
 describe('getTraceItemTagCollection', () => {
+  it('preserves plain tags with @ in the tag name', () => {
+    const key = 'custom.metric@primary';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.MEASUREMENT,
+        secondaryAliases: [],
+      },
+    });
+  });
+
   it('preserves wrapped number tags with @ in the tag name', () => {
     const key = 'tags[custom.metric@primary,number]';
 
