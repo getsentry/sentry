@@ -161,7 +161,10 @@ describe('AddCodeOwnerModal', () => {
       })
     );
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add File'}));
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Add File'})).toBeEnabled();
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Add File'}));
 
     await waitFor(() => {
       expect(addFileRequest).toHaveBeenCalledWith(
