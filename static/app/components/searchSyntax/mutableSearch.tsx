@@ -400,11 +400,7 @@ export class MutableSearch {
       if (value === EMPTY_OPTION_VALUE) {
         query.addFilterValue('!has', key);
       } else if (Array.isArray(value)) {
-        query.addFilterValues(
-          key,
-          value.map(v => String(v)),
-          !ALLOWED_WILDCARD_FIELDS.has(key)
-        );
+        query.addFilterValues(key, value.map(String), !ALLOWED_WILDCARD_FIELDS.has(key));
       } else {
         query.addFilterValue(key, String(value), !ALLOWED_WILDCARD_FIELDS.has(key));
       }

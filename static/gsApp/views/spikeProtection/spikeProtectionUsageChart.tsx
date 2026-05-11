@@ -159,8 +159,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
       return chartSeries;
     }
     if (spikeThresholds) {
-      chartSeries.push(this.spikeThresholdSeries);
-      chartSeries.push(this.spikeRegionSeries);
+      chartSeries.push(this.spikeThresholdSeries, this.spikeRegionSeries);
     }
     return chartSeries;
   }

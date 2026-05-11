@@ -24,6 +24,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.autofix.utils import CodingAgentState as LegacyCodingAgentState
 from sentry.seer.entrypoints.operator import (
     AUTOFIX_FALLBACK_CAUSE_ID,
+    SeerAgentOperator,
     SeerAutofixOperator,
     SeerOperatorCompletionHook,
     get_autofix_explorer_status,
@@ -1161,3 +1162,65 @@ class TestSeerOperatorCompletionHook(TestCase):
             summary=None,
             run_id=MOCK_RUN_ID,
         )
+
+
+class TestSeerAgentOperatorCodeMode(TestCase):
+    def setUp(self) -> None:
+        self.entrypoint = MockAgentEntrypoint()
+        self.operator = SeerAgentOperator(self.entrypoint)
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_code_mode_enabled(self, mock_client_cls):
+        mock_client = Mock()
+        mock_client.get_runs.return_value = []
+        mock_client.start_run.return_value = 1
+        mock_client_cls.return_value = mock_client
+
+        with self.feature("organizations:seer-slack-code-mode"):
+            self.operator.trigger_agent(
+                organization=self.organization,
+                user=self.user,
+                prompt="hi",
+                category_key="slack_thread",
+                category_value="thread-123",
+            )
+
+        mock_client_cls.assert_called_once()
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "only"
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_code_mode_disabled(self, mock_client_cls):
+        mock_client = Mock()
+        mock_client.get_runs.return_value = []
+        mock_client.start_run.return_value = 1
+        mock_client_cls.return_value = mock_client
+
+        self.operator.trigger_agent(
+            organization=self.organization,
+            user=self.user,
+            prompt="hi",
+            category_key="slack_thread",
+            category_value="thread-123",
+        )
+
+        mock_client_cls.assert_called_once()
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_non_slack_category_ignores_flag(self, mock_client_cls):
+        mock_client = Mock()
+        mock_client.get_runs.return_value = []
+        mock_client.start_run.return_value = 1
+        mock_client_cls.return_value = mock_client
+
+        with self.feature("organizations:seer-slack-code-mode"):
+            self.operator.trigger_agent(
+                organization=self.organization,
+                user=self.user,
+                prompt="hi",
+                category_key="other_category",
+                category_value="val-123",
+            )
+
+        mock_client_cls.assert_called_once()
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
