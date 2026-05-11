@@ -132,28 +132,24 @@ function _handleObj(stack: JsonToken[], curStep: JsonToken): void {
 function _handleArr(stack: JsonToken[], curStep: JsonToken): void {
   // Initial array
   if (!curStep) {
-    stack.push(ARR);
-    stack.push(ARR_VAL);
+    stack.push(ARR, ARR_VAL);
     return;
   }
 
   // New array as obj value
   if (curStep === OBJ_VAL) {
-    stack.push(ARR);
-    stack.push(ARR_VAL);
+    stack.push(ARR, ARR_VAL);
     return;
   }
 
   // New array as array element
   if (curStep === ARR_VAL) {
-    stack.push(ARR);
-    stack.push(ARR_VAL);
+    stack.push(ARR, ARR_VAL);
   }
 
   // New array as first array element
   if (curStep === ARR) {
-    stack.push(ARR);
-    stack.push(ARR_VAL);
+    stack.push(ARR, ARR_VAL);
     return;
   }
 }

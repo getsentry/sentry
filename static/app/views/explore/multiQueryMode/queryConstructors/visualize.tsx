@@ -23,6 +23,7 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 type Props = {
   index: number;
@@ -82,7 +83,15 @@ export function VisualizeSection({query, index}: Props) {
             }}
           />
           <CompactSelect
-            search
+            search={{
+              filter: (option, searchText) => {
+                return sortSearchedAttributes({
+                  fieldDefinitionType: TraceItemDataset.SPANS,
+                  option,
+                  searchText,
+                });
+              },
+            }}
             options={options}
             value={parsedFunction?.arguments?.[0] ?? ''}
             onChange={newField => {

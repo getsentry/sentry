@@ -14,6 +14,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isPolling: false,
   isError: false,
   errorStatusCode: null,
+  isTimedOut: false,
   runId: null,
   overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
@@ -205,6 +206,25 @@ describe('ExplorerDrawerContent', () => {
       expect(textarea).toHaveValue('Test message');
     });
 
+    it('calls sendMessage and clears input when send button is clicked', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessage,
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'Test message');
+      await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+
+      expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
+      expect(textarea).toHaveValue('');
+    });
+
     it('calls sendMessage and clears input when Enter is pressed', async () => {
       const sendMessage = jest.fn();
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
@@ -220,7 +240,7 @@ describe('ExplorerDrawerContent', () => {
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
-      expect(sendMessage).toHaveBeenCalledWith('Test message');
+      expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
       expect(textarea).toHaveValue('');
     });
 
@@ -329,6 +349,49 @@ describe('ExplorerDrawerContent', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('sends message with correct index when session has existing blocks', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessage,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'First message'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'msg-2',
+              message: {role: 'assistant', content: 'First response'},
+              timestamp: '2024-01-01T00:01:00Z',
+              loading: false,
+            },
+            {
+              id: 'msg-3',
+              message: {role: 'user', content: 'Second message'},
+              timestamp: '2024-01-01T00:02:00Z',
+              loading: false,
+            },
+          ],
+          run_id: 123,
+          status: 'completed',
+          updated_at: '2024-01-01T00:02:00Z',
+        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'New message');
+      await userEvent.keyboard('{Enter}');
+
+      expect(sendMessage).toHaveBeenCalledWith('New message', 3);
     });
   });
 

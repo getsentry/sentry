@@ -30,7 +30,7 @@ type SeerExplorerContextValue = {
   toggleSeerExplorer: () => void;
 };
 
-export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
+const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
   openSeerExplorer: () => {},

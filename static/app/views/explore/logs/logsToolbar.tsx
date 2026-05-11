@@ -327,6 +327,7 @@ function VisualizeDropdown({
       onClose={onClose}
       onSearch={onSearch}
       loading={loading}
+      fieldDefinitionType="log"
     />
   );
 }
