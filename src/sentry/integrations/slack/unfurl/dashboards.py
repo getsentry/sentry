@@ -13,7 +13,8 @@ from django.http.request import QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
-from sentry.api.endpoints.timeseries import TimeSeries
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.dashboard import DashboardWidgetSerializer
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.messaging.metrics import (
@@ -156,9 +157,14 @@ def _unfurl_dashboards(
         if not per_query_params:
             continue
 
-        combined_time_series: list[TimeSeries] = []
+        # ``[ts, widget_query_index]`` tuples. A single widget query can yield
+        # multiple ``TimeSeries`` (multi-aggregate, ``yAxis=[...]``, grouped
+        # queries with ``topEvents``) so we tag each one with the index of
+        # the query that produced it; chartcuterie uses that to pair each
+        # series with its widget query and render the FE-equivalent legend.
+        combined_time_series: list[list[Any]] = []
         request_failed = False
-        for params in per_query_params:
+        for query_index, params in enumerate(per_query_params):
             try:
                 resp = client.get(
                     auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
@@ -171,19 +177,20 @@ def _unfurl_dashboards(
                 request_failed = True
                 break
 
-            combined_time_series.extend(resp.data.get("timeSeries", []))
+            for ts in resp.data.get("timeSeries", []):
+                combined_time_series.append([ts, query_index])
 
         if request_failed:
             continue
 
         chart_data: dict[str, Any] = {
             "timeSeries": combined_time_series,
-            "type": display_type,
+            "widget": serialize(widget, user, DashboardWidgetSerializer()),
         }
 
         try:
             url = charts.generate_chart(
-                ChartType.SLACK_TIMESERIES, chart_data, size=DASHBOARDS_CHART_SIZE
+                ChartType.SLACK_DASHBOARDS_WIDGET, chart_data, size=DASHBOARDS_CHART_SIZE
             )
         except RuntimeError:
             _logger.warning("Failed to generate chart for dashboards unfurl")
