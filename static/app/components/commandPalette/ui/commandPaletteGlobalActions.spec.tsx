@@ -1,4 +1,6 @@
-jest.unmock('lodash/debounce');
+// Use a synchronous passthrough for debounce so command palette search results
+// render immediately without the real 300ms delay, avoiding timing-sensitive flakiness.
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
@@ -112,7 +114,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
-  it.isKnownFlake(
+  it(
     'shows a "Current Project" tag on the active project entry',
     async () => {
       render(
@@ -136,7 +138,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it.isKnownFlake(
+  it(
     'places the current route project first when on a :projectId route',
     async () => {
       render(
