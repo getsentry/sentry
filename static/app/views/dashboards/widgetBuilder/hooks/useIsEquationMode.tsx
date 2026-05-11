@@ -29,6 +29,10 @@ export function useIsEquationMode(): [boolean, (next: boolean) => void] {
   });
 
   useEffect(() => {
+    if (!canUseMetricsEquationsInDashboards(organization)) {
+      return;
+    }
+
     const aggregateSource = getTraceMetricAggregateSource(
       state.displayType,
       state.yAxis,
