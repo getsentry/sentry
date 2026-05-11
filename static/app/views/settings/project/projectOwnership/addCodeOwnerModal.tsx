@@ -238,6 +238,8 @@ function CodeownersFileStatus({
 }) {
   const {data: codeownersFile} = useCodeownersFile(organization, codeMappingId);
   const rawError = mutationError?.responseJSON?.raw;
+  const firstRawError =
+    Array.isArray(rawError) && typeof rawError[0] === 'string' ? rawError[0] : undefined;
 
   return (
     <Fragment>
@@ -248,12 +250,12 @@ function CodeownersFileStatus({
           <NoSourceFile />
         )}
       </Container>
-      {mutationIsError && typeof rawError === 'string' ? (
+      {mutationIsError && firstRawError ? (
         <ErrorMessage
           baseUrl={`/settings/${organization.slug}/integrations/`}
           codeMappingId={codeMappingId}
           codeMappings={codeMappings}
-          rawError={rawError}
+          rawError={firstRawError}
         />
       ) : null}
     </Fragment>
@@ -395,7 +397,7 @@ function ErrorMessage({
   rawError: string;
 }) {
   const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
-  const errActors = rawError[0]!.split('\n').map((el, i) => (
+  const errActors = rawError.split('\n').map((el, i) => (
     <Text as="p" key={i}>
       {el}
     </Text>
