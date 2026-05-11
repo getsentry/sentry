@@ -290,12 +290,7 @@ function AddFileButton({
   };
 
   return (
-    <Button
-      disabled={!codeownersFile}
-      aria-label={t('Add File')}
-      variant="primary"
-      onClick={addFile}
-    >
+    <Button disabled={!codeownersFile} variant="primary" onClick={addFile}>
       {t('Add File')}
     </Button>
   );
@@ -350,7 +345,7 @@ function LinkCodeOwners({organization}: {organization: Organization}) {
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
       <Flex justify="center" paddingTop="xl">
         <LinkButton variant="primary" size="sm" to={baseUrl}>
-          Setup Integration
+          {t('Setup Integration')}
         </LinkButton>
       </Flex>
     </Fragment>
@@ -420,7 +415,7 @@ function ErrorMessage({
         )}
         {tct(
           '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
-          {addAndSkip: <strong>Add and Skip Missing Associations</strong>}
+          {addAndSkip: <strong />}
         )}
       </Alert>
     </Alert.Container>
