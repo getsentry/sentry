@@ -25,7 +25,7 @@ function mockContext({prNumber = 123, headSha = 'abc123'} = {}) {
   };
 }
 
-function makeGithub({fail = false, failTimes = 0} = {}) {
+function makeGithub({failUntilAttempt = 0} = {}) {
   const calls = [];
   let callCount = 0;
   return {
@@ -35,7 +35,7 @@ function makeGithub({fail = false, failTimes = 0} = {}) {
         createWorkflowDispatch: async params => {
           callCount++;
           calls.push(params);
-          if (fail || callCount <= failTimes) {
+          if (callCount <= failUntilAttempt) {
             throw new Error('GitHub API error');
           }
         },
@@ -44,15 +44,12 @@ function makeGithub({fail = false, failTimes = 0} = {}) {
   };
 }
 
-// Speed up retry delays for tests
 const REAL_SET_TIMEOUT = globalThis.setTimeout;
 
 function withFastRetries(fn) {
-  // Patch setTimeout to resolve immediately so retry delays don't slow tests
-  const orig = globalThis.setTimeout;
   globalThis.setTimeout = (cb, _delay) => REAL_SET_TIMEOUT(cb, 0);
   return fn().finally(() => {
-    globalThis.setTimeout = orig;
+    globalThis.setTimeout = REAL_SET_TIMEOUT;
   });
 }
 
@@ -146,7 +143,7 @@ describe('dispatch', () => {
   });
 
   it('retries on transient failure and eventually succeeds', async () => {
-    const github = makeGithub({failTimes: 1});
+    const github = makeGithub({failUntilAttempt: 1});
     const core = mockCore();
     await withFastRetries(() =>
       dispatch({
@@ -167,7 +164,7 @@ describe('dispatch', () => {
   });
 
   it('throws after exhausting all retries', async () => {
-    const github = makeGithub({fail: true});
+    const github = makeGithub({failUntilAttempt: Infinity});
     const core = mockCore();
     await assert.rejects(
       () =>
