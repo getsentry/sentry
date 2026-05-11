@@ -76,6 +76,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   description?: ReactNode;
   filterValue?: string;
   /**
+   * When tab-only, a focused option override is shown visually and may be
+   * accepted with Tab, but Enter continues to commit the typed input value.
+   */
+  focusedKeyOverrideBehavior?: 'focus' | 'tab-only';
+  /**
    * Whether the combobox is loading async items.
    * When true, a loading indicator will be displayed in the dropdown.
    */
@@ -415,6 +420,7 @@ export function SearchQueryBuilderCombobox<
   maxOptions,
   shouldFilterResults = true,
   shouldFocusFirstOptionOnInputChange = false,
+  focusedKeyOverrideBehavior = 'focus',
   shouldCloseOnInteractOutside,
   onPaste,
   onClick,
@@ -539,7 +545,8 @@ export function SearchQueryBuilderCombobox<
       onKeyUp,
     },
     state,
-    focusedKeyOverride
+    focusedKeyOverride,
+    focusedKeyOverrideBehavior
   );
 
   // Reset the focused key when the user types in the input.

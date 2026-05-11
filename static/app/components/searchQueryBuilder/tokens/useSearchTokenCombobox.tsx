@@ -26,7 +26,8 @@ import {t} from 'sentry/locale';
 export function useSearchTokenCombobox<T>(
   props: Parameters<typeof useComboBox<T>>[0],
   state: Parameters<typeof useComboBox<T>>[1],
-  focusedKeyOverride?: Key | null
+  focusedKeyOverride?: Key | null,
+  focusedKeyOverrideBehavior: 'focus' | 'tab-only' = 'focus'
 ): Pick<ReturnType<typeof useComboBox<T>>, 'inputProps' | 'listBoxProps' | 'labelProps'> {
   const {
     popoverRef,
@@ -87,21 +88,37 @@ export function useSearchTokenCombobox<T>(
     }
     switch (e.key) {
       case 'Enter':
-      case 'Tab':
-        // Prevent form submission if menu is open since we may be selecting a option
-        if (state.isOpen && e.key === 'Enter') {
+        // Prevent form submission if menu is open since we may be selecting an option
+        if (state.isOpen) {
           e.preventDefault();
         }
 
-        if (focusedKeyOverride !== null && focusedKeyOverride !== undefined) {
-          if (state.isOpen && e.key === 'Tab') {
-            e.preventDefault();
-          }
+        if (
+          focusedKeyOverrideBehavior === 'focus' &&
+          focusedKeyOverride !== null &&
+          focusedKeyOverride !== undefined
+        ) {
           state.selectionManager.setFocused(true);
           state.selectionManager.setFocusedKey(focusedKeyOverride);
+          state.commit();
+        } else if (state.selectionManager.focusedKey !== null) {
+          state.commit();
         }
-        state.commit();
         break;
+      case 'Tab': {
+        const keyToCommit = focusedKeyOverride ?? state.selectionManager.focusedKey;
+        if (state.isOpen && keyToCommit !== null && keyToCommit !== undefined) {
+          e.preventDefault();
+
+          if (focusedKeyOverride !== null && focusedKeyOverride !== undefined) {
+            state.selectionManager.setFocused(true);
+            state.selectionManager.setFocusedKey(focusedKeyOverride);
+          }
+
+          state.commit();
+        }
+        break;
+      }
       case 'Escape':
         if (
           state.selectedKey !== null ||
@@ -175,7 +192,10 @@ export function useSearchTokenCombobox<T>(
     'aria-labelledby': props['aria-labelledby'] || labelProps.id,
   });
 
-  const focusedKey = focusedKeyOverride ?? state.selectionManager.focusedKey;
+  const focusedKey =
+    focusedKeyOverrideBehavior === 'focus'
+      ? (focusedKeyOverride ?? state.selectionManager.focusedKey)
+      : state.selectionManager.focusedKey;
   const focusedItem =
     focusedKey !== null && state.isOpen
       ? state.collection.getItem(focusedKey)
