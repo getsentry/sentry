@@ -102,8 +102,10 @@ describe('SentryAppExternalFormNew', () => {
 
     await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'project A');
 
-    await waitFor(() => expect(boardRequest).toHaveBeenCalledTimes(1));
+    // The BFS fetches issue-types only after boards resolves with a default,
+    // so waiting on the transitive call implies the parent fetch already ran.
     await waitFor(() => expect(issueTypeRequest).toHaveBeenCalledTimes(1));
+    expect(boardRequest).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText('board R')).toBeInTheDocument();
     expect(screen.getByText('Bug')).toBeInTheDocument();
