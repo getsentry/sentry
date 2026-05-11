@@ -628,6 +628,12 @@ def create_schema_from_issue_owners(
             {"raw": f"Parse error: {rule_name} (line {e.line()}, column {e.column()})"}
         )
 
+    for rule in rules:
+        if not rule.owners and rule.matcher.type != CODEOWNERS:
+            raise ValidationError(
+                {"raw": f"Missing owner in rule: {rule.matcher.type}:{rule.matcher.pattern}"}
+            )
+
     schema = dump_schema(rules)
 
     owners = {o for rule in rules for o in rule.owners}

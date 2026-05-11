@@ -231,18 +231,18 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
     def test_get_owners_codeowners_exclusion_overridden_by_later_rule(self) -> None:
-        self.code_mapping = self.create_code_mapping(project=self.project)
+        code_mapping = self.create_code_mapping(project=self.project2)
 
         rule_a = Rule(Matcher("codeowners", "/apps/"), [Owner("team", self.team.slug)])
         rule_exclusion = Rule(Matcher("codeowners", "/apps/github"), [])
         rule_c = Rule(
-            Matcher("codeowners", "/apps/github/special"), [Owner("team", self.team.slug)]
+            Matcher("codeowners", "/apps/github/special"), [Owner("team", self.team2.slug)]
         )
 
         self.create_codeowners(
-            self.project,
-            self.code_mapping,
-            raw="/apps/ @tiger-team\n/apps/github\n/apps/github/special @tiger-team\n",
+            self.project2,
+            code_mapping,
+            raw="/apps/ @tiger-team\n/apps/github\n/apps/github/special @dolphin-team\n",
             schema=dump_schema([rule_a, rule_exclusion, rule_c]),
         )
 
@@ -250,11 +250,14 @@ class ProjectOwnershipTestCase(TestCase):
         # so exclusion logic doesn't activate. All matching rules are returned.
         self.assert_ownership_equals(
             ProjectOwnership.get_owners(
-                self.project.id,
+                self.project2.id,
                 {"stacktrace": {"frames": [{"filename": "apps/github/special/foo.py"}]}},
             ),
             (
-                [Actor(id=self.team.id, actor_type=ActorType.TEAM)],
+                [
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.team2.id, actor_type=ActorType.TEAM),
+                ],
                 [rule_a, rule_exclusion, rule_c],
             ),
         )
