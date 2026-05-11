@@ -156,7 +156,7 @@ function IssueListOverviewInner({
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const organizationUsersProjectIds = useMemo(
-    () => selection.projects.map(projectId => String(projectId)),
+    () => selection.projects.map(String),
     [selection.projects]
   );
   const {data: memberList = {}} = useQuery({

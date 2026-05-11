@@ -309,7 +309,7 @@ def _apply_page_filters(
     # project: URL wins. Otherwise fall back to the dashboard's projects.
     # An unconfigured dashboard (no projects, no all_projects) omits the
     # param so the API defaults to "My Projects", matching the dashboard FE.
-    project_values = url_params.getlist("project")
+    project_values = [project for project in url_params.getlist("project") if project]
     if not project_values:
         project_values = [str(p) for p in dashboard_filters.get("projects") or []]
     if project_values:
@@ -317,7 +317,7 @@ def _apply_page_filters(
 
     # environment: URL wins. Otherwise fall back to dashboard, or omit (no
     # filter) to match the FE default of "All Environments".
-    env_values = url_params.getlist("environment")
+    env_values = [environment for environment in url_params.getlist("environment") if environment]
     if not env_values:
         env_values = list(dashboard_filters.get("environment") or [])
     if env_values:
@@ -370,10 +370,12 @@ def _dashboard_filter_conditions(
     Storage uses snake_case (``global_filter``); URL params use camelCase
     (``globalFilter``), each value JSON-encoded.
     """
-    url_release = url_params.getlist("release")
+    url_release = [release for release in url_params.getlist("release") if release]
     release = url_release if url_release else list(dashboard_filters.get("release") or [])
 
-    url_global = url_params.getlist("globalFilter")
+    url_global = [
+        global_filter for global_filter in url_params.getlist("globalFilter") if global_filter
+    ]
     if url_global:
         global_filters: list[dict[str, Any]] = []
         for raw in url_global:

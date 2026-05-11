@@ -8,6 +8,8 @@ describe('formatApdex', () => {
     [0.781, '0.781'],
     [0.771231, '0.771'],
     [0.99999, '0.999'],
+    [1, '1'],
+    // eslint-disable-next-line unicorn/no-zero-fractions
     [1.0, '1'],
   ])('%s', (value, expected) => {
     expect(formatApdex(value)).toEqual(expected);
