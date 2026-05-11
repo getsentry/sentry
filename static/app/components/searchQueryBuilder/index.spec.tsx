@@ -1135,7 +1135,7 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('option', {name: 'assigned'})).toBeInTheDocument();
     });
 
-    it('focuses the first matching search term item when typing', async () => {
+    it('does not focus the first matching search term item when typing', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
       const input = screen.getByRole('combobox', {name: 'Add a search term'});
 
@@ -1145,8 +1145,24 @@ describe('SearchQueryBuilder', () => {
       const browserNameOption = await screen.findByRole('option', {
         name: 'browser.name',
       });
+      expect(input).not.toHaveAttribute('aria-activedescendant', browserNameOption.id);
+    });
+
+    it('commits the typed search term when pressing enter with a suggested key', async () => {
+      const mockOnSearch = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'brow');
+      expect(
+        await screen.findByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+
+      await userEvent.keyboard('{Enter}');
+
       await waitFor(() => {
-        expect(input).toHaveAttribute('aria-activedescendant', browserNameOption.id);
+        expect(mockOnSearch).toHaveBeenCalledWith('brow', expect.anything());
       });
     });
 

@@ -696,6 +696,7 @@ function SearchQueryBuilderInputInternal({
         }}
         onClick={onClick}
         shouldFocusFirstOptionOnInputChange={shouldFocusFirstOptionOnInputChange}
+        focusedKeyOverrideBehavior="tab-only"
         data-test-id={
           state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
         }
