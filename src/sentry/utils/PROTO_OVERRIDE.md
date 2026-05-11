@@ -49,11 +49,15 @@ from sentry_protos.billing.v1.data_category_pb2 import DataCategory
 
 When you edit a `.proto` file, the loader detects the mtime change and recompiles automatically on next import. No restart needed (unless the module was already loaded in the current process).
 
+### CI
+
+The `setup-sentry` GitHub Action pre-compiles protos after `fast_editable` and before tests. This avoids xdist workers racing to compile the same files at import time. The step is conditional on `proto/sentry_protos/` existing.
+
 ### Production
 
 Pre-compilation happens in the **getsentry Dockerfile** (`js-builder` stage), not in this repo. The build step installs `grpcio-tools`, compiles protos from `proto/` into `.proto_cache/`, then removes `grpcio-tools`. The final image only contains pre-compiled `_pb2.py` files — no compiler toolchain.
 
-At runtime, `install()` (called in `runner/initializer.py` before `django.setup()`) serves the pre-compiled files from `.proto_cache/`. No compilation happens at runtime, and `grpcio-tools` is not in the production image.
+At runtime, `install()` (called in `runner/initializer.py` before `django.setup()`) serves the pre-compiled files from `.proto_cache/`. No compilation happens at runtime.
 
 ### Existing imports don't change
 
