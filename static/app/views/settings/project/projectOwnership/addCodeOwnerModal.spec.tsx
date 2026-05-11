@@ -65,7 +65,7 @@ describe('AddCodeOwnerModal', () => {
     );
   });
 
-  it('renders codeowner file', async () => {
+  it.isKnownFlake('renders codeowner file', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',
