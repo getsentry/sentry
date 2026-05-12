@@ -14,6 +14,8 @@ from sentry.seer.entrypoints.slack.tasks import (
     _build_inaccessible_links_renderable,
     process_mention_for_slack,
 )
+
+SLACK_CONTEXT_PREFIX = "You are responding to a user's message in Slack."
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import (
@@ -77,7 +79,7 @@ class ProcessMentionForSlackTest(TestCase):
         assert call_kwargs["organization"] == self.organization
         assert call_kwargs["user"] is mock_user
         assert call_kwargs["prompt"] == "What is causing this issue?"
-        assert call_kwargs["on_page_context"] is None
+        assert SLACK_CONTEXT_PREFIX in call_kwargs["on_page_context"]
         assert call_kwargs["category_key"] == "slack_thread"
         assert call_kwargs["category_value"] == "C1234567890:1234567890.123456"
 
@@ -295,7 +297,7 @@ class ProcessMentionForSlackTest(TestCase):
 
         mock_entrypoint.install.get_thread_history.assert_not_called()
         call_kwargs = mock_operator.trigger_agent.call_args[1]
-        assert call_kwargs["on_page_context"] is None
+        assert SLACK_CONTEXT_PREFIX in call_kwargs["on_page_context"]
 
     @patch("sentry.analytics.record")
     @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users")
@@ -628,7 +630,9 @@ class LinkedMessagesContextTest(TestCase):
 
         # We didn't try to fetch the message from a private channel.
         self.mock_entrypoint.install.get_thread_history.assert_not_called()
-        assert self.mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
+        assert (
+            SLACK_CONTEXT_PREFIX in self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        )
 
         renderable_text = self.mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
             "renderable"
@@ -651,7 +655,9 @@ class LinkedMessagesContextTest(TestCase):
             inclusive=True,
             limit=1,
         )
-        assert self.mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
+        assert (
+            SLACK_CONTEXT_PREFIX in self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        )
 
         self.mock_entrypoint.install.send_threaded_ephemeral_message.assert_called_once()
         call_kwargs = self.mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1]
@@ -733,7 +739,9 @@ class LinkedMessagesContextTest(TestCase):
 
         self.mock_entrypoint.install.get_thread_history.assert_not_called()
         self.mock_entrypoint.install.send_threaded_ephemeral_message.assert_not_called()
-        assert self.mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
+        assert (
+            SLACK_CONTEXT_PREFIX in self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        )
 
 
 class BuildInaccessibleLinksRenderableTest(TestCase):
