@@ -7,7 +7,6 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
 import {defaultMode} from 'sentry/views/explore/queryParams/mode';
-import {defaultQuery} from 'sentry/views/explore/queryParams/query';
 import {
   ReadableQueryParams,
   type ReadableQueryParamsOptions,
@@ -32,7 +31,7 @@ export function ExploreStateQueryParamsProvider({
   frozenParams,
 }: ExploreStateQueryParamsProviderProps) {
   const [mode, _setMode] = useState(defaultMode());
-  const [query, setQuery] = useResettableState(defaultQuery);
+  const [query, setQuery] = useResettableState(() => '');
 
   const [cursor, _setCursor] = useState(defaultCursor());
   const [fields, _setFields] = useState(defaultFields());
