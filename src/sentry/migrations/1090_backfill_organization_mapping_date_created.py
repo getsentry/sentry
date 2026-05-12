@@ -70,7 +70,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1088_remove_rulefirehistory"),
+        ("sentry", "1089_drop_rulefirehistory"),
     ]
 
     operations = [
