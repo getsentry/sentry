@@ -207,7 +207,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   </RequestStateMessageContainer>
                 ) : status === 'error' && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
-                    <Stack align="center" gap="xs" role="alert">
+                    <Stack align="center" gap="md" role="alert">
                       <Text bold>{t('Error loading flamegraph')}</Text>
                       <Text>
                         {getRequestErrorUserMessage(
