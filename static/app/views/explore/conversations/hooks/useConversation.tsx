@@ -261,7 +261,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage,
+    isLoading: isLoading || isFetchingNextPage || hasNextPage,
     error: isError,
   };
 }
