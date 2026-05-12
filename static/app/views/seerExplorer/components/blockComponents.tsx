@@ -176,14 +176,14 @@ export function BlockComponent({
       block.tool_links || [],
       block.tool_results || [],
       block.message.tool_calls || [],
-      organization.slug,
+      organization,
       projects
     );
   }, [
     block.tool_links,
     block.tool_results,
     block.message.tool_calls,
-    organization.slug,
+    organization,
     projects,
   ]);
 
@@ -229,7 +229,7 @@ export function BlockComponent({
         aria-label={ariaLabel}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         disabled={feedbackSubmitted}
-        priority="transparent"
+        variant="transparent"
         size="xs"
         tooltipProps={{
           title: feedbackSubmitted
@@ -364,7 +364,7 @@ export function BlockComponent({
                     const toolUrl = hasLink
                       ? buildToolLinkUrl(
                           sortedToolLinks[correspondingLinkIndex],
-                          organization.slug,
+                          organization,
                           projects
                         )
                       : null;
@@ -430,7 +430,7 @@ export function BlockComponent({
               <Button
                 aria-label={t('Copy block content')}
                 icon={<IconCopy />}
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 tooltipProps={{title: t('Copy to clipboard')}}
                 onClick={handleCopyClick}

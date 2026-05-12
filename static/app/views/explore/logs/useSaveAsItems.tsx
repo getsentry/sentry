@@ -242,9 +242,7 @@ export function useSaveAsItems({
   return useMemo(() => {
     const saveAs = [];
     if (isLogsEnabled(organization)) {
-      saveAs.push(...saveAsQuery);
-      saveAs.push(saveAsAlert);
-      saveAs.push(saveAsDashboard);
+      saveAs.push(...saveAsQuery, saveAsAlert, saveAsDashboard);
     }
     return saveAs;
   }, [organization, saveAsQuery, saveAsAlert, saveAsDashboard]);

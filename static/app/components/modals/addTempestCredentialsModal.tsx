@@ -1,12 +1,17 @@
-import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {AddTempestCredentialsForm} from 'sentry/views/settings/project/tempest/addTempestCredentialsForm';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 
 interface Props extends ModalRenderProps {
@@ -15,32 +20,83 @@ interface Props extends ModalRenderProps {
   project: Project;
 }
 
-export default function AddCredentialsModal({Body, Header, ...props}: Props) {
-  const {closeModal, organization, project, origin} = props;
+const schema = z.object({
+  clientId: z.string().min(1, t('Client ID is required')),
+  clientSecret: z.string().min(1, t('Client Secret is required')),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+export default function AddCredentialsModal({
+  closeModal,
+  organization,
+  origin,
+  project,
+  Header,
+  Body,
+  Footer,
+}: Props) {
   const {invalidateCredentialsCache} = useFetchTempestCredentials(organization, project);
 
-  const onSuccess = () => {
-    addSuccessMessage(t('Credentials submitted successfully'));
-    invalidateCredentialsCache();
-    closeModal();
-    trackAnalytics('tempest.credentials.added', {
-      organization,
-      project_slug: project.slug,
-      origin,
-    });
-  };
+  const mutation = useMutation({
+    mutationFn: (data: FormValues) =>
+      fetchMutation({
+        url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/`,
+        method: 'POST',
+        data,
+      }),
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {clientId: '', clientSecret: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value, formApi}) =>
+      mutation
+        .mutateAsync(value)
+        .then(() => {
+          addSuccessMessage(t('Credentials submitted successfully'));
+          invalidateCredentialsCache();
+          trackAnalytics('tempest.credentials.added', {
+            organization,
+            project_slug: project.slug,
+            origin,
+          });
+          closeModal();
+        })
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          } else {
+            addErrorMessage(t('Unable to add credentials'));
+          }
+        }),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>{t('Add New Credentials')}</Header>
       <Body>
-        <AddTempestCredentialsForm
-          {...props}
-          organization={organization}
-          project={project}
-          onSuccess={onSuccess}
-        />
+        <Stack gap="xl">
+          <form.AppField name="clientId">
+            {field => (
+              <field.Layout.Stack label={t('Client ID')} required>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="clientSecret">
+            {field => (
+              <field.Layout.Stack label={t('Client Secret')} required>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <form.SubmitButton>{t('Add Credentials')}</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }

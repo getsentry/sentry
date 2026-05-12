@@ -18,7 +18,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
   const [expanded, setExpanded] = useState(false);
   const [hiddenCount, setHiddenCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const tagRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const tagRefs = useRef(new Map<number, HTMLElement>());
 
   // Calculate how many tags are hidden (overflow beyond 2 rows)
   useEffect(() => {
@@ -67,7 +67,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
       {hiddenCount > 0 && !expanded && (
         <ToggleButtonWrapper>
           <ToggleButton
-            priority="link"
+            variant="link"
             size="xs"
             onClick={() => setExpanded(prev => !prev)}
           >
@@ -76,11 +76,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
         </ToggleButtonWrapper>
       )}
       {expanded && (
-        <ToggleButton
-          priority="link"
-          size="xs"
-          onClick={() => setExpanded(prev => !prev)}
-        >
+        <ToggleButton variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
           {t('Show less')}
         </ToggleButton>
       )}

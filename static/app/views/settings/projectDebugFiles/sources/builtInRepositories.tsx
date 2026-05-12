@@ -1,22 +1,25 @@
-import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
-import {Access} from 'sentry/components/acl/access';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
+const schema = z.object({
+  builtinSymbolSources: z.array(z.string()),
+});
+
 type Props = {
-  api: Client;
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   organization: Organization;
@@ -24,17 +27,24 @@ type Props = {
 };
 
 export function BuiltInRepositories({
-  api,
   organization,
   builtinSymbolSourceOptions,
   builtinSymbolSources,
   project,
 }: Props) {
+  const queryClient = useQueryClient();
+  const projectQueryKey = makeDetailedProjectQueryKey({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
   // If the project details object has an unknown built-in source, this will be filtered here.
   // This prevents the UI from showing the wrong feedback message when updating the field
   const validBuiltInSymbolSources = builtinSymbolSources.filter(builtinSymbolSource =>
     builtinSymbolSourceOptions.find(({sentry_key}) => sentry_key === builtinSymbolSource)
   );
+
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   function getRequestMessages(builtinSymbolSourcesQuantity: number) {
     if (builtinSymbolSourcesQuantity === 0) {
@@ -56,67 +66,72 @@ export function BuiltInRepositories({
     };
   }
 
-  async function handleChange(value: null | string[]) {
-    const {successMessage, errorMessage} = getRequestMessages((value ?? []).length);
-
-    try {
-      const updatedProjectDetails: Project = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/`,
-        {
-          method: 'PUT',
-          data: {
-            builtinSymbolSources: value,
-          },
-        }
-      );
-
-      ProjectsStore.onUpdateSuccess(updatedProjectDetails);
-      addSuccessMessage(successMessage);
-    } catch {
-      addErrorMessage(errorMessage);
-    }
-  }
+  const options = builtinSymbolSourceOptions
+    .filter(source => !source.hidden)
+    .map(source => ({
+      value: source.sentry_key,
+      label: source.name,
+    }));
 
   return (
-    <Panel>
-      <PanelHeader>{SECTION_TITLE}</PanelHeader>
-      <PanelBody>
-        <Access access={['project:write']} project={project}>
-          {({hasAccess}) => (
-            <StyledSelectField
-              disabledReason={
+    <FieldGroup title={SECTION_TITLE}>
+      <AutoSaveForm
+        name="builtinSymbolSources"
+        schema={schema}
+        initialValue={validBuiltInSymbolSources}
+        mutationOptions={{
+          mutationFn: (data: Partial<Project>) =>
+            fetchMutation<Project>({
+              url: `/projects/${organization.slug}/${project.slug}/`,
+              method: 'PUT',
+              data,
+            }),
+          onSuccess: (response, variables) => {
+            ProjectsStore.onUpdateSuccess(response);
+            queryClient.setQueryData(projectQueryKey, prev => ({
+              headers: prev?.headers ?? {},
+              json: response,
+            }));
+            const {successMessage} = getRequestMessages(
+              variables.builtinSymbolSources.length
+            );
+            if (successMessage) {
+              addSuccessMessage(successMessage);
+            }
+          },
+          onError: (_error, variables) => {
+            const {errorMessage} = getRequestMessages(
+              variables.builtinSymbolSources.length
+            );
+            addErrorMessage(errorMessage);
+          },
+        }}
+      >
+        {field => (
+          <field.Layout.Row
+            label={SECTION_TITLE}
+            hintText={t(
+              'Configures which built-in repositories Sentry should use to resolve debug files.'
+            )}
+          >
+            <field.Select
+              multiple
+              name="builtinSymbolSources"
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={options}
+              placeholder={t('Select built-in repository')}
+              disabled={
                 hasAccess
-                  ? undefined
+                  ? false
                   : t(
                       'You do not have permission to edit built-in repositories configurations.'
                     )
               }
-              disabled={!hasAccess}
-              name="builtinSymbolSources"
-              label={SECTION_TITLE}
-              help={t(
-                'Configures which built-in repositories Sentry should use to resolve debug files.'
-              )}
-              placeholder={t('Select built-in repository')}
-              value={validBuiltInSymbolSources}
-              onChange={handleChange}
-              options={builtinSymbolSourceOptions
-                .filter(source => !source.hidden)
-                .map(source => ({
-                  value: source.sentry_key,
-                  label: source.name,
-                }))}
-              getValue={(value: any) => (value === null ? [] : value)}
-              flexibleControlStateSize
-              multiple
             />
-          )}
-        </Access>
-      </PanelBody>
-    </Panel>
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+    </FieldGroup>
   );
 }
-
-const StyledSelectField = styled(SelectField)`
-  ${p => p.disabled && 'cursor: not-allowed'}
-`;

@@ -8,7 +8,6 @@ export interface SnapshotImage {
   height: number;
   key: string;
   width: number;
-  content_hash: string;
 }
 
 export interface SnapshotDiffPair {
@@ -91,6 +90,7 @@ export function getImageName(image: SnapshotImage): string {
 }
 
 interface SidebarItemBase {
+  displayName: string;
   key: string;
   name: string;
 }

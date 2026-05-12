@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -48,8 +48,8 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -71,6 +71,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {useOurLogsSchemaHintsRemoval} from 'sentry/views/explore/logs/tables/useOurLogsSchemaHintsRemoval';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -91,7 +92,10 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -175,6 +179,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const schemaHintsRemoval = useOurLogsSchemaHintsRemoval();
 
   return (
     <SearchQueryBuilderProvider
@@ -202,7 +207,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="primary"
+                    variant="primary"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
@@ -217,32 +222,37 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          <ExploreSchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={supportedAggregates}
-              booleanTags={booleanAttributes}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={
-                numberAttributesLoading ||
-                stringAttributesLoading ||
-                booleanAttributesLoading
-              }
-              exploreQuery={logsSearchQuery}
-              source={SchemaHintsSources.LOGS}
-              searchBarWidthOffset={searchBarWidthOffset}
-            />
-          </ExploreSchemaHintsSection>
+          {!schemaHintsRemoval && (
+            <ExploreSchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={supportedAggregates}
+                booleanTags={booleanAttributes}
+                numberTags={numberAttributes}
+                stringTags={stringAttributes}
+                isLoading={
+                  numberAttributesLoading ||
+                  stringAttributesLoading ||
+                  booleanAttributesLoading
+                }
+                exploreQuery={logsSearchQuery}
+                source={SchemaHintsSources.LOGS}
+                searchBarWidthOffset={searchBarWidthOffset}
+              />
+            </ExploreSchemaHintsSection>
+          )}
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
   );
 });
 
-export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps) {
+function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) {
+  const {openModal} = useModal();
+
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
+  const groupBys = useQueryParamsGroupBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
   const sortBys = useQueryParamsSortBys();
@@ -251,8 +261,22 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const searchQuery = useQueryParamsSearch().formatString();
+  const visualizes = useQueryParamsVisualizes();
 
-  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+  useLLMContext({
+    contextHint:
+      'Sentry logs explorer page. Users search log entries by attributes and view samples or aggregates. ' +
+      'You can search live telemetry for logs, get detailed log attributes by trace ID, and discover attribute names via the telemetry index.',
+    searchQuery,
+    mode,
+    fields,
+    sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    groupBys: groupBys.filter(g => g !== ''),
+    visualizes: visualizes.map(v => v.yAxis),
+  });
+
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();
@@ -261,7 +285,6 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const [interval] = useChartInterval();
-  const visualizes = useQueryParamsVisualizes();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
@@ -356,6 +379,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
           numberTags={numberAttributes}
           booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
+          traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
           }}
@@ -425,7 +449,10 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedPage constrained={tableExpando} hideFooter={tableExpando}>
+      <ViewportConstrainedPage
+        constrained={tableExpando && mode === Mode.SAMPLES}
+        hideFooter={tableExpando}
+      >
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}
@@ -510,7 +537,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                 </TableActionsContainer>
               )}
             </LogsTableActionsContainer>
-            <LogsItemContainer>
+            <LogsItemContainer minHeight="max(25vh, 20rem)" overflowX="auto">
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -529,6 +556,8 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
     </Fragment>
   );
 }
+
+export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;

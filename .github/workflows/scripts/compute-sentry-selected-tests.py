@@ -82,6 +82,40 @@ EXCLUDED_TEST_FILES: set[str] = {
 
 EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
     ".github/CODEOWNERS": ["tests/sentry/api/test_api_owners.py"],
+    "static/app/data/controlsiloUrlPatterns.ts": [
+        "tests/sentry/management/commands/test_generate_controlsilo_urls.py"
+    ],
+    # JSON/binary files not tracked by coverage DB
+    "src/sentry/issues/event.schema.json": ["tests/sentry/issues/test_json_schemas.py"],
+    "fixtures/test.mmdb": ["tests/sentry/utils/test_geo.py"],
+    "src/sentry/search/eap/spans/sentry_conventions/deprecated_attributes.json": [
+        "tests/sentry/search/eap/test_spans.py"
+    ],
+    # Backup/restore golden fixtures — coverage won't see non-Python files
+    "fixtures/backup/fresh-install.json": ["tests/sentry/backup/test_imports.py"],
+    "fixtures/backup/user-with-minimum-privileges.json": ["tests/sentry/backup/test_rpc.py"],
+    "fixtures/backup/single-integration.json": ["tests/sentry/backup/test_validate.py"],
+    "fixtures/backup/single-option.json": ["tests/sentry/backup/test_validate.py"],
+    # YAML test-data files co-located with tests — only .py files are auto-selected
+    "tests/sentry/runner/commands/valid_patch.yaml": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+    "tests/sentry/runner/commands/badsync.yaml": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+    "tests/sentry/runner/commands/badpatch.yaml": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+    "tests/sentry/runner/commands/unsetsync.yaml": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+}
+
+# Like EXTRA_FILE_TO_TEST_MAPPING but keys are directory prefixes: any changed file
+# whose path starts with the prefix will trigger the listed tests.
+EXTRA_DIR_TO_TEST_MAPPING: dict[str, list[str]] = {
+    # 74 parametrized JSON fixtures loaded via os.listdir(); coverage won't see them
+    "fixtures/search-syntax/": ["tests/sentry/api/test_event_search.py"],
 }
 
 EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
@@ -229,6 +263,9 @@ def main() -> int:
             # Extra mapped files
             for f in changed:
                 affected_test_files.update(EXTRA_FILE_TO_TEST_MAPPING.get(f, []))
+                for prefix, tests in EXTRA_DIR_TO_TEST_MAPPING.items():
+                    if f.startswith(prefix):
+                        affected_test_files.update(tests)
 
             # Directly changed test files
             changed_tests = {
@@ -260,7 +297,8 @@ def main() -> int:
         affected_test_files = existing_files
 
     output_tests = sorted(affected_test_files)
-    print(f"Selected {len(output_tests)} test files")
+    if selective_applied or output_tests:
+        print(f"Selected {len(output_tests)} test files")
 
     if args.output and (output_tests or selective_applied):
         output_path = Path(args.output)
@@ -277,7 +315,8 @@ def main() -> int:
             with open(github_output, "a") as f:
                 f.write(f"test-count={len(output_tests)}\n")
                 f.write(f"has-selected-tests={'true' if has_selected else 'false'}\n")
-            print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")
+            if has_selected:
+                print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")
 
     for test_file in output_tests:
         print(f"  {test_file}")

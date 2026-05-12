@@ -56,6 +56,7 @@ class OrganizationMapping(Model):
     early_adopter = models.BooleanField(default=False, db_default=False)
     disable_shared_issues = models.BooleanField(default=False, db_default=False)
     disable_new_visibility_features = models.BooleanField(default=False, db_default=False)
+    # Deprecated: the require_email_verification feature has been removed.
     require_email_verification = models.BooleanField(default=False, db_default=False)
     codecov_access = models.BooleanField(default=False, db_default=False)
     disable_member_project_creation = models.BooleanField(default=False, db_default=False)

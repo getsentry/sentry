@@ -1,6 +1,6 @@
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,6 +31,8 @@ export function LogsExportModalButton({
   queryInfo,
   tableData,
 }: LogsExportModalButtonProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const disabledTooltip = getExportDisabledTooltip({
     isDataEmpty: !tableData?.length,
@@ -42,7 +44,7 @@ export function LogsExportModalButton({
     <Button
       disabled={!!disabledTooltip}
       size="xs"
-      priority="default"
+      variant="secondary"
       icon={<IconDownload />}
       onClick={() => {
         trackAnalytics('logs.export_modal', {

@@ -220,7 +220,7 @@ function DiscoverLanding() {
                   data-test-id="build-new-query"
                   to={to}
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   onClick={() => {
                     trackAnalytics('discover_v2.build_new_query', {
                       organization,
@@ -263,7 +263,7 @@ function DiscoverLanding() {
                   <LinkButton
                     data-test-id="build-new-query"
                     to={to}
-                    priority="primary"
+                    variant="primary"
                     onClick={() => {
                       trackAnalytics('discover_v2.build_new_query', {
                         organization,

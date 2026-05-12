@@ -72,7 +72,7 @@ function FieldHeaderCellWrapper({
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
   const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
-  const canSort = SORTABLE_SAMPLE_COLUMNS.has(field);
+  const canSort = !embedded && SORTABLE_SAMPLE_COLUMNS.has(field);
 
   function handleSortClick() {
     const kind = sort === 'desc' ? 'asc' : 'desc';
@@ -120,6 +120,7 @@ function getFieldLabel(field: SampleTableColumnKey): ReactNode {
     [TraceMetricKnownFieldKey.METRIC_VALUE]: () => t('Value'),
     [TraceMetricKnownFieldKey.TIMESTAMP]: () => t('Timestamp'),
     [TraceMetricKnownFieldKey.METRIC_NAME]: () => t('Application Metric'),
+    [TraceMetricKnownFieldKey.METRIC_TYPE]: () => t('Type'),
     [VirtualTableSampleColumnKey.PROJECT_BADGE]: () => t('Project'),
   };
   return fieldLabels[field]?.() ?? null;

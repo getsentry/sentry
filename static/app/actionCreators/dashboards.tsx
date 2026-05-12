@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   DashboardFilter,
@@ -38,7 +39,8 @@ export function fetchDashboards(
   );
 
   promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
@@ -82,7 +84,8 @@ export function createDashboard(
   );
 
   promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
@@ -166,8 +169,9 @@ export async function updateDashboardFavorite(
       queryKey: getStarredDashboardsQueryKey(organization),
     });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
-  } catch (response: any) {
-    const errorResponse = response?.responseJSON ?? null;
+  } catch (response) {
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
       addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
@@ -193,7 +197,8 @@ export function fetchDashboard(
   );
 
   promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
@@ -248,7 +253,8 @@ export function updateDashboard(
   // that it can be more specific than just "Dashboard updated," but do the
   // error-handling here, since it doesn't depend on the caller's context
   promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
@@ -281,7 +287,8 @@ export function deleteDashboard(
   });
 
   promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
@@ -335,7 +342,8 @@ export function updateDashboardPermissions(
   );
 
   promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});

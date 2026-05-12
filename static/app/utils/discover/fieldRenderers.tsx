@@ -78,6 +78,7 @@ import {SpanDescriptionCell} from 'sentry/views/insights/common/components/table
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -426,6 +427,27 @@ const RightAlignedContainer = styled('span')`
   display: block;
   text-align: right;
 `;
+
+function renderAIOutputMessages(rawOutputMessages: unknown) {
+  if (!rawOutputMessages) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const raw =
+    typeof rawOutputMessages === 'string'
+      ? rawOutputMessages
+      : JSON.stringify(rawOutputMessages);
+  if (!raw) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const {responseText, responseObject, toolCalls} = extractAssistantOutput(raw, {
+    defaultRole: 'assistant',
+  });
+  const output = responseText ?? responseObject ?? toolCalls ?? raw;
+
+  return <Container>{output}</Container>;
+}
 
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
@@ -1048,6 +1070,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return <ModelName modelId={data[SpanFields.GEN_AI_RESPONSE_MODEL]} />;
     },
   },
+  [SpanFields.GEN_AI_OUTPUT_MESSAGES]: {
+    sortField: SpanFields.GEN_AI_OUTPUT_MESSAGES,
+    renderFunc: data => renderAIOutputMessages(data[SpanFields.GEN_AI_OUTPUT_MESSAGES]),
+  },
 };
 
 /**
@@ -1414,14 +1440,14 @@ function getFieldRendererBase(
   meta: MetaType,
   isAlias = true
 ): FieldFormatterRenderFunctionPartial {
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
   if (isEquation(field)) {
     const strippedField = stripEquationPrefix(field);
-    if (SPECIAL_FIELDS.hasOwnProperty(strippedField)) {
+    if (Object.hasOwn(SPECIAL_FIELDS, strippedField)) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const specialRenderer = SPECIAL_FIELDS[strippedField].renderFunc;
       return (data: EventData, baggage: RenderFunctionBaggage) =>
@@ -1443,7 +1469,7 @@ function getFieldRendererBase(
     }
   }
 
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+  if (Object.hasOwn(FIELD_FORMATTERS, fieldType)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }

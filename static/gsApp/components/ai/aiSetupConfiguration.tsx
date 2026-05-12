@@ -65,7 +65,7 @@ function AutofixConfigureQuota() {
               {hasAccessToSubscriptionOverview(subscription, organization) ? (
                 <LinkButton
                   to={`/settings/${organization.slug}/billing/overview/?product=seer`}
-                  priority="primary"
+                  variant="primary"
                   icon={<IconUpgrade />}
                 >
                   {t('Try Out Seer Now')}

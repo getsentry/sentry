@@ -117,7 +117,7 @@ describe('SeerWorkflows', () => {
     const link = await screen.findByRole('button', {name: 'Explorer'});
     expect(link).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/seer/workflows/?explorerRunId=42`
+      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=42`
     );
   });
 

@@ -94,7 +94,7 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
 export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   dotnet: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -553,7 +553,7 @@ function Product({
     >
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
-        priority={!!disabled || checked ? 'primary' : 'default'}
+        variant={!!disabled || checked ? 'primary' : 'secondary'}
         disabled={isDisabled}
         aria-label={label}
       >

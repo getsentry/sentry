@@ -5,11 +5,11 @@ import {useMutation} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {useModal} from '@sentry/scraps/modal';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
@@ -32,6 +32,8 @@ interface DashboardRevisionsButtonProps {
 }
 
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
+  const {openModal} = useModal();
+
   if (!dashboard.id || defined(dashboard.prebuiltId)) {
     return null;
   }
@@ -67,7 +69,7 @@ function DashboardRevisionsModal({
   dashboard: DashboardDetails;
 }) {
   const dashboardId = dashboard.id;
-  const [selectedRevisionId, setSelectedRevisionId] = useState<string>(NEWEST_VERSION_ID);
+  const [selectedRevisionId, setSelectedRevisionId] = useState(NEWEST_VERSION_ID);
   const {data: revisions, isPending, isError} = useDashboardRevisions({dashboardId});
   const displayedRevisions = revisions?.slice(0, MAX_DISPLAYED_REVISIONS) ?? [];
   const isNewestVersionSelected = selectedRevisionId === NEWEST_VERSION_ID;
@@ -107,7 +109,7 @@ function DashboardRevisionsModal({
           <LoadingIndicator />
         ) : isError ? (
           <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
-        ) : displayedRevisions.length ? (
+        ) : (
           <Flex direction="column" gap="md">
             {isRestoreError && (
               <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
@@ -122,7 +124,7 @@ function DashboardRevisionsModal({
                 isSelected={isNewestVersionSelected}
                 onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
                 revisionSource={revisions?.[0]?.source ?? 'edit'}
-                createdBy={revisions?.[0]?.createdBy ?? null}
+                createdBy={revisions?.[0]?.createdBy ?? dashboard.createdBy ?? null}
                 dateCreated={null}
                 dashboardId={dashboardId}
                 baseRevisionId={displayedRevisions[0]?.id ?? null}
@@ -145,10 +147,6 @@ function DashboardRevisionsModal({
               ))}
             </Flex>
           </Flex>
-        ) : (
-          <Flex align="center" justify="center" padding="xl">
-            <Text variant="muted">{t('No revisions found.')}</Text>
-          </Flex>
         )}
       </Body>
       {displayedRevisions.length ? (
@@ -158,7 +156,7 @@ function DashboardRevisionsModal({
               {t('Cancel')}
             </Button>
             <Button
-              priority="primary"
+              variant="primary"
               size="sm"
               onClick={() => restore()}
               busy={isRestoring}

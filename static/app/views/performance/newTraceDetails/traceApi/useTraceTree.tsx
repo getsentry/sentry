@@ -22,14 +22,14 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
   const organization = useOrganization();
   const traceState = useTraceState();
 
-  const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
+  const [tree, setTree] = useState(TraceTree.Empty());
 
   useEffect(() => {
     if (trace.status === 'error') {
       setTree(t =>
         t.type === 'error'
           ? t
-          : TraceTree.Error(
+          : TraceTree.ErrorState(
               {
                 project_slug: projects?.[0]?.slug ?? '',
                 event_id: traceSlug,

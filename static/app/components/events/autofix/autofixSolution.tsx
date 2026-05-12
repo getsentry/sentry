@@ -132,7 +132,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
   transition: {
-    duration: 1.0,
+    duration: 1,
     height: {
       type: 'spring',
       bounce: 0.2,
@@ -554,7 +554,7 @@ function AutofixSolutionDisplay({
           {t('Solution')}
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
@@ -613,7 +613,7 @@ function AutofixSolutionDisplay({
             <SubmitButton
               size="zero"
               type="submit"
-              priority="transparent"
+              variant="transparent"
               disabled={!instructions.trim()}
               aria-label={t('Add to solution')}
             >
@@ -662,10 +662,10 @@ function AutofixSolutionDisplay({
           >
             <Button
               size="sm"
-              priority={
+              variant={
                 !solutionSelected || !valueIsEqual(solutionItems, solution, true)
                   ? 'primary'
-                  : 'default'
+                  : 'secondary'
               }
               busy={isPending}
               disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}

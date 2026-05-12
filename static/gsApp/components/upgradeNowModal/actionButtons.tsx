@@ -125,7 +125,7 @@ export function ActionButtons({
   return hasBillingAccess ? (
     <ButtonRow>
       <Button
-        priority="primary"
+        variant="primary"
         onClick={onUpdatePlan}
         disabled={isActionDisabled === true}
       >
@@ -141,7 +141,7 @@ export function ActionButtons({
   ) : (
     <ButtonRow>
       <Button
-        priority="primary"
+        variant="primary"
         tooltipProps={{
           title: t(
             'Notify an owner by email to update to the latest version of your plan'

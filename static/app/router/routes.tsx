@@ -1647,12 +1647,6 @@ function buildRoutes(): RouteObject[] {
     children: replayChildren,
   };
 
-  const seerRoutes: SentryRouteObject = {
-    path: '/seer/workflows/',
-    component: make(() => import('sentry/views/seerWorkflows')),
-    withOrgPath: true,
-  };
-
   const releaseChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2543,6 +2537,10 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
+      path: 'autofix/',
+      component: make(() => import('sentry/views/seerWorkflows')),
+    },
+    {
       path: 'autofix/recent/',
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
     },
@@ -2797,7 +2795,6 @@ function buildRoutes(): RouteObject[] {
       preprodRoutes,
       pullRequestRoutes,
       replayRoutes,
-      seerRoutes,
       releasesRoutes,
       statsRoutes,
       discoverRoutes,

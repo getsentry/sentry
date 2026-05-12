@@ -198,10 +198,12 @@ function EAPSummaryContentInner({
     }
 
     if (organization.features.includes('continuous-profiling')) {
-      fields.push({field: 'profiler.id'});
-      fields.push({field: 'thread.id'});
-      fields.push({field: 'precise.start_ts'});
-      fields.push({field: 'precise.finish_ts'});
+      fields.push(
+        {field: 'profiler.id'},
+        {field: 'thread.id'},
+        {field: 'precise.start_ts'},
+        {field: 'precise.finish_ts'}
+      );
     }
   }
 
@@ -469,10 +471,12 @@ function SummaryContent({
     }
 
     if (organization.features.includes('continuous-profiling')) {
-      fields.push({field: 'profiler.id'});
-      fields.push({field: 'thread.id'});
-      fields.push({field: 'precise.start_ts'});
-      fields.push({field: 'precise.finish_ts'});
+      fields.push(
+        {field: 'profiler.id'},
+        {field: 'thread.id'},
+        {field: 'precise.start_ts'},
+        {field: 'precise.finish_ts'}
+      );
     }
   }
 

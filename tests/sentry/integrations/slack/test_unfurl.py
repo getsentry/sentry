@@ -9,7 +9,9 @@ from django.utils import timezone
 
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.incidents.models.incident import Incident
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -18,6 +20,7 @@ from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
@@ -28,6 +31,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -201,7 +207,9 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=avg(span.duration)&project=1&statsPeriod=24h"),
+                    "query": QueryDict(
+                        "yAxis=avg(span.duration)&project=1&statsPeriod=24h&interval=5m"
+                    ),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.SPANS,
                 },
@@ -213,7 +221,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h"),
+                    "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h&interval=5m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.SPANS,
                 },
@@ -225,7 +233,9 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=sum(payload_size)&project=1&statsPeriod=24h"),
+                    "query": QueryDict(
+                        "yAxis=sum(payload_size)&project=1&statsPeriod=24h&interval=5m"
+                    ),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.LOGS,
                 },
@@ -237,7 +247,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=count(payload_size)&statsPeriod=24h"),
+                    "query": QueryDict("yAxis=count(payload_size)&statsPeriod=24h&interval=5m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.LOGS,
                 },
@@ -249,7 +259,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=sum(value)&project=1&statsPeriod=7d"),
+                    "query": QueryDict("yAxis=sum(value)&project=1&statsPeriod=7d&interval=30m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.TRACEMETRICS,
                 },
@@ -261,7 +271,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=avg(value)&statsPeriod=24h"),
+                    "query": QueryDict("yAxis=avg(value)&statsPeriod=24h&interval=5m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.TRACEMETRICS,
                 },
@@ -320,6 +330,29 @@ class UnfurlTest(TestCase):
 
     def tearDown(self) -> None:
         self.frozen_time.stop()
+
+    def _wire_workflow_engine_for_incident(self, alert_rule, incident: Incident) -> None:
+        """
+        Wire up the workflow engine fixtures so that the /incidents/ endpoint
+        (which always routes through _get_workflow_engine) returns this incident.
+        """
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+        group = self.create_group(
+            project=self.project,
+            type=MetricIssue.type_id,
+            priority=PriorityLevel.HIGH,
+            first_seen=incident.date_started,
+        )
+        self.create_detector_group(detector=detector, group=group)
+        gop = GroupOpenPeriod.objects.get(group=group)
+        # Align the open period's date_started with the incident's so the chart's
+        # time-window query (which truncates to seconds via strftime) includes it.
+        gop.update(date_started=incident.date_started)
+        IncidentGroupOpenPeriod.objects.create(
+            group_open_period=gop,
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+        )
 
     def test_unfurl_issues(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
@@ -447,6 +480,7 @@ class UnfurlTest(TestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
+        self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
@@ -466,7 +500,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -499,6 +532,7 @@ class UnfurlTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - timedelta(minutes=2),
         )
+        self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
@@ -518,7 +552,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -557,6 +590,7 @@ class UnfurlTest(TestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
+        self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
@@ -576,7 +610,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -636,7 +669,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -685,7 +717,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -724,7 +755,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -951,7 +981,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1017,7 +1046,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1069,7 +1097,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1137,7 +1164,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1198,7 +1224,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1242,7 +1267,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1300,7 +1324,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1334,7 +1357,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1371,7 +1393,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1424,7 +1445,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1479,7 +1499,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1640,7 +1659,37 @@ class UnfurlTest(TestCase):
 
         # Verify sort is passed to the timeseries API for correct top events
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("sort") == ["-avg(span.duration)"]
+        assert api_params["sort"] == "-avg(span.duration)"
+
+    @patch("sentry.api.client.resolve")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_forwards_multiple_groupbys_to_api(
+        self, mock_generate_chart: MagicMock, mock_resolve: MagicMock
+    ) -> None:
+        # Don't mock client.get — exercise the real API client so we catch
+        # multi-value param collapse on the way to events-timeseries.
+        mock_response = MagicMock(
+            status_code=200,
+            data=self._build_mock_timeseries_response(y_axis="count(span.duration)"),
+        )
+        mock_view = MagicMock(return_value=mock_response)
+        mock_resolve.return_value = (mock_view, (), {})
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22transaction%22%7D&aggregateField=%7B%22groupBy%22%3A%22browser.name%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A1%7D&project={self.project.id}&statsPeriod=14d"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        mock_view.assert_called_once()
+        request = mock_view.call_args[0][0]
+        assert request.GET.getlist("groupBy") == ["transaction", "browser.name"]
+        assert request.GET.getlist("yAxis") == ["count(span.duration)"]
+        assert request.GET["dataset"] == "spans"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1667,7 +1716,7 @@ class UnfurlTest(TestCase):
 
         # Verify explicit aggregateSort from the URL is used instead of the default
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("sort") == ["span.op"]
+        assert api_params["sort"] == "span.op"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1890,6 +1939,125 @@ class UnfurlTest(TestCase):
         assert args is not None
         assert args["query"].getlist("yAxis") == ["count(span.duration)"]
 
+    def test_unfurl_explore_metrics_collects_all_y_axes(self) -> None:
+        # Metrics encodes multiple aggregates as multiple `aggregateFields` entries
+        # but the FE renders them as multiple series on a single chart, so the
+        # unfurl must forward every yAxes entry to events-timeseries.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22yAxes%22%3A%5B%22p50(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%2C"
+            "%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%7D&project=1&statsPeriod=14d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == [
+            "p50(value,my.metric,distribution,millisecond)",
+            "p95(value,my.metric,distribution,millisecond)",
+        ]
+
+    def test_unfurl_explore_metrics_multiple_metric_params_uses_first(self) -> None:
+        # When the URL has multiple `metric` params the FE renders one chart per
+        # metric. The unfurl is single-chart, so it sticks to the first metric
+        # and drops the rest rather than mashing axes from different metrics.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p50(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%5D%7D"
+            "&metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%5D%7D"
+            "&project=1&statsPeriod=14d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == [
+            "p50(value,my.metric,distribution,millisecond)",
+        ]
+
+    def test_unfurl_explore_metrics_drops_aggregate_sort_referencing_unknown_field(
+        self,
+    ) -> None:
+        # The metric JSON's `aggregateSortBys` can reference a metric/function that
+        # isn't in the active `aggregateFields` yAxes (e.g. left over from a prior
+        # visualization). Mirror the frontend's validateAggregateSort by dropping
+        # the stale sort so events-timeseries falls back to `-yAxes[0]`.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A"
+            "%22sum(value%2Cother.metric%2Cdistribution%2Cmillisecond)%22%2C%22kind%22%3A%22desc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == [
+            "p95(value,my.metric,distribution,millisecond)",
+        ]
+        assert args["query"].getlist("sort") == []
+
+    def test_unfurl_explore_metrics_drops_aggregate_sort_when_aggregate_function_differs(
+        self,
+    ) -> None:
+        # Same metric expression but the sort uses a different aggregate function
+        # than the visualized yAxis (sum vs p95). The frontend treats these as
+        # different sort targets, so the unfurl must drop the stale sort too.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A"
+            "%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%2C%22kind%22%3A%22desc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == []
+
+    def test_unfurl_explore_metrics_keeps_aggregate_sort_when_field_matches_yaxis(
+        self,
+    ) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22groupBy%22%3A%22browser.name%22%7D%2C"
+            "%7B%22yAxes%22%3A%5B%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A"
+            "%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%2C%22kind%22%3A%22desc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == [
+            "-sum(value,my.metric,distribution,millisecond)",
+        ]
+
+    def test_unfurl_explore_metrics_keeps_aggregate_sort_when_field_matches_groupby(
+        self,
+    ) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22groupBy%22%3A%22browser.name%22%7D%2C"
+            "%7B%22yAxes%22%3A%5B%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A%22browser.name%22%2C%22kind%22%3A%22asc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == ["browser.name"]
+
     def test_unfurl_explore_aggregate_field_takes_precedence_over_visualize(self) -> None:
         url = (
             "https://sentry.io/organizations/org1/explore/traces/"
@@ -2001,6 +2169,126 @@ class UnfurlTest(TestCase):
         api_params = call_kwargs["params"]
         assert api_params["interval"] == "1h"
 
+    def test_match_link_explore_default_interval_ladder(self) -> None:
+        # Mirrors MINIMUM_INTERVAL in static/app/utils/useChartInterval.tsx — if
+        # this list changes, the ladder in explore.py must change with it.
+        cases = [
+            ("1h", "1m"),
+            ("6h", "1m"),
+            ("12h", "5m"),
+            ("2d", "10m"),
+            ("4d", "30m"),
+            ("14d", "1h"),
+            ("30d", "3h"),
+        ]
+        for stats_period, expected_interval in cases:
+            url = (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+                f"&project={self.project.id}&statsPeriod={stats_period}"
+            )
+            _, args = match_link(url)
+            assert args is not None
+            assert args["query"]["interval"] == expected_interval, (
+                f"statsPeriod={stats_period} expected {expected_interval}, "
+                f"got {args['query']['interval']}"
+            )
+
+    def test_match_link_explore_clamps_too_fine_url_interval_to_ladder_minimum(
+        self,
+    ) -> None:
+        # Mirrors the frontend's useChartIntervalImpl: if the URL's explicit
+        # interval is finer than the ladder minimum for the time range it falls
+        # back to the minimum. Without clamping, a stale `interval=1m` pasted
+        # into a 7d view yields ~10k buckets that events-timeseries rejects.
+        cases = [
+            # 7d → ladder minimum is 30m; 1m must be clamped up.
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+                f"&interval=1m&project={self.project.id}&statsPeriod=7d",
+                "30m",
+            ),
+            # 30d → ladder minimum is 3h; 5m must be clamped up.
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+                f"?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value)%22%5D%7D%5D%7D"
+                f"&interval=5m&project={self.project.id}&statsPeriod=30d",
+                "3h",
+            ),
+            # 14d → ladder minimum is 1h; 1m must be clamped up.
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+                f"&interval=1m&project={self.project.id}&statsPeriod=14d",
+                "1h",
+            ),
+        ]
+        for url, expected_interval in cases:
+            _, args = match_link(url)
+            assert args is not None
+            assert args["query"]["interval"] == expected_interval, (
+                f"url={url}: expected {expected_interval}, got {args['query']['interval']}"
+            )
+
+    def test_match_link_explore_keeps_url_interval_when_coarser_than_minimum(
+        self,
+    ) -> None:
+        # An explicit interval that is at or above the ladder minimum should be
+        # forwarded as-is — only too-fine intervals are clamped.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+            f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            f"&interval=6h&project={self.project.id}&statsPeriod=7d"
+        )
+        _, args = match_link(url)
+        assert args is not None
+        assert args["query"]["interval"] == "6h"
+
+    def test_match_link_explore_default_interval_for_logs_and_metrics(self) -> None:
+        # Logs and metrics use the same useChartInterval default as traces, so
+        # the URL → timeseries conversion should pick the same interval for the
+        # same time range.
+        urls = [
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+                f"&project={self.project.id}&statsPeriod=14d"
+            ),
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+                f"?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value)%22%5D%7D%5D%7D"
+                f"&project={self.project.id}&statsPeriod=14d"
+            ),
+        ]
+        for url in urls:
+            _, args = match_link(url)
+            assert args is not None
+            assert args["query"]["interval"] == "1h"
+
+    def test_match_link_explore_default_interval_when_no_stats_period(self) -> None:
+        # When neither statsPeriod nor start/end is supplied, the unfurl falls
+        # back to DEFAULT_PERIOD (14d), so the default interval should be 1h.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+            f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            f"&project={self.project.id}"
+        )
+        _, args = match_link(url)
+        assert args is not None
+        assert args["query"]["statsPeriod"] == "14d"
+        assert args["query"]["interval"] == "1h"
+
+    def test_match_link_explore_preserves_explicit_interval(self) -> None:
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+            f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            f"&project={self.project.id}&statsPeriod=24h&interval=1h"
+        )
+        _, args = match_link(url)
+        assert args is not None
+        assert args["query"]["interval"] == "1h"
+
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
     )
@@ -2041,8 +2329,68 @@ class UnfurlTest(TestCase):
         assert api_params["dataset"] == "logs"
         assert api_params["yAxis"] == "sum(payload_size)"
 
-    def test_map_explore_query_args_logs_query_and_sort(self) -> None:
-        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D&logsQuery=severity%3Aerror&logsSortBys=-timestamp&project={self.project.id}&statsPeriod=24h"
+    def test_map_explore_query_args_logs_ignores_table_sort_for_chart(self) -> None:
+        # `logsSortBys` is the samples-mode logs table sort (typically
+        # `-timestamp`). The unfurl is rendering the chart, not the table, so
+        # the table sort must not leak into the events-timeseries `sort` param —
+        # it would feed topEvents a non-aggregate field and return no data.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+            "?aggregateField=%7B%22groupBy%22%3A%22browser.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+            "&logsSortBys=-timestamp&mode=aggregate"
+            f"&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("groupBy") == ["browser.name"]
+        # logsSortBys is ignored — `unfurl_explore` will default to
+        # `-count(message)` for the topEvents sort.
+        assert args["query"].getlist("sort") == []
+
+    def test_map_explore_query_args_logs_uses_aggregate_sort(self) -> None:
+        # `logsAggregateSortBys` is the aggregate-mode chart sort. When it
+        # references the active yAxis it should be forwarded to
+        # events-timeseries as the topEvents sort.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+            "?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+            "&logsAggregateSortBys=-count(message)&mode=aggregate"
+            f"&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == ["-count(message)"]
+
+    def test_map_explore_query_args_logs_drops_stale_aggregate_sort(self) -> None:
+        # If `logsAggregateSortBys` references a function that isn't in the
+        # active yAxes/groupBys, drop it so the unfurl falls back to
+        # `-yAxes[0]`, mirroring the frontend's validateAggregateSort.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+            "?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+            "&logsAggregateSortBys=-p95(message.length)&mode=aggregate"
+            f"&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == []
+
+    def test_map_explore_query_args_logs_query(self) -> None:
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+            "?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+            "&logsQuery=severity%3Aerror"
+            f"&project={self.project.id}&statsPeriod=24h"
+        )
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -2051,7 +2399,6 @@ class UnfurlTest(TestCase):
         assert link_type == LinkType.EXPLORE
         assert args["dataset"] == SupportedTraceItemType.LOGS
         assert args["query"]["query"] == "severity:error"
-        assert args["query"]["sort"] == "-timestamp"
         assert args["query"]["yAxis"] == "count(message)"
 
     def test_map_explore_query_args_spans_query_and_sort(self) -> None:
@@ -2130,6 +2477,79 @@ class UnfurlTest(TestCase):
         api_params = call_kwargs["params"]
         assert api_params["dataset"] == "tracemetrics"
         assert api_params["yAxis"] == "sum(value,my.metric,distribution,millisecond)"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_metrics_skips_hidden_charts(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # First metric param is hidden (visible=false); second has no `visible`
+        # field so it defaults to true. Unfurl should render the second chart.
+        hidden_metric = (
+            "%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p50(value)%22%5D%2C"
+            "%22visible%22%3Afalse%7D%5D%7D"
+        )
+        visible_metric = (
+            "%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p95(value)%22%5D%7D%5D%7D"
+        )
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+            f"?metric={hidden_metric}&metric={visible_metric}"
+            f"&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title="Explore Metrics - p95(value)",
+                chart_url="chart-url",
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        api_params = mock_client_get.call_args[1]["params"]
+        assert api_params["yAxis"] == "p95(value)"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_metrics_all_hidden_returns_no_unfurl(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        hidden_metric = (
+            "%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p50(value)%22%5D%2C"
+            "%22visible%22%3Afalse%7D%5D%7D"
+        )
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+            f"?metric={hidden_metric}&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert unfurls == {}
+        assert mock_generate_chart.call_count == 0
+        assert mock_client_get.call_count == 0
 
     def _create_spans_widget(
         self,
@@ -2791,6 +3211,40 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
 
         assert params["query"] == 'release:["v1.0.0","v2.0.0"]'
 
+    def test_url_empty_release_falls_back_to_dashboard_release(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"release": ["v1.0.0"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release="))[0]
+
+        assert params["query"] == 'release:"v1.0.0"'
+
+    def test_url_empty_release_with_no_dashboard_release_omits_query(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release="))[0]
+
+        assert "query" not in params
+
+    def test_url_empty_project_falls_back_to_dashboard_projects(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a])
+
+        params = build_widget_timeseries_params(widget, QueryDict("project="))[0]
+
+        assert params["project"] == str(project_a.id)
+
+    def test_url_empty_environment_falls_back_to_dashboard_environment(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("environment="))[0]
+
+        assert params["environment"] == "prod"
+
     def test_dashboard_global_filter_applied_when_dataset_matches(self) -> None:
         widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
         widget.dashboard.filters = {
@@ -2859,6 +3313,19 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         params = build_widget_timeseries_params(widget, QueryDict(f"globalFilter={url_filter}"))[0]
 
         assert params["query"] == "env:prod"
+
+    def test_url_empty_global_filter_falls_back_to_dashboard_global_filter(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("globalFilter="))[0]
+
+        assert params["query"] == "span.op:http"
 
     def test_url_global_filter_invalid_json_is_skipped(self) -> None:
         widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)

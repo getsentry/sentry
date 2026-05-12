@@ -201,7 +201,7 @@ export function OnboardingWithoutContext() {
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
     enabled: hasScmOnboarding,
-    sampleRate: 0.3,
+    sampleRate: 0.5,
   });
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
@@ -265,7 +265,7 @@ export function OnboardingWithoutContext() {
     stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
 
   // Called onExitComplete
-  const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
+  const [containerHasFooter, setContainerHasFooter] = useState(false);
   const updateAnimationState = () => {
     if (!stepObj) {
       return;

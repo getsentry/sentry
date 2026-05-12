@@ -18,6 +18,7 @@ import {
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
 import {
   SearchQueryBuilderCombobox,
   type CustomComboboxMenu,
@@ -42,6 +43,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueComboboxContext';
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
+import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
 import type {
   SuggestionItem,
   SuggestionSection,
@@ -203,11 +205,11 @@ export function getPredefinedValues({
   token: TokenResult<Token.FILTER>;
   key?: Tag;
 }): SuggestionSection[] | null {
-  if (!key) {
+  if (!key && !fieldDefinition) {
     return null;
   }
 
-  const definedValues = key.values ?? fieldDefinition?.values;
+  const definedValues = key?.values ?? fieldDefinition?.values;
   const valueType = getFilterValueType(token, fieldDefinition);
 
   if (!definedValues?.length) {
@@ -292,12 +294,12 @@ export function tokenSupportsMultipleValues(
   }
 }
 
-// Filters support wildcards if they are string filters and it is not explicity disallowed
-function keySupportsWildcard(fieldDefinition: FieldDefinition | null) {
-  const isStringFilter =
-    !fieldDefinition || fieldDefinition?.valueType === FieldValueType.STRING;
-
-  return isStringFilter && fieldDefinition?.allowWildcard !== false;
+// Filters support wildcards if they are string filters and it is not explicitly disallowed
+function keySupportsWildcard(
+  fieldDefinition: FieldDefinition | null,
+  valueType: FieldValueType
+) {
+  return valueType === FieldValueType.STRING && fieldDefinition?.allowWildcard !== false;
 }
 
 function useSelectionIndex({
@@ -361,6 +363,7 @@ function useFilterSuggestions({
   const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
   const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
+  const valueType = getFilterValueType(token, fieldDefinition);
   const predefinedValues = useMemo(
     () =>
       getPredefinedValues({
@@ -375,7 +378,11 @@ function useFilterSuggestions({
   // This is because the way keys are fetched doesn't guarantee that we have
   // every key loaded. So we should try to fetch values for it even if it
   // doesn't exist in the list of available keys.
-  const shouldFetchValues = key ? !key.predefined && predefinedValues === null : true;
+  const shouldFetchValues = predefinedValues === null && (key ? !key.predefined : true);
+  const shouldUseDefaultSuggestionOrder = shouldUseDefaultNumericSuggestions(
+    filterValue,
+    valueType
+  );
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
@@ -412,8 +419,15 @@ function useFilterSuggestions({
 
   const createItem = useCallback(
     (suggestion: SuggestionItem) => {
+      const label = suggestion.label ?? suggestion.value;
+
       return {
-        label: suggestion.label ?? suggestion.value,
+        label:
+          typeof label === 'string' && valueType === FieldValueType.STRING ? (
+            <HighlightText text={label} query={filterValue} />
+          ) : (
+            label
+          ),
         value: suggestion.value,
         details: suggestion.description,
         textValue: suggestion.value,
@@ -434,7 +448,7 @@ function useFilterSuggestions({
         },
       };
     },
-    [canSelectMultipleValues]
+    [canSelectMultipleValues, filterValue, valueType]
   );
 
   const suggestionGroups = useMemo(() => {
@@ -461,9 +475,18 @@ function useFilterSuggestions({
 
     return groups.map(group => ({
       ...group,
-      suggestions: sortSuggestionsByFzf(group.suggestions, filterValue),
+      suggestions: shouldUseDefaultSuggestionOrder
+        ? group.suggestions
+        : sortSuggestionsByFzf(group.suggestions, filterValue),
     }));
-  }, [data, predefinedValues, shouldFetchValues, key?.key, filterValue]);
+  }, [
+    data,
+    predefinedValues,
+    shouldFetchValues,
+    key?.key,
+    filterValue,
+    shouldUseDefaultSuggestionOrder,
+  ]);
 
   const suggestionSectionItems = useFrozenSuggestionSectionItems({
     createItem,
@@ -612,7 +635,10 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
-  const canUseWildcard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
+  const valueType = getFilterValueType(token, fieldDefinition);
+  const canUseWildcard = disallowWildcard
+    ? false
+    : keySupportsWildcard(fieldDefinition, valueType);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -770,7 +796,6 @@ export function SearchQueryBuilderValueCombobox({
         }
       }
 
-      const valueType = getFilterValueType(token, fieldDefinition);
       const valueForSaving =
         escapeSearchValue && valueType === FieldValueType.STRING
           ? escapeTagValueForSearch(value)
@@ -848,6 +873,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      valueType,
       getSuggestedFilterKey,
       canSelectMultipleValues,
       analyticsData,
@@ -999,9 +1025,12 @@ export function SearchQueryBuilderValueCombobox({
       ? prettifyTagKey(token.value.text)
       : canSelectMultipleValues
         ? ''
-        : formatFilterValue({
-            token: token.value,
-          });
+        : valueType === FieldValueType.CURRENCY
+          ? '$0.00'
+          : formatFilterValue({
+              token: token.value,
+              valueType,
+            });
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
@@ -1033,6 +1062,9 @@ export function SearchQueryBuilderValueCombobox({
             maxOptions={50}
             openOnFocus
             customMenu={customMenu}
+            shouldFilterResults={
+              !shouldUseDefaultNumericSuggestions(filterValue, valueType)
+            }
             shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
           >
             {suggestionSectionItems.map(section => (

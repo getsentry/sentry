@@ -234,14 +234,14 @@ def update_existing_message(
             }
         )
 
+        transformer: Callable[[dict[str, Any]], dict[str, Any] | None]
         # The RCA button is on an issue alert, so we just remove the button from the list of actions.
         # Later updates only have autofix buttons (View, Start), so we remove the whole actions block.
         # This is because we add the View button back to the footer, along with some status text.
-        transformer = (
-            remove_autofix_button_transformer
-            if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
-            else remove_all_buttons_transformer
-        )
+        transformer = remove_all_buttons_transformer
+        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE and data.handoff_target is None:
+            transformer = remove_autofix_button_transformer
+
         try:
             message_data = request.data["message"]
             original_blocks = message_data["blocks"]
@@ -299,9 +299,6 @@ def send_halt_message(
     match halt_reason:
         case SeerSlackHaltReason.IDENTITY_NOT_LINKED:
             message = "I'd love to help, but I don't know you like that — link your Slack account to Sentry first."
-            # TODO(leander): We'll need to revisit the UX around linking. We can't pass threads here so while
-            # the linking start message is correctly located and ephemeral, the success message afterwards is not.
-            # By omitting the response_url here, it will arrive as a DM, but it doesn't accept threads so this is the best we can do for now.
             associate_url = build_linking_url(
                 integration=integration,
                 slack_id=slack_user_id,

@@ -404,7 +404,6 @@ class PreprodSizeAnalysisGroupType(GroupType):
     slug = "preprod_size_analysis"
     description = "Size Analysis"
     category = GroupCategory.PREPROD.value
-    category_v2 = GroupCategory.PREPROD.value
     default_priority = PriorityLevel.LOW
     released = False
     enable_auto_resolve = True

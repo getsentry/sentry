@@ -54,6 +54,7 @@ function OrganizationProjects() {
         query,
         per_page: ITEMS_PER_PAGE,
         statsPeriod: '24h',
+        collapse: ['latestDeploys', 'unusedFeatures'],
       },
       staleTime: 0,
     }),

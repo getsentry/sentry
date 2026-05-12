@@ -43,6 +43,7 @@ ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
 GroupId: TypeAlias = int
 DataConditionGroupId: TypeAlias = int
+ActionId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 
@@ -114,6 +115,9 @@ class ActionInvocation:
     action: Action
     detector: Detector
     notification_uuid: str
+    # The workflow that triggered this action. An action may be associated
+    # with multiple workflows; this is an arbitrary choice among them.
+    workflow_id: WorkflowId
 
 
 class WorkflowEvaluationSnapshot(TypedDict):

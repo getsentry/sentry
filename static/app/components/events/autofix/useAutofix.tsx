@@ -1,8 +1,9 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
@@ -214,9 +215,9 @@ export const useAiAutofix = (
   const orgSlug = useOrganization().slug;
   const isUserWatching = !options.isSidebar;
 
-  const [isReset, setIsReset] = useState<boolean>(false);
+  const [isReset, setIsReset] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
+  const [waitingForNextRun, setWaitingForNextRun] = useState(false);
 
   const {data: apiData, isPending} = useQuery({
     ...autofixApiOptions(orgSlug, group.id, isUserWatching),
@@ -367,6 +368,8 @@ export function needsGitHubAuth(error: RequestError): boolean {
 }
 
 export function useLaunchCodingAgent(groupId: string, runId: string) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const queryClient = useQueryClient();
 

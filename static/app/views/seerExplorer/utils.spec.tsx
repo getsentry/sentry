@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -61,6 +63,8 @@ describe('postProcessLLMMarkdown', () => {
 });
 
 describe('buildToolLinkUrl', () => {
+  const organization = OrganizationFixture({slug: 'org-slug'});
+
   it('builds metrics links with encoded metric query state from Seer metadata', () => {
     const result = buildToolLinkUrl(
       {
@@ -76,7 +80,7 @@ describe('buildToolLinkUrl', () => {
           stats_period: '7d',
         },
       },
-      'org-slug'
+      organization
     );
 
     expect(result).toEqual(
@@ -121,7 +125,7 @@ describe('buildToolLinkUrl', () => {
           mode: 'aggregates',
         },
       },
-      'org-slug'
+      organization
     );
 
     expect(result).toBeNull();

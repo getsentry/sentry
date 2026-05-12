@@ -23,9 +23,6 @@ from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
 from sentry.web.frontend import csrf_failure, generic
-from sentry.web.frontend.accept_organization_invite_redirect import (
-    AcceptOrganizationInviteRedirectView,
-)
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -556,11 +553,6 @@ urlpatterns += [
         name="sentry-accept-project-transfer",
     ),
     re_path(
-        r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        AcceptOrganizationInviteRedirectView.as_view(),
-        name="sentry-accept-invite",
-    ),
-    re_path(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-accept-invite",
@@ -997,12 +989,6 @@ urlpatterns += [
         r"^prevent/",
         react_page_view,
         name="prevent",
-    ),
-    # Seer
-    re_path(
-        r"^seer/",
-        react_page_view,
-        name="seer",
     ),
     # Monitors
     re_path(
