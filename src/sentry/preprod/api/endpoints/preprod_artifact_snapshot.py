@@ -346,7 +346,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         if comparison_manifest is not None:
             comparison_type = "diff"
-        elif commit_comparison and commit_comparison.base_sha:
+        elif commit_comparison and commit_comparison.base_sha and pending_or_failed_state is None:
             comparison_type = "waiting_for_base"
         else:
             comparison_type = "solo"
