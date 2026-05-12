@@ -647,13 +647,23 @@ def build_automation_handoff(
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
-    seer_project_repo_qs = (
-        SeerProjectRepository.objects.filter(
-            project=project, repository__status=ObjectStatus.ACTIVE
+    if features.has("organizations:project-repository-fk-reads", project.organization):
+        seer_project_repo_qs = (
+            SeerProjectRepository.objects.filter(
+                project_repository__project=project,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("project_repository", "project_repository__repository")
+            .prefetch_related("branch_overrides")
         )
-        .select_related("repository")
-        .prefetch_related("branch_overrides")
-    )
+    else:
+        seer_project_repo_qs = (
+            SeerProjectRepository.objects.filter(
+                project=project, repository__status=ObjectStatus.ACTIVE
+            )
+            .select_related("repository")
+            .prefetch_related("branch_overrides")
+        )
     repo_definitions = [
         repo_def
         for project_repo in seer_project_repo_qs
@@ -679,14 +689,18 @@ def bulk_read_preferences_from_sentry_db(
 
     projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
 
+    org = Organization.objects.get(id=organization_id)
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
-    for project_repo in (
-        SeerProjectRepository.objects.filter(
+    if features.has("organizations:project-repository-fk-reads", org):
+        seer_repo_qs = SeerProjectRepository.objects.filter(
+            project_repository__project_id__in=project_ids,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).select_related("project_repository", "project_repository__repository")
+    else:
+        seer_repo_qs = SeerProjectRepository.objects.filter(
             project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
-        )
-        .select_related("repository")
-        .prefetch_related("branch_overrides")
-    ):
+        ).select_related("repository")
+    for project_repo in seer_repo_qs.prefetch_related("branch_overrides"):
         repo_def = build_repo_definition_from_project_repo(project_repo)
         if repo_def is not None:
             repo_definitions_by_project[project_repo.project_id].append(repo_def)
@@ -798,6 +812,13 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
+    if features.has("organizations:project-repository-fk-reads", organization):
+        return SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__project__organization_id=organization.id,
+            project_repository__project__status=ObjectStatus.ACTIVE,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).exists()
     return SeerProjectRepository.objects.filter(
         project=project,
         project__organization_id=organization.id,
