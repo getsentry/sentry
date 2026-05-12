@@ -216,13 +216,13 @@ export function getHiddenOptions<Value extends SelectKey>(
   //
   // Then, limit the number of remaining options to `limit`
   //
-  let threshold = [Infinity, Infinity];
+  let threshold: [number, number] = [Infinity, Infinity];
   let accumulator = 0;
   let currentIndex = 0;
 
   while (currentIndex < orderedRemainingItems.length) {
-    const item = orderedRemainingItems[currentIndex]!;
-    const delta = 'options' in item ? item.options.length : 1;
+    const item = orderedRemainingItems[currentIndex];
+    const delta = item && 'options' in item ? item.options.length : 1;
 
     if (accumulator + delta > limit) {
       threshold = [currentIndex, limit - accumulator];
@@ -233,15 +233,17 @@ export function getHiddenOptions<Value extends SelectKey>(
     currentIndex += 1;
   }
 
-  for (let i = threshold[0]!; i < orderedRemainingItems.length; i++) {
-    const item = orderedRemainingItems[i]!;
-    if ('options' in item) {
-      const startingIndex = i === threshold[0] ? threshold[1]! : 0;
-      for (let j = startingIndex; j < item.options.length; j++) {
-        hiddenOptionsSet.add(item.options[j]!.key);
+  for (let i = threshold[0]; i < orderedRemainingItems.length; i++) {
+    const item = orderedRemainingItems[i];
+    if (item) {
+      if ('options' in item) {
+        const startingIndex = i === threshold[0] ? threshold[1] : 0;
+        for (const option of item.options.slice(startingIndex)) {
+          hiddenOptionsSet.add(option.key);
+        }
+      } else {
+        hiddenOptionsSet.add(item.key);
       }
-    } else {
-      hiddenOptionsSet.add(item.key);
     }
   }
 

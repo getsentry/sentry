@@ -154,7 +154,7 @@ export function BlockComponent({
 
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
-  const hasContent = hasValidContent(block.message.content);
+  const hasContent = hasValidContent(block.message.content ?? '');
   const hasThinkingContentToShow =
     showThinking && hasValidContent(block.message.thinking_content ?? '');
   const processedContent = useMemo(
@@ -212,7 +212,7 @@ export function BlockComponent({
         type,
         run_id: runId,
         block_index: blockIndex,
-        block_message: block.message.content.slice(0, 100),
+        block_message: block.message.content?.slice(0, 100) ?? '',
         langfuse_url: getLangfuseUrl(runId),
         explorer_url: getExplorerUrl(runId),
         conversations_url: getConversationsUrlForExternalUse('sentry', runId),
@@ -250,7 +250,7 @@ export function BlockComponent({
 
   const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    copy(block.message.content);
+    copy(block.message.content ?? '');
   };
 
   const showActions =
@@ -336,7 +336,9 @@ export function BlockComponent({
                     const isLoading =
                       blockStatus === 'loading' || blockStatus === 'pending';
 
-                    const toolLinkParams = toolLinkByCallId.get(toolCall.id);
+                    const toolLinkParams = toolCall.id
+                      ? toolLinkByCallId.get(toolCall.id)
+                      : undefined;
                     const isFailed = Boolean(toolLinkParams?.is_error);
                     const isEmptyResults = Boolean(toolLinkParams?.empty_results);
                     const isTodoWriteCall = toolCall.function === 'todo_write';

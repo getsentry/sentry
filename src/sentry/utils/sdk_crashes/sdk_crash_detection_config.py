@@ -236,6 +236,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="@sentry/core/*/instrument/fetch*",
                     function_pattern="fetch",
                 ),
+                # The Supabase integration wraps PostgREST queries and captures errors from
+                # Supabase responses via captureException. The Error is constructed inside SDK
+                # code, so the stack trace only contains SDK frames, triggering false positives.
+                # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
+                FunctionAndModulePattern(
+                    module_pattern="@sentry/core/*/integrations/supabase*",
+                    function_pattern="Reflect.apply.then$argument_0",
+                ),
             },
         )
         configs.append(react_native_config)
