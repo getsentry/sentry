@@ -1,14 +1,20 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {IconCopy, IconDocs, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -28,6 +34,21 @@ type HighlightedAttribute = {
   name: string;
   value: React.ReactNode;
 };
+
+const AI_COST_DOCS_URL =
+  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
+
+const LLM_COST_INSTRUCTIONS_MARKDOWN = `
+# Fix Sentry AI cost reporting
+
+This AI span already has token counts. Add the model ID so Sentry can calculate cost.
+
+1. Set \`gen_ai.response.model\` or \`gen_ai.request.model\` to the model ID used for the call.
+2. Use the exact model name sent to the provider, for example \`gpt-4o-mini\` or \`claude-3-5-sonnet-latest\`.
+3. If model and token data are present and cost is still empty, Sentry may not have pricing data for that model.
+
+Follow Sentry's AI cost troubleshooting guide: ${AI_COST_DOCS_URL}
+`;
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.
@@ -116,10 +137,15 @@ function getAISpanAttributes({
   }
 
   const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
-  if (model) {
+  if (isPresentModel(model)) {
     highlightedAttributes.push({
       name: t('Model'),
       value: <ModelName modelId={model.toString()} gap="xs" />,
+    });
+  } else if (genAiOpType === 'ai_client' && hasTokenCounts(attributes)) {
+    highlightedAttributes.push({
+      name: t('Model'),
+      value: <MissingAIModelCostCallout spanId={spanId} />,
     });
   }
 
@@ -221,6 +247,127 @@ function getAISpanAttributes({
   }
 
   return highlightedAttributes;
+}
+
+function isPresentModel(
+  value: string | number | boolean | undefined
+): value is string | number | boolean {
+  return Boolean(value) && value?.toString() !== 'null';
+}
+
+function hasPositiveNumber(value: string | number | boolean | undefined) {
+  return Boolean(value) && Number(value) > 0;
+}
+
+function hasTokenCounts(attributes: Record<string, string | number | boolean>) {
+  return (
+    hasPositiveNumber(attributes['gen_ai.usage.input_tokens']) ||
+    hasPositiveNumber(attributes['gen_ai.usage.output_tokens']) ||
+    hasPositiveNumber(attributes['gen_ai.usage.total_tokens'])
+  );
+}
+
+function captureMissingModelCostCalloutMessage({
+  action,
+  spanId,
+}: {
+  action: 'copy_instructions' | 'docs_click' | 'shown';
+  spanId: string;
+}) {
+  Sentry.captureMessage('AI span cost setup callout', {
+    level: 'info',
+    tags: {
+      action,
+      feature: 'agent-monitoring',
+      has_token_counts: 'true',
+      missing_attributes: 'gen_ai.response.model',
+      span_id: spanId,
+      span_type: 'gen_ai',
+    },
+  });
+}
+
+function MissingAIModelCostCallout({spanId}: {spanId: string}) {
+  const organization = useOrganization();
+  const didCaptureShown = useRef(false);
+  const didTrackHover = useRef(false);
+
+  useEffect(() => {
+    if (didCaptureShown.current) {
+      return;
+    }
+    didCaptureShown.current = true;
+    captureMissingModelCostCalloutMessage({
+      action: 'shown',
+      spanId,
+    });
+  }, [spanId]);
+
+  const analyticsParams = {
+    organization,
+    hasTokenCounts: true,
+  };
+
+  return (
+    <Flex align="center" gap="xs" wrap="wrap">
+      <Tooltip
+        title={t(
+          'There is no model data. Add gen_ai.response.model or gen_ai.request.model to calculate cost.'
+        )}
+      >
+        <Tag
+          variant="warning"
+          icon={<IconWarning />}
+          onMouseEnter={() => {
+            if (didTrackHover.current) {
+              return;
+            }
+            didTrackHover.current = true;
+            trackAnalytics('agent-monitoring.model-cost-callout-tooltip-hover', {
+              ...analyticsParams,
+            });
+          }}
+        >
+          {t('No model data')}
+        </Tag>
+      </Tooltip>
+      <ExternalLink
+        href={AI_COST_DOCS_URL}
+        onClick={() => {
+          captureMissingModelCostCalloutMessage({
+            action: 'docs_click',
+            spanId,
+          });
+          trackAnalytics('agent-monitoring.model-cost-callout-docs-click', {
+            ...analyticsParams,
+          });
+        }}
+      >
+        <Flex as="span" align="center" gap="xs">
+          <IconDocs size="xs" />
+          {t('Docs')}
+        </Flex>
+      </ExternalLink>
+      <Button
+        aria-label={t('Copy LLM instructions')}
+        size="zero"
+        priority="transparent"
+        icon={<IconCopy size="xs" />}
+        onClick={() => {
+          copyToClipboard(LLM_COST_INSTRUCTIONS_MARKDOWN, {
+            successMessage: t('Copied LLM instructions to clipboard'),
+          });
+          captureMissingModelCostCalloutMessage({
+            action: 'copy_instructions',
+            spanId,
+          });
+          trackAnalytics('agent-monitoring.model-cost-callout-copy-click', {
+            ...analyticsParams,
+          });
+        }}
+      />
+    </Flex>
+  );
 }
 
 function getMCPAttributes(attributes: Record<string, string | number | boolean>) {

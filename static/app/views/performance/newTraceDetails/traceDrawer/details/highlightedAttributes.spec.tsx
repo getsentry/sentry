@@ -1,4 +1,9 @@
 import * as Sentry from '@sentry/react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {getHighlightedSpanAttributes} from './highlightedAttributes';
 
@@ -7,9 +12,16 @@ jest.mock('@sentry/react', () => ({
   captureMessage: jest.fn(),
 }));
 
+jest.mock('sentry/utils/analytics', () => ({
+  trackAnalytics: jest.fn(),
+}));
+
 describe('getHighlightedSpanAttributes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue('')},
+    });
   });
 
   it('should emit Sentry error when gen_ai span with auto.ai origin is missing required attributes', () => {
@@ -161,5 +173,161 @@ describe('getHighlightedSpanAttributes', () => {
     });
 
     expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
+  });
+
+  it('shows model cost setup callout when ai_client span has tokens and is missing model', async () => {
+    const organization = OrganizationFixture();
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '10',
+      'gen_ai.usage.output_tokens': '20',
+      'gen_ai.usage.total_tokens': '30',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: 'missing-model-span',
+      attributes,
+    });
+    const modelAttribute = result.find(attr => attr.name === 'Model');
+
+    render(<div>{modelAttribute?.value}</div>, {organization});
+
+    expect(screen.getByText('No model data')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'AI span cost setup callout',
+        expect.objectContaining({
+          level: 'info',
+          tags: expect.objectContaining({
+            action: 'shown',
+            has_token_counts: 'true',
+            span_id: 'missing-model-span',
+          }),
+        })
+      );
+    });
+  });
+
+  it('does not show model cost setup callout when ai_client span is missing tokens', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: 'missing-model-span',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Model')).toBeUndefined();
+  });
+
+  it('emits a Sentry message when cost setup docs are opened', async () => {
+    const organization = OrganizationFixture();
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '10',
+      'gen_ai.usage.output_tokens': '20',
+      'gen_ai.usage.total_tokens': '30',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: 'missing-model-span',
+      attributes,
+    });
+    const modelAttribute = result.find(attr => attr.name === 'Model');
+
+    render(<div>{modelAttribute?.value}</div>, {organization});
+
+    await userEvent.hover(screen.getByText('No model data'));
+    await userEvent.click(await screen.findByRole('link', {name: 'Docs'}));
+
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'AI span cost setup callout',
+      expect.objectContaining({
+        level: 'info',
+        tags: expect.objectContaining({
+          action: 'docs_click',
+          has_token_counts: 'true',
+          span_id: 'missing-model-span',
+        }),
+      })
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.model-cost-callout-docs-click',
+      expect.objectContaining({
+        hasTokenCounts: true,
+      })
+    );
+  });
+
+  it('emits a Sentry message when LLM cost setup instructions are copied', async () => {
+    const organization = OrganizationFixture();
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '10',
+      'gen_ai.usage.output_tokens': '20',
+      'gen_ai.usage.total_tokens': '30',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: 'missing-model-span',
+      attributes,
+    });
+    const modelAttribute = result.find(attr => attr.name === 'Model');
+
+    render(<div>{modelAttribute?.value}</div>, {organization});
+
+    await userEvent.hover(screen.getByText('No model data'));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Copy LLM instructions'})
+    );
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('gen_ai.response.model')
+    );
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'AI span cost setup callout',
+      expect.objectContaining({
+        level: 'info',
+        tags: expect.objectContaining({
+          action: 'copy_instructions',
+          has_token_counts: 'true',
+          span_id: 'missing-model-span',
+        }),
+      })
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.model-cost-callout-copy-click',
+      expect.objectContaining({
+        hasTokenCounts: true,
+      })
+    );
+  });
+
+  it('tracks when the model cost setup tooltip is hovered', async () => {
+    const organization = OrganizationFixture();
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '10',
+      'gen_ai.usage.output_tokens': '20',
+      'gen_ai.usage.total_tokens': '30',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: 'missing-model-span',
+      attributes,
+    });
+    const modelAttribute = result.find(attr => attr.name === 'Model');
+
+    render(<div>{modelAttribute?.value}</div>, {organization});
+
+    await userEvent.hover(screen.getByText('No model data'));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.model-cost-callout-tooltip-hover',
+      expect.objectContaining({
+        hasTokenCounts: true,
+      })
+    );
   });
 });

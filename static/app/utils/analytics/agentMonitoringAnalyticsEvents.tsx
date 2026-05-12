@@ -8,6 +8,9 @@ export type AgentMonitoringEventParameters = {
   'agent-monitoring.drawer.open': Record<string, unknown>;
   'agent-monitoring.drawer.span-select': Record<string, unknown>;
   'agent-monitoring.drawer.view-full-trace-click': Record<string, unknown>;
+  'agent-monitoring.model-cost-callout-copy-click': Record<string, unknown>;
+  'agent-monitoring.model-cost-callout-docs-click': Record<string, unknown>;
+  'agent-monitoring.model-cost-callout-tooltip-hover': Record<string, unknown>;
   'agent-monitoring.page-filter-change': {
     filter: 'project' | 'environment' | 'date' | 'agent' | 'search';
   };
@@ -38,6 +41,12 @@ export const agentMonitoringEventMap: Record<
   'agent-monitoring.drawer.span-select': 'Agent Monitoring: Span Select',
   'agent-monitoring.drawer.view-full-trace-click':
     'Agent Monitoring: View Full Trace Click',
+  'agent-monitoring.model-cost-callout-copy-click':
+    'Agent Monitoring: Model Cost Callout Copy Click',
+  'agent-monitoring.model-cost-callout-docs-click':
+    'Agent Monitoring: Model Cost Callout Docs Click',
+  'agent-monitoring.model-cost-callout-tooltip-hover':
+    'Agent Monitoring: Model Cost Callout Tooltip Hover',
   'agent-monitoring.trace.rendered': 'Agent Monitoring: Trace Rendered',
   'agent-monitoring.trace.span-select': 'Agent Monitoring: Trace Span Select',
   'agent-monitoring.trace.view-full-trace-click':
