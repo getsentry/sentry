@@ -463,9 +463,18 @@ def _write_preferences_to_sentry_db(
         list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
 
         # Only delete SeerProjectRepository for active repos.
-        SeerProjectRepository.objects.filter(
-            project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
-        ).delete()
+        if features.has(
+            "organizations:project-repository-fk-reads",
+            project_preferences[0][0].organization,
+        ):
+            SeerProjectRepository.objects.filter(
+                project_repository__project_id__in=project_ids,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            ).delete()
+        else:
+            SeerProjectRepository.objects.filter(
+                project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
+            ).delete()
 
         all_repo_ids = {
             repo_def.repository_id
