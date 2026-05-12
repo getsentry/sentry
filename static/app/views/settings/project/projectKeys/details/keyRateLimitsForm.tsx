@@ -175,6 +175,7 @@ export function KeyRateLimitsForm({
                         hintText={t(
                           'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
                         )}
+                        padding="xl"
                       >
                         <Grid columns="100px max-content 1fr" align="center" gap="xl">
                           <Input
