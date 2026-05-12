@@ -3,7 +3,6 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
@@ -111,26 +110,26 @@ export function getTargetWithReadableQueryParams(
 ): Location {
   const target: Location = {...location, query: {...location.query}};
 
-  updateNullableLocation(
-    target,
-    SPANS_EXTRAPOLATE_KEY,
-    defined(writableQueryParams.extrapolate)
-      ? writableQueryParams.extrapolate
-        ? null
-        : '0'
-      : writableQueryParams.extrapolate
-  );
-  updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
-  updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
+  // extrapolate: boolean handling — true means default (delete), false means '0'
+  if (defined(writableQueryParams.extrapolate)) {
+    if (writableQueryParams.extrapolate) {
+      delete target.query[SPANS_EXTRAPOLATE_KEY];
+    } else {
+      target.query[SPANS_EXTRAPOLATE_KEY] = '0';
+    }
+  }
 
-  updateNullableLocation(
+  setNullableQueryParam(target, SPANS_QUERY_KEY, writableQueryParams.query);
+  setNullableQueryParam(target, SPANS_MODE_KEY, writableQueryParams.mode);
+
+  setNullableQueryParam(
     target,
     SPANS_FIELD_KEY,
     writableQueryParams.fields === null
       ? null
       : writableQueryParams.fields?.filter(Boolean)
   );
-  updateNullableLocation(
+  setNullableQueryParam(
     target,
     SPANS_SORT_KEY,
     writableQueryParams.sortBys === null
@@ -140,14 +139,14 @@ export function getTargetWithReadableQueryParams(
         )
   );
 
-  updateNullableLocation(
+  setNullableQueryParam(
     target,
     SPANS_AGGREGATE_FIELD_KEY,
     writableQueryParams.aggregateFields?.map(aggregateField =>
       JSON.stringify(aggregateField)
     )
   );
-  updateNullableLocation(
+  setNullableQueryParam(
     target,
     SPANS_AGGREGATE_SORT_KEY,
     writableQueryParams.aggregateSortBys === null
@@ -157,7 +156,7 @@ export function getTargetWithReadableQueryParams(
         )
   );
 
-  updateNullableLocation(
+  setNullableQueryParam(
     target,
     SPANS_CROSS_EVENTS_KEY,
     writableQueryParams?.crossEvents === null
@@ -166,6 +165,22 @@ export function getTargetWithReadableQueryParams(
   );
 
   return target;
+}
+
+/**
+ * Sets a query param on a target location, deleting it if null.
+ * Skips if value is undefined.
+ */
+function setNullableQueryParam(
+  target: Location,
+  key: string,
+  value: string | string[] | null | undefined
+): void {
+  if (value === null) {
+    delete target.query[key];
+  } else if (value !== undefined) {
+    target.query[key] = value;
+  }
 }
 
 function defaultFields(): string[] {
