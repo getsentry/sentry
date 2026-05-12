@@ -1,7 +1,8 @@
-import {Fragment, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -77,14 +78,14 @@ export function SuperuserWarning({organization, className}: Props) {
   const textRef = useRef<HTMLSpanElement>(null);
   const [marqueeCount, setMarqueeCount] = useState(8);
 
-  useLayoutEffect(() => {
-    const strip = stripRef.current;
-    const text = textRef.current;
-    if (!strip || !text) {
-      return;
-    }
-
-    const update = () => {
+  useResizeObserver({
+    ref: stripRef,
+    onResize() {
+      const strip = stripRef.current;
+      const text = textRef.current;
+      if (!strip || !text) {
+        return;
+      }
       const stripWidth = strip.clientWidth;
       if (!stripWidth || !text.offsetWidth) {
         return;
@@ -93,13 +94,8 @@ export function SuperuserWarning({organization, className}: Props) {
         const repWidth = text.offsetWidth / currentCount;
         return repWidth ? Math.ceil(stripWidth / repWidth) + 2 : currentCount;
       });
-    };
-
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(strip);
-    return () => observer.disconnect();
-  }, [hasPageFrame, isExcludedOrg]);
+    },
+  });
 
   useEffect(() => {
     if (!isExcludedOrg) {
