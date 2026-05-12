@@ -8,7 +8,6 @@ import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {PreprodBuildsSnapshotTable} from './preprodBuildsSnapshotTable';
 
 jest.mock('@sentry/scraps/badge', () => ({
-  // eslint-disable-next-line @sentry/scraps/no-core-import -- avoid barrel re-export pulling in pegjs parser
   ...jest.requireActual('sentry/components/core/badge/tag'),
 }));
 
