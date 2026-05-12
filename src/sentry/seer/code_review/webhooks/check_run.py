@@ -104,9 +104,16 @@ def handle_check_run_event(
         record_webhook_filtered(github_event, action, WebhookFilteredReason.UNSUPPORTED_ACTION)
         return
 
+    # Filter out check runs not created by Sentry (e.g. from Codecov or other CI tools).
+    # Sentry always sets external_id to a numeric run ID; third-party check runs leave it empty.
+    external_id = event.get("check_run", {}).get("external_id", "")
+    if not external_id or not str(external_id).isdigit():
+        record_webhook_filtered(github_event, action, WebhookFilteredReason.NOT_SENTRY_CHECK_RUN)
+        return
+
     try:
         validated_event = _validate_github_check_run_event(event)
-    except (ValidationError, ValueError):
+    except ValidationError:
         # Prevent sending a 500 error to GitHub which would trigger a retry
         logger.exception(Log.INVALID_PAYLOAD.value)
         record_webhook_handler_error(
@@ -136,8 +143,5 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
 
     Raises:
         ValidationError: If the event payload is invalid
-        ValueError: If external_id is not numeric
     """
-    validated_event = GitHubCheckRunEvent.parse_obj(event)
-    int(validated_event.check_run.external_id)  # Raises ValueError if not numeric
-    return validated_event
+    return GitHubCheckRunEvent.parse_obj(event)

@@ -19,6 +19,7 @@ class WebhookFilteredReason(StrEnum):
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
     TRIGGER_DISABLED = "trigger_disabled"  # Trigger not enabled in repo settings
+    NOT_SENTRY_CHECK_RUN = "not_sentry_check_run"  # check_run not created by Sentry (external_id is empty or non-numeric)
 
 
 CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason
