@@ -61,11 +61,16 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     <Flex direction="column" height="100%">
       <BaseChart
         autoHeightResize
+        // will be grouped by date as we only support time as the x-axis right now.
+        // this will change later and we'll pass in what kind of x-axis we have
+        isGroupedByDate
+        showTimeInTooltip
         tooltip={{
-          show: false,
+          show: true,
           axisPointer: {
             show: false,
           },
+          triggerOn: 'click',
         }}
         series={series}
         xAxis={{
