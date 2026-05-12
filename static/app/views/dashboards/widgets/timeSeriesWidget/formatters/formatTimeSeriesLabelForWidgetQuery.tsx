@@ -29,9 +29,10 @@ export function formatTimeSeriesLabelForWidgetQuery(
       ? prettifyQueryConditions(widgetQuery.conditions)
       : undefined);
 
-  const {aggregates, columns, fields, fieldAliases = []} = widgetQuery;
+  const {aggregates, columns, fieldAliases = []} = widgetQuery;
+  const fields = widgetQuery.fields ?? [...columns, ...aggregates];
   const {yAxis} = timeSeries;
-  const fieldIndex = fields?.indexOf(yAxis) ?? -1;
+  const fieldIndex = fields.indexOf(yAxis);
   // Only use field aliases for the yAxis if there are multiple yAxis and no group bys.
   const fieldAlias =
     aggregates.length > 1 && columns.length === 0 && fieldIndex >= 0

@@ -125,6 +125,26 @@ describe('formatTimeSeriesLabelForWidgetQuery', () => {
     ).toBe('P95');
   });
 
+  it('falls back to columns+aggregates when widget query has no fields array', () => {
+    const widgetQuery = WidgetQueryFixture({
+      name: '',
+      conditions: '',
+      aggregates: ['count(span.duration)', 'p95(span.duration)'],
+      columns: [],
+      fields: undefined,
+      fieldAliases: ['Total', 'P95'],
+    });
+    const widget = WidgetFixture({queries: [widgetQuery]});
+
+    expect(
+      formatTimeSeriesLabelForWidgetQuery(
+        makeTimeSeries('p95(span.duration)'),
+        widget,
+        widgetQuery
+      )
+    ).toBe('P95');
+  });
+
   it('uses the group-by value when the series is grouped', () => {
     const widgetQuery = WidgetQueryFixture({
       name: '',
