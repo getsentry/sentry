@@ -6,6 +6,7 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
@@ -15,7 +16,6 @@ import type {
 } from 'sentry/views/explore/queryParams/aggregateField';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
