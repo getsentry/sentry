@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -89,13 +89,11 @@ export function KeyRateLimitsForm({
     onSuccess: (updated, submitted) => {
       updateData(updated);
       addSuccessMessage(
-        <Flex align="center" justify="center" gap="xs">
-          {tct('Changed [fieldName] from [oldValue] to [newValue]', {
-            fieldName: <Text bold>{t('Rate Limit')}</Text>,
-            oldValue: <Text italic>{formatRateLimit(previousRateLimitRef.current)}</Text>,
-            newValue: <Text italic>{formatRateLimit(submitted)}</Text>,
-          })}
-        </Flex>
+        tct('Changed [fieldName] from [oldValue] to [newValue]', {
+          fieldName: <Text bold>{t('Rate Limit')}</Text>,
+          oldValue: <Text italic>{formatRateLimit(previousRateLimitRef.current)}</Text>,
+          newValue: <Text italic>{formatRateLimit(submitted)}</Text>,
+        })
       );
     },
   });
