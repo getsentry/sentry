@@ -4,7 +4,7 @@ import {
 } from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render as baseRender, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -13,7 +13,11 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, {additionalWrapper: WidgetQueryQueueProvider, ...options});
 
 describe('Dashboards > ReleaseWidgetQueries', () => {
   const badMessage = 'Bad request data';

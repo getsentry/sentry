@@ -9,6 +9,7 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SpansWidgetQueries} from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 import {TraceMetricsWidgetQueries} from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
@@ -60,7 +61,15 @@ type Props = {
   widgetInterval?: string;
 };
 
-export function WidgetCardDataLoader({
+export function WidgetCardDataLoader(props: Props) {
+  return (
+    <WidgetQueryQueueProvider>
+      <WidgetCardDataLoaderInner {...props} />
+    </WidgetQueryQueueProvider>
+  );
+}
+
+function WidgetCardDataLoaderInner({
   children,
   widget,
   selection,

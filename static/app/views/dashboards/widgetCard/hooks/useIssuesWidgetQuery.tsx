@@ -7,7 +7,6 @@ import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -24,7 +23,6 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
@@ -54,10 +52,6 @@ export function useIssuesSeriesQuery(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
   );
 
   const queryResults = useQueries({
@@ -110,27 +104,16 @@ export function useIssuesSeriesQuery(
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
-        queryFn: (context): Promise<ApiResponse<IssuesSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<IssuesSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<IssuesSeriesResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<IssuesSeriesResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<IssuesSeriesResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         select: selectJsonWithHeaders,
         placeholderData: keepPreviousData,
       });
@@ -226,10 +209,6 @@ export function useIssuesTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       const queryParams: Record<string, unknown> = {
@@ -264,27 +243,15 @@ export function useIssuesTableQuery(
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
-        queryFn: (context): Promise<ApiResponse<IssuesTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<IssuesTableResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<IssuesTableResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<IssuesTableResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () => apiFetch<IssuesTableResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         select: selectJsonWithHeaders,
       });
     }),

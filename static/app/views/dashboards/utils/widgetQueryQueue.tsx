@@ -1,5 +1,5 @@
 import type {RefObject} from 'react';
-import {createContext, useContext, useMemo, useRef} from 'react';
+import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import {metrics} from '@sentry/react';
 import {
   asyncQueuerOptions,
@@ -24,14 +24,14 @@ type Context = {
 
 const WidgetQueueContext = createContext<Context | undefined>(undefined);
 
-export function useWidgetQueryQueue() {
-  const organization = useOrganization();
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
+export function useWidgetQueryQueue(): Context {
   const queueContext = useContext(WidgetQueueContext);
 
-  return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
+  if (!queueContext) {
+    throw new Error('useWidgetQueryQueue must be used within a WidgetQueryQueueProvider');
+  }
+
+  return queueContext;
 }
 
 // Lowest known safe value for customers — used when the org option is unset so we
@@ -40,6 +40,14 @@ const FALLBACK_CONCURRENCY = 5;
 const MAX_RETRIES = 5;
 
 export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}) {
+  const existing = useContext(WidgetQueueContext);
+  if (existing) {
+    return <Fragment>{children}</Fragment>;
+  }
+  return <WidgetQueryQueueProviderInner>{children}</WidgetQueryQueueProviderInner>;
+}
+
+function WidgetQueryQueueProviderInner({children}: {children: React.ReactNode}) {
   const startTimeRef = useRef<number | undefined>(undefined);
   const location = useLocation();
   const organization = useOrganization();

@@ -20,7 +20,6 @@ import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/gen
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 import {getReleasesRequestData} from './utils/releases';
 
@@ -47,10 +46,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       skipDashboardFilterParens
     );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
 
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
@@ -96,27 +91,15 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       return queryOptions({
         ...baseOptions,
         staleTime: getWidgetStaleTime(pageFilters),
-        queryFn: (context): Promise<ApiResponse<SessionApiResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SessionApiResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SessionApiResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<SessionApiResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () => apiFetch<SessionApiResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         placeholderData: keepPreviousData,
         select: selectJsonWithHeaders,
       });
@@ -234,10 +217,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
     try {
@@ -269,27 +248,15 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       return queryOptions({
         ...baseOptions,
         staleTime: getWidgetStaleTime(pageFilters),
-        queryFn: (context): Promise<ApiResponse<SessionApiResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SessionApiResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SessionApiResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<SessionApiResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () => apiFetch<SessionApiResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         placeholderData: keepPreviousData,
         select: selectJsonWithHeaders,
       });

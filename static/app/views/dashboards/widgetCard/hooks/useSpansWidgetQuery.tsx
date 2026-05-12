@@ -26,7 +26,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
@@ -41,7 +40,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
 
 type SpansSeriesResponse =
@@ -81,10 +79,6 @@ export function useSpansSeriesQuery(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
   );
 
   const queryResults = useQueries({
@@ -136,27 +130,15 @@ export function useSpansSeriesQuery(
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
-        queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SpansSeriesResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () => apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         placeholderData: keepPreviousData,
       });
     }),
@@ -282,10 +264,6 @@ export function useSpansTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
   const queryResults = useQueries({
@@ -355,26 +333,16 @@ export function useSpansTableQuery(
             queryKey: baseOptions.queryKey,
           };
 
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SpansTableResponse>(modifiedContext).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SpansTableResponse>(modifiedContext);
+          return new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<SpansTableResponse>(modifiedContext).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          });
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         select: selectJsonWithHeaders,
       });
     }),

@@ -1,11 +1,15 @@
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 
 import {LogsWidgetQueries} from './logsWidgetQueries';
+
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, {additionalWrapper: WidgetQueryQueueProvider, ...options});
 
 describe('logsWidgetQueries', () => {
   afterEach(() => {

@@ -15,7 +15,12 @@ import {
 } from './useTransactionsWidgetQuery';
 
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
-  useWidgetQueryQueue: () => ({queue: null}),
+  useWidgetQueryQueue: () => ({
+    queue: {
+      addItem: (item: {fetchDataRef: {current: () => Promise<unknown>}}) =>
+        item.fetchDataRef.current(),
+    },
+  }),
 }));
 
 describe('useTransactionsSeriesQuery', () => {
