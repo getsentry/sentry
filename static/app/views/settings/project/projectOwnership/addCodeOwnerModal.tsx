@@ -190,7 +190,7 @@ function ApplyCodeMappings({
             codeMappings={codeMappings}
             codeownersFile={codeownersFile}
             organization={organization}
-            mutationError={mutation.error}
+            mutationError={mutation.error instanceof RequestError ? mutation.error : null}
             mutationIsError={mutation.isError}
           />
         </Stack>
