@@ -18,6 +18,7 @@ interface VideoReplayerWithInteractionsOptions {
   videoApiPrefix: string;
   videoEvents: VideoEvent[];
   clipWindow?: ClipWindow;
+  maxVideoElements?: number;
 }
 
 /**
@@ -42,6 +43,7 @@ export class VideoReplayerWithInteractions {
     durationMs,
     theme,
     speed,
+    maxVideoElements,
   }: VideoReplayerWithInteractionsOptions) {
     this.config = {
       skipInactive: false,
@@ -58,6 +60,7 @@ export class VideoReplayerWithInteractions {
       clipWindow,
       durationMs,
       config: this.config,
+      maxVideoElements,
     });
 
     this.replayer = new Replayer(eventsWithSnapshots, {

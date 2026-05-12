@@ -7,11 +7,17 @@ import {findVideoSegmentIndex} from './utils';
 // Also the number of segments we load initially
 const PRELOAD_BUFFER = 3;
 
+// Cap on simultaneously-attached <video> elements. Long mobile replays can have
+// thousands of segments, and browsers run out of decoder slots / media players
+// well before that. When the cap is hit we evict the least-recently-used video
+// that is outside the active preload window. Tunable via VideoReplayerOptions.
+export const DEFAULT_MAX_VIDEO_ELEMENTS = 500;
+
 interface OffsetOptions {
   segmentOffsetMs?: number;
 }
 
-interface VideoReplayerOptions {
+export interface VideoReplayerOptions {
   config: VideoReplayerConfig;
   durationMs: number;
   onBuffer: (isBuffering: boolean) => void;
@@ -21,6 +27,7 @@ interface VideoReplayerOptions {
   start: number;
   videoApiPrefix: string;
   clipWindow?: ClipWindow;
+  maxVideoElements?: number;
 }
 
 export interface VideoReplayerConfig {
@@ -47,12 +54,24 @@ export class VideoReplayer {
   private _timer = new Timer();
   private _trackList: Array<[ts: number, index: number]>;
   private _isPlaying = false;
-  private _listeners: RemoveListener[] = [];
   /**
    * Maps attachment index to the video element.
    * Video elements in this dict are preloaded and ready to be played.
    */
   private _videos: Map<any, HTMLVideoElement>;
+  /**
+   * Maps attachment index to a function that removes every event listener
+   * we attached to that video. Keyed by segment index so we can tear down
+   * one video's listeners independently when it's evicted from the pool.
+   */
+  private _videoListeners: Map<number, RemoveListener>;
+  /**
+   * Upper bound on simultaneously-attached <video> elements. Long mobile
+   * replays (>1000 segments) blow past the browser's decoder budget; once
+   * `_videos` reaches this size, `preloadVideos` evicts the LRU entry
+   * outside the active preload window before adding a new one.
+   */
+  private _maxVideoElements: number;
   private _videoApiPrefix: string;
   private _clipDuration: number | undefined;
   private _durationMs: number;
@@ -72,6 +91,7 @@ export class VideoReplayer {
       clipWindow,
       durationMs,
       config,
+      maxVideoElements,
     }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
@@ -84,6 +104,13 @@ export class VideoReplayer {
       onBuffer,
     };
     this._videos = new Map<any, HTMLVideoElement>();
+    this._videoListeners = new Map<number, RemoveListener>();
+    this._maxVideoElements = Math.max(
+      // The protected window (current + ±PRELOAD_BUFFER) must always fit, so
+      // floor the cap at 2 * PRELOAD_BUFFER + 1.
+      2 * PRELOAD_BUFFER + 1,
+      maxVideoElements ?? DEFAULT_MAX_VIDEO_ELEMENTS
+    );
     this._clipDuration = undefined;
     this._durationMs = durationMs;
     this.config = config;
@@ -127,14 +154,15 @@ export class VideoReplayer {
   }
 
   public destroy() {
-    this._listeners.forEach(listener => listener());
+    this._videoListeners.forEach(listener => listener());
+    this._videoListeners.clear();
     this._trackList = [];
     this._videos = new Map<any, HTMLVideoElement>();
     this._timer.stop();
     this.wrapper.remove();
   }
 
-  private addListeners(el: HTMLVideoElement, index: number): void {
+  private addListeners(el: HTMLVideoElement, index: number): RemoveListener {
     const handleEnded = () => this.handleSegmentEnd(index);
 
     const handleLoadedData = (event: any) => {
@@ -185,13 +213,13 @@ export class VideoReplayer {
     el.addEventListener('loadedmetadata', handleLoadedMetaData);
     el.addEventListener('seeking', handleSeeking);
 
-    this._listeners.push(() => {
+    return () => {
       el.removeEventListener('ended', handleEnded);
       el.removeEventListener('loadeddata', handleLoadedData);
       el.removeEventListener('play', handlePlay);
       el.removeEventListener('loadedmetadata', handleLoadedMetaData);
       el.removeEventListener('seeking', handleSeeking);
-    });
+    };
   }
 
   private createVideo(segmentData: VideoEvent, index: number) {
@@ -209,12 +237,83 @@ export class VideoReplayer {
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
-    this.addListeners(el, index);
+    this._videoListeners.set(index, this.addListeners(el, index));
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
 
     return el;
+  }
+
+  /**
+   * Bumps a video to the most-recently-used end of `_videos` insertion order.
+   * No-op if the index is not currently in the pool.
+   */
+  private touchVideo(index: number): void {
+    const el = this._videos.get(index);
+    if (el === undefined) {
+      return;
+    }
+    this._videos.delete(index);
+    this._videos.set(index, el);
+  }
+
+  /**
+   * Tear down a single video element and release its decoder + network
+   * resources. Just calling `.remove()` on a <video> doesn't free those — the
+   * media element must have its resource detached and `.load()` called to
+   * abort the resource-selection algorithm.
+   */
+  private destroyVideo(index: number): void {
+    const el = this._videos.get(index);
+    if (el === undefined) {
+      return;
+    }
+
+    el.pause();
+
+    const removeListener = this._videoListeners.get(index);
+    if (removeListener !== undefined) {
+      removeListener();
+      this._videoListeners.delete(index);
+    }
+
+    // Source lives on a <source> child (see createVideo), not on the <video>
+    // src attribute. Remove the child(ren), clear any src that may have been
+    // set, then call .load() to force the element to abort the current
+    // resource-selection algorithm. Without .load(), browsers keep the
+    // network fetch + decoder alive even after DOM removal.
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
+    el.removeAttribute('src');
+    // Wrap in try/catch: some test environments (jsdom) don't implement load.
+    try {
+      el.load();
+    } catch {
+      // ignore
+    }
+
+    el.remove();
+
+    this._videos.delete(index);
+  }
+
+  /**
+   * Evict the least-recently-used video in `_videos` that is safe to drop —
+   * i.e. whose index falls outside the caller-supplied protected window.
+   * The protected window is the active preload range; evicting inside it
+   * would cause the browser to immediately re-fetch the segment we just
+   * showed the user. Returns true if an eviction happened.
+   */
+  private evictLRUVideo(protectedRange: {high: number; low: number}): boolean {
+    for (const index of this._videos.keys()) {
+      if (index < protectedRange.low || index > protectedRange.high) {
+        this.destroyVideo(index);
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -345,13 +444,32 @@ export class VideoReplayer {
     const l = Math.max(0, low);
     const h = Math.min(high, this._attachments.length + 1);
 
+    // Active window is protected from eviction so that scrubbing within ±
+    // PRELOAD_BUFFER never re-fetches what we just loaded.
+    const protectedRange = {low: l, high: h - 1};
+
     return this._attachments.slice(l, h).forEach((attachment, index) => {
       const dictIndex = index + l;
 
-      // Might be some videos we've already loaded before
-      if (!this._videos.get(dictIndex)) {
-        this._videos.set(dictIndex, this.createVideo(attachment, dictIndex));
+      if (this._videos.has(dictIndex)) {
+        // Bump existing entry to most-recently-used.
+        this.touchVideo(dictIndex);
+        return;
       }
+
+      // Enforce the cap before adding a new video. Loop in case we're growing
+      // the window past the cap from a cold start.
+      while (this._videos.size >= this._maxVideoElements) {
+        const evicted = this.evictLRUVideo(protectedRange);
+        if (!evicted) {
+          // Nothing left to evict — the entire pool is protected. This should
+          // not happen given the floor on _maxVideoElements, but bail rather
+          // than spin.
+          break;
+        }
+      }
+
+      this._videos.set(dictIndex, this.createVideo(attachment, dictIndex));
     });
   }
 
@@ -396,6 +514,10 @@ export class VideoReplayer {
     if (index === undefined || index < 0 || index >= this._attachments.length) {
       return undefined;
     }
+
+    // Accessing a video counts as a "use" for LRU purposes — keep recently
+    // shown segments alive longer than ones we preloaded but never displayed.
+    this.touchVideo(index);
 
     return this._videos.get(index);
   }
