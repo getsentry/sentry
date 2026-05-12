@@ -23,20 +23,19 @@ const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undef
     state => state.pr_creation_status !== 'creating'
   );
 
-/** Checks if a timestamp is older than SESSION_STALE_TIME_MS. */
-const isTimestampStale = (updatedAt: string | undefined) => {
+/** Get the age of an ISO timestamp relative to now, in milliseconds. */
+const getTimestampAge = (updatedAt: string | undefined): number | null => {
   const date = getDateFromTimestampAssumeUtc(updatedAt);
-  if (!date) {
-    return false;
+  if (!date || isNaN(date.getTime())) {
+    return null;
   }
-  return Date.now() - date.getTime() >= STALE_TIME_MS;
+  return Date.now() - date.getTime();
 };
 
 const getPollingState = (
   runId: number | null,
   sessionData: SeerExplorerResponse['session'] | undefined,
   isError: boolean,
-  isStale: boolean,
   override: boolean | undefined
 ): 'polling' | 'not-polling' | 'timed-out' => {
   if (override !== undefined) {
@@ -51,7 +50,7 @@ const getPollingState = (
   if (isResponseComplete(sessionData)) {
     return 'not-polling';
   }
-  if (isStale) {
+  if ((getTimestampAge(sessionData?.updated_at) ?? 0) >= STALE_TIME_MS) {
     return 'timed-out';
   }
   return 'polling';
@@ -86,6 +85,7 @@ export const useSeerExplorerPolling = ({
   } = useApiQuery<SeerExplorerResponse>(makeSeerExplorerQueryKey(orgSlug || '', runId), {
     staleTime: 0,
     retry: false,
+    refetchOnWindowFocus: true,
     enabled: !!runId && isSeerExplorerEnabled(organization),
     refetchInterval: query => {
       if (
@@ -93,7 +93,6 @@ export const useSeerExplorerPolling = ({
           runId,
           query.state.data?.json?.session,
           query.state.status === 'error',
-          isTimestampStale(query.state.data?.json?.session?.updated_at),
           shouldPollOverride
         ) === 'polling'
       ) {
@@ -103,38 +102,36 @@ export const useSeerExplorerPolling = ({
     },
   });
 
-  // Track a separate isStale state for return value.
-  // This allows us to trigger rerenders, and timeout after updated_at stops changing.
-  const [isStale, setIsStale] = useState(false);
+  // Schedule a timeout to force a re-render at the moment `updated_at` crosses STALE_TIME_MS,
+  // so the returned pollingState is consistent with `refetchInterval`.
+  const [, forceRender] = useState(false);
 
   const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
     timeMs: STALE_TIME_MS,
-    onTimeout: () => {
-      setIsStale(true);
-    },
+    onTimeout: () => forceRender(v => !v),
   });
 
-  // Update isStale on any timestamp or runId change
   useEffect(() => {
-    if (isTimestampStale(apiData?.session?.updated_at)) {
-      // Already stale
-      setIsStale(true);
-    } else if (runId !== null && apiData?.session?.updated_at) {
-      // Start a timeout to set isStale after STALE_TIME_MS
-      setIsStale(false);
-      startStaleTimeout(); // overwrites any existing timeout
-    } else {
-      // Empty state or no data
-      setIsStale(false);
+    const updatedAtAge = getTimestampAge(apiData?.session?.updated_at);
+    if (updatedAtAge === null || runId === null) {
+      // Empty state or no fetches yet
       cancelStaleTimeout();
+      return;
     }
+    if (updatedAtAge >= STALE_TIME_MS) {
+      // Already stale
+      cancelStaleTimeout();
+      return;
+    }
+    const remaining = STALE_TIME_MS - updatedAtAge;
+    startStaleTimeout(remaining + 1);
   }, [runId, apiData?.session?.updated_at, startStaleTimeout, cancelStaleTimeout]);
 
+  // Polling state for UI components
   const pollingState = getPollingState(
     runId,
     apiData?.session,
     isError,
-    isStale,
     shouldPollOverride
   );
 
