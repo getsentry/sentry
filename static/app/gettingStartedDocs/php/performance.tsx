@@ -24,9 +24,8 @@ export const performance: OnboardingConfig = {
         },
         {
           type: 'text',
-          text: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs] and make sure to import it in your apps entrypoint before anything else.',
-            {code: <code />}
+          text: t(
+            "Import and initialize the Sentry SDK early in your application's setup:"
           ),
         },
         {
@@ -70,7 +69,7 @@ export const performance: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your PHP application.',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
