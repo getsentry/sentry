@@ -1,6 +1,6 @@
 ---
 title: Markdown
-description: Renders markdown content as React elements with token-level caching, streaming support, and a component registry for customizing rendered elements.
+description: Renders markdown content as React elements with streaming decode animations and a component registry for customizing rendered elements.
 category: typography
 source: '@sentry/scraps/markdown'
 resources:
@@ -21,8 +21,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/markdown/markd
 The `<Markdown>` component renders markdown strings as native React elements using a token-based pipeline. Instead of `dangerouslySetInnerHTML`, it lexes the input with [marked](https://marked.js.org/) and renders each token as a React component. This enables:
 
 - **Component overrides** via the `components` prop (replace any element with a custom React component)
-- **Token-level caching** so unchanged blocks skip re-rendering when content grows
-- **Streaming support** via `AsyncIterable<string>` for real-time AI/LLM output
+- **Streaming variant** with a glyph-shuffle decode animation for real-time AI/LLM output
 
 ```jsx
 <Markdown raw="**Hello**, world!" />
@@ -105,26 +104,34 @@ Override `Heading` to render headings as bold text instead of `<h1>`-`<h6>`.
 
 ## Streaming
 
-Pass an `AsyncIterable<string>` to the `raw` prop for streaming content. The component buffers chunks and only parses complete blocks (split at `\n\n` boundaries). The pending tail renders as plain text until a boundary arrives, preventing flicker from half-rendered markdown syntax.
+Set `variant="streaming"` to enable animation for new content. As the `raw` string grows, new text appears to be decoded progressively. The consumer accumulates chunks into a string and passes it as `raw`—the component handles the animation imperatively.
+
+- New block-level elements animate with a staggered character reveal
+- Growing blocks re-animate only the new tail (already-visible text is preserved)
+- When a newer block arrives, any in-progress animation on the previous block settles immediately
+- Long blocks are capped at a max duration, with remaining text fading in gracefully
+- Respects `prefers-reduced-motion` (animation is skipped entirely)
 
 <Storybook.Demo>
   <StreamingDemo />
 </Storybook.Demo>
 
 ```jsx
-async function* streamFromAPI() {
-  const response = await fetch('/api/ai/stream');
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+function StreamingExample() {
+  const [text, setText] = useState('');
 
-  while (true) {
-    const {done, value} = await reader.read();
-    if (done) break;
-    yield decoder.decode(value);
-  }
+  useEffect(() => {
+    // Accumulate chunks into a string
+    let buffer = '';
+    const reader = getStreamReader();
+    reader.onChunk = chunk => {
+      buffer += chunk;
+      setText(buffer);
+    };
+  }, []);
+
+  return <Markdown raw={text} variant="streaming" />;
 }
-
-<Markdown raw={streamFromAPI()} />;
 ```
 
 ## Security
