@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -10,7 +11,6 @@ import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/a
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
-import {getExtrapolateFromLocation} from 'sentry/views/explore/queryParams/extrapolate';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
@@ -62,7 +62,7 @@ export function isDefaultFields(location: Location): boolean {
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
-  const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
+  const extrapolate = decodeScalar(location.query?.[SPANS_EXTRAPOLATE_KEY], '1') === '1';
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
   const query = getQueryFromLocation(location, SPANS_QUERY_KEY) ?? '';
 
