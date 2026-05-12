@@ -1,5 +1,6 @@
 import {useLayoutEffect, useMemo, useRef} from 'react';
 import type {ComponentType, ReactNode} from 'react';
+import {Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -7,7 +8,7 @@ import type {MarkedToken} from 'sentry/utils/marked/marked';
 import {MarkedLexer} from 'sentry/utils/marked/marked';
 
 import {Token} from './token';
-import {useStreamingAnimation} from './useStreamingAnimation';
+import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
 export type MarkdownComponents = Partial<{
   Blockquote: ComponentType<{children: ReactNode}>;
@@ -88,6 +89,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
 
   return (
     <Stack ref={containerRef} gap="lg" flex={1} maxWidth="72ch">
+      {isStreaming && <Global styles={streamingAnimationStyles} />}
       {elements}
     </Stack>
   );

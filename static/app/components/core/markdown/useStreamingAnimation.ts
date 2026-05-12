@@ -1,11 +1,87 @@
 import {useEffect} from 'react';
 import type {RefObject} from 'react';
+import {css} from '@emotion/react';
+
+/**
+ * Imperative streaming decode animation for Markdown.
+ *
+ * This hook animates new block-level children with a glyph-shuffle reveal
+ * effect. It operates entirely on the DOM after React commits, avoiding any
+ * changes to the Token/renderInline rendering pipeline.
+ *
+ * Why imperative:
+ *   Threading an `animated` prop through Token, renderInline, and every
+ *   recursive inline case would couple the animation to the rendering layer.
+ *   Instead, a MutationObserver detects new direct children of the container,
+ *   and a rAF loop handles the per-character animation on the committed DOM.
+ *
+ * Layout:
+ *   Each character is wrapped in a <span> whose text content is the real
+ *   character (holds width, invisible via `color: transparent`). A `::after`
+ *   pseudo-element driven by `data-decode-glyph` overlays the cycling glyph,
+ *   centered horizontally via `left: 50%; transform: translateX(-50%)`.
+ *   This keeps layout stable regardless of glyph width.
+ *
+ * Accessibility:
+ *   The real character is always the span's text content — assistive tech
+ *   reads it normally. The glyph overlay is purely visual (::after with
+ *   pointer-events: none). Respects `prefers-reduced-motion: reduce`.
+ *
+ * Cleanup:
+ *   Settled characters are progressively collapsed back to plain text nodes
+ *   at whitespace boundaries. When the animation completes (or is preempted
+ *   by a newer block), all remaining spans are restored to text nodes.
+ */
+export function useStreamingAnimation(
+  containerRef: RefObject<HTMLElement | null>,
+  enabled: boolean
+): void {
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    let activeSettles: Array<() => void> = [];
+
+    const observer = new MutationObserver(mutations => {
+      for (const settle of activeSettles) {
+        settle();
+      }
+      activeSettles = [];
+
+      for (const mutation of mutations) {
+        for (const addedNode of mutation.addedNodes) {
+          if (addedNode instanceof Element) {
+            const settle = animateElement(addedNode);
+            activeSettles.push(settle);
+          }
+        }
+      }
+    });
+
+    observer.observe(container, {childList: true});
+
+    return () => observer.disconnect();
+  }, [containerRef, enabled]);
+}
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$#!%&*◆+@~^°±§¶×÷';
 const LOWER = 'abcdefghijklmnopqrstuvwxyz';
 const STAGGER_MS = 11;
 const FADE_LEAD_MS = 200;
 const MAX_DURATION_MS = 1200;
+
+const ATTR = 'data-scraps-decode';
+const ATTR_SEL = `[${ATTR}]`;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
 
@@ -27,35 +103,26 @@ function isSimpleChar(grapheme: string): boolean {
   return grapheme.length === 1 && !/\s/.test(grapheme);
 }
 
-let styleInjected = false;
-function ensureStyles() {
-  if (styleInjected) {
-    return;
+export const streamingAnimationStyles = css`
+  ${ATTR_SEL} {
+    position: relative;
+    color: transparent;
+    opacity: 0;
+    transition: opacity 200ms ease-out;
   }
-  const style = document.createElement('style');
-  style.textContent = `
-    [data-text] {
-      position: relative;
-      color: transparent;
-      opacity: 0;
-      transition: opacity 200ms ease-out;
-    }
-    [data-text].visible {
-      opacity: 1;
-    }
-    [data-text]::after {
-      content: attr(data-text);
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      color: var(--glyph-color, CanvasText);
-      font: inherit;
-      pointer-events: none;
-    }
-  `;
-  document.head.appendChild(style);
-  styleInjected = true;
-}
+  ${ATTR_SEL}.visible {
+    opacity: 1;
+  }
+  ${ATTR_SEL}::after {
+    content: attr(${ATTR});
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--glyph-color, CanvasText);
+    font: inherit;
+    pointer-events: none;
+  }
+`;
 
 interface TextRun {
   active: boolean[];
@@ -101,7 +168,7 @@ function prepareTextNode(
     span.textContent = grapheme;
 
     if (isSimpleChar(grapheme) && globalOffset + idx >= skipChars) {
-      span.dataset.text = randomGlyph(grapheme);
+      span.setAttribute(ATTR, randomGlyph(grapheme));
       active.push(true);
     } else {
       active.push(false);
@@ -159,7 +226,7 @@ function fadeOutRuns(runs: TextRun[]) {
     for (let i = run.collapseCursor; i < run.spans.length; i++) {
       const span = run.spans[i];
       if (span) {
-        delete span.dataset.text;
+        span.removeAttribute(ATTR);
         span.classList.add('visible');
       }
     }
@@ -186,8 +253,6 @@ function animateElement(element: Element): () => void {
   if (textNodes.length === 0) {
     return () => {};
   }
-
-  ensureStyles();
 
   const runs: TextRun[] = [];
   let globalIndex = 0;
@@ -245,10 +310,10 @@ function animateElement(element: Element): () => void {
         }
 
         if (elapsed >= settleAt) {
-          delete span.dataset.text;
+          span.removeAttribute(ATTR);
           run.active[i] = false;
         } else {
-          span.dataset.text = randomGlyph(grapheme);
+          span.setAttribute(ATTR, randomGlyph(grapheme));
           allSettled = false;
         }
       }
@@ -265,46 +330,4 @@ function animateElement(element: Element): () => void {
 
   requestAnimationFrame(tick);
   return settle;
-}
-
-export function useStreamingAnimation(
-  containerRef: RefObject<HTMLElement | null>,
-  enabled: boolean
-): void {
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
-    }
-
-    let activeSettles: Array<() => void> = [];
-
-    const observer = new MutationObserver(mutations => {
-      for (const settle of activeSettles) {
-        settle();
-      }
-      activeSettles = [];
-
-      for (const mutation of mutations) {
-        for (const addedNode of mutation.addedNodes) {
-          if (addedNode instanceof Element) {
-            const settle = animateElement(addedNode);
-            activeSettles.push(settle);
-          }
-        }
-      }
-    });
-
-    observer.observe(container, {childList: true});
-
-    return () => observer.disconnect();
-  }, [containerRef, enabled]);
 }
