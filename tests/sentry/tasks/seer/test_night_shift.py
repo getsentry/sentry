@@ -337,7 +337,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "high-fix", seer_fixability_score=0.9, times_seen=5
         )
         low_fix = self._store_event_and_update_group(
-            project, "low-fix", seer_fixability_score=0.2, times_seen=100
+            project, "low-fix", seer_fixability_score=0.5, times_seen=100
         )
         # Already triggered — should be excluded from triage.
         self._store_event_and_update_group(
