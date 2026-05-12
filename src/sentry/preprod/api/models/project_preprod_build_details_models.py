@@ -91,7 +91,9 @@ class PostedStatusChecks(BaseModel):
 
 class SnapshotComparisonInfo(BaseModel):
     image_count: int
-    comparison_state: Literal["pending", "processing", "success", "failed"] | None = None
+    comparison_state: (
+        Literal["pending", "processing", "success", "failed", "waiting_for_base"] | None
+    ) = None
     comparison_error_message: str | None = None
     images_added: int = 0
     images_removed: int = 0
