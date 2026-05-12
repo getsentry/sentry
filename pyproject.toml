@@ -1177,7 +1177,6 @@ module = [
     "sentry.models.rollbackorganization",
     "sentry.models.rollbackuser",
     "sentry.models.rule",
-    "sentry.models.rulefirehistory",
     "sentry.models.rulesnooze",
     "sentry.models.savedsearch",
     "sentry.models.search_common",
