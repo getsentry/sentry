@@ -16,7 +16,7 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
 )
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     DynamicSamplingException,
-    TelemetryStatus,
+    DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.organization import Organization
@@ -95,7 +95,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         ):
             get_configuration(org.id)
 
-        assert exc_info.value.status == TelemetryStatus.NO_SUBSCRIPTION
+        assert exc_info.value.status == DynamicSamplingStatus.NO_SUBSCRIPTION
 
     def test_am2_ignores_project_mode_option(self) -> None:
         org = self.create_organization()

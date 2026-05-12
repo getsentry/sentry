@@ -27,7 +27,7 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
 )
 
 
-class TelemetryStatus(StrEnum):
+class DynamicSamplingStatus(StrEnum):
     COMPLETED = "completed"
     DISPATCHED = "dispatched"
     FAILED = "failed"
@@ -46,14 +46,14 @@ class TelemetryStatus(StrEnum):
 class DynamicSamplingException(Exception):
     """This exception allows a task to bubble up the status to the caller, for the task decorator to emit a metric with a status that derives from the status recorded in the exception."""
 
-    def __init__(self, status: TelemetryStatus) -> None:
+    def __init__(self, status: DynamicSamplingStatus) -> None:
         super().__init__(status.value)
         self.status = status
 
 
 def emit_status(
     metric: str,
-    status: TelemetryStatus,
+    status: DynamicSamplingStatus,
     *,
     amount: int = 1,
     extra_tags: Mapping[str, str] | None = None,
@@ -75,25 +75,25 @@ def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = No
     )
 
 
-def _get_status_from_result(result: object) -> TelemetryStatus:
-    if isinstance(result, TelemetryStatus):
+def _get_status_from_result(result: object) -> DynamicSamplingStatus:
+    if isinstance(result, DynamicSamplingStatus):
         return result
-    return TelemetryStatus.COMPLETED
+    return DynamicSamplingStatus.COMPLETED
 
 
 @contextmanager
-def emit_duration(metric: str) -> Generator[Callable[[object], TelemetryStatus]]:
+def emit_duration(metric: str) -> Generator[Callable[[object], DynamicSamplingStatus]]:
     with metrics.timer(metric, sample_rate=metrics_sample_rate()) as duration_tags:
         try:
 
-            def set_status_from_result(result: object) -> TelemetryStatus:
+            def set_status_from_result(result: object) -> DynamicSamplingStatus:
                 status = _get_status_from_result(result)
                 duration_tags["status"] = status.value
                 return status
 
             yield set_status_from_result
         except Exception:
-            duration_tags["status"] = TelemetryStatus.FAILED.value
+            duration_tags["status"] = DynamicSamplingStatus.FAILED.value
             raise
 
 
@@ -104,20 +104,20 @@ def track_dynamic_sampling(func: F) -> F:
     @functools.wraps(func)
     def wrapper(*args: object, **kwargs: object) -> object:
         result: object
-        status: TelemetryStatus
+        status: DynamicSamplingStatus
         with emit_duration(duration_metric) as set_duration_status:
             try:
                 if is_killswitch_engaged():
-                    result = TelemetryStatus.KILLSWITCHED
+                    result = DynamicSamplingStatus.KILLSWITCHED
                 elif not is_rollout_enabled():
-                    result = TelemetryStatus.ROLLOUT_DISABLED
+                    result = DynamicSamplingStatus.ROLLOUT_DISABLED
                 else:
                     result = func(*args, **kwargs)
             except DynamicSamplingException as exc:
                 result = exc.status
             except SnubaRPCTimeout as exc:
                 sentry_sdk.capture_exception(exc)
-                emit_status(status_metric, TelemetryStatus.SNUBA_TIMEOUT)
+                emit_status(status_metric, DynamicSamplingStatus.SNUBA_TIMEOUT)
                 raise
             except SnubaRPCError as exc:
                 sentry_sdk.capture_exception(exc)
@@ -125,7 +125,7 @@ def track_dynamic_sampling(func: F) -> F:
                 raise
             except Exception as exc:
                 sentry_sdk.capture_exception(exc)
-                emit_status(status_metric, TelemetryStatus.FAILED)
+                emit_status(status_metric, DynamicSamplingStatus.FAILED)
                 raise
 
             status = set_duration_status(result)
