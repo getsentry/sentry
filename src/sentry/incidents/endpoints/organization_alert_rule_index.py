@@ -10,6 +10,7 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Q,
+    QuerySet,
     Subquery,
     Value,
     When,
@@ -398,7 +399,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         projects: Sequence[Project],
-        teams_query: BaseQuerySet[Team] | None,
+        teams_query: QuerySet[Team] | None,
         unassigned: bool | None,
         name: str | None,
         datasets: list[str],
@@ -1127,9 +1128,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            alert_rules = AlertRule.objects.fetch_for_organization(organization=organization)
             # filter out alert rules without any projects
-            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
+            alert_count = alert_rules.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
                 log_alerting_quota_hit(

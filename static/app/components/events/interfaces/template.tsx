@@ -4,7 +4,7 @@ import {EntryType} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import DeprecatedLine from './frame/deprecatedLine';
+import {DeprecatedLine} from './frame/deprecatedLine';
 
 type Props = {
   data: Frame;
@@ -22,7 +22,6 @@ export function Template({data, event}: Props) {
             data={data}
             event={event}
             registers={{}}
-            components={[]}
             frameMeta={meta}
             isExpanded
             platform={event.platform ?? 'other'}

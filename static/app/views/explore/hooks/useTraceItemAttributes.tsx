@@ -325,7 +325,7 @@ export function usePreprodItemAttributes(
 }
 
 const TAGS_REGEX =
-  /^tags\[(?<tagKey>[\w.:-]+),(?<attributeType>boolean|number|string)\]$/;
+  /^tags\[(?<tagKey>[\w.:@-]+),(?<attributeType>boolean|number|string)\]$/;
 
 /**
  * Extracts the base key from a tag key, handling both plain keys and

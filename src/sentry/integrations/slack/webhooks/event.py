@@ -423,7 +423,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 installation.set_thread_status(
                     channel_id=channel_id,
                     thread_ts=thread_ts or ts,
-                    status="Thinking...",
+                    status="is thinking...",
                     loading_messages=_SEER_LOADING_MESSAGES,
                 )
             except Exception:
