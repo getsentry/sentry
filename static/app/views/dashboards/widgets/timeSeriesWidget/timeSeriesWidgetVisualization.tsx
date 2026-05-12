@@ -519,7 +519,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const timezone = utc ? 'UTC' : getUserTimezone();
   const customTicks = useMemo(() => {
     if (startMilliseconds === undefined || endMilliseconds === undefined) {
-      return undefined;
+      return;
     }
     return generateTimezoneAlignedTicks(startMilliseconds, endMilliseconds, 10, timezone);
   }, [startMilliseconds, endMilliseconds, timezone]);

@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
@@ -32,6 +33,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
+  const timezone = utc ? 'UTC' : getUserTimezone();
 
   if (!plottablesCanBeVisualized(plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
@@ -74,9 +76,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           axisLabel: {
             formatter: value => {
               // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
-              return formatXAxisTimestamp(parseFloat(value), {
-                utc: utc ?? undefined,
-              });
+              return formatXAxisTimestamp(parseFloat(value), timezone);
             },
           },
           axisPointer: {
