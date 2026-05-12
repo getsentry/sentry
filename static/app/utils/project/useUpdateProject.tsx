@@ -6,8 +6,6 @@ import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProje
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Variables extends Partial<DetailedProject> {}
-
 type ProjectWithOptions = Project & {
   // ProjectSummary does not include options, but cached detailed projects can.
   options?: DetailedProject['options'];
@@ -52,8 +50,8 @@ export function useUpdateProject(project: Project) {
     projectSlug: project.slug,
   });
 
-  return useMutation<DetailedProject, Error, Variables, Context>({
-    onMutate: (data: Variables) => {
+  return useMutation<DetailedProject, Error, Partial<DetailedProject>, Context>({
+    onMutate: data => {
       const previousCachedDetailedProject = queryClient.getQueryData(queryKey)?.json;
       const storeProject = ProjectsStore.getById(project.id);
 
@@ -111,7 +109,7 @@ export function useUpdateProject(project: Project) {
 
       return {previousProject, previousDetailedProject};
     },
-    mutationFn: (data: Variables) => {
+    mutationFn: data => {
       return fetchMutation<DetailedProject>({
         method: 'PUT',
         url: `/projects/${organization.slug}/${project.slug}/`,
