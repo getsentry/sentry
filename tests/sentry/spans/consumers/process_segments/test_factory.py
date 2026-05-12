@@ -30,7 +30,6 @@ def build_mock_message(data, topic=None):
 @override_options(
     {
         "spans.process-segments.consumer.enable": True,
-        "spans.process-segments.semantic-partitioning": False,
         "spans.process-segments.dedupe-ttl": 0,
         "spans.process-segments.dedupe-filter-enable": False,
     }
