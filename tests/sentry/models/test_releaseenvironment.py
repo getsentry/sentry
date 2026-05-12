@@ -8,6 +8,7 @@ from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.testutils.cases import TestCase
+from sentry.utils.cache import cache
 
 
 class GetOrCreateTest(TestCase):
@@ -69,8 +70,6 @@ class GetOrCreateTest(TestCase):
         )
 
         datetime_next = datetime_now + timedelta(days=1)
-
-        from sentry.utils.cache import cache
 
         re = ReleaseEnvironment.objects.get(
             organization_id=project.organization_id, release=release, environment=env
