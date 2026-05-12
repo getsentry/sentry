@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
-export function Wrap(props: ContainerProps<'div'>) {
+export function Wrap(props: ContainerProps) {
   return <Container marginBottom="3xl" {...props} />;
 }
 
@@ -20,6 +20,6 @@ export const IconWrapper = styled('div')`
   margin-left: ${p => p.theme.space.xs};
 `;
 
-export function Content(props: ContainerProps<'div'>) {
+export function Content(props: ContainerProps) {
   return <Container marginTop="md" {...props} />;
 }
