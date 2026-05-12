@@ -97,7 +97,11 @@ export function GeneralInfo(props: GeneralInfoProps) {
   }
 
   return (
-    <FoldSection sectionKey="trace_transaction_general" title={t('General')}>
+    <FoldSection
+      sectionKey="trace_transaction_general"
+      title={t('General')}
+      disableCollapsePersistence
+    >
       <ContentWrapper>
         {items.map(item => (
           <Content key={item.key} item={item} />
