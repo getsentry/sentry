@@ -52,6 +52,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
   '/issues/',
+  '/issues/views/:viewId/',
   '/issues/errors-outages/',
   '/issues/breached-metrics/',
   '/issues/warnings/',
