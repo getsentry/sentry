@@ -224,26 +224,24 @@ function HighlightsData({
   return (
     <HighlightContainer columnCount={columnCount} ref={containerRef}>
       {isPending ? (
-        hasDisabledHighlights ? (
-          <EmptyHighlights>
-            <EmptyHighlightsContent>
-              {t("There's nothing here...")}
-              <AddHighlightsButton
-                size="xs"
-                onClick={openEditHighlightsModal}
-                {...editProps}
-              >
-                {t('Add Highlights')}
-              </AddHighlightsButton>
-            </EmptyHighlightsContent>
-          </EmptyHighlights>
-        ) : (
-          columns
-        )
-      ) : (
         <EmptyHighlights>
           <HighlightsLoadingIndicator size={50} />
         </EmptyHighlights>
+      ) : hasDisabledHighlights ? (
+        <EmptyHighlights>
+          <EmptyHighlightsContent>
+            {t("There's nothing here...")}
+            <AddHighlightsButton
+              size="xs"
+              onClick={openEditHighlightsModal}
+              {...editProps}
+            >
+              {t('Add Highlights')}
+            </AddHighlightsButton>
+          </EmptyHighlightsContent>
+        </EmptyHighlights>
+      ) : (
+        columns
       )}
     </HighlightContainer>
   );
