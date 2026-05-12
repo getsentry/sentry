@@ -15,7 +15,6 @@ import type {
 } from 'sentry/views/explore/queryParams/aggregateField';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -456,8 +455,8 @@ export function useSetQueryParamsSavedQuery() {
   return useCallback(
     (id: string, title: string) => {
       const target: Location = {...location, query: {...location.query}};
-      updateNullableLocation(target, ID_KEY, id);
-      updateNullableLocation(target, TITLE_KEY, title);
+      target.query[ID_KEY] = id;
+      target.query[TITLE_KEY] = title;
       navigate(target);
     },
     [location, navigate]

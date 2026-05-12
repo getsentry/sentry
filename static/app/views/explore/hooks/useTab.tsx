@@ -5,7 +5,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 
 const SPANS_TABLE_KEY = 'table';
@@ -48,15 +47,18 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
         mode: newTab === Mode.AGGREGATE ? Mode.AGGREGATE : Mode.SAMPLES,
       });
 
-      updateNullableLocation(
-        target,
-        SPANS_TABLE_KEY,
+      const tableValue =
         newTab === Tab.TRACE
           ? 'trace'
           : newTab === Tab.ATTRIBUTE_BREAKDOWNS
             ? 'attribute_breakdowns'
-            : null
-      );
+            : null;
+
+      if (tableValue === null) {
+        delete target.query[SPANS_TABLE_KEY];
+      } else {
+        target.query[SPANS_TABLE_KEY] = tableValue;
+      }
 
       navigate(target);
     },

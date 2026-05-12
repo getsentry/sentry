@@ -6,7 +6,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -45,7 +44,11 @@ function getTargetWithReadableQueryParams(
 ): Location {
   const target: Location = {...location, query: {...location.query}};
 
-  updateNullableLocation(target, REPLAY_QUERY_KEY, writableQueryParams.query);
+  if (writableQueryParams.query !== null && writableQueryParams.query !== undefined) {
+    target.query[REPLAY_QUERY_KEY] = writableQueryParams.query;
+  } else if (writableQueryParams.query === null) {
+    delete target.query[REPLAY_QUERY_KEY];
+  }
 
   return target;
 }

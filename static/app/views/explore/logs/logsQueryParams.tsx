@@ -29,7 +29,6 @@ import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -95,24 +94,40 @@ export function getReadableQueryParamsFromLocation(
   });
 }
 
+/**
+ * Sets a query parameter on a location's query object. When the value is
+ * `null`, the parameter is deleted. When `undefined`, it is left unchanged.
+ */
+function setQueryParam(
+  target: Location,
+  key: string,
+  value: string | string[] | null | undefined
+): void {
+  if (value !== null && value !== undefined) {
+    target.query[key] = value;
+  } else if (value === null) {
+    delete target.query[key];
+  }
+}
+
 export function getTargetWithReadableQueryParams(
   location: Location,
   writableQueryParams: WritableQueryParams
 ): Location {
   const target: Location = {...location, query: {...location.query}};
 
-  updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
-  updateNullableLocation(target, LOGS_QUERY_KEY, writableQueryParams.query);
+  setQueryParam(target, LOGS_MODE_KEY, writableQueryParams.mode);
+  setQueryParam(target, LOGS_QUERY_KEY, writableQueryParams.query);
 
-  updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
-  updateNullableLocation(
+  setQueryParam(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
+  setQueryParam(
     target,
     LOGS_FIELDS_KEY,
     writableQueryParams.fields === null
       ? null
       : writableQueryParams.fields?.filter(Boolean)
   );
-  updateNullableLocation(
+  setQueryParam(
     target,
     LOGS_SORT_BYS_KEY,
     writableQueryParams.sortBys === null
@@ -122,19 +137,15 @@ export function getTargetWithReadableQueryParams(
         )
   );
 
-  updateNullableLocation(
-    target,
-    LOGS_AGGREGATE_CURSOR_KEY,
-    writableQueryParams.aggregateCursor
-  );
-  updateNullableLocation(
+  setQueryParam(target, LOGS_AGGREGATE_CURSOR_KEY, writableQueryParams.aggregateCursor);
+  setQueryParam(
     target,
     LOGS_AGGREGATE_FIELD_KEY,
     writableQueryParams.aggregateFields?.map(aggregateField =>
       JSON.stringify(aggregateField)
     )
   );
-  updateNullableLocation(
+  setQueryParam(
     target,
     LOGS_AGGREGATE_SORT_BYS_KEY,
     writableQueryParams.aggregateSortBys === null
