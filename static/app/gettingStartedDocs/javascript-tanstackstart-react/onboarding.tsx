@@ -498,6 +498,14 @@ const route = createRoute({
               code: `<button
   type="button"
   onClick={() => {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_button_click',
+    });`
+      : ''
+  }${
     params.isMetricsSelected
       ? `
     // Send a test metric before throwing the error
@@ -633,4 +641,31 @@ export const Route = createFileRoute("/api/sentry-example")({
       ],
     },
   ],
+  nextSteps: params => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Application Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/metrics/',
+      });
+    }
+
+    return steps;
+  },
 };

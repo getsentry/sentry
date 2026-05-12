@@ -11,13 +11,21 @@ import {
 } from './utils';
 
 const getVerifySnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `  // Send a log before calling undefined function
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_button_click',
+  });
+`
+    : '';
+
   const metricsCode = params.isMetricsSelected
     ? `  // Send a test metric before calling undefined function
   Sentry.metrics.count('test_counter', 1);
 `
     : '';
 
-  return `${metricsCode}myUndefinedFunction();`;
+  return `${logsCode}${metricsCode}myUndefinedFunction();`;
 };
 
 export const onboarding: OnboardingConfig<PlatformOptions> = {
