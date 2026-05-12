@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
-import {Heading} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
@@ -207,14 +207,14 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   </RequestStateMessageContainer>
                 ) : status === 'error' && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
-                    <Stack align="center" gap="xs">
-                      <Heading as="h4">{t('Error loading flamegraph')}</Heading>
-                      <p>
+                    <Stack align="center" gap="xs" role="alert">
+                      <Text bold>{t('Error loading flamegraph')}</Text>
+                      <Text>
                         {getRequestErrorUserMessage(
                           error,
                           t('There was an error loading the flamegraph.')
                         )}
-                      </p>
+                      </Text>
                     </Stack>
                   </RequestStateMessageContainer>
                 ) : isEmpty(data) && visualization !== 'flamegraph' ? (
