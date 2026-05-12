@@ -38,10 +38,6 @@ export const makeDashboardsWidgetCharts = (
           const alias = widgetQuery
             ? formatTimeSeriesLabelForWidgetQuery(ts, data.widget, widgetQuery)
             : undefined;
-          // Chartcuterie's Legend has no nameFormatter (unlike
-          // timeSeriesWidgetVisualization), so the legend reads ECharts
-          // series.name directly. Pass the alias as ``name`` too so the
-          // widget-aware label actually surfaces in the rendered legend.
           return createPlottableFromTimeSeriesAndWidget(
             ts,
             data.widget,
