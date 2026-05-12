@@ -79,10 +79,6 @@ export const useSeerExplorerPolling = ({
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
 
-  // Track isStale as a state so it can trigger UI rerenders,
-  // and we can timeout from wall clock time when updated_at stops changing.
-  const [isStale, setIsStale] = useState(false);
-
   const {
     data: apiData,
     isError,
@@ -97,7 +93,7 @@ export const useSeerExplorerPolling = ({
           runId,
           query.state.data?.json?.session,
           query.state.status === 'error',
-          isStale,
+          isTimestampStale(query.state.data?.json?.session?.updated_at),
           shouldPollOverride
         ) === 'polling'
       ) {
@@ -107,7 +103,10 @@ export const useSeerExplorerPolling = ({
     },
   });
 
-  // Wall clock timer for when updated_at stops changing (e.g. backend task killed)
+  // Track a separate isStale state for return value.
+  // This allows us to trigger rerenders, and timeout after updated_at stops changing.
+  const [isStale, setIsStale] = useState(false);
+
   const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
     timeMs: STALE_TIME_MS,
     onTimeout: () => {
@@ -120,7 +119,6 @@ export const useSeerExplorerPolling = ({
     if (isTimestampStale(apiData?.session?.updated_at)) {
       // Already stale
       setIsStale(true);
-      cancelStaleTimeout();
     } else if (runId !== null && apiData?.session?.updated_at) {
       // Start a timeout to set isStale after STALE_TIME_MS
       setIsStale(false);
