@@ -1093,12 +1093,12 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
 
 
 def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
-    from sentry.sentry_apps.services.app import app_service
+    from sentry.sentry_apps.services.app.service import get_installation_by_proxy_user
 
     if not context or context.user_id is None:
         return NoAccess()
 
-    installation = app_service.find_installation_by_proxy_user(
+    installation = get_installation_by_proxy_user(
         proxy_user_id=context.user_id, organization_id=context.organization.id
     )
     if installation is None:

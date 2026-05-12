@@ -268,4 +268,71 @@ def get_by_application_id(application_id: int) -> RpcSentryApp | None:
     return app_service.find_service_hook_sentry_app(api_application_id=application_id)
 
 
+def get_installation_org_id_by_token_id(token_id: int) -> int | None:
+    """
+    Cached wrapper around app_service.get_installation_org_id_by_token_id.
+
+    Avoids a synchronous cross-silo RPC call on every Sentry App request
+    hitting the rate-limiter by caching the result in the cell silo's Django cache.
+    """
+    from django.core.cache import cache
+
+    cache_key = f"sentry-app-install-token:{token_id}"
+    result = cache.get(cache_key)
+    if result is not None:
+        if result == _INSTALLATION_NOT_FOUND_SENTINEL:
+            return None
+        return result
+
+    organization_id = app_service.get_installation_org_id_by_token_id(token_id=token_id)
+    # Cache both found and not-found results for 5 minutes.
+    cache.set(
+        cache_key,
+        organization_id if organization_id is not None else _INSTALLATION_NOT_FOUND_SENTINEL,
+        300,
+    )
+    return organization_id
+
+
+def get_installation_by_proxy_user(
+    proxy_user_id: int, organization_id: int
+) -> "RpcSentryAppInstallation | None":
+    """
+    Cached wrapper around app_service.find_installation_by_proxy_user.
+
+    Uses a short-lived Django cache entry to avoid a synchronous cross-silo RPC
+    call on every Sentry App request during the permission check.  The cache is
+    invalidated whenever the installation changes via handle_async_replication /
+    handle_async_deletion on SentryAppInstallation.
+    """
+    from django.core.cache import cache
+
+    cache_key = f"sentry-app-install-proxy:{proxy_user_id}:{organization_id}"
+    result = cache.get(cache_key)
+    if result is not None:
+        # Sentinel: we cached a "not found" result
+        if result == _INSTALLATION_NOT_FOUND_SENTINEL:
+            return None
+        return result
+
+    installation = app_service.find_installation_by_proxy_user(
+        proxy_user_id=proxy_user_id, organization_id=organization_id
+    )
+    # Cache both found and not-found results for 5 minutes to avoid repeated RPCs.
+    cache.set(cache_key, installation if installation is not None else _INSTALLATION_NOT_FOUND_SENTINEL, 300)
+    return installation
+
+
+# Sentinel value used to distinguish a cached "not found" result from a cache miss.
+_INSTALLATION_NOT_FOUND_SENTINEL = "NOT_FOUND"
+
+
+def clear_installation_by_proxy_user_cache(proxy_user_id: int, organization_id: int) -> None:
+    """Invalidate the find_installation_by_proxy_user cache entry for the given pair."""
+    from django.core.cache import cache
+
+    cache_key = f"sentry-app-install-proxy:{proxy_user_id}:{organization_id}"
+    cache.delete(cache_key)
+
+
 app_service = AppService.create_delegation()

@@ -141,9 +141,9 @@ def get_rate_limit_key(
 
 
 def get_organization_id_from_token(token_id: int) -> int | None:
-    from sentry.sentry_apps.services.app import app_service
+    from sentry.sentry_apps.services.app.service import get_installation_org_id_by_token_id
 
-    organization_id = app_service.get_installation_org_id_by_token_id(token_id=token_id)
+    organization_id = get_installation_org_id_by_token_id(token_id)
     # Return None to avoid collisions caused by tokens not being associated with
     # a SentryAppInstallation. We fallback to IP address rate limiting in this case.
     if not organization_id:

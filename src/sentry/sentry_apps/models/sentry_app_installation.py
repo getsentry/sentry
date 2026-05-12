@@ -167,6 +167,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 payload={
                     "sentry_app_id": self.sentry_app_id,
                     "organization_id": self.organization_id,
+                    "proxy_user_id": self.sentry_app.proxy_user_id,
                 },
             )
             for cell_name in find_all_cell_names()
@@ -184,7 +185,10 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
 
     def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.rpc.caching import cell_caching_service
-        from sentry.sentry_apps.services.app.service import get_installation
+        from sentry.sentry_apps.services.app.service import (
+            clear_installation_by_proxy_user_cache,
+            get_installation,
+        )
 
         if self.api_token is not None:
             # ApiTokens replicate the organization_id they are associated with.
@@ -192,6 +196,18 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
         cell_caching_service.clear_key(key=get_installation.key_from(self.id), cell_name=cell_name)
+
+        # Invalidate the proxy-user installation cache so that permission checks and rate-limit
+        # key lookups for Sentry Apps don't serve stale data after an install is updated.
+        try:
+            proxy_user_id = self.sentry_app.proxy_user_id
+            if proxy_user_id is not None:
+                clear_installation_by_proxy_user_cache(
+                    proxy_user_id=proxy_user_id,
+                    organization_id=self.organization_id,
+                )
+        except Exception:
+            pass
 
     @classmethod
     def handle_async_deletion(
@@ -202,6 +218,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         payload: Mapping[str, Any] | None,
     ) -> None:
         from sentry.models.apitoken import ApiToken
+        from sentry.sentry_apps.services.app.service import clear_installation_by_proxy_user_cache
 
         if payload:
             api_token_id = payload.get("api_token_id", None)
@@ -210,6 +227,15 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 with outbox_context(flush=False):
                     for ob in ApiToken(id=api_token_id, user_id=user_id).outboxes_for_update():
                         ob.save()
+
+            # Invalidate the proxy-user installation cache on deletion.
+            proxy_user_id = payload.get("proxy_user_id")
+            organization_id = payload.get("organization_id")
+            if isinstance(proxy_user_id, int) and isinstance(organization_id, int):
+                clear_installation_by_proxy_user_cache(
+                    proxy_user_id=proxy_user_id,
+                    organization_id=organization_id,
+                )
 
     def payload_for_update(self) -> dict[str, Any] | None:
         from sentry.models.apitoken import ApiToken
