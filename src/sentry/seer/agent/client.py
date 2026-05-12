@@ -46,7 +46,9 @@ from sentry.users.services.user import RpcUser
 logger = logging.getLogger(__name__)
 
 
-def _has_context_engine(organization: Organization, user: User | RpcUser | AnonymousUser) -> bool:
+def _has_context_engine(
+    organization: Organization, user: User | RpcUser | AnonymousUser | None
+) -> bool:
     return (
         features.has("organizations:seer-explorer-context-engine", organization, actor=user)
         or features.has("organizations:seat-based-seer-enabled", organization, actor=user)
