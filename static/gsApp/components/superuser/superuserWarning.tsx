@@ -19,7 +19,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 const POLICY_URL =
   'https://www.notion.so/sentry/Sentry-Rules-for-Handling-Customer-Data-9612532c37e14eeb943a6a584abbac99';
 
-const SUPERUSER_MESSAGE = 'You are in superuser mode · hover for exit option';
+const SUPERUSER_MESSAGE = 'You are in superuser mode / Hover for more information';
 const SUPERUSER_SEPARATOR = ' ///// ';
 const WARNING_MESSAGE = (
   <Fragment>
