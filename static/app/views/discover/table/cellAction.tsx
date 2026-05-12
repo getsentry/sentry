@@ -36,6 +36,7 @@ export enum Actions {
   OPEN_EXTERNAL_LINK = 'open_external_link',
   OPEN_INTERNAL_LINK = 'open_internal_link',
   OPEN_ROW_IN_EXPLORE = 'open_row_in_explore',
+  COPY_LINK = 'copy_link',
 }
 
 export function updateQuery(
@@ -252,6 +253,10 @@ function makeCellActions({
   }
 
   if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
+
+  if (allowActions) {
+    addMenuItem(Actions.COPY_LINK, t('Copy link'));
+  }
 
   if (
     !['duration', 'number', 'percentage'].includes(column.type) ||

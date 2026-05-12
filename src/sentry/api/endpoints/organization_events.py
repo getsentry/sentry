@@ -506,6 +506,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
                 extrapolation_mode = self.get_extrapolation_mode(request)
 
+                disable_array_attributes = not features.has(
+                    "organizations:trace-item-details-array-fields",
+                    organization,
+                    actor=request.user,
+                )
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
@@ -513,6 +519,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
@@ -520,6 +527,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         use_aggregate_conditions=False,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -531,6 +539,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -539,6 +548,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
@@ -546,6 +556,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProcessingErrors:
                     return SearchResolverConfig(
@@ -553,18 +564,21 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == PreprodSize:
                     return PreprodSizeSearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":

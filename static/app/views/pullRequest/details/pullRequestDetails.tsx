@@ -1,3 +1,5 @@
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
+
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -7,7 +9,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {PullRequestDetailsHeaderContent} from 'sentry/views/pullRequest/details/header/pullRequestDetailsHeaderContent';
@@ -22,9 +23,10 @@ import type {
 export default function PullRequestDetails() {
   const organization = useOrganization();
   const params = useParams() as {prId: string; repoName: string; repoOrg: string};
-  const [selectedTab, setSelectedTab] = useQueryParamState<'files' | 'size_analysis'>({
-    fieldName: 'tab',
-  });
+  const [selectedTab, setSelectedTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(['files', 'size_analysis'] as const).withDefault('files')
+  );
 
   const pullRequestQuery = useApiQuery<PullRequestDetailsResponse>(
     [
@@ -111,7 +113,7 @@ export default function PullRequestDetails() {
     >
       <Layout.Header>
         <PullRequestDetailsHeaderContent pullRequest={prSuccessData} />
-        <Layout.HeaderTabs value={selectedTab || 'files'} onChange={setSelectedTab}>
+        <Layout.HeaderTabs value={selectedTab} onChange={setSelectedTab}>
           <TabList>
             <TabList.Item key="files">{t('Files')}</TabList.Item>
             {hasSizeAnalysis ? (

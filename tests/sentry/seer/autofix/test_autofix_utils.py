@@ -10,6 +10,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.projectrepository import ProjectRepository
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixStatus,
@@ -703,6 +704,8 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert seer_repo.repository_id == self.repo.id
         assert seer_repo.branch_name == "develop"
         assert seer_repo.instructions == "Use conventional commits"
+        assert seer_repo.project_repository is not None
+        assert ProjectRepository.objects.filter(project=self.project, repository=self.repo).exists()
 
         overrides = SeerProjectRepositoryBranchOverride.objects.filter(
             seer_project_repository=seer_repo

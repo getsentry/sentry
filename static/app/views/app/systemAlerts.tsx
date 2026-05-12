@@ -7,7 +7,7 @@ import {AlertMessage} from './alertMessage';
 
 type Props = {className?: string};
 
-function SystemAlerts(props: Props) {
+export function SystemAlerts(props: Props) {
   const alerts = useLegacyStore(AlertStore);
 
   return (
@@ -18,5 +18,3 @@ function SystemAlerts(props: Props) {
     </Container>
   );
 }
-
-export default SystemAlerts;

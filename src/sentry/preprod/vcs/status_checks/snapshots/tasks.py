@@ -427,3 +427,11 @@ def post_snapshot_status_check_task(
     update_posted_status_check(
         preprod_artifact, check_type="snapshots", success=True, check_id=check_id
     )
+    logger.info(
+        "preprod.snapshot_status_checks.post.success",
+        extra={
+            "artifact_id": preprod_artifact.id,
+            "organization_id": preprod_artifact.project.organization_id,
+            "check_id": check_id,
+        },
+    )

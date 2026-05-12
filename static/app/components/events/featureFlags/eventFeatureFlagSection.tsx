@@ -37,8 +37,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -271,13 +271,9 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
 
   return (
-    <InterimSection
-      help={t(
-        "The last 100 flags evaluated in the user's session leading up to this event."
-      )}
-      isHelpHoverable
+    <FoldSection
+      sectionKey={SectionKey.FEATURE_FLAGS}
       title={t('Feature Flags')}
-      type={SectionKey.FEATURE_FLAGS}
       actions={actions}
     >
       {hasFlags ? (
@@ -302,7 +298,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           {label}
         </Button>
       )}
-    </InterimSection>
+    </FoldSection>
   );
 }
 

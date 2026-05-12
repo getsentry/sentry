@@ -23,8 +23,8 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,

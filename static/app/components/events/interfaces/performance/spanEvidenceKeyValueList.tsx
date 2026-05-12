@@ -8,7 +8,7 @@ import mapValues from 'lodash/mapValues';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -45,6 +45,10 @@ import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/insights/database/components/stackTraceMiniFrame';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {
@@ -505,12 +509,27 @@ function SlowDBQueryEvidence({
 
   const queryValue = (
     <QueryCard>
-      <NoPaddingClippedBox clipHeight={200}>
-        <StyledCodeSnippet language="sql">
-          {formatter.toString(span.description ?? '')}
-        </StyledCodeSnippet>
-      </NoPaddingClippedBox>
-      <Flex gap="md" padding="sm lg" borderTop="muted">
+      <Stack>
+        <NoPaddingClippedBox clipHeight={200}>
+          <StyledCodeSnippet language="sql">
+            {formatter.toString(span.description ?? '')}
+          </StyledCodeSnippet>
+        </NoPaddingClippedBox>
+        {span.data?.['code.filepath'] ? (
+          <StackTraceMiniFrame
+            projectId={event.projectID}
+            event={event}
+            frame={{
+              filename: span.data['code.filepath'],
+              lineNo: span.data['code.lineno'],
+              function: span.data['code.function'],
+            }}
+          />
+        ) : (
+          <MissingFrame source="span" />
+        )}
+      </Stack>
+      <Flex gap="md" padding="md lg" borderTop="muted">
         <SpanSummaryLink
           op={span.op}
           category={sentryTags?.category}
@@ -912,5 +931,6 @@ const QueryCard = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   pre {
     margin: 0 !important;
+    padding-top: ${p => p.theme.space.md} !important;
   }
 `;
