@@ -1,5 +1,3 @@
-jest.unmock('lodash/debounce');
-
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
