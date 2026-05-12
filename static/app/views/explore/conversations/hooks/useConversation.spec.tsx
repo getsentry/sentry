@@ -427,6 +427,41 @@ describe('useConversation', () => {
     );
   });
 
+  it('uses relative period from page filters when explicitly set', async () => {
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: [BASE_SPAN],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('start');
+    expect(queryArg).not.toHaveProperty('end');
+  });
+
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
