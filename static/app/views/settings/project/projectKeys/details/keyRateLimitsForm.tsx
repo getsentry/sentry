@@ -1,11 +1,12 @@
 import {useMemo, useRef} from 'react';
+import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -91,9 +92,13 @@ export function KeyRateLimitsForm({
     onSuccess: updated => {
       updateData(updated);
       addSuccessMessage(
-        tct('Changed Rate Limit from [old] to [new]', {
-          old: formatRateLimit(previousRateLimitRef.current),
-          new: formatRateLimit(updated.rateLimit),
+        tct('Changed [fieldName] from [oldValue] to [newValue]', {
+          fieldName: <FieldName>{t('Rate Limit')}</FieldName>,
+          oldValue: (
+            <FormValue>{formatRateLimit(previousRateLimitRef.current)}</FormValue>
+          ),
+          newValue: <FormValue>{formatRateLimit(updated.rateLimit)}</FormValue>,
+          root: <Flex align="center" />,
         })
       );
     },
@@ -258,3 +263,12 @@ export function KeyRateLimitsForm({
     </form.AppForm>
   );
 }
+
+const FieldName = styled('span')`
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin: 0 ${p => p.theme.space.xs};
+`;
+
+const FormValue = styled('em')`
+  margin: 0 ${p => p.theme.space.xs};
+`;
