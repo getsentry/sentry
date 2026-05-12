@@ -6,9 +6,9 @@ import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -22,7 +22,7 @@ const METRICS_DATASET = 'metrics';
 
 export function useSaveMetricsMultiQuery() {
   const location = useLocation();
-  const id = getIdFromLocation(location);
+  const id = decodeScalar(location.query.id);
   const title = getTitleFromLocation(location);
 
   const metricQueries = useMultiMetricsQueryParams();

@@ -20,8 +20,8 @@ import {
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {
-  getIdFromLocation,
   getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
@@ -80,7 +80,7 @@ export function getReadableQueryParamsFromLocation(
       aggregateFields
     ) ?? defaultAggregateSortBys(aggregateFields);
 
-  const id = getIdFromLocation(location, SPANS_ID_KEY);
+  const id = decodeScalar(location.query?.[SPANS_ID_KEY]);
   const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
 
   const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
