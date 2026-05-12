@@ -305,7 +305,7 @@ export function LandingAggregateFlamegraph({
                   <RequestStateMessageContainer>
                     <LoadingIndicator />
                   </RequestStateMessageContainer>
-                ) : status === 'error' ? (
+                ) : status === 'error' && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
                     {getRequestErrorUserMessage(
                       error,
