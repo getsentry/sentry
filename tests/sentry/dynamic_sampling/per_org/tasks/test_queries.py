@@ -48,7 +48,7 @@ class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        batches = list(
+        rows = list(
             run_eap_spans_table_query_in_chunks(
                 {
                     "params": SnubaParams(
@@ -71,12 +71,8 @@ class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         )
 
-        assert len(batches) == 2
-        assert [len(batch) for batch in batches] == [1, 1]
-        assert {row["project.id"] for batch in batches for row in batch} == {
-            project.id,
-            other_project.id,
-        }
+        assert len(rows) == 2
+        assert {row["project.id"] for row in rows} == {project.id, other_project.id}
 
 
 class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -264,3 +260,63 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert volumes == []
+
+    def test_get_eap_transaction_volumes_with_max_transactions_limits_per_project(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {"transaction": "checkout"},
+                        "measurements": {"server_sample_rate": {"value": 0.5}},
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"transaction": "product"}},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=2),
+                ),
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp + timedelta(seconds=3),
+                ),
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"transaction": "product"}},
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp + timedelta(seconds=4),
+                ),
+            ]
+        )
+
+        # max_transactions=1 should limit to 1 transaction per project, not 1 globally
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            time_interval=timedelta(hours=1),
+            order_by_volume="desc",
+            max_transactions=1,
+        )
+
+        # Both projects should appear, each with only their top transaction
+        assert len(volumes) == 2
+        for vol in volumes:
+            assert len(vol["transaction_counts"]) == 1
+            assert vol["total_num_transactions"] is None
+            assert vol["total_num_classes"] is None
