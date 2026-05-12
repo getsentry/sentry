@@ -636,6 +636,24 @@ class InstallationConfigView:
             if form.is_valid():
                 form_data = form.cleaned_data
                 form_data["url"] = urlparse(form_data["url"]).netloc
+
+                if form_data["url"] == "github.com" and not features.has(
+                    "organizations:github-enterprise-github-com-source",
+                    pipeline.organization,
+                ):
+                    form.add_error(
+                        "url",
+                        _(
+                            "Installing on github.com is not enabled for your organization. "
+                            "Contact Sentry support to request access."
+                        ),
+                    )
+                    return render_to_response(
+                        template="sentry/integrations/github-enterprise-config.html",
+                        context={"form": form},
+                        request=request,
+                    )
+
                 if not form_data["public_link"]:
                     form_data["public_link"] = None
 

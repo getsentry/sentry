@@ -12,6 +12,7 @@ from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClie
 from sentry.integrations.github_enterprise.integration import (
     GitHubEnterpriseIntegration,
     GitHubEnterpriseIntegrationProvider,
+    InstallationConfigView,
     _api_base_url,
     get_user_info,
 )
@@ -1239,3 +1240,69 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                     "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
                 },
             )
+
+
+class InstallationConfigViewGitHubComFlagGateTest(TestCase):
+    """The form must reject github.com installs when the org lacks the feature flag."""
+
+    def _make_post_data(self, url: str) -> dict[str, str]:
+        return {
+            "url": url,
+            "id": "1",
+            "name": "test-app",
+            "client_id": "abc",
+            "client_secret": "secret",
+            "webhook_secret": "whsec",
+            "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMIIBOgIBAAJBA...\n-----END RSA PRIVATE KEY-----",
+            "public_link": "",
+        }
+
+    def test_github_com_install_rejected_without_flag(self) -> None:
+        from django.test import RequestFactory
+
+        view = InstallationConfigView()
+        request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
+        request.user = self.user
+        pipeline = MagicMock()
+        pipeline.organization = self.organization
+        response = view.dispatch(request, pipeline)
+
+        # Form re-renders with an error rather than calling pipeline.next_step()
+        assert pipeline.next_step.call_count == 0
+        # The response body contains the form error message
+        assert b"github.com" in response.content
+        assert response.status_code == 200  # form re-rendered
+
+    def test_github_com_install_allowed_with_flag(self) -> None:
+        from django.test import RequestFactory
+
+        view = InstallationConfigView()
+        request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
+        request.user = self.user
+        pipeline = MagicMock()
+        pipeline.organization = self.organization
+
+        with self.feature("organizations:github-enterprise-github-com-source"):
+            view.dispatch(request, pipeline)
+
+        # State bound with host="github.com"; pipeline advanced
+        pipeline.bind_state.assert_any_call(
+            "installation_data",
+            mock.ANY,
+        )
+        pipeline.next_step.assert_called_once()
+
+    def test_ghes_install_unaffected_by_flag(self) -> None:
+        from django.test import RequestFactory
+
+        view = InstallationConfigView()
+        request = RequestFactory().post(
+            "/", data=self._make_post_data("https://github.example.org")
+        )
+        request.user = self.user
+        pipeline = MagicMock()
+        pipeline.organization = self.organization
+
+        # No flag enabled — GHES install should proceed
+        view.dispatch(request, pipeline)
+        pipeline.next_step.assert_called_once()
