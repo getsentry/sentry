@@ -84,7 +84,7 @@ SamplingValueType = Literal["sampleRate", "factor", "minimumSampleRate"]
 
 class SamplingValue(TypedDict):
     type: SamplingValueType
-    value: NotRequired[float]
+    value: float
 
 
 class TimeRange(TypedDict):
