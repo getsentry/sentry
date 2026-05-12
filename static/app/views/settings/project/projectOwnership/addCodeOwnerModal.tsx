@@ -125,13 +125,9 @@ function ApplyCodeMappings({
 }) {
   const defaultValues: FormValues = {codeMappingId: null};
 
-  const mutation = useMutation<
-    CodeOwner,
-    RequestError,
-    {codeMappingId: string; raw: string}
-  >({
-    mutationFn: payload =>
-      fetchMutation({
+  const mutation = useMutation({
+    mutationFn: (payload: {codeMappingId: string; raw: string}) =>
+      fetchMutation<CodeOwner>({
         method: 'POST',
         url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
         options: {},
