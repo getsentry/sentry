@@ -1,7 +1,7 @@
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -50,7 +50,7 @@ export function SpanIdCell({
   );
 
   return (
-    <OverflowContainer>
+    <Text ellipsis>
       <Link
         onClick={() =>
           trackAnalytics('performance_views.sample_spans.span_clicked', {
@@ -62,11 +62,6 @@ export function SpanIdCell({
       >
         {spanId.slice(0, SPAN_ID_DISPLAY_LENGTH)}
       </Link>
-    </OverflowContainer>
+    </Text>
   );
 }
-
-const OverflowContainer = styled('span')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
