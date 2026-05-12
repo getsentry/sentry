@@ -12,8 +12,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BackfillOrganizationMappingDateCreatedTest(TestMigrations):
-    migrate_from = "1088_remove_rulefirehistory"
-    migrate_to = "1089_backfill_organization_mapping_date_created"
+    migrate_from = "1089_drop_rulefirehistory"
+    migrate_to = "1090_backfill_organization_mapping_date_created"
 
     def setup_before_migration(self, apps):
         # Set Organization.date_added and OrganizationMapping.date_created to
