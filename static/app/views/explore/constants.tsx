@@ -145,6 +145,7 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
   ...PREPROD_IMAGE_FIELDS,
+  'approval_status',
 ];
 
 export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [
