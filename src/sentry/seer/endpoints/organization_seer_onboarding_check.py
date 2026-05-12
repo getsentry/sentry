@@ -56,6 +56,12 @@ def is_autofix_enabled(organization: Organization) -> bool:
     Check if autofix/RCA is enabled for any active project in the organization,
     ie, if any project has repositories configured in Seer preferences.
     """
+    if features.has("organizations:project-repository-fk-reads", organization):
+        return SeerProjectRepository.objects.filter(
+            project_repository__project__organization_id=organization.id,
+            project_repository__project__status=ObjectStatus.ACTIVE,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).exists()
     return SeerProjectRepository.objects.filter(
         project__organization_id=organization.id,
         project__status=ObjectStatus.ACTIVE,

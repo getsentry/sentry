@@ -119,7 +119,7 @@ def schedule_night_shift(
     seer_org_ids: set[int] = set()
     for spr in RangeQuerySetWrapper[SeerProjectRepository](
         SeerProjectRepository.objects.filter(project__status=ObjectStatus.ACTIVE).select_related(
-            "project"
+            "project", "project_repository__project"
         ),
         step=1000,
     ):
