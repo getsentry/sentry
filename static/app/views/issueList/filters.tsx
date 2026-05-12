@@ -29,7 +29,7 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
         <DatePageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
       </StyledPageFilterBar>
 
-      <Search autoFocus {...{query, onSearch}} />
+      <Search {...{query, onSearch}} autoFocus />
 
       <Flex justifySelf="end" gap="md" area="sort-save" align="start">
         <IssueListSortOptions
