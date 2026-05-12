@@ -440,9 +440,16 @@ def _unfurl_explore(
             _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
+        display_type = _resolve_display_type(chart_type, y_axes)
+        if display_type is None:
+            # The chart's visualization (e.g. a heatmap) isn't one the Slack
+            # timeseries renderer can show; skip rather than render a
+            # misleading line chart.
+            continue
+
         chart_data: dict[str, Any] = {
             "timeSeries": resp.data.get("timeSeries", []),
-            "type": _resolve_display_type(chart_type, y_axes),
+            "type": display_type,
         }
 
         try:
@@ -477,21 +484,27 @@ CHART_TYPE_TO_DISPLAY_TYPE = {
     2: "area",
 }
 
+# Display types the Slack timeseries renderer can produce. Any chartType that
+# resolves outside this set (e.g. a future heatmap) should not unfurl, since
+# rendering it as a line chart would be misleading.
+SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
+
 # Aggregates that default to bar charts in Explore's determineDefaultChartType.
 # All other aggregates default to line.
 _BAR_AGGREGATES = {"count", "count_unique", "sum"}
 
 
-def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
-    """Return the display type string for the chart.
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str | None:
+    """Return the display type string for the chart, or ``None`` when the
+    resolved type isn't supported by the unfurl renderer.
 
-    Uses the explicit chartType from the URL when present, otherwise
-    mirrors the frontend's ``determineDefaultChartType`` logic which
-    maps count/count_unique/sum aggregates to bar and everything else
-    to line.
+    Uses the explicit chartType from the URL when present, otherwise mirrors
+    the frontend's ``determineDefaultChartType`` logic which maps
+    count/count_unique/sum aggregates to bar and everything else to line.
     """
     if chart_type is not None:
-        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "line")
+        resolved = CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type)
+        return resolved if resolved in SUPPORTED_DISPLAY_TYPES else None
 
     for y_axis in y_axes:
         func_name = y_axis.split("(")[0] if "(" in y_axis else ""

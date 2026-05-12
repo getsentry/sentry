@@ -1901,6 +1901,32 @@ class UnfurlTest(TestCase):
         "sentry.integrations.slack.unfurl.explore.client.get",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_skips_unsupported_chart_type(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # chartType=99 isn't in CHART_TYPE_TO_DISPLAY_TYPE, simulating a new
+        # visualization (e.g. heatmap) the unfurl renderer can't draw.
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%2C%22chartType%22%3A99%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert unfurls == {}
+        assert mock_generate_chart.call_count == 0
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_explore_without_chart_type_count_defaults_to_bar(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
