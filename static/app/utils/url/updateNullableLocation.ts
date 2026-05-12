@@ -3,6 +3,8 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 
 /**
+ * @deprecated Inline this logic at the callsite instead.
+ *
  * Allows updating a location field, removing it if the value is null.
  *
  * Return true if the location field was updated, in case of side effects.
