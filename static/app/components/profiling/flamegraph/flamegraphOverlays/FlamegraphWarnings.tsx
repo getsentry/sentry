@@ -104,6 +104,7 @@ const Overlay = styled('div')`
   height: 100%;
   display: grid;
   grid: auto/50%;
+  gap: ${p => p.theme.space.md};
   place-content: center;
   z-index: ${p => p.theme.zIndex.initial};
   text-align: center;
