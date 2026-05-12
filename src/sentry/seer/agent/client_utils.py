@@ -8,6 +8,7 @@ Use the public client functions from client.py instead.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
@@ -392,6 +393,26 @@ def poll_until_done(
         time.sleep(poll_interval)
 
 
+_WILDCARD_LABEL_MAP = {
+    "\uf00dDoesNotContain\uf00d": " does not contain ",
+    "\uf00dDoesNotStartWith\uf00d": " does not start with ",
+    "\uf00dDoesNotEndWith\uf00d": " does not end with ",
+    "\uf00dContains\uf00d": " contains ",
+    "\uf00dStartsWith\uf00d": " starts with ",
+    "\uf00dEndsWith\uf00d": " ends with ",
+}
+
+_ESCAPED_WILDCARD_RE = re.compile(r"\\uf00d", re.IGNORECASE)
+
+
+def _normalize_wildcard_operators(text: str) -> str:
+    """Replace U+F00D-delimited wildcard operators with readable labels."""
+    text = _ESCAPED_WILDCARD_RE.sub("\uf00d", text)
+    for pattern, label in _WILDCARD_LABEL_MAP.items():
+        text = text.replace(pattern, label)
+    return text
+
+
 def _render_node(node: dict[str, Any], depth: int) -> str:
     """Recursively render an LLMContextSnapshot node and its children as markdown."""
     heading = "#" * min(depth + 1, 6)
@@ -437,4 +458,5 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    return preamble + "\n".join(_render_node(node, 0) for node in selected)
+    result = preamble + "\n".join(_render_node(node, 0) for node in selected)
+    return _normalize_wildcard_operators(result)
