@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import type {ComponentType, ReactNode} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -7,6 +7,7 @@ import type {MarkedToken} from 'sentry/utils/marked/marked';
 import {MarkedLexer} from 'sentry/utils/marked/marked';
 
 import {Token} from './token';
+import {useStreamingAnimation} from './useStreamingAnimation';
 
 export type MarkdownComponents = Partial<{
   Blockquote: ComponentType<{children: ReactNode}>;
@@ -37,9 +38,12 @@ export type MarkdownComponents = Partial<{
 interface MarkdownProps {
   raw: string;
   components?: MarkdownComponents;
+  variant?: 'static' | 'streaming';
 }
 
-export function Markdown({raw, components = {}}: MarkdownProps) {
+export function Markdown({raw, components = {}, variant = 'static'}: MarkdownProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const elements = useMemo(() => {
     const tokens = MarkedLexer.lex(raw);
     return tokens.map((token, i) => (
@@ -47,8 +51,10 @@ export function Markdown({raw, components = {}}: MarkdownProps) {
     ));
   }, [raw, components]);
 
+  useStreamingAnimation(containerRef, variant === 'streaming');
+
   return (
-    <Stack gap="lg" flex={1} maxWidth="72ch">
+    <Stack ref={containerRef} gap="lg" flex={1} maxWidth="72ch">
       {elements}
     </Stack>
   );

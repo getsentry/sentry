@@ -21,32 +21,36 @@ const STREAMING_CHUNKS = [
 ];
 
 export function StreamingDemo() {
-  const [stream, setStream] = useState<AsyncIterable<string> | null>(null);
+  const [text, setText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const cancelRef = useRef(false);
 
   function startStream() {
     cancelRef.current = false;
     setIsStreaming(true);
+    setText('');
 
-    async function* generate() {
-      for (const chunk of STREAMING_CHUNKS) {
-        if (cancelRef.current) {
-          break;
-        }
-        await new Promise(resolve => setTimeout(resolve, 150 + Math.random() * 200));
-        yield chunk;
+    let buffer = '';
+    let i = 0;
+
+    function nextChunk() {
+      if (cancelRef.current || i >= STREAMING_CHUNKS.length) {
+        setIsStreaming(false);
+        return;
       }
-      setIsStreaming(false);
+      buffer += STREAMING_CHUNKS[i];
+      setText(buffer);
+      i++;
+      setTimeout(nextChunk, 150 + Math.random() * 200);
     }
 
-    setStream(generate());
+    nextChunk();
   }
 
   function reset() {
     cancelRef.current = true;
     setIsStreaming(false);
-    setStream(null);
+    setText('');
   }
 
   return (
@@ -55,11 +59,11 @@ export function StreamingDemo() {
         <Button variant="primary" size="sm" onClick={startStream} disabled={isStreaming}>
           Start Stream
         </Button>
-        <Button size="sm" onClick={reset} disabled={!stream}>
+        <Button size="sm" onClick={reset} disabled={!text}>
           Reset
         </Button>
       </Flex>
-      <Markdown raw={stream ?? ''} />
+      <Markdown raw={text} variant="streaming" />
     </Flex>
   );
 }
