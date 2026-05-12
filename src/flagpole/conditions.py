@@ -200,24 +200,32 @@ def _glob_star_match(pattern: str, value: str) -> bool:
     """
     pattern = pattern.lower()
     value = value.lower()
+    # Split on '*' to get the literal segments that must appear in order.
+    # e.g. "a*b*c" -> ["a", "b", "c"]
     parts = pattern.split("*")
+    # No wildcard — require exact equality.
     if len(parts) == 1:
         return value == pattern
+    # parts[0] is the prefix anchor; value must start with it.
     if not value.startswith(parts[0]):
         return False
+    # parts[-1] is the suffix anchor; value must end with it (unless the
+    # pattern ends with '*', in which case parts[-1] is "" and any suffix matches).
     if not value.endswith(parts[-1]) and parts[-1] != "":
         return False
-    # When the pattern ends with '*', endswith("") is always True, so skip the
-    # end-anchor check only when parts[-1] is empty.
+    # Narrow the search window to exclude the already-matched prefix and suffix.
     end = len(value) - len(parts[-1]) if parts[-1] else len(value)
-    pos = len(parts[0])
+    start = len(parts[0])
+    # Walk the middle segments left-to-right, advancing the cursor after each hit
+    # so that relative ordering is preserved.
     for part in parts[1:-1]:
         if not part:
+            # Consecutive '*'s produce empty segments — nothing to match, skip.
             continue
-        idx = value.find(part, pos, end)
+        idx = value.find(part, start, end)
         if idx == -1:
             return False
-        pos = idx + len(part)
+        start = idx + len(part)
     return True
 
 
