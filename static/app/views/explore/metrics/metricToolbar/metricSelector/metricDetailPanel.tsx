@@ -9,7 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';

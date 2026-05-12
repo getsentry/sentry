@@ -13,6 +13,7 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
 )
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.models.project import Project
 from sentry.workflow_engine.models import Detector
 
 
@@ -24,7 +25,7 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    def get(self, request: Request, project, task_uuid) -> Response:
+    def get(self, request: Request, project: Project, task_uuid: str) -> Response:
         """
         Retrieve the status of the async task
 

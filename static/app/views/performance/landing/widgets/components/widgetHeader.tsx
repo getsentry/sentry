@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -39,10 +38,4 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   position: relative;
   z-index: initial;
   top: -${p => p.theme.space.xs};
-
-  ${FeatureBadge} {
-    position: relative;
-    top: -${p => p.theme.space['2xs']};
-    margin-left: ${p => p.theme.space['2xs']};
-  }
 `;

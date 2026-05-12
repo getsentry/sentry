@@ -120,17 +120,17 @@ describe('LogsAggregateTable', () => {
             data: [
               {
                 'message.template': 'Fetching the latest item id failed.',
-                'p99(severity_number)': 17.0,
+                'p99(severity_number)': 17,
               },
               {
                 'message.template':
                   '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
-                'p99(severity_number)': 13.0,
+                'p99(severity_number)': 13,
               },
               {
                 'message.template':
                   '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
-                'p99(severity_number)': 12.0,
+                'p99(severity_number)': 12,
               },
             ],
           },
@@ -158,17 +158,17 @@ describe('LogsAggregateTable', () => {
         data: [
           {
             'message.template': 'Fetching the latest item id failed.',
-            'p99(severity_number)': 17.0,
+            'p99(severity_number)': 17,
           },
           {
             'message.template':
               '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
-            'p99(severity_number)': 13.0,
+            'p99(severity_number)': 13,
           },
           {
             'message.template':
               '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
-            'p99(severity_number)': 12.0,
+            'p99(severity_number)': 12,
           },
         ],
       },
@@ -212,17 +212,17 @@ describe('LogsAggregateTable', () => {
         data: [
           {
             'message.template': 'Fetching the latest item id failed.',
-            'p99(severity_number)': 17.0,
+            'p99(severity_number)': 17,
           },
           {
             'message.template':
               '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
-            'p99(severity_number)': 13.0,
+            'p99(severity_number)': 13,
           },
           {
             'message.template':
               '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
-            'p99(severity_number)': 12.0,
+            'p99(severity_number)': 12,
           },
         ],
       },

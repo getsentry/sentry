@@ -14,12 +14,12 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
@@ -84,6 +84,17 @@ export function OwnershipRulesTable({
         })
     );
   }, [combinedRules]);
+  const memberIds = useMemo(
+    () =>
+      allActors.flatMap(actor =>
+        actor.type === 'user' && defined(actor.id) ? [actor.id] : []
+      ),
+    [allActors]
+  );
+  const {data: members = []} = useMembers({
+    enabled: memberIds.length > 0,
+    ids: memberIds,
+  });
 
   const myTeams = useMemo(() => {
     const memberTeamsIds = teams.filter(team => team.isMember).map(team => team.id);
@@ -184,7 +195,7 @@ export function OwnershipRulesTable({
               const team = TeamStore.getById(owner.id);
               return team?.slug ? `#${team.slug}` : owner.name;
             }
-            const memberUser = MemberListStore.getById(owner.id);
+            const memberUser = members.find(member => member.id === owner.id);
             return memberUser?.name ?? owner.name;
           });
 

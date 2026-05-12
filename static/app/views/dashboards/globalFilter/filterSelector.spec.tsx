@@ -1,5 +1,6 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
@@ -36,7 +37,9 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
     await userEvent.click(button);
 
     expect(screen.getByText('chrome')).toBeInTheDocument();
@@ -54,7 +57,9 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
     await userEvent.click(button);
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
@@ -63,7 +68,7 @@ describe('FilterSelector', () => {
 
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
-      value: 'browser:[firefox,chrome]',
+      value: `browser:${WildcardOperators.CONTAINS}[firefox,chrome]`,
     });
 
     await userEvent.click(button);
@@ -71,7 +76,7 @@ describe('FilterSelector', () => {
 
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
-      value: 'browser:chrome',
+      value: `browser:${WildcardOperators.CONTAINS}chrome`,
     });
   });
 
@@ -102,7 +107,9 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
     await userEvent.click(button);
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
 
@@ -202,7 +209,7 @@ describe('FilterSelector', () => {
     );
 
     const button = screen.getByRole('button', {
-      name: SpanFields.USER_GEO_SUBREGION + ' :',
+      name: `${SpanFields.USER_GEO_SUBREGION} contains`,
     });
     await userEvent.click(button);
 
@@ -232,7 +239,9 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
     await userEvent.click(button);
 
     // Wait for options to load - both values should be visible initially

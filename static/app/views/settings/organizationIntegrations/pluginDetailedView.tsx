@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -56,6 +56,8 @@ function makePluginQueryKey({
 }
 
 function PluginDetailedView() {
+  const {openModal} = useModal();
+
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
   const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
     initialTab: 'overview',
@@ -219,7 +221,7 @@ function PluginDetailedView() {
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [integrationSlug, installationStatus, navigate, organization, plugin]);
+  }, [integrationSlug, installationStatus, navigate, organization, plugin, openModal]);
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {

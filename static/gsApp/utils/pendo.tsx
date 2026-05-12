@@ -268,12 +268,12 @@ function getReservedTotalFromSubscription(subscription: Subscription) {
     planDetails.billingInterval === 'annual'
       ? planDetails.totalPrice / 12
       : planDetails.totalPrice;
-  return monthlyPrice / 100.0;
+  return monthlyPrice / 100;
 }
 
 function getAccountCredit(subscription: Subscription) {
   // invert to get credit and divide by 100 to get $ amount
-  return subscription.accountBalance / -100.0;
+  return subscription.accountBalance / -100;
 }
 
 function getTrialDaysLeftFromSub(subscription: Subscription) {

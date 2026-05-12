@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -15,7 +16,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
@@ -301,6 +301,7 @@ function SentryApplicationForm({
   isInternal: boolean;
   tokens: InternalAppApiToken[];
 }) {
+  const {openModal} = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();

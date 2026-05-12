@@ -2,8 +2,8 @@ import {Fragment, lazy, Suspense, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -34,6 +34,8 @@ export function OpenReplayComparisonButton({
   size,
   surface,
 }: Props) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   return (

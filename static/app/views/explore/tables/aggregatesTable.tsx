@@ -34,10 +34,10 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
