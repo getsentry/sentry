@@ -197,6 +197,16 @@ class AlertRuleDetailsDeleteEndpointWorkflowEngineMethodFlagTest(AlertRuleDetail
 
         assert not Detector.objects.filter(id=detector.id).exists()
 
+    def test_dual_written_detector_deleted(self) -> None:
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+        )
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
