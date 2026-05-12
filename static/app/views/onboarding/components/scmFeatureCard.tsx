@@ -105,7 +105,7 @@ export function ScmFeatureCard({
               </Tooltip>
             </Flex>
 
-            <Container area="description" column="2 / 4">
+            <Container area="description" column="2 / -1">
               <Text variant="secondary">{description}</Text>
             </Container>
           </Grid>
