@@ -4,7 +4,10 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
+import {
+  getIssueFieldRenderer,
+  type IssueRowMetadata,
+} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -127,6 +130,7 @@ export function transformIssuesResponseToTable(
   _organization: Organization,
   pageFilters: PageFilters
 ): TableData {
+  const issueRowMetadata: Record<string, IssueRowMetadata> = {};
   const transformedTableResults: TableDataRow[] = [];
   data.forEach(
     ({
@@ -139,6 +143,8 @@ export function transformIssuesResponseToTable(
       userCount,
       project,
       annotations,
+      assignedTo,
+      owners,
       ...resultProps
     }) => {
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
@@ -150,6 +156,12 @@ export function transformIssuesResponseToTable(
           transformedResultProps[key] = resultProps[key];
         });
 
+      issueRowMetadata[id] = {
+        assignedTo,
+        owners,
+        links: annotations ?? [],
+      };
+
       const transformedTableResult: TableDataRow = {
         ...transformedResultProps,
         events: count,
@@ -159,7 +171,6 @@ export function transformIssuesResponseToTable(
         issue: shortId,
         title,
         project: project.slug,
-        links: (annotations ?? []) as any,
       };
 
       // Get lifetime stats
@@ -195,7 +206,7 @@ export function transformIssuesResponseToTable(
 
   return {
     data: transformedTableResults,
-    meta: {fields: ISSUE_TABLE_FIELDS},
+    meta: {fields: ISSUE_TABLE_FIELDS, issueRowMetadata},
   };
 }
 

@@ -25,7 +25,7 @@ describe('ArchiveActions', () => {
     });
   });
 
-  it.isKnownFlake('archives forever', async () => {
+  it('archives forever', async () => {
     render(<ArchiveActions onUpdate={onUpdate} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));

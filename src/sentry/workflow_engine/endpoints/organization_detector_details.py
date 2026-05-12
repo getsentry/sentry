@@ -172,8 +172,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Return details on an individual monitor
         """
         _check_metric_detector_allowed(detector, organization)
@@ -203,8 +201,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Update an existing monitor
         """
         _check_metric_detector_allowed(detector, organization)
@@ -238,8 +234,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Delete a monitor
         """
         # Intentionally no _check_metric_detector_allowed gate here:

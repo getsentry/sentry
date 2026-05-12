@@ -998,6 +998,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction display={{label: t('Change Color Theme'), icon: <IconSettings />}}>
           <CMDKAction
             display={{label: t('System')}}
+            keywords={['default theme', 'system theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
@@ -1006,6 +1007,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Light')}}
+            keywords={['light mode', 'light theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
@@ -1014,6 +1016,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Dark')}}
+            keywords={['dark mode', 'dark theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});

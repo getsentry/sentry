@@ -745,11 +745,11 @@ class GSBanner extends Component<Props, State> {
     if (!subscription.canSelfServe) {
       return null;
     }
-    if (Object.values(this.overageAlertActive).some(a => a)) {
+    if (Object.values(this.overageAlertActive).some(Boolean)) {
       return 'critical';
     }
 
-    if (Object.values(this.overageWarningActive).some(a => a)) {
+    if (Object.values(this.overageWarningActive).some(Boolean)) {
       return 'warning';
     }
     return null;
@@ -909,7 +909,7 @@ class GSBanner extends Component<Props, State> {
           />
         ) : null;
       })
-      .filter((node: any) => node);
+      .filter(Boolean);
   }
 
   render() {
