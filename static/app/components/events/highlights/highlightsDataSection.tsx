@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -22,12 +21,11 @@ import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
-  HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,7 +34,7 @@ import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsDataSectionProps {
   event: Event;
@@ -263,18 +261,9 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
   });
 
   return (
-    <InterimSection
-      key="event-highlights"
-      type={SectionKey.HIGHLIGHTS}
+    <FoldSection
+      sectionKey={SectionKey.HIGHLIGHTS}
       title={t('Highlights')}
-      help={tct(
-        'Promoted tags and context items saved for this project. [link:Learn more]',
-        {
-          link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
-        }
-      )}
-      isHelpHoverable
-      data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
           <EditHighlightsButton highlightsProject={highlightsProject} event={event} />
@@ -294,7 +283,7 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
           <HighlightsDataLoading />
         )}
       </ErrorBoundary>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

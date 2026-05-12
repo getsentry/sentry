@@ -45,6 +45,8 @@ function ConversationsLayout() {
 
 function ConversationsLayoutContent() {
   const organization = useOrganization();
+  const {conversationId} = useParams<{conversationId?: string}>();
+  const isDetailPage = !!conversationId;
 
   return (
     <SentryDocumentTitle title={CONVERSATIONS_LANDING_TITLE} orgSlug={organization.slug}>
@@ -55,6 +57,7 @@ function ConversationsLayoutContent() {
             <PageFiltersContainer
               maxPickableDays={MAX_PICKABLE_DAYS}
               storageNamespace="conversations"
+              skipLoadLastUsed={isDetailPage}
             >
               <Outlet />
             </PageFiltersContainer>

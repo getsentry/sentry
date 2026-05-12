@@ -300,7 +300,11 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
                   size="sm"
                   icon={<IconOpen />}
                   onClick={() => {
-                    window.open(agent.agent_url, '_blank', 'noopener,noreferrer');
+                    window.open(
+                      agent.agent_url ?? undefined,
+                      '_blank',
+                      'noopener,noreferrer'
+                    );
                   }}
                 >
                   {getOpenButtonText(agent.provider)}
@@ -314,7 +318,11 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
                     size="sm"
                     icon={<IconOpen />}
                     onClick={() => {
-                      window.open(result.pr_url, '_blank', 'noopener,noreferrer');
+                      window.open(
+                        result.pr_url ?? undefined,
+                        '_blank',
+                        'noopener,noreferrer'
+                      );
                     }}
                   >
                     {getResultButtonLabel(result.pr_url)}

@@ -29,6 +29,7 @@ from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
@@ -518,7 +519,14 @@ def _write_preferences_to_sentry_db(
                     )
 
         if project_repos_to_create:
-            # Create project repos.
+            for spr in project_repos_to_create:
+                project_repo, _ = ProjectRepository.objects.get_or_create(
+                    project=spr.project,
+                    repository_id=spr.repository_id,
+                    defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+                )
+                spr.project_repository = project_repo
+
             created_project_repos = SeerProjectRepository.objects.bulk_create(
                 project_repos_to_create
             )

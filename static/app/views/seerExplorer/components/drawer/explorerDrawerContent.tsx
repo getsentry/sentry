@@ -319,6 +319,15 @@ export function ExplorerDrawerContent({
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
 
+  // Track when a session times out
+  const prevIsTimedOutRef = useRef(false);
+  useEffect(() => {
+    if (isTimedOut && !prevIsTimedOutRef.current) {
+      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
+    }
+    prevIsTimedOutRef.current = isTimedOut;
+  }, [isTimedOut, organization, runId]);
+
   // Interrupt button and placeholder state
   const interruptState =
     isPolling && hasSentInterrupt

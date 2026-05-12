@@ -90,6 +90,7 @@ from .projectkeymapping import *  # NOQA
 from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
+from .projectrepository import *  # NOQA
 from .projectsdk import *  # NOQA
 from .projectteam import *  # NOQA
 from .promptsactivity import *  # NOQA
