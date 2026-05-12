@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyFrameLink} from 'sentry/components/events/interfaces/frame/copyFrameLink';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
