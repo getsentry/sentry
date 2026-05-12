@@ -256,7 +256,7 @@ function Dashboard() {
               onChange={debouncedSearchQuery}
               query={projectQuery}
             />
-            <LinkButton
+            <StyledLinkButton
               size="sm"
               icon={<IconUser />}
               tooltipProps={{
@@ -269,8 +269,8 @@ function Dashboard() {
               data-test-id="join-team"
             >
               {t('Join a Team')}
-            </LinkButton>
-            <LinkButton
+            </StyledLinkButton>
+            <StyledLinkButton
               size="sm"
               priority="primary"
               disabled={!canUserCreateProject}
@@ -287,7 +287,7 @@ function Dashboard() {
               data-test-id="create-project"
             >
               {t('Create Project')}
-            </LinkButton>
+            </StyledLinkButton>
           </SearchAndSelectorWrapper>
 
           <Profiler id="ProjectCardList" onRender={onRenderCallback}>
@@ -332,6 +332,12 @@ const SearchAndSelectorWrapper = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    margin-top: ${p => p.theme.space.md};
+  }
+`;
+
+const StyledLinkButton = styled(LinkButton)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: ${p => p.theme.space.md};
   }
