@@ -75,7 +75,16 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
             sample_rate=1.0,
         )
 
-    return _build_response(rows)
+    last_usage_ts: datetime | None = None
+    for row in rows:
+        row_max = row.get("max_ts")
+        if not row_max:
+            continue
+        parsed = datetime.fromisoformat(row_max).replace(tzinfo=timezone.utc)
+        if last_usage_ts is None or parsed > last_usage_ts:
+            last_usage_ts = parsed
+
+    return _build_response(rows, last_usage_ts)
 
 
 def _build_query(
@@ -102,6 +111,7 @@ def _build_query(
         select=[
             Column("category"),
             Column("time"),
+            Function("max", [Column("timestamp")], "max_ts"),
             _total_function(total_outcomes),
             Function(
                 "sumIf",
@@ -165,7 +175,7 @@ def _build_query(
     )
 
 
-def _build_response(rows: list[dict]) -> GetUsageResponse:
+def _build_response(rows: list[dict], last_usage_ts: datetime | None) -> GetUsageResponse:
     # Two-level accumulator: days_map[day_str][category_id] -> usage fields.
     # Each row already contains all 7 sumIf-aggregated fields from ClickHouse.
     #
@@ -200,7 +210,10 @@ def _build_response(rows: list[dict]) -> GetUsageResponse:
         ]
         days.append(DailyUsage(date=date, usage=usage))
 
-    return GetUsageResponse(days=days, seats=[])
+    response = GetUsageResponse(days=days, seats=[])
+    if last_usage_ts is not None:
+        response.last_usage_ts.FromDatetime(last_usage_ts)
+    return response
 
 
 def _total_function(outcomes: Sequence[int] | None) -> Function:
