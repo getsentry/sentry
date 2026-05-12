@@ -26,6 +26,7 @@ import {
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -210,7 +211,7 @@ function useTraceMetricsSearchScope() {
   return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
 
-export {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
+export {formatTraceMetricsFunction};
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
   props: Pick<SearchBarDataProviderProps, 'pageFilters'>
