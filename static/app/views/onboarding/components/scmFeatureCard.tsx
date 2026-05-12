@@ -54,14 +54,14 @@ export function ScmFeatureCard({
       >
         <Flex align="start">
           <Grid
-            columns="min-content 1fr min-content min-content"
+            columns="min-content 1fr min-content"
             rows="min-content min-content"
             gap="xs lg"
             align="center"
             width="100%"
             areas={`
-                    "icon label volume switch"
-                    ". description . ."
+                    "icon label toggle"
+                    ". description ."
                   `}
           >
             <Container area="icon">
@@ -80,7 +80,7 @@ export function ScmFeatureCard({
               </Text>
             </Container>
 
-            <Flex area="volume" align="center">
+            <Flex area="toggle" align="start" gap="sm">
               {isVolumeLoading ? (
                 <Placeholder height="22px" width="100px" />
               ) : (
@@ -90,9 +90,7 @@ export function ScmFeatureCard({
                   </Tag>
                 </Tooltip>
               )}
-            </Flex>
 
-            <Flex area="switch" align="center">
               <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
                 <Switch
                   checked={isSelected}
