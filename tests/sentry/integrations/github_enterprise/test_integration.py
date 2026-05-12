@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import orjson
 import pytest
 import responses
+from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import (
@@ -1258,8 +1259,6 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         }
 
     def test_github_com_install_rejected_without_flag(self) -> None:
-        from django.test import RequestFactory
-
         view = InstallationConfigView()
         request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
         request.user = self.user
@@ -1274,8 +1273,6 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         assert response.status_code == 200  # form re-rendered
 
     def test_github_com_install_allowed_with_flag(self) -> None:
-        from django.test import RequestFactory
-
         view = InstallationConfigView()
         request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
         request.user = self.user
@@ -1293,8 +1290,6 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         pipeline.next_step.assert_called_once()
 
     def test_ghes_install_unaffected_by_flag(self) -> None:
-        from django.test import RequestFactory
-
         view = InstallationConfigView()
         request = RequestFactory().post(
             "/", data=self._make_post_data("https://github.example.org")
