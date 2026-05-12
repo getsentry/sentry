@@ -2,9 +2,9 @@ import {useEffect} from 'react';
 import type {RefObject} from 'react';
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$#!%&*◆+@~^°±§¶×÷';
-const LOWER = 'abcdefghijklmnopqrstuvwxyz$#!%&*◆+@~^°±§¶×÷';
+const LOWER = 'abcdefghijklmnopqrstuvwxyz';
 const STAGGER_MS = 18;
-const FADE_LEAD_MS = 60;
+const FADE_LEAD_MS = 200;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
 
@@ -37,7 +37,7 @@ function ensureStyles() {
       display: inline-grid;
       color: transparent;
       opacity: 0;
-      transition: opacity 80ms ease-out;
+      transition: opacity 200ms ease-out;
     }
     [data-text].visible {
       opacity: 1;
@@ -68,7 +68,11 @@ interface TextRun {
   wrapper: HTMLSpanElement;
 }
 
-function prepareTextNode(textNode: Text, globalOffset: number): TextRun | null {
+function prepareTextNode(
+  textNode: Text,
+  globalOffset: number,
+  skipChars: number
+): TextRun | null {
   const original = textNode.nodeValue ?? '';
   if (!original.trim()) {
     return null;
@@ -88,11 +92,16 @@ function prepareTextNode(textNode: Text, globalOffset: number): TextRun | null {
   const spans: HTMLSpanElement[] = [];
   const active: boolean[] = [];
 
-  for (const grapheme of graphemes) {
+  for (let idx = 0; idx < graphemes.length; idx++) {
+    const grapheme = graphemes[idx];
+    if (!grapheme) {
+      continue;
+    }
+
     const span = document.createElement('span');
     span.textContent = grapheme;
 
-    if (isSimpleChar(grapheme)) {
+    if (isSimpleChar(grapheme) && globalOffset + idx >= skipChars) {
       span.dataset.text = randomGlyph(grapheme);
       active.push(true);
     } else {
@@ -140,6 +149,10 @@ function collapseSettledPrefix(run: TextRun) {
 }
 
 function animateElement(element: Element): void {
+  const htmlEl = element as HTMLElement;
+  const skipChars = parseInt(htmlEl.dataset.skip ?? '0', 10);
+  delete htmlEl.dataset.skip;
+
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
 
@@ -161,7 +174,7 @@ function animateElement(element: Element): void {
   let globalIndex = 0;
 
   for (const textNode of textNodes) {
-    const run = prepareTextNode(textNode, globalIndex);
+    const run = prepareTextNode(textNode, globalIndex, skipChars);
     if (run) {
       runs.push(run);
       globalIndex += run.graphemes.length;
@@ -191,7 +204,8 @@ function animateElement(element: Element): void {
         }
 
         const globalIdx = run.globalOffset + i;
-        const settleAt = globalIdx * STAGGER_MS;
+        const animatedIdx = globalIdx - skipChars;
+        const settleAt = animatedIdx * STAGGER_MS;
         const fadeAt = Math.max(0, settleAt - FADE_LEAD_MS);
 
         if (elapsed >= fadeAt) {

@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useLayoutEffect, useMemo, useRef} from 'react';
 import type {ComponentType, ReactNode} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -43,15 +43,48 @@ interface MarkdownProps {
 
 export function Markdown({raw, components = {}, variant = 'static'}: MarkdownProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const prevTextLensRef = useRef(new Map<number, number>());
+  const isStreaming = variant === 'streaming';
 
-  const elements = useMemo(() => {
-    const tokens = MarkedLexer.lex(raw);
-    return tokens.map((token, i) => (
-      <Token key={i} token={token as MarkedToken} components={components} />
-    ));
-  }, [raw, components]);
+  const tokens = useMemo(() => MarkedLexer.lex(raw), [raw]);
 
-  useStreamingAnimation(containerRef, variant === 'streaming');
+  const elements = useMemo(
+    () =>
+      tokens.map((token, i) => (
+        <Token
+          key={isStreaming ? `${i}:${token.raw.length}` : i}
+          token={token as MarkedToken}
+          components={components}
+        />
+      )),
+    [tokens, components, isStreaming]
+  );
+
+  useStreamingAnimation(containerRef, isStreaming);
+
+  useLayoutEffect(() => {
+    if (!isStreaming) {
+      return;
+    }
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const children = Array.from(container.children);
+    const nextLens = new Map<number, number>();
+
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i] as HTMLElement;
+      const prevLen = prevTextLensRef.current.get(i) ?? 0;
+      if (prevLen > 0) {
+        child.dataset.skip = String(prevLen);
+      }
+      nextLens.set(i, (child.textContent ?? '').length);
+    }
+
+    prevTextLensRef.current = nextLens;
+  });
 
   return (
     <Stack ref={containerRef} gap="lg" flex={1} maxWidth="72ch">
