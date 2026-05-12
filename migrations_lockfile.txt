@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0011_add_project_repository_fk_to_seer
 
-sentry: 1088_remove_rulefirehistory
+sentry: 1089_drop_rulefirehistory
 
 social_auth: 0003_social_auth_json_field
 
