@@ -17,10 +17,15 @@ from fixtures.github_enterprise import (
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
 from sentry.integrations.github_enterprise.webhook import (
+    GitHubEnterpriseGitHubComWebhookEndpoint,
     GitHubEnterpriseInstallationRepositoriesEventWebhook,
+    GitHubEnterpriseWebhookEndpoint,
     get_host,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.middleware.integrations.parsers.github_enterprise import (
+    GithubEnterpriseRequestParser,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
@@ -1041,15 +1046,6 @@ class GitHubEnterpriseParserGitHubComTest(TestCase):
     """The hybrid-cloud parser must recognize the github.com route and resolve external_id without get_host()."""
 
     def test_parser_resolves_external_id_for_github_com(self) -> None:
-        from django.test import RequestFactory
-
-        from sentry.integrations.github_enterprise.webhook import (
-            GitHubEnterpriseGitHubComWebhookEndpoint,
-        )
-        from sentry.middleware.integrations.parsers.github_enterprise import (
-            GithubEnterpriseRequestParser,
-        )
-
         factory = RequestFactory()
         request = factory.post(
             "/extensions/github-enterprise/webhook/github-com/",
@@ -1063,15 +1059,6 @@ class GitHubEnterpriseParserGitHubComTest(TestCase):
         assert external_id == "github.com:42"
 
     def test_parser_resolves_external_id_for_ghes_unchanged(self) -> None:
-        from django.test import RequestFactory
-
-        from sentry.integrations.github_enterprise.webhook import (
-            GitHubEnterpriseWebhookEndpoint,
-        )
-        from sentry.middleware.integrations.parsers.github_enterprise import (
-            GithubEnterpriseRequestParser,
-        )
-
         factory = RequestFactory()
         request = factory.post(
             "/extensions/github-enterprise/webhook/",
