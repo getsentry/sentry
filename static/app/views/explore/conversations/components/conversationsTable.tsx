@@ -339,6 +339,7 @@ const ConversationIdLink = styled(Link)`
 const ConversationIdText = styled(Text)`
   display: block;
   max-width: 100%;
+  color: inherit;
 `;
 
 const InputOutputRow = styled('button')`
