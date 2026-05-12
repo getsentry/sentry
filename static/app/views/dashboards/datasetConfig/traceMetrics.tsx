@@ -1,4 +1,3 @@
-import {type ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -211,23 +210,7 @@ function useTraceMetricsSearchScope() {
   return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
 
-export function formatTraceMetricsFunction(
-  valueToParse: string | string[],
-  defaultValue?: string | ReactNode
-) {
-  if (Array.isArray(valueToParse)) {
-    const parsedFunctions = valueToParse.map(v => parseFunction(v));
-    const functionNames = parsedFunctions.map(f => f?.name).join(', ');
-    const firstFunction = parsedFunctions[0];
-    return `${functionNames}(${firstFunction?.arguments[1] ?? '…'})`;
-  }
-
-  const parsedFunction = parseFunction(valueToParse);
-  if (parsedFunction) {
-    return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
-  }
-  return defaultValue ?? valueToParse;
-}
+export {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
   props: Pick<SearchBarDataProviderProps, 'pageFilters'>
