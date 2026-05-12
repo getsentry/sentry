@@ -516,7 +516,7 @@ function SlugForm({project}: {project: Project}) {
 - Large multiline text fields where you want to finish editing before saving (fingerprint rules, filters)
 - Any field where auto-save doesn't make sense
 
-**Submit through the form, not around it.** The mutation must run in the form's `onSubmit` and the Save button must be `<form.SubmitButton>`. Don't render `<form.AppForm>` just for layout/validation and trigger the mutation from a standalone `<Button onClick={...}>` — a form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
+**Submit through the form, not around it.** Follow the `SlugForm` pattern above — the mutation runs in `onSubmit` and the Save button is `<form.SubmitButton>`. Don't render `<form.AppForm>` without an `onSubmit` and trigger the mutation from a standalone `<Button onClick>`:
 
 ```tsx
 // ❌ Form is never submitted; mutation fires from a separate button
@@ -533,29 +533,9 @@ return (
     <Button onClick={() => mutation.mutate(...)}>Save</Button>
   </form.AppForm>
 );
-
-// ✅ Mutation runs in onSubmit; Save is form.SubmitButton
-const form = useScrapsForm({
-  ...defaultFormOptions,
-  defaultValues,
-  validators: {onDynamic: schema},
-  onSubmit: ({value}) =>
-    mutation
-      .mutateAsync(schema.parse(value))
-      .then(data => {
-        onSave?.(data);
-        closeModal();
-      })
-      .catch(() => {}),
-});
-
-return (
-  <form.AppForm form={form}>
-    <form.AppField name="codeMappingId">{...}</form.AppField>
-    <form.SubmitButton>Save</form.SubmitButton>
-  </form.AppForm>
-);
 ```
+
+A form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
 
 ## Preserving Form Search Functionality
 
