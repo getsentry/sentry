@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0011_add_project_repository_fk_to_seer
 
-sentry: 1090_rm_triggered_incidents_alertruletrigger
+sentry: 1091_delete_triggered_incidents_alertruletrigger
 
 social_auth: 0003_social_auth_json_field
 
