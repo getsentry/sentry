@@ -1035,3 +1035,51 @@ class GitHubComWebhookEndpointTest(APITestCase):
             else mock_installation.call_args.kwargs.get("host")
         )
         assert called_host == "github.com"
+
+
+class GitHubEnterpriseParserGitHubComTest(TestCase):
+    """The hybrid-cloud parser must recognize the github.com route and resolve external_id without get_host()."""
+
+    def test_parser_resolves_external_id_for_github_com(self) -> None:
+        from django.test import RequestFactory
+
+        from sentry.integrations.github_enterprise.webhook import (
+            GitHubEnterpriseGitHubComWebhookEndpoint,
+        )
+        from sentry.middleware.integrations.parsers.github_enterprise import (
+            GithubEnterpriseRequestParser,
+        )
+
+        factory = RequestFactory()
+        request = factory.post(
+            "/extensions/github-enterprise/webhook/github-com/",
+            data='{"installation": {"id": 42}}',
+            content_type="application/json",
+        )
+        parser = GithubEnterpriseRequestParser(request=request, response_handler=lambda r: None)
+        # Simulate URL resolution having set view_class on the parser
+        parser.view_class = GitHubEnterpriseGitHubComWebhookEndpoint
+        external_id = parser._get_external_id(event={"installation": {"id": 42}})
+        assert external_id == "github.com:42"
+
+    def test_parser_resolves_external_id_for_ghes_unchanged(self) -> None:
+        from django.test import RequestFactory
+
+        from sentry.integrations.github_enterprise.webhook import (
+            GitHubEnterpriseWebhookEndpoint,
+        )
+        from sentry.middleware.integrations.parsers.github_enterprise import (
+            GithubEnterpriseRequestParser,
+        )
+
+        factory = RequestFactory()
+        request = factory.post(
+            "/extensions/github-enterprise/webhook/",
+            data='{"installation": {"id": 42}}',
+            content_type="application/json",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="github.example.org",
+        )
+        parser = GithubEnterpriseRequestParser(request=request, response_handler=lambda r: None)
+        parser.view_class = GitHubEnterpriseWebhookEndpoint
+        external_id = parser._get_external_id(event={"installation": {"id": 42}})
+        assert external_id == "github.example.org:42"
