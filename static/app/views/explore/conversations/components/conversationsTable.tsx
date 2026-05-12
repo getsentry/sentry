@@ -332,6 +332,7 @@ const CellExpander = styled('div')`
 `;
 
 const ConversationIdLink = styled(Link)`
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-weight: normal;
 `;
 
