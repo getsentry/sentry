@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
@@ -16,7 +16,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {t} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
@@ -38,6 +38,17 @@ const rateLimitSchema = z.object({
 });
 
 type FormValues = z.input<typeof rateLimitSchema>;
+
+function formatRateLimit(rateLimit: ProjectKey['rateLimit']) {
+  if (!rateLimit) {
+    return t('no rate limit');
+  }
+  return tct('[errors] in [timeWindow]', {
+    errors: tn('%s error', '%s errors', rateLimit.count),
+    timeWindow:
+      rateLimit.window === 0 ? t('no time window') : getExactDuration(rateLimit.window),
+  });
+}
 
 interface KeyRateLimitsFormProps extends Pick<
   RouteComponentProps<{
@@ -66,16 +77,25 @@ export function KeyRateLimitsForm({
   const {keyId, projectId} = params;
   const endpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
+  const previousRateLimitRef = useRef(data.rateLimit);
+
   const mutation = useMutation({
-    mutationFn: (rateLimit: FormValues['rateLimit']) =>
-      fetchMutation<ProjectKey>({
+    mutationFn: (rateLimit: FormValues['rateLimit']) => {
+      previousRateLimitRef.current = data.rateLimit;
+      return fetchMutation<ProjectKey>({
         url: endpoint,
         method: 'PUT',
         data: {rateLimit},
-      }),
+      });
+    },
     onSuccess: updated => {
       updateData(updated);
-      addSuccessMessage(t('Rate limit saved'));
+      addSuccessMessage(
+        tct('Changed Rate Limit from [old] to [new]', {
+          old: formatRateLimit(previousRateLimitRef.current),
+          new: formatRateLimit(updated.rateLimit),
+        })
+      );
     },
   });
 
