@@ -78,7 +78,9 @@ export function PlanMigrationActive({subscription, migration}: Props) {
   }
 
   const supportLink = hasIntercom ? (
-    <Button size="zero" variant="link" onClick={handleIntercomClick} />
+    <Button size="zero" variant="link" onClick={handleIntercomClick}>
+      {null}
+    </Button>
   ) : (
     <ZendeskLink subject="Legacy Plan Migration Question" source="billing" />
   );
