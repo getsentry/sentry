@@ -57,12 +57,16 @@ type AssignableTeam = {
   team: Team;
 };
 
+export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
+  project: Pick<Group['project'], 'id' | 'slug'>;
+};
+
 interface AssigneeSelectorDropdownProps {
   /**
    * The group (issue) that the assignee selector is for
    * TODO: generalize this for alerts
    */
-  group: Group;
+  group: AssigneeGroup;
   /**
    * If true, there will be a loading indicator in the menu header.
    */

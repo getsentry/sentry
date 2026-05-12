@@ -1,4 +1,4 @@
-import {useCallback, useEffectEvent, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
@@ -94,18 +94,12 @@ interface ClippedBoxProps {
    * Triggered when user clicks on the show more button
    */
   onReveal?: () => void;
-  /**
-   * Its trigged when the component is mounted and its height available
-   */
-  onSetRenderedHeight?: (renderedHeight: number) => void;
-  renderedHeight?: number;
   title?: string;
 }
 
 export function ClippedBox(props: ClippedBoxProps) {
   const revealTransitionPendingRef = useRef(false);
   const hasMeasuredRef = useRef(false);
-  const mountedRef = useRef(false);
 
   const observerRef = useRef<ResizeObserver | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -118,10 +112,6 @@ export function ClippedBox(props: ClippedBoxProps) {
 
   const clipHeight = props.clipHeight || 200;
   const clipFlex = props.clipFlex || 28;
-
-  const handleRenderedHeight = useEffectEvent((height: number) => {
-    props.onSetRenderedHeight?.(height);
-  });
 
   const handleReveal = (event: React.MouseEvent<HTMLElement>) => {
     const wrapper = wrapperRef.current;
@@ -255,11 +245,6 @@ export function ClippedBox(props: ClippedBoxProps) {
       }
 
       hasMeasuredRef.current = true;
-
-      if (!mountedRef.current) {
-        handleRenderedHeight(height);
-        mountedRef.current = true;
-      }
 
       const _clipped = isClipped({
         clipFlex,

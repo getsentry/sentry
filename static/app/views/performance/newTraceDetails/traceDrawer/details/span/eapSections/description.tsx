@@ -189,7 +189,7 @@ export function SpanDescription({
             }}
           />
         ) : (
-          <MissingFrame />
+          <MissingFrame source="span" />
         )}
       </Stack>
     ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
