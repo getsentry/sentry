@@ -122,7 +122,7 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
-          id: `c:${item.key}:${pair.head_image.key}`,
+          id: `c:${item.key}:${pair.head_image.image_file_name}`,
           pair,
           estimatedHeight: Math.max(
             estimateCardHeight(pair.head_image, true),
@@ -134,7 +134,7 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
       for (const pair of item.pairs) {
         cards.push({
           type: 'image-card',
-          id: `c:${item.key}:${pair.head_image.key}`,
+          id: `c:${item.key}:${pair.head_image.image_file_name}`,
           image: pair.head_image,
           copyData: pair,
           cardType: item.type,
@@ -145,7 +145,7 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
       for (const image of item.images) {
         cards.push({
           type: 'image-card',
-          id: `c:${item.key}:${image.key}`,
+          id: `c:${item.key}:${image.image_file_name}`,
           image,
           cardType: item.type,
           estimatedHeight: estimateCardHeight(image, false),
@@ -339,22 +339,35 @@ export const SnapshotListView = memo(function SnapshotListView({
     }
     didInitialScroll.current = true;
     virtualizer.scrollToIndex(targetIdx, {align: 'start'});
-    requestAnimationFrame(() => {
+    const isUngrouped =
+      groups[flatIndex.groupIdxByKey.get(initialSnapshotKey) ?? -1]?.isUngrouped ?? true;
+
+    let lastTop: number | undefined;
+    let retries = 8;
+    const adjustScroll = () => {
       const el = scrollRef.current?.querySelector<HTMLElement>(
         `[data-snapshot-key="${CSS.escape(initialSnapshotKey)}"]`
       );
-      if (el) {
-        el.scrollIntoView({block: 'start'});
-        const groupIdx = flatIndex.groupIdxByKey.get(initialSnapshotKey);
-        if (
-          groupIdx !== undefined &&
-          !groups[groupIdx]?.isUngrouped &&
-          scrollRef.current
-        ) {
-          scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+      if (!el || !scrollRef.current) {
+        if (retries-- > 0) {
+          requestAnimationFrame(adjustScroll);
         }
+        return;
       }
-    });
+      el.scrollIntoView({block: 'start'});
+      if (!isUngrouped) {
+        scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+      }
+      const currentTop = el.getBoundingClientRect().top;
+      if (lastTop !== undefined && Math.abs(currentTop - lastTop) < 2) {
+        return;
+      }
+      lastTop = currentTop;
+      if (retries-- > 0) {
+        requestAnimationFrame(adjustScroll);
+      }
+    };
+    requestAnimationFrame(adjustScroll);
   }, [groups, initialSnapshotKey, flatIndex, virtualizer]);
 
   const keyNavRef = useRef({
