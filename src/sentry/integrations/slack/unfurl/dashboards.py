@@ -62,11 +62,13 @@ DASHBOARDS_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 
 # Display types where a timeseries chart makes sense. Other display types
 # (table, big number, text, etc.) are not supported for unfurl yet.
-_TIMESERIES_DISPLAY_TYPES = {
-    DashboardWidgetDisplayTypes.LINE_CHART: "line",
-    DashboardWidgetDisplayTypes.AREA_CHART: "area",
-    DashboardWidgetDisplayTypes.BAR_CHART: "bar",
-}
+_TIMESERIES_DISPLAY_TYPES = frozenset(
+    {
+        DashboardWidgetDisplayTypes.LINE_CHART,
+        DashboardWidgetDisplayTypes.AREA_CHART,
+        DashboardWidgetDisplayTypes.BAR_CHART,
+    }
+)
 
 
 _UnfurlEndpoint = Literal["events-timeseries", "issues-timeseries"]
@@ -150,8 +152,7 @@ def _unfurl_dashboards(
         if config is None:
             continue
 
-        display_type = _TIMESERIES_DISPLAY_TYPES.get(widget.display_type)
-        if display_type is None:
+        if widget.display_type not in _TIMESERIES_DISPLAY_TYPES:
             continue
 
         per_query_params = build_widget_timeseries_params(widget, args["query"])
