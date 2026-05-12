@@ -40,7 +40,7 @@ export function ExplorerDrawerContent({
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
-  const {onClose: closeDrawer} = useDrawerContentContext();
+  const {onClose: closeDrawer = () => {}} = useDrawerContentContext();
 
   const [inputValue, setInputValue] = useState('');
   const [showThinking, setShowThinking] = useState(false);
