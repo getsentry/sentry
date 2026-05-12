@@ -6,6 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
+import {AutofixGithubCopilotQuotaModal} from 'sentry/components/events/autofix/autofixGithubCopilotQuotaModal';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -408,6 +409,9 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
         const copilotLicenseFailures = data.failures.filter(
           f => f.failure_type === 'github_copilot_not_licensed'
         );
+        const copilotQuotaFailures = data.failures.filter(
+          f => f.failure_type === 'github_copilot_insufficient_quota'
+        );
         const cursorGithubAccessFailures = data.failures.filter(
           f => f.failure_type === 'cursor_github_access'
         );
@@ -415,6 +419,7 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
           f =>
             f.failure_type !== 'github_app_permissions' &&
             f.failure_type !== 'github_copilot_not_licensed' &&
+            f.failure_type !== 'github_copilot_insufficient_quota' &&
             f.failure_type !== 'cursor_github_access'
         );
 
@@ -433,6 +438,10 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
 
         if (copilotLicenseFailures.length > 0) {
           openModal(deps => <AutofixGithubCopilotPurchaseModal {...deps} />);
+        }
+
+        if (copilotQuotaFailures.length > 0) {
+          openModal(deps => <AutofixGithubCopilotQuotaModal {...deps} />);
         }
 
         if (cursorGithubAccessFailures.length > 0) {
