@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from base64 import b64encode
 from collections.abc import MutableSequence
 from datetime import datetime
 from typing import Any
@@ -57,7 +56,7 @@ def test_basic_profile_to_task(
     processing_strategy.terminate()
 
     process_profile_task.assert_called_with(
-        payload=b64encode(payload).decode("utf-8"),
+        payload=payload,
         sampled=True,
     )
 
