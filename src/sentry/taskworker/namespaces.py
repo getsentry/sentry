@@ -92,6 +92,11 @@ ingest_profiling_tasks = app.taskregistry.create_namespace(
     app_feature="profiles",
 )
 
+ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
+    "ingest.profiling.passthrough",
+    app_feature="profiles",
+)
+
 ingest_transactions_tasks = app.taskregistry.create_namespace(
     "ingest.transactions",
     app_feature="transactions",

@@ -45,6 +45,7 @@ def instrumented_task(
     report_timeout_errors: bool = True,
     silenced_exceptions: tuple[type[BaseException], ...] | None = None,
     silo_mode: SiloMode | None = None,
+    pass_headers: bool = False,
     **kwargs,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
@@ -127,6 +128,7 @@ def instrumented_task(
             compression_type=compression_type,
             report_timeout_errors=report_timeout_errors,
             silenced_exceptions=silenced_exceptions,
+            pass_headers=pass_headers,
         )(func)
 
         if silo_mode:
@@ -150,6 +152,7 @@ def instrumented_task(
                 compression_type=compression_type,
                 report_timeout_errors=report_timeout_errors,
                 silenced_exceptions=silenced_exceptions,
+                pass_headers=pass_headers,
             )(func)
 
             if silo_mode:
