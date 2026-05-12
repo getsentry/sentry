@@ -485,7 +485,6 @@ class Fixtures:
         self,
         alert_rule_trigger=None,
         target_identifier=None,
-        triggered_for_incident=None,
         *args,
         **kwargs,
     ):
