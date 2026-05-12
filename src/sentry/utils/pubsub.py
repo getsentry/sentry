@@ -16,6 +16,7 @@ class KafkaPublisher:
             build_kafka_producer_configuration(default_config=connection)
         )
         self.asynchronous = asynchronous
+        self._shutdown = threading.Event()
         self._poll_thread = threading.Thread(
             target=self.__worker,
             name="KafkaPublisher.poll",
@@ -33,7 +34,7 @@ class KafkaPublisher:
 
         Similar to https://github.com/getsentry/arroyo/blob/a4bd9a7ef5e9a23a7862e278d9881d0a7a7e18e5/arroyo/backends/kafka/consumer.py#L774-L784
         """
-        while True:
+        while not self._shutdown.is_set():
             self.producer.poll(0.1)
 
     def publish(self, channel: str, value: str, key: str | None = None) -> None:
