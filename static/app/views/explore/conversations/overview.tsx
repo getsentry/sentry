@@ -24,11 +24,11 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';

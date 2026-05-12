@@ -71,15 +71,11 @@ export default Storybook.story('ClippedBox', story => {
       <Fragment>
         <p>
           Some callbacks are available:{' '}
-          <Storybook.JSXProperty name="onSetRenderedHeight" value={Function} />&{' '}
           <Storybook.JSXProperty name="onReveal" value={Function} />.
         </p>
         <Storybook.SideBySide>
           {[50, 100, 150].map(imgHeight => {
             const [isRevealed, setIsRevealed] = useState(false);
-            const [renderedHeight, setRenderedHeight] = useState<number | undefined>(
-              undefined
-            );
             return (
               <div key={imgHeight}>
                 <p>
@@ -88,13 +84,8 @@ export default Storybook.story('ClippedBox', story => {
                   </Storybook.JSXNode>
                 </p>
                 <p>isRevealed = {String(isRevealed)}</p>
-                <p>renderedHeight = {renderedHeight}</p>
                 <Storybook.SizingWindow>
-                  <ClippedBox
-                    clipHeight={100}
-                    onReveal={() => setIsRevealed(true)}
-                    onSetRenderedHeight={setRenderedHeight}
-                  >
+                  <ClippedBox clipHeight={100} onReveal={() => setIsRevealed(true)}>
                     <img
                       src={onboardingFrameworkSelectionJavascript}
                       height={imgHeight}

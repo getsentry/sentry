@@ -2,7 +2,7 @@ import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -20,6 +20,7 @@ import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,7 +65,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
   {key: 'steps', name: t('Steps'), width: 80},
-  {key: 'toolsUsed', name: t('Tools'), width: 200},
+  {key: 'toolsUsed', name: t('Tools'), width: 140},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
@@ -212,9 +213,15 @@ const BodyCell = memo(function BodyCell({
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdButton type="button" onClick={navigateToDetail}>
-          {dataRow.conversationId.slice(0, 8)}
-        </ConversationIdButton>
+        <ConversationIdLink to={getConversationDetailUrl(organization.slug, dataRow)}>
+          {isUUID(dataRow.conversationId) ? (
+            dataRow.conversationId.slice(0, 8)
+          ) : (
+            <Tooltip title={dataRow.conversationId} showOnlyOnOverflow skipWrapper>
+              <ConversationIdText ellipsis>{dataRow.conversationId}</ConversationIdText>
+            </Tooltip>
+          )}
+        </ConversationIdLink>
       );
     case 'user': {
       if (!dataRow.user) {
@@ -324,17 +331,15 @@ const CellExpander = styled('div')`
   width: 100vw;
 `;
 
-const ConversationIdButton = styled('button')`
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
+const ConversationIdLink = styled(Link)`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-weight: normal;
+`;
 
-  &:hover {
-    text-decoration: underline;
-  }
+const ConversationIdText = styled(Text)`
+  display: block;
+  max-width: 100%;
+  color: inherit;
 `;
 
 const InputOutputRow = styled('button')`

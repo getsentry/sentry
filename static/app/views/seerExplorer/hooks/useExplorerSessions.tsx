@@ -29,7 +29,7 @@ export function useExplorerSessions({
     ],
     {
       staleTime: 0,
-      enabled: enabled && !!organization && isSeerExplorerEnabled(organization),
+      enabled: enabled && isSeerExplorerEnabled(organization),
     }
   );
 
