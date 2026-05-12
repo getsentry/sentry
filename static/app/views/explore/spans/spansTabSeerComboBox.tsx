@@ -269,7 +269,7 @@ export function SpansTabSeerComboBox() {
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
-      if (runId) {
+      if (runId !== undefined) {
         setRunId(runId);
       }
       navigate(url, {replace: true, preventScrollReset: true});

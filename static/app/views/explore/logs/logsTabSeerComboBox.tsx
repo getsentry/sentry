@@ -251,7 +251,7 @@ export function LogsTabSeerComboBox() {
         group_by_count: groupBys.length,
       });
 
-      if (runId) {
+      if (runId !== undefined) {
         setRunId(runId);
       }
 

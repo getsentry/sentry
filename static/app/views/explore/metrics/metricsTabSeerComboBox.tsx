@@ -293,7 +293,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         visualize_count: visualizations?.length ?? 0,
       });
 
-      if (runId) {
+      if (runId !== undefined) {
         setRunId(runId);
       }
 

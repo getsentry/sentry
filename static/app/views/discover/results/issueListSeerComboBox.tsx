@@ -280,7 +280,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.end = undefined;
       }
 
-      if (runId) {
+      if (runId !== undefined) {
         setRunId(runId);
       }
 

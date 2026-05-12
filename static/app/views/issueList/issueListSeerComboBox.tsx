@@ -224,7 +224,7 @@ export function IssueListSeerComboBox() {
         ...timeParams,
       };
 
-      if (runId) {
+      if (runId !== undefined) {
         setRunId(runId);
       }
 
