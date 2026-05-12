@@ -4,7 +4,6 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
@@ -95,25 +94,37 @@ export function getReadableQueryParamsFromLocation(
   });
 }
 
+function setOrDelete(
+  query: Record<string, any>,
+  key: string,
+  value: string | string[] | null | undefined
+) {
+  if (value === null) {
+    delete query[key];
+  } else if (value !== undefined) {
+    query[key] = value;
+  }
+}
+
 export function getTargetWithReadableQueryParams(
   location: Location,
   writableQueryParams: WritableQueryParams
 ): Location {
   const target: Location = {...location, query: {...location.query}};
 
-  updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
-  updateNullableLocation(target, LOGS_QUERY_KEY, writableQueryParams.query);
+  setOrDelete(target.query, LOGS_MODE_KEY, writableQueryParams.mode);
+  setOrDelete(target.query, LOGS_QUERY_KEY, writableQueryParams.query);
 
-  updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
-  updateNullableLocation(
-    target,
+  setOrDelete(target.query, LOGS_CURSOR_KEY, writableQueryParams.cursor);
+  setOrDelete(
+    target.query,
     LOGS_FIELDS_KEY,
     writableQueryParams.fields === null
       ? null
       : writableQueryParams.fields?.filter(Boolean)
   );
-  updateNullableLocation(
-    target,
+  setOrDelete(
+    target.query,
     LOGS_SORT_BYS_KEY,
     writableQueryParams.sortBys === null
       ? null
@@ -122,20 +133,20 @@ export function getTargetWithReadableQueryParams(
         )
   );
 
-  updateNullableLocation(
-    target,
+  setOrDelete(
+    target.query,
     LOGS_AGGREGATE_CURSOR_KEY,
     writableQueryParams.aggregateCursor
   );
-  updateNullableLocation(
-    target,
+  setOrDelete(
+    target.query,
     LOGS_AGGREGATE_FIELD_KEY,
     writableQueryParams.aggregateFields?.map(aggregateField =>
       JSON.stringify(aggregateField)
     )
   );
-  updateNullableLocation(
-    target,
+  setOrDelete(
+    target.query,
     LOGS_AGGREGATE_SORT_BYS_KEY,
     writableQueryParams.aggregateSortBys === null
       ? null
