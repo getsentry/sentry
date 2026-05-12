@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.urls import reverse
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.vsts import VstsIntegrationProvider
@@ -194,49 +195,47 @@ class VstsIntegrationTestCase(IntegrationTestCase):
                 },
             )
 
-    def make_init_request(self, path=None, body=None):
-        return self.client.get(path or self.init_path, body or {})
-
-    def make_oauth_redirect_request(self, state):
-        return self.client.get(
-            "{}?{}".format(self.setup_path, urlencode({"code": "oauth-code", "state": state}))
-        )
-
-    def assert_vsts_oauth_redirect(self, redirect):
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "app.vssps.visualstudio.com"
-        assert redirect.path == "/oauth2/authorize"
-
-    def assert_vsts_new_oauth_redirect(self, redirect):
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "login.microsoftonline.com"
-        assert redirect.path == "/common/oauth2/v2.0/authorize"
-
-    def assert_account_selection(self, response, account_id=None):
-        account_id = account_id or self.vsts_account_id
-        assert response.status_code == 200
-        assert f'<option value="{account_id}"'.encode() in response.content
-
     @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_installation(self):
-        # Initial request to the installation URL for VSTS
-        resp = self.make_init_request()
-        redirect = urlparse(resp["Location"])
-
-        assert resp.status_code == 302
-        self.assert_vsts_new_oauth_redirect(redirect)
-
-        query = parse_qs(redirect.query)
-
-        # OAuth redirect back to Sentry (identity_pipeline_view)
-        resp = self.make_oauth_redirect_request(query["state"][0])
-        self.assert_account_selection(resp)
-
-        # User choosing which VSTS Account to use (AccountConfigView)
-        # Final step.
-        resp = self.client.post(
-            self.setup_path, {"account": self.vsts_account_id, "provider": "vsts"}
+        pipeline_url = reverse(
+            "sentry-api-0-organization-pipeline",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "pipeline_name": "integration_pipeline",
+            },
         )
+
+        # Initialize the API-driven pipeline
+        resp = self.client.post(
+            pipeline_url,
+            data={"action": "initialize", "provider": "vsts"},
+            format="json",
+        )
+        assert resp.status_code == 200, resp.content
+
+        # Extract OAuth state and advance through OAuth step
+        resp_data = resp.json()
+        oauth_url = resp_data["data"]["oauthUrl"]
+        pipeline_signature = parse_qs(urlparse(oauth_url).query)["state"][0]
+
+        resp = self.client.post(
+            pipeline_url,
+            data={"code": "oauth-code", "state": pipeline_signature},
+            format="json",
+        )
+        assert resp.status_code == 200, resp.content
+        resp_data = resp.json()
+        assert resp_data["step"] == "account_selection"
+
+        # Select VSTS account to complete setup
+        resp = self.client.post(
+            pipeline_url,
+            data={"account": self.vsts_account_id},
+            format="json",
+        )
+        assert resp.status_code == 200, resp.content
+        resp_data = resp.json()
+        assert resp_data["status"] == "complete"
         return resp
 
 

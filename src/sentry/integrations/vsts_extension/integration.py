@@ -6,11 +6,13 @@ from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import IntegrationData
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
+from sentry.integrations.vsts.integration import VstsIntegrationProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.utils.http import absolute_uri
 
 
@@ -23,10 +25,19 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
     visible = False
 
     def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        views = super().get_pipeline_views()
-        views = [view for view in views if not isinstance(view, AccountConfigView)]
-        views.append(VstsExtensionFinishedView())
-        return views
+        identity_pipeline_config = {
+            "redirect_url": absolute_uri(self.oauth_redirect_url),
+            "oauth_scopes": self.get_scopes(),
+        }
+        return [
+            NestedPipelineView(
+                bind_key="identity",
+                provider_key=self.key,
+                pipeline_cls=IdentityPipeline,
+                config=identity_pipeline_config,
+            ),
+            VstsExtensionFinishedView(),
+        ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         return super().build_integration(

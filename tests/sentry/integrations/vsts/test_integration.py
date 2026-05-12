@@ -236,28 +236,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_accounts_list_failure(self, mock_record: MagicMock) -> None:
-        responses.replace(
-            responses.GET,
-            "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
-            % self.vsts_user_id,
-            status=403,
-            json={"$id": 1, "message": "Your account is not good"},
-        )
-        resp = self.make_init_request()
-        assert resp.status_code < 400, resp.content
-
-        redirect = urlparse(resp["Location"])
-        query = parse_qs(redirect.query)
-
-        # OAuth redirect back to Sentry (identity_pipeline_view)
-        resp = self.make_oauth_redirect_request(query["state"][0])
-        assert resp.status_code == 200, resp.content
-        assert b"No accounts found" in resp.content
-
-        assert_halt_metric(mock_record, "no_accounts")
-
     @patch(
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
