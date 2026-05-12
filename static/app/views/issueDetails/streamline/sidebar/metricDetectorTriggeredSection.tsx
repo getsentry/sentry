@@ -28,7 +28,6 @@ import type {
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -441,9 +440,7 @@ function TriggeredConditionDetails({
             },
             {
               key: 'aggregate',
-              value: datasetConfig.fromApiAggregate(
-                stripEquationPrefix(snubaQuery.aggregate)
-              ),
+              value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
               subject: t('Aggregate'),
             },
             ...(snubaQuery.query
@@ -471,7 +468,7 @@ function TriggeredConditionDetails({
               value: (
                 <pre>
                   {getConditionDescription({
-                    aggregate: stripEquationPrefix(snubaQuery.aggregate),
+                    aggregate: snubaQuery.aggregate,
                     condition: triggeredCondition,
                     config: evidenceData.config ?? {
                       detectionType: 'static',
