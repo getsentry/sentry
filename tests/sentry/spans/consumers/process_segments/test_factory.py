@@ -135,9 +135,11 @@ class TestCheckSpanDuplicates:
             mock.patch("sentry.spans.consumers.process_segments.factory.metrics") as mock_metrics,
         ):
             mock_client = mock.MagicMock()
+            mock_pipeline = mock.MagicMock()
             mock_redis.redis_clusters.get_binary.return_value = mock_client
-            # First span seen (duplicate), second span not seen (new)
-            mock_client.mget.return_value = [b"1", None]
+            mock_client.pipeline.return_value.__enter__.return_value = mock_pipeline
+            # First span is duplicate (setnx returns False), second is new (returns True)
+            mock_pipeline.execute.return_value = [False, True]
 
             result = _check_span_duplicates(spans)
 
@@ -163,9 +165,11 @@ class TestCheckSpanDuplicates:
             mock.patch("sentry.spans.consumers.process_segments.factory.metrics") as mock_metrics,
         ):
             mock_client = mock.MagicMock()
+            mock_pipeline = mock.MagicMock()
             mock_redis.redis_clusters.get_binary.return_value = mock_client
-            # First span seen (duplicate), second span not seen (new)
-            mock_client.mget.return_value = [b"1", None]
+            mock_client.pipeline.return_value.__enter__.return_value = mock_pipeline
+            # First span is duplicate (setnx returns False), second is new (returns True)
+            mock_pipeline.execute.return_value = [False, True]
 
             result = _check_span_duplicates(spans)
 

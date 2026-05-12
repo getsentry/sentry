@@ -10,7 +10,6 @@ from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
-from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 from django.conf import settings
@@ -27,21 +26,18 @@ from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
 
-DEDUPE_KEY_PREFIX = "segments-consumer:dedupe"
-
-
-def _get_dedupe_redis_key(span: CompatibleSpan) -> str:
-    return f"{DEDUPE_KEY_PREFIX}:{span['project_id']}:{span['trace_id']}:{span['span_id']}"
-
 
 def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     """
-    Check for duplicate spans using Redis MGET.
+    Check for and optionally filter duplicate spans using Redis SETNX.
+
+    Uses atomic set-if-not-exists to both check and mark spans as seen in one operation.
+    This provides at-most-once delivery: if the consumer crashes after SETNX but before
+    producing to Kafka, the span is lost. This is preferred over the alternative (marking
+    after produce) which allows duplicates through race conditions.
 
     When dedupe-filter-enable is True: filters out duplicates and returns only new spans.
     When dedupe-filter-enable is False: emits metrics only, returns all spans.
-
-    Marking spans as seen happens later, after produce completes.
     """
     if not spans:
         return spans
@@ -54,10 +50,13 @@ def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
 
     try:
         client = redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
-        keys = [_get_dedupe_redis_key(span) for span in spans]
-        results = client.mget(keys)
+        with client.pipeline(transaction=False) as p:
+            for span in spans:
+                dedupe_key = f"segments-consumer:dedupe:{span['project_id']}:{span['trace_id']}:{span['span_id']}"
+                p.set(dedupe_key, b"1", ex=dedupe_ttl, nx=True)
+            results = p.execute()
 
-        filtered = [span for span, seen in zip(spans, results) if seen is None]
+        filtered = [span for span, is_new in zip(spans, results) if is_new]
         duplicates = len(spans) - len(filtered)
         if duplicates:
             metrics.incr("spans.process-segments.duplicate_span", amount=duplicates)
@@ -66,26 +65,6 @@ def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     except Exception:
         logger.exception("Failed to check span duplicates")
         return spans
-
-
-def _mark_span_as_seen(message: Message[FilteredPayload | KafkaPayload]) -> None:
-    """Mark a span as seen in Redis after it's been produced to Kafka."""
-    dedupe_ttl = options.get("spans.process-segments.dedupe-ttl")
-    if dedupe_ttl <= 0:
-        return
-
-    payload = message.payload
-    if not isinstance(payload, KafkaPayload) or not payload.headers:
-        return
-
-    for header_key, header_value in payload.headers:
-        if header_key == "dedupe_key":
-            try:
-                client = redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
-                client.set(header_value, b"1", ex=dedupe_ttl)
-            except Exception:
-                logger.exception("Failed to mark span as seen")
-            break
 
 
 # An amortized ceiling of spans per segment used to compute the size of the
@@ -139,7 +118,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         commit_step = CommitOffsets(commit)
-        mark_seen_step = RunTask(function=_mark_span_as_seen, next_step=commit_step)
 
         produce_step: ProcessingStrategy[FilteredPayload | KafkaPayload]
 
@@ -147,11 +125,11 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
             produce_step = Produce(
                 producer=self.producer,
                 topic=self.output_topic,
-                next_step=mark_seen_step,
+                next_step=commit_step,
                 max_buffer_size=self.kafka_queue_size,
             )
         else:
-            produce_step = mark_seen_step
+            produce_step = commit_step
 
         unfold_step = Unfold(generator=_unfold_segment, next_step=produce_step)
 
@@ -213,7 +191,6 @@ def _serialize_payload(
             headers=[
                 ("item_type", str(item.item_type).encode("ascii")),
                 ("project_id", str(span["project_id"]).encode("ascii")),
-                ("dedupe_key", _get_dedupe_redis_key(span).encode("ascii")),
             ],
         ),
         {},
