@@ -648,7 +648,7 @@ function DataWidgetViewerModal(props: Props) {
       <Fragment>
         {hasSessionDuration && SESSION_DURATION_ALERT}
         {shouldRenderChartVisualization && (
-          <Container
+          <ChartContainer
             height={
               widget.displayType === DisplayType.BIG_NUMBER
                 ? BIG_NUMBER_HEIGHT
@@ -693,7 +693,7 @@ function DataWidgetViewerModal(props: Props) {
                 widgetInterval={widgetInterval}
               />
             )}
-          </Container>
+          </ChartContainer>
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
@@ -1237,7 +1237,7 @@ export const modalCss = css`
   max-width: 1200px;
 `;
 
-const Container = styled('div')<{height?: number | null}>`
+const ChartContainer = styled('div')<{height?: number | null}>`
   display: flex;
   flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};

@@ -146,7 +146,7 @@ const Data = styled('div')`
   }
 `;
 
-const Container = styled('div')`
+const TimelineContainer = styled('div')`
   position: relative;
   /* vertical line connecting items */
   &::before {
@@ -165,5 +165,5 @@ export const Timeline = {
   Data,
   Text,
   Item,
-  Container,
+  Container: TimelineContainer,
 };
