@@ -75,7 +75,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   }, [blocks]);
 
   const unreadCount = useMemo(() => {
-    if (!blocks?.length || runId === null) {
+    if (!blocks?.length || runId === null || isOpen) {
       return 0;
     }
     return blocks.filter(block => {
@@ -85,7 +85,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       const ts = new Date(block.timestamp).getTime();
       return Number.isFinite(ts) && ts > lastViewedAt;
     }).length;
-  }, [blocks, lastViewedAt, runId]);
+  }, [blocks, isOpen, lastViewedAt, runId]);
 
   useEffect(() => {
     if (!isOpen || runId === null || latestBlockTimestamp <= lastViewedAt) {
