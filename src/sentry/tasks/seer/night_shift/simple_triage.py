@@ -27,7 +27,7 @@ FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
 class ScoredCandidate(TriageResult):
     """A candidate issue with raw signals for ranking."""
 
-    fixability: float = 0.0
+    fixability: float | None = None
     times_seen: int = 0
     action: TriageAction = TriageAction.AUTOFIX
 
@@ -75,20 +75,21 @@ def fixability_score_strategy(
 
         candidate = ScoredCandidate(
             group=group,
-            fixability=group.seer_fixability_score or 0.0,
+            fixability=group.seer_fixability_score,
             times_seen=group.times_seen,
         )
 
-        if group.seer_fixability_score is None:
+        if candidate.fixability is None:
             unscored.append(candidate)
         elif candidate.fixability >= FIXABILITY_SCORE_THRESHOLD:
             scored.append(candidate)
 
-    scored.sort(key=lambda c: c.fixability, reverse=True)
+    scored.sort(key=lambda c: c.fixability or 0.0, reverse=True)
     selected = (scored + unscored)[:max_candidates]
 
     for c in selected:
-        sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
+        if c.fixability is not None:
+            sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
 
     return selected
 
