@@ -99,8 +99,10 @@ export function assignPlottablesToYAxes(plottables: Plottable[]): YAxisAssignmen
   const unitForType: Record<string, TimeSeriesValueUnit> = {};
   for (const [type, ofType] of Object.entries(plottablesByType)) {
     const units = uniq(ofType.map(plottable => plottable.dataUnit));
-    if (units.length === 1 && units[0]) {
-      unitForType[type] = units[0];
+    if (units.length === 1) {
+      // Preserve the agreed-upon value even when it's `null` (a legitimate
+      // "unitless" value). The original dashboard logic returned it as-is.
+      unitForType[type] = units[0]!;
     } else {
       unitForType[type] =
         FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType] ?? null;
