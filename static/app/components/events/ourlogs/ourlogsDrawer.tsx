@@ -27,7 +27,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';

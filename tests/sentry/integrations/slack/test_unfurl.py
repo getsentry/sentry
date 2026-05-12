@@ -9,7 +9,9 @@ from django.utils import timezone
 
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.incidents.models.incident import Incident
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -18,6 +20,7 @@ from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
@@ -28,6 +31,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -325,6 +331,29 @@ class UnfurlTest(TestCase):
     def tearDown(self) -> None:
         self.frozen_time.stop()
 
+    def _wire_workflow_engine_for_incident(self, alert_rule, incident: Incident) -> None:
+        """
+        Wire up the workflow engine fixtures so that the /incidents/ endpoint
+        (which always routes through _get_workflow_engine) returns this incident.
+        """
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+        group = self.create_group(
+            project=self.project,
+            type=MetricIssue.type_id,
+            priority=PriorityLevel.HIGH,
+            first_seen=incident.date_started,
+        )
+        self.create_detector_group(detector=detector, group=group)
+        gop = GroupOpenPeriod.objects.get(group=group)
+        # Align the open period's date_started with the incident's so the chart's
+        # time-window query (which truncates to seconds via strftime) includes it.
+        gop.update(date_started=incident.date_started)
+        IncidentGroupOpenPeriod.objects.create(
+            group_open_period=gop,
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+        )
+
     def test_unfurl_issues(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
@@ -451,6 +480,7 @@ class UnfurlTest(TestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
+        self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
@@ -502,6 +532,7 @@ class UnfurlTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - timedelta(minutes=2),
         )
+        self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
@@ -559,6 +590,7 @@ class UnfurlTest(TestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
+        self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
@@ -3179,6 +3211,40 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
 
         assert params["query"] == 'release:["v1.0.0","v2.0.0"]'
 
+    def test_url_empty_release_falls_back_to_dashboard_release(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"release": ["v1.0.0"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release="))[0]
+
+        assert params["query"] == 'release:"v1.0.0"'
+
+    def test_url_empty_release_with_no_dashboard_release_omits_query(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release="))[0]
+
+        assert "query" not in params
+
+    def test_url_empty_project_falls_back_to_dashboard_projects(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a])
+
+        params = build_widget_timeseries_params(widget, QueryDict("project="))[0]
+
+        assert params["project"] == str(project_a.id)
+
+    def test_url_empty_environment_falls_back_to_dashboard_environment(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("environment="))[0]
+
+        assert params["environment"] == "prod"
+
     def test_dashboard_global_filter_applied_when_dataset_matches(self) -> None:
         widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
         widget.dashboard.filters = {
@@ -3247,6 +3313,19 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         params = build_widget_timeseries_params(widget, QueryDict(f"globalFilter={url_filter}"))[0]
 
         assert params["query"] == "env:prod"
+
+    def test_url_empty_global_filter_falls_back_to_dashboard_global_filter(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("globalFilter="))[0]
+
+        assert params["query"] == "span.op:http"
 
     def test_url_global_filter_invalid_json_is_skipped(self) -> None:
         widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)

@@ -6,7 +6,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
+import type {Group} from 'sentry/types/group';
+import {
+  getIssueFieldRenderer,
+  type IssueRowMetadata,
+} from 'sentry/utils/dashboards/issueFieldRenderers';
 
 describe('getIssueFieldRenderer', () => {
   let location: any,
@@ -55,6 +59,7 @@ describe('getIssueFieldRenderer', () => {
       filteredEvents: 3000,
       events: 6000,
       period: '7d',
+      projectId: project.id,
       links: [{url: 'sentry.io', displayName: 'ANNO-123'}],
     };
 
@@ -74,6 +79,14 @@ describe('getIssueFieldRenderer', () => {
     });
   });
 
+  function makeIssueMeta(issueId: string, metadata: IssueRowMetadata) {
+    return {
+      issueRowMetadata: {
+        [issueId]: metadata,
+      },
+    };
+  }
+
   describe('Issue fields', () => {
     it('can render assignee', async () => {
       const assignedUser = UserFixture({
@@ -86,18 +99,16 @@ describe('getIssueFieldRenderer', () => {
         },
       });
 
-      const group = GroupFixture({
-        project,
-        assignedTo: {
-          email: 'test@sentry.io',
-          type: 'user',
-          id: '1',
-          name: 'Test User',
-        },
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/`,
-        body: group,
+      const assignedTo = {
+        email: 'test@sentry.io',
+        type: 'user',
+        id: '1',
+        name: 'Test User',
+      } satisfies Group['assignedTo'];
+      const issueDetailMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
+        body: GroupFixture({id: data.id, project, assignedTo}),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
@@ -107,7 +118,10 @@ describe('getIssueFieldRenderer', () => {
         url: `/organizations/${organization.slug}/members/`,
         body: [{user: assignedUser}],
       });
-      const renderer = getIssueFieldRenderer('assignee', {});
+      const renderer = getIssueFieldRenderer(
+        'assignee',
+        makeIssueMeta(data.id, {assignedTo, links: [], owners: []})
+      );
 
       render(
         renderer(data, {
@@ -117,6 +131,7 @@ describe('getIssueFieldRenderer', () => {
         }) as React.ReactElement
       );
       expect(await screen.findByText('TU')).toBeInTheDocument();
+      expect(issueDetailMock).not.toHaveBeenCalled();
     });
 
     it('updates assignee when changed', async () => {
@@ -133,20 +148,17 @@ describe('getIssueFieldRenderer', () => {
         }),
       ];
 
-      const group = GroupFixture({
-        id: data.id,
-        project,
-        assignedTo: {
-          email: 'test@sentry.io',
-          type: 'user',
-          id: '1',
-          name: 'Test User',
-        },
-      });
+      const assignedTo = {
+        email: 'test@sentry.io',
+        type: 'user',
+        id: '1',
+        name: 'Test User',
+      } satisfies Group['assignedTo'];
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/`,
-        body: group,
+      const issueDetailMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
+        body: GroupFixture({id: data.id, project, assignedTo}),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
@@ -159,9 +171,9 @@ describe('getIssueFieldRenderer', () => {
 
       const assignMock = MockApiClient.addMockResponse({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
         body: {
-          ...group,
+          ...GroupFixture({id: data.id, project, assignedTo}),
           assignedTo: {
             email: 'next@sentry.io',
             type: 'user',
@@ -171,7 +183,10 @@ describe('getIssueFieldRenderer', () => {
         },
       });
 
-      const renderer = getIssueFieldRenderer('assignee', {});
+      const renderer = getIssueFieldRenderer(
+        'assignee',
+        makeIssueMeta(data.id, {assignedTo, links: [], owners: []})
+      );
 
       render(
         renderer(data, {
@@ -188,7 +203,7 @@ describe('getIssueFieldRenderer', () => {
 
       await waitFor(() =>
         expect(assignMock).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/issues/${group.id}/`,
+          `/organizations/${organization.slug}/issues/${data.id}/`,
           expect.objectContaining({
             data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
           })
@@ -196,6 +211,7 @@ describe('getIssueFieldRenderer', () => {
       );
 
       expect(await screen.findByText('NU')).toBeInTheDocument();
+      expect(issueDetailMock).not.toHaveBeenCalled();
     });
 
     it('can render counts', async () => {
@@ -218,7 +234,14 @@ describe('getIssueFieldRenderer', () => {
   });
 
   it('can render links', () => {
-    const renderer = getIssueFieldRenderer('links', {});
+    const renderer = getIssueFieldRenderer(
+      'links',
+      makeIssueMeta(data.id, {
+        assignedTo: null,
+        links: [{url: 'sentry.io', displayName: 'ANNO-123'}],
+        owners: [],
+      })
+    );
 
     render(
       renderer(data, {
@@ -231,25 +254,24 @@ describe('getIssueFieldRenderer', () => {
   });
 
   it('can render multiple links', () => {
-    const renderer = getIssueFieldRenderer('links', {});
+    const renderer = getIssueFieldRenderer(
+      'links',
+      makeIssueMeta(data.id, {
+        assignedTo: null,
+        links: [
+          {url: 'sentry.io', displayName: 'ANNO-123'},
+          {url: 'sentry.io', displayName: 'ANNO-456'},
+        ],
+        owners: [],
+      })
+    );
 
     render(
-      renderer(
-        {
-          data,
-          ...{
-            links: [
-              {url: 'sentry.io', displayName: 'ANNO-123'},
-              {url: 'sentry.io', displayName: 'ANNO-456'},
-            ],
-          },
-        },
-        {
-          location,
-          organization,
-          theme,
-        }
-      ) as React.ReactElement
+      renderer(data, {
+        location,
+        organization,
+        theme,
+      }) as React.ReactElement
     );
     expect(screen.getByText('ANNO-123')).toBeInTheDocument();
     expect(screen.getByText('ANNO-456')).toBeInTheDocument();
