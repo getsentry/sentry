@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 from unittest import mock
 
 import pytest
@@ -142,6 +142,18 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.utils import integrationdocs
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
+
+    # Cap the snuba.py executor to 4 workers under per-worker Snuba — CrossOrgQueryAllocationPolicy
+    # rejects more than 4 concurrent queries per worker, which flakes wide bulk_snuba_queries calls.
+    if os.environ.get("XDIST_PER_WORKER_SNUBA") == "1":
+        from sentry.utils import snuba as _snuba
+
+        class _CappedExecutor(_snuba.ContextPropagatingThreadPoolExecutor):  # type: ignore[misc, valid-type]
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                kwargs["max_workers"] = min(kwargs.get("max_workers") or 10, 4)
+                super().__init__(*args, **kwargs)
+
+        _snuba.ContextPropagatingThreadPoolExecutor = _CappedExecutor
 
     configure_split_db()
 
