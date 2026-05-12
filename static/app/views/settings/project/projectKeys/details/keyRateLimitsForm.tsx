@@ -48,6 +48,14 @@ function formatRateLimit(rateLimit: ProjectKey['rateLimit']) {
   });
 }
 
+function normalizeRateLimit(rateLimit: FormValues['rateLimit']): ProjectKey['rateLimit'] {
+  if (!rateLimit || rateLimit.count === 0 || rateLimit.window === 0) {
+    return null;
+  }
+
+  return rateLimit;
+}
+
 interface KeyRateLimitsFormProps extends Pick<
   RouteComponentProps<{
     keyId: string;
@@ -70,7 +78,10 @@ export function KeyRateLimitsForm({
   project,
   updateData,
 }: KeyRateLimitsFormProps) {
-  const initialRateLimit = useMemo(() => data.rateLimit, [data.rateLimit]);
+  const initialRateLimit = useMemo(
+    () => normalizeRateLimit(data.rateLimit),
+    [data.rateLimit]
+  );
 
   const {keyId, projectId} = params;
   const endpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
@@ -82,24 +93,31 @@ export function KeyRateLimitsForm({
         method: 'PUT',
         data: {rateLimit},
       }),
-    onSuccess: (updated, submitted) => {
+    onSuccess: updated => {
       addSuccessMessage(
         tct('Changed [fieldName] from [oldValue] to [newValue]', {
           fieldName: <Text bold>{t('Rate Limit')}</Text>,
           oldValue: <Text italic>{formatRateLimit(data.rateLimit)}</Text>,
-          newValue: <Text italic>{formatRateLimit(submitted)}</Text>,
+          newValue: <Text italic>{formatRateLimit(updated.rateLimit)}</Text>,
         })
       );
       updateData(updated);
     },
   });
 
-  const defaultValues: FormValues = {rateLimit: data.rateLimit};
+  const defaultValues: FormValues = {rateLimit: initialRateLimit};
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: rateLimitSchema},
-    onSubmit: ({value}) => mutation.mutateAsync(value.rateLimit).catch(() => {}),
+    onSubmit: async ({value, formApi}) => {
+      try {
+        const updated = await mutation.mutateAsync(normalizeRateLimit(value.rateLimit));
+        formApi.reset({rateLimit: normalizeRateLimit(updated.rateLimit)});
+      } catch {
+        return;
+      }
+    },
   });
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
@@ -124,9 +142,11 @@ export function KeyRateLimitsForm({
   }
 
   function hasRateLimitChanged(currentRateLimit: FormValues['rateLimit']) {
+    const normalizedRateLimit = normalizeRateLimit(currentRateLimit);
+
     return (
-      initialRateLimit?.count !== currentRateLimit?.count ||
-      initialRateLimit?.window !== currentRateLimit?.window
+      initialRateLimit?.count !== normalizedRateLimit?.count ||
+      initialRateLimit?.window !== normalizedRateLimit?.window
     );
   }
 
