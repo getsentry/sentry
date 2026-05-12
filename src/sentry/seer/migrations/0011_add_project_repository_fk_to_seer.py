@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("seer", "0010_drop_legacy_columns"),
-        ("sentry", "1086_add_projectrepository"),
+        ("sentry", "1087_add_projectrepository"),
     ]
 
     operations = [
