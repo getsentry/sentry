@@ -6,6 +6,7 @@ from sentry.models.organizationcontributors import (
     OrganizationContributors,
 )
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository
 from sentry.seer.code_review.contributor_seats import (
     _is_autofix_enabled_for_repo,
     should_increment_contributor_seat,
@@ -66,6 +67,15 @@ class IsAutofixEnabledForRepoTest(TestCase):
         self.repo.save()
 
         assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
+
+    def test_returns_true_via_project_repository_fk(self) -> None:
+        pr = ProjectRepository.objects.create(project=self.project, repository=self.repo)
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo, project_repository=pr
+        )
+
+        with self.feature("organizations:project-repository-fk-reads"):
+            assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is True
 
 
 class ShouldIncrementContributorSeatTest(TestCase):
