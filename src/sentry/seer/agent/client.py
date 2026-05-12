@@ -332,9 +332,17 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        if features.has(
-            "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):
+        has_context_engine = (
+            features.has(
+                "organizations:seer-explorer-context-engine", self.organization, actor=self.user
+            )
+            or features.has(
+                "organizations:seat-based-seer-enabled", self.organization, actor=self.user
+            )
+            or features.has("organizations:seer-added", self.organization, actor=self.user)
+        )
+
+        if has_context_engine:
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 chat_body["is_context_engine_enabled"] = True
 
