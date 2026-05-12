@@ -128,6 +128,14 @@ describe('ReleasesList', () => {
     expect(within(items.at(2)!).getByText('Project Slug')).toBeInTheDocument();
   });
 
+  it('autofocuses the search query builder on the releases tab', async () => {
+    render(<ReleasesList />, {organization});
+
+    expect(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    ).toHaveFocus();
+  });
+
   it('displays quickstart when appropriate', async () => {
     const projectWithoutReleases = ProjectFixture({
       id: '4',
