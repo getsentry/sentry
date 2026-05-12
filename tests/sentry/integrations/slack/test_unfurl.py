@@ -1921,6 +1921,9 @@ class UnfurlTest(TestCase):
             unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert unfurls == {}
+        # Skip happens before the events-timeseries call, so neither the API
+        # nor chartcuterie should be hit for unsupported visualizations.
+        assert mock_client_get.call_count == 0
         assert mock_generate_chart.call_count == 0
 
     @patch(

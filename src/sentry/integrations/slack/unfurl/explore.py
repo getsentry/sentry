@@ -408,6 +408,13 @@ def _unfurl_explore(
             y_axes = [dataset_config["default_y_axis"]]
             params.setlist("yAxis", y_axes)
 
+        display_type = _resolve_display_type(chart_type, y_axes)
+        if display_type is None:
+            # The chart's visualization (e.g. a heatmap) isn't one the Slack
+            # timeseries renderer can show; skip before hitting the
+            # events-timeseries API rather than rendering a misleading chart.
+            continue
+
         group_bys = params.getlist("groupBy")
 
         style = ChartType.SLACK_TIMESERIES
@@ -438,13 +445,6 @@ def _unfurl_explore(
             )
         except Exception:
             _logger.warning("Failed to load events-timeseries for explore unfurl")
-            continue
-
-        display_type = _resolve_display_type(chart_type, y_axes)
-        if display_type is None:
-            # The chart's visualization (e.g. a heatmap) isn't one the Slack
-            # timeseries renderer can show; skip rather than render a
-            # misleading line chart.
             continue
 
         chart_data: dict[str, Any] = {
