@@ -543,9 +543,13 @@ def _write_preferences_to_sentry_db(
             # Create branch overrides using the created project repos.
             overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
             for seer_project_repo in created_project_repos:
-                for override in overrides_by_key.get(
-                    (seer_project_repo.project_id, seer_project_repo.repository_id), []
-                ):
+                pr = seer_project_repo.project_repository
+                key = (
+                    (pr.project_id, pr.repository_id)
+                    if pr is not None
+                    else (seer_project_repo.project_id, seer_project_repo.repository_id)
+                )
+                for override in overrides_by_key.get(key, []):
                     overrides_to_create.append(
                         SeerProjectRepositoryBranchOverride(
                             seer_project_repository=seer_project_repo,
@@ -608,7 +612,8 @@ def build_repo_definition_from_project_repo(
     """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository.
 
     Returns None if Repository name is invalid."""
-    repo = seer_project_repo.repository
+    pr = seer_project_repo.project_repository
+    repo = pr.repository if pr is not None else seer_project_repo.repository
     repo_name_sections = repo.name.split("/")
     if len(repo_name_sections) < 2:
         sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
@@ -670,7 +675,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
             SeerProjectRepository.objects.filter(
                 project=project, repository__status=ObjectStatus.ACTIVE
             )
-            .select_related("repository")
+            .select_related("repository", "project_repository", "project_repository__repository")
             .prefetch_related("branch_overrides")
         )
     repo_definitions = [
@@ -708,11 +713,13 @@ def bulk_read_preferences_from_sentry_db(
     else:
         seer_repo_qs = SeerProjectRepository.objects.filter(
             project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
-        ).select_related("repository")
-    for project_repo in seer_repo_qs.prefetch_related("branch_overrides"):
-        repo_def = build_repo_definition_from_project_repo(project_repo)
+        ).select_related("repository", "project_repository", "project_repository__repository")
+    for seer_repo in seer_repo_qs.prefetch_related("branch_overrides"):
+        repo_def = build_repo_definition_from_project_repo(seer_repo)
         if repo_def is not None:
-            repo_definitions_by_project[project_repo.project_id].append(repo_def)
+            pr = seer_repo.project_repository
+            pid = pr.project_id if pr is not None else seer_repo.project_id
+            repo_definitions_by_project[pid].append(repo_def)
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
     # which automatically falls back to the registered well-known key default.

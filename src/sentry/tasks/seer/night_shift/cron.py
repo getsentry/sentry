@@ -123,7 +123,9 @@ def schedule_night_shift(
         ),
         step=1000,
     ):
-        seer_org_ids.add(spr.project.organization_id)
+        pr = spr.project_repository
+        project = pr.project if pr is not None else spr.project
+        seer_org_ids.add(project.organization_id)
 
     logger.info(
         "night_shift.schedule_org_ids_collected",
