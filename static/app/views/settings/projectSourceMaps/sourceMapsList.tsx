@@ -202,19 +202,34 @@ export function SourceMapsList({project}: Props) {
   const platformByProject = defined(project.platform)
     ? projectPlatformToDocsMap[project.platform]
     : undefined;
-  const platform = platformByProject ?? project.platform ?? 'javascript';
-  const sourceMapsLinks = getSourceMapsDocLinks(platform);
+  let docsLink: string | undefined;
+
+  if (defined(project.platform)) {
+    if (platformByProject) {
+      docsLink = getSourceMapsDocLinks(platformByProject).sourcemaps;
+    } else if (project.platform === 'javascript' || project.platform === 'node') {
+      docsLink = getSourceMapsDocLinks(project.platform).sourcemaps;
+    }
+  } else {
+    docsLink = getSourceMapsDocLinks('javascript').sourcemaps;
+  }
 
   return (
     <Fragment>
       <SettingsPageHeader
         title={t('Source Map Uploads')}
-        subtitle={tct(
-          'These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].',
-          {
-            link: <ExternalLink href={sourceMapsLinks.sourcemaps} />,
-          }
-        )}
+        subtitle={
+          docsLink
+            ? tct(
+                'These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].',
+                {
+                  link: <ExternalLink href={docsLink} />,
+                }
+              )
+            : t(
+                'These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging.'
+              )
+        }
       />
       <SearchBarWithMarginBottom
         placeholder={t('Filter by Debug ID or Upload ID')}
@@ -230,7 +245,7 @@ export function SourceMapsList({project}: Props) {
         onDelete={id => {
           deleteSourceMaps({bundleId: id, projectSlug: project.slug});
         }}
-        docsLink={sourceMapsLinks.sourcemaps}
+        docsLink={docsLink}
         pageLinks={pageLinks}
       />
     </Fragment>
@@ -274,9 +289,9 @@ function ReactNativeCallOut() {
 }
 
 interface SourceMapsEmptyStateProps {
-  docsLink: string;
   onClearSearch: () => void;
   project: Project;
+  docsLink?: string;
   query?: string;
 }
 
@@ -309,23 +324,27 @@ function SourceMapsEmptyState({
                 ),
               }
             )
-          : tct(
-              'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
-              {
-                docs: <ExternalLink href={docsLink} />,
-              }
-            )}
+          : docsLink
+            ? tct(
+                'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
+                {
+                  docs: <ExternalLink href={docsLink} />,
+                }
+              )
+            : t(
+                'Source maps allow Sentry to map your production code to your source code.'
+              )}
       </EmptyMessage>
     </Panel>
   );
 }
 
 interface SourceMapUploadsListProps {
-  docsLink: string;
   isLoading: boolean;
   onClearSearch: () => void;
   onDelete: (id: string) => void;
   project: Project;
+  docsLink?: string;
   pageLinks?: string;
   query?: string;
   sourceMapUploads?: SourceMapUpload[];

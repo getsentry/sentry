@@ -148,6 +148,7 @@ describe('ProjectSourceMaps', () => {
 
     it('renders empty state', async () => {
       const {organization, project, routerProps} = initializeOrg({
+        projects: [{platform: 'javascript-react'}],
         router: {
           location: {
             query: {},
@@ -175,6 +176,49 @@ describe('ProjectSourceMaps', () => {
       });
 
       expect(await screen.findByText('No source maps uploaded')).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'read the docs'})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
+      );
+      expect(screen.getByRole('link', {name: 'docs'})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
+      );
+    });
+
+    it('does not link non-JS projects to JavaScript guide source maps docs', async () => {
+      const {organization, project, routerProps} = initializeOrg({
+        projects: [{platform: 'python-fastapi'}],
+        router: {
+          location: {
+            query: {},
+            pathname: '/settings/org-slug/projects/project-slug/source-maps/',
+          },
+        },
+      });
+
+      renderReleaseBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+
+      renderDebugIdBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+
+      render(<SourceMapsList project={project} {...routerProps} />, {
+        organization,
+      });
+
+      expect(await screen.findByText('No source maps uploaded')).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'read the docs'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'docs'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/configuring your application to upload source maps/i)
+      ).not.toBeInTheDocument();
     });
   });
 });
