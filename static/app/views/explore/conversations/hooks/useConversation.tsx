@@ -1,6 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -186,15 +187,22 @@ export function useConversation(
   const hasConversationTimestamps =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
+  const hasExplicitDatetime = selection.datetime.start !== null;
+
   const datetimeParams = hasConversationTimestamps
     ? {
         start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
         end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
       }
-    : normalizeDateTimeParams(selection.datetime);
+    : hasExplicitDatetime
+      ? normalizeDateTimeParams(selection.datetime)
+      : {statsPeriod: '30d'};
+
+  const project =
+    selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];
 
   const queryParams = {
-    project: selection.projects,
+    project,
     per_page: 1000,
     ...datetimeParams,
   };
