@@ -45,25 +45,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.page = TransactionSummaryPage(self.browser)
 
     @patch("django.utils.timezone.now")
-    def test_view_details_from_summary(self, mock_now: MagicMock) -> None:
-        mock_now.return_value = before_now()
-
-        event = make_event(
-            load_data(
-                "transaction", timestamp=before_now(minutes=3), trace="a" * 32, span_id="ab" * 8
-            )
-        )
-        self.store_event(data=event, project_id=self.project.id)
-
-        with self.feature(FEATURES):
-            self.browser.get(self.path)
-            self.page.wait_until_loaded()
-
-            # View the first event details.
-            self.browser.element('[data-test-id="view-id"]').click()
-            self.page.wait_until_loaded()
-
-    @patch("django.utils.timezone.now")
     def test_transaction_threshold_modal(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 

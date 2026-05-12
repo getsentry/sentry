@@ -68,7 +68,7 @@ import {
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -473,18 +473,11 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
 
   const filters = new MutableSearch('');
 
-  const isEap = organization.features.includes('performance-transaction-summary-eap');
   if (data[SpanFields.SPAN_OP]) {
-    filters.addFilterValue(
-      isEap ? SpanFields.SPAN_OP : SpanFields.TRANSACTION_OP,
-      data[SpanFields.SPAN_OP]
-    );
+    filters.addFilterValue(SpanFields.SPAN_OP, data[SpanFields.SPAN_OP]);
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    filters.addFilterValue(
-      isEap ? 'request.method' : 'http.method',
-      data[SpanFields.REQUEST_METHOD]
-    );
+    filters.addFilterValue('request.method', data[SpanFields.REQUEST_METHOD]);
   }
 
   const target = transactionSummaryRouteWithQuery({

@@ -61,7 +61,6 @@ function renderSnapshotMainContent(
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
-    content_hash: 'synthetic-content-hash',
     display_name: 'Button / light',
     height: 180,
     image_file_name: 'button.light.png',
@@ -72,14 +71,12 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
 }
 
 const baseImage = image({
-  content_hash: 'base-content-hash',
   display_name: 'Button / light base',
   image_file_name: 'button.light.base.png',
   key: 'base-button-light',
 });
 
 const headImage = image({
-  content_hash: 'head-content-hash',
   group: 'components',
   key: 'head-button-light',
 });
@@ -93,7 +90,6 @@ const changedPair: SnapshotDiffPair = {
 
 const renamedPair: SnapshotDiffPair = {
   base_image: image({
-    content_hash: 'base-renamed-content-hash',
     display_name: 'Button / light old',
     image_file_name: 'button.light.old.png',
     key: 'base-button-light-old',
@@ -101,7 +97,6 @@ const renamedPair: SnapshotDiffPair = {
   diff: null,
   diff_image_key: null,
   head_image: image({
-    content_hash: 'head-renamed-content-hash',
     group: 'components',
     image_file_name: 'button.light.png',
     key: 'head-button-light',
@@ -196,6 +191,20 @@ describe('SnapshotMainContent', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Copy metadata as JSON'}));
 
     const copiedJson = mockCopy.mock.calls.at(-1)?.[0];
-    expect(JSON.parse(copiedJson)).toEqual(renamedPair);
+    expect(JSON.parse(copiedJson)).toEqual({
+      base_image: {
+        display_name: 'Button / light old',
+        height: 180,
+        image_file_name: 'button.light.old.png',
+        width: 320,
+      },
+      head_image: {
+        display_name: 'Button / light',
+        group: 'components',
+        height: 180,
+        image_file_name: 'button.light.png',
+        width: 320,
+      },
+    });
   });
 });

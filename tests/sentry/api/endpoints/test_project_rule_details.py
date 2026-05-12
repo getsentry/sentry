@@ -16,7 +16,6 @@ from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
@@ -27,7 +26,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import Action, AlertRuleWorkflow
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -540,7 +539,9 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )
         assert response.data["lastTriggered"] is None
-        RuleFireHistory.objects.create(project=self.project, rule=self.rule, group=self.group)
+        WorkflowFireHistory.objects.create(
+            workflow=self.dual_written_workflow, group=self.group, event_id="test-event-id"
+        )
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )

@@ -1,4 +1,5 @@
-from typing import Any, NotRequired, TypedDict
+import math
+from typing import Any, NamedTuple, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -20,8 +21,17 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
-MAX_BUCKETS = 10_000
+MAX_BUCKETS = 1_000
 HEATMAP_DATASETS = {TraceMetrics}
+
+
+class LimitTuple(NamedTuple):
+    min_value: float
+    max_value: float
+
+    @property
+    def range(self) -> float:
+        return self.max_value - self.min_value
 
 
 class AxisMeta(TypedDict):
@@ -30,6 +40,7 @@ class AxisMeta(TypedDict):
     end: float | None
     bucketCount: NotRequired[int]
     bucketSize: NotRequired[float | int]
+    logarithmic: NotRequired[bool]
 
 
 class HeatMapMeta(TypedDict):
@@ -104,18 +115,39 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             if yAxis != "value":
                 raise ParseError("yAxis can currently only be `value`")
 
+            yLogScale = request.GET.get("yLogScale")
+            if yLogScale is not None and yLogScale.isnumeric():
+                y_log_scale = int(yLogScale)
+                if y_log_scale == 1:
+                    raise ParseError("logScale cannot be 1")
+            else:
+                y_log_scale = False
+
             zAxis = request.GET.get("zAxis", "count()")
             if zAxis != "count()":
                 raise ParseError("zAxis can currently only be `count()`")
             z_function, _, _ = parse_function(zAxis)
 
-            xBuckets = request.GET.get("xBuckets")
-            if xBuckets is None or not xBuckets.isnumeric():
-                raise ParseError("xBuckets must be a number")
+            # if xAxis is time, use interval as x_buckets instead
+            if xAxis == "time":
+                rollup = self.get_rollup(request, snuba_params, 0, True)
+                snuba_params.granularity_secs = rollup
+                x_buckets = int(
+                    snuba_params.date_range.total_seconds() // snuba_params.granularity_secs
+                )
             else:
-                x_buckets = int(xBuckets)
-                if x_buckets <= 0:
-                    raise ParseError("xBuckets must be greater than 0")
+                # Currently unused since time is the only allowed xAxis
+                xBuckets = request.GET.get("xBuckets")
+                if xBuckets is None or not xBuckets.isnumeric():
+                    raise ParseError("xBuckets must be a number")
+                else:
+                    x_buckets = int(xBuckets)
+                    if x_buckets <= 0:
+                        raise ParseError("xBuckets must be greater than 0")
+
+                snuba_params.granularity_secs = int(
+                    (snuba_params.date_range.total_seconds()) // x_buckets
+                )
 
             yBuckets = request.GET.get("yBuckets")
             if yBuckets is None or not yBuckets.isnumeric():
@@ -124,25 +156,35 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 y_buckets = int(yBuckets)
                 if y_buckets <= 0:
                     raise ParseError("yBuckets must be greater than 0")
+                elif y_buckets > MAX_BUCKETS:
+                    raise ParseError(f"yBuckets must be less than {MAX_BUCKETS}")
 
-            # Leaving it as this even though we can query more buckets, just want to do some testing first
-            if x_buckets * y_buckets > MAX_BUCKETS:
-                raise ParseError(f"xBuckets * yBuckets must be less than {MAX_BUCKETS}")
-
-            snuba_params.granularity_secs = int(
-                (snuba_params.date_range.total_seconds()) // x_buckets
-            )
             query = request.GET.get("query", "")
 
         with handle_query_errors():
             bucket_ranges = self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
-            if bucket_ranges[0] != bucket_ranges[1]:
-                # (Max - min)/y_buckets = size of each bucket
-                bucket_size = (bucket_ranges[1] - bucket_ranges[0]) / y_buckets
+            use_log_scale: bool = bool(y_log_scale and bucket_ranges.range > 1)
+            if bucket_ranges.min_value != bucket_ranges.max_value:
                 yAxes = {}
+                # Log gets weird when the range is 1 or less
+                if use_log_scale:
+                    # log(max - min) / y_buckets = size of each bucket
+                    bucket_size = math.log(bucket_ranges.range, y_log_scale) / y_buckets
+                else:
+                    # (Max - min)/y_buckets = size of each bucket
+                    bucket_size = bucket_ranges.range / y_buckets
                 for current_bucket in range(y_buckets):
-                    lower_bound = bucket_ranges[0] + current_bucket * bucket_size
-                    upper_bound = bucket_ranges[0] + (current_bucket + 1) * bucket_size
+                    if use_log_scale:
+                        lower_bound = bucket_ranges.min_value + y_log_scale ** (
+                            current_bucket * bucket_size
+                        )
+                        upper_bound = bucket_ranges.min_value + y_log_scale ** (
+                            (current_bucket + 1) * bucket_size
+                        )
+                    else:
+                        lower_bound = bucket_ranges.min_value + current_bucket * bucket_size
+                        upper_bound = bucket_ranges.min_value + (current_bucket + 1) * bucket_size
+
                     if current_bucket == y_buckets - 1:
                         yAxes[lower_bound] = f"{z_function}_if(`{yAxis}:>={lower_bound}`, {yAxis})"
                     else:
@@ -152,8 +194,9 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             else:
                 # if max == min, then just have 1 bucket
                 bucket_size = 0
+                y_buckets = 1
                 yAxes = {
-                    bucket_ranges[0]: f"{z_function}_if(`{yAxis}:{bucket_ranges[0]}`, {yAxis})"
+                    bucket_ranges.min_value: f"{z_function}_if(`{yAxis}:{bucket_ranges.min_value}`, {yAxis})"
                 }
 
             result = dataset.run_timeseries_query(
@@ -169,7 +212,9 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             for row in result.data["data"]:
                 for y, axis in yAxes.items():
                     # just like with timeseries, multiply times by 1000 so they're in ms
-                    heatmap.append(HeatMap(xAxis=row["time"] * 1000, yAxis=y, zAxis=row[axis]))
+                    heatmap.append(
+                        HeatMap(xAxis=row["time"] * 1000, yAxis=y, zAxis=row.get(axis, 0))
+                    )
 
             # Calculate the min&max z Value
             if len(heatmap) > 0:
@@ -195,10 +240,11 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                         ),
                         yAxis=AxisMeta(
                             name=yAxis,
-                            start=bucket_ranges[0],
-                            end=bucket_ranges[1],
+                            start=bucket_ranges.min_value,
+                            end=bucket_ranges.max_value,
                             bucketCount=y_buckets,
                             bucketSize=bucket_size,
+                            logarithmic=use_log_scale,
                         ),
                         zAxis=AxisMeta(
                             name=zAxis,
@@ -213,7 +259,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
 
     def query_y_bucket_ranges(
         self, snuba_params: SnubaParams, dataset: Any, query: str, yAxis: str
-    ) -> tuple[float, float]:
+    ) -> LimitTuple:
         """Determine across all the x buckets what ranges we see the y value go to so we can use that to make the full
         heatmap"""
         min_y = f"min({yAxis})"
@@ -230,7 +276,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=snuba_params.sampling_mode,
         )
         if len(result.data["data"]) == 0:
-            return 0, 0
+            return LimitTuple(0, 0)
         min_value, max_value = None, None
         for row in result.data["data"]:
             if min_value is None:
@@ -247,4 +293,4 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         if max_value is None:
             max_value = 0
 
-        return min_value, max_value
+        return LimitTuple(min_value, max_value)

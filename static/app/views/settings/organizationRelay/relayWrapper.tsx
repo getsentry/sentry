@@ -6,9 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -37,6 +37,8 @@ const relaySchema = z.object({
 });
 
 export function RelayWrapper() {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const api = useApi();
   const [relays, setRelays] = useState(organization.trustedRelays);
@@ -176,6 +178,8 @@ function RelayUsageList({
   relays: Relay[];
   registerKeyAction?: React.ReactNode;
 }) {
+  const {openModal} = useModal();
+
   const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/relay_usage/', {

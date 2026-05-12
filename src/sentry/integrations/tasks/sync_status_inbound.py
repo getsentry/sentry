@@ -21,7 +21,7 @@ from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -193,10 +193,10 @@ def group_was_recently_resolved(group: Group) -> bool:
     name="sentry.integrations.tasks.sync_status_inbound",
     namespace=integrations_tasks,
     processing_deadline_duration=150,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=5, delay=60 * 5, on=(Exception,), ignore=(Integration.DoesNotExist,)),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(Integration.DoesNotExist,),
 )
-@retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
 def sync_status_inbound(
     integration_id: int, organization_id: int, issue_key: str, data: Mapping[str, Any]

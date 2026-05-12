@@ -19,6 +19,7 @@ from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
     priority_label,
 )
+from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.tasks.seer.night_shift.triage_tools import (
     get_event_details_agentic_triage,
     get_issue_details_agentic_triage,
@@ -190,6 +191,10 @@ def _triage_candidates(
                 ),
             },
         )
+
+    for v in triage_response.verdicts:
+        if v.group_id in groups_by_id and v.action == TriageAction.SKIP:
+            mark_skipped(v.group_id)
 
     return [
         TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)

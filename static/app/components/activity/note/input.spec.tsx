@@ -1,22 +1,27 @@
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NoteInput} from 'sentry/components/activity/note/input';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 describe('NoteInput', () => {
+  let membersRequest: jest.Mock;
+
   beforeEach(() => {
     TeamStore.reset();
-    MemberListStore.reset();
+    membersRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: UserFixture()}],
+    });
   });
 
   describe('New item', () => {
-    it('renders', () => {
+    it('renders', async () => {
       render(<NoteInput />);
       expect(screen.getByRole('textbox')).toBeInTheDocument();
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
     });
 
     it('submits when meta + enter is pressed', async () => {
@@ -52,10 +57,11 @@ describe('NoteInput', () => {
       expect(screen.getByText('Note is bad')).toBeInTheDocument();
     });
 
-    it('has a disabled submit button when no text is entered', () => {
+    it('has a disabled submit button when no text is entered', async () => {
       render(<NoteInput />);
 
       expect(screen.getByRole('button', {name: 'Post Comment'})).toBeDisabled();
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
     });
 
     it('enables the submit button when text is entered', async () => {
@@ -80,7 +86,6 @@ describe('NoteInput', () => {
     });
 
     it('can mention a member', async () => {
-      MemberListStore.loadInitialData([UserFixture()], false, null);
       const onCreate = jest.fn();
       render(<NoteInput onCreate={onCreate} />);
       await userEvent.type(screen.getByRole('textbox'), '@foo');

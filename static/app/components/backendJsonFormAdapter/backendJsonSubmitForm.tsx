@@ -1,5 +1,5 @@
 import {useMemo, useRef, useState, type ReactNode, useEffect} from 'react';
-import {queryOptions} from '@tanstack/react-query';
+import {queryOptions, type UseQueryOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -26,6 +26,19 @@ import {getDefaultForField, getDisabledProp, transformChoices} from './utils';
  */
 const API_CLIENT = new Client({baseUrl: '', headers: {}});
 
+type AsyncSelectQueryOptions = UseQueryOptions<
+  Array<SelectValue<string>>,
+  Error,
+  Array<SelectValue<string>>,
+  // The queryKey shape is dynamic across consumers (URL-based default vs.
+  // customAsyncQueryOptions). TanStack's TQueryKey is contravariant inside
+  // `enabled`, so anything narrower than `any` here breaks variance with
+  // factories that build literal-tuple query keys.
+  any
+>;
+
+type AsyncSelectQueryOptionsFactory = (debouncedInput: string) => AsyncSelectQueryOptions;
+
 interface BackendJsonSubmitFormProps {
   /**
    * Field configs from the backend API response.
@@ -36,6 +49,14 @@ interface BackendJsonSubmitFormProps {
    * resolves on success or rejects/throws on error.
    */
   onSubmit: (values: Record<string, unknown>) => Promise<unknown> | void;
+  /**
+   * Override the built-in async query options for specific fields. Map from
+   * field name to a factory that returns query options for a given search input.
+   * When provided for a field, this is used instead of the default URL-based
+   * async loading. Useful when the async endpoint requires a different query
+   * shape than the built-in `buildAsyncSelectQuery`.
+   */
+  customAsyncQueryOptions?: Record<string, AsyncSelectQueryOptionsFactory>;
   /**
    * Current values of dynamic fields, passed as query params to async select endpoints.
    */
@@ -65,12 +86,16 @@ interface BackendJsonSubmitFormProps {
    */
   onAsyncOptionsFetched?: (
     fieldName: string,
-    options: Array<SelectValue<string | number>>
+    options: Array<SelectValue<string>>
   ) => void;
   /**
    * Called when a field with `updatesForm: true` changes value.
    */
   onFieldChange?: (fieldName: string, value: unknown) => void;
+  /**
+   * Called whenever any field value changes.
+   */
+  onValueChange?: (fieldName: string, value: unknown) => void;
   /**
    * Whether the submit button should be disabled (e.g., form has errors).
    */
@@ -158,6 +183,8 @@ export function BackendJsonSubmitForm({
   dynamicFieldValues,
   onAsyncOptionsFetched,
   onFieldChange,
+  onValueChange,
+  customAsyncQueryOptions,
   footer,
 }: BackendJsonSubmitFormProps) {
   // Ref to avoid including the callback in queryKey (would cause refetches)
@@ -221,6 +248,7 @@ export function BackendJsonSubmitForm({
                 {fieldApi => {
                   const handleChange = (value: unknown) => {
                     fieldApi.handleChange(value);
+                    onValueChange?.(field.name, value);
                     if (field.updatesForm && onFieldChange) {
                       onFieldChange(field.name, value);
                     }
@@ -249,7 +277,8 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.TextArea
-                            autosize
+                            autosize={field.autosize ?? true}
+                            maxRows={field.maxRows}
                             value={(fieldApi.state.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
@@ -274,11 +303,12 @@ export function BackendJsonSubmitForm({
                       );
                     case 'select':
                     case 'choice': {
-                      if (field.url) {
+                      if (field.url || customAsyncQueryOptions?.[field.name]) {
                         // Async select: fetch options from URL as user types.
                         // Show static choices as initial options before any search.
                         const staticOptions = transformChoices(field.choices);
-                        const asyncQueryOptions = (debouncedInput: string) =>
+                        const customQueryOptions = customAsyncQueryOptions?.[field.name];
+                        const defaultAsyncQueryOptions = ((debouncedInput: string) =>
                           queryOptions({
                             queryKey: [
                               'backend-json-async-select',
@@ -288,9 +318,7 @@ export function BackendJsonSubmitForm({
                               dynamicFieldValues,
                               JSON.stringify(onAsyncOptionsFetchedRef),
                             ],
-                            queryFn: async (): Promise<
-                              Array<SelectValue<string | number>>
-                            > => {
+                            queryFn: async (): Promise<Array<SelectValue<string>>> => {
                               if (!debouncedInput) {
                                 return staticOptions;
                               }
@@ -311,7 +339,9 @@ export function BackendJsonSubmitForm({
                               }
                               return results;
                             },
-                          });
+                          })) satisfies AsyncSelectQueryOptionsFactory;
+                        const asyncQueryOptions =
+                          customQueryOptions ?? defaultAsyncQueryOptions;
                         if (field.multiple) {
                           return (
                             <fieldApi.Layout.Stack
@@ -341,22 +371,16 @@ export function BackendJsonSubmitForm({
                           >
                             {field.required ? (
                               <fieldApi.SelectAsync
-                                value={
-                                  (fieldApi.state.value ?? null) as string | number | null
-                                }
-                                onChange={(value: string | number) => handleChange(value)}
+                                value={(fieldApi.state.value ?? null) as string | null}
+                                onChange={(value: string) => handleChange(value)}
                                 disabled={getDisabledProp(field)}
                                 queryOptions={asyncQueryOptions}
                               />
                             ) : (
                               <fieldApi.SelectAsync
                                 clearable
-                                value={
-                                  (fieldApi.state.value ?? null) as string | number | null
-                                }
-                                onChange={(value: string | number | null) =>
-                                  handleChange(value)
-                                }
+                                value={(fieldApi.state.value ?? null) as string | null}
+                                onChange={(value: string | null) => handleChange(value)}
                                 disabled={getDisabledProp(field)}
                                 queryOptions={asyncQueryOptions}
                               />

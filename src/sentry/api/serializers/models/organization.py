@@ -137,7 +137,6 @@ class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
 
 
-@extend_schema_serializer(exclude_fields=["requireEmailVerification"])
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
     id: str
     slug: str
@@ -146,7 +145,6 @@ class OrganizationSummarySerializerResponse(OrganizationSummarySerializerRespons
     dateCreated: datetime
     isEarlyAdopter: bool
     require2FA: bool
-    requireEmailVerification: bool
     avatar: SerializedAvatarFields
     links: _Links
     hasAuthProvider: bool
@@ -196,7 +194,11 @@ class BaseOrganizationSerializer(serializers.Serializer):
 
         return value
 
-    def validate_slug(self, value: str) -> str:
+    def _validate_slug_shape(self, value: str) -> str:
+        """
+        Validate slug values without any DB queries.
+        This method is re-used across cell + control silos.
+        """
         # Historically, the only check just made sure there was more than 1
         # character for the slug, but since then, there are many slugs that
         # fit within this new imposed limit. We're not fixing existing, but
@@ -211,17 +213,20 @@ class BaseOrganizationSerializer(serializers.Serializer):
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
-        qs = Organization.objects.filter(slug=value)
-        if "organization" in self.context:
-            qs = qs.exclude(id=self.context["organization"].id)
-        if qs.exists():
-            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
-
         contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
         if contains_whitespace:
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
+        return value
+
+    def validate_slug(self, value: str) -> str:
+        value = self._validate_slug_shape(value)
+        qs = Organization.objects.filter(slug=value)
+        if "organization" in self.context:
+            qs = qs.exclude(id=self.context["organization"].id)
+        if qs.exists():
+            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
         return value
 
 
@@ -482,8 +487,6 @@ class OrganizationSummarySerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            # requireEmailVerification has been deprecated
-            "requireEmailVerification": False,
             "avatar": avatar,
             "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
@@ -712,8 +715,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             ),
             "openMembership": bool(obj.flags.allow_joinleave),
             "require2FA": bool(obj.flags.require_2fa),
-            # The requireEmailVerification feature has been removed, this field is deprecated.
-            "requireEmailVerification": False,
             "allowSharedIssues": not obj.flags.disable_shared_issues,
             "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
             "dataScrubber": bool(
@@ -871,7 +872,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
 @extend_schema_serializer(
     exclude_fields=[
         "availableRoles",
-        "requireEmailVerification",
         "genAIConsent",
         "quota",
         "rollbackEnabled",

@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {type UseQueryOptions} from '@tanstack/react-query';
+import {keepPreviousData, type UseQueryOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 interface Action {
@@ -34,7 +34,7 @@ export type CMDKQueryOptions<TData = unknown> = BaseCMDKQueryOptions<TData> & {
 export function cmdkQueryOptions<TData = unknown>(
   options: BaseCMDKQueryOptions<TData>
 ): CMDKQueryOptions<TData> {
-  return {...options, meta: {cmdk: true}};
+  return {placeholderData: keepPreviousData, ...options, meta: {cmdk: true}};
 }
 
 interface CommandPaletteActionLink extends Action {

@@ -14,6 +14,7 @@ export function convertTableDataToTabularData(tableData?: TableData): TabularDat
   return {
     data: tableData?.data ?? [],
     meta: {
+      ...tableData?.meta,
       units: tableData?.meta?.units as Record<string, TabularValueUnit>,
       fields: tableData?.meta?.fields,
     },

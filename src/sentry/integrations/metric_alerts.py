@@ -202,8 +202,6 @@ def incident_attachment_info(
     referrer: str = "metric_alert",
     notification_uuid: str | None = None,
 ) -> AttachmentInfo:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     status = get_status_text(metric_issue_context.new_status)
 
     text = ""
@@ -228,38 +226,30 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    from sentry.incidents.grouptype import MetricIssue
-
-    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
-    if should_fire_workflow_actions(organization, MetricIssue.type_id):
-        try:
-            alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
-                detector_id=alert_context.action_identifier_id
-            )
-            if alert_rule_id is None:
-                raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
-        except AlertRuleDetector.DoesNotExist:
-            # the corresponding metric detector was not dual written
-            alert_rule_id = get_fake_id_from_object_id(alert_context.action_identifier_id)
-
-        workflow_engine_params = title_link_params.copy()
-
-        try:
-            open_period_incident = IncidentGroupOpenPeriod.objects.get(
-                group_open_period_id=metric_issue_context.open_period_identifier
-            )
-            workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
-        except IncidentGroupOpenPeriod.DoesNotExist:
-            # the corresponding metric detector was not dual written
-            workflow_engine_params["alert"] = str(
-                get_fake_id_from_object_id(metric_issue_context.open_period_identifier)
-            )
-
-        title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
-    else:
-        title_link = build_title_link(
-            alert_context.action_identifier_id, organization, title_link_params
+    try:
+        alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
+            detector_id=alert_context.action_identifier_id
         )
+        if alert_rule_id is None:
+            raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
+    except AlertRuleDetector.DoesNotExist:
+        # the corresponding metric detector was not dual written
+        alert_rule_id = get_fake_id_from_object_id(alert_context.action_identifier_id)
+
+    workflow_engine_params = title_link_params.copy()
+
+    try:
+        open_period_incident = IncidentGroupOpenPeriod.objects.get(
+            group_open_period_id=metric_issue_context.open_period_identifier
+        )
+        workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
+    except IncidentGroupOpenPeriod.DoesNotExist:
+        # the corresponding metric detector was not dual written
+        workflow_engine_params["alert"] = str(
+            get_fake_id_from_object_id(metric_issue_context.open_period_identifier)
+        )
+
+    title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 
     return AttachmentInfo(
         title=title,

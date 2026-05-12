@@ -101,7 +101,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   );
   const {starredViews: views} = useStarredIssueViews();
 
-  const detailedProject = useDetailedProject({
+  const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -111,9 +111,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'cursor'
-  );
-  const hasCursorFeatureFlagEnabled = Boolean(
-    organization.features.includes('integrations-cursor')
   );
   const isCursorHandoffConfigured = Boolean(preference?.automation_handoff);
 
@@ -128,11 +125,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const needsRepoSelection =
     repos.length === 0 && !preference?.repositories?.length && !codeMappingRepos?.length;
   const needsAutomation =
-    detailedProject?.data &&
-    (detailedProject?.data?.autofixAutomationTuning === 'off' ||
-      detailedProject?.data?.autofixAutomationTuning === undefined ||
-      detailedProject?.data?.seerScannerAutomation === false ||
-      detailedProject?.data?.seerScannerAutomation === undefined);
+    projectDetails !== undefined &&
+    (projectDetails.autofixAutomationTuning === 'off' ||
+      projectDetails.autofixAutomationTuning === undefined ||
+      projectDetails.seerScannerAutomation === false);
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
     isStarredViewAllowed;
@@ -152,9 +148,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   );
 
   const needsCursorIntegration =
-    hasCursorFeatureFlagEnabled &&
-    (!isCursorHandoffConfigured || !cursorIntegration) &&
-    !cursorStepSkipped;
+    (!isCursorHandoffConfigured || !cursorIntegration) && !cursorStepSkipped;
 
   // Calculate incomplete steps
   const stepConditions = [
@@ -166,13 +160,13 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   ];
 
   const handleSetupCursorHandoff = async () => {
-    if (!cursorIntegration?.id) {
+    if (!cursorIntegration?.id || !projectDetails) {
       return;
     }
 
     const isAutomationDisabled =
-      project.seerScannerAutomation === false ||
-      project.autofixAutomationTuning === 'off';
+      projectDetails.seerScannerAutomation === false ||
+      projectDetails.autofixAutomationTuning === 'off';
 
     if (isAutomationDisabled) {
       await updateProjectAutomation({
@@ -202,11 +196,15 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const firstIncompleteIdx = incompleteStepIndices[0];
   const lastIncompleteIdx = incompleteStepIndices[incompleteStepIndices.length - 1];
   const anyStepIncomplete = incompleteStepIndices.length > 0;
+  const showOnboardingSteps =
+    !isLoadingPreferences && !isLoadingProject && anyStepIncomplete;
+  const showCollapsedSummary = showOnboardingSteps && stepsCollapsed;
+  const showFullGuidedSteps = showOnboardingSteps && !stepsCollapsed;
 
   return (
     <Stack align="stretch">
       {/* Collapsed summary */}
-      {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
+      {showCollapsedSummary && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
           <IconSeer animation="waiting" size="lg" style={{marginRight: 8}} />
           <span>
@@ -220,7 +218,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </CollapsedSummaryCard>
       )}
       {/* Full guided steps */}
-      {!isLoadingPreferences && anyStepIncomplete && !stepsCollapsed && (
+      {showFullGuidedSteps && (
         <AnimatePresence>
           <motion.div
             initial={{opacity: 0, y: 10, height: 0}}
@@ -422,105 +420,103 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               )}
 
               {/* Step 5: Cursor Integration */}
-              {hasCursorFeatureFlagEnabled && (
-                <GuidedSteps.Step
-                  key="cursor-integration"
-                  stepKey="cursor-integration"
-                  title={
-                    <Flex align="baseline" gap="sm" display="inline-flex">
-                      <CursorPluginIcon>
-                        <PluginIcon pluginId="cursor" />
-                      </CursorPluginIcon>
-                      {t('Hand Off to Cursor Cloud Agents')}
-                    </Flex>
-                  }
-                  isCompleted={!needsCursorIntegration}
+              <GuidedSteps.Step
+                key="cursor-integration"
+                stepKey="cursor-integration"
+                title={
+                  <Flex align="baseline" gap="sm" display="inline-flex">
+                    <CursorPluginIcon>
+                      <PluginIcon pluginId="cursor" />
+                    </CursorPluginIcon>
+                    {t('Hand Off to Cursor Cloud Agents')}
+                  </Flex>
+                }
+                isCompleted={!needsCursorIntegration}
+              >
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
+                      {cursorIntegration ? (
+                        <Fragment>
+                          <span>
+                            {t(
+                              'Enable Seer automation and set up handoff to Cursor Cloud Agents when Seer identifies a root cause.'
+                            )}
+                          </span>
+                          <span>
+                            {tct(
+                              'During automation, Seer will trigger Cursor Cloud Agents to generate and submit pull requests directly to your repos. Configure in [seerProjectSettings:Seer project settings] or [docsLink:read the docs] to learn more.',
+                              {
+                                seerProjectSettings: (
+                                  <Link
+                                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                                  />
+                                ),
+                                docsLink: (
+                                  <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
+                                ),
+                              }
+                            )}
+                          </span>
+                        </Fragment>
+                      ) : (
+                        <Fragment>
+                          <span>
+                            {t(
+                              'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Cloud Agents for seamless code fixes.'
+                            )}
+                          </span>
+                          <span>
+                            {tct(
+                              'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
+                              {
+                                integrationLink: (
+                                  <Link
+                                    to={`/settings/${organization.slug}/integrations/cursor/`}
+                                  />
+                                ),
+                                docsLink: (
+                                  <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
+                                ),
+                              }
+                            )}
+                          </span>
+                        </Fragment>
+                      )}
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
+                    <CursorCardIllustration
+                      src={alertsEmptyStateImg}
+                      alt="Cursor Integration"
+                    />
+                  </StepImageCol>
+                </StepContentRow>
+                <CustomStepButtons
+                  showBack={firstIncompleteIdx !== 4}
+                  showNext={false}
+                  showSkip={lastIncompleteIdx === 4}
+                  onSkip={handleSkipCursorStep}
                 >
-                  <StepContentRow>
-                    <StepTextCol>
-                      <CardDescription>
-                        {cursorIntegration ? (
-                          <Fragment>
-                            <span>
-                              {t(
-                                'Enable Seer automation and set up handoff to Cursor Cloud Agents when Seer identifies a root cause.'
-                              )}
-                            </span>
-                            <span>
-                              {tct(
-                                'During automation, Seer will trigger Cursor Cloud Agents to generate and submit pull requests directly to your repos. Configure in [seerProjectSettings:Seer project settings] or [docsLink:read the docs] to learn more.',
-                                {
-                                  seerProjectSettings: (
-                                    <Link
-                                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                                    />
-                                  ),
-                                  docsLink: (
-                                    <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
-                                  ),
-                                }
-                              )}
-                            </span>
-                          </Fragment>
-                        ) : (
-                          <Fragment>
-                            <span>
-                              {t(
-                                'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Cloud Agents for seamless code fixes.'
-                              )}
-                            </span>
-                            <span>
-                              {tct(
-                                'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
-                                {
-                                  integrationLink: (
-                                    <Link
-                                      to={`/settings/${organization.slug}/integrations/cursor/`}
-                                    />
-                                  ),
-                                  docsLink: (
-                                    <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
-                                  ),
-                                }
-                              )}
-                            </span>
-                          </Fragment>
-                        )}
-                      </CardDescription>
-                    </StepTextCol>
-                    <StepImageCol>
-                      <CursorCardIllustration
-                        src={alertsEmptyStateImg}
-                        alt="Cursor Integration"
-                      />
-                    </StepImageCol>
-                  </StepContentRow>
-                  <CustomStepButtons
-                    showBack={firstIncompleteIdx !== 4}
-                    showNext={false}
-                    showSkip={lastIncompleteIdx === 4}
-                    onSkip={handleSkipCursorStep}
-                  >
-                    {cursorIntegration ? (
-                      <Button
-                        onClick={handleSetupCursorHandoff}
-                        size="sm"
-                        variant="primary"
-                      >
-                        {t('Set Seer to hand off to Cursor')}
-                      </Button>
-                    ) : (
-                      <LinkButton
-                        href={`/settings/${organization.slug}/integrations/cursor/`}
-                        size="sm"
-                        variant="primary"
-                      >
-                        {t('Install Cursor Integration')}
-                      </LinkButton>
-                    )}
-                  </CustomStepButtons>
-                </GuidedSteps.Step>
-              )}
+                  {cursorIntegration ? (
+                    <Button
+                      onClick={handleSetupCursorHandoff}
+                      size="sm"
+                      variant="primary"
+                    >
+                      {t('Set Seer to hand off to Cursor')}
+                    </Button>
+                  ) : (
+                    <LinkButton
+                      href={`/settings/${organization.slug}/integrations/cursor/`}
+                      size="sm"
+                      variant="primary"
+                    >
+                      {t('Install Cursor Integration')}
+                    </LinkButton>
+                  )}
+                </CustomStepButtons>
+              </GuidedSteps.Step>
             </StyledGuidedSteps>
             <StepsDivider />
           </motion.div>
