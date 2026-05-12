@@ -53,6 +53,10 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
     });
   }, [getPageReferrer, organization]);
 
+  const onClose = useCallback(() => {
+    onCloseCallbackRef.current?.();
+  }, []);
+
   const closeSeerExplorerDrawer = useCallback(() => {
     // Prevent closing the global drawer if another drawer (e.g. autofix) is open
     if (isDrawerOpenRef.current) {
@@ -92,10 +96,11 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
           resizable: true,
           mode: 'passive',
           onOpen,
+          onClose,
         }
       );
     },
-    [openDrawer, onOpen, setRunId, getPageReferrer]
+    [openDrawer, onOpen, onClose, setRunId, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
