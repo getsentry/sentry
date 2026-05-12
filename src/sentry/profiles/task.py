@@ -141,7 +141,7 @@ def encode_payload(message: dict[str, Any]) -> str:
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: str | None = None,
+    payload: bytes | str | None = None,
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
@@ -149,7 +149,10 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(b64decode(payload.encode("utf-8")), use_list=False)
+        # Handle both bytes (new) and base64 string (legacy) payloads
+        if isinstance(payload, str):
+            payload = b64decode(payload.encode("utf-8"))
+        message_dict = msgpack.unpackb(payload, use_list=False)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
