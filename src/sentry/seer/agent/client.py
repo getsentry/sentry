@@ -465,11 +465,17 @@ class SeerAgentClient:
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
-        if features.has(
-            "organizations:seer-explorer-context-engine",
-            self.organization,
-            actor=self.user,
-        ):
+        has_context_engine = (
+            features.has(
+                "organizations:seer-explorer-context-engine", self.organization, actor=self.user
+            )
+            or features.has(
+                "organizations:seat-based-seer-enabled", self.organization, actor=self.user
+            )
+            or features.has("organizations:seer-added", self.organization, actor=self.user)
+        )
+
+        if has_context_engine:
             chat_body["is_context_engine_enabled"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
