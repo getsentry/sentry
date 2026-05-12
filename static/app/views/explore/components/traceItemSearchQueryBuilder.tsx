@@ -91,6 +91,7 @@ export function useTraceItemSearchQueryBuilderProps({
   stringAttributes,
   stringSecondaryAliases,
   initialQuery,
+  placeholder,
   searchSource,
   getFilterTokenWarning,
   onBlur,
@@ -112,7 +113,7 @@ export function useTraceItemSearchQueryBuilderProps({
   hiddenAttributeKeys,
   allowedAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+  const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
 
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
@@ -230,6 +231,7 @@ export function useTraceItemSearchQueryBuilderProps({
 export function TraceItemSearchQueryBuilder({
   autoFocus,
   initialQuery,
+  placeholder,
   booleanSecondaryAliases,
   booleanAttributes,
   numberSecondaryAliases,
@@ -269,6 +271,7 @@ export function TraceItemSearchQueryBuilder({
     numberSecondaryAliases,
     stringSecondaryAliases,
     initialQuery,
+    placeholder,
     searchSource,
     getFilterTokenWarning,
     onBlur,
