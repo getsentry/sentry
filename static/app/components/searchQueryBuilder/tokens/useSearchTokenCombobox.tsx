@@ -7,7 +7,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {useTextField} from '@react-aria/textfield';
 import {chain, mergeProps, useLabels} from '@react-aria/utils';
 import {privateValidationStateProp} from '@react-stately/form';
-import type {BaseEvent} from '@react-types/shared';
+import type {BaseEvent, Key} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
 
@@ -25,7 +25,9 @@ import {t} from 'sentry/locale';
  */
 export function useSearchTokenCombobox<T>(
   props: Parameters<typeof useComboBox<T>>[0],
-  state: Parameters<typeof useComboBox<T>>[1]
+  state: Parameters<typeof useComboBox<T>>[1],
+  focusedKeyOverride?: Key | null,
+  focusedKeyOverrideBehavior: 'focus' | 'tab-only' = 'focus'
 ): Pick<ReturnType<typeof useComboBox<T>>, 'inputProps' | 'listBoxProps' | 'labelProps'> {
   const {
     popoverRef,
@@ -86,14 +88,37 @@ export function useSearchTokenCombobox<T>(
     }
     switch (e.key) {
       case 'Enter':
-      case 'Tab':
-        // Prevent form submission if menu is open since we may be selecting a option
-        if (state.isOpen && e.key === 'Enter') {
+        // Prevent form submission if menu is open since we may be selecting an option
+        if (state.isOpen) {
           e.preventDefault();
         }
 
-        state.commit();
+        if (
+          focusedKeyOverrideBehavior === 'focus' &&
+          focusedKeyOverride !== null &&
+          focusedKeyOverride !== undefined
+        ) {
+          state.selectionManager.setFocused(true);
+          state.selectionManager.setFocusedKey(focusedKeyOverride);
+          state.commit();
+        } else if (state.selectionManager.focusedKey !== null) {
+          state.commit();
+        }
         break;
+      case 'Tab': {
+        const keyToCommit = focusedKeyOverride ?? state.selectionManager.focusedKey;
+        if (state.isOpen && keyToCommit !== null && keyToCommit !== undefined) {
+          e.preventDefault();
+
+          if (focusedKeyOverride !== null && focusedKeyOverride !== undefined) {
+            state.selectionManager.setFocused(true);
+            state.selectionManager.setFocusedKey(focusedKeyOverride);
+          }
+
+          state.commit();
+        }
+        break;
+      }
       case 'Escape':
         if (
           state.selectedKey !== null ||
@@ -167,9 +192,13 @@ export function useSearchTokenCombobox<T>(
     'aria-labelledby': props['aria-labelledby'] || labelProps.id,
   });
 
+  const focusedKey =
+    focusedKeyOverrideBehavior === 'focus'
+      ? (focusedKeyOverride ?? state.selectionManager.focusedKey)
+      : state.selectionManager.focusedKey;
   const focusedItem =
-    state.selectionManager.focusedKey !== null && state.isOpen
-      ? state.collection.getItem(state.selectionManager.focusedKey)
+    focusedKey !== null && state.isOpen
+      ? state.collection.getItem(focusedKey)
       : undefined;
 
   return {

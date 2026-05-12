@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type MouseEventHandler,
   type ReactNode,
 } from 'react';
@@ -14,7 +15,7 @@ import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
-import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
+import type {CollectionChildren, Key, KeyboardEvent, Node} from '@react-types/shared';
 
 import {
   getDisabledOptions,
@@ -75,6 +76,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   description?: ReactNode;
   filterValue?: string;
   /**
+   * When tab-only, a focused option override is shown visually and may be
+   * accepted with Tab, but Enter continues to commit the typed input value.
+   */
+  focusedKeyOverrideBehavior?: 'focus' | 'tab-only';
+  /**
    * Whether the combobox is loading async items.
    * When true, a loading indicator will be displayed in the dropdown.
    */
@@ -113,6 +119,10 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * Disable if the filtering should be handled by the caller.
    */
   shouldFilterResults?: boolean;
+  /**
+   * When true, typing in the input focuses the first visible dropdown option.
+   */
+  shouldFocusFirstOptionOnInputChange?: boolean | ((value: string) => boolean);
   tabIndex?: number;
 };
 
@@ -120,10 +130,12 @@ type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
 export type CustomComboboxMenuProps<T> = {
   filterValue: string;
+  focusedKeyOverride: SelectKey | null;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
+  onFocusedKeyOverrideClear: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
@@ -220,6 +232,33 @@ function useHiddenItems({
   };
 }
 
+function getFirstVisibleOptionKey<T>({
+  collection,
+  hiddenOptions,
+  disabledKeys,
+}: {
+  collection: Iterable<Node<T>>;
+  disabledKeys: Set<SelectKey>;
+  hiddenOptions: Set<SelectKey>;
+}): Key | null {
+  for (const item of collection) {
+    if (item.type === 'section') {
+      for (const child of item.childNodes) {
+        if (!hiddenOptions.has(child.key) && !disabledKeys.has(child.key)) {
+          return child.key;
+        }
+      }
+      continue;
+    }
+
+    if (!hiddenOptions.has(item.key) && !disabledKeys.has(item.key)) {
+      return item.key;
+    }
+  }
+
+  return null;
+}
+
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -271,11 +310,13 @@ function useUpdateOverlayPositionOnContentChange({
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   customMenu,
   filterValue,
+  focusedKeyOverride,
   hiddenOptions,
   isOpen,
   isLoading,
   listBoxProps,
   listBoxRef,
+  onFocusedKeyOverrideClear,
   popoverRef,
   state,
   overlayProps,
@@ -283,10 +324,12 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   totalOptions,
 }: {
   filterValue: string;
+  focusedKeyOverride: SelectKey | null;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
+  onFocusedKeyOverrideClear: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
@@ -304,7 +347,9 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       listBoxRef,
       isOpen,
       hiddenOptions,
+      focusedKeyOverride,
       listBoxProps,
+      onFocusedKeyOverrideClear,
       state,
       overlayProps,
       filterValue,
@@ -327,6 +372,8 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
               listState={state}
               hasSearch={!!filterValue}
               hiddenOptions={hiddenOptions}
+              focusedKeyOverride={focusedKeyOverride}
+              onMouseMove={onFocusedKeyOverrideClear}
               overlayIsOpen={isOpen}
               size="sm"
             />
@@ -372,6 +419,8 @@ export function SearchQueryBuilderCombobox<
   tabIndex = -1,
   maxOptions,
   shouldFilterResults = true,
+  shouldFocusFirstOptionOnInputChange = false,
+  focusedKeyOverrideBehavior = 'focus',
   shouldCloseOnInteractOutside,
   onPaste,
   onClick,
@@ -387,6 +436,8 @@ export function SearchQueryBuilderCombobox<
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const shouldFocusFirstOptionRef = useRef(false);
+  const [focusedKeyOverride, setFocusedKeyOverride] = useState<Key | null>(null);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
@@ -454,6 +505,15 @@ export function SearchQueryBuilderCombobox<
         state.close();
       },
       onKeyDown: e => {
+        if (
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowUp' ||
+          e.key === 'Enter' ||
+          e.key === 'Escape'
+        ) {
+          setFocusedKeyOverride(null);
+        }
+
         onKeyDown?.(e, {state});
 
         if (e.key === 'Escape') {
@@ -484,7 +544,9 @@ export function SearchQueryBuilderCombobox<
       },
       onKeyUp,
     },
-    state
+    state,
+    focusedKeyOverride,
+    focusedKeyOverrideBehavior
   );
 
   // Reset the focused key when the user types in the input.
@@ -494,9 +556,15 @@ export function SearchQueryBuilderCombobox<
   const handleInputChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     e => {
       onInputChange?.(e);
+      shouldFocusFirstOptionRef.current =
+        e.target.value !== '' &&
+        (typeof shouldFocusFirstOptionOnInputChange === 'function'
+          ? shouldFocusFirstOptionOnInputChange(e.target.value)
+          : shouldFocusFirstOptionOnInputChange);
+      setFocusedKeyOverride(null);
       state.selectionManager.setFocusedKey(null);
     },
-    [onInputChange, state.selectionManager]
+    [onInputChange, shouldFocusFirstOptionOnInputChange, state.selectionManager]
   );
 
   const totalOptions = items.reduce(
@@ -514,6 +582,31 @@ export function SearchQueryBuilderCombobox<
     isLoading: incomingIsLoading,
     isOpen: incomingIsOpen,
   });
+
+  useLayoutEffect(() => {
+    if (!shouldFocusFirstOptionRef.current) {
+      return;
+    }
+
+    if (!isOpen) {
+      shouldFocusFirstOptionRef.current = false;
+      return;
+    }
+
+    const firstVisibleOptionKey = getFirstVisibleOptionKey({
+      collection: state.collection,
+      hiddenOptions,
+      disabledKeys: new Set(disabledKeys),
+    });
+
+    if (firstVisibleOptionKey === null) {
+      shouldFocusFirstOptionRef.current = false;
+      return;
+    }
+
+    setFocusedKeyOverride(firstVisibleOptionKey);
+    shouldFocusFirstOptionRef.current = false;
+  }, [disabledKeys, hiddenOptions, isOpen, state]);
 
   useEffect(() => {
     onOpenChange?.(isOpen);
@@ -577,6 +670,10 @@ export function SearchQueryBuilderCombobox<
     },
     [inputProps, state, onClick]
   );
+
+  const handleFocusedKeyOverrideClear = useCallback(() => {
+    setFocusedKeyOverride(null);
+  }, []);
 
   useUpdateOverlayPositionOnContentChange({
     contentRef: popoverRef,
@@ -653,7 +750,9 @@ export function SearchQueryBuilderCombobox<
         isLoading={incomingIsLoading}
         listBoxProps={listBoxProps}
         listBoxRef={listBoxRef}
+        onFocusedKeyOverrideClear={handleFocusedKeyOverrideClear}
         popoverRef={popoverRef}
+        focusedKeyOverride={focusedKeyOverride}
         state={state}
         overlayProps={overlayProps}
         portalTarget={portalTarget}

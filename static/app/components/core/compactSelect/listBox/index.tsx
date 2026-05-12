@@ -49,6 +49,11 @@ interface ListBoxProps<T extends ObjectLike>
   listState: ListState<T>;
   children?: CollectionChildren<T>;
   /**
+   * Forces the visual focus state for virtual-focus listboxes whose DOM focus stays
+   * on an external input.
+   */
+  focusedKeyOverride?: SelectKey | null;
+  /**
    * Whether the list is filtered by search query or not.
    * Used to determine whether to show the size limit message or not.
    */
@@ -142,6 +147,7 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
+  focusedKeyOverride,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
@@ -261,6 +267,7 @@ export function ListBox<T extends ObjectLike>({
                       item={item}
                       listState={listState}
                       hiddenOptions={hiddenOptions}
+                      focusedKeyOverride={focusedKeyOverride}
                       onToggle={onSectionToggle}
                       size={size}
                       showSectionHeaders={showSectionHeaders}
@@ -276,6 +283,11 @@ export function ListBox<T extends ObjectLike>({
                     item={item}
                     listState={listState}
                     size={size}
+                    isFocusedOverride={
+                      focusedKeyOverride === null || focusedKeyOverride === undefined
+                        ? undefined
+                        : focusedKeyOverride === item.key
+                    }
                     showDetails={showDetails}
                   />
                 );

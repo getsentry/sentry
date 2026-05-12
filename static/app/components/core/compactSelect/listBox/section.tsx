@@ -24,6 +24,7 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   showSectionHeaders: boolean;
   size: ListBoxOptionProps['size'];
   'data-index'?: number;
+  focusedKeyOverride?: SelectKey | null;
   onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -39,6 +40,7 @@ export function ListBoxSection({
   onToggle,
   size,
   hiddenOptions,
+  focusedKeyOverride,
   showSectionHeaders,
   showDetails = true,
   ref,
@@ -81,6 +83,11 @@ export function ListBoxSection({
               item={child}
               listState={listState}
               size={size}
+              isFocusedOverride={
+                focusedKeyOverride === null || focusedKeyOverride === undefined
+                  ? undefined
+                  : focusedKeyOverride === child.key
+              }
               showDetails={showDetails}
             />
           ))}

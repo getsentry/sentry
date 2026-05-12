@@ -1178,6 +1178,52 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('option', {name: 'assigned'})).toBeInTheDocument();
     });
 
+    it('does not focus the first matching search term item when typing', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'brow');
+
+      const browserNameOption = await screen.findByRole('option', {
+        name: 'browser.name',
+      });
+      expect(input).not.toHaveAttribute('aria-activedescendant', browserNameOption.id);
+    });
+
+    it('commits the typed search term when pressing enter with a suggested key', async () => {
+      const mockOnSearch = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'brow');
+      expect(
+        await screen.findByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(mockOnSearch).toHaveBeenCalledWith('brow', expect.anything());
+      });
+    });
+
+    it('selects the focused search term item when pressing tab', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'brow');
+      await userEvent.keyboard('{Tab}');
+
+      expect(
+        await screen.findByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
       render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
@@ -1281,9 +1327,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
 
       // Should have a filter token "browser.name:foo"
-      expect(
-        screen.getByRole('row', {name: `browser.name:${WildcardOperators.CONTAINS}foo`})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async () => {
@@ -2255,6 +2299,42 @@ describe('SearchQueryBuilder', () => {
           'aria-activedescendant',
           expect.stringContaining(expected)
         );
+      });
+
+      it('focuses the first matching item when typing', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+
+        const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await userEvent.clear(input);
+        await userEvent.type(input, 'bro');
+
+        const browserNameOption = await screen.findByRole('option', {
+          name: 'browser.name',
+        });
+        await waitFor(() => {
+          expect(input).toHaveAttribute('aria-activedescendant', browserNameOption.id);
+        });
+      });
+
+      it('selects the focused matching item when pressing tab', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>5" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: timesSeen'})
+        );
+
+        const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await userEvent.clear(input);
+        await userEvent.type(input, 'bro');
+        await userEvent.keyboard('{Tab}');
+
+        expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
     });
   });
@@ -3561,6 +3641,43 @@ describe('SearchQueryBuilder', () => {
           screen.queryByRole('row', {name: 'release.version:[1.0.0,2.0.0]'})
         ).not.toBeInTheDocument();
       });
+    });
+
+    it('focuses the first matching value when typing', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.type(input, 'ch');
+
+      const customValueOption = await screen.findByRole('option', {name: 'ch'});
+      await waitFor(() => {
+        expect(input).toHaveAttribute('aria-activedescendant', customValueOption.id);
+      });
+    });
+
+    it('selects the focused matching value when pressing tab', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'ch');
+      await userEvent.keyboard('{Tab}');
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:ch'})
+      ).toBeInTheDocument();
     });
 
     describe('numeric', () => {

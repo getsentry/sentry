@@ -1065,6 +1065,7 @@ export function SearchQueryBuilderValueCombobox({
             shouldFilterResults={
               !shouldUseDefaultNumericSuggestions(filterValue, valueType)
             }
+            shouldFocusFirstOptionOnInputChange
             shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
           >
             {suggestionSectionItems.map(section => (
