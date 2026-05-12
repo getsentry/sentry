@@ -22,9 +22,9 @@ export type AvatarProject = {
 
 /**
  * Matches the response from `ProjectSummarySerializer` used by
- * `GET /api/0/organizations/{org}/projects/`.
+ * `GET /organizations/{org}/projects/`.
  *
- * This is what `ProjectsStore`, `useProjects`, and the bootstrap request hold.
+ * This is what `ProjectsStore`, `useProjects`, and the bootstrap request typically hold.
  * Optional fields like `stats`, `transactionStats`, and `sessionStats` are only
  * present when the corresponding query params (`statsPeriod`, etc.) are passed.
  * `latestDeploys` is excluded when `collapse=latestDeploys` is sent.
@@ -79,7 +79,7 @@ interface ProjectSummary extends AvatarProject {
 
 /**
  * Matches `ProjectSummarySerializer` when callers request project option
- * expansion from `GET /api/0/organizations/{org}/projects/` using one or more
+ * expansion from `GET /organizations/{org}/projects/` using one or more
  * `options` query params.
  *
  * The `options` field is omitted unless requested and may still be empty when
@@ -91,11 +91,7 @@ export interface ProjectSummaryWithOptions extends ProjectSummary {
 
 /**
  * Matches the response from `DetailedProjectSerializer` used by
- * `GET /api/0/projects/{org}/{project}/`.
- *
- * Returned by `useDetailedProject` and provided via `ProjectRouteContext` in
- * project settings views. Includes all summary fields plus configuration,
- * plugins, organization, and security settings.
+ * `GET /projects/{org}/{project}/`.
  *
  * The `organization` field can be collapsed to `{id, slug}` with
  * `collapse=organization`.
