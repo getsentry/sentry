@@ -1,14 +1,11 @@
 import {useCallback, useMemo} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
-import {decodeScalar} from 'sentry/utils/queryString';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
-
-const SPANS_TABLE_KEY = 'table';
 
 export enum Tab {
   SPAN = 'span',
@@ -21,7 +18,7 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
   const navigate = useNavigate();
   const mode = useQueryParamsMode();
 
-  const table = decodeScalar(location.query[SPANS_TABLE_KEY]);
+  const [table, setTable] = useQueryState('table', parseAsString);
 
   const tab: Mode | Tab = useMemo(() => {
     // HACK: This is pretty gross but to not break anything in the
@@ -48,9 +45,7 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
         mode: newTab === Mode.AGGREGATE ? Mode.AGGREGATE : Mode.SAMPLES,
       });
 
-      updateNullableLocation(
-        target,
-        SPANS_TABLE_KEY,
+      setTable(
         newTab === Tab.TRACE
           ? 'trace'
           : newTab === Tab.ATTRIBUTE_BREAKDOWNS
@@ -60,7 +55,7 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
 
       navigate(target);
     },
-    [location, navigate]
+    [location, navigate, setTable]
   );
 
   return [tab, setTab];
