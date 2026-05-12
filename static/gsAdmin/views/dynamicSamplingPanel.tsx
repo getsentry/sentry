@@ -376,12 +376,6 @@ function DynamicSamplingRulesTable({
           <Fragment key={row.id}>
             <Stack gap="xs">
               {row.type}
-              {defined(row.samplingValue.limit) && (
-                <NameColumnDetail data-test-id="limit">
-                  <strong>Limit:</strong>
-                  <span>{row.samplingValue.limit}</span>
-                </NameColumnDetail>
-              )}
               {defined(row.timeRange) && (
                 <div data-test-id="timerange">
                   <NameColumnDetail>
