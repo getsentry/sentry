@@ -52,7 +52,6 @@ type RuleV2 = {
   samplingValue: {
     type: 'factor' | 'sampleRate' | 'minimumSampleRate';
     value: number;
-    limit?: number;
   };
   type: 'trace' | 'transaction' | 'project';
   timeRange?: {
