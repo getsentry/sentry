@@ -6,10 +6,10 @@ import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {
   ProjectSeerPreferences,
@@ -61,6 +61,8 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
 ];
 
 export function AutofixRepositories({canWrite, preference, project}: Props) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const repositoriesQuery = useInfiniteQuery({
@@ -141,7 +143,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
         <Flex padding="2xl" align="center" justify="center" gap="xl">
           <img src={seerConfigBug1} alt="" width="130px" height="130px" />
           <Stack gap="lg">
-            <Heading as="h4">{t('Get the most out of Seer')}</Heading>
+            <Heading as="h4">{t('Connect a repository')}</Heading>
             <Flex maxWidth="250px">
               {t(
                 'Connect at least one repository so Seer can gather more insights from your code.'

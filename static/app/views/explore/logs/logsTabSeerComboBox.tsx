@@ -242,11 +242,6 @@ export function LogsTabSeerComboBox() {
         mode,
       });
 
-      trackAnalytics('logs.ai_query_applied', {
-        organization,
-        query: queryToUse,
-        group_by_count: groupBys.length,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
@@ -322,7 +317,6 @@ export function LogsTabSeerComboBox() {
       strategy="Logs"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="logs"
       fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );

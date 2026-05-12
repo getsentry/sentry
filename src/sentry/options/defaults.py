@@ -674,22 +674,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for expanding the unreal report in the endpoint rather than during processing.
-register(
-    "relay.unreal-report-expansion.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for fetching project configs in the minidump endpoint.
-register(
-    "relay.minidump-endpoint-fetch-config.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch for fetching projects in the endpoints.
 register(
     "relay.endpoint-fetch-config.enabled",
@@ -3124,6 +3108,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sending raw bytes payload to taskbroker instead of base64 encoded
+register(
+    "profiling.process.raw_bytes_payload.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
@@ -3301,6 +3293,18 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, done_flush_segments uses Lua scripts to conditionally clean up
+# segments only if their state hasn't changed since the flush started: Phase 1
+# ZREMs the queue entry only if the score is unchanged, and Phase 2 deletes the
+# per-segment data keys (hrs, ic, ibc) only if the ingested count is unchanged.
+# When False, both phases unconditionally remove queue entries and delete data
+# keys for every flushed segment.
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
@@ -3383,8 +3387,19 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# TTL in seconds for span deduplication tracking. When > 0, the consumer
+# will use Redis SETNX to detect duplicate spans and emit metrics.
+# Set to 0 to disable.
 register(
-    "spans.process-segments.semantic-partitioning",
+    "spans.process-segments.dedupe-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When True (and dedupe-ttl > 0), actually filter out duplicate spans
+# instead of just detecting and emitting metrics.
+register(
+    "spans.process-segments.dedupe-filter-enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

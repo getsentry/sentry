@@ -659,6 +659,16 @@ const ScrollContainer = styled('div')`
   overflow-y: auto;
   overflow-x: hidden;
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
+      p.theme.breakpoints.md}) {
+    padding-left: ${p => p.theme.space.xl};
+  }
   background: ${p => p.theme.tokens.background.secondary};
   contain: layout;
   overscroll-behavior: contain;

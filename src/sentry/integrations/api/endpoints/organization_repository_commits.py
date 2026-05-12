@@ -20,6 +20,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 @cell_silo_endpoint
@@ -73,7 +74,10 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
         List a Repository's Commits
         """
         try:
-            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
+            repo = Repository.objects.get(
+                id=to_valid_int_id("repo_id", repo_id, raise_404=True),
+                organization_id=organization.id,
+            )
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 

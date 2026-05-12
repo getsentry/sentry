@@ -200,9 +200,13 @@ def _parse_traces_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryD
 
 
 def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
-    """Logs visualizations live in aggregateField; query/sort use logs-specific keys
-    and sorts target table columns rather than aggregate fields, so they're not
-    validated against yAxes/groupBys."""
+    """Logs visualizations live in aggregateField. The chart's topEvents sort
+    comes from `logsAggregateSortBys` (the aggregate-mode chart sort) — not
+    `logsSortBys`, which is the samples-mode logs table sort (typically
+    `-timestamp`) and would feed events-timeseries a non-aggregate sort field
+    in topEvents mode, returning no data. Validate the aggregate sort against
+    the active yAxes/groupBys like the traces parser, otherwise fall back to
+    the default `-yAxes[0]` topEvents sort."""
     y_axes, group_bys, chart_type = _parse_aggregate_field_entries(
         raw_query.getlist("aggregateField")
     )
@@ -213,7 +217,9 @@ def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDic
     query_values = raw_query.getlist("logsQuery")
     query = query_values[0] if query_values else None
 
-    sort_values = raw_query.getlist("logsSortBys")
+    sort_values = raw_query.getlist("logsAggregateSortBys")
+    if sort_values and not _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+        sort_values = []
 
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 

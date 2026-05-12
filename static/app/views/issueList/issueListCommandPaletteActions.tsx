@@ -2,9 +2,9 @@ import {Fragment, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
@@ -305,6 +305,8 @@ function SaveViewActions({
   query,
   sort,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'sort'>) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const user = useUser();
   const {viewId} = useParams();

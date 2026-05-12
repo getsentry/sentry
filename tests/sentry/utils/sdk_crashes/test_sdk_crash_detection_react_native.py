@@ -408,6 +408,83 @@ def test_fetch_instrumentation_not_detected(
         assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@pytest.mark.parametrize(
+    ["function", "module", "filename", "detected"],
+    [
+        # Supabase PostgREST .then handler (ESM build) — should be ignored
+        (
+            "Reflect.apply.then$argument_0",
+            "@sentry/core/build/esm/integrations/supabase",
+            "node_modules/@sentry/core/build/esm/integrations/supabase.js",
+            False,
+        ),
+        # Supabase PostgREST .then handler (CJS build) — should be ignored
+        (
+            "Reflect.apply.then$argument_0",
+            "@sentry/core/build/cjs/integrations/supabase",
+            "node_modules/@sentry/core/build/cjs/integrations/supabase.js",
+            False,
+        ),
+        # Different function in the same module — should be detected
+        (
+            "instrumentPostgRESTFilterBuilder",
+            "@sentry/core/build/esm/integrations/supabase",
+            "node_modules/@sentry/core/build/esm/integrations/supabase.js",
+            True,
+        ),
+        # Same function in a different module — should be detected
+        (
+            "Reflect.apply.then$argument_0",
+            "@sentry/core/build/esm/integrations/graphql",
+            "node_modules/@sentry/core/build/esm/integrations/graphql.js",
+            True,
+        ),
+    ],
+)
+@decorators
+def test_supabase_instrumentation_not_detected(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    function: str,
+    module: str,
+    filename: str,
+    detected: bool,
+) -> None:
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=[
+                        *get_frames(),
+                        {
+                            "function": function,
+                            "module": module,
+                            "filename": filename,
+                            "abs_path": f"app:///{filename}",
+                        },
+                    ],
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+
 @decorators
 def test_sentry_wrapped_end_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs

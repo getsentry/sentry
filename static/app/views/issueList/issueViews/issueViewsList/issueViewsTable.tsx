@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -40,6 +41,8 @@ export function IssueViewsTable({
   type,
   hideCreatedBy = false,
 }: IssueViewsTableProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const user = useUser();
   const hasIssueViews = useHasIssueViews();

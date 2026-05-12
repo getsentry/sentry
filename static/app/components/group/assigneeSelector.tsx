@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -6,6 +7,7 @@ import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import {
   AssigneeSelectorDropdown,
   type AssignableEntity,
+  type AssigneeGroup,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
@@ -13,6 +15,8 @@ import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {
   useAssignIssueMutation,
   type AssignedBy,
@@ -24,7 +28,7 @@ type HandleAssignOptions = {
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
-  group: Group;
+  group: AssigneeGroup;
   handleAssigneeChange: (
     assignedActor: AssignableEntity | null,
     options?: HandleAssignOptions
@@ -48,7 +52,7 @@ export function useHandleAssigneeChange({
   onSuccess,
   onError,
 }: {
-  group: Group;
+  group: AssigneeGroup;
   organization: Organization;
   onAssign?: OnAssignCallback;
   onError?: (error: Error) => void;
@@ -100,11 +104,18 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
+  const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
+    ...useProjectMembersQueryOptions([group.project.id]),
+    select: resp => selectUsersFromMembers(resp.json),
+    enabled: memberList === undefined,
+  });
+  const currentMemberList = memberList ?? defaultMemberList;
+
   return (
     <AssigneeSelectorDropdown
       group={group}
-      loading={assigneeLoading}
-      memberList={memberList}
+      loading={assigneeLoading || (memberList === undefined && defaultMemberListLoading)}
+      memberList={currentMemberList}
       owners={owners}
       onAssign={(assignedActor: AssignableEntity | null) =>
         handleAssigneeChange(assignedActor)

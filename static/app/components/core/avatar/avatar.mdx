@@ -7,13 +7,13 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
 ---
 
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import {
@@ -124,14 +124,9 @@ The `<DocIntegrationAvatar />` component displays an avatar for a doc integratio
 To display multiple avatars in a group, use the `AvatarList` component. It accepts `users` or `teams`.
 
 export function useLoadedMembers() {
-  const {members, loadMore, ...rest} = useMembers({limit: 50});
+  const {data: members = [], isPending: fetching} = useMembers({limit: 50});
 
-useEffect(() => {
-// `loadMore` is not referentially stable, so we cannot include it in the dependencies array
-loadMore();
-}, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-return {members, loadMore, ...rest};
+return {members, fetching};
 }
 
 export function BasicDemo() {

@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
@@ -16,6 +16,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from sentry import features, options, projectoptions, ratelimits
 from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
@@ -146,6 +147,12 @@ class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
     GITHUB_COPILOT_AGENT = "github_copilot_agent"
     CLAUDE_CODE_AGENT = "claude_code_agent"
+
+
+class AutomationCodingAgent(StrEnum):
+    SEER = "seer"
+    CURSOR = CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
+    CLAUDE = CodingAgentProviderType.CLAUDE_CODE_AGENT
 
 
 class CodingAgentState(BaseModel):
@@ -611,10 +618,10 @@ def build_repo_definition_from_project_repo(
     )
 
 
-def _build_automation_handoff(
+def build_automation_handoff(
     get_option: Callable[[str], Any],
 ) -> SeerAutomationHandoffConfiguration | None:
-    """Build a SeerAutomationHandoffConfiguration from option values, or None if incomplete."""
+    """Build a SeerAutomationHandoffConfiguration from option key/value pairs, or None if incomplete."""
     handoff_point = get_option("sentry:seer_automation_handoff_point")
     handoff_target = get_option("sentry:seer_automation_handoff_target")
     handoff_integration_id = get_option("sentry:seer_automation_handoff_integration_id")
@@ -650,7 +657,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
         project_id=project.id,
         repositories=repo_definitions,
         automated_run_stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
-        automation_handoff=_build_automation_handoff(project.get_option),
+        automation_handoff=build_automation_handoff(project.get_option),
         autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
@@ -699,11 +706,86 @@ def bulk_read_preferences_from_sentry_db(
             automated_run_stopping_point=_get_project_option(
                 "sentry:seer_automated_run_stopping_point"
             ),
-            automation_handoff=_build_automation_handoff(_get_project_option),
+            automation_handoff=build_automation_handoff(_get_project_option),
             autofix_automation_tuning=_get_project_option("sentry:autofix_automation_tuning"),
         )
 
     return result
+
+
+class SeerProjectSettingsUpdate(TypedDict, total=False):
+    agent: AutomationCodingAgent
+    integrationId: int
+    stoppingPoint: AutofixStoppingPoint | Literal["off"]
+    scannerAutomation: bool
+
+
+def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpdate) -> None:
+    """Apply high-level Seer settings to a project. Only update a setting if it's present in data."""
+
+    def _set_if_not_default(key: str, value: Any, default: Any) -> None:
+        """If we're trying to set a default, delete the option. Otherwise, set it."""
+        if value == default:
+            project.delete_option(key)
+        else:
+            project.update_option(key, value)
+
+    with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        list(Project.objects.select_for_update().filter(id=project.id))
+
+        stopping_point: str | None = data.get("stoppingPoint")
+
+        if "agent" in data:
+            agent: str = data["agent"]
+            if agent == AutomationCodingAgent.SEER:
+                project.delete_option("sentry:seer_automation_handoff_point")
+                project.delete_option("sentry:seer_automation_handoff_target")
+                project.delete_option("sentry:seer_automation_handoff_integration_id")
+            else:
+                integration_id = data.get("integrationId")
+                if integration_id is None:
+                    raise ValueError("integrationId is required for external coding agents")
+
+                project.update_option(
+                    "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
+                )
+                project.update_option("sentry:seer_automation_handoff_target", agent)
+                project.update_option(
+                    "sentry:seer_automation_handoff_integration_id", integration_id
+                )
+
+        if stopping_point is not None:
+            if stopping_point == "off":
+                # Turn off tuning and leave stopping point and handoff_auto_create_pr unchanged
+                # so that reenabling restores the prior state.
+                _set_if_not_default(
+                    "sentry:autofix_automation_tuning",
+                    AutofixAutomationTuningSettings.OFF,
+                    default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+                )
+            else:
+                _set_if_not_default(
+                    "sentry:autofix_automation_tuning",
+                    AutofixAutomationTuningSettings.MEDIUM,
+                    default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+                )
+                _set_if_not_default(
+                    "sentry:seer_automated_run_stopping_point",
+                    stopping_point,
+                    default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+                )
+
+                if stopping_point == AutofixStoppingPoint.OPEN_PR:
+                    # Safe to set even if no external handoff is configured
+                    # since we'll only read it if the other handoff options are all non-null.
+                    project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+                else:
+                    project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+
+        if "scannerAutomation" in data:
+            _set_if_not_default(
+                "sentry:seer_scanner_automation", data["scannerAutomation"], default=True
+            )
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
