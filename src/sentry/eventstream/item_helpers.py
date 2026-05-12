@@ -376,6 +376,8 @@ def _extract_exception(
         stack_mechanism_types.append(get_path(stack, "mechanism", "type"))
         stack_mechanism_handled.append(get_path(stack, "mechanism", "handled"))
         for frame in get_path(stack, "stacktrace", "frames", default=[]):
+            if frame is None:
+                continue
             frame_abs_paths.append(frame.get("abs_path"))
             frame_filenames.append(frame.get("filename"))
             frame_packages.append(frame.get("package"))

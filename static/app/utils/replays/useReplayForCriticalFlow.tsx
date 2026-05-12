@@ -1,7 +1,6 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {HookStore} from 'sentry/stores/hookStore';
 
-interface UseReplayForCriticalFlowOptions {
+export interface UseReplayForCriticalFlowOptions {
   /**
    * Tag value applied to the replay (and other events) for this flow,
    * so it can be filtered later in the Replays product.
@@ -20,41 +19,17 @@ interface UseReplayForCriticalFlowOptions {
   sampleRate?: number;
 }
 
+const noop = (_: UseReplayForCriticalFlowOptions) => {};
+
 /**
  * Force a session replay for a critical flow regardless of the global
  * sample rate, and tag it for later discovery.
  *
- * No-op when the Replay integration isn't registered (e.g. self-hosted,
- * dev, acceptance tests, or before lazy init has finished).
+ * Implementation lives in gsApp because forcing replays requires the
+ * Replay integration, which is only registered there. Self-hosted falls
+ * through to a noop.
  */
-export function useReplayForCriticalFlow({
-  flowName,
-  enabled = true,
-  sampleRate = 1,
-}: UseReplayForCriticalFlowOptions) {
-  const [shouldForce] = useState(() => Math.random() < sampleRate);
-
-  useEffect(() => {
-    if (!enabled || !shouldForce) {
-      return;
-    }
-
-    const replay = Sentry.getReplay();
-    if (!replay) {
-      return;
-    }
-
-    Sentry.setTag('critical_flow', flowName);
-
-    // flush() handles all three states per the SDK docstring:
-    //   - not yet recording -> starts a session replay
-    //   - buffer mode -> upgrades buffer to session
-    //   - session mode -> queued no-op
-    replay.flush();
-
-    return () => {
-      replay.flush();
-      Sentry.setTag('critical_flow', undefined);
-    };
-  }, [enabled, shouldForce, flowName]);
+export function useReplayForCriticalFlow(options: UseReplayForCriticalFlowOptions) {
+  const useImpl = HookStore.get('react-hook:use-replay-for-critical-flow')[0] ?? noop;
+  useImpl(options);
 }

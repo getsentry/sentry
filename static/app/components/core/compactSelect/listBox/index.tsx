@@ -251,7 +251,8 @@ export function ListBox<T extends ObjectLike>({
           >
             {overlayIsOpen &&
               virtualizer.items.map(row => {
-                const item = listItems[row.index]!;
+                const item = listItems[row.index];
+                if (!item) return null;
                 if (item.type === 'section') {
                   return (
                     <ListBoxSection

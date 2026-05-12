@@ -913,6 +913,17 @@ class SearchResolver:
                     return AttributeValue(val_bool=bool_value)
                 elif isinstance(value, bool):
                     return AttributeValue(val_bool=value)
+            elif column_type == constants.ARRAY:
+                # Only scalar value membership in an array is allowed.
+                # Allowed operators: =,!=, LIKE, NOT_LIKE.
+                # TODO: Add support for scalar: >, < for numbers
+                if operator in constants.IN_OPERATORS:
+                    raise InvalidSearchQuery(
+                        f"{column.public_alias} (array) cannot be used with an IN filter; "
+                        f"use {column.public_alias}[*]:value for membership"
+                    )
+                # All primitive types are converted to strings on EAP before comparison.
+                return AttributeValue(val_str=str(value))
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
@@ -957,6 +968,12 @@ class SearchResolver:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
             resolved_column, context = self.resolve_column(column, match)
+            if (
+                self.config.disable_array_attributes
+                and isinstance(resolved_column, ResolvedAttribute)
+                and resolved_column.internal_type == constants.ARRAY
+            ):
+                continue
             resolved_columns.append(resolved_column)
             resolved_contexts.append(context)
 
@@ -1007,6 +1024,8 @@ class SearchResolver:
         resolved_contexts = []
         for column in columns:
             col, context = self.resolve_attribute(column)
+            if self.config.disable_array_attributes and col.internal_type == constants.ARRAY:
+                continue
             resolved_columns.append(col)
             resolved_contexts.append(context)
         return resolved_columns, resolved_contexts

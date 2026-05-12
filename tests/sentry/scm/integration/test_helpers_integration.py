@@ -76,6 +76,7 @@ class TestFetchServiceProvider(TestCase):
             "is_active": True,
             "external_id": None,
             "provider_name": "github",
+            "web_base_url": None,
         }
         provider = fetch_service_provider(
             self.organization.id,
@@ -93,6 +94,7 @@ class TestFetchServiceProvider(TestCase):
             "is_active": True,
             "external_id": None,
             "provider_name": "github",
+            "web_base_url": None,
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None

@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
@@ -16,7 +17,6 @@ import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
