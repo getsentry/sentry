@@ -100,8 +100,6 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'build_configuration_name',
   'build_number',
   'build_version',
-  'git_base_ref',
-  'git_head_ref',
   'platform_name',
 ];
 
@@ -115,10 +113,11 @@ const PREPROD_IMAGE_FIELDS = [
   'images_unchanged',
 ] as const;
 
-export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [
-  'git_pr_number',
-  ...PREPROD_IMAGE_FIELDS,
-];
+// Image fields are stored in Postgres (PreprodSnapshotMetrics), not EAP, so the
+// attribute keys API never returns them. Seeding them here makes them available
+// to the mobile builds search bar, which uses an allowlist (no hiddenKeys) and
+// therefore relies on the default seed to populate autocomplete.
+export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [...PREPROD_IMAGE_FIELDS];
 
 export const SENTRY_PREPROD_BOOLEAN_TAGS: string[] = ['is_approved'];
 
