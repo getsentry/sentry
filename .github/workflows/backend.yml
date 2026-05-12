@@ -274,7 +274,8 @@ jobs:
     services:
       redis-cluster:
         image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
-        ports: ['7000:7000', '7001:7001', '7002:7002', '7003:7003', '7004:7004', '7005:7005']
+        ports:
+          ['7000:7000', '7001:7001', '7002:7002', '7003:7003', '7004:7004', '7005:7005']
         env:
           IP: 0.0.0.0
       zookeeper:
@@ -311,13 +312,6 @@ jobs:
         id: setup
         with:
           mode: migrations
-
-      - name: Download odiff binary
-        run: |
-          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
 
       - name: Run backend-light tests
         env:
@@ -372,8 +366,7 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # When tiers are active, backend-test only runs tier2 (17 shards);
-        # the remaining 5 shards run as backend-light. Total stays at 22.
+        # With tiers: 17 shards for tier2; 5 more run as backend-light (22 total).
         instance: ${{ needs.split-tiers.outputs.has-tiers == 'true' && fromJSON('[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]') || fromJSON(needs.calculate-shards.outputs.shard-indices) }}
 
     env:
@@ -420,9 +413,7 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || (needs.split-tiers.outputs.has-tiers == 'true' && '/tmp/backend-tests.txt' || '') }}
-          # tier 2 (snuba-heavy) gets --dist=load to balance individual-test latency
-          # across workers — variance is much higher than the no-tiers case where
-          # --dist=loadfile averages out via larger file count per shard.
+          # tier2 uses --dist=load; snuba-heavy tests have high per-test variance that load-balances better than loadfile.
           XDIST_DIST: ${{ needs.split-tiers.outputs.has-tiers == 'true' && 'load' || 'loadfile' }}
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
