@@ -342,7 +342,10 @@ function DynamicSamplingRulesTable({
     if (getRuleType(rule) === RuleType.BOOST_LOW_VOLUME_PROJECTS) {
       return 0;
     }
-    if (rule.samplingValue.type === 'sampleRate') {
+    if (
+      rule.samplingValue.type === 'sampleRate' ||
+      rule.samplingValue.type === 'minimumSampleRate'
+    ) {
       return round(rule.samplingValue.value - baseSampleRate);
     }
     return round(rule.samplingValue.value - 1);
