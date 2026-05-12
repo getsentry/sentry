@@ -39,7 +39,10 @@ import type {
   TraceMeta,
 } from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {
-  isEAPTraceMeta,
+  getTraceMetaErrorCount,
+  getTraceMetaLogsCount,
+  getTraceMetaMetricsCount,
+  getTraceMetaSpanCount,
   useTraceMeta,
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 
@@ -169,15 +172,19 @@ function MetricDetailsTraceSummary({
 }: {
   traceMeta: TraceMeta | EAPTraceMeta | undefined;
 }) {
-  if (isEAPTraceMeta(traceMeta)) {
+  if (traceMeta) {
+    const errors = getTraceMetaErrorCount(traceMeta) ?? 0;
+    const logs = getTraceMetaLogsCount(traceMeta) ?? 0;
+    const spans = getTraceMetaSpanCount(traceMeta) ?? 0;
+    const metrics = getTraceMetaMetricsCount(traceMeta) ?? 0;
+
     return (
       <Fragment>
         <Stack paddingLeft="md" paddingRight="md" paddingTop="sm">
           <Text bold>Trace Summary</Text>
           <Flex radius="md" paddingRight="lg" paddingTop="sm" gap="lg">
             <Text size="sm" monospace variant="secondary">
-              Errors: {traceMeta?.errors}, Logs: {traceMeta?.logs}, Spans:{' '}
-              {traceMeta?.span_count}
+              Errors: {errors}, Logs: {logs}, Spans: {spans}, Metrics: {metrics}
             </Text>
           </Flex>
         </Stack>

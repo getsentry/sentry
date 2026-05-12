@@ -100,6 +100,11 @@ export function getTraceMetaLogsCount(meta: MetaArg) {
   return isEAPTraceMeta(meta) ? meta.logsCount : undefined;
 }
 
+export function getTraceMetaMetricsCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? meta.metricsCount : undefined;
+}
+
 export function getTraceMetaTransactionChildCountMap(meta: MetaArg) {
   if (!meta) return;
   return isEAPTraceMeta(meta)
