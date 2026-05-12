@@ -29,7 +29,6 @@ class ScoredCandidate(TriageResult):
 
     fixability: float = 0.0
     times_seen: int = 0
-    severity: float = 0.0
     action: TriageAction = TriageAction.AUTOFIX
 
 
@@ -78,7 +77,6 @@ def fixability_score_strategy(
             group=group,
             fixability=group.seer_fixability_score or 0.0,
             times_seen=group.times_seen,
-            severity=(group.priority or 0) / PriorityLevel.HIGH,
         )
 
         if group.seer_fixability_score is None:

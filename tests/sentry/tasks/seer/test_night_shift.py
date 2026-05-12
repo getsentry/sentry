@@ -803,7 +803,6 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
         assert result[0].group.id == high.id
         assert result[0].fixability == 0.9
         assert result[0].times_seen == 5
-        assert result[0].severity == 1.0
         assert medium.id in result_ids
         assert null.id in result_ids
         # Low-scored issue (below threshold) is excluded entirely
