@@ -558,7 +558,9 @@ class InstallationForm(forms.Form):
     url = forms.CharField(
         label="Installation Url",
         help_text=_(
-            'The "base URL" for your GitHub enterprise instance, includes the host and protocol.'
+            'The "base URL" for your GitHub instance — e.g. https://github.com (for a '
+            "custom GitHub App on github.com), https://acme-corp.ghe.com (GitHub Enterprise "
+            "Cloud), or https://github.example.com (GitHub Enterprise Server)."
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
     )
