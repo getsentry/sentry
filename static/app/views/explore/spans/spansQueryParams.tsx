@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -18,7 +19,6 @@ import {
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
-import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   getIdFromLocation,
@@ -64,7 +64,7 @@ export function getReadableQueryParamsFromLocation(
 ): ReadableQueryParams {
   const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
-  const query = getQueryFromLocation(location, SPANS_QUERY_KEY) ?? '';
+  const query = decodeScalar(location.query?.[SPANS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
   const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
