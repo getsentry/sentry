@@ -22,7 +22,9 @@ function isValidProjectWithOptions(
   );
 }
 
-function isDetailedProject(project?: Project): project is DetailedProject {
+function isDetailedProject(
+  project?: Project | DetailedProject
+): project is DetailedProject {
   return (
     project !== undefined &&
     // Check for properties that are exclusive to DetailedProject
