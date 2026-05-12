@@ -3379,11 +3379,6 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.process-segments.semantic-partitioning",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # TTL in seconds for span deduplication tracking. When > 0, the consumer
 # will use Redis SETNX to detect duplicate spans and emit metrics.
 # Set to 0 to disable.

@@ -153,8 +153,6 @@ def _process_message(
     if not options.get("spans.process-segments.consumer.enable"):
         return []
 
-    use_semantic_partitioning = options.get("spans.process-segments.semantic-partitioning")
-
     assert isinstance(message.value, BrokerValue)
 
     try:
@@ -165,30 +163,20 @@ def _process_message(
             segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
         )
         processed = _check_span_duplicates(processed)
-        return [
-            _serialize_payload(span, message.timestamp, use_semantic_partitioning)
-            for span in processed
-        ]
+        return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
         logger.exception("segments.invalid-message")
         raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _serialize_payload(
-    span: CompatibleSpan, timestamp: datetime | None, use_semantic_partitioning: bool
-) -> Value[KafkaPayload]:
+def _serialize_payload(span: CompatibleSpan, timestamp: datetime | None) -> Value[KafkaPayload]:
     item = convert_span_to_item(span)
-
-    if use_semantic_partitioning:
-        key = f"{span['project_id']}:{span['trace_id']}:{span['span_id']}".encode()
-    else:
-        key = None
 
     return Value(
         KafkaPayload(
-            key=key,
-            value=item.SerializeToString(),
-            headers=[
+            None,
+            item.SerializeToString(),
+            [
                 ("item_type", str(item.item_type).encode("ascii")),
                 ("project_id", str(span["project_id"]).encode("ascii")),
             ],
