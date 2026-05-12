@@ -42,7 +42,7 @@ import {
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
 import {
-  getTargetWithReadableQueryParams,
+  buildLogsTarget,
   LOGS_AGGREGATE_FIELD_KEY,
 } from 'sentry/views/explore/logs/logsQueryParams';
 import {
@@ -537,7 +537,7 @@ export function viewLogsSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return getTargetWithReadableQueryParams(location, {
+  return buildLogsTarget(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
     query: newSearch.formatString(),

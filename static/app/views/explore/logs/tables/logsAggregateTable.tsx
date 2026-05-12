@@ -24,7 +24,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
-import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
+import {buildLogsTarget} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
@@ -127,7 +127,7 @@ export function LogsAggregateTable({
                 canSort
                 direction={direction}
                 generateSortLink={() => {
-                  return getTargetWithReadableQueryParams(location, {
+                  return buildLogsTarget(location, {
                     aggregateSortBys: [
                       {
                         field: column.key,
