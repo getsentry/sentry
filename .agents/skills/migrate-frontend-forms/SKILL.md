@@ -27,6 +27,76 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 | `label`              | `label`             | On layout components                                 |
 | `required`           | `required`          | On layout + Zod schema                               |
 
+## Patterns to Always Follow
+
+These are easy to miss and consistently flagged in review.
+
+### Don't pass generics to `useMutation`
+
+Type the `mutationFn` payload explicitly and let `fetchMutation<TReturn>` carry the return type. Putting generics on `useMutation<TData, TError, TVariables>` is not the pattern used in this codebase.
+
+```tsx
+// ❌ Don't put generics on useMutation
+const mutation = useMutation<CodeOwner, RequestError, [Payload]>({
+  mutationFn: ([payload]) => fetchMutation({url, method: 'POST', data: payload}),
+});
+
+// ✅ Type the payload on mutationFn; let fetchMutation<T> carry the return type
+const mutation = useMutation({
+  mutationFn: (payload: {codeMappingId: string; raw: string}) =>
+    fetchMutation<CodeOwner>({
+      url: `/projects/${org}/${project}/codeowners/`,
+      method: 'POST',
+      data: payload,
+    }),
+});
+```
+
+### Submit through the form, not around it
+
+If a form has a Save button, wire it through `<form.SubmitButton>` and run the mutation in the form's `onSubmit`. Do **not** render `<form.AppForm>` just for layout/validation and trigger the mutation from a standalone `<Button onClick={...}>` — a form that's never actually submitted is an antipattern.
+
+```tsx
+// ❌ Form never gets submitted; mutation fires from a separate button
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  // no onSubmit
+});
+
+return (
+  <form.AppForm form={form}>
+    <form.AppField name="codeMappingId">{...}</form.AppField>
+    <Button onClick={() => mutation.mutate(...)}>Save</Button>
+  </form.AppForm>
+);
+
+// ✅ Mutation runs in onSubmit; submit is form.SubmitButton
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) =>
+    mutation
+      .mutateAsync(schema.parse(value))
+      .then(data => {
+        onSave?.(data);
+        closeModal();
+      })
+      .catch(() => {}),
+});
+
+return (
+  <form.AppForm form={form}>
+    <form.AppField name="codeMappingId">{...}</form.AppField>
+    <form.SubmitButton>Save</form.SubmitButton>
+  </form.AppForm>
+);
+```
+
+The form's submit lifecycle handles validation, pending state, disabled state, and field-error wiring. Bypassing it with a standalone button means re-implementing all of that — and usually missing some.
+
 ## Feature Details
 
 ### confirm → `confirm` prop
@@ -602,6 +672,8 @@ This pattern is necessary whenever a required field has no meaningful initial va
 ## Migration Checklist
 
 - [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
+- [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
+- [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
 - [ ] Convert field config objects to JSX AppField components
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`
