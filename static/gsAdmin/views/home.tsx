@@ -109,7 +109,7 @@ export function HomePage() {
         </Warning>
       </Flex>
       <div>
-        <Container as="label" marginTop="xl">
+        <Container as="label" display="block" marginTop="xl">
           Users
         </Container>
         <DebounceSearch
@@ -136,7 +136,7 @@ export function HomePage() {
           }}
         />
 
-        <Container as="label" marginTop="xl">
+        <Container as="label" display="block" marginTop="xl">
           Organizations
         </Container>
         <DebounceSearch
@@ -153,7 +153,7 @@ export function HomePage() {
           createSuggestionPath={buildOrgPath}
         />
 
-        <Container as="label" marginTop="xl">
+        <Container as="label" display="block" marginTop="xl">
           Projects (by ID)
         </Container>
         <DebounceSearch

@@ -41,7 +41,7 @@ function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) 
         width="100%"
         height="100%"
         position="relative"
-        style={{minHeight}}
+        minHeight={typeof minHeight === 'number' ? `${minHeight}px` : minHeight}
         ref={positionedRef}
       >
         {viewDimensions.width ? (
