@@ -16,9 +16,13 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
   extractReferenceLabels,
+  syncEquationMetricQueries,
   unresolveExpression,
 } from 'sentry/views/explore/metrics/equationBuilder/utils';
-import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
+import {
+  getMetricReferences,
+  useMetricReferences,
+} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {type MetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {
   MAX_METRICS_ALLOWED,
@@ -43,13 +47,18 @@ function computeEquationReferencedLabels(
   const unresolvedText = unresolveExpression(visualize.expression.text, referenceMap);
   return extractReferenceLabels(new Expression(unresolvedText, labelSet));
 }
+
+interface MetricQueryRowsProps {
+  onEquationRemoved: () => void;
+  selectedLabel: string | undefined;
+  setSelectedLabel: (label: string | undefined) => void;
+}
+
 export function MetricQueryRows({
   selectedLabel,
   setSelectedLabel,
-}: {
-  selectedLabel: string | undefined;
-  setSelectedLabel: (label: string | undefined) => void;
-}) {
+  onEquationRemoved,
+}: MetricQueryRowsProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const metricQueries = useMultiMetricsQueryParams();
   const referenceMap = useMetricReferences(metricQueries);
@@ -95,13 +104,6 @@ export function MetricQueryRows({
     ]
   );
 
-  const handleMetricParamsChange = useCallback(
-    (newQueryParams: ReadableQueryParams) => {
-      dispatch({type: BuilderStateAction.SET_QUERY, payload: [newQueryParams.query]});
-    },
-    [dispatch]
-  );
-
   const functionQueries = useMemo(
     () =>
       metricQueries.filter(
@@ -130,6 +132,86 @@ export function MetricQueryRows({
   );
   const isEquationSelected = selectedLabel === equationQuery?.label;
 
+  // When a subcomponent of an equation is changed, we need to update our references so
+  // equations can be updated correctly in response to the changes
+  const handleSubcomponentChanged = useCallback(
+    (changedLabel: string, updatedQueryParams: ReadableQueryParams) => {
+      if (!isEquationSelected) {
+        return;
+      }
+
+      const oldBaseQueries = metricQueries.map(q => ({
+        queryParams: q.queryParams,
+        metric: q.metric,
+        label: q.label,
+      }));
+      const newBaseQueries = oldBaseQueries.map(q =>
+        q.label === changedLabel ? {...q, queryParams: updatedQueryParams} : q
+      );
+
+      const oldRefMap = getMetricReferences(oldBaseQueries);
+      const newRefMap = getMetricReferences(newBaseQueries);
+      const synced = syncEquationMetricQueries(newBaseQueries, oldRefMap, newRefMap);
+
+      const syncedEquation = synced.find(
+        q =>
+          defined(q.queryParams.visualizes[0]) &&
+          isVisualizeEquation(q.queryParams.visualizes[0])
+      );
+      if (syncedEquation) {
+        const yAxis = syncedEquation.queryParams.visualizes[0]?.yAxis;
+        if (yAxis) {
+          dispatchYAxisUpdate(
+            yAxis,
+            currentAggregate,
+            state.displayType,
+            state.fields,
+            dispatch
+          );
+        }
+      }
+    },
+    [
+      metricQueries,
+      isEquationSelected,
+      currentAggregate,
+      state.displayType,
+      state.fields,
+      dispatch,
+    ]
+  );
+
+  function handleRowRemoved(removedLabel: string, isEquation: boolean) {
+    if (!isEquation && removedLabel !== selectedLabel) {
+      return;
+    }
+
+    const fallback = functionQueries.find(q => q.label !== removedLabel);
+    if (fallback) {
+      setSelectedLabel(fallback.label);
+      const yAxis = fallback.queryParams.visualizes[0]?.yAxis;
+      if (yAxis) {
+        dispatchYAxisUpdate(
+          yAxis,
+          currentAggregate,
+          state.displayType,
+          state.fields,
+          dispatch
+        );
+      }
+    }
+
+    if (isEquation) {
+      dispatch({type: BuilderStateAction.SET_QUERY, payload: ['']});
+      onEquationRemoved();
+    } else if (fallback) {
+      dispatch({
+        type: BuilderStateAction.SET_QUERY,
+        payload: [fallback.queryParams.query],
+      });
+    }
+  }
+
   return (
     <Stack gap="lg" flex="1">
       {functionQueries.map(metricQuery => {
@@ -145,7 +227,8 @@ export function MetricQueryRows({
             key={metricQuery.label ?? ''}
             metricQuery={metricQuery}
             isSelected={isSelected}
-            onQueryParamsChange={handleMetricParamsChange}
+            onRemove={() => handleRowRemoved(metricQuery.label ?? '', false)}
+            onSubcomponentChanged={handleSubcomponentChanged}
           >
             <MetricToolbar
               label={metricQuery.label ?? ''}
@@ -161,7 +244,7 @@ export function MetricQueryRows({
         <BuilderStateMetricsQueryParamsProvider
           metricQuery={equationQuery}
           isSelected={isEquationSelected}
-          onQueryParamsChange={handleMetricParamsChange}
+          onRemove={() => handleRowRemoved(equationQuery.label ?? '', true)}
         >
           <MetricToolbar
             label={equationQuery.label ?? ''}
