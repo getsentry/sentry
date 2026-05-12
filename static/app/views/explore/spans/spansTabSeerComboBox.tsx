@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import * as qs from 'query-string';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -243,7 +244,7 @@ export function SpansTabSeerComboBox() {
           yAxes: v.yAxes,
         })) ?? [];
 
-      const url = getExploreUrl({
+      const [pathname, search = ''] = getExploreUrl({
         organization,
         selection,
         query: queryToUse,
@@ -251,7 +252,11 @@ export function SpansTabSeerComboBox() {
         groupBy: groupBys,
         sort,
         mode,
-      });
+      }).split('?');
+      const url = `${pathname}?${qs.stringify(
+        {...qs.parse(search), [AI_QUERY_PARAM]: runId},
+        {skipNull: true}
+      )}`;
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
@@ -268,8 +273,7 @@ export function SpansTabSeerComboBox() {
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
-      const aiParam = runId ? `&${AI_QUERY_PARAM}=${runId}` : '';
-      navigate(url + aiParam, {replace: true, preventScrollReset: true});
+      navigate(url, {replace: true, preventScrollReset: true});
     },
     [
       analyticsArea,

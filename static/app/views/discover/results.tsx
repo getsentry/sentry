@@ -283,6 +283,8 @@ export class Results extends Component<Props, State> {
 
   tagsApi: Client = new Client();
 
+  lastAiQueryRunId: number | null = null;
+
   hasChartParametersChanged(
     prevEventView: EventView,
     eventView: EventView,
@@ -379,7 +381,8 @@ export class Results extends Component<Props, State> {
 
       const aiQueryParam = location.query[AI_QUERY_PARAM];
       const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-      if (aiQueryRunId !== null) {
+      if (aiQueryRunId !== null && aiQueryRunId !== this.lastAiQueryRunId) {
+        this.lastAiQueryRunId = aiQueryRunId;
         trackAiQueryOutcome({
           dataset: 'errors',
           referrer: 'errors',
