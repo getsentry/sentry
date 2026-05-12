@@ -181,6 +181,7 @@ describe('IssueList', () => {
 
       // Should display the initial query in the UI
       expect(await screen.findByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+      expect(getSearchInput()).toHaveFocus();
 
       // Should make a request with the initial query
       await waitFor(() => {
