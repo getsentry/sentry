@@ -51,6 +51,14 @@ export type CreatePlottableForTimeseriesChart<T extends TimeSeries = TimeSeries>
 ) => Plottable | null;
 
 /**
+ * Top edge (in px) of the plot area in chartcuterie's timeseries charts —
+ * matches ``defaults.grid.top``. Threshold plottables anchor "infinite"
+ * mark lines / mark areas to this offset so they land at the top of the
+ * data grid instead of overlapping the legend.
+ */
+const GRID_TOP_OFFSET = 60;
+
+/**
  * Builds the ECharts option for a chartcuterie timeseries chart. Shared
  * between ``SLACK_TIMESERIES`` and ``SLACK_DASHBOARDS_WIDGET``; the only
  * difference between the two is the plottable factory ``createPlottable``,
@@ -60,10 +68,12 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
   theme,
   timeSeries,
   createPlottable,
+  extraPlottables = [],
 }: {
   createPlottable: CreatePlottableForTimeseriesChart<T>;
   theme: Theme;
   timeSeries: T[];
+  extraPlottables?: Plottable[];
 }) {
   const xAxis = XAxis({
     theme,
@@ -146,13 +156,23 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
     return plottable?.toSeries(plottingOptions) ?? [];
   });
 
+  const extraSeries = extraPlottables.flatMap(plottable =>
+    plottable.toSeries({
+      color: '',
+      unit: null,
+      yAxisPosition: 'left',
+      theme,
+      maxOffset: GRID_TOP_OFFSET,
+    })
+  );
+
   return {
     ...defaults,
     yAxis,
     xAxis,
     useUTC: true,
     color,
-    series,
+    series: [...series, ...extraSeries],
   };
 }
 
