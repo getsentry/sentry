@@ -1634,31 +1634,29 @@ def test_array_includes_filter_rejects_invalid_input(query) -> None:
 
 
 @pytest.mark.parametrize(
-    "query,expected",
+    "query,expected_operator,expected_value",
     [
+        pytest.param("stack.colno[*]:>5", ">", 5.0, id="greater_than_numeric_float"),
+        pytest.param("stack.colno[*]:<=0", "<=", 0.0, id="less_than_or_equal_numeric_float"),
+        pytest.param("stack.colno[*]:>=3", ">=", 3.0, id="greater_than_or_equal_numeric_float"),
+        pytest.param("stack.colno[*]:<7", "<", 7.0, id="less_than_numeric_float"),
+        pytest.param("stack.colno[*]:>500k", ">", 500_000.0, id="comparison_with_k_suffix"),
+        pytest.param("!stack.colno[*]:>5", "<=", 5.0, id="negated_greater_than_flips_to_le"),
+        pytest.param("stack.colno[*]:=5", "=", "5", id="equals_numeric_stays_string"),
+        pytest.param("stack.colno[*]:!=5", "!=", "5", id="not_equals_numeric_stays_string"),
+        pytest.param("stack.colno[*]:5", "=", "5", id="no_operator_defaults_to_equals_string"),
         pytest.param(
-            "stack.colno[*]:>5",
-            [
-                SearchFilter(
-                    key=SearchKey(name="stack.colno"),
-                    operator=">",
-                    value=SearchValue("5"),
-                )
-            ],
-            id="greater_than",
-        ),
-        pytest.param(
-            "stack.colno[*]:<=0",
-            [
-                SearchFilter(
-                    key=SearchKey(name="stack.colno"),
-                    operator="<=",
-                    value=SearchValue("0"),
-                )
-            ],
-            id="less_than_or_equal",
+            "frame_filenames[*]:>foo", ">", "foo", id="non_numeric_value_falls_back_to_string"
         ),
     ],
 )
-def test_array_includes_filter_passes_through_comparison_operators(query, expected) -> None:
-    assert parse_search_query(query) == expected
+def test_array_includes_filter_grammar_split(
+    query: str, expected_operator: str, expected_value: float | str
+) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    filter_obj = filters[0]
+    assert isinstance(filter_obj, SearchFilter)
+    assert filter_obj.operator == expected_operator
+    assert filter_obj.value.raw_value == expected_value
+    assert type(filter_obj.value.raw_value) is type(expected_value)

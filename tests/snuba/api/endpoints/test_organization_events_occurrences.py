@@ -517,7 +517,7 @@ class OrganizationEventsOccurrencesArrayQueryTest(
 ):
     callsite_name = "api.events.endpoints"
 
-    def request_with_feature_flag(self, payload: dict) -> Response:
+    def request_with_feature_flag(self, payload: dict, assert_status_code: bool = True) -> Response:
         # Array attributes are behind `organizations:trace-item-details-array-fields`.
         features = {
             "organizations:discover-basic": True,
@@ -527,7 +527,8 @@ class OrganizationEventsOccurrencesArrayQueryTest(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
         ):
             response = self.do_request({**payload, "dataset": "occurrences"}, features=features)
-        assert response.status_code == 200, response.content
+        if assert_status_code:
+            assert response.status_code == 200, response.content
         return response
 
     def _create_occurrence_with_arrays(self, occurrence_count: int = 1) -> tuple[list, list[dict]]:
@@ -713,12 +714,6 @@ class OrganizationEventsOccurrencesArrayQueryTest(
                 f"substring {substring!r} present={is_present}, expected present={must_contain}"
             )
 
-    @pytest.mark.xfail(
-        reason=(
-            "EAP TYPE_ARRAY ComparisonFilter only accepts EQUALS / NOT_EQUALS / LIKE / NOT_LIKE. "
-            "Comparison operators (>, <, >=, <=) are wired through Sentry but rejected by Snuba."
-        ),
-    )
     def test_array_includes_comparison_operators_for_numbers(self) -> None:
         # i=0 colnos: [12, 0]
         # i=1 colnos: [13, 1]
@@ -741,6 +736,35 @@ class OrganizationEventsOccurrencesArrayQueryTest(
             data = response.data.get("data", [])
             assert len(data) == expected_count, (
                 f"{description}: query={query!r} returned {len(data)} rows, expected {expected_count}"
+            )
+
+    def test_array_includes_comparison_operators_rejected_for_non_numeric(self) -> None:
+        # Comparison operators (>, <, >=, <=) should fail on non-numerical value types.
+        self._create_occurrence_with_arrays(occurrence_count=1)
+        cases = [
+            # (description, query)
+            ("string-element array", "stack.filename[*]:>foo"),
+            ("boolean-element array", "stack.in_app[*]:>=true"),
+            ("tag string-element array", "tags[array_tags, array][*]:<bar"),
+        ]
+        for description, query in cases:
+            response = self.request_with_feature_flag(
+                {
+                    "field": ["id"],
+                    "query": query,
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                },
+                assert_status_code=False,
+            )
+            assert response.status_code == 400, (
+                f"{description}: query={query!r} returned status {response.status_code}, "
+                f"expected 400"
+            )
+            detail = response.data.get("detail", "") if hasattr(response, "data") else ""
+            assert "comparison operators" in str(detail), (
+                f"{description}: query={query!r} returned detail={detail!r}, "
+                f"expected message mentioning 'comparison operators'"
             )
 
     def test_array_includes_equality_and_inequality_for_tag_types(self) -> None:

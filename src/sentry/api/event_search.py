@@ -79,6 +79,7 @@ filter = date_filter
        / has_in_filter
        / has_filter
        / is_filter
+       / array_includes_numeric_filter
        / array_includes_filter
        / text_in_filter
        / text_filter
@@ -184,7 +185,8 @@ array_includes_tag_key = explicit_array_tag_key array_includes_suffix
 array_includes_attr_key = (key/ quoted_key) array_includes_suffix
 
 array_includes_key = array_includes_attr_key / array_includes_tag_key
-array_includes_filter = negation? array_includes_key sep wildcard_op? operator? search_value
+array_includes_numeric_filter = negation? array_includes_key sep comparison_operator numeric_value
+array_includes_filter =         negation? array_includes_key sep wildcard_op? operator? search_value
 
 # NOTE: These wildcard operators are internal implementation details and
 # should not be included in product docs. Users should use `*` instead.
@@ -215,6 +217,7 @@ bytes                = ~r"bytes|nb|kb|mb|gb|tb|pb|eb|zb|yb"i
 
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
+comparison_operator  = ">=" / "<=" / ">" / "<"
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
 or_operator          = ~r"OR"i  &end_value
 and_operator         = ~r"AND"i &end_value
@@ -1929,8 +1932,6 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         if not search_value.raw_value:
             raise InvalidSearchQuery(f"Empty value for {search_key.name}[*]")
 
-        if operator_s not in ("=", "!=") and not node.children[5].text:
-            raise InvalidSearchQuery("In Array Queries, only EQUAL/NOT_EQUAL operators are allowed")
         operator_s = handle_negation(negation, operator_s)
 
         if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
@@ -1939,6 +1940,28 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             )
             search_value = search_value._replace(raw_value=wildcard_value)
         return SearchFilter(search_key, operator_s, search_value)
+
+    def visit_comparison_operator(self, node: Node, children: object) -> str:
+        return node.text
+
+    def visit_array_includes_numeric_filter(
+        self,
+        node: Node,
+        children: tuple[
+            Node | tuple[Node],  # ! if present
+            SearchKey,
+            Node,  # :
+            str,  # comparison_operator
+            tuple[str, str],  # numeric_value: (digits, suffix)
+        ],
+    ) -> SearchFilter:
+        (negation, search_key, _, operator, raw_search_value) = children
+        operator_s = handle_negation(negation, operator)
+        try:
+            numeric_value = parse_numeric_value(*raw_search_value)
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(str(exc))
+        return SearchFilter(search_key, operator_s, SearchValue(numeric_value))
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
         return children or node
