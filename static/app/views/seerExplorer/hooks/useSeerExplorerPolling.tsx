@@ -62,13 +62,6 @@ const getPollingState = (
  * `useSeerExplorer` (with mutation state) and `SeerExplorerContextProvider`
  * (without) so the session state is observable globally.
  *
- * Staleness is computed directly from `updated_at` at both the `refetchInterval`
- * callback and the render-side `getPollingState` call, so they can't disagree.
- * A single timer is scheduled to fire at the exact moment the timestamp would
- * cross STALE_TIME_MS — its only job is to force a re-render so the returned
- * `isPolling` / `isTimedOut` reflect the transition (React Query's structural
- * sharing can otherwise suppress re-renders when `updated_at` is unchanged).
- *
  * @param runId - The run ID to poll.
  * @param shouldPollOverride - Useful for passing a state variable to always poll / not poll
  *  when some condition is true, e.g. a mutation is pending. Disables timeout detection.
