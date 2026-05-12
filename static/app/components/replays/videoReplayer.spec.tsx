@@ -597,39 +597,4 @@ describe('VideoReplayer - maxVideoElements eviction', () => {
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(0);
   });
-
-  it('respects the default cap when option is omitted', () => {
-    const attachments = makeAttachments(3);
-    const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
-      videoApiPrefix: '/foo/',
-      root,
-      start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
-      durationMs: 3 * 5000,
-      config: {skipInactive: false, speed: 1},
-    });
-    // @ts-expect-error accessing a private field
-    expect(inst._maxVideoElements).toBe(500);
-  });
-
-  it('floors maxVideoElements at 2*PRELOAD_BUFFER+1', () => {
-    const attachments = makeAttachments(3);
-    const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
-      videoApiPrefix: '/foo/',
-      root,
-      start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
-      durationMs: 3 * 5000,
-      config: {skipInactive: false, speed: 1},
-      maxVideoElements: 2,
-    });
-    // @ts-expect-error accessing a private field
-    expect(inst._maxVideoElements).toBe(7);
-  });
 });

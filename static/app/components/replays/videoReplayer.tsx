@@ -9,8 +9,10 @@ const PRELOAD_BUFFER = 3;
 
 // Cap on simultaneously-attached <video> elements. Long mobile replays can have
 // thousands of segments, and browsers run out of decoder slots / media players
-// well before that. When the cap is hit we evict the least-recently-used video
-// that is outside the active preload window. Tunable via VideoReplayerOptions.
+// well before that — Chrome appears to cap concurrent media elements at around
+// 1,000, after which new <video>s fail to decode. When this cap is hit we evict
+// the least-recently-used video that is outside the active preload window.
+// Tunable via VideoReplayerOptions.
 export const DEFAULT_MAX_VIDEO_ELEMENTS = 500;
 
 interface OffsetOptions {
@@ -246,7 +248,9 @@ export class VideoReplayer {
   }
 
   /**
-   * Bumps a video to the most-recently-used end of `_videos` insertion order.
+   * Bumps a video to the most-recently-used end of `_videos`. JavaScript's
+   * `Map` iterates in insertion order, so deleting and re-setting an entry
+   * is enough to move it to the tail — no separate LRU list needed.
    * No-op if the index is not currently in the pool.
    */
   private touchVideo(index: number): void {
@@ -263,6 +267,9 @@ export class VideoReplayer {
    * resources. Just calling `.remove()` on a <video> doesn't free those — the
    * media element must have its resource detached and `.load()` called to
    * abort the resource-selection algorithm.
+   *
+   * See the HTML spec for `HTMLMediaElement.load()`:
+   * https://html.spec.whatwg.org/multipage/media.html#dom-media-load
    */
   private destroyVideo(index: number): void {
     const el = this._videos.get(index);
@@ -452,7 +459,6 @@ export class VideoReplayer {
       const dictIndex = index + l;
 
       if (this._videos.has(dictIndex)) {
-        // Bump existing entry to most-recently-used.
         this.touchVideo(dictIndex);
         return;
       }
