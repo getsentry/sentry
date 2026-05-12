@@ -981,3 +981,57 @@ class GetHostTest(TestCase):
     def test_returns_none_when_no_host_headers(self) -> None:
         request = self._make_request({})
         assert get_host(request) is None
+
+
+class GitHubComWebhookEndpointTest(APITestCase):
+    """Tests for the dedicated github.com webhook URL."""
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github-enterprise/webhook/github-com/"
+        self.metadata = {
+            "url": "github.com",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+
+    def test_get_returns_405(self) -> None:
+        response = self.client.get(self.url)
+        assert response.status_code == 405
+
+    def test_unknown_installation_returns_400(self) -> None:
+        # Mirrors test_unknown_host_event: no integration registered, no metadata or secret found
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        # Note: no X-GitHub-Enterprise-Host / X-Github-Tenant header sent (github.com doesn't send them)
+        assert response.status_code == 400
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_skips_get_host_uses_github_com(self, mock_installation: MagicMock) -> None:
+        # The github.com endpoint must not call get_host(); it should resolve host="github.com"
+        # directly and look up the integration accordingly.
+        mock_installation.return_value = self.metadata
+        self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        # We don't care about exact status here — only that get_installation_metadata was
+        # called with host="github.com", proving _get_host was bypassed.
+        assert mock_installation.called
+        called_host = (
+            mock_installation.call_args.args[1]
+            if len(mock_installation.call_args.args) >= 2
+            else mock_installation.call_args.kwargs.get("host")
+        )
+        assert called_host == "github.com"

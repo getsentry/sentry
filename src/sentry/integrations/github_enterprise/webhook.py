@@ -139,6 +139,10 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
     _handlers: dict[str, type[GitHubWebhook]] = {}
 
+    def _get_host(self, request: HttpRequest) -> str | None:
+        """Resolve the host this webhook belongs to. Default: header-based (GHES + GHE Cloud)."""
+        return get_host(request)
+
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
@@ -177,7 +181,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         scope = sentry_sdk.get_isolation_scope()
 
         try:
-            host = get_host(request=request)
+            host = self._get_host(request)
             if not host:
                 raise MissingRequiredHeaderError()
         except MissingRequiredHeaderError as e:
@@ -382,4 +386,36 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
 
     @method_decorator(csrf_exempt)
     def post(self, request: HttpRequest) -> HttpResponse:
+        return self._handle(request)
+
+
+@cell_silo_endpoint
+class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
+    owner = ApiOwner.ECOSYSTEM
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    _handlers = {
+        "push": GitHubEnterprisePushEventWebhook,
+        "pull_request": GitHubEnterprisePullRequestEventWebhook,
+        "installation": GitHubEnterpriseInstallationEventWebhook,
+        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
+        "issues": GitHubEnterpriseIssuesEventWebhook,
+    }
+
+    def _get_host(self, request: HttpRequest) -> str:
+        return "github.com"
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        if request.method != "POST":
+            return HttpResponse(status=405)
+        return super().dispatch(request, *args, **kwargs)
+
+    @method_decorator(csrf_exempt)
+    def post(self, request: HttpRequest) -> HttpResponse:
+        metrics.incr(
+            "integrations.github_enterprise.webhook.routed",
+            tags={"variant": "github_com"},
+        )
         return self._handle(request)
