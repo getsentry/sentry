@@ -17,10 +17,8 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
-import {
-  AI_QUERY_PARAM,
-  trackAiQueryOutcome,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -171,6 +169,7 @@ function IssueListOverviewInner({
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
   const lastAiQueryRunIdRef = useRef<number | null>(null);
+  const {runId: aiQueryRunId} = useAiQueryRunId();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -465,8 +464,6 @@ function IssueListOverviewInner({
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
         // AI query analytics
-        const aiQueryParam = location.query[AI_QUERY_PARAM];
-        const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
         if (aiQueryRunId !== null && aiQueryRunId !== lastAiQueryRunIdRef.current) {
           lastAiQueryRunIdRef.current = aiQueryRunId;
           trackAiQueryOutcome({
@@ -520,6 +517,7 @@ function IssueListOverviewInner({
     location.query,
     query,
     resumePolling,
+    aiQueryRunId,
   ]);
 
   useDisableRouteAnalytics(issuesLoading);
@@ -644,7 +642,7 @@ function IssueListOverviewInner({
 
   const transitionTo = (newParams: Partial<EndpointParams> = {}) => {
     const queryData = {
-      ...omit(location.query, ['page', 'cursor', AI_QUERY_PARAM]),
+      ...omit(location.query, ['page', 'cursor']),
       referrer: 'issue-list',
       ...getEndpointParams(),
       ...newParams,

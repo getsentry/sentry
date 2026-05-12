@@ -1,12 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -76,6 +75,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const location = useLocation();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
+  const {setRunId} = useAiQueryRunId();
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();
@@ -293,6 +293,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         visualize_count: visualizations?.length ?? 0,
       });
 
+      if (runId) {
+        setRunId(runId);
+      }
+
       // Single navigate with both metric params and datetime
       // (Previously, setQueryParams and navigate were called separately,
       // causing the second navigate to overwrite the first with stale location)
@@ -300,13 +304,12 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         {
           ...location,
           query: {
-            ...omit(location.query, [AI_QUERY_PARAM]),
+            ...location.query,
             metric: newEncodedMetrics,
             start: selection.datetime.start,
             end: selection.datetime.end,
             statsPeriod: selection.datetime.period,
             utc: selection.datetime.utc,
-            ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
           },
         },
         {replace: true, preventScrollReset: true}
@@ -321,6 +324,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       organization,
       pageFilters.selection,
       queryParams,
+      setRunId,
     ]
   );
 

@@ -1,8 +1,6 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {defined} from 'sentry/utils';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
@@ -57,7 +55,7 @@ export function MultiMetricsQueryParamsProvider({
 
   const setQueries = useCallback(
     (nextQueries: BaseMetricQuery[]) => {
-      const target = {...location, query: {...omit(location.query, [AI_QUERY_PARAM])}};
+      const target = {...location, query: {...location.query}};
       target.query.metric = encodeMetricQueries(nextQueries);
       navigate(target);
     },

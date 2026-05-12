@@ -1,11 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -58,6 +57,7 @@ export function LogsTabSeerComboBox() {
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryRunId();
   const {
     currentInputValueRef,
     query,
@@ -226,7 +226,7 @@ export function LogsTabSeerComboBox() {
       // Build complete URL with all params (query, mode, aggregateFields, datetime)
       // This matches the Trace Explorer pattern of single navigation
       const newQuery = {
-        ...omit(location.query, [AI_QUERY_PARAM]),
+        ...location.query,
         [LOGS_QUERY_KEY]: queryToUse,
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
@@ -235,7 +235,6 @@ export function LogsTabSeerComboBox() {
         end: selection.datetime.end,
         statsPeriod: selection.datetime.period,
         utc: selection.datetime.utc,
-        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -252,6 +251,10 @@ export function LogsTabSeerComboBox() {
         group_by_count: groupBys.length,
       });
 
+      if (runId) {
+        setRunId(runId);
+      }
+
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
@@ -263,6 +266,7 @@ export function LogsTabSeerComboBox() {
       organization,
       pageFilters.selection,
       queryParams.aggregateFields,
+      setRunId,
     ]
   );
 

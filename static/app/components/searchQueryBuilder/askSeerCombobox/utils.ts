@@ -7,8 +7,6 @@ import type {
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 
-export const AI_QUERY_PARAM = 'aiQueryRunId';
-
 export function trackAiQueryOutcome({
   dataset,
   referrer,

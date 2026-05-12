@@ -39,9 +39,10 @@ import {
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
-  AI_QUERY_PARAM,
-  trackAiQueryOutcome,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+  AiQueryRunIdProvider,
+  useAiQueryRunId,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -112,6 +113,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
+  aiQueryRunId: number | null;
   api: Client;
   loading: boolean;
   location: Location;
@@ -364,7 +366,7 @@ export class Results extends Component<Props, State> {
   };
 
   async fetchTotalCount() {
-    const {api, organization, location} = this.props;
+    const {api, organization, location, aiQueryRunId} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
     if (!confirmedQuery || !eventView.isValid()) {
@@ -379,8 +381,6 @@ export class Results extends Component<Props, State> {
       );
       this.setState({totalValues: totals});
 
-      const aiQueryParam = location.query[AI_QUERY_PARAM];
-      const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
       if (aiQueryRunId !== null && aiQueryRunId !== this.lastAiQueryRunId) {
         this.lastAiQueryRunId = aiQueryRunId;
         trackAiQueryOutcome({
@@ -477,7 +477,7 @@ export class Results extends Component<Props, State> {
     });
 
     // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, ['cursor', AI_QUERY_PARAM]);
+    const searchQueryParams = omit(queryParams, 'cursor');
 
     navigate({
       pathname: location.pathname,
@@ -1438,9 +1438,12 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
+function SavedQueryAPI(
+  props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery' | 'aiQueryRunId'>
+) {
   const queryClient = useQueryClient();
   const {organization, location} = props;
+  const {runId: aiQueryRunId} = useAiQueryRunId();
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
@@ -1480,6 +1483,7 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   return (
     <Results
       {...props}
+      aiQueryRunId={aiQueryRunId}
       savedQuery={
         hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
       }
@@ -1517,13 +1521,15 @@ export default function ResultsContainer() {
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <SavedQueryAPI
-        api={api}
-        organization={organization}
-        selection={selection}
-        location={location}
-        navigate={navigate}
-      />
+      <AiQueryRunIdProvider>
+        <SavedQueryAPI
+          api={api}
+          organization={organization}
+          selection={selection}
+          location={location}
+          navigate={navigate}
+        />
+      </AiQueryRunIdProvider>
     </PageFiltersContainer>
   );
 }

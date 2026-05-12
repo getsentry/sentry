@@ -1,7 +1,5 @@
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -113,7 +111,7 @@ export function getTargetWithReadableQueryParams(
 ): Location {
   const target: Location = {
     ...location,
-    query: {...omit(location.query, [AI_QUERY_PARAM])},
+    query: {...location.query},
   };
 
   updateNullableLocation(

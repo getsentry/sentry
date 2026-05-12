@@ -7,6 +7,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {AiQueryRunIdProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -60,20 +61,22 @@ export default function MetricsContent() {
         }
       >
         <AnalyticsArea name="explore.metrics">
-          <Stack flex={1}>
-            <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
-              <MetricsHeader />
-              {defined(onboardingProject) ? (
-                <MetricsTabOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                  datePageFilterProps={datePageFilterProps}
-                />
-              ) : (
-                <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-              )}
-            </MultiMetricsQueryParamsProvider>
-          </Stack>
+          <AiQueryRunIdProvider>
+            <Stack flex={1}>
+              <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
+                <MetricsHeader />
+                {defined(onboardingProject) ? (
+                  <MetricsTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    datePageFilterProps={datePageFilterProps}
+                  />
+                ) : (
+                  <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+                )}
+              </MultiMetricsQueryParamsProvider>
+            </Stack>
+          </AiQueryRunIdProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>

@@ -1,21 +1,16 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {
-  AI_QUERY_PARAM,
-  trackAiQueryOutcome,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {useAiQueryAnalytics} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAiQueryAnalytics';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -121,8 +116,6 @@ function Graph({
   const userQuery = useQueryParamsQuery();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const traceMetric = useTraceMetric();
-  const location = useLocation();
-  const organization = useOrganization();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
     enabled:
@@ -134,24 +127,11 @@ function Graph({
     normalModeExtrapolated: true,
   });
 
-  const aiQueryParam = location.query[AI_QUERY_PARAM];
-  const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-  const aiQueryRunIdRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (rawMetricCounts.total.count === null) {
-      return;
-    }
-    if (aiQueryRunId !== null && aiQueryRunIdRef.current !== aiQueryRunId) {
-      aiQueryRunIdRef.current = aiQueryRunId;
-      trackAiQueryOutcome({
-        dataset: 'tracemetrics',
-        referrer: 'tracemetrics',
-        resultCount: rawMetricCounts.total.count,
-        orgSlug: organization.slug,
-        runId: aiQueryRunId,
-      });
-    }
-  }, [aiQueryParam, aiQueryRunId, organization.slug, rawMetricCounts.total.count]);
+  useAiQueryAnalytics({
+    dataset: 'tracemetrics',
+    referrer: 'tracemetrics',
+    rawCounts: rawMetricCounts,
+  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);

@@ -1,12 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
@@ -46,6 +45,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryRunId();
   const {
     currentInputValueRef,
     query,
@@ -246,7 +246,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
       // Build the new query params
       const newQueryParams: Record<string, string | string[] | null | undefined> = {
-        ...omit(location.query, [AI_QUERY_PARAM]),
+        ...location.query,
         query: queryToUse,
       };
 
@@ -280,9 +280,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.end = undefined;
       }
 
-      // Ensure aiQueryRunId appears last in the URL
       if (runId) {
-        newQueryParams[AI_QUERY_PARAM] = String(runId);
+        setRunId(runId);
       }
 
       // Navigate with all params
@@ -299,6 +298,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       onSearch,
       pageFilters.selection.datetime,
       organization,
+      setRunId,
     ]
   );
 

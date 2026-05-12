@@ -14,10 +14,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {
-  AI_QUERY_PARAM,
-  trackAiQueryOutcome,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {useAiQueryAnalytics} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAiQueryAnalytics';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -30,7 +27,6 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -266,7 +262,6 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
   const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
-  const organization = useOrganization();
   const searchQuery = useQueryParamsSearch().formatString();
   const visualizes = useQueryParamsVisualizes();
 
@@ -302,25 +297,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
 
   const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
 
-  const location = useLocation();
-  const aiQueryParam = location.query[AI_QUERY_PARAM];
-  const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-  const aiQueryRunIdRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (rawLogCounts.total.count === null) {
-      return;
-    }
-    if (aiQueryRunId !== null && aiQueryRunIdRef.current !== aiQueryRunId) {
-      aiQueryRunIdRef.current = aiQueryRunId;
-      trackAiQueryOutcome({
-        dataset: 'logs',
-        referrer: 'logs',
-        resultCount: rawLogCounts.total.count,
-        orgSlug: organization.slug,
-        runId: aiQueryRunId,
-      });
-    }
-  }, [aiQueryParam, aiQueryRunId, organization.slug, rawLogCounts.total.count]);
+  useAiQueryAnalytics({dataset: 'logs', referrer: 'logs', rawCounts: rawLogCounts});
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));

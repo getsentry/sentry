@@ -4,8 +4,8 @@ import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
@@ -48,6 +48,7 @@ export function IssueListSeerComboBox() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const {setRunId} = useAiQueryRunId();
   const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
@@ -216,13 +217,16 @@ export function IssueListSeerComboBox() {
       }
 
       const queryParams = {
-        ...omit(location.query, ['page', 'cursor', AI_QUERY_PARAM]),
+        ...omit(location.query, ['page', 'cursor']),
         referrer: 'issue-list',
         query: queryToUse,
         ...(sort ? {sort} : {}),
         ...timeParams,
-        ...(runId ? {[AI_QUERY_PARAM]: String(runId)} : {}),
       };
+
+      if (runId) {
+        setRunId(runId);
+      }
 
       navigate(
         {
@@ -239,6 +243,7 @@ export function IssueListSeerComboBox() {
       location.query,
       navigate,
       organization,
+      setRunId,
     ]
   );
 

@@ -1,12 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import * as qs from 'query-string';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {AI_QUERY_PARAM} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -78,6 +77,7 @@ export function SpansTabSeerComboBox() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryRunId();
   const {
     currentInputValueRef,
     query,
@@ -244,7 +244,7 @@ export function SpansTabSeerComboBox() {
           yAxes: v.yAxes,
         })) ?? [];
 
-      const [pathname, search = ''] = getExploreUrl({
+      const url = getExploreUrl({
         organization,
         selection,
         query: queryToUse,
@@ -252,11 +252,7 @@ export function SpansTabSeerComboBox() {
         groupBy: groupBys,
         sort,
         mode,
-      }).split('?');
-      const url = `${pathname}?${qs.stringify(
-        {...qs.parse(search), [AI_QUERY_PARAM]: runId},
-        {skipNull: true}
-      )}`;
+      });
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
@@ -273,6 +269,9 @@ export function SpansTabSeerComboBox() {
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
+      if (runId) {
+        setRunId(runId);
+      }
       navigate(url, {replace: true, preventScrollReset: true});
     },
     [
@@ -281,6 +280,7 @@ export function SpansTabSeerComboBox() {
       navigate,
       organization,
       pageFilters.selection,
+      setRunId,
     ]
   );
 
