@@ -188,9 +188,17 @@ def create_issue_occurrence_from_detection(
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
     transaction_name = normalize_description(detected_issue.transaction_name)
-    transaction_slug = transaction_name.strip().lower().replace(" ", "-")
 
-    fingerprint = [f"1-{group_type.type_id}-{transaction_slug}"]
+    use_group_fingerprint = features.has(
+        "organizations:llm-detection-use-group-fingerprint", project.organization
+    )
+    if use_group_fingerprint and (
+        group_for_fingerprint := detected_issue.group_for_fingerprint.strip()
+    ):
+        fingerprint_key = group_for_fingerprint.lower().replace(" ", "-")
+    else:
+        fingerprint_key = transaction_name.strip().lower().replace(" ", "-")
+    fingerprint = [f"1-{group_type.type_id}-{fingerprint_key}"]
 
     evidence_data = {
         "trace_id": trace_id,
