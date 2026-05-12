@@ -1,10 +1,10 @@
-from typing import Any
-
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 # Hardcoded values from sentry.hybridcloud.outbox.category at the time this
 # migration was authored. Pinned as integers so a future enum/scope rename
@@ -36,24 +36,22 @@ def backfill_organization_mapping_date_created(
     Organization = apps.get_model("sentry", "Organization")
     CellOutbox = apps.get_model("sentry", "CellOutbox")
 
-    batch: list[Any] = []
-    for org_id in Organization.objects.values_list("id", flat=True).iterator(
-        chunk_size=_BATCH_SIZE
+    for chunk in chunked(
+        RangeQuerySetWrapperWithProgressBarApprox(
+            Organization.objects.values_list("id"),
+            result_value_getter=lambda item: item[0],
+        ),
+        _BATCH_SIZE,
     ):
-        batch.append(
+        CellOutbox.objects.bulk_create(
             CellOutbox(
                 shard_scope=_ORGANIZATION_SCOPE,
                 shard_identifier=org_id,
                 category=_ORGANIZATION_UPDATE,
                 object_identifier=org_id,
             )
+            for (org_id,) in chunk
         )
-        if len(batch) >= _BATCH_SIZE:
-            CellOutbox.objects.bulk_create(batch)
-            batch = []
-
-    if batch:
-        CellOutbox.objects.bulk_create(batch)
 
 
 class Migration(CheckedMigration):
