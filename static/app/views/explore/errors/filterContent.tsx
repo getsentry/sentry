@@ -32,6 +32,7 @@ export function ErrorsFilterSection() {
           </StyledPageFilterBar>
 
           <TraceItemSearchQueryBuilder
+            autoFocus
             initialQuery=""
             searchSource="errors-filter"
             booleanAttributes={{}}

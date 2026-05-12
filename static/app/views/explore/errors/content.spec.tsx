@@ -70,6 +70,7 @@ describe('ErrorsContent', () => {
     expect(
       await screen.findByRole('combobox', {name: /add a search term/i})
     ).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: /add a search term/i})).toHaveFocus();
   });
 });
 

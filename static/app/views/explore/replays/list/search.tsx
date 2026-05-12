@@ -17,6 +17,7 @@ export function ReplaysSearch() {
   return (
     <SearchContainer>
       <ReplaySearchBar
+        autoFocus
         organization={organization}
         pageFilters={selection}
         initialQuery=""

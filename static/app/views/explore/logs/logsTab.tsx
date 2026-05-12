@@ -116,7 +116,7 @@ function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) 
     return <LogsTabSeerComboBox />;
   }
 
-  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
+  return <TraceItemSearchQueryBuilder autoFocus {...tracesItemSearchQueryBuilderProps} />;
 }
 
 interface LogsSearchSectionProps {
