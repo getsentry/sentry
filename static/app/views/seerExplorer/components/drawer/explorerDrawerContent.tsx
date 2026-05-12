@@ -76,6 +76,9 @@ export function ExplorerDrawerContent({
   } = useSeerExplorer();
 
   const clearInput = () => setInputValue('');
+  const handleStartNewSession = () => startNewSession({onSuccess: clearInput});
+  const handleSwitchToRun = (newRunId: number | null) =>
+    switchToRun(newRunId, {onSuccess: clearInput});
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -204,13 +207,13 @@ export function ExplorerDrawerContent({
 
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
-    clearInput: () => setInputValue(''),
+    clearInput,
     inputValue,
     focusInput,
     textAreaRef: textareaRef,
     panelSize: 'max',
     slashCommandHandlers: {
-      onNew: () => startNewSession({onSuccess: clearInput}),
+      onNew: handleStartNewSession,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
@@ -319,9 +322,7 @@ export function ExplorerDrawerContent({
   }, [blocks]);
 
   // Deep link effect
-  useSeerExplorerDeepLink({
-    callback: newRunId => switchToRun(newRunId, {onSuccess: clearInput}),
-  });
+  useSeerExplorerDeepLink({callback: handleSwitchToRun});
 
   // Interrupt button and placeholder state
   const interruptState =
@@ -338,10 +339,10 @@ export function ExplorerDrawerContent({
       <ExplorerDrawerHeader
         disableNewChatButton={runId === null}
         onNewChatClick={() => {
-          startNewSession({onSuccess: clearInput});
+          handleStartNewSession();
           focusInput();
         }}
-        onChangeSession={newRunId => switchToRun(newRunId, {onSuccess: clearInput})}
+        onChangeSession={handleSwitchToRun}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
