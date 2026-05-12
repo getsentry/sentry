@@ -1,7 +1,11 @@
 import type {ReactNode} from 'react';
 
-import type {MarkedToken, Token, Tokens} from 'sentry/utils/marked/marked';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Separator} from '@sentry/scraps/separator';
+
+import type {MarkedToken, Token as TokenType} from 'sentry/utils/marked/marked';
 import {sanitizeHtml} from 'sentry/utils/marked/marked';
+import {unreachable} from 'sentry/utils/unreachable';
 
 import {
   DefaultBlockquote,
@@ -14,12 +18,12 @@ import {
 } from './defaultComponents';
 import type {MarkdownComponents} from './markdown';
 
-function hasInlineHtml(tokens: Token[]): boolean {
+function hasInlineHtml(tokens: TokenType[]): boolean {
   return tokens.some(t => t.type === 'html');
 }
 
 function renderInline(
-  tokens: Token[] | undefined,
+  tokens: TokenType[] | undefined,
   components: MarkdownComponents
 ): ReactNode {
   if (!tokens) {
@@ -33,27 +37,31 @@ function renderInline(
     const sanitized = sanitizeHtml(raw);
     return <span dangerouslySetInnerHTML={{__html: sanitized}} />;
   }
-  return tokens.map((token, i) => renderToken(token as MarkedToken, components, i));
+  return tokens.map((token, i) => (
+    <Token token={token as MarkedToken} key={i} components={components} />
+  ));
 }
 
-export function renderToken(
-  token: MarkedToken,
-  components: MarkdownComponents,
-  key: number
-): ReactNode {
+export function Token({
+  components,
+  token,
+}: {
+  components: MarkdownComponents;
+  token: MarkedToken;
+}): ReactNode {
   switch (token.type) {
     case 'space':
       return null;
 
     case 'paragraph': {
       const P = components.Paragraph ?? DefaultParagraph;
-      return <P key={key}>{renderInline(token.tokens, components)}</P>;
+      return <P>{renderInline(token.tokens, components)}</P>;
     }
 
     case 'heading': {
       const H = components.Heading ?? DefaultHeading;
       return (
-        <H key={key} level={token.depth as 1 | 2 | 3 | 4 | 5 | 6}>
+        <H level={token.depth as 1 | 2 | 3 | 4 | 5 | 6}>
           {renderInline(token.tokens, components)}
         </H>
       );
@@ -61,39 +69,40 @@ export function renderToken(
 
     case 'code': {
       const Code = components.CodeBlock ?? DefaultCodeBlock;
-      return (
-        <Code key={key} lang={token.lang ?? undefined}>
-          {token.text}
-        </Code>
-      );
+      return <Code lang={token.lang ?? undefined}>{token.text}</Code>;
     }
 
     case 'codespan': {
       const Code = components.InlineCode ?? DefaultInlineCode;
-      return <Code key={key}>{token.text}</Code>;
+      return <Code>{token.text}</Code>;
     }
 
     case 'blockquote': {
       const Blockquote = components.Blockquote ?? DefaultBlockquote;
-      return <Blockquote key={key}>{renderInline(token.tokens, components)}</Blockquote>;
+      return <Blockquote>{renderInline(token.tokens, components)}</Blockquote>;
     }
 
     case 'list': {
-      if (token.ordered) {
-        const Ol = components.OrderedList ?? 'ol';
-        return (
-          <Ol key={key}>
-            {token.items.map((item, i) => renderListItem(item, components, i))}
-          </Ol>
-        );
-      }
-      const Ul = components.UnorderedList ?? 'ul';
+      const List = token.ordered
+        ? (components.OrderedList ?? 'ol')
+        : (components.UnorderedList ?? 'ul');
       return (
-        <Ul key={key}>
-          {token.items.map((item, i) => renderListItem(item, components, i))}
-        </Ul>
+        <List>
+          {token.items.map((item, i) => (
+            <Token key={i} token={item} components={components} />
+          ))}
+        </List>
       );
     }
+
+    case 'list_item': {
+      const Li = components.ListItem ?? 'li';
+      const checked = token.task ? token.checked : undefined;
+      return <Li checked={checked}>{renderInline(token.tokens, components)}</Li>;
+    }
+
+    case 'checkbox':
+      return <Checkbox checked={token.checked} disabled />;
 
     case 'table': {
       const TableComp = components.Table ?? 'table';
@@ -104,7 +113,7 @@ export function renderToken(
       const Td = components.TableCell ?? 'td';
 
       return (
-        <TableComp key={key}>
+        <TableComp>
           <Thead>
             <Tr>
               {token.header.map((cell, i) => (
@@ -130,34 +139,34 @@ export function renderToken(
     }
 
     case 'hr': {
-      const Hr = components.HorizontalRule ?? 'hr';
-      return <Hr key={key} />;
+      const Hr = components.HorizontalRule ?? Separator;
+      return <Hr orientation="horizontal" />;
     }
 
     case 'html': {
       const Html = components.Html ?? DefaultHtmlBlock;
-      return <Html key={key} html={token.text} />;
+      return <Html html={token.text} />;
     }
 
     case 'strong': {
       const Strong = components.Strong ?? 'strong';
-      return <Strong key={key}>{renderInline(token.tokens, components)}</Strong>;
+      return <Strong>{renderInline(token.tokens, components)}</Strong>;
     }
 
     case 'em': {
       const Em = components.Emphasis ?? 'em';
-      return <Em key={key}>{renderInline(token.tokens, components)}</Em>;
+      return <Em>{renderInline(token.tokens, components)}</Em>;
     }
 
     case 'del': {
       const Del = components.Strikethrough ?? 'del';
-      return <Del key={key}>{renderInline(token.tokens, components)}</Del>;
+      return <Del>{renderInline(token.tokens, components)}</Del>;
     }
 
     case 'link': {
       const A = components.Link ?? DefaultLink;
       return (
-        <A key={key} href={token.href} title={token.title}>
+        <A href={token.href} title={token.title}>
           {renderInline(token.tokens, components)}
         </A>
       );
@@ -168,7 +177,7 @@ export function renderToken(
       if (!Img) {
         return null;
       }
-      return <Img key={key} src={token.href} alt={token.text} title={token.title} />;
+      return <Img src={token.href} alt={token.text} title={token.title} />;
     }
 
     case 'text': {
@@ -177,36 +186,24 @@ export function renderToken(
       }
       const TextComponent = components.Text;
       if (TextComponent) {
-        return <TextComponent key={key}>{token.text}</TextComponent>;
+        return <TextComponent>{token.text}</TextComponent>;
       }
       return token.text;
     }
 
-    case 'escape': {
+    case 'escape':
       return token.text;
-    }
 
     case 'br': {
       const Br = components.LineBreak ?? 'br';
-      return <Br key={key} />;
+      return <Br />;
     }
 
+    case 'def':
+      return null;
+
     default:
+      unreachable(token);
       return null;
   }
-}
-
-function renderListItem(
-  item: Tokens.ListItem,
-  components: MarkdownComponents,
-  key: number
-): ReactNode {
-  const Li = components.ListItem ?? 'li';
-  const checked = item.task ? item.checked : undefined;
-
-  return (
-    <Li key={key} checked={checked}>
-      {renderInline(item.tokens, components)}
-    </Li>
-  );
 }

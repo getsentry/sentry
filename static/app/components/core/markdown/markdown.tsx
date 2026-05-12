@@ -8,7 +8,7 @@ import {Stack} from '@sentry/scraps/layout';
 import type {MarkedToken} from 'sentry/utils/marked/marked';
 import {MarkedLexer} from 'sentry/utils/marked/marked';
 
-import {renderToken} from './renderToken';
+import {Token} from './token';
 
 export type MarkdownComponents = Partial<{
   Blockquote: ComponentType<{children: ReactNode}>;
@@ -72,14 +72,12 @@ function StaticMarkdown({
   const elements: ReactNode[] = [];
 
   for (const [i, token] of tokens.entries()) {
-    const cached = tokenCache.current.get(token.raw);
-    if (cached === undefined) {
-      const el = renderToken(token as MarkedToken, components, i);
+    let el = tokenCache.current.get(token.raw);
+    if (el === undefined) {
+      el = <Token token={token as MarkedToken} components={components} />;
       tokenCache.current.set(token.raw, el);
-      elements.push(el);
-    } else {
-      elements.push(cached);
     }
+    elements.push(<React.Fragment key={i}>{el}</React.Fragment>);
   }
 
   // Evict stale cache entries
