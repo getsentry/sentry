@@ -11,6 +11,7 @@ interface SortableMetricPanelProps {
   queryLabel: string;
   sortableId: string;
   traceMetric: TraceMetric;
+  autoFocusMetricSelector?: boolean;
   onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
   referenceMap?: Record<string, string>;
   referencedMetricLabels?: Set<string>;
@@ -21,6 +22,7 @@ export function SortableMetricPanel({
   traceMetric,
   queryIndex,
   queryLabel,
+  autoFocusMetricSelector,
   referenceMap,
   referencedMetricLabels,
   onEquationLabelsChange,
@@ -40,6 +42,7 @@ export function SortableMetricPanel({
         opacity: isDragging ? 0.5 : undefined,
       }}
       traceMetric={traceMetric}
+      autoFocusMetricSelector={autoFocusMetricSelector}
       queryIndex={queryIndex}
       queryLabel={queryLabel}
       referenceMap={referenceMap}

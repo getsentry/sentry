@@ -149,6 +149,7 @@ function MetricsTabBodySection({
       <Stack>
         <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
           <SortableMetricPanelSection
+            autoFocusFirstMetricSelector
             dataTestId="aggregate-metric-panels"
             sortableQueries={aggregateMetricQueries}
             referenceMap={referenceMap}
@@ -186,9 +187,11 @@ interface SortableMetricPanelSectionProps {
   referenceMap: Record<string, string>;
   referencedMetricLabels: Set<string>;
   sortableQueries: ReturnType<typeof useSortableMetricQueries>;
+  autoFocusFirstMetricSelector?: boolean;
 }
 
 function SortableMetricPanelSection({
+  autoFocusFirstMetricSelector,
   dataTestId,
   referencedMetricLabels,
   onEquationLabelsChange,
@@ -212,7 +215,7 @@ function SortableMetricPanelSection({
         onDragCancel={onDragCancel}
       >
         <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
-          {sortableItems.map(({id, metricQuery, index}) => {
+          {sortableItems.map(({id, metricQuery, index}, sectionIndex) => {
             return (
               <MetricsQueryParamsProvider
                 key={id}
@@ -223,6 +226,9 @@ function SortableMetricPanelSection({
                 removeMetric={metricQuery.removeMetric}
               >
                 <SortableMetricPanel
+                  autoFocusMetricSelector={
+                    autoFocusFirstMetricSelector && sectionIndex === 0
+                  }
                   referencedMetricLabels={referencedMetricLabels}
                   onEquationLabelsChange={onEquationLabelsChange}
                   sortableId={id}

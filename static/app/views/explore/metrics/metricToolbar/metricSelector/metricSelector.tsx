@@ -82,12 +82,14 @@ function MetricOptionTrailingItems({
 export function MetricSelector({
   traceMetric,
   onChange,
+  autoFocus,
   projectIds,
   environments,
   usePortal,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  autoFocus?: boolean;
   environments?: string[];
   projectIds?: number[];
   usePortal?: boolean;
@@ -328,6 +330,18 @@ export function MetricSelector({
       }
     },
   });
+
+  const hasAutoFocused = useRef(false);
+  useEffect(() => {
+    if (!autoFocus || hasAutoFocused.current || (isFetching && !traceMetric.name)) {
+      return;
+    }
+
+    if (triggerRef.current) {
+      triggerRef.current.focus({focusVisible: true, preventScroll: true});
+      hasAutoFocused.current = true;
+    }
+  }, [autoFocus, isFetching, traceMetric.name, triggerRef]);
 
   const {inputProps: comboBoxInputProps, listBoxProps} =
     useComboBox<MetricSelectorOption>(
