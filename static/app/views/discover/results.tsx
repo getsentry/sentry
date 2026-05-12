@@ -113,7 +113,6 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
-  aiQueryRunId: number | null;
   api: Client;
   loading: boolean;
   location: Location;
@@ -121,6 +120,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
+  aiQueryRunId?: number | null;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -381,7 +381,11 @@ export class Results extends Component<Props, State> {
       );
       this.setState({totalValues: totals});
 
-      if (aiQueryRunId !== null && aiQueryRunId !== this.lastAiQueryRunId) {
+      if (
+        aiQueryRunId !== undefined &&
+        aiQueryRunId !== null &&
+        aiQueryRunId !== this.lastAiQueryRunId
+      ) {
         this.lastAiQueryRunId = aiQueryRunId;
         trackAiQueryOutcome({
           dataset: 'errors',
@@ -1438,9 +1442,7 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-function SavedQueryAPI(
-  props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery' | 'aiQueryRunId'>
-) {
+function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
   const queryClient = useQueryClient();
   const {organization, location} = props;
   const {runId: aiQueryRunId} = useAiQueryContext();
