@@ -10,7 +10,6 @@ import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -26,7 +25,6 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
 type TraceMetricsTableResponse = EventsTableData;
@@ -54,10 +52,6 @@ export function useTraceMetricsSeriesQuery(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
   );
 
   const queryResults = useQueries({
@@ -128,27 +122,16 @@ export function useTraceMetricsSeriesQuery(
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
-        queryFn: (context): Promise<ApiResponse<TraceMetricsSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TraceMetricsSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<TraceMetricsSeriesResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<TraceMetricsSeriesResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<TraceMetricsSeriesResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         placeholderData: keepPreviousData,
       });
     }),
@@ -264,10 +247,6 @@ export function useTraceMetricsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
@@ -299,27 +278,16 @@ export function useTraceMetricsTableQuery(
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
-        queryFn: (context): Promise<ApiResponse<TraceMetricsTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TraceMetricsTableResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<TraceMetricsTableResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<TraceMetricsTableResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<TraceMetricsTableResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         select: selectJsonWithHeaders,
       });
     }),

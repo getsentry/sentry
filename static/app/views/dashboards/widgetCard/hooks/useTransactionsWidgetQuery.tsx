@@ -22,7 +22,6 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
@@ -35,7 +34,6 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TransactionsSeriesResponse =
   | EventsStats
@@ -81,11 +79,6 @@ export function useTransactionsSeriesQuery(
     organization,
     filteredWidget,
     onDemandControlContext
-  );
-
-  // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
   );
 
   const queryResults = useQueries({
@@ -165,51 +158,31 @@ export function useTransactionsSeriesQuery(
               headers: {},
             });
 
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    doOnDemandMetricsRequest(
-                      context.meta?.api,
-                      onDemandRequestData,
-                      filteredWidget.widgetType
-                    )
-                      .then(toApiResponse)
-                      .then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-
-            return doOnDemandMetricsRequest(
-              context.meta?.api,
-              onDemandRequestData,
-              filteredWidget.widgetType
-            ).then(toApiResponse);
-          }
-
-          // Standard request flow
-          if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
                 current: () =>
-                  apiFetch<TransactionsSeriesResponse>(context).then(resolve, reject),
+                  doOnDemandMetricsRequest(
+                    context.meta?.api,
+                    onDemandRequestData,
+                    filteredWidget.widgetType
+                  )
+                    .then(toApiResponse)
+                    .then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
           }
 
-          return apiFetch<TransactionsSeriesResponse>(context);
+          return new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<TransactionsSeriesResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          });
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         placeholderData: keepPreviousData,
       });
     }),
@@ -314,11 +287,6 @@ export function useTransactionsTableQuery(
     onDemandControlContext
   );
 
-  // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
@@ -379,27 +347,16 @@ export function useTransactionsTableQuery(
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
-        queryFn: (context): Promise<ApiResponse<TransactionsTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TransactionsTableResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<TransactionsTableResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<TransactionsTableResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<TransactionsTableResponse>(context).then(resolve, reject),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         select: selectJsonWithHeaders,
       });
     }),

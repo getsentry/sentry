@@ -205,10 +205,8 @@ function DashboardInner({
     );
 
     return () => {
-      if (queue) {
-        queue.abort();
-        queue.clear();
-      }
+      queue.abort();
+      queue.clear();
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
     };

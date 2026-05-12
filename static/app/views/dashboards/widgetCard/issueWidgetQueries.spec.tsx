@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render as baseRender, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -7,7 +7,11 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, {additionalWrapper: WidgetQueryQueueProvider, ...options});
 
 describe('IssueWidgetQueries', () => {
   const selection = {

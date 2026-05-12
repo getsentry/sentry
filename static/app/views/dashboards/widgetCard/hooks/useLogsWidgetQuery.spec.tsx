@@ -10,7 +10,12 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {useLogsSeriesQuery, useLogsTableQuery} from './useLogsWidgetQuery';
 
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
-  useWidgetQueryQueue: () => ({queue: null}),
+  useWidgetQueryQueue: () => ({
+    queue: {
+      addItem: (item: {fetchDataRef: {current: () => Promise<unknown>}}) =>
+        item.fetchDataRef.current(),
+    },
+  }),
 }));
 
 describe('useLogsSeriesQuery', () => {

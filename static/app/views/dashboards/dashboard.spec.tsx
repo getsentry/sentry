@@ -4,7 +4,12 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render as baseRender,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -24,6 +29,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
@@ -32,6 +38,9 @@ import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
+
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, {additionalWrapper: WidgetQueryQueueProvider, ...options});
 
 describe('Dashboards > Dashboard', () => {
   const organization = OrganizationFixture({

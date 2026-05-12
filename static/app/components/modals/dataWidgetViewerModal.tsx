@@ -95,6 +95,7 @@ import {
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -799,7 +800,7 @@ function DataWidgetViewerModal(props: Props) {
   }
 
   return (
-    <Fragment>
+    <WidgetQueryQueueProvider>
       <DashboardsMEPProvider>
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
@@ -884,7 +885,7 @@ function DataWidgetViewerModal(props: Props) {
           </MetricsDataSwitcher>
         </MetricsCardinalityProvider>
       </DashboardsMEPProvider>
-    </Fragment>
+    </WidgetQueryQueueProvider>
   );
 }
 

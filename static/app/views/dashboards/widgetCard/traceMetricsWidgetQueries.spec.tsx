@@ -1,12 +1,16 @@
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 
 import {TraceMetricsWidgetQueries} from './traceMetricsWidgetQueries';
+
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, {additionalWrapper: WidgetQueryQueueProvider, ...options});
 
 describe('traceMetricsWidgetQueries', () => {
   const selection = PageFiltersFixture();

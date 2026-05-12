@@ -21,7 +21,6 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   doOnDemandMetricsRequest,
@@ -39,7 +38,6 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type ErrorsAndTransactionsSeriesResponse =
   | EventsStats
@@ -94,10 +92,6 @@ export function useErrorsAndTransactionsSeriesQuery(
     organization,
     filteredWidget,
     onDemandControlContext
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
   );
 
   const queryResults = useQueries({
@@ -186,53 +180,34 @@ export function useErrorsAndTransactionsSeriesQuery(
               headers: {},
             });
 
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    doOnDemandMetricsRequest(
-                      context.meta?.api,
-                      onDemandRequestData,
-                      filteredWidget.widgetType
-                    )
-                      .then(toApiResponse)
-                      .then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-
-            return doOnDemandMetricsRequest(
-              context.meta?.api,
-              onDemandRequestData,
-              filteredWidget.widgetType
-            ).then(toApiResponse);
-          }
-
-          if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
                 current: () =>
-                  apiFetch<ErrorsAndTransactionsSeriesResponse>(context).then(
-                    resolve,
-                    reject
-                  ),
+                  doOnDemandMetricsRequest(
+                    context.meta?.api,
+                    onDemandRequestData,
+                    filteredWidget.widgetType
+                  )
+                    .then(toApiResponse)
+                    .then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
           }
 
-          return apiFetch<ErrorsAndTransactionsSeriesResponse>(context);
+          return new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<ErrorsAndTransactionsSeriesResponse>(context).then(
+                  resolve,
+                  reject
+                ),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          });
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         placeholderData: keepPreviousData,
       });
     }),
@@ -370,10 +345,6 @@ export function useErrorsAndTransactionsTableQuery(
     onDemandControlContext
   );
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
@@ -418,30 +389,19 @@ export function useErrorsAndTransactionsTableQuery(
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
-        queryFn: (context): Promise<ApiResponse<ErrorsAndTransactionsTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<ErrorsAndTransactionsTableResponse>(context).then(
-                    resolve,
-                    reject
-                  ),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<ErrorsAndTransactionsTableResponse>(context);
-        },
+        queryFn: (context): Promise<ApiResponse<ErrorsAndTransactionsTableResponse>> =>
+          new Promise((resolve, reject) => {
+            const fetchFnRef = {
+              current: () =>
+                apiFetch<ErrorsAndTransactionsTableResponse>(context).then(
+                  resolve,
+                  reject
+                ),
+            };
+            queue.addItem({fetchDataRef: fetchFnRef});
+          }),
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
-        retryDelay: getRetryDelay,
+        retry: false,
         select: selectJsonWithHeaders,
       });
     }),
