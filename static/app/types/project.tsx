@@ -24,7 +24,7 @@ export type AvatarProject = {
  * Matches the response from `ProjectSummarySerializer` used by
  * `GET /organizations/{org}/projects/`.
  *
- * This is what `ProjectsStore`, `useProjects`, and the bootstrap request typically hold.
+ * This is what `ProjectsStore`, `useProjects`, and the bootstrap requests hold.
  * Optional fields like `stats`, `transactionStats`, and `sessionStats` are only
  * present when the corresponding query params (`statsPeriod`, etc.) are passed.
  * `latestDeploys` is excluded when `collapse=latestDeploys` is sent.
