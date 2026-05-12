@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
@@ -77,21 +77,25 @@ export function KeyRateLimitsForm({
   const {keyId, projectId} = params;
   const endpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
+  const previousRateLimitRef = useRef(data.rateLimit);
+
   const mutation = useMutation({
-    mutationFn: (rateLimit: FormValues['rateLimit']) =>
-      fetchMutation<ProjectKey>({
+    mutationFn: (rateLimit: FormValues['rateLimit']) => {
+      previousRateLimitRef.current = data.rateLimit;
+      return fetchMutation<ProjectKey>({
         url: endpoint,
         method: 'PUT',
         data: {rateLimit},
-      }),
+      });
+    },
     onSuccess: updated => {
+      updateData(updated);
       addSuccessMessage(
         tct('Changed Rate Limit from [old] to [new]', {
-          old: formatRateLimit(data.rateLimit),
+          old: formatRateLimit(previousRateLimitRef.current),
           new: formatRateLimit(updated.rateLimit),
         })
       );
-      updateData(updated);
     },
   });
 
