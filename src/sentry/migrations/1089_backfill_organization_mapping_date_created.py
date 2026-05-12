@@ -72,7 +72,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1087_add_projectrepository"),
+        ("sentry", "1088_remove_rulefilehistory"),
     ]
 
     operations = [
