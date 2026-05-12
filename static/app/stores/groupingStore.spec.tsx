@@ -7,10 +7,6 @@ describe('Grouping Store', () => {
     MockApiClient.asyncDelay = 1;
   });
 
-  afterAll(() => {
-    MockApiClient.asyncDelay = undefined;
-  });
-
   beforeEach(() => {
     GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
@@ -62,6 +58,10 @@ describe('Grouping Store', () => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     jest.restoreAllMocks();
+  });
+
+  afterAll(() => {
+    MockApiClient.asyncDelay = undefined;
   });
 
   describe('onFetch()', () => {

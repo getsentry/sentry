@@ -14,15 +14,15 @@ describe('Tooltip', () => {
     });
   }
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   afterEach(() => {
     // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.scrollWidth;
     // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.clientWidth;
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
   });
 
   it('renders', async () => {

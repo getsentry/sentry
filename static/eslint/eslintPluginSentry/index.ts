@@ -9,6 +9,7 @@ import {noStyledShortcut} from './no-styled-shortcut';
 import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
 import {noUnnecessaryTypeNarrowing} from './no-unnecessary-type-narrowing';
 import {noUnnecessaryUseCallback} from './no-unnecessary-use-callback';
+import {requireFakeTimerCleanup} from './require-fake-timer-cleanup';
 
 export const rules = {
   'no-calling-components-as-functions': noCallingComponentsAsFunctions,
@@ -22,4 +23,5 @@ export const rules = {
   'no-unnecessary-type-annotation': noUnnecessaryTypeAnnotation,
   'no-unnecessary-type-narrowing': noUnnecessaryTypeNarrowing,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
+  'require-fake-timer-cleanup': requireFakeTimerCleanup,
 };

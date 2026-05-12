@@ -2,6 +2,10 @@ import type {ReactElement} from 'react';
 
 import {closeBrowser, takeSnapshot} from './snapshot';
 
+afterAll(async () => {
+  await closeBrowser();
+});
+
 interface SnapshotDetails {
   displayName: string;
   fileSlug: string;
@@ -75,10 +79,6 @@ snapshotTest.each = function snapshotEach<T>(table: T[]) {
     }
   };
 };
-
-afterAll(async () => {
-  await closeBrowser();
-});
 
 test.snapshot = snapshotTest;
 
