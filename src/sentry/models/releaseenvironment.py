@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.db import models
+from django.db.utils import OperationalError
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -63,16 +64,21 @@ class ReleaseEnvironment(Model):
 
         metric_tags["created"] = "true" if created else "false"
 
-        # TODO(dcramer): this would be good to buffer, but until then we minimize
-        # updates to once a minute, and allow Postgres to optimistically skip
-        # it even if we can't
+        bump_key = f"releaseenv_bump:{instance.id}"
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            metric_tags["bumped"] = "true"
-            cls.objects.filter(
-                id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
-            ).update(last_seen=datetime)
-            instance.last_seen = datetime
-            cache.set(cache_key, instance, 3600)
+            if cache.add(bump_key, "1", timeout=60):
+                try:
+                    cls.objects.filter(
+                        id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
+                    ).update(last_seen=datetime)
+                except OperationalError:
+                    metric_tags["bumped"] = "error"
+                    return instance
+                instance.last_seen = datetime
+                cache.set(cache_key, instance, 3600)
+                metric_tags["bumped"] = "true"
+            else:
+                metric_tags["bumped"] = "skipped"
         else:
             metric_tags["bumped"] = "false"
 

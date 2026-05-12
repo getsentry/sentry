@@ -5,6 +5,7 @@ from enum import Enum
 from typing import TypedDict
 
 from django.db import models
+from django.db.utils import OperationalError
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -82,14 +83,24 @@ class ReleaseProjectEnvironment(Model):
 
         metrics_tags["created"] = "true" if created else "false"
 
-        # Same as releaseenvironment model. Minimizes last_seen updates to once a minute
+        # Same as releaseenvironment model. Minimizes last_seen updates to once a minute.
+        # The cache.add acts as a distributed lock so only one worker attempts the
+        # DB update per row per 60s, avoiding row-lock contention on hot releases.
+        bump_key = f"releaseprojectenv_bump:{instance.id}"
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            cls.objects.filter(
-                id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
-            ).update(last_seen=datetime)
-            instance.last_seen = datetime
-            cache.set(cache_key, instance, 3600)
-            metrics_tags["bumped"] = "true"
+            if cache.add(bump_key, "1", timeout=60):
+                try:
+                    cls.objects.filter(
+                        id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
+                    ).update(last_seen=datetime)
+                except OperationalError:
+                    metrics_tags["bumped"] = "error"
+                    return instance
+                instance.last_seen = datetime
+                cache.set(cache_key, instance, 3600)
+                metrics_tags["bumped"] = "true"
+            else:
+                metrics_tags["bumped"] = "skipped"
         else:
             metrics_tags["bumped"] = "false"
 
