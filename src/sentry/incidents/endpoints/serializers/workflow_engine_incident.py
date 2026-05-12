@@ -35,7 +35,7 @@ from sentry.workflow_engine.models import (
 
 
 class WorkflowEngineIncidentSerializer(Serializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand: list[str] | None = None) -> None:
         self.expand = expand or []
 
     priority_to_incident_status: ClassVar[dict[int, int]] = {
@@ -176,7 +176,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         obj: GroupOpenPeriod,
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: Any,
     ) -> IncidentSerializerResponse:
         """
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
@@ -208,12 +208,18 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
 
 class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand: list[str] | None = None) -> None:
         if expand is None:
             expand = []
         super().__init__(expand=expand)
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DetailedIncidentSerializerResponse:
+    def serialize(
+        self,
+        obj: GroupOpenPeriod,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DetailedIncidentSerializerResponse:
         base_context = super().serialize(obj, attrs, user)
         # The query we should use to get accurate results in Discover.
         return DetailedIncidentSerializerResponse(
