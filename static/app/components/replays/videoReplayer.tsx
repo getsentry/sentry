@@ -19,7 +19,7 @@ interface OffsetOptions {
   segmentOffsetMs?: number;
 }
 
-export interface VideoReplayerOptions {
+interface VideoReplayerOptions {
   config: VideoReplayerConfig;
   durationMs: number;
   onBuffer: (isBuffering: boolean) => void;
