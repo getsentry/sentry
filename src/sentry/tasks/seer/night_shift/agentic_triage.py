@@ -179,16 +179,16 @@ def _triage_candidates(
 
     fixability_by_group_id = {c.group.id: c.fixability for c in candidates}
     for v in triage_response.verdicts:
-        fixability = fixability_by_group_id.get(v.group_id)
-        if fixability is None:
+        if v.group_id not in fixability_by_group_id:
             continue
+        fixability = fixability_by_group_id[v.group_id]
+        attributes: dict[str, str] = {"action": v.action}
+        if fixability is not None:
+            attributes["threshold_action"] = TriageAction.from_fixability_score(fixability)
         sentry_sdk.metrics.count(
             "night_shift.triage_action",
             1,
-            attributes={
-                "action": v.action,
-                "threshold_action": TriageAction.from_fixability_score(fixability),
-            },
+            attributes=attributes,
         )
 
     for v in triage_response.verdicts:
