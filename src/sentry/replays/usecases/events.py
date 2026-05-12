@@ -4,8 +4,9 @@ import time
 import uuid
 from typing import Any
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.utils import json
+from sentry.utils import json, kafka_config
 
 
 def archive_event(project_id: int, replay_id: str) -> str:
@@ -58,4 +59,7 @@ def _replay_event(project_id: int, replay_id: str, event: dict[str, Any]) -> str
 def publish_replay_event(message: str, is_async: bool) -> None:
     """Publish a replay-event to the replay snuba consumer topic."""
     publisher = initialize_replays_publisher(is_async=is_async)
-    publisher.publish("ingest-replay-events", message)
+    publisher.publish(
+        kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)["real_topic_name"],
+        message,
+    )
