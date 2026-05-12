@@ -491,17 +491,18 @@ SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
 _BAR_AGGREGATES = {"count", "count_unique", "sum"}
 
 
-def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
-    """Return the display type string for the chart.
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str | None:
+    """Return the display type string for the chart, or ``None`` when the
+    URL's chartType isn't recognized.
 
     Uses the explicit chartType from the URL when present, otherwise mirrors
     the frontend's ``determineDefaultChartType`` logic which maps
     count/count_unique/sum aggregates to bar and everything else to line.
-    Unknown chartType values pass through as ``"unknown"`` so the caller can
-    decide how to handle them (see ``SUPPORTED_DISPLAY_TYPES``).
+    The caller decides whether the resolved type is renderable (see
+    ``SUPPORTED_DISPLAY_TYPES``).
     """
     if chart_type is not None:
-        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "unknown")
+        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type)
 
     for y_axis in y_axes:
         func_name = y_axis.split("(")[0] if "(" in y_axis else ""
