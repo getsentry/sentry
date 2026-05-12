@@ -64,8 +64,8 @@ export function ExplorerDrawerContent({
     errorStatusCode,
     isTimedOut,
     sendMessage,
-    startNewSession: startNewSessionBase,
-    switchToRun: switchToRunBase,
+    startNewSession,
+    switchToRun,
     respondToUserInput,
     createPR,
     interruptRun,
@@ -75,14 +75,7 @@ export function ExplorerDrawerContent({
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
-  const startNewSession = () => {
-    startNewSessionBase();
-    setInputValue('');
-  };
-  const switchToRun = (...args: Parameters<typeof switchToRunBase>) => {
-    switchToRunBase(...args);
-    setInputValue('');
-  };
+  const clearInput = () => setInputValue('');
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -217,7 +210,7 @@ export function ExplorerDrawerContent({
     textAreaRef: textareaRef,
     panelSize: 'max',
     slashCommandHandlers: {
-      onNew: startNewSession,
+      onNew: () => startNewSession({onSuccess: clearInput}),
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
@@ -326,7 +319,9 @@ export function ExplorerDrawerContent({
   }, [blocks]);
 
   // Deep link effect
-  useSeerExplorerDeepLink({callback: switchToRun});
+  useSeerExplorerDeepLink({
+    callback: newRunId => switchToRun(newRunId, {onSuccess: clearInput}),
+  });
 
   // Interrupt button and placeholder state
   const interruptState =
@@ -343,10 +338,10 @@ export function ExplorerDrawerContent({
       <ExplorerDrawerHeader
         disableNewChatButton={runId === null}
         onNewChatClick={() => {
-          startNewSession();
+          startNewSession({onSuccess: clearInput});
           focusInput();
         }}
-        onChangeSession={switchToRun}
+        onChangeSession={newRunId => switchToRun(newRunId, {onSuccess: clearInput})}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
