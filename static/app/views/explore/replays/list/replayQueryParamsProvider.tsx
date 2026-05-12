@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
+import {decodeScalar} from 'sentry/utils/queryString';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -9,7 +10,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {
   getTitleFromLocation,
   ID_KEY,
