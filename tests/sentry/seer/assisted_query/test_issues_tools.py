@@ -164,6 +164,79 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "project1_tag" in tag_keys
         assert "project2_tag" in tag_keys
 
+    def test_get_issue_filter_keys_without_feature_flags(self):
+        """Test that feature flags are excluded when include_feature_flags=False"""
+        # Create an error event with custom tags
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"fruit": "apple"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Create an event with feature flags
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "feature_a", "result": True},
+                        ]
+                    }
+                },
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            include_feature_flags=False,
+        )
+
+        assert result is not None
+        # Tags and built_in_fields should still be present
+        assert "tags" in result
+        assert "built_in_fields" in result
+        # feature_flags key should NOT be in the result
+        assert "feature_flags" not in result
+
+        # Verify tags still work
+        tags = result["tags"]
+        tag_keys = {tag["key"] for tag in tags}
+        assert "fruit" in tag_keys
+
+    def test_get_issue_filter_keys_with_feature_flags_default(self):
+        """Test that feature flags are included by default"""
+        # Create an event with feature flags
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "feature_a", "result": True},
+                        ]
+                    }
+                },
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Call without specifying include_feature_flags (should default to True)
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        # feature_flags key should be present by default
+        assert "feature_flags" in result
+        assert isinstance(result["feature_flags"], list)
+
 
 @pytest.mark.django_db(databases=["default", "control"])
 class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
