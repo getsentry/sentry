@@ -280,6 +280,8 @@ def trigger_autofix_agent(
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,
+        "has_user_context": "no" if user_context is None else "yes",
+        "is_retry": "no" if insert_index is None else "yes",
     }
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
