@@ -56,7 +56,11 @@ class TestSyncAssigneeOutbound(TestCase):
         sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_called_once()
         mock_sync_assignee.assert_called_with(
-            self.external_issue, mock.ANY, assign=True, assignment_source=None
+            self.external_issue,
+            mock.ANY,
+            assign=True,
+            assignment_source=None,
+            lifecycle=mock.ANY,
         )
 
         user_arg = mock_sync_assignee.call_args_list[0][0][1]

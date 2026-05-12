@@ -88,7 +88,11 @@ def sync_assignee_outbound(
                 # Assume unassign if None.
                 user = user_service.get_user(user_id) if user_id else None
                 installation.sync_assignee_outbound(
-                    external_issue, user, assign=assign, assignment_source=parsed_assignment_source
+                    external_issue,
+                    user,
+                    assign=assign,
+                    assignment_source=parsed_assignment_source,
+                    lifecycle=lifecycle,
                 )
                 analytics.record(
                     IntegrationIssueAssigneeSyncedEvent(

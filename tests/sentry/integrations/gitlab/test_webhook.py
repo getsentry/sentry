@@ -473,6 +473,31 @@ class WebhookTest(GitLabTestCase):
             call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
         )
         assert call_args[1]["assign"] is True
+        assert call_args[1]["external_user_id"] == 1
+
+    @patch("sentry.integrations.gitlab.webhooks.sync_group_assignee_inbound_by_external_actor")
+    def test_issue_assigned_with_dotted_username(self, mock_sync: MagicMock) -> None:
+        event = orjson.loads(ISSUE_ASSIGNED_EVENT)
+        event["assignees"][0]["id"] = 123
+        event["assignees"][0]["username"] = "first.last"
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(event),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        assert mock_sync.called
+        call_args = mock_sync.call_args
+        assert call_args[1]["external_user_name"] == "@first.last"
+        assert call_args[1]["external_user_id"] == 123
+        assert (
+            call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
+        )
+        assert call_args[1]["assign"] is True
 
     @patch("sentry.integrations.gitlab.webhooks.sync_group_assignee_inbound_by_external_actor")
     def test_issue_unassigned(self, mock_sync: MagicMock) -> None:
