@@ -25,7 +25,11 @@ function isValidProjectWithOptions(
 }
 
 function isDetailedProject(project?: Project): project is DetailedProject {
-  return project !== undefined && 'organization' in project && 'plugins' in project;
+  return (
+    project !== undefined &&
+    // Check for properties that are exclusive to DetailedProject
+    ('allowedDomains' in project || 'relayPiiConfig' in project)
+  );
 }
 
 type Context =
