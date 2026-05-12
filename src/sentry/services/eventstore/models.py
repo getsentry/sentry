@@ -641,7 +641,13 @@ class Event(BaseEvent):
         if not self.group_id:
             return None
         if not hasattr(self, "_group_cache"):
-            self._group_cache = Group.objects.get(id=self.group_id)
+            try:
+                self._group_cache = Group.objects.get(id=self.group_id)
+            except Group.DoesNotExist:
+                # The referenced group may have been deleted (or not yet
+                # replicated). Treat this the same as having no group rather
+                # than letting the exception bubble up to callers.
+                self._group_cache = None
         return self._group_cache
 
     @group.setter
