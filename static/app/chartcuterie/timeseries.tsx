@@ -51,9 +51,9 @@ export type CreatePlottableForTimeseriesChart<T extends TimeSeries = TimeSeries>
 ) => Plottable | null;
 
 /**
- * Top edge (in px) of the plot area in chartcuterie's timeseries charts —
- * matches ``defaults.grid.top``. Threshold plottables anchor "infinite"
- * mark lines / mark areas to this offset so they land at the top of the
+ * Top edge (in px) of the plot area in chartcuterie's timeseries charts.
+ * Used by both the grid config and the threshold plottable's ``maxOffset``,
+ * so "infinite" threshold mark lines / mark areas anchor at the top of the
  * data grid instead of overlapping the legend.
  */
 const GRID_TOP_OFFSET = 60;
@@ -83,7 +83,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
   });
 
   const defaults = {
-    grid: Grid({left: 10, right: 10, bottom: 10, top: 60}),
+    grid: Grid({left: 10, right: 10, bottom: 10, top: GRID_TOP_OFFSET}),
     backgroundColor: theme.tokens.background.primary,
     legend: Legend({
       theme,
