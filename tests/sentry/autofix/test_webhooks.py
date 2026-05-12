@@ -65,9 +65,8 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="seer",
-                sent_at=0,
+                sent_at=1736937000000,
             ),
-            exclude_fields=["sent_at"],
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345", SENTRY_GITHUB_APP_USER_ID="67890")
@@ -115,9 +114,8 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="sentry",
-                sent_at=0,
+                sent_at=1736937000000,
             ),
-            exclude_fields=["sent_at"],
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
@@ -165,9 +163,8 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="seer",
-                sent_at=0,
+                sent_at=1736942400000,
             ),
-            exclude_fields=["sent_at"],
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
@@ -214,9 +211,8 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="seer",
-                sent_at=0,
+                sent_at=1736949600000,
             ),
-            exclude_fields=["sent_at"],
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
