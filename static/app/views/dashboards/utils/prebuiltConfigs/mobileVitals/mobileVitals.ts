@@ -272,7 +272,7 @@ const AVG_FRAME_DELAY_WIDGET: Widget = {
 const APP_START_TABLE: Widget = {
   id: 'app-start-table',
   title: t('App Starts'),
-  description: t('On iOS, cold and warm app start classification may be inaccurate.'),
+  description: t('On iOS, cold and warm start classification may differ from Apple's. A cold start is a launch after first install, a reboot or update; all other launches are warm starts. Warm start results may differ between prewarmed and non-prewarmed launches.'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
