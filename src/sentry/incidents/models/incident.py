@@ -10,6 +10,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.dependencies import PrimaryKeyMap
@@ -299,3 +300,8 @@ class IncidentTrigger(Model):
         db_table = "sentry_incidenttrigger"
         unique_together = (("incident", "alert_rule_trigger"),)
         indexes = (models.Index(fields=("alert_rule_trigger", "incident_id")),)
+
+
+post_save.connect(IncidentManager.clear_active_incident_cache, sender=Incident)
+post_save.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
+post_delete.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
