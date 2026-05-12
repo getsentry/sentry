@@ -170,6 +170,7 @@ function IssueListOverviewInner({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const lastAiQueryRunIdRef = useRef<number | null>(null);
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -466,7 +467,8 @@ function IssueListOverviewInner({
         // AI query analytics
         const aiQueryParam = location.query[AI_QUERY_PARAM];
         const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-        if (aiQueryRunId !== null) {
+        if (aiQueryRunId !== null && aiQueryRunId !== lastAiQueryRunIdRef.current) {
+          lastAiQueryRunIdRef.current = aiQueryRunId;
           trackAiQueryOutcome({
             dataset: 'issues',
             referrer: 'issues',
