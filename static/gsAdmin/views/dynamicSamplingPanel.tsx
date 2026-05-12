@@ -50,11 +50,11 @@ type RuleV2 = {
   };
   id: number;
   samplingValue: {
-    type: 'factor' | 'sampleRate';
+    type: 'factor' | 'sampleRate' | 'minimumSampleRate';
     value: number;
     limit?: number;
   };
-  type: 'trace' | 'transaction';
+  type: 'trace' | 'transaction' | 'project';
   timeRange?: {
     end: string;
     start: string;
