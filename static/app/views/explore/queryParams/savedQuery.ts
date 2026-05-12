@@ -9,6 +9,7 @@ export function getIdFromLocation(location: Location, key: string): string | und
   return decodeScalar(location.query?.[key]);
 }
 
+/** @deprecated Use nuqs to manage query params instead. */
 export function getTitleFromLocation(
   location: Location,
   key: string
