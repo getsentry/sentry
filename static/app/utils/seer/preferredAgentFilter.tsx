@@ -26,6 +26,9 @@ function convertAgentNameToCodingAgentProvider(name: string): PreferredAgentProv
     case CodingAgentProvider.GITHUB_COPILOT_AGENT:
     case 'github_copilot':
       return CodingAgentProvider.GITHUB_COPILOT_AGENT;
+    case CodingAgentProvider.OUTPOST_AGENT:
+    case 'outpost':
+      return CodingAgentProvider.OUTPOST_AGENT;
     case 'seer':
     default:
       return 'seer';

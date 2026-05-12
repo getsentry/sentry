@@ -147,6 +147,7 @@ class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
     GITHUB_COPILOT_AGENT = "github_copilot_agent"
     CLAUDE_CODE_AGENT = "claude_code_agent"
+    OUTPOST_AGENT = "outpost_agent"
 
 
 class AutomationCodingAgent(StrEnum):
