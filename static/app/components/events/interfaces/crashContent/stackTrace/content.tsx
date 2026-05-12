@@ -1,8 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {DeprecatedLineProps} from 'sentry/components/events/interfaces/frame/deprecatedLine';
-import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
+import {
+  DeprecatedLine,
+  type DeprecatedLineProps,
+} from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {
   getHiddenFrameIndices,

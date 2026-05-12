@@ -124,7 +124,7 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:${conversationId} span.status:internal_error`,
+    query: `gen_ai.conversation.id:"${conversationId.replace(/"/g, '\\"')}" span.status:internal_error`,
   });
 
   return (

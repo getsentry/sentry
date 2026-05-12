@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
@@ -31,6 +31,8 @@ export function SentryAppNode() {
 }
 
 function SentryAppActionSettingsButton() {
+  const {openModal} = useModal();
+
   const {action, handler, onUpdate} = useActionNodeContext();
   const sentryApp = handler.sentryApp;
 

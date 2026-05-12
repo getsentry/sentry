@@ -4,7 +4,7 @@ import {LayoutGroup, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -19,6 +19,7 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
 import {platforms} from 'sentry/data/platforms';
 import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -31,6 +32,7 @@ import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
+import {ScmFeatureInfoCards} from 'sentry/views/onboarding/components/scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCard';
 import {useScmFeatureMeta} from 'sentry/views/onboarding/components/useScmFeatureMeta';
@@ -87,6 +89,11 @@ function shouldSuggestFramework(platformKey: PlatformKey): boolean {
     info?.type === 'language' &&
     Object.values(SupportedLanguages).includes(info.language as SupportedLanguages)
   );
+}
+
+function getPlatformName(platformKey: PlatformKey | undefined) {
+  if (!platformKey) return;
+  return getPlatformInfo(platformKey)?.name;
 }
 
 export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
@@ -160,6 +167,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
   // Derive platform from explicit selection, falling back to first detected
   const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
 
+  const currentPlatformName = getPlatformName(currentPlatformKey);
+
   // Fire scm_platform_selected once when detection auto-resolves a platform
   // and the user hasn't explicitly chosen one. Otherwise a user who accepts
   // the recommendation and clicks Continue never emits the event, leaving
@@ -181,16 +190,35 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     });
   }, [detectedPlatformKey, selectedPlatform?.key, organization]);
 
-  const availableFeatures = useMemo(() => {
+  // Wizard-driven platforms render an informational variant since the wizard CLI
+  // owns product configuration and toggles aren't actionable.
+  const featureMode = useMemo<'toggleable' | 'informational' | 'none'>(() => {
     if (!currentPlatformKey) {
+      return 'none';
+    }
+    if (currentPlatformKey in platformProductAvailability) {
+      return 'toggleable';
+    }
+    if (currentPlatformKey in PLATFORM_PRODUCT_INFO) {
+      return 'informational';
+    }
+    return 'none';
+  }, [currentPlatformKey]);
+
+  const availableFeatures = useMemo(() => {
+    if (!currentPlatformKey || featureMode === 'none') {
       return [];
     }
-    const features = new Set([
+    const sourceProducts =
+      featureMode === 'toggleable'
+        ? platformProductAvailability[currentPlatformKey]
+        : PLATFORM_PRODUCT_INFO[currentPlatformKey];
+    const features = new Set<ProductSolution>([
       ProductSolution.ERROR_MONITORING,
-      ...(platformProductAvailability[currentPlatformKey] ?? []),
+      ...(sourceProducts ?? []),
     ]);
     return FEATURE_DISPLAY_ORDER.filter(f => features.has(f));
-  }, [currentPlatformKey]);
+  }, [currentPlatformKey, featureMode]);
 
   const disabledProducts = useMemo(
     () => getDisabledProducts(organization),
@@ -458,14 +486,16 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
         </Heading>
         <LayoutGroup>
           <Stack gap="md" paddingTop="sm">
-            <Heading as="h3" size="xl">
+            <Heading as="h3" size="lg">
               {t('Choose your SDK')}
             </Heading>
-            <Text variant="muted" size="lg" density="comfortable">
-              {t(
-                'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
-              )}
-            </Text>
+            <Container>
+              <Text variant="muted" size="md" density="comfortable">
+                {t(
+                  'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
+                )}
+              </Text>
+            </Container>
           </Stack>
           {showDetectedPlatforms ? (
             <MotionStack
@@ -567,8 +597,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               />
             </MotionStack>
           )}
-          <MotionStack layout="position" width="100%">
-            {availableFeatures.length > 0 && (
+          {featureMode !== 'none' && (
+            <MotionStack layout="position" width="100%">
               <Stack gap="2xl" paddingTop="xs">
                 <Flex
                   padding="lg"
@@ -591,17 +621,27 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     )}
                   </Text>
                 </Flex>
-                <ScmFeatureSelectionCards
-                  availableFeatures={availableFeatures}
-                  selectedFeatures={currentFeatures}
-                  disabledProducts={disabledProducts}
-                  onToggleFeature={handleToggleFeature}
-                  featureMeta={featureMeta}
-                  isVolumeLoading={isFeatureMetaLoading}
-                />
+                {featureMode === 'toggleable' ? (
+                  <ScmFeatureSelectionCards
+                    availableFeatures={availableFeatures}
+                    selectedFeatures={currentFeatures}
+                    disabledProducts={disabledProducts}
+                    onToggleFeature={handleToggleFeature}
+                    featureMeta={featureMeta}
+                    isVolumeLoading={isFeatureMetaLoading}
+                  />
+                ) : (
+                  <ScmFeatureInfoCards
+                    availableFeatures={availableFeatures}
+                    disabledProducts={disabledProducts}
+                    featureMeta={featureMeta}
+                    platformName={currentPlatformName}
+                    isVolumeLoading={isFeatureMetaLoading}
+                  />
+                )}
               </Stack>
-            )}
-          </MotionStack>
+            </MotionStack>
+          )}
           <MotionFlex
             layout="position"
             align="center"

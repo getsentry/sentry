@@ -10,6 +10,7 @@ import {Count} from 'sentry/components/count';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -32,9 +33,16 @@ type RenderFunctionBaggage = {
   eventView?: EventView;
 };
 
+export type IssueRowMetadata = {
+  assignedTo: Group['assignedTo'];
+  links: Group['annotations'];
+  owners: Group['owners'];
+};
+
 type SpecialFieldRenderFunc = (
   data: EventData,
-  baggage: RenderFunctionBaggage
+  baggage: RenderFunctionBaggage,
+  meta: MetaType
 ) => React.ReactNode;
 
 type SpecialField = {
@@ -55,6 +63,13 @@ type SpecialFields = {
   userCount: SpecialField;
   users: SpecialField;
 };
+
+function getIssueRowMetadata(
+  meta: MetaType,
+  issueId: string
+): IssueRowMetadata | undefined {
+  return meta.issueRowMetadata?.[issueId];
+}
 
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
@@ -93,7 +108,19 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   assignee: {
     sortField: null,
-    renderFunc: data => <IssueAssignee groupId={data.id} />,
+    renderFunc: (data, _baggage, meta) => {
+      const issueMetadata = getIssueRowMetadata(meta, data.id);
+
+      return (
+        <IssueAssignee
+          groupId={data.id}
+          projectId={data.projectId}
+          projectSlug={data.project}
+          assignedTo={issueMetadata?.assignedTo}
+          owners={issueMetadata?.owners}
+        />
+      );
+    },
   },
   lifetimeEvents: {
     sortField: null,
@@ -137,17 +164,25 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   links: {
     sortField: null,
-    renderFunc: ({links}) => (
-      <LinksContainer>
-        {links.map((link: any, index: any) => (
-          <ExternalLink key={index} href={link.url}>
-            {link.displayName}
-          </ExternalLink>
-        ))}
-      </LinksContainer>
-    ),
+    renderFunc: (data, _baggage, meta) => {
+      const links = getIssueRowMetadata(meta, data.id)?.links ?? [];
+
+      return (
+        <LinksContainer>
+          {links.map((link, index) => (
+            <ExternalLink key={index} href={link.url}>
+              {link.displayName}
+            </ExternalLink>
+          ))}
+        </LinksContainer>
+      );
+    },
   },
 };
+
+function isSpecialField(field: string): field is keyof SpecialFields {
+  return Object.hasOwn(SPECIAL_FIELDS, field);
+}
 
 const issuesCountRenderer = (
   data: EventData,
@@ -236,8 +271,8 @@ const getDiscoverUrl = (
 };
 
 export function getSortField(field: string): string | null {
-  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
-    return SPECIAL_FIELDS[field as keyof typeof SPECIAL_FIELDS].sortField;
+  if (isSpecialField(field)) {
+    return SPECIAL_FIELDS[field].sortField;
   }
   switch (field) {
     case FieldKey.LAST_SEEN:
@@ -311,9 +346,9 @@ export function getIssueFieldRenderer(
   field: string,
   meta: MetaType
 ): FieldFormatterRenderFunctionPartial {
-  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return SPECIAL_FIELDS[field].renderFunc;
+  if (isSpecialField(field)) {
+    const specialField = SPECIAL_FIELDS[field];
+    return (data, baggage) => specialField.renderFunc(data, baggage, meta);
   }
 
   return getFieldRenderer(field, meta, false);

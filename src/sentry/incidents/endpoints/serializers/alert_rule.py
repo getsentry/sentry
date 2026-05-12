@@ -95,10 +95,10 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     timeWindow: float
     resolution: float
     thresholdPeriod: int
-    triggers: list[dict]
+    triggers: list[dict[str, Any]]
     dateModified: datetime
     dateCreated: datetime
-    createdBy: dict
+    createdBy: dict[str, Any]
     description: str
     detectionType: str
 
@@ -379,7 +379,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         obj: AlertRule,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: Any,
     ) -> DetailedAlertRuleSerializerResponse:
         data = cast(DetailedAlertRuleSerializerResponse, super().serialize(obj, attrs, user))
         data["eventTypes"] = sorted(attrs.get("event_types", []))

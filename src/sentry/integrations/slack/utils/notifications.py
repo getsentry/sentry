@@ -343,6 +343,7 @@ def respond_to_slack_command(
     integration: Integration,
     slack_id: str,
     response_url: str | None,
+    replace_original: bool = False,
 ) -> None:
     def log_msg(tag: str) -> str:
         return f"{command_response.log_key}.{tag}"
@@ -352,7 +353,9 @@ def respond_to_slack_command(
         try:
             webhook_client = WebhookClient(response_url)
             webhook_client.send(
-                text=command_response.message, replace_original=False, response_type="ephemeral"
+                text=command_response.message,
+                replace_original=replace_original,
+                response_type="ephemeral",
             )
         except (SlackApiError, SlackRequestError) as e:
             _logger.info(log_msg("error"), extra={"error": str(e)})
