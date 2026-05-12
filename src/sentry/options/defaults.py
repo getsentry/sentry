@@ -4195,11 +4195,18 @@ register(
 
 # Whether or not provisioning analytics and audits are made in the provision_organization RPC call
 register(
-    "provision_organization_in_cell.record_analytics",
-    type=Bool,
-    default=False,
+    "provision_organization.override.mapping",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "provision_organization.override.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # SCM
 
