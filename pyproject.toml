@@ -2001,7 +2001,6 @@ module = [
     "tests.sentry.incidents.test_logic",
     "tests.sentry.incidents.test_metric_issue_detector_handler",
     "tests.sentry.incidents.test_metric_issue_post_process",
-    "tests.sentry.incidents.test_receivers",
     "tests.sentry.incidents.test_tasks",
     "tests.sentry.incidents.utils.*",
     "tests.sentry.ingest.*",

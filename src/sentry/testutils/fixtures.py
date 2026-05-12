@@ -469,9 +469,6 @@ class Fixtures:
     def create_incident_activity(self, *args, **kwargs):
         return Factories.create_incident_activity(*args, **kwargs)
 
-    def create_incident_trigger(self, incident, alert_rule_trigger, status):
-        return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
@@ -497,9 +494,6 @@ class Fixtures:
 
         if not target_identifier:
             target_identifier = str(self.user.id)
-
-        if triggered_for_incident is not None:
-            Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
 
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs

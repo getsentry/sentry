@@ -57,9 +57,7 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentTrigger,
     IncidentType,
-    TriggerStatus,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
@@ -1849,16 +1847,6 @@ class Factories:
             label = petname.generate(2, " ", letters=10).title()
 
         return create_alert_rule_trigger(alert_rule, label, alert_threshold)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident_trigger(incident, alert_rule_trigger, status=None):
-        if status is None:
-            status = TriggerStatus.ACTIVE.value
-
-        return IncidentTrigger.objects.create(
-            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
