@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 
@@ -37,7 +38,7 @@ export const makeDashboardsWidgetCharts = (
             data.widget.queries[widgetQueryIndex] ?? data.widget.queries[0];
           const alias = widgetQuery
             ? formatTimeSeriesLabelForWidgetQuery(ts, data.widget, widgetQuery)
-            : undefined;
+            : formatTimeSeriesLabel(ts);
           return createPlottableFromTimeSeriesAndWidget(
             ts,
             data.widget,
