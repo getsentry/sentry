@@ -282,6 +282,16 @@ class TestMatchesConditions:
             context=EvaluationContext({"slug": "other-org"}), segment_name="test"
         )
 
+    def test_overlapping_prefix_suffix_anchors(self) -> None:
+        # "a*a" requires at least "aa" — a single "a" must not match.
+        condition = MatchesCondition(property="slug", value=["a*a"])
+        assert not condition.match(context=EvaluationContext({"slug": "a"}), segment_name="test")
+        assert condition.match(context=EvaluationContext({"slug": "aa"}), segment_name="test")
+        # "ab*ab" requires at least "abab" — "ab" alone must not match.
+        condition2 = MatchesCondition(property="slug", value=["ab*ab"])
+        assert not condition2.match(context=EvaluationContext({"slug": "ab"}), segment_name="test")
+        assert condition2.match(context=EvaluationContext({"slug": "abab"}), segment_name="test")
+
     def test_type_mismatch_list_property(self) -> None:
         condition = MatchesCondition(property="foo", value=["bar*"])
         with pytest.raises(ConditionTypeMismatchException):

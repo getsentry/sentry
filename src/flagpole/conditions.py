@@ -216,6 +216,10 @@ def _glob_star_match(pattern: str, value: str) -> bool:
     # Narrow the search window to exclude the already-matched prefix and suffix.
     end = len(value) - len(parts[-1]) if parts[-1] else len(value)
     start = len(parts[0])
+    # The prefix and suffix anchors overlap, meaning the
+    # value is shorter than prefix + suffix combined — no valid match possible.
+    if start > end:
+        return False
     # Walk the middle segments left-to-right, advancing the cursor after each hit
     # so that relative ordering is preserved.
     for part in parts[1:-1]:
