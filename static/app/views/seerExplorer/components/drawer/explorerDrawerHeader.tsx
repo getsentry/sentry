@@ -263,11 +263,10 @@ function useSessionMenuItems({
   sessionMenuItems: MenuItemProps[];
 } {
   const organization = useOrganization({allowNull: true});
-  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
 
   const {data, isPending, isError, refetch} = useExplorerSessions({
     limit: 20,
-    enabled: enabled && hasFeature,
+    enabled: enabled && isSeerExplorerEnabled(organization),
   });
 
   const sessionMenuItems = useMemo(() => {

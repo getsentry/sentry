@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from collections.abc import Collection
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid4
 
 from django.conf import settings
@@ -18,8 +19,14 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.organization import Organization
 from sentry.utils.retries import TimedRetryPolicy
+
+if TYPE_CHECKING:
+    from sentry.incidents.models.alert_rule import AlertRule
+    from sentry.models.project import Project
+    from sentry.snuba.models import QuerySubscription
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +47,20 @@ class IncidentProject(Model):
 class IncidentManager(BaseManager["Incident"]):
     CACHE_KEY = "incidents:active:%s:%s:%s"
 
-    def fetch_for_organization(self, organization, projects):
+    def fetch_for_organization(
+        self, organization: Organization, projects: Collection[Project]
+    ) -> BaseQuerySet[Incident]:
         return self.filter(organization=organization, projects__in=projects).distinct()
 
     @classmethod
-    def _build_active_incident_cache_key(cls, alert_rule_id, project_id, subscription_id=None):
+    def _build_active_incident_cache_key(
+        cls, alert_rule_id: int, project_id: int, subscription_id: int | None = None
+    ) -> str:
         return cls.CACHE_KEY % (alert_rule_id, project_id, subscription_id)
 
-    def get_active_incident(self, alert_rule, project, subscription=None):
+    def get_active_incident(
+        self, alert_rule: AlertRule, project: Project, subscription: QuerySubscription | None = None
+    ) -> Incident | None:
         """
         fetches the latest incident for a given alert rule and project (and subscription) that is not closed
         """
@@ -82,7 +95,7 @@ class IncidentManager(BaseManager["Incident"]):
         return incident
 
     @classmethod
-    def clear_active_incident_cache(cls, instance, **kwargs):
+    def clear_active_incident_cache(cls, instance: Incident, **kwargs: Any) -> None:
         # instance is an Incident
         for project in instance.projects.all():
             subscription = instance.subscription
@@ -93,7 +106,7 @@ class IncidentManager(BaseManager["Incident"]):
             assert cache.get(key) is None
 
     @classmethod
-    def clear_active_incident_project_cache(cls, instance, **kwargs):
+    def clear_active_incident_project_cache(cls, instance: IncidentProject, **kwargs: Any) -> None:
         # instance is an IncidentProject
         project_id = instance.project_id
         incident = instance.incident
@@ -105,7 +118,7 @@ class IncidentManager(BaseManager["Incident"]):
         assert cache.get(key) is None
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
-    def create(self, organization, **kwargs):
+    def create(self, organization: Organization, **kwargs: Any) -> Incident:
         """
         Creates an Incident. Fetches the maximum identifier value for the org
         and increments it by one. If two incidents are created for the
@@ -206,7 +219,7 @@ class Incident(Model):
         return self.date_closed if self.date_closed else timezone.now()
 
     @property
-    def duration(self):
+    def duration(self) -> timedelta:
         return self.current_end_date - self.date_started
 
     def normalize_before_relocation_import(
@@ -238,7 +251,7 @@ class IncidentActivity(Model):
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
-    type: models.Field = models.IntegerField()
+    type: models.Field[int, int] = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
@@ -271,10 +284,10 @@ class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
     CACHE_KEY = "incident:triggers:%s"
 
     @classmethod
-    def _build_cache_key(cls, incident_id):
+    def _build_cache_key(cls, incident_id: int) -> str:
         return cls.CACHE_KEY % incident_id
 
-    def get_for_incident(self, incident):
+    def get_for_incident(self, incident: Incident) -> list[IncidentTrigger]:
         """
         Fetches the IncidentTriggers associated with an Incident. Attempts to fetch from
         cache then hits the database.
@@ -288,12 +301,12 @@ class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
         return triggers
 
     @classmethod
-    def clear_incident_cache(cls, instance, **kwargs):
+    def clear_incident_cache(cls, instance: Incident, **kwargs: Any) -> None:
         cache.delete(cls._build_cache_key(instance.id))
         assert cache.get(cls._build_cache_key(instance.id)) is None
 
     @classmethod
-    def clear_incident_trigger_cache(cls, instance, **kwargs):
+    def clear_incident_trigger_cache(cls, instance: IncidentTrigger, **kwargs: Any) -> None:
         cache.delete(cls._build_cache_key(instance.incident_id))
         assert cache.get(cls._build_cache_key(instance.incident_id)) is None
 
