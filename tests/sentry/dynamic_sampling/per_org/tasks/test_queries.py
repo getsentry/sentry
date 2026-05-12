@@ -188,42 +188,88 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         self.store_spans(
             [
+                # owned by `project`, rooted at `project`
                 self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
                     organization=organization,
                     project=project,
                     start_ts=timestamp,
                 ),
+                # owned by `other_project` but rooted at `project` — must count toward `project`
                 self.create_span(
                     {
                         "is_segment": True,
-                        "sentry_tags": {"transaction": "checkout"},
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.project_id": str(project.id),
+                        },
                         "measurements": {"server_sample_rate": {"value": 0.5}},
                     },
                     organization=organization,
-                    project=project,
+                    project=other_project,
                     start_ts=timestamp + timedelta(seconds=1),
                 ),
+                # owned by `project`, rooted at `project`
                 self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "product"}},
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "product",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
                     organization=organization,
                     project=project,
                     start_ts=timestamp + timedelta(seconds=2),
                 ),
+                # owned by `project` but rooted at `other_project` — must count toward `other_project`
                 self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.project_id": str(other_project.id),
+                        },
+                    },
                     organization=organization,
-                    project=other_project,
+                    project=project,
                     start_ts=timestamp + timedelta(seconds=3),
                 ),
+                # non-segment span — excluded by is_transaction:true
                 self.create_span(
-                    {"is_segment": False, "sentry_tags": {"transaction": "ignored-span"}},
+                    {
+                        "is_segment": False,
+                        "sentry_tags": {
+                            "transaction": "ignored-span",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
                     organization=organization,
                     project=project,
                     start_ts=timestamp + timedelta(seconds=4),
                 ),
+                # missing dsc.project_id — excluded by the root_project filter
                 self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "other-org"}},
+                    {"is_segment": True, "sentry_tags": {"transaction": "no-root"}},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=5),
+                ),
+                # other org — excluded by org scope on SnubaParams
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "other-org",
+                            "dsc.project_id": str(other_organization_project.id),
+                        },
+                    },
                     organization=other_organization,
                     project=other_organization_project,
                     start_ts=timestamp,
@@ -261,62 +307,100 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert volumes == []
 
-    def test_get_eap_transaction_volumes_with_max_transactions_limits_per_project(self) -> None:
+    def test_get_eap_transaction_volumes_attributes_to_originating_project(self) -> None:
+        organization = self.create_organization()
+        originating_project = self.create_project(organization=organization)
+        downstream_project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                # Owned by `downstream_project` but originated in `originating_project`.
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.project_id": str(originating_project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=downstream_project,
+                    start_ts=timestamp,
+                ),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization), time_interval=timedelta(hours=1)
+        )
+
+        assert volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": originating_project.id,
+                "transaction_counts": [("checkout", 1)],
+                "total_num_transactions": 1,
+                "total_num_classes": 1,
+            }
+        ]
+
+    def test_get_eap_transaction_volumes_with_max_transactions_caps_total_rows(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         other_project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)
 
+        def segment(transaction, root_project_id, project, offset):
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": transaction,
+                        "dsc.project_id": str(root_project_id),
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
         self.store_spans(
             [
-                self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp,
-                ),
-                self.create_span(
-                    {
-                        "is_segment": True,
-                        "sentry_tags": {"transaction": "checkout"},
-                        "measurements": {"server_sample_rate": {"value": 0.5}},
-                    },
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp + timedelta(seconds=1),
-                ),
-                self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "product"}},
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp + timedelta(seconds=2),
-                ),
-                self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
-                    organization=organization,
-                    project=other_project,
-                    start_ts=timestamp + timedelta(seconds=3),
-                ),
-                self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "product"}},
-                    organization=organization,
-                    project=other_project,
-                    start_ts=timestamp + timedelta(seconds=4),
-                ),
+                # project/alpha → count = 3
+                segment("alpha", project.id, project, 0),
+                segment("alpha", project.id, project, 1),
+                segment("alpha", project.id, project, 2),
+                # other_project/beta → count = 2
+                segment("beta", other_project.id, other_project, 3),
+                segment("beta", other_project.id, other_project, 4),
+                # project/gamma → count = 1 (excluded by the global cap)
+                segment("gamma", project.id, project, 5),
             ]
         )
 
-        # max_transactions=1 should limit to 1 transaction per project, not 1 globally
         volumes = get_eap_transaction_volumes(
             self.get_config(organization),
             time_interval=timedelta(hours=1),
             order_by_volume="desc",
-            max_transactions=1,
+            max_transactions=2,
         )
 
-        # Both projects should appear, each with only their top transaction
-        assert len(volumes) == 2
-        for vol in volumes:
-            assert len(vol["transaction_counts"]) == 1
-            assert vol["total_num_transactions"] is None
-            assert vol["total_num_classes"] is None
+        # Top 2 rows globally: project/alpha (3) and other_project/beta (2);
+        # project/gamma is excluded by the cap.
+        assert volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("alpha", 3)],
+                "total_num_transactions": 3,
+                "total_num_classes": 1,
+            },
+            {
+                "org_id": organization.id,
+                "project_id": other_project.id,
+                "transaction_counts": [("beta", 2)],
+                "total_num_transactions": 2,
+                "total_num_classes": 1,
+            },
+        ]

@@ -130,22 +130,26 @@ def get_eap_transaction_volumes(
         _EAPProjectTransactionVolumesAccumulator
     )
 
-    orderby = ["project_id", "transaction"]
+    orderby = ["sentry.dsc.project_id", "transaction"]
     if order_by_volume == "asc":
-        orderby = ["count()", "project_id", "transaction"]
+        orderby = ["count()", "sentry.dsc.project_id", "transaction"]
     elif order_by_volume == "desc":
-        orderby = ["-count()", "project_id", "transaction"]
+        orderby = ["-count()", "sentry.dsc.project_id", "transaction"]
 
+    root_project_filter = ",".join(str(project.id) for project in projects)
     rows = run_eap_spans_table_query_in_chunks(
         {
+            # TODO: Snuba requires a non-empty `project_ids`, so we still pass
+            # the active projects here. As a side effect, spans owned by a
+            # non-active project but rooted at an active project are excluded.
             "params": SnubaParams(
                 start=start_time,
                 end=end_time,
                 projects=projects,
                 organization=config.organization,
             ),
-            "query_string": "is_transaction:true",
-            "selected_columns": ["project_id", "transaction", "count()"],
+            "query_string": f"is_transaction:true sentry.dsc.project_id:[{root_project_filter}]",
+            "selected_columns": ["sentry.dsc.project_id", "transaction", "count()"],
             "orderby": orderby,
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
             "config": SearchResolverConfig(
@@ -166,7 +170,7 @@ def get_eap_transaction_volumes(
         if total <= 0:
             continue
 
-        project_id = _get_aggregate_int(row, "project_id")
+        project_id = _get_aggregate_int(row, "sentry.dsc.project_id")
         project_volumes = volumes_by_project[project_id]
 
         project_volumes.transaction_counts.append((str(transaction), total))
