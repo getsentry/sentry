@@ -143,7 +143,7 @@ pnpm run dev-ui
 
 #### Typechecking
 
-To typecheck frontend code, run the typecheck script.
+To typecheck frontend code, run `pnpm typecheck` script.
 It checks the whole project and does not accept file paths.
 DO NOT use `tsc` directly.
 
