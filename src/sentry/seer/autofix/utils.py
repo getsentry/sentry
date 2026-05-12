@@ -34,7 +34,7 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.constants import get_supported_scm_providers
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
@@ -830,7 +830,7 @@ def get_autofix_repos_from_project_code_mappings(
             and repo.integration_id is not None
             and repo.external_id
             and repo.provider
-            and repo.provider in SEER_SUPPORTED_SCM_PROVIDERS
+            and repo.provider in get_supported_scm_providers(project.organization)
         ):
             repo_dict = {
                 "repository_id": repo.id,

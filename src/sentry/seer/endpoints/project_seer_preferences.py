@@ -17,6 +17,7 @@ from sentry.seer.autofix.utils import (
     read_preference_from_sentry_db,
     write_preference_to_sentry_db,
 )
+from sentry.seer.constants import get_supported_scm_providers
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     RepositorySerializer as BaseRepositorySerializer,
 )
@@ -28,6 +29,16 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 class RepositorySerializer(BaseRepositorySerializer):
     organization_id = serializers.IntegerField(required=True)
     integration_id = serializers.CharField(required=True)
+
+    def validate_provider(self, value):
+        organization = self.context.get("organization")
+        supported = get_supported_scm_providers(organization)
+        if value not in supported:
+            supported_str = ", ".join(sorted(supported))
+            raise serializers.ValidationError(
+                f'"{value}" is not a supported Seer provider. Supported providers: {supported_str}'
+            )
+        return value
 
 
 class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
@@ -90,7 +101,10 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     )
 
     def post(self, request: Request, project: Project) -> Response:
-        serializer = ProjectSeerPreferencesSerializer(data=request.data)
+        serializer = ProjectSeerPreferencesSerializer(
+            data=request.data,
+            context={"organization": project.organization},
+        )
         serializer.is_valid(raise_exception=True)
 
         for repo_data in serializer.validated_data.get("repositories", []):

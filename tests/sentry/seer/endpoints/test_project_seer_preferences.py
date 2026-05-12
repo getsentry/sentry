@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectSeerPreferencesEndpointTest(APITestCase):
@@ -471,3 +472,67 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_post_accepts_gitlab_repo_with_feature_flag(self) -> None:
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry-gitlab",
+            provider="integrations:gitlab",
+            external_id="789",
+            integration_id=456,
+        )
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "456",
+                    "provider": "integrations:gitlab",
+                    "owner": "getsentry",
+                    "name": "sentry-gitlab",
+                    "external_id": "789",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(project=self.project).select_related("repository")
+        )
+        assert len(seer_repos) == 1
+        assert seer_repos[0].repository_id == gitlab_repo.id
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_post_accepts_gitlab_bare_provider_with_feature_flag(self) -> None:
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry-gitlab",
+            provider="integrations:gitlab",
+            external_id="789",
+            integration_id=456,
+        )
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "456",
+                    "provider": "gitlab",
+                    "owner": "getsentry",
+                    "name": "sentry-gitlab",
+                    "external_id": "789",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(project=self.project).select_related("repository")
+        )
+        assert len(seer_repos) == 1
+        assert seer_repos[0].repository_id == gitlab_repo.id
