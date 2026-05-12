@@ -410,9 +410,6 @@ def _unfurl_explore(
 
         display_type = _resolve_display_type(chart_type, y_axes)
         if display_type is None:
-            # The chart's visualization (e.g. a heatmap) isn't one the Slack
-            # timeseries renderer can show; skip before hitting the
-            # events-timeseries API rather than rendering a misleading chart.
             continue
 
         group_bys = params.getlist("groupBy")
