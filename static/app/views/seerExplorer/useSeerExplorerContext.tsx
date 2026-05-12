@@ -50,7 +50,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     toggleSeerExplorerDrawer,
     isOpen,
   } = useSeerExplorerDrawer({
-    onOpen: () => setLastViewedAt(Date.now()),
+    onClose: () => setLastViewedAt(Date.now()),
   });
 
   // Observes the shared session query so the button can reflect activity even
