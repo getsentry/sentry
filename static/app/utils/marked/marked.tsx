@@ -7,7 +7,7 @@ import Prism from 'prismjs';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 export {MarkedLexer};
-export type {MarkedToken, Token, Tokens};
+export type {MarkedToken, Token};
 
 const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
 
