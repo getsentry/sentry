@@ -15,7 +15,7 @@ from sentry.utils.db import atomic_transaction
 
 class StarSegmentSerializer(serializers.Serializer):
     segment_name = serializers.CharField(required=True)
-    project_id = serializers.IntegerField(required=True)
+    project_id = serializers.IntegerField(required=True, min_value=1)
 
 
 class MemberPermission(OrganizationPermission):
