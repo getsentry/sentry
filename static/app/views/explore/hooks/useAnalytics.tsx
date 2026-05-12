@@ -9,6 +9,7 @@ import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalytics
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -16,7 +17,6 @@ import {useChartSelection} from 'sentry/views/explore/components/attributeBreakd
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
@@ -1010,7 +1010,7 @@ export function useMetricsAnalytics({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const title = getTitleFromLocation(location);
+  const title = decodeScalar(location.query.title);
 
   const {
     data: {hasExceededPerformanceUsageLimit},

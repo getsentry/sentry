@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -22,7 +23,6 @@ import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   getIdFromLocation,
-  getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
 } from 'sentry/views/explore/queryParams/savedQuery';
@@ -81,7 +81,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   const id = getIdFromLocation(location, SPANS_ID_KEY);
-  const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
+  const title = decodeScalar(location.query?.[SPANS_TITLE_KEY]);
 
   const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
 
