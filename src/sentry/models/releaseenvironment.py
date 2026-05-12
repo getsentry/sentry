@@ -68,9 +68,9 @@ class ReleaseEnvironment(Model):
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
             if cache.add(bump_key, "1", timeout=60):
                 try:
-                    cls.objects.filter(
-                        id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
-                    ).update(last_seen=datetime)
+                    cls.objects.filter(id=instance.id, last_seen__lt=datetime).update(
+                        last_seen=datetime
+                    )
                 except OperationalError:
                     metric_tags["bumped"] = "error"
                     return instance
