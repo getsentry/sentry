@@ -479,10 +479,11 @@ CHART_TYPE_TO_DISPLAY_TYPE = {
     0: "bar",
     1: "line",
     2: "area",
+    3: "histogram",
 }
 
 # Display types the Slack timeseries renderer can produce. Any chartType that
-# resolves outside this set (e.g. a future heatmap) should not unfurl, since
+# resolves outside this set (e.g. histogram) should not unfurl, since
 # rendering it as a line chart would be misleading.
 SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
 
@@ -491,18 +492,18 @@ SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
 _BAR_AGGREGATES = {"count", "count_unique", "sum"}
 
 
-def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str | None:
-    """Return the display type string for the chart, or ``None`` when the
-    URL's chartType isn't recognized.
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
+    """Return the display type string for the chart.
 
     Uses the explicit chartType from the URL when present, otherwise mirrors
     the frontend's ``determineDefaultChartType`` logic which maps
     count/count_unique/sum aggregates to bar and everything else to line.
-    The caller decides whether the resolved type is renderable (see
+    Unmapped chartType values fall back to ``"line"``, matching the Explore
+    UI. The caller decides whether the resolved type is renderable (see
     ``SUPPORTED_DISPLAY_TYPES``).
     """
     if chart_type is not None:
-        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type)
+        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "line")
 
     for y_axis in y_axes:
         func_name = y_axis.split("(")[0] if "(" in y_axis else ""

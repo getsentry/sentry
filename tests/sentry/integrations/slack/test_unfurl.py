@@ -1905,9 +1905,9 @@ class UnfurlTest(TestCase):
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
         mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        # chartType=99 isn't in CHART_TYPE_TO_DISPLAY_TYPE, simulating a new
-        # visualization (e.g. heatmap) the unfurl renderer can't draw.
-        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%2C%22chartType%22%3A99%7D&project={self.project.id}&statsPeriod=24h"
+        # chartType=3 (histogram) is mapped but isn't in SUPPORTED_DISPLAY_TYPES,
+        # so the unfurl should be skipped rather than rendered as a line chart.
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%2C%22chartType%22%3A3%7D&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
