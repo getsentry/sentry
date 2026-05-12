@@ -39,6 +39,20 @@ def fetch_service_provider(
             repository,
             rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
         )
+    elif integration.provider == "github_enterprise":
+        domain_name = integration.metadata.get("domain_name")
+        if not domain_name:
+            return None
+        domain = domain_name.split("/")[0]
+        return GitHubProvider(
+            client,
+            organization_id,
+            repository,
+            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
+            web_base_url=f"https://{domain}",
+            provider_name="github_enterprise",
+            referrer_allocation={},
+        )
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
     else:
