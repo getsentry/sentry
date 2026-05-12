@@ -27,76 +27,6 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 | `label`              | `label`             | On layout components                                 |
 | `required`           | `required`          | On layout + Zod schema                               |
 
-## Patterns to Always Follow
-
-These are easy to miss and consistently flagged in review.
-
-### Don't pass generics to `useMutation`
-
-Type the `mutationFn` payload explicitly and let `fetchMutation<TReturn>` carry the return type. Putting generics on `useMutation<TData, TError, TVariables>` is not the pattern used in this codebase.
-
-```tsx
-// ❌ Don't put generics on useMutation
-const mutation = useMutation<CodeOwner, RequestError, [Payload]>({
-  mutationFn: ([payload]) => fetchMutation({url, method: 'POST', data: payload}),
-});
-
-// ✅ Type the payload on mutationFn; let fetchMutation<T> carry the return type
-const mutation = useMutation({
-  mutationFn: (payload: {codeMappingId: string; raw: string}) =>
-    fetchMutation<CodeOwner>({
-      url: `/projects/${org}/${project}/codeowners/`,
-      method: 'POST',
-      data: payload,
-    }),
-});
-```
-
-### Submit through the form, not around it
-
-If a form has a Save button, wire it through `<form.SubmitButton>` and run the mutation in the form's `onSubmit`. Do **not** render `<form.AppForm>` just for layout/validation and trigger the mutation from a standalone `<Button onClick={...}>` — a form that's never actually submitted is an antipattern.
-
-```tsx
-// ❌ Form never gets submitted; mutation fires from a separate button
-const form = useScrapsForm({
-  ...defaultFormOptions,
-  defaultValues,
-  validators: {onDynamic: schema},
-  // no onSubmit
-});
-
-return (
-  <form.AppForm form={form}>
-    <form.AppField name="codeMappingId">{...}</form.AppField>
-    <Button onClick={() => mutation.mutate(...)}>Save</Button>
-  </form.AppForm>
-);
-
-// ✅ Mutation runs in onSubmit; submit is form.SubmitButton
-const form = useScrapsForm({
-  ...defaultFormOptions,
-  defaultValues,
-  validators: {onDynamic: schema},
-  onSubmit: ({value}) =>
-    mutation
-      .mutateAsync(schema.parse(value))
-      .then(data => {
-        onSave?.(data);
-        closeModal();
-      })
-      .catch(() => {}),
-});
-
-return (
-  <form.AppForm form={form}>
-    <form.AppField name="codeMappingId">{...}</form.AppField>
-    <form.SubmitButton>Save</form.SubmitButton>
-  </form.AppForm>
-);
-```
-
-The form's submit lifecycle handles validation, pending state, disabled state, and field-error wiring. Bypassing it with a standalone button means re-implementing all of that — and usually missing some.
-
 ## Feature Details
 
 ### confirm → `confirm` prop
@@ -285,6 +215,25 @@ mutationOptions={{
 ```
 
 Make sure the zod schema's types are compatible with (i.e., assignable to) the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
+
+**Don't pass generics to `useMutation` either.** Type the `mutationFn` payload, and let `fetchMutation<TReturn>` carry the return type. `useMutation<TData, TError, TVariables>` is not the codebase style.
+
+```tsx
+// ❌ Generics on useMutation
+const mutation = useMutation<CodeOwner, RequestError, [Payload]>({
+  mutationFn: ([payload]) => fetchMutation({url, method: 'POST', data: payload}),
+});
+
+// ✅ Type the payload; fetchMutation<T> carries the return type
+const mutation = useMutation({
+  mutationFn: (payload: {codeMappingId: string; raw: string}) =>
+    fetchMutation<CodeOwner>({
+      url: `/projects/${org}/${project}/codeowners/`,
+      method: 'POST',
+      data: payload,
+    }),
+});
+```
 
 ### mapFormErrors → `setFieldErrors`
 
@@ -566,6 +515,47 @@ function SlugForm({project}: {project: Project}) {
 - Dangerous operations where users should see a warning before committing (slug changes, security tokens)
 - Large multiline text fields where you want to finish editing before saving (fingerprint rules, filters)
 - Any field where auto-save doesn't make sense
+
+**Submit through the form, not around it.** The mutation must run in the form's `onSubmit` and the Save button must be `<form.SubmitButton>`. Don't render `<form.AppForm>` just for layout/validation and trigger the mutation from a standalone `<Button onClick={...}>` — a form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
+
+```tsx
+// ❌ Form is never submitted; mutation fires from a separate button
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  // no onSubmit
+});
+
+return (
+  <form.AppForm form={form}>
+    <form.AppField name="codeMappingId">{...}</form.AppField>
+    <Button onClick={() => mutation.mutate(...)}>Save</Button>
+  </form.AppForm>
+);
+
+// ✅ Mutation runs in onSubmit; Save is form.SubmitButton
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) =>
+    mutation
+      .mutateAsync(schema.parse(value))
+      .then(data => {
+        onSave?.(data);
+        closeModal();
+      })
+      .catch(() => {}),
+});
+
+return (
+  <form.AppForm form={form}>
+    <form.AppField name="codeMappingId">{...}</form.AppField>
+    <form.SubmitButton>Save</form.SubmitButton>
+  </form.AppForm>
+);
+```
 
 ## Preserving Form Search Functionality
 
