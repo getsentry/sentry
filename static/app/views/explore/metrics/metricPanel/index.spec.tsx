@@ -356,12 +356,12 @@ describe('MetricPanel', () => {
       url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
       match: [MockApiClient.matchData({timestamp})],
       body: {
-        errors: 0,
+        errors: 1,
         performance_issues: 0,
         projects: 1,
         transactions: 1,
         transaction_child_count_map: [],
-        span_count: 0,
+        span_count: 2,
         span_count_map: {},
       },
     });
@@ -379,6 +379,9 @@ describe('MetricPanel', () => {
     );
 
     await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText('Errors: 1, Logs: 0, Spans: 2, Metrics: 0')
+    ).toBeInTheDocument();
   });
 
   it('shows an empty state when expanded sample details have no data', () => {
