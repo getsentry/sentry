@@ -299,7 +299,11 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
         reverse=True,
     )
     comparison = comparisons[0] if comparisons else None
-    if comparison:
+    if not comparison:
+        cc = head_artifact.commit_comparison
+        if cc and cc.base_sha:
+            comparison_state = "waiting_for_base"
+    elif comparison:
         comparison_state = PreprodSnapshotComparison.State(comparison.state).name.lower()
         if comparison.state == PreprodSnapshotComparison.State.SUCCESS:
             images_added = comparison.images_added
