@@ -21,6 +21,7 @@ from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
+    format_waiting_for_base_snapshot_status_check_messages,
 )
 from sentry.preprod.vcs.status_checks.status_check_provider import (
     GITHUB_STATUS_CHECK_STATUS_MAPPING,
@@ -45,6 +46,7 @@ FAIL_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_added"
 FAIL_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_removed"
 FAIL_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_changed"
 FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_renamed"
+MISSING_BASE_GRACE_PERIOD_SECONDS = 600
 
 
 @instrumented_task(
@@ -55,7 +57,10 @@ FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_rena
     retry=Retry(times=3, delay=60),
 )
 def create_preprod_snapshot_status_check_task(
-    preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
+    preprod_artifact_id: int,
+    caller: str | None = None,
+    is_timeout_check: bool = False,
+    **kwargs: Any,
 ) -> None:
     try:
         preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
@@ -202,6 +207,7 @@ def create_preprod_snapshot_status_check_task(
         return
 
     approve_action_identifier: str | None = None
+    waiting_for_base = False
 
     if is_solo:
         app_ids = {a.app_id for a in all_artifacts if a.app_id}
@@ -225,12 +231,28 @@ def create_preprod_snapshot_status_check_task(
                 project=preprod_artifact.project,
             )
         elif commit_comparison.base_sha:
-            status = StatusCheckStatus.FAILURE
-            title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
-                all_artifacts,
-                snapshot_metrics_map,
-                project=preprod_artifact.project,
-            )
+            if not is_timeout_check:
+                waiting_for_base = True
+                status = StatusCheckStatus.IN_PROGRESS
+                title, subtitle, summary = format_waiting_for_base_snapshot_status_check_messages(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=preprod_artifact.project,
+                )
+                logger.info(
+                    "preprod.snapshot_status_checks.create.missing_base_grace_period",
+                    extra={
+                        "artifact_id": preprod_artifact.id,
+                        "countdown": MISSING_BASE_GRACE_PERIOD_SECONDS,
+                    },
+                )
+            else:
+                status = StatusCheckStatus.FAILURE
+                title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=preprod_artifact.project,
+                )
         else:
             status = StatusCheckStatus.SUCCESS
             title, subtitle, summary = format_generated_snapshot_status_check_messages(
@@ -287,6 +309,16 @@ def create_preprod_snapshot_status_check_task(
         target_url=target_url,
         approve_action_identifier=approve_action_identifier,
     )
+
+    if waiting_for_base:
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": preprod_artifact_id,
+                "caller": "missing_base_timeout",
+                "is_timeout_check": True,
+            },
+            countdown=MISSING_BASE_GRACE_PERIOD_SECONDS,
+        )
 
 
 def _compute_snapshot_status(
