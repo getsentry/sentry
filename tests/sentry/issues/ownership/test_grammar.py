@@ -1299,3 +1299,132 @@ class GetInvalidOwnerDetailsTest(TestCase):
         project = self.create_project()
         messages = get_invalid_owner_details([], project.id)
         assert messages == []
+
+
+def test_parse_rules_with_exclusion_rule() -> None:
+    rules = parse_rules("codeowners:/apps/\ncodeowners:/apps/github\n")
+    assert rules == [
+        Rule(Matcher("codeowners", "/apps/"), []),
+        Rule(Matcher("codeowners", "/apps/github"), []),
+    ]
+
+
+def test_parse_rules_exclusion_rule_mixed() -> None:
+    rules = parse_rules("codeowners:/apps/ shash@sentry.io\ncodeowners:/apps/github\n")
+    assert rules == [
+        Rule(Matcher("codeowners", "/apps/"), [Owner("user", "shash@sentry.io")]),
+        Rule(Matcher("codeowners", "/apps/github"), []),
+    ]
+
+
+def test_dump_load_schema_exclusion_rule() -> None:
+    rule_with_owner = Rule(Matcher("codeowners", "/apps/"), [Owner("user", "shash@sentry.io")])
+    rule_exclusion = Rule(Matcher("codeowners", "/apps/github"), [])
+
+    schema = dump_schema([rule_with_owner, rule_exclusion])
+    assert schema == {
+        "$version": 1,
+        "rules": [
+            {
+                "matcher": {"type": "codeowners", "pattern": "/apps/"},
+                "owners": [{"type": "user", "identifier": "shash@sentry.io"}],
+            },
+            {
+                "matcher": {"type": "codeowners", "pattern": "/apps/github"},
+                "owners": [],
+            },
+        ],
+    }
+    assert load_schema(schema) == [rule_with_owner, rule_exclusion]
+
+
+def test_str_exclusion_rule() -> None:
+    assert str(Rule(Matcher("codeowners", "/apps/github"), [])) == "codeowners:/apps/github"
+
+
+def test_convert_schema_to_rules_text_exclusion_rule() -> None:
+    assert (
+        convert_schema_to_rules_text(
+            {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "/apps/"},
+                        "owners": [{"type": "user", "identifier": "shash@sentry.io"}],
+                    },
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "/apps/github"},
+                        "owners": [],
+                    },
+                ],
+            }
+        )
+        == "codeowners:/apps/ shash@sentry.io\ncodeowners:/apps/github\n"
+    )
+
+
+def test_convert_codeowners_syntax_exclusion_rule() -> None:
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = ""
+    code_mapping.source_root = ""
+
+    codeowners = "/apps/ @octocat\n/apps/github\n"
+    result = convert_codeowners_syntax(
+        codeowners,
+        {"@octocat": "octocat@sentry.io"},
+        code_mapping,
+    )
+    assert "codeowners:/apps/ octocat@sentry.io\n" in result
+    assert "codeowners:/apps/github\n" in result
+
+
+def test_convert_codeowners_syntax_exclusion_with_comment() -> None:
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = ""
+    code_mapping.source_root = ""
+
+    codeowners = "/apps/ @octocat\n/apps/github # Skip\n"
+    result = convert_codeowners_syntax(
+        codeowners,
+        {"@octocat": "octocat@sentry.io"},
+        code_mapping,
+    )
+    assert "codeowners:/apps/ octocat@sentry.io\n" in result
+    assert "codeowners:/apps/github\n" in result
+
+
+def test_convert_codeowners_syntax_unmapped_owner_not_exclusion() -> None:
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = ""
+    code_mapping.source_root = ""
+
+    codeowners = "/apps/ @unknown-user\n"
+    result = convert_codeowners_syntax(
+        codeowners,
+        {},
+        code_mapping,
+    )
+    assert "codeowners:/apps/" not in result
+
+
+def test_convert_codeowners_syntax_exclusion_with_stack_root() -> None:
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = "webpack://static/"
+    code_mapping.source_root = ""
+
+    codeowners = "/apps/ @octocat\n/apps/github\n"
+    result = convert_codeowners_syntax(
+        codeowners,
+        {"@octocat": "octocat@sentry.io"},
+        code_mapping,
+    )
+    assert "codeowners:webpack://static/apps/ octocat@sentry.io\n" in result
+    assert "codeowners:webpack://static/apps/github\n" in result
+
+
+def test_parse_code_owners_exclusion_rule() -> None:
+    codeowners = "/apps/ @getsentry/frontend\n/apps/github\n"
+    teams, usernames, emails = parse_code_owners(codeowners)
+    assert teams == ["@getsentry/frontend"]
+    assert usernames == []
+    assert emails == []

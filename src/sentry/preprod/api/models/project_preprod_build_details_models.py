@@ -97,7 +97,7 @@ class SnapshotComparisonInfo(BaseModel):
     images_removed: int = 0
     images_changed: int = 0
     images_unchanged: int = 0
-    approval_status: Literal["approved", "requires_approval"] | None = None
+    approval_status: Literal["approved", "auto_approved", "requires_approval"] | None = None
 
 
 class SizeInfoSizeMetric(BaseModel):
@@ -319,7 +319,10 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
     approvals.sort(key=lambda a: a.id, reverse=True)
     if approvals:
         if approvals[0].approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED:
-            approval_status = "approved"
+            if (approvals[0].extras or {}).get("auto_approval") is True:
+                approval_status = "auto_approved"
+            else:
+                approval_status = "approved"
         else:
             approval_status = "requires_approval"
 

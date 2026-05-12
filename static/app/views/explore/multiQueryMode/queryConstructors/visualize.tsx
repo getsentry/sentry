@@ -11,7 +11,7 @@ import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   useUpdateQueryAtIndex,
@@ -23,6 +23,7 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 type Props = {
   index: number;
@@ -82,7 +83,15 @@ export function VisualizeSection({query, index}: Props) {
             }}
           />
           <CompactSelect
-            search
+            search={{
+              filter: (option, searchText) => {
+                return sortSearchedAttributes({
+                  fieldDefinitionType: TraceItemDataset.SPANS,
+                  option,
+                  searchText,
+                });
+              },
+            }}
             options={options}
             value={parsedFunction?.arguments?.[0] ?? ''}
             onChange={newField => {

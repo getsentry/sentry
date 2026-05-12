@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
+import {NotificationSettings} from 'sentry/views/settings/account/notifications/notificationSettings';
 
 function renderMockRequests() {
   MockApiClient.addMockResponse({
@@ -20,10 +21,11 @@ function renderMockRequests() {
 describe('NotificationSettings', () => {
   it('should render', async () => {
     const {organization} = initializeOrg();
+    OrganizationsStore.load([organization]);
 
     renderMockRequests();
 
-    render(<NotificationSettings organizations={[organization]} />);
+    render(<NotificationSettings />);
 
     // There are 8 notification setting Selects/Toggles.
     for (const field of [
@@ -49,10 +51,11 @@ describe('NotificationSettings', () => {
         features: ['user-spend-notifications-settings'],
       },
     });
+    OrganizationsStore.load([organization]);
 
     renderMockRequests();
 
-    render(<NotificationSettings organizations={[organization]} />);
+    render(<NotificationSettings />);
 
     // There are 9 notification setting Selects/Toggles.
 
@@ -83,10 +86,11 @@ describe('NotificationSettings', () => {
 
     const organizationNoFlag = OrganizationFixture();
     organizationNoFlag.features.push('user-spend-notifications-settings');
+    OrganizationsStore.load([organization, organizationNoFlag]);
 
     renderMockRequests();
 
-    render(<NotificationSettings organizations={[organization, organizationNoFlag]} />);
+    render(<NotificationSettings />);
 
     expect(await screen.findByText('Spend')).toBeInTheDocument();
 

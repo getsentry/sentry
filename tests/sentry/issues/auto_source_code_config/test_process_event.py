@@ -13,6 +13,7 @@ from sentry.issues.auto_source_code_config.constants import (
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
 from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
@@ -183,6 +184,12 @@ class BaseDeriveCodeMappings(TestCase):
                         )
                         assert code_mapping is not None
                         assert code_mapping.repository.name == expected_cm["repo_name"]
+                        assert code_mapping.project_repository is not None
+                        assert code_mapping.project_repository.project_id == self.project.id
+                        assert (
+                            code_mapping.project_repository.repository_id
+                            == code_mapping.repository_id
+                        )
                 else:
                     assert current_code_mappings.count() == starting_code_mappings_count
 
@@ -202,6 +209,10 @@ class BaseDeriveCodeMappings(TestCase):
                     )
                 else:
                     assert current_enhancements == starting_enhancements
+
+            if not dry_run and expected_new_code_mappings:
+                project_repos = ProjectRepository.objects.filter(project=self.project)
+                assert project_repos.count() > 0
 
             if (current_repositories.count() > starting_repositories_count) or dry_run:
                 mock_incr.assert_any_call(

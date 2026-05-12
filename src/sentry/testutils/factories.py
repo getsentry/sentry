@@ -2610,6 +2610,7 @@ class Factories:
         approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
         approved_at: datetime | None = None,
         approved_by_id: int | None = None,
+        extras: dict | None = None,
     ) -> PreprodComparisonApproval:
         return PreprodComparisonApproval.objects.create(
             preprod_artifact=preprod_artifact,
@@ -2617,6 +2618,7 @@ class Factories:
             approval_status=approval_status,
             approved_at=approved_at,
             approved_by_id=approved_by_id,
+            extras=extras,
         )
 
     @staticmethod

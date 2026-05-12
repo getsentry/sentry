@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 @launchpad_tasks.register(
     name="process_artifact",
     retry=Retry(times=3),
-    processing_deadline_duration=60 * 12,
+    processing_deadline_duration=60 * 15,
 )
 def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
     pass

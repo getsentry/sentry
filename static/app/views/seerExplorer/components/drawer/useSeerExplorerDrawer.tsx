@@ -112,7 +112,7 @@ export const useSeerExplorerDrawer = () => {
     []
   );
 
-  if (!organization || !isSeerExplorerEnabled(organization)) {
+  if (!isSeerExplorerEnabled(organization)) {
     return disabledReturn;
   }
 
