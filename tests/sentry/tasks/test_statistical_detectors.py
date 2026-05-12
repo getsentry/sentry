@@ -24,7 +24,6 @@ from sentry.models.statistical_detectors import (
 )
 from sentry.seer.breakpoints import BreakpointData
 from sentry.snuba.discover import zerofill
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
@@ -41,7 +40,11 @@ from sentry.tasks.statistical_detectors import (
     query_transactions_timeseries,
     run_detection,
 )
-from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
+from sentry.testutils.cases import (
+    ProfilesSnubaTestCase,
+    SnubaTestCase,
+    TestCase,
+)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -1652,61 +1655,90 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         )
 
 
-@pytest.mark.sentry_metrics
-class TestTransactionsQuery(MetricsAPIBaseTestCase):
+class TestTransactionsQuery(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4
-
+        self.now = (datetime.now(UTC) - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-        self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.projects = [
             self.create_project(organization=self.organization) for _ in range(self.num_projects)
         ]
 
         for project in self.projects:
             for i in range(self.num_transactions):
-                # Store metrics for a backend transaction
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
-                    self.hour_ago_seconds,
-                    1.0,
+                # Store two backend transactions per name so count == 2 and p95 is meaningful
+                self.store_event(
+                    data={
+                        "type": "transaction",
+                        "transaction": f"transaction_{i}",
+                        "contexts": {
+                            "trace": {
+                                "op": "http.server",
+                                "trace_id": "a" * 32,
+                                "span_id": "b" * 16,
+                            }
+                        },
+                        "timestamp": self.hour_ago.isoformat(),
+                        "start_timestamp": (self.hour_ago - timedelta(milliseconds=1)).isoformat(),
+                        "received": self.hour_ago.isoformat(),
+                    },
+                    project_id=project.id,
                 )
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
-                    self.hour_ago_seconds,
-                    9.5,
+                self.store_event(
+                    data={
+                        "type": "transaction",
+                        "transaction": f"transaction_{i}",
+                        "contexts": {
+                            "trace": {
+                                "op": "http.server",
+                                "trace_id": "c" * 32,
+                                "span_id": "d" * 16,
+                            }
+                        },
+                        "timestamp": self.hour_ago.isoformat(),
+                        "start_timestamp": (self.hour_ago - timedelta(milliseconds=10)).isoformat(),
+                        "received": self.hour_ago.isoformat(),
+                    },
+                    project_id=project.id,
                 )
 
-                # Store metrics for a frontend transaction, which should be
-                # ignored by the query
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
-                    self.hour_ago_seconds,
-                    1.0,
+                # Frontend transactions — should be excluded by the transaction_op filter
+                self.store_event(
+                    data={
+                        "type": "transaction",
+                        "transaction": f"fe_transaction_{i}",
+                        "contexts": {
+                            "trace": {"op": "navigation", "trace_id": "e" * 32, "span_id": "f" * 16}
+                        },
+                        "timestamp": self.hour_ago.isoformat(),
+                        "start_timestamp": (self.hour_ago - timedelta(milliseconds=1)).isoformat(),
+                        "received": self.hour_ago.isoformat(),
+                    },
+                    project_id=project.id,
                 )
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
-                    self.hour_ago_seconds,
-                    9.5,
+                self.store_event(
+                    data={
+                        "type": "transaction",
+                        "transaction": f"fe_transaction_{i}",
+                        "contexts": {
+                            "trace": {
+                                "op": "navigation",
+                                "trace_id": "a1" * 16,
+                                "span_id": "b1" * 8,
+                            }
+                        },
+                        "timestamp": self.hour_ago.isoformat(),
+                        "start_timestamp": (
+                            self.hour_ago - timedelta(milliseconds=9.5)
+                        ).isoformat(),
+                        "received": self.hour_ago.isoformat(),
+                    },
+                    project_id=project.id,
                 )
-
-    @property
-    def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_transactions_query(self) -> None:
         res = query_transactions(
@@ -1718,47 +1750,52 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
         assert len(res) == len(self.projects) * self.num_transactions
         for trend_payload in res:
             assert trend_payload.count == 2
-            # p95 is  calculated by a probabilistic data structure, as such the value won't actually be 9.5 since we only have
-            # one sample at 9.5, but it should be close
+            # duration column stores integer ms; p95 of [1ms, 10ms] ≈ 9.55 > 9
             assert trend_payload.value > 9
             assert trend_payload.timestamp == self.hour_ago
 
 
-@pytest.mark.sentry_metrics
-class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
+class TestTransactionChangePointDetection(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4
-
+        self.now = (datetime.now(UTC) - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-        self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.projects = [
             self.create_project(organization=self.organization) for _ in range(self.num_projects)
         ]
 
-        def store_metric(project_id, transaction, minutes_ago, value):
-            self.store_metric(
-                self.organization.id,
-                project_id,
-                TransactionMRI.DURATION_LIGHT.value,
-                {"transaction": transaction},
-                int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
-                value,
+        def store_transaction(project_id, transaction, minutes_ago, duration_ms):
+            ts = self.now - timedelta(minutes=minutes_ago)
+            self.store_event(
+                data={
+                    "type": "transaction",
+                    "transaction": transaction,
+                    "contexts": {
+                        "trace": {
+                            "op": "http.server",
+                            "trace_id": uuid.uuid4().hex,
+                            "span_id": uuid.uuid4().hex[:16],
+                        }
+                    },
+                    "timestamp": ts.isoformat(),
+                    "start_timestamp": (ts - timedelta(milliseconds=duration_ms)).isoformat(),
+                    "received": ts.isoformat(),
+                },
+                project_id=project_id,
             )
 
         for project in self.projects:
             for i in range(self.num_transactions):
-                store_metric(project.id, f"transaction_{i}", 20, 9.5)
-                store_metric(project.id, f"transaction_{i}", 40, 9.5)
-                store_metric(project.id, f"transaction_{i}", 60, 9.5)
-                store_metric(project.id, f"transaction_{i}", 80, 1.0)
-                store_metric(project.id, f"transaction_{i}", 100, 1.0)
-                store_metric(project.id, f"transaction_{i}", 120, 1.0)
-
-    @property
-    def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
+                store_transaction(project.id, f"transaction_{i}", 20, 9)
+                store_transaction(project.id, f"transaction_{i}", 40, 9)
+                store_transaction(project.id, f"transaction_{i}", 60, 9)
+                store_transaction(project.id, f"transaction_{i}", 80, 1)
+                store_transaction(project.id, f"transaction_{i}", 100, 1)
+                store_transaction(project.id, f"transaction_{i}", 120, 1)
 
     def test_query_transactions_timeseries(self) -> None:
         results = [
@@ -1787,16 +1824,16 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                         "data": zerofill(
                             [
                                 {
-                                    "transaction": "transaction_1",
+                                    "transaction_name": "transaction_1",
                                     "time": first_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 1.0,
+                                    "p95_transaction_duration": 1,
                                 },
                                 {
-                                    "transaction": "transaction_1",
+                                    "transaction_name": "transaction_1",
                                     "time": second_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 9.5,
+                                    "p95_transaction_duration": 9,
                                 },
                             ],
                             start,
@@ -1819,16 +1856,16 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                         "data": zerofill(
                             [
                                 {
-                                    "transaction": "transaction_2",
+                                    "transaction_name": "transaction_2",
                                     "time": first_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 1.0,
+                                    "p95_transaction_duration": 1,
                                 },
                                 {
-                                    "transaction": "transaction_2",
+                                    "transaction_name": "transaction_2",
                                     "time": second_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 9.5,
+                                    "p95_transaction_duration": 9,
                                 },
                             ],
                             start,
@@ -1851,16 +1888,16 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                         "data": zerofill(
                             [
                                 {
-                                    "transaction": "transaction_1",
+                                    "transaction_name": "transaction_1",
                                     "time": first_timeseries_time.isoformat(),
                                     "project_id": self.projects[1].id,
-                                    "p95_transaction_duration": 1.0,
+                                    "p95_transaction_duration": 1,
                                 },
                                 {
-                                    "transaction": "transaction_1",
+                                    "transaction_name": "transaction_1",
                                     "time": second_timeseries_time.isoformat(),
                                     "project_id": self.projects[1].id,
-                                    "p95_transaction_duration": 9.5,
+                                    "p95_transaction_duration": 9,
                                 },
                             ],
                             start,
