@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -58,6 +58,7 @@ import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwit
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
@@ -444,7 +445,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <Fragment>
+    <LogsSidebarProvider sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
       <LogsSearchSection
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
@@ -553,7 +554,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
           </ExploreContentSection>
         </ViewportConstrainedBody>
       </ViewportConstrainedPage>
-    </Fragment>
+    </LogsSidebarProvider>
   );
 }
 
