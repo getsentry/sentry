@@ -307,8 +307,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const aiQueryRunIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (rawLogCounts.total.isLoading || rawLogCounts.total.count === null) {
-      aiQueryRunIdRef.current = null;
+    if (rawLogCounts.total.count === null) {
       return;
     }
     if (aiQueryRunId !== null && aiQueryRunIdRef.current !== aiQueryRunId) {
@@ -321,13 +320,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
         runId: aiQueryRunId,
       });
     }
-  }, [
-    aiQueryParam,
-    aiQueryRunId,
-    organization.slug,
-    rawLogCounts.total.count,
-    rawLogCounts.total.isLoading,
-  ]);
+  }, [aiQueryParam, aiQueryRunId, organization.slug, rawLogCounts.total.count]);
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));

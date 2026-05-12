@@ -236,8 +236,7 @@ function SpanTabContentSectionInner({
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const aiQueryRunIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (rawSpanCounts.total.isLoading || rawSpanCounts.total.count === null) {
-      aiQueryRunIdRef.current = null;
+    if (rawSpanCounts.total.count === null) {
       return;
     }
     if (aiQueryRunId !== null && aiQueryRunIdRef.current !== aiQueryRunId) {
@@ -250,13 +249,7 @@ function SpanTabContentSectionInner({
         runId: aiQueryRunId,
       });
     }
-  }, [
-    aiQueryParam,
-    aiQueryRunId,
-    organization.slug,
-    rawSpanCounts.total.count,
-    rawSpanCounts.total.isLoading,
-  ]);
+  }, [aiQueryParam, aiQueryRunId, organization.slug, rawSpanCounts.total.count]);
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,

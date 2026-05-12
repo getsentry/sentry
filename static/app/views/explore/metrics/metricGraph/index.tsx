@@ -138,8 +138,7 @@ function Graph({
   const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
   const aiQueryRunIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (rawMetricCounts.total.isLoading || rawMetricCounts.total.count === null) {
-      aiQueryRunIdRef.current = null;
+    if (rawMetricCounts.total.count === null) {
       return;
     }
     if (aiQueryRunId !== null && aiQueryRunIdRef.current !== aiQueryRunId) {
@@ -152,13 +151,7 @@ function Graph({
         runId: aiQueryRunId,
       });
     }
-  }, [
-    aiQueryParam,
-    aiQueryRunId,
-    organization.slug,
-    rawMetricCounts.total.count,
-    rawMetricCounts.total.isLoading,
-  ]);
+  }, [aiQueryParam, aiQueryRunId, organization.slug, rawMetricCounts.total.count]);
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
