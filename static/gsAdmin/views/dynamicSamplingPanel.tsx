@@ -50,7 +50,7 @@ type RuleV2 = {
   };
   id: number;
   samplingValue: {
-    type: 'factor' | 'sampleRate' | 'reservoir';
+    type: 'factor' | 'sampleRate';
     value: number;
     limit?: number;
   };
@@ -335,9 +335,6 @@ function DynamicSamplingRulesTable({
     ) {
       return `${round(samplingValue.value * 100)}%`;
     }
-    if (samplingValue.type === 'reservoir') {
-      return '100%';
-    }
     return `* ${round(samplingValue.value)}`;
   };
 
@@ -347,9 +344,6 @@ function DynamicSamplingRulesTable({
     }
     if (rule.samplingValue.type === 'sampleRate') {
       return round(rule.samplingValue.value - baseSampleRate);
-    }
-    if (rule.samplingValue.type === 'reservoir') {
-      return 1;
     }
     return round(rule.samplingValue.value - 1);
   };

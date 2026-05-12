@@ -146,7 +146,7 @@ describe('Dynamic Sampling Panel', () => {
 
     const rule1 = {
       samplingValue: {
-        type: 'reservoir',
+        type: 'minimumSampleRate',
         limit: 100,
       },
       type: 'transaction',
@@ -163,7 +163,7 @@ describe('Dynamic Sampling Panel', () => {
 
     const rule2 = {
       samplingValue: {
-        type: 'reservoir',
+        type: 'minimumSampleRate',
         limit: 300,
       },
       type: 'transaction',
