@@ -31,6 +31,19 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.FEATURE_FLAGS]: t('Flags'),
 };
 
+type JumpToSectionConfig = SectionConfig & {key: SectionKey};
+
+function isJumpToSectionConfig(
+  config: SectionConfig | undefined,
+  excludedSectionKeys: SectionKey[]
+): config is JumpToSectionConfig {
+  return Boolean(
+    config &&
+    Object.hasOwn(sectionLabels, config.key) &&
+    !excludedSectionKeys.includes(config.key as SectionKey)
+  );
+}
+
 export function IssueDetailsJumpTo() {
   const {sectionData} = useIssueDetails();
   const organization = useOrganization();
@@ -51,8 +64,8 @@ export function IssueDetailsJumpTo() {
   }, [organization.features]);
 
   const eventSectionConfigs = useMemo(() => {
-    const configs = Object.values(sectionData ?? {}).filter(
-      config => sectionLabels[config.key] && !excludedSectionKeys.includes(config.key)
+    const configs = Object.values(sectionData ?? {}).filter(config =>
+      isJumpToSectionConfig(config, excludedSectionKeys)
     );
 
     // Build a position map by querying the DOM once
@@ -95,7 +108,7 @@ export function IssueDetailsJumpTo() {
   );
 }
 
-function JumpToLink({config}: {config: SectionConfig}) {
+function JumpToLink({config}: {config: JumpToSectionConfig}) {
   const theme = useTheme();
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(config.key),
