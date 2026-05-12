@@ -23,12 +23,6 @@ export const performance: OnboardingConfig = {
           ),
         },
         {
-          type: 'text',
-          text: t(
-            "Import and initialize the Sentry SDK early in your application's setup:"
-          ),
-        },
-        {
           type: 'code',
           language: 'php',
           code: `
