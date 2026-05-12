@@ -204,7 +204,7 @@ export function KeyRateLimitsForm({
                           <RangeSlider
                             name="rateLimit.window"
                             allowedValues={getAllowedRateLimitValues(window)}
-                            value={window}
+                            value={window ?? ''}
                             placeholder={t('Window')}
                             formatLabel={rangeValue => {
                               if (typeof rangeValue === 'number') {
