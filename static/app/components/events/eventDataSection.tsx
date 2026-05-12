@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {DataSection} from 'sentry/components/events/styles';
@@ -83,12 +84,12 @@ export function EventDataSection({
         {title && (
           <Title>
             {showPermalink ? (
-              <Permalink className="permalink">
+              <Container as="span" width="100%" position="relative" className="permalink">
                 <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
                   <StyledIconLink size="xs" variant="muted" />
                 </PermalinkAnchor>
                 {titleNode}
-              </Permalink>
+              </Container>
             ) : (
               titleNode
             )}
@@ -97,9 +98,13 @@ export function EventDataSection({
             )}
           </Title>
         )}
-        {actions && <ActionContainer>{actions}</ActionContainer>}
+        {actions && (
+          <Container flexShrink={0} maxWidth="100%">
+            {actions}
+          </Container>
+        )}
       </SectionHeader>
-      <SectionContents>{children}</SectionContents>
+      <Container position="relative">{children}</Container>
     </DataSection>
   );
 }
@@ -109,11 +114,6 @@ const Title = styled('div')`
   grid-template-columns: max-content 1fr;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const Permalink = styled('span')`
-  width: 100%;
-  position: relative;
 `;
 
 const StyledIconLink = styled(IconLink)`
@@ -179,13 +179,4 @@ const SectionHeader = styled('div')`
     position: relative;
     flex-grow: 1;
   }
-`;
-
-const SectionContents = styled('div')`
-  position: relative;
-`;
-
-const ActionContainer = styled('div')`
-  flex-shrink: 0;
-  max-width: 100%;
 `;

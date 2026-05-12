@@ -4,6 +4,7 @@ import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -98,9 +99,14 @@ export function Layout() {
               </ThemeToggle>
             </div>
           </Sidebar>
-          <Content>
+          <Container
+            as="main"
+            padding="0 2xl"
+            width="100%"
+            maxWidth="var(--contentWidth)"
+          >
             <Outlet />
-          </Content>
+          </Container>
         </AppContainer>
       </ScrapsProviders>
     </ThemeProvider>
@@ -115,12 +121,6 @@ const AppContainer = styled('div')`
 
   display: flow-root;
   padding-left: var(--sidebarWidth);
-`;
-
-const Content = styled('main')`
-  width: 100%;
-  max-width: var(--contentWidth);
-  padding: 0 ${p => p.theme.space['2xl']};
 `;
 
 const Sidebar = styled('section')`
