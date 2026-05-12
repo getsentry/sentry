@@ -64,7 +64,7 @@ from .repository import GitHubEnterpriseRepositoryProvider
 
 
 def _api_base_url(url: str) -> str:
-    if url.endswith(".ghe.com"):
+    if url == "github.com" or url.endswith(".ghe.com"):
         return f"https://api.{url}"
     return f"https://{url}/api/v3"
 

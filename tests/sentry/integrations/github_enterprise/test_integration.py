@@ -38,6 +38,9 @@ class ApiBaseUrlTest(TestCase):
     def test_ghe_cloud_url(self) -> None:
         assert _api_base_url("acme-corp.ghe.com") == "https://api.acme-corp.ghe.com"
 
+    def test_github_com_url(self) -> None:
+        assert _api_base_url("github.com") == "https://api.github.com"
+
     @responses.activate
     def test_get_user_info_ghe_cloud_calls_api_subdomain(self) -> None:
         responses.add(
