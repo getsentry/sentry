@@ -1,4 +1,3 @@
-import unittest
 from collections.abc import Generator
 from unittest import mock
 from unittest.mock import Mock
@@ -15,7 +14,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import IncidentStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 
@@ -235,50 +233,6 @@ class AlertRuleTriggerActionTargetTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value, target_identifier=email
         )
         assert trigger.target == email
-
-
-class AlertRuleTriggerActionActivateBaseTest:
-    method: str
-
-    def setUp(self) -> None:
-        self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
-
-    def tearDown(self) -> None:
-        self.suspended_registry.restore()
-
-    def test_no_handler(self) -> None:
-        trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        result = trigger.fire(
-            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
-        )  # type: ignore[func-returns-value]
-
-        # TODO(RyanSkonnord): Remove assertion (see test_handler)
-        assert result is None
-
-    def test_handler(self) -> None:
-        mock_handler = Mock()
-        mock_method = getattr(mock_handler.return_value, self.method)
-        mock_method.return_value = "test"
-        type = AlertRuleTriggerAction.Type.EMAIL
-        AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
-        trigger = AlertRuleTriggerAction(type=type.value)
-        result = getattr(trigger, self.method)(
-            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
-        )
-
-        # TODO(RyanSkonnord): Don't assert on return value.
-        # All concrete ActionHandlers return None from their fire and resolve
-        # methods. It seems that this return value's only purpose is to spy on
-        # whether the AlertRuleTriggerAction produced a handler.
-        assert result == mock_method.return_value
-
-
-class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
-    method = "fire"
-
-
-class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
-    method = "resolve"
 
 
 class AlertRuleTriggerActionActivateTest(TestCase):

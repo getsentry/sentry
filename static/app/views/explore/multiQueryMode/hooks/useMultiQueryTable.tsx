@@ -135,8 +135,13 @@ function useMultiQueryTableSampleModeImpl({
 
   const fields = useMemo(() => {
     const allFields: string[] = [];
-    allFields.push(...getFieldsForConstructedQuery(yAxes));
-    allFields.push(...['transaction.span_id', 'trace', 'project', 'timestamp']);
+    allFields.push(
+      ...getFieldsForConstructedQuery(yAxes),
+      'transaction.span_id',
+      'trace',
+      'project',
+      'timestamp'
+    );
     return allFields;
   }, [yAxes]);
   const eventView = useMemo(() => {

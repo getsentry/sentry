@@ -16,10 +16,10 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   useUpdateBulkAutofixAutomationSettings,
@@ -368,6 +368,8 @@ const SimpleTableWithColumns = styled(SimpleTable)`
 `;
 
 function AddProjectButton() {
+  const {openModal} = useModal();
+
   const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   return (

@@ -35,6 +35,7 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.web.decorators import set_referrer_policy
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
@@ -73,7 +74,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization_id_or_slug: int | str,
-        data_forwarder_id: int,
+        data_forwarder_id: str,
         *args,
         **kwargs,
     ):
@@ -86,7 +87,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
 
         try:
             data_forwarder = DataForwarder.objects.get(
-                id=data_forwarder_id,
+                id=to_valid_int_id("data_forwarder_id", data_forwarder_id, raise_404=True),
                 organization=kwargs["organization"],
             )
         except DataForwarder.DoesNotExist:
@@ -114,7 +115,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             data_forwarder = serializer.save()
             return Response(
-                serialize(data_forwarder, request.user),
+                serialize(data_forwarder, request.user, access=request.access),
                 status=status.HTTP_200_OK,
             )
         # Validation failed - return None to signal caller ddto try other operations
@@ -231,7 +232,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             ).update(is_enabled=False)
 
         return Response(
-            serialize(data_forwarder, request.user),
+            serialize(data_forwarder, request.user, access=request.access),
             status=status.HTTP_200_OK,
         )
 
@@ -277,7 +278,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             serializer.save()
             return Response(
-                serialize(data_forwarder, request.user),
+                serialize(data_forwarder, request.user, access=request.access),
                 status=status.HTTP_200_OK,
             )
 

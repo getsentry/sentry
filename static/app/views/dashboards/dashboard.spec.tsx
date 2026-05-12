@@ -1,7 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
-import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -14,7 +13,6 @@ import {
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Dashboard} from 'sentry/views/dashboards/dashboard';
@@ -153,6 +151,11 @@ describe('Dashboards > Dashboard', () => {
           },
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      method: 'GET',
+      body: [],
     });
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -356,7 +359,6 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Issue Widgets', () => {
     beforeEach(() => {
-      MemberListStore.init();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/1/',
         method: 'GET',
@@ -406,16 +408,6 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('renders assignee', async () => {
-      MemberListStore.loadInitialData([
-        UserFixture({
-          name: 'Test User',
-          email: 'test@sentry.io',
-          avatar: {
-            avatarType: 'letter_avatar',
-            avatarUuid: null,
-          },
-        }),
-      ]);
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [{...issueWidget}],

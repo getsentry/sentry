@@ -22,6 +22,7 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import (
+    ExternalActorSource,
     ExternalProviderEnum,
     ExternalProviders,
     IntegrationProviderSlug,
@@ -487,6 +488,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             defaults=dict(
                 external_name=channel_name,
                 external_id=channel_id,
+                source=ExternalActorSource.MANUAL.value,
             ),
         )
 

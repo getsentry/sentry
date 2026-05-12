@@ -14,7 +14,6 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -48,7 +47,10 @@ describe('StreamlinedActivitySection', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
-    MemberListStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     localStorage.clear();
   });
 
@@ -112,7 +114,10 @@ describe('StreamlinedActivitySection', () => {
 
   it('uses loaded members for mentions in the drawer comment input', async () => {
     const mentionedUser = UserFixture({id: '42', name: 'Jane Doe'});
-    MemberListStore.loadInitialData([mentionedUser]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: mentionedUser}],
+    });
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
       method: 'POST',
@@ -299,7 +304,7 @@ describe('StreamlinedActivitySection', () => {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', () => {
+  it('does not collapse activity when rendered in the drawer', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -319,14 +324,14 @@ describe('StreamlinedActivitySection', () => {
 
     for (const activity of activities) {
       expect(
-        screen.getByText((activity.data as {text: string}).text)
+        await screen.findByText((activity.data as {text: string}).text)
       ).toBeInTheDocument();
     }
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('filters comments correctly', () => {
+  it('filters comments correctly', async () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -359,7 +364,7 @@ describe('StreamlinedActivitySection', () => {
         expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
       } else {
         expect(
-          screen.getByText((activity.data as {text: string}).text)
+          await screen.findByText((activity.data as {text: string}).text)
         ).toBeInTheDocument();
       }
     }
