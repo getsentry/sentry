@@ -493,20 +493,6 @@ function IssueListOverviewInner({
           error: parseApiError(err),
         });
 
-        // TODO: followup pr
-        // const aiQueryParam = location.query[AI_QUERY_PARAM];
-        // const aiQueryRunId = aiQueryParam ? Number(aiQueryParam) : null;
-        // if (aiQueryRunId !== null) {
-        //   trackAiQueryOutcome({
-        //     dataset: 'issues',
-        //     referrer: 'issues',
-        //     resultCount: 0,
-        //     outcome: 'error_on_load',
-        //     orgSlug: organization.slug,
-        //     runId: aiQueryRunId,
-        //   });
-        // }
-
         setError(parseApiError(err));
         setIssuesLoading(false);
         setIssuesSuccessfullyLoaded(false);
