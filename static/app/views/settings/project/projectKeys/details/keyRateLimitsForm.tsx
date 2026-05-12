@@ -1,5 +1,4 @@
 import {useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
@@ -89,17 +88,16 @@ export function KeyRateLimitsForm({
         data: {rateLimit},
       });
     },
-    onSuccess: updated => {
+    onSuccess: (updated, submitted) => {
       updateData(updated);
       addSuccessMessage(
-        tct('Changed [fieldName] from [oldValue] to [newValue]', {
-          fieldName: <FieldName>{t('Rate Limit')}</FieldName>,
-          oldValue: (
-            <FormValue>{formatRateLimit(previousRateLimitRef.current)}</FormValue>
-          ),
-          newValue: <FormValue>{formatRateLimit(updated.rateLimit)}</FormValue>,
-          root: <Flex align="center" />,
-        })
+        <Flex align="center" gap="xs">
+          {tct('Changed [fieldName] from [oldValue] to [newValue]', {
+            fieldName: <Text bold>{t('Rate Limit')}</Text>,
+            oldValue: <Text italic>{formatRateLimit(previousRateLimitRef.current)}</Text>,
+            newValue: <Text italic>{formatRateLimit(submitted)}</Text>,
+          })}
+        </Flex>
       );
     },
   });
@@ -263,12 +261,3 @@ export function KeyRateLimitsForm({
     </form.AppForm>
   );
 }
-
-const FieldName = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin: 0 ${p => p.theme.space.xs};
-`;
-
-const FormValue = styled('em')`
-  margin: 0 ${p => p.theme.space.xs};
-`;
