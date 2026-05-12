@@ -32,6 +32,7 @@ def build_mock_message(data, topic=None):
         "spans.process-segments.consumer.enable": True,
         "spans.process-segments.semantic-partitioning": False,
         "spans.process-segments.dedupe-ttl": 0,
+        "spans.process-segments.dedupe-filter-enable": False,
     }
 )
 @mock.patch(
@@ -114,10 +115,16 @@ class TestCheckSpanDuplicates:
     def test_disabled_when_ttl_is_zero(self):
         spans = [build_mock_span(project_id=1, is_segment=True)]
         with mock.patch("sentry.spans.consumers.process_segments.factory.redis") as mock_redis:
-            _check_span_duplicates(spans)
+            result = _check_span_duplicates(spans)
+            assert result == spans
             mock_redis.redis_clusters.get_binary.assert_not_called()
 
-    @override_options({"spans.process-segments.dedupe-ttl": 300})
+    @override_options(
+        {
+            "spans.process-segments.dedupe-ttl": 300,
+            "spans.process-segments.dedupe-filter-enable": False,
+        }
+    )
     def test_emits_metric_on_duplicate(self):
         spans = [
             build_mock_span(project_id=1, is_segment=True, span_id="span1"),
@@ -131,10 +138,44 @@ class TestCheckSpanDuplicates:
             mock_pipeline = mock.MagicMock()
             mock_redis.redis_clusters.get_binary.return_value = mock_client
             mock_client.pipeline.return_value.__enter__.return_value = mock_pipeline
+            # First span is duplicate (setnx returns False), second is new (returns True)
             mock_pipeline.execute.return_value = [False, True]
 
-            _check_span_duplicates(spans)
+            result = _check_span_duplicates(spans)
 
+            # All spans returned when not filtering
+            assert result == spans
+            mock_metrics.incr.assert_called_once_with(
+                "spans.process-segments.duplicate_span", amount=1
+            )
+
+    @override_options(
+        {
+            "spans.process-segments.dedupe-ttl": 300,
+            "spans.process-segments.dedupe-filter-enable": True,
+        }
+    )
+    def test_filters_duplicates_when_enabled(self):
+        spans = [
+            build_mock_span(project_id=1, is_segment=True, span_id="span1"),
+            build_mock_span(project_id=1, is_segment=False, span_id="span2"),
+        ]
+        with (
+            mock.patch("sentry.spans.consumers.process_segments.factory.redis") as mock_redis,
+            mock.patch("sentry.spans.consumers.process_segments.factory.metrics") as mock_metrics,
+        ):
+            mock_client = mock.MagicMock()
+            mock_pipeline = mock.MagicMock()
+            mock_redis.redis_clusters.get_binary.return_value = mock_client
+            mock_client.pipeline.return_value.__enter__.return_value = mock_pipeline
+            # First span is duplicate (setnx returns False), second is new (returns True)
+            mock_pipeline.execute.return_value = [False, True]
+
+            result = _check_span_duplicates(spans)
+
+            # Only new span returned when filtering
+            assert len(result) == 1
+            assert result[0]["span_id"] == "span2"
             mock_metrics.incr.assert_called_once_with(
                 "spans.process-segments.duplicate_span", amount=1
             )
