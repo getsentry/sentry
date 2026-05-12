@@ -23,7 +23,7 @@ const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undef
     state => state.pr_creation_status !== 'creating'
   );
 
-/** Checks if a timestamp is older than SESSION_STALE_TIME_MS. */
+/** Checks if a timestamp is older than STALE_TIME_MS. */
 const isTimestampStale = (updatedAt: string | undefined) => {
   const date = getDateFromTimestampAssumeUtc(updatedAt);
   if (!date) {
@@ -62,6 +62,13 @@ const getPollingState = (
  * (deduped across observers by key) and derives `isPolling`. Called by both
  * `useSeerExplorer` (with mutation state) and `SeerExplorerContextProvider`
  * (without) so the session state is observable globally.
+ *
+ * Staleness is computed directly from `updated_at` at both the `refetchInterval`
+ * callback and the render-side `getPollingState` call, so they can't disagree.
+ * A single timer is scheduled to fire at the exact moment the timestamp would
+ * cross STALE_TIME_MS — its only job is to force a re-render so the returned
+ * `isPolling` / `isTimedOut` reflect the transition (React Query's structural
+ * sharing can otherwise suppress re-renders when `updated_at` is unchanged).
  *
  * @param runId - The run ID to poll.
  * @param shouldPollOverride - Useful for passing a state variable to always poll / not poll
@@ -103,38 +110,40 @@ export const useSeerExplorerPolling = ({
     },
   });
 
-  // Track a separate isStale state for return value.
-  // This allows us to trigger rerenders, and timeout after updated_at stops changing.
-  const [isStale, setIsStale] = useState(false);
+  // Forces a re-render at the moment `updated_at` would cross STALE_TIME_MS,
+  // so the returned `isPolling` / `isTimedOut` track the callback's check.
+  const [, forceRender] = useState(0);
 
   const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
     timeMs: STALE_TIME_MS,
-    onTimeout: () => {
-      setIsStale(true);
-    },
+    onTimeout: () => forceRender(t => t + 1),
   });
 
-  // Update isStale on any timestamp or runId change
   useEffect(() => {
-    if (isTimestampStale(apiData?.session?.updated_at)) {
-      // Already stale
-      setIsStale(true);
-    } else if (runId !== null && apiData?.session?.updated_at) {
-      // Start a timeout to set isStale after STALE_TIME_MS
-      setIsStale(false);
-      startStaleTimeout(); // overwrites any existing timeout
-    } else {
-      // Empty state or no data
-      setIsStale(false);
+    const updatedAt = apiData?.session?.updated_at;
+    if (!updatedAt || runId === null) {
       cancelStaleTimeout();
+      return;
     }
+    const date = getDateFromTimestampAssumeUtc(updatedAt);
+    if (!date) {
+      cancelStaleTimeout();
+      return;
+    }
+    const remaining = STALE_TIME_MS - (Date.now() - date.getTime());
+    if (remaining <= 0) {
+      // Already stale — the render below will compute isTimedOut.
+      cancelStaleTimeout();
+      return;
+    }
+    startStaleTimeout(remaining);
   }, [runId, apiData?.session?.updated_at, startStaleTimeout, cancelStaleTimeout]);
 
   const pollingState = getPollingState(
     runId,
     apiData?.session,
     isError,
-    isStale,
+    isTimestampStale(apiData?.session?.updated_at),
     shouldPollOverride
   );
 
