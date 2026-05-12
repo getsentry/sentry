@@ -7,7 +7,7 @@ import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/t
 import type {Plottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
-export type YAxisAssignment = {
+type YAxisAssignment = {
   /**
    * Returns the side (`'left'` / `'right'`) a plottable should plot on.
    * Plottables whose data type wasn't seen during partitioning fall back to
