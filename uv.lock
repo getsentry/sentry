@@ -2341,7 +2341,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.8.30" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
-    { name = "sentry-scm", specifier = "==0.14.0" },
+    { name = "sentry-scm", specifier = ">=0.14.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.59.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
