@@ -227,7 +227,9 @@ const BodyCell = memo(function BodyCell({
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdLink to={getConversationDetailUrl(organization.slug, dataRow)}>
+        <ConversationIdLink
+          to={getConversationDetailUrl(organization.slug, dataRow, selection.projects)}
+        >
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
           ) : (
