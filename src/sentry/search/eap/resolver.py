@@ -913,6 +913,17 @@ class SearchResolver:
                     return AttributeValue(val_bool=bool_value)
                 elif isinstance(value, bool):
                     return AttributeValue(val_bool=value)
+            elif column_type == constants.ARRAY:
+                # Only scalar value membership in an array is allowed.
+                # Allowed operators: =,!=, LIKE, NOT_LIKE.
+                # TODO: Add support for scalar: >, < for numbers
+                if operator in constants.IN_OPERATORS:
+                    raise InvalidSearchQuery(
+                        f"{column.public_alias} (array) cannot be used with an IN filter; "
+                        f"use {column.public_alias}[*]:value for membership"
+                    )
+                # All primitive types are converted to strings on EAP before comparison.
+                return AttributeValue(val_str=str(value))
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )

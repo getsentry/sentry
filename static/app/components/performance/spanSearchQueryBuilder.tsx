@@ -11,7 +11,7 @@ import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 

@@ -6,9 +6,9 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixHighlightPopup} from 'sentry/components/events/autofix/autofixHighlightPopup';
@@ -678,6 +678,8 @@ function SetupAndCreateBranchButton({
   onProcessingChange: (processing: boolean) => void;
   runId: string;
 }) {
+  const {openModal} = useModal();
+
   const {codebases} = useAutofixRepos(groupId);
 
   if (
@@ -726,6 +728,8 @@ function SetupAndCreatePRsButton({
   onProcessingChange: (processing: boolean) => void;
   runId: string;
 }) {
+  const {openModal} = useModal();
+
   const {codebases} = useAutofixRepos(groupId);
   if (
     !changes.every(

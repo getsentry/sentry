@@ -12,7 +12,11 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.replica import control_replica_service
-from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.integrations.types import (
+    ExternalActorSource,
+    ExternalProviders,
+    IntegrationProviderSlug,
+)
 from sentry.notifications.services import notifications_service
 
 logger = logging.getLogger(__name__)
@@ -51,6 +55,8 @@ class ExternalActor(ReplicatedCellModel):
     external_name = models.TextField()
     # The unique identifier i.e user ID, channel ID.
     external_id = models.TextField(null=True)
+    # Data source used to create the ExternalActor row. None if manually created via the UI / API.
+    source = BoundedPositiveIntegerField(choices=ExternalActorSource.as_choices(), null=True)
 
     class Meta:
         app_label = "sentry"

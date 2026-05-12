@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,6 +16,8 @@ import {
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
 export function TicketActionSettingsButton() {
+  const {openModal} = useModal();
+
   const {action, onUpdate} = useActionNodeContext();
   const {automation} = useAutomationFormContext();
 

@@ -272,8 +272,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         List an Organization's Monitors
         """
         if not request.user.is_authenticated:
@@ -346,8 +344,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Bulk enable or disable an Organization's Monitors
         """
         if not request.user.is_authenticated:
@@ -425,8 +421,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Bulk delete Monitors for a given organization
         """
         if not request.user.is_authenticated:

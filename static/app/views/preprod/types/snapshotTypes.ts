@@ -8,7 +8,6 @@ export interface SnapshotImage {
   height: number;
   key: string;
   width: number;
-  content_hash: string;
 }
 
 export interface SnapshotDiffPair {
