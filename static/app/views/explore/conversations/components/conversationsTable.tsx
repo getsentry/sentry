@@ -218,9 +218,7 @@ const BodyCell = memo(function BodyCell({
             dataRow.conversationId.slice(0, 8)
           ) : (
             <Tooltip title={dataRow.conversationId} showOnlyOnOverflow skipWrapper>
-              <ConversationIdText ellipsis>
-                {dataRow.conversationId}
-              </ConversationIdText>
+              <ConversationIdText ellipsis>{dataRow.conversationId}</ConversationIdText>
             </Tooltip>
           )}
         </ConversationIdLink>
