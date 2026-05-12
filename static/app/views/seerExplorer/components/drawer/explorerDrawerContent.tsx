@@ -64,8 +64,8 @@ export function ExplorerDrawerContent({
     errorStatusCode,
     isTimedOut,
     sendMessage,
-    startNewSession,
-    switchToRun,
+    startNewSession: startNewSessionBase,
+    switchToRun: switchToRunBase,
     respondToUserInput,
     createPR,
     interruptRun,
@@ -74,6 +74,16 @@ export function ExplorerDrawerContent({
     setOverrideCtxEngEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
+
+  const startNewSession = () => {
+    startNewSessionBase();
+    setInputValue('');
+  };
+  const switchToRun = (...args: Parameters<typeof switchToRunBase>) => {
+    const result = switchToRunBase(...args);
+    setInputValue('');
+    return result;
+  };
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
