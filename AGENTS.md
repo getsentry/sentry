@@ -143,7 +143,8 @@ pnpm run dev-ui
 
 #### Typechecking
 
-Typechecking only works on the entire project. Individual files cannot be checked.
+To typecheck frontend code, run the typecheck script.
+It checks the whole project and does not accept file paths.
 
 ```bash
 pnpm run typecheck
