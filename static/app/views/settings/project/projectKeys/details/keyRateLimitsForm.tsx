@@ -40,13 +40,11 @@ const rateLimitSchema = z.object({
 type FormValues = z.input<typeof rateLimitSchema>;
 
 function formatRateLimit(rateLimit: ProjectKey['rateLimit']) {
-  if (!rateLimit) {
-    return t('no rate limit');
-  }
+  const count = rateLimit?.count ?? 0;
+  const window = rateLimit?.window ?? 0;
   return tct('[errors] in [timeWindow]', {
-    errors: tn('%s error', '%s errors', rateLimit.count),
-    timeWindow:
-      rateLimit.window === 0 ? t('no time window') : getExactDuration(rateLimit.window),
+    errors: tn('%s error', '%s errors', count),
+    timeWindow: window === 0 ? t('no time window') : getExactDuration(window),
   });
 }
 
@@ -91,7 +89,7 @@ export function KeyRateLimitsForm({
     onSuccess: (updated, submitted) => {
       updateData(updated);
       addSuccessMessage(
-        <Flex align="center" gap="xs">
+        <Flex align="center" justify="center" gap="xs">
           {tct('Changed [fieldName] from [oldValue] to [newValue]', {
             fieldName: <Text bold>{t('Rate Limit')}</Text>,
             oldValue: <Text italic>{formatRateLimit(previousRateLimitRef.current)}</Text>,
