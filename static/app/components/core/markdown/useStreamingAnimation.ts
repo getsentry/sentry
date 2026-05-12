@@ -3,8 +3,9 @@ import type {RefObject} from 'react';
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$#!%&*◆+@~^°±§¶×÷';
 const LOWER = 'abcdefghijklmnopqrstuvwxyz';
-const STAGGER_MS = 18;
+const STAGGER_MS = 11;
 const FADE_LEAD_MS = 200;
+const MAX_DURATION_MS = 1200;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
 
@@ -34,7 +35,7 @@ function ensureStyles() {
   const style = document.createElement('style');
   style.textContent = `
     [data-text] {
-      display: inline-grid;
+      position: relative;
       color: transparent;
       opacity: 0;
       transition: opacity 200ms ease-out;
@@ -44,11 +45,9 @@ function ensureStyles() {
     }
     [data-text]::after {
       content: attr(data-text);
-      grid-area: 1 / 1;
-      justify-self: center;
-      width: 0;
-      overflow: visible;
-      text-align: center;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
       color: var(--glyph-color, CanvasText);
       font: inherit;
       pointer-events: none;
@@ -148,7 +147,27 @@ function collapseSettledPrefix(run: TextRun) {
   run.collapseCursor = collapseEnd;
 }
 
-function animateElement(element: Element): void {
+function restoreRuns(runs: TextRun[]) {
+  for (const run of runs) {
+    const restoredText = document.createTextNode(run.original);
+    run.wrapper.replaceWith(restoredText);
+  }
+}
+
+function fadeOutRuns(runs: TextRun[]) {
+  for (const run of runs) {
+    for (let i = run.collapseCursor; i < run.spans.length; i++) {
+      const span = run.spans[i];
+      if (span) {
+        delete span.dataset.text;
+        span.classList.add('visible');
+      }
+    }
+  }
+  setTimeout(() => restoreRuns(runs), 200);
+}
+
+function animateElement(element: Element): () => void {
   const htmlEl = element as HTMLElement;
   const skipChars = parseInt(htmlEl.dataset.skip ?? '0', 10);
   delete htmlEl.dataset.skip;
@@ -165,7 +184,7 @@ function animateElement(element: Element): void {
   }
 
   if (textNodes.length === 0) {
-    return;
+    return () => {};
   }
 
   ensureStyles();
@@ -182,12 +201,25 @@ function animateElement(element: Element): void {
   }
 
   if (runs.length === 0) {
-    return;
+    return () => {};
   }
 
+  let settled = false;
   const startTime = performance.now();
 
+  function settle() {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    fadeOutRuns(runs);
+  }
+
   function tick(now: number) {
+    if (settled) {
+      return;
+    }
+
     const elapsed = now - startTime;
     let allSettled = true;
 
@@ -224,17 +256,15 @@ function animateElement(element: Element): void {
       collapseSettledPrefix(run);
     }
 
-    if (allSettled) {
-      for (const run of runs) {
-        const restoredText = document.createTextNode(run.original);
-        run.wrapper.replaceWith(restoredText);
-      }
+    if (allSettled || elapsed >= MAX_DURATION_MS) {
+      settle();
     } else {
       requestAnimationFrame(tick);
     }
   }
 
   requestAnimationFrame(tick);
+  return settle;
 }
 
 export function useStreamingAnimation(
@@ -255,11 +285,19 @@ export function useStreamingAnimation(
       return;
     }
 
+    let activeSettles: Array<() => void> = [];
+
     const observer = new MutationObserver(mutations => {
+      for (const settle of activeSettles) {
+        settle();
+      }
+      activeSettles = [];
+
       for (const mutation of mutations) {
         for (const addedNode of mutation.addedNodes) {
           if (addedNode instanceof Element) {
-            animateElement(addedNode);
+            const settle = animateElement(addedNode);
+            activeSettles.push(settle);
           }
         }
       }
