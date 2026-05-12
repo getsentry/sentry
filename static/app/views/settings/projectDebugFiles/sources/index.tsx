@@ -8,6 +8,7 @@ import type {Project} from 'sentry/types/project';
 
 import {BuiltInRepositories} from './builtInRepositories';
 import {CustomRepositories} from './customRepositories';
+import {EnableNativeSourceServerMapping} from './enableNativeSourceServerMapping';
 
 type Props = {
   api: Client;
@@ -43,6 +44,7 @@ export function Sources({
         customRepositories={customRepositories}
         project={project}
       />
+      <EnableNativeSourceServerMapping organization={organization} project={project} />
     </Fragment>
   );
 }

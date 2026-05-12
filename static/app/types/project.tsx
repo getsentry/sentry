@@ -79,6 +79,7 @@ export type Project = {
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
+  enableNativeSourceServerMapping?: boolean;
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
