@@ -2611,10 +2611,14 @@ class UnfurlTest(TestCase):
             == SlackDiscoverMessageBuilder(title=widget.title, chart_url="chart-url").build()
         )
         assert mock_generate_chart.call_count == 1
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DASHBOARDS_WIDGET
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["type"] == "line"
-        assert "timeSeries" in chart_data
+        assert chart_data["widget"]["title"] == "My Spans Widget"
+        assert chart_data["widget"]["widgetType"] == "spans"
+        assert chart_data["widget"]["displayType"] == "line"
+        assert chart_data["widget"]["queries"][0]["aggregates"] == ["avg(span.duration)"]
+        assert all(pair[1] == 0 for pair in chart_data["timeSeries"])
+        assert chart_data["timeSeries"][0][0]["yAxis"] == "avg(span.duration)"
 
         api_params = mock_client_get.call_args[1]["params"]
         assert "/events-timeseries/" in mock_client_get.call_args[1]["path"]
@@ -2806,8 +2810,127 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         assert mock_client_get.call_count == 2
         chart_data = mock_generate_chart.call_args[0][1]
-        y_axes = [series["yAxis"] for series in chart_data["timeSeries"]]
-        assert y_axes == ["avg(span.duration)", "p75(span.duration)"]
+        pairs = chart_data["timeSeries"]
+        assert [pair[0]["yAxis"] for pair in pairs] == [
+            "avg(span.duration)",
+            "p75(span.duration)",
+        ]
+        assert [pair[1] for pair in pairs] == [0, 1]
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_multi_query_same_aggregate(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.side_effect = [
+            MagicMock(data=self._build_mock_timeseries_response(y_axis="count(span.duration)")),
+            MagicMock(data=self._build_mock_timeseries_response(y_axis="count(span.duration)")),
+        ]
+
+        dashboard = self.create_dashboard(organization=self.organization)
+        widget = self.create_dashboard_widget(
+            dashboard=dashboard,
+            title="Multi query",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.SPANS,
+            order=0,
+        )
+        self.create_dashboard_widget_query(
+            widget=widget,
+            order=0,
+            name="",
+            fields=["count(span.duration)"],
+            aggregates=["count(span.duration)"],
+            columns=[],
+            conditions="span.op:db",
+        )
+        self.create_dashboard_widget_query(
+            widget=widget,
+            order=1,
+            name="",
+            fields=["count(span.duration)"],
+            aggregates=["count(span.duration)"],
+            columns=[],
+            conditions="span.op:http.client",
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        chart_data = mock_generate_chart.call_args[0][1]
+        pairs = chart_data["timeSeries"]
+        assert [pair[1] for pair in pairs] == [0, 1]
+        assert [pair[0]["yAxis"] for pair in pairs] == [
+            "count(span.duration)",
+            "count(span.duration)",
+        ]
+        widget_payload = chart_data["widget"]
+        assert [q["conditions"] for q in widget_payload["queries"]] == [
+            "span.op:db",
+            "span.op:http.client",
+        ]
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_single_query_multi_series_share_query_index(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        def grouped_response(group_value: str):
+            return {
+                "timeSeries": [
+                    {
+                        "yAxis": "count(span.duration)",
+                        "groupBy": [{"key": "transaction", "value": group_value}],
+                        "meta": {
+                            "valueType": "duration",
+                            "valueUnit": "millisecond",
+                            "interval": INTERVAL_COUNT * 1000,
+                        },
+                        "values": [],
+                    }
+                ],
+            }
+
+        mock_client_get.return_value = MagicMock(
+            data={
+                "timeSeries": [
+                    grouped_response("/api/db")["timeSeries"][0],
+                    grouped_response("/api/http")["timeSeries"][0],
+                ]
+            }
+        )
+
+        dashboard, _ = self._create_spans_widget(
+            aggregates=["count(span.duration)"],
+            columns=["transaction"],
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        chart_data = mock_generate_chart.call_args[0][1]
+        pairs = chart_data["timeSeries"]
+        assert [pair[1] for pair in pairs] == [0, 0]
+        assert [pair[0]["groupBy"][0]["value"] for pair in pairs] == [
+            "/api/db",
+            "/api/http",
+        ]
 
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
@@ -2832,7 +2955,7 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["type"] == "bar"
+        assert chart_data["widget"]["displayType"] == "bar"
 
     def test_match_link_dashboards(self) -> None:
         # Primary domain
