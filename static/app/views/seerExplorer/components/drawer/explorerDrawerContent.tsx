@@ -80,9 +80,8 @@ export function ExplorerDrawerContent({
     setInputValue('');
   };
   const switchToRun = (...args: Parameters<typeof switchToRunBase>) => {
-    const result = switchToRunBase(...args);
+    switchToRunBase(...args);
     setInputValue('');
-    return result;
   };
 
   const readOnly =
