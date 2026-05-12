@@ -35,9 +35,7 @@ describe('PlatformPicker', () => {
   });
 
   it('should render JavaScript platform when filtered with typescript alias', () => {
-    render(
-      <PlatformPicker {...baseProps} defaultCategory="all" platform="typescript" />
-    );
+    render(<PlatformPicker {...baseProps} defaultCategory="all" platform="typescript" />);
 
     expect(screen.getByTestId('platform-javascript')).toBeInTheDocument();
   });
