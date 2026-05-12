@@ -207,6 +207,16 @@ def test_convert_span_to_item() -> None:
     }
 
 
+def test_convert_span_to_item_normalizes_device_class() -> None:
+    message = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"]["device.class"] = {"value": "3", "type": "string"}
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.attributes["sentry.device.class"] == AnyValue(string_value="3")
+    assert "device.class" not in item.attributes
+
+
 def test_convert_falsy_fields() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["is_segment"] = False

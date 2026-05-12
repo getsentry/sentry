@@ -38,6 +38,10 @@ RENAME_ATTRIBUTES = {
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
 }
 
+SENTRY_CONTEXT_ATTRIBUTE_ALIASES = {
+    ATTRIBUTE_NAMES.DEVICE_CLASS: "sentry.device.class",
+}
+
 
 def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     attributes: dict[str, AnyValue] = {}
@@ -82,6 +86,10 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         if convention_name in attributes:
             attributes[eap_name] = attributes.pop(convention_name)
 
+    for public_name, internal_name in SENTRY_CONTEXT_ATTRIBUTE_ALIASES.items():
+        if public_name in attributes:
+            attributes.setdefault(internal_name, attributes.pop(public_name))
+
     try:
         attributes["sentry.duration_ms"] = AnyValue(
             double_value=round(1000.0 * (span["end_timestamp"] - span["start_timestamp"]), 6)
@@ -94,6 +102,8 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             try:
                 if attr in RENAME_ATTRIBUTES:
                     attr = RENAME_ATTRIBUTES[attr]
+                if attr in SENTRY_CONTEXT_ATTRIBUTE_ALIASES:
+                    attr = SENTRY_CONTEXT_ATTRIBUTE_ALIASES[attr]
                 # Meta is expected to be a stringified json object.
                 value = orjson.dumps({"meta": meta}).decode()
                 attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue(value)
