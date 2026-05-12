@@ -33,6 +33,8 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 type JumpToSectionConfig = SectionConfig & {key: SectionKey};
 
+// FoldSection is also used outside issue details with arbitrary string keys.
+// Jump To only supports issue-detail sections that have known SectionKey labels.
 function isJumpToSectionConfig(
   config: SectionConfig | undefined,
   excludedSectionKeys: SectionKey[]
