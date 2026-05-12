@@ -22,6 +22,9 @@ def _has_upstream_cp313_wheels(name: str, version: str) -> bool | None:
     except Exception:
         return None
 
+    has_mac = False
+    has_linux = False
+
     for dist in data.get("urls", []):
         if dist.get("packagetype") != "bdist_wheel":
             continue
@@ -29,11 +32,11 @@ def _has_upstream_cp313_wheels(name: str, version: str) -> bool | None:
         if fn.endswith("-none-any.whl"):
             return True
         if "cp313" in fn and "macosx" in fn and "arm64" in fn:
-            return True
+            has_mac = True
         if "cp313" in fn and ("manylinux" in fn or "musllinux" in fn) and "x86_64" in fn:
-            return True
+            has_linux = True
 
-    return False
+    return has_mac and has_linux
 
 
 def main(argv: Sequence[str] | None = None) -> int:
