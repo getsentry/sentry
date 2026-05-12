@@ -1301,3 +1301,57 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         # No flag enabled — GHES install should proceed
         view.dispatch(request, pipeline)
         pipeline.next_step.assert_called_once()
+
+
+class BuildIntegrationGitHubComTest(TestCase):
+    """build_integration must produce external_id with the 'github.com:' prefix so the
+    github_enterprise integration can coexist with the first-party `github` integration
+    (which uses a bare installation_id as external_id)."""
+
+    @patch(
+        "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider._get_ghe_installation_info"
+    )
+    @patch("sentry.integrations.github_enterprise.integration.get_user_info")
+    def test_build_integration_produces_github_com_prefixed_external_id(
+        self,
+        mock_get_user_info: MagicMock,
+        mock_get_installation: MagicMock,
+    ) -> None:
+        mock_get_user_info.return_value = {"id": 42, "login": "tester"}
+        mock_get_installation.return_value = {
+            "id": 12345,
+            "app_id": 99,
+            "account": {
+                "login": "acme",
+                "type": "Organization",
+                "html_url": "https://github.com/acme",
+                "avatar_url": "https://github.com/avatars/acme.png",
+            },
+        }
+
+        provider = GitHubEnterpriseIntegrationProvider()
+        state = {
+            "identity": {"data": {"access_token": "token-abc"}},
+            "installation_data": {
+                "url": "github.com",
+                "id": "1",
+                "name": "test-app",
+                "private_key": "key",
+                "verify_ssl": True,
+                "webhook_secret": "whsec",
+            },
+            "installation_id": 12345,
+            "oauth_config_information": {
+                "access_token_url": "https://github.com/login/oauth/access_token",
+                "authorize_url": "https://github.com/login/oauth/authorize",
+                "client_id": "cid",
+                "client_secret": "csec",
+                "verify_ssl": True,
+            },
+        }
+        result = provider.build_integration(state)
+
+        assert result["external_id"] == "github.com:12345"
+        assert result["idp_external_id"] == "github.com:99"
+        assert result["metadata"]["domain_name"] == "github.com/acme"
+        assert result["metadata"]["installation_id"] == 12345

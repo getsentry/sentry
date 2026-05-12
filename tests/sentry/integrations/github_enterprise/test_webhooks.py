@@ -1033,13 +1033,8 @@ class GitHubComWebhookEndpointTest(APITestCase):
         )
         # We don't care about exact status here — only that get_installation_metadata was
         # called with host="github.com", proving _get_host was bypassed.
-        assert mock_installation.called
-        called_host = (
-            mock_installation.call_args.args[1]
-            if len(mock_installation.call_args.args) >= 2
-            else mock_installation.call_args.kwargs.get("host")
-        )
-        assert called_host == "github.com"
+        mock_installation.assert_called_once()
+        assert mock_installation.call_args.args[1] == "github.com"
 
 
 class GitHubEnterpriseParserGitHubComTest(TestCase):
