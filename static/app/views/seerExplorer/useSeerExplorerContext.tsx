@@ -42,12 +42,16 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const [runId] = useSeerExplorerRunId();
+  const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
+
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
     isOpen,
-  } = useSeerExplorerDrawer();
+  } = useSeerExplorerDrawer({
+    onOpen: () => setLastViewedAt(Date.now()),
+  });
 
   // Observes the shared session query so the button can reflect activity even
   // when the drawer is closed. Shares the underlying query with
@@ -55,24 +59,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {isPolling, apiData} = useSeerExplorerPolling({runId});
   const blocks = apiData?.session?.blocks;
 
-  const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
   useEffect(() => {
     setLastViewedAt(Date.now());
   }, [runId]);
-
-  const latestBlockTimestamp = useMemo(() => {
-    if (!blocks?.length) {
-      return 0;
-    }
-    let latest = 0;
-    for (const block of blocks) {
-      const ts = new Date(block.timestamp).getTime();
-      if (Number.isFinite(ts) && ts > latest) {
-        latest = ts;
-      }
-    }
-    return latest;
-  }, [blocks]);
 
   const unreadCount = useMemo(() => {
     if (!blocks?.length || runId === null || isOpen) {
@@ -86,13 +75,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       return Number.isFinite(ts) && ts > lastViewedAt;
     }).length;
   }, [blocks, isOpen, lastViewedAt, runId]);
-
-  useEffect(() => {
-    if (!isOpen || runId === null || latestBlockTimestamp <= lastViewedAt) {
-      return;
-    }
-    setLastViewedAt(latestBlockTimestamp);
-  }, [isOpen, runId, latestBlockTimestamp, lastViewedAt]);
 
   // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
   // runId from sessionStorage flashes polling state before the user engages.

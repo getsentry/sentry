@@ -27,7 +27,7 @@ export type OpenSeerExplorerDrawerOptions = {
   startNewRun?: boolean;
 };
 
-export const useSeerExplorerDrawer = () => {
+export const useSeerExplorerDrawer = (options?: {onOpen?: () => void}) => {
   const organization = useOrganization({allowNull: true});
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const [_, setRunId] = useSeerExplorerRunId();
@@ -39,6 +39,9 @@ export const useSeerExplorerDrawer = () => {
     isDrawerOpenRef.current = isDrawerOpen;
   }, [isDrawerOpen]);
 
+  const onOpenCallbackRef = useRef(options?.onOpen);
+  onOpenCallbackRef.current = options?.onOpen;
+
   // TODO: add effect that opens drawer and seeds run_id from URL, remove from current URL onClose
   // (useSeerExplorer hook should no longer handle this)
 
@@ -48,6 +51,7 @@ export const useSeerExplorerDrawer = () => {
       organization,
       isDrawer: true,
     });
+    onOpenCallbackRef.current?.();
   }, [getPageReferrer, organization]);
 
   const closeSeerExplorerDrawer = useCallback(() => {
@@ -58,8 +62,8 @@ export const useSeerExplorerDrawer = () => {
   }, [closeDrawer]);
 
   const openSeerExplorerDrawer = useCallback(
-    (options?: OpenSeerExplorerDrawerOptions) => {
-      const {runId: openRunId, startNewRun, initialQuery} = options ?? {};
+    (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
+      const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
 
       if (initialQuery) {
         // Always start a fresh session when a query is forwarded so it
