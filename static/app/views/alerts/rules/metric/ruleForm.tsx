@@ -43,7 +43,11 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
@@ -133,7 +137,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{projectId?: string; ruleId?: string}> & {
+} & RouteComponentProps & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & DeprecatedAsyncComponent['props'];
 
@@ -719,7 +723,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         !validRule && t('name'),
         !validRule && !validTriggers && t('and'),
         !validTriggers && t('critical threshold'),
-      ].filter(x => x);
+      ].filter(Boolean);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
       return false;
@@ -1114,7 +1118,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   timeWindowsAreConsistent() {
-    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const {currentData, historicalData, timeWindow} = this.state;
     const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
     const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
     return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
@@ -1260,7 +1264,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
-    let formattedAggregate = aggregate;
+    let formattedAggregate = stripEquationPrefix(aggregate);
 
     const func = parseFunction(aggregate);
     if (func && isEapAlertType(alertType)) {
@@ -1484,7 +1488,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                         this.handleDeleteRule();
                       }}
                     >
-                      <Button priority="danger">{t('Delete Rule')}</Button>
+                      <Button variant="danger">{t('Delete Rule')}</Button>
                     </Confirm>
                   ) : null
                 }

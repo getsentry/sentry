@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
@@ -6,7 +7,7 @@ import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 type PromptsUpdateParams = {

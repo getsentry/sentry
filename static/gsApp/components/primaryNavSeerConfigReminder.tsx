@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   PrimaryNavigation,
@@ -24,6 +24,8 @@ function useReminderData() {
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
+
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const analyticsParams = useMemo(() => {
     return {
@@ -49,12 +51,17 @@ function useReminderData() {
     return {
       canSeeReminder: true,
       analyticsParams,
-      title: t('Connect GitHub'),
-      description: t(
-        'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Autofix and Code Review.'
-      ),
+      title: hasGitLabSupport ? t('Connect GitHub or GitLab') : t('Connect GitHub'),
+      description: hasGitLabSupport
+        ? t(
+            'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
+          )
+        : t(
+            'Seer is enabled, but repositories are not connected. Connect your GitHub account to enable Autofix and Code Review.'
+          ),
     };
   }
+  const {hasSupportedScmIntegration, isAutofixEnabled, isCodeReviewEnabled} = data;
 
   if (!isAutofixEnabled) {
     return {
@@ -136,7 +143,7 @@ export function PrimaryNavSeerConfigReminder() {
               <LinkButton
                 size="sm"
                 to={`/settings/${organization.slug}/seer/`}
-                priority="primary"
+                variant="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"
                 analyticsParams={analyticsParams}

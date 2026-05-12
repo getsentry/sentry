@@ -63,7 +63,7 @@ export function Banner({
         <CloseButton
           type="button"
           size="xs"
-          priority="link"
+          variant="link"
           icon={<IconClose />}
           onClick={dismiss}
           aria-label={t('Close')}

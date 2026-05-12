@@ -48,7 +48,7 @@ interface HovercardContentProps extends Pick<
   HovercardProps,
   'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
 > {
-  hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger'>;
+  hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger' | 'snapClosed'>;
 }
 
 interface HovercardProviderValue {
@@ -129,7 +129,7 @@ function Hovercard({
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
   const theme = useTheme();
-  const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay({
+  const {wrapTrigger, isOpen, snapClosed, ...hoverOverlayState} = useHoverOverlay({
     offset,
     displayTimeout,
     isHoverable: true,
@@ -152,26 +152,31 @@ function Hovercard({
     return <Fragment>{wrapTrigger(children)}</Fragment>;
   }
 
-  const hovercardContent = isOpen ? (
-    <HovercardContent
-      {...{
-        animated,
-        body,
-        bodyClassName,
-        className,
-        tipBorderColor: theme.tokens.border.primary,
-        tipColor: theme.tokens.background.primary,
-        header,
-        hoverOverlayState,
-      }}
-    />
-  ) : null;
+  const hovercardContent =
+    isOpen && !snapClosed ? (
+      <HovercardContent
+        {...{
+          animated,
+          body,
+          bodyClassName,
+          className,
+          tipBorderColor: theme.tokens.border.primary,
+          tipColor: theme.tokens.background.primary,
+          header,
+          hoverOverlayState,
+        }}
+      />
+    ) : null;
 
-  const hovercard = animated ? (
-    <AnimatePresence>{hovercardContent}</AnimatePresence>
-  ) : (
-    hovercardContent
-  );
+  // Unmounting AnimatePresence (rather than toggling its child) when
+  // snap-closing skips the exit animation so the incoming overlay doesn't
+  // trail alongside a fading-out sibling.
+  const hovercard =
+    animated && !snapClosed ? (
+      <AnimatePresence>{hovercardContent}</AnimatePresence>
+    ) : (
+      hovercardContent
+    );
 
   return (
     <HovercardContext.Provider value={contextValue}>

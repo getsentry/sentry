@@ -77,7 +77,7 @@ function PageUpsellOverlay({
                   triggerMemberRequests
                 >
                   {({defaultButtonText, onClick}) => (
-                    <Button priority="primary" size="sm" onClick={onClick}>
+                    <Button variant="primary" size="sm" onClick={onClick}>
                       {defaultButtonText}
                     </Button>
                   )}

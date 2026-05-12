@@ -6,6 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -19,7 +20,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -89,7 +89,7 @@ export default function UptimeOverview() {
           <Fragment>
             <TopBar.Slot name="actions">
               <LinkButton
-                priority="primary"
+                variant="primary"
                 to={makeAlertsPathname({path: '/new/uptime/', organization})}
                 icon={<IconAdd />}
                 disabled={!canCreateAlert}
@@ -99,7 +99,12 @@ export default function UptimeOverview() {
               </LinkButton>
             </TopBar.Slot>
             <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
             </TopBar.Slot>
           </Fragment>
         ) : (
@@ -108,7 +113,7 @@ export default function UptimeOverview() {
               <FeedbackButton />
               <LinkButton
                 size="sm"
-                priority="primary"
+                variant="primary"
                 to={makeAlertsPathname({path: '/new/uptime/', organization})}
                 icon={<IconAdd />}
                 disabled={!canCreateAlert}
@@ -178,7 +183,7 @@ export default function UptimeOverview() {
                 action={
                   <LinkButton
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                     to={makeAlertsPathname({path: '/new/uptime/', organization})}
                     icon={<IconAdd />}
                   >

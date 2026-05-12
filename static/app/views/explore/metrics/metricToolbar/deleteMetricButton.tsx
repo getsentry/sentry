@@ -6,8 +6,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {useRemoveMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
 
-export function DeleteMetricButton({disabled}: {disabled?: boolean}) {
-  const organization = useOrganization();
+export function DeleteMetricButton({disabledReason}: {disabledReason?: string}) {
   const removeMetric = useRemoveMetric();
 
   if (canUseMetricsUIRefresh(organization)) {
@@ -28,14 +27,13 @@ export function DeleteMetricButton({disabled}: {disabled?: boolean}) {
 
   return (
     <Button
-      size="sm"
+      variant="transparent"
       icon={<IconDelete />}
-      aria-label={t('Delete metric')}
+      size="zero"
       onClick={removeMetric}
-      disabled={disabled}
-      tooltipProps={{
-        title: disabled ? t('This metric is used in an equation') : undefined,
-      }}
+      disabled={disabledReason !== undefined}
+      tooltipProps={{title: disabledReason}}
+      aria-label={t('Delete Metric')}
     />
   );
 }

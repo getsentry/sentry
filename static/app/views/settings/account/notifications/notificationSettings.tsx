@@ -15,10 +15,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {withOrganizations} from 'sentry/utils/withOrganizations';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
   NOTIFICATION_FEATURE_MAP,
@@ -27,7 +27,6 @@ import {
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const NOTIFICATIONS_ENDPOINT = getApiUrl('/users/$userId/notifications/', {
   path: {userId: 'me'},
@@ -40,11 +39,8 @@ const notificationSchema = z.object({
 
 type NotificationFields = z.infer<typeof notificationSchema>;
 
-interface NotificationSettingsProps {
-  organizations: Organization[];
-}
-
-function NotificationSettings({organizations}: NotificationSettingsProps) {
+export function NotificationSettings() {
+  const {organizations} = useLegacyStore(OrganizationsStore);
   const queryClient = useQueryClient();
   const checkFeatureFlag = (flag: string) => {
     return organizations.some(org => org.features?.includes(flag));
@@ -116,16 +112,16 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Notifications')} />
-      <SettingsPageHeader title={t('Notifications')} />
+      <SettingsPageHeader
+        title={t('Notifications')}
+        subtitle={tct(
+          'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
+          {
+            link: <Link to="/settings/account/emails" />,
+          }
+        )}
+      />
       <FormSearch route="/settings/account/notifications/">
-        <TextBlock>
-          {tct(
-            'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
-            {
-              link: <Link to="/settings/account/emails" />,
-            }
-          )}
-        </TextBlock>
         {isError && <LoadingError onRetry={refetch} />}
         <Panel>
           <PanelHeader>{t('Notification')}</PanelHeader>
@@ -178,7 +174,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     </Fragment>
   );
 }
-export default withOrganizations(NotificationSettings);
 
 const FieldLabel = styled('div')`
   font-size: ${p => p.theme.font.size.md};

@@ -106,7 +106,7 @@ interface IncompatibleAlertQueryProps {
 export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
   const [isOpen, setIsOpen] = useState(true);
   const incompatibleQuery = checkMetricAlertCompatiablity(props.eventView);
-  const totalErrors = Object.values(incompatibleQuery).filter(val => val).length;
+  const totalErrors = Object.values(incompatibleQuery).filter(Boolean).length;
 
   if (!totalErrors || !isOpen) {
     return null;
@@ -122,7 +122,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
             aria-label={t('Close')}
             size="zero"
             onClick={() => setIsOpen(false)}
-            priority="transparent"
+            variant="transparent"
           />
         }
       >

@@ -19,6 +19,9 @@ runs:
 
     - name: Start devservices in background
       shell: bash --noprofile --norc -euo pipefail {0}
+      env:
+        TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+        MODE: ${{ inputs.mode }}
       run: |
         DS_VERSION=$(python3 -c "
         import tomllib
@@ -34,5 +37,5 @@ runs:
         uv pip install --python /tmp/ds-venv/bin/python -q \
           --index-url https://pypi.devinfra.sentry.io/simple \
           "devservices==${DS_VERSION}"
-        (set +e; timeout ${{ inputs.timeout-minutes }}m /tmp/ds-venv/bin/devservices up --mode ${{ inputs.mode }}; echo $? > /tmp/ds-exit) \
+        (set +e; timeout "${TIMEOUT_MINUTES}m" /tmp/ds-venv/bin/devservices up --mode "$MODE"; echo $? > /tmp/ds-exit) \
           > /tmp/ds.log 2>&1 &

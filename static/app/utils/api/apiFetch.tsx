@@ -1,10 +1,9 @@
 import {useEffect} from 'react';
-import type {QueryFunctionContext} from '@tanstack/react-query';
+import type {QueryFunctionContext, UseInfiniteQueryResult} from '@tanstack/react-query';
 
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {QUERY_API_CLIENT, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
@@ -16,12 +15,13 @@ export type ApiResponse<TResponseData = unknown> = {
 };
 
 export async function apiFetch<TQueryFnData = unknown>(
-  context: QueryFunctionContext<ApiQueryKey, never>
+  context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResponse<TQueryFnData>> {
-  const {url, options} = parseQueryKey(context.queryKey);
+  const [url, options] = context.queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
+    allowAuthError: options?.allowAuthError,
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,
@@ -44,10 +44,11 @@ export async function apiFetch<TQueryFnData = unknown>(
 export async function apiFetchInfinite<TQueryFnData = unknown>(
   context: QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>
 ): Promise<ApiResponse<TQueryFnData>> {
-  const {url, options} = parseQueryKey(context.queryKey);
+  const [url, options] = context.queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
+    allowAuthError: options?.allowAuthError,
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,
@@ -74,7 +75,7 @@ export function useFetchAllPages<TQueryFnData = unknown>({
   result,
   enabled = true,
 }: {
-  result: UseInfiniteQueryResult<TQueryFnData, Error>;
+  result: UseInfiniteQueryResult<TQueryFnData>;
   enabled?: boolean;
 }) {
   const {fetchNextPage, hasNextPage, isError, isFetchingNextPage} = result;

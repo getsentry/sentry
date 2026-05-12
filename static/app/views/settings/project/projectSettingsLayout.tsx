@@ -1,4 +1,4 @@
-import {useEffect, useEffectEvent} from 'react';
+import {useContext, useEffect, useEffectEvent} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,17 +9,31 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import ProjectContext from 'sentry/views/projects/projectContext';
+import {
+  ProjectRouteContext,
+  ProjectRouteProvider,
+} from 'sentry/views/projects/projectRouteContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
+import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 
-type ProjectSettingsOutletContext = {
+interface ProjectSettingsOutletContext {
   project: Project;
-};
+}
+
+interface InnerProjectSettingsLayoutProps {
+  organization: Organization;
+}
+
+interface ProjectSettingsLayoutContentProps extends InnerProjectSettingsLayoutProps {
+  project: Project;
+}
 
 function ProjectSettingsOutlet(props: ProjectSettingsOutletContext) {
   return <Outlet context={props} />;
@@ -29,7 +43,10 @@ export function useProjectSettingsOutlet() {
   return useOutletContext<ProjectSettingsOutletContext>();
 }
 
-function InnerProjectSettingsLayout({project}: {project: Project}) {
+function ProjectSettingsLayoutContent({
+  organization,
+  project,
+}: ProjectSettingsLayoutContentProps) {
   // set analytics params for route based analytics
   useRouteAnalyticsParams({
     project_id: project.id,
@@ -38,12 +55,25 @@ function InnerProjectSettingsLayout({project}: {project: Project}) {
 
   return (
     <SettingsLayout>
+      <ProjectSettingsCommandPaletteActions
+        organization={organization}
+        project={project}
+      />
       <ProjectSettingsOutlet project={project} />
     </SettingsLayout>
   );
 }
 
+function InnerProjectSettingsLayout({organization}: InnerProjectSettingsLayoutProps) {
+  const project = useContext(ProjectRouteContext);
+
+  return project ? (
+    <ProjectSettingsLayoutContent organization={organization} project={project} />
+  ) : null;
+}
+
 export default function ProjectSettingsLayout() {
+  const organization = useOrganization();
   const params = useParams<{projectId: string}>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,7 +97,7 @@ export default function ProjectSettingsLayout() {
             title={t('Choose a Project')}
             action={
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => navigateTo(location.pathname, navigate, location)}
               >
                 {t('Choose Project')}
@@ -83,9 +113,9 @@ export default function ProjectSettingsLayout() {
 
   return (
     <AnalyticsArea name="project">
-      <ProjectContext projectSlug={params.projectId}>
-        {({project}) => <InnerProjectSettingsLayout project={project} />}
-      </ProjectContext>
+      <ProjectRouteProvider projectSlug={params.projectId}>
+        <InnerProjectSettingsLayout organization={organization} />
+      </ProjectRouteProvider>
     </AnalyticsArea>
   );
 }

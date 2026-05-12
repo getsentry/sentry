@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -22,7 +23,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
-import {IssueTitle, IssueType} from 'sentry/types/group';
+import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -31,13 +32,7 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -202,7 +197,8 @@ export function ProjectPerformance() {
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
   const hasAIIssueDetection =
     organization.features.includes('gen-ai-features') &&
-    organization.features.includes('ai-issue-detection');
+    organization.features.includes('ai-issue-detection') &&
+    !organization.hideAiFeatures;
 
   const {
     data: threshold,
@@ -1119,7 +1115,7 @@ export function ProjectPerformance() {
             visible: hasAIIssueDetection,
           },
         ],
-        initiallyCollapsed: issueType !== IssueType.AI_DETECTED_GENERAL,
+        initiallyCollapsed: !AI_DETECTED_ISSUE_TYPES.has(issueType as IssueType),
       },
     ];
 

@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {QueryClient, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -47,7 +48,6 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
-import {QueryClient, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
@@ -61,6 +61,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRouter} from 'sentry/utils/useRouter';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
+import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -77,7 +78,8 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -100,13 +102,11 @@ import {DashboardTitle} from './title';
 import type {
   DashboardDetails,
   DashboardFilters,
-  DashboardListItem,
   DashboardPermissions,
   Widget,
 } from './types';
 import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
-
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
 export const UNSAVED_FILTERS_MESSAGE = t(
@@ -136,7 +136,6 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
-  dashboards: DashboardListItem[];
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -285,6 +284,19 @@ class DashboardDetail extends Component<Props, State> {
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
+  closeFullScreenView = () => {
+    const {location, navigate} = this.props;
+    // Filter out Widget Viewer Modal query params when exiting the Modal
+    const query = omit(location.query, Object.values(WidgetViewerQueryField));
+    navigate(
+      {
+        pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
+        query,
+      },
+      {preventScrollReset: true}
+    );
+  };
+
   checkIfShouldMountWidgetViewerModal() {
     const {
       params: {widgetId},
@@ -292,10 +304,14 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       location,
       router,
-      navigate,
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
+      // When the releases drawer is triggered from within the full-screen widget viewer modal, close the modal by navigating away from the widget path.
+      if (location.query[ReleasesDrawerFields.DRAWER] === 'show') {
+        this.closeFullScreenView();
+        return;
+      }
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
@@ -308,15 +324,7 @@ class DashboardDetail extends Component<Props, State> {
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
-            // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            navigate(
-              {
-                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
-                query,
-              },
-              {preventScrollReset: true}
-            );
+            this.closeFullScreenView();
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
@@ -547,7 +555,7 @@ class DashboardDetail extends Component<Props, State> {
         if (a.length === 0 && b.length === 0) {
           return a === b;
         }
-        return undefined;
+        return;
       })
     ) {
       browserHistory.push({
@@ -561,7 +569,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
-    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location, queryClient} =
+      this.props;
     const {modifiedDashboard} = this.state;
 
     // Use the new widgets for calculating layout because widgets has
@@ -582,6 +591,9 @@ class DashboardDetail extends Component<Props, State> {
     }
     return updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
+        queryClient.invalidateQueries({
+          queryKey: getDashboardRevisionsQueryKey(organization.slug, newDashboard.id),
+        });
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
           this.setState({
@@ -608,7 +620,7 @@ class DashboardDetail extends Component<Props, State> {
         return newDashboard;
       },
       // `updateDashboard` does its own error handling
-      () => undefined
+      () => {}
     );
   };
 
@@ -648,7 +660,7 @@ class DashboardDetail extends Component<Props, State> {
           pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
 
-        const defaultLibraryWidget = getTopNConvertedDefaultWidgets(organization)[0];
+        const defaultLibraryWidget = getDefaultWidgets(organization)[0];
         navigate(
           normalizeUrl({
             // TODO: Replace with the old widget builder path when swapping over
@@ -837,7 +849,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate, queryClient} =
+      this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
@@ -891,7 +904,7 @@ class DashboardDetail extends Component<Props, State> {
                   Sentry.captureMessage('Generated dashboard failed to save', {
                     extra: {
                       dashboard_title: newModifiedDashboard.title,
-                      error_message: error?.message,
+                      error_message: error instanceof Error ? error.message : undefined,
                     },
                   });
                 });
@@ -916,8 +929,16 @@ class DashboardDetail extends Component<Props, State> {
           this.setState({
             isCommittingChanges: true,
           });
-          updateDashboard(api, organization.slug, modifiedDashboard).then(
+          updateDashboard(api, organization.slug, modifiedDashboard, {
+            revisionSource: this.state.seerEditApplied ? 'edit-with-agent' : undefined,
+          }).then(
             (newDashboard: DashboardDetails) => {
+              queryClient.invalidateQueries({
+                queryKey: getDashboardRevisionsQueryKey(
+                  organization.slug,
+                  newDashboard.id
+                ),
+              });
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
@@ -955,7 +976,7 @@ class DashboardDetail extends Component<Props, State> {
               );
             },
             // `updateDashboard` does its own error handling
-            () => undefined
+            () => {}
           );
 
           return;
@@ -1034,7 +1055,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderDefaultDashboardDetail() {
-    const {pageAlerts, organization, dashboard, dashboards, location} = this.props;
+    const {pageAlerts, organization, dashboard, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     return (
       <PageFiltersContainer
@@ -1062,7 +1083,6 @@ class DashboardDetail extends Component<Props, State> {
                   </Layout.Title>
                   <Controls
                     organization={organization}
-                    dashboards={dashboards}
                     dashboard={dashboard}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
@@ -1148,11 +1168,11 @@ class DashboardDetail extends Component<Props, State> {
       api,
       organization,
       dashboard,
-      dashboards,
       location,
       onDashboardUpdate,
       pageAlerts,
       projects,
+      queryClient,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1163,7 +1183,6 @@ class DashboardDetail extends Component<Props, State> {
     } = this.state;
 
     const hasUnsavedFilters =
-      dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
@@ -1222,8 +1241,8 @@ class DashboardDetail extends Component<Props, State> {
                     <TopBar.Slot name="actions">
                       <Controls
                         organization={organization}
-                        dashboards={dashboards}
                         dashboard={dashboard}
+                        hideAddWidget
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}
                         onCancel={this.onCancel}
@@ -1240,7 +1259,6 @@ class DashboardDetail extends Component<Props, State> {
                     <Layout.HeaderActions>
                       <Controls
                         organization={organization}
-                        dashboards={dashboards}
                         dashboard={dashboard}
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}
@@ -1288,10 +1306,12 @@ class DashboardDetail extends Component<Props, State> {
                                 this.isEditingDashboard
                               }
                               isPreview={this.isPreview}
+                              onAddWidget={this.onAddWidget}
                               onDashboardFilterChange={this.handleChangeFilter}
                               shouldBusySaveButton={this.state.isSavingDashboardFilters}
                               prebuiltDashboardId={dashboard.prebuiltId}
                               storageNamespace={this.props.storageNamespace}
+                              widgetLimitReached={widgetLimitReached}
                               onCancel={() => {
                                 resetPageFilters(dashboard, location);
                                 trackAnalytics('dashboards2.filter.cancel', {
@@ -1325,6 +1345,12 @@ class DashboardDetail extends Component<Props, State> {
                                   newModifiedDashboard
                                 ).then(
                                   (newDashboard: DashboardDetails) => {
+                                    queryClient.invalidateQueries({
+                                      queryKey: getDashboardRevisionsQueryKey(
+                                        organization.slug,
+                                        newDashboard.id
+                                      ),
+                                    });
                                     addSuccessMessage(t('Dashboard filters updated'));
                                     trackAnalytics('dashboards2.filter.save', {
                                       organization,
@@ -1361,7 +1387,7 @@ class DashboardDetail extends Component<Props, State> {
                                     this.setState({isSavingDashboardFilters: false});
                                   },
                                   // `updateDashboard` does its own error handling
-                                  () => undefined
+                                  () => {}
                                 );
                               }}
                             />

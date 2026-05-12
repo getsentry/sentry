@@ -153,11 +153,8 @@ class DashboardFavoriteUserTest(TestCase):
             self.organization, self.user.id, [should_be_first.id, should_be_second.id]
         )
 
-        for favorite_dashboard in [second_favorite_dashboard, first_favorite_dashboard]:
-            favorite_dashboard.refresh_from_db()
-
-        assert second_favorite_dashboard.position == 1
-        assert first_favorite_dashboard.position == 0
+        assert DashboardFavoriteUser.objects.get(id=second_favorite_dashboard.id).position == 1
+        assert DashboardFavoriteUser.objects.get(id=first_favorite_dashboard.id).position == 0
 
     def test_deletes_and_increments_existing_positions(self) -> None:
         first_dashboard = self.create_dashboard(
@@ -203,6 +200,13 @@ class DashboardRevisionTest(TestCase):
         assert revision.snapshot == snapshot
         assert revision.snapshot_schema_version == DashboardRevision.SNAPSHOT_SCHEMA_VERSION
         assert revision.created_by_id == self.user.id
+        assert revision.source == "edit"
+
+    def test_create_for_dashboard_stores_custom_source(self) -> None:
+        revision = DashboardRevision.create_for_dashboard(
+            self.dashboard, self.user, {}, source="edit-with-agent"
+        )
+        assert revision.source == "edit-with-agent"
 
     def test_create_for_dashboard_prunes_beyond_retention_limit(self) -> None:
         for i in range(DashboardRevision.RETENTION_LIMIT):

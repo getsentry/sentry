@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -66,6 +67,10 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert config.repository == self.repo1
         assert config.organization_id == self.organization.id
         assert config.automatically_generated is False
+        assert config.project_repository is not None
+        assert ProjectRepository.objects.filter(
+            project=self.project1, repository=self.repo1
+        ).exists()
 
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(
@@ -351,21 +356,18 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             name=new_repo_name, organization_id=self.organization.id
         ).exists()
 
-        def fake_auto_create(organization, repo_name, provider):
-            repo, _ = Repository.objects.get_or_create(
-                name=repo_name,
-                organization_id=organization.id,
-                defaults={
-                    "integration_id": self.integration.id,
-                    "provider": "integrations:github",
-                },
-            )
-            return repo, None
+        mock_repos = [
+            {
+                "name": "new-repo",
+                "identifier": new_repo_name,
+                "external_id": "99999",
+                "default_branch": "main",
+            }
+        ]
 
         with mock.patch(
-            "sentry.integrations.api.endpoints.organization_code_mappings_bulk."
-            "OrganizationCodeMappingsBulkEndpoint._auto_create_repository",
-            side_effect=fake_auto_create,
+            "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+            return_value=mock_repos,
         ):
             response = self.make_post(
                 {
@@ -379,6 +381,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         repo = Repository.objects.get(name=new_repo_name, organization_id=self.organization.id)
         assert repo.provider == "integrations:github"
         assert repo.integration_id == self.integration.id
+        assert repo.external_id == "99999"
 
     def test_skip_post_save_does_not_leak_to_fetched_instances(self) -> None:
         """The endpoint sets _skip_post_save on in-memory instances to batch

@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -8,11 +9,9 @@ import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-
 type Props = {
   name: string;
   onSuccess: () => void;
@@ -26,8 +25,8 @@ type Props = {
  * lets the user attach an optional message to be included in the email.
  */
 export function RequestIntegrationModal(props: Props) {
-  const [isSending, setIsSending] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>('');
+  const [isSending, setIsSending] = useState(false);
+  const [message, setMessage] = useState('');
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 

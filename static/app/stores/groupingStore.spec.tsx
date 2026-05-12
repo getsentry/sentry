@@ -1,4 +1,3 @@
-import * as GroupActionCreators from 'sentry/actionCreators/group';
 import {GroupingStore} from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', () => {
@@ -57,47 +56,6 @@ describe('Grouping Store', () => {
         },
       ],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/groupId/similar/',
-      body: [
-        [
-          {
-            id: '274',
-          },
-          {
-            'exception:stacktrace:pairs': 0.375,
-            'exception:stacktrace:application-chunks': 0.175,
-            'message:message:character-shingles': 0.775,
-          },
-        ],
-        [
-          {
-            id: '275',
-          },
-          {'exception:stacktrace:pairs': 1.0},
-        ],
-        [
-          {
-            id: '216',
-          },
-          {
-            'exception:stacktrace:application-chunks': 0.000235,
-            'exception:stacktrace:pairs': 0.001488,
-          },
-        ],
-        [
-          {
-            id: '217',
-          },
-          {
-            'exception:message:character-shingles': null,
-            'exception:stacktrace:application-chunks': 0.25,
-            'exception:stacktrace:pairs': 0.25,
-            'message:message:character-shingles': 0.7,
-          },
-        ],
-      ],
-    });
   });
 
   afterEach(() => {
@@ -116,104 +74,12 @@ describe('Grouping Store', () => {
       expect(trigger).toHaveBeenCalledWith(
         expect.objectContaining({
           error: false,
-          filteredSimilarItems: [],
           loading: true,
-          mergeState: new Map(),
           mergedItems: [],
           mergedLinks: '',
-          similarItems: [],
-          similarLinks: '',
           unmergeState: new Map(),
         })
       );
-    });
-
-    it('fetches list of similar items', async () => {
-      await GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
-      ]);
-
-      expect(trigger).toHaveBeenCalled();
-      const calls = trigger.mock.calls;
-      const arg: any = calls[calls.length - 1][0];
-
-      expect(arg.filteredSimilarItems).toHaveLength(1);
-      expect(arg.similarItems).toHaveLength(3);
-      expect(arg).toMatchObject({
-        loading: false,
-        error: false,
-        mergeState: new Map(),
-        mergedItems: [],
-        similarItems: [
-          {
-            isBelowThreshold: false,
-            issue: {
-              id: '274',
-            },
-          },
-          {
-            isBelowThreshold: false,
-            issue: {
-              id: '275',
-            },
-          },
-          {
-            isBelowThreshold: false,
-            issue: {
-              id: '217',
-            },
-          },
-        ],
-        filteredSimilarItems: [
-          {
-            isBelowThreshold: true,
-            issue: {
-              id: '216',
-            },
-          },
-        ],
-        unmergeState: new Map(),
-      });
-    });
-
-    it('unsuccessfully fetches list of similar items', () => {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/groupId/similar/',
-        statusCode: 500,
-        body: {message: 'failed'},
-      });
-
-      const promise = GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
-      ]);
-
-      expect(trigger).toHaveBeenCalled();
-      const calls = trigger.mock.calls;
-      return promise.then(() => {
-        const arg = calls[calls.length - 1][0];
-        expect(arg).toMatchObject({
-          loading: false,
-          error: true,
-          mergeState: new Map(),
-          mergedItems: [],
-          unmergeState: new Map(),
-        });
-      });
-    });
-
-    it('ignores null scores in aggregate', async () => {
-      await GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
-      ]);
-
-      expect(trigger).toHaveBeenCalled();
-      const calls = trigger.mock.calls;
-      const arg: any = calls[calls.length - 1][0];
-
-      const item = arg.similarItems.find(({issue}: any) => issue.id === '217');
-      expect(item.aggregate.exception).toBe(0.25);
-      expect(item.aggregate.message).toBe(0.7);
     });
 
     it('fetches list of hashes', () => {
@@ -229,9 +95,6 @@ describe('Grouping Store', () => {
         expect(arg).toMatchObject({
           loading: false,
           error: false,
-          similarItems: [],
-          filteredSimilarItems: [],
-          mergeState: new Map(),
           unmergeState: new Map([
             ['1', {busy: true}],
             ['2', {busy: false}],
@@ -285,230 +148,9 @@ describe('Grouping Store', () => {
         expect(arg).toMatchObject({
           loading: false,
           error: true,
-          mergeState: new Map(),
           mergedItems: [],
           unmergeState: new Map(),
         });
-      });
-    });
-  });
-
-  describe('Similar Issues list (to be merged)', () => {
-    let mergeList: (typeof GroupingStore)['state']['mergeList'];
-    let mergeState: (typeof GroupingStore)['state']['mergeState'];
-
-    beforeEach(() => {
-      GroupingStore.init();
-      mergeList = [];
-      mergeState = new Map();
-      GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
-      ]);
-    });
-
-    describe('onToggleMerge (checkbox state)', () => {
-      // Attempt to check first item but its "locked" so should not be able to do anything
-      it('can check and uncheck item', () => {
-        GroupingStore.onToggleMerge('1');
-
-        mergeList = ['1'];
-        mergeState.set('1', {checked: true});
-        expect(GroupingStore.getState().mergeList).toEqual(mergeList);
-        expect(GroupingStore.getState().mergeState).toEqual(mergeState);
-
-        // Uncheck
-        GroupingStore.onToggleMerge('1');
-        mergeList = mergeList.filter(item => item !== '1');
-        mergeState.set('1', {checked: false});
-
-        // Check all
-        GroupingStore.onToggleMerge('1');
-        GroupingStore.onToggleMerge('2');
-        GroupingStore.onToggleMerge('3');
-
-        mergeList = ['1', '2', '3'];
-        mergeState.set('1', {checked: true});
-        mergeState.set('2', {checked: true});
-        mergeState.set('3', {checked: true});
-
-        expect(GroupingStore.getState().mergeList).toEqual(mergeList);
-        expect(GroupingStore.getState().mergeState).toEqual(mergeState);
-
-        expect(trigger).toHaveBeenLastCalledWith({
-          mergeDisabled: false,
-          mergeList,
-          mergeState,
-        });
-      });
-    });
-
-    describe('onMerge', () => {
-      beforeEach(() => {
-        MockApiClient.clearMockResponses();
-        MockApiClient.addMockResponse({
-          method: 'PUT',
-          url: '/projects/orgId/projectId/issues/',
-        });
-        GroupingStore.init();
-      });
-
-      it('disables rows to be merged', async () => {
-        const mergeMock = jest.spyOn(GroupActionCreators, 'mergeGroups');
-
-        trigger.mockReset();
-        GroupingStore.onToggleMerge('1');
-        mergeList = ['1'];
-        mergeState.set('1', {checked: true});
-
-        expect(trigger).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            mergeDisabled: false,
-            mergeList,
-            mergeState,
-          })
-        );
-
-        trigger.mockReset();
-
-        // Everything is sync so trigger will have been called multiple times
-        const promise = GroupingStore.onMerge({
-          params: {
-            orgId: 'orgId',
-            groupId: 'groupId',
-          },
-          projectId: 'projectId',
-        });
-
-        mergeState.set('1', {checked: true, busy: true});
-
-        expect(trigger).toHaveBeenCalledWith(
-          expect.objectContaining({
-            mergeDisabled: true,
-            mergeList,
-            mergeState,
-          })
-        );
-
-        await promise;
-
-        expect(mergeMock).toHaveBeenCalledWith(
-          expect.anything(),
-          {
-            orgId: 'orgId',
-            projectId: 'projectId',
-            itemIds: ['1', 'groupId'],
-            query: undefined,
-          },
-          {
-            error: expect.any(Function),
-            success: expect.any(Function),
-            complete: expect.any(Function),
-          }
-        );
-
-        // Should be removed from mergeList after merged
-        mergeList = mergeList.filter(item => item !== '1');
-        mergeState.set('1', {checked: false, busy: true});
-        expect(trigger).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            mergeDisabled: false,
-            mergeList,
-            mergeState,
-          })
-        );
-      });
-
-      it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async () => {
-        GroupingStore.onToggleMerge('1');
-        mergeList = ['1'];
-        mergeState.set('1', {checked: true});
-
-        // Expect checked
-        expect(trigger).toHaveBeenCalledWith(
-          expect.objectContaining({
-            mergeDisabled: false,
-            mergeList,
-            mergeState,
-          })
-        );
-
-        trigger.mockReset();
-
-        // Start unmerge
-        const promise = GroupingStore.onMerge({
-          params: {
-            orgId: 'orgId',
-            groupId: 'groupId',
-          },
-          projectId: 'projectId',
-        });
-
-        mergeState.set('1', {checked: true, busy: true});
-
-        // Expect checked to remain the same, but is now busy
-        expect(trigger).toHaveBeenCalledWith(
-          expect.objectContaining({
-            mergeDisabled: true,
-            mergeList,
-            mergeState,
-          })
-        );
-
-        await promise;
-
-        mergeState.set('1', {checked: false, busy: true});
-
-        // After promise, reset checked to false, but keep busy
-        expect(trigger).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            mergeDisabled: false,
-            mergeList: [],
-            mergeState,
-          })
-        );
-      });
-
-      it('resets busy state and has same items checked after error when trying to merge', async () => {
-        MockApiClient.clearMockResponses();
-        MockApiClient.addMockResponse({
-          method: 'PUT',
-          url: '/projects/orgId/projectId/issues/',
-          statusCode: 500,
-          body: {},
-        });
-
-        GroupingStore.onToggleMerge('1');
-        mergeList = ['1'];
-        mergeState.set('1', {checked: true});
-
-        const promise = GroupingStore.onMerge({
-          params: {
-            orgId: 'orgId',
-            groupId: 'groupId',
-          },
-          projectId: 'projectId',
-        });
-
-        mergeState.set('1', {checked: true, busy: true});
-        expect(trigger).toHaveBeenCalledWith(
-          expect.objectContaining({
-            mergeDisabled: true,
-            mergeList,
-            mergeState,
-          })
-        );
-
-        await promise;
-
-        // Error state
-        mergeState.set('1', {checked: true, busy: false});
-        expect(trigger).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            mergeDisabled: false,
-            mergeList,
-            mergeState,
-          })
-        );
       });
     });
   });

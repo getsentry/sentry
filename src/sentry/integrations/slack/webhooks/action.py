@@ -20,7 +20,7 @@ from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
@@ -51,7 +51,6 @@ from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
@@ -130,20 +129,15 @@ def update_group(
     return resp
 
 
-def get_rule(
-    slack_request: SlackActionRequest, organization: Organization, group_type: int
-) -> Rule | None:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
+def get_rule(slack_request: SlackActionRequest) -> Rule | None:
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
     try:
         rule = Rule.objects.get(id=rule_id)
-        if should_fire_workflow_actions(organization, group_type):
-            # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
-            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
     except Rule.DoesNotExist:
         return None
     return rule
@@ -180,7 +174,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return data.get("original_message", {}).get("type") == "message"
 
 
-@cell_silo_endpoint
+@all_silo_endpoint  # Only LINK_IDENTITY is handled at control
 class SlackActionEndpoint(Endpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
@@ -362,7 +356,7 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        rule = get_rule(slack_request, group.organization, group.type)
+        rule = get_rule(slack_request)
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
@@ -493,6 +487,16 @@ class SlackActionEndpoint(Endpoint):
                             user=identity_user,
                         )
                     defer_attachment_update = True
+                elif action.name == SlackAction.SEER_AUTOFIX_HANDOFF:
+                    with self.record_event(
+                        MessagingInteractionType.SEER_AUTOFIX_HANDOFF, group, request
+                    ).capture():
+                        self.handle_seer_autofix_handoff(
+                            slack_request=slack_request,
+                            action=action,
+                            group=group,
+                        )
+                    defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -613,6 +617,31 @@ class SlackActionEndpoint(Endpoint):
             tags={"stopping_point": str(stopping_point), "is_continuation": str(is_continuation)},
         )
 
+    def handle_seer_autofix_handoff(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        action: BlockKitMessageAction,
+        group: Group,
+    ) -> None:
+        entrypoint = SlackAutofixEntrypoint(
+            slack_request=slack_request,
+            action=action,
+            group=group,
+            organization_id=group.project.organization_id,
+        )
+        run_id = entrypoint.autofix_run_id
+        if run_id is None:
+            _logger.info(
+                "seer.slack.trigger_handoff.missing_run_id",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": group.project.organization_id,
+                },
+            )
+            return
+        SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(group=group, run_id=int(run_id))
+
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
         action_option, action_id = None, None
@@ -712,6 +741,9 @@ class SlackActionEndpoint(Endpoint):
             SlackAction.LINK_IDENTITY.value,
         }:
             return self.respond()
+
+        if action_id == SlackAction.LINK_IDENTITY.value:
+            return self.handle_link_identity(slack_request)
 
         if action_option in UNFURL_ACTION_OPTIONS:
             return self.handle_unfurl(slack_request, action_option)
@@ -850,6 +882,19 @@ class SlackActionEndpoint(Endpoint):
         )
 
         webhook_client.send(text=message, replace_original=False, response_type="in_channel")
+        return self.respond()
+
+    def handle_link_identity(self, slack_request: SlackActionRequest) -> Response:
+        from sentry.integrations.slack.views.link_identity import (
+            stash_link_identity_response_url,
+        )
+
+        if slack_request.user_id and slack_request.response_url:
+            stash_link_identity_response_url(
+                integration_id=slack_request.integration.id,
+                slack_user_id=slack_request.user_id,
+                response_url=slack_request.response_url,
+            )
         return self.respond()
 
 

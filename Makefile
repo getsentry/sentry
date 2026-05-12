@@ -166,13 +166,14 @@ test-selective:
 		.cache/selected-tests.txt
 	SELECTED_TESTS_FILE=.cache/selected-tests.txt \
 	python3 -b -m pytest \
+		-n3 \
 		tests \
 		--reuse-db \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		-svv
+		--quiet
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so

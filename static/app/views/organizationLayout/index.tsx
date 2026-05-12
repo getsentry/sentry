@@ -1,13 +1,13 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import {Footer} from 'sentry/components/footer';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import Hook from 'sentry/components/hook';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -23,14 +23,15 @@ import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAn
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
-import SystemAlerts from 'sentry/views/app/systemAlerts';
+import {SystemAlerts} from 'sentry/views/app/systemAlerts';
+import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
 
@@ -51,7 +52,9 @@ export function OrganizationLayout() {
       <GlobalAnalytics />
       <OrganizationContainer>
         <GlobalDrawer>
-          <AppLayout organization={organization} />
+          <SeerExplorerContextProvider>
+            <AppLayout organization={organization} />
+          </SeerExplorerContextProvider>
         </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />

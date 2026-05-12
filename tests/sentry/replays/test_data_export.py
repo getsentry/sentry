@@ -167,8 +167,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
-                start=t0,
-                end=t3,
+                start=t0.isoformat(),
+                end=t3.isoformat(),
                 destination_bucket="test",
                 max_rows_to_export=3,
                 limit=1,
@@ -179,8 +179,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
-                start=t0,
-                end=t3,
+                start=t0.isoformat(),
+                end=t3.isoformat(),
                 destination_bucket="test",
                 max_rows_to_export=3,
                 limit=1,
@@ -191,8 +191,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
-                start=t0,
-                end=t3,
+                start=t0.isoformat(),
+                end=t3.isoformat(),
                 destination_bucket="test",
                 max_rows_to_export=3,
                 limit=3,
@@ -203,8 +203,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
-                start=t0,
-                end=t3,
+                start=t0.isoformat(),
+                end=t3.isoformat(),
                 destination_bucket="test",
                 max_rows_to_export=3,
                 limit=2,
@@ -215,8 +215,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
-                start=t0,
-                end=t3,
+                start=t0.isoformat(),
+                end=t3.isoformat(),
                 destination_bucket="test",
                 max_rows_to_export=3,
                 limit=2,
@@ -230,8 +230,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
-                start=t0,
-                end=t3,
+                start=t0.isoformat(),
+                end=t3.isoformat(),
                 destination_bucket="test",
                 max_rows_to_export=1,
                 limit=1,
@@ -244,8 +244,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
-                start=t0,
-                end=t3,
+                start=t0.isoformat(),
+                end=t3.isoformat(),
                 destination_bucket="test",
                 max_rows_to_export=1,
                 limit=3,

@@ -45,7 +45,6 @@ class DetectorSignalCacheInvalidationTests(TestCase):
 
 
 class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_detector_save(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -55,7 +54,7 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
 
         bulk_fetch_enabled_detectors("signal_test_1", "test")
 
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(0):
             # 1. Get data source with organization (for feature flag check)
             result = bulk_fetch_enabled_detectors("signal_test_1", "test")
             assert result[0].name == "Test Detector"
@@ -63,13 +62,12 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
         detector.name = "Updated Detector Name"
         detector.save()
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             # 1. Get data source with organization (select_related)
             # 2. Get detectors (cache miss after invalidation)
             result = bulk_fetch_enabled_detectors("signal_test_1", "test")
             assert result[0].name == "Updated Detector Name"
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_detector_enabled_change(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -79,21 +77,19 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
 
         bulk_fetch_enabled_detectors("signal_test_2", "test")
 
-        with self.assertNumQueries(1):
-            # 1. Get data source with organization (for feature flag check)
-            result = bulk_fetch_enabled_detectors("signal_test_2", "test")
-            assert len(result) == 1
+        # 1. Get data source with organization (for feature flag check)
+        result = bulk_fetch_enabled_detectors("signal_test_2", "test")
+        assert len(result) == 1
 
         detector.enabled = False
         detector.save()
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             # 1. Get data source with organization (select_related)
             # 2. Get detectors (cache miss after invalidation)
             result = bulk_fetch_enabled_detectors("signal_test_2", "test")
             assert len(result) == 0
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_detector_delete(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -103,20 +99,19 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
 
         bulk_fetch_enabled_detectors("signal_test_3", "test")
 
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(0):
             # 1. Get data source with organization (for feature flag check)
             result = bulk_fetch_enabled_detectors("signal_test_3", "test")
             assert len(result) == 1
 
         detector.delete()
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             # 1. Get data source with organization (select_related)
             # 2. Get detectors (cache miss after invalidation)
             result = bulk_fetch_enabled_detectors("signal_test_3", "test")
             assert len(result) == 0
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_for_multiple_data_sources(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -129,7 +124,7 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
         bulk_fetch_enabled_detectors("signal_test_4a", "test")
         bulk_fetch_enabled_detectors("signal_test_4b", "test")
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(0):
             # 1. Get data source 4a with organization (for feature flag check)
             # 2. Get data source 4b with organization (for feature flag check)
             result_1 = bulk_fetch_enabled_detectors("signal_test_4a", "test")
@@ -140,7 +135,7 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
         detector.name = "Updated Name"
         detector.save()
 
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(2):
             # 1. Get data source 4a with organization (select_related)
             # 2. Get detectors for 4a (cache miss after invalidation)
             # 3. Get data source 4b with organization (select_related)

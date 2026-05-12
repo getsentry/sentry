@@ -31,6 +31,7 @@ interface ContainerLayoutProps {
     | 'inline-flex'
     | 'grid'
     | 'inline-grid'
+    | 'contents'
     | 'none'
   >;
 

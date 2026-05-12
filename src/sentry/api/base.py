@@ -57,6 +57,7 @@ from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
     update_token_access_record,
 )
 from .paginator import BadPaginationError, MissingPaginationError, Paginator
@@ -92,6 +93,7 @@ DEFAULT_AUTHENTICATION = (
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     ApiKeyAuthentication,
+    ViewerContextAuthentication,
     SessionAuthentication,
 )
 
@@ -226,7 +228,7 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
 
@@ -609,7 +611,7 @@ class StatsMixin:
                 end = to_datetime(float(end_s))
             else:
                 end = datetime.now(timezone.utc)
-        except ValueError:
+        except (ValueError, OverflowError):
             raise ParseError(detail="until must be a numeric timestamp.")
 
         try:
@@ -619,7 +621,7 @@ class StatsMixin:
                 assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
-        except ValueError:
+        except (ValueError, OverflowError):
             raise ParseError(detail="since must be a numeric timestamp")
         except AssertionError:
             raise ParseError(detail="start must be before or equal to end")

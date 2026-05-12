@@ -184,7 +184,7 @@ function ExplorerStatusCardContent({
               <Button
                 size="md"
                 onClick={onOpenChat}
-                priority="primary"
+                variant="primary"
                 icon={<IconChat />}
                 disabled={isChatAlreadyOpen}
               >

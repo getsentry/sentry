@@ -6,6 +6,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
@@ -26,6 +27,7 @@ const HOMEPAGE_DEFAULT = t('New Query');
 export function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
   const api = useApi();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   function handleChange(nextQueryName: string) {
     // Do not update automatically if
@@ -55,6 +57,22 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
   }
 
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
+
+  if (hasPageFrameFeature) {
+    return (
+      <div data-test-id={`discover2-query-name-${value}`}>
+        <EditableText
+          value={value}
+          onChange={handleChange}
+          errorMessage={t('Please set a name for this query')}
+          isDisabled={!eventView.id || isHomepage}
+          aria-label={t('Edit query name')}
+          maxLength={255}
+          variant="compact"
+        />
+      </div>
+    );
+  }
 
   return (
     <Layout.Title data-test-id={`discover2-query-name-${value}`}>

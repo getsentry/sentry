@@ -123,7 +123,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  let versionTitle: string | undefined = undefined;
+  let versionTitle: string | undefined;
   if (version) {
     versionTitle = `v${version}`;
     if (buildNumber) {
@@ -185,7 +185,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
         <React.Fragment>
           <TopBar.Slot name="actions">
             <Button
-              priority="default"
+              variant="secondary"
               icon={<IconTelescope />}
               onClick={handleCompareClick}
               disabled={!areActionsEnabled}
@@ -200,6 +200,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             {project && (
               <LinkButton
                 icon={<IconSettings />}
+                tooltipProps={{title: t('Settings')}}
                 aria-label={t('Settings')}
                 to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
               />
@@ -294,7 +295,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             </ConfirmDelete>
           </TopBar.Slot>
           <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions}>
+            <FeedbackButton
+              feedbackOptions={buildDetailsFeedbackOptions}
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
               {null}
             </FeedbackButton>
           </TopBar.Slot>
@@ -305,7 +310,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions} />
             <Button
               size="sm"
-              priority="default"
+              variant="secondary"
               icon={<IconTelescope />}
               onClick={handleCompareClick}
               disabled={!areActionsEnabled}

@@ -13,6 +13,7 @@ import {
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Configuration for confirmation dialogs before applying changes.
@@ -32,19 +33,19 @@ type ConfirmConfig<TValue = unknown> =
   | ((value: TValue) => React.ReactNode | undefined);
 
 /** Form data type coming from the schema */
-type SchemaFieldName<TSchema extends z.ZodObject<z.ZodRawShape>> = Extract<
+type SchemaFieldName<TSchema extends z.ZodObject> = Extract<
   DeepKeys<z.infer<TSchema>>,
   string
 >;
 
 /** FieldApi’s TData must be DeepValue<TParentData, TName> */
 type SchemaFieldValue<
-  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TSchema extends z.ZodObject,
   TFieldName extends SchemaFieldName<TSchema>,
 > = DeepValue<z.infer<TSchema>, TFieldName>;
 
 type AutoSaveFormRenderArg<
-  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TSchema extends z.ZodObject,
   TFieldName extends SchemaFieldName<TSchema>,
 > = FieldApi<
   z.infer<TSchema>,
@@ -104,7 +105,7 @@ type AutoSaveFormRenderArg<
 interface AutoSaveFormProps<
   TData,
   TContext,
-  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TSchema extends z.ZodObject,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 > {
   /**
@@ -161,6 +162,8 @@ interface AutoSaveFormProps<
 export function AutoSaveForm<
   TData,
   TContext,
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 >(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {
@@ -192,11 +195,19 @@ export function AutoSaveForm<
         return Promise.resolve();
       }
 
-      const onError = () => {
+      const onError = (error: Error) => {
         if (resetOnErrorRef.current) {
           formApi.reset();
         }
-        setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
+        const hasBackendErrors =
+          error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+        if (!hasBackendErrors) {
+          setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
+        }
+      };
+
+      const onSuccess = () => {
+        formApi.reset();
       };
 
       const onSuccess = () => {

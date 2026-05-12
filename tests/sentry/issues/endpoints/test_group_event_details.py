@@ -220,38 +220,32 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
             url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/events/{event_id}/"
             return self.client.get(url, {"query": query}, format="json")
 
-        allowlist = {
-            "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids": [
-                self.organization.id
-            ]
-        }
-        with self.options(allowlist):
-            # Middle matching event: prev/next hop past the non-matching
-            # neighbors on both sides.
-            middle = fetch(m2.event_id)
-            assert middle.status_code == 200, middle.content
-            assert middle.data["previousEventID"] == str(m1.event_id)
-            assert middle.data["nextEventID"] == str(m3.event_id)
+        # Middle matching event: prev/next hop past the non-matching
+        # neighbors on both sides.
+        middle = fetch(m2.event_id)
+        assert middle.status_code == 200, middle.content
+        assert middle.data["previousEventID"] == str(m1.event_id)
+        assert middle.data["nextEventID"] == str(m3.event_id)
 
-            # Oldest matching event: boundary on the prev side.
-            oldest = fetch(m1.event_id)
-            assert oldest.status_code == 200, oldest.content
-            assert oldest.data["previousEventID"] is None
-            assert oldest.data["nextEventID"] == str(m2.event_id)
+        # Oldest matching event: boundary on the prev side.
+        oldest = fetch(m1.event_id)
+        assert oldest.status_code == 200, oldest.content
+        assert oldest.data["previousEventID"] is None
+        assert oldest.data["nextEventID"] == str(m2.event_id)
 
-            # Newest matching event: boundary on the next side.
-            newest = fetch(m3.event_id)
-            assert newest.status_code == 200, newest.content
-            assert newest.data["previousEventID"] == str(m2.event_id)
-            assert newest.data["nextEventID"] is None
+        # Newest matching event: boundary on the next side.
+        newest = fetch(m3.event_id)
+        assert newest.status_code == 200, newest.content
+        assert newest.data["previousEventID"] == str(m2.event_id)
+        assert newest.data["nextEventID"] is None
 
-            # Landing on a non-matching event directly (e.g. via a stale
-            # URL) still returns it, but its adjacent IDs are filtered
-            # so the user can walk back into the matching set.
-            between = fetch(n1.event_id)
-            assert between.status_code == 200, between.content
-            assert between.data["previousEventID"] == str(m1.event_id)
-            assert between.data["nextEventID"] == str(m2.event_id)
+        # Landing on a non-matching event directly (e.g. via a stale
+        # URL) still returns it, but its adjacent IDs are filtered
+        # so the user can walk back into the matching set.
+        between = fetch(n1.event_id)
+        assert between.status_code == 200, between.content
+        assert between.data["previousEventID"] == str(m1.event_id)
+        assert between.data["nextEventID"] == str(m2.event_id)
 
     def test_next_prev_respects_or_query_filter_for_allowlisted_org(self) -> None:
         red = self.store_event(
@@ -283,14 +277,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{blue.group.id}/events/{blue.event_id}/"
-        with self.options(
-            {
-                "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids": [
-                    self.organization.id
-                ]
-            }
-        ):
-            response = self.client.get(url, {"query": "color:[red, blue]"}, format="json")
+        response = self.client.get(url, {"query": "color:[red, blue]"}, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["previousEventID"] == str(red.event_id)
@@ -568,3 +555,43 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["id"] == str(occurrence.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
+
+    def _store_platform_tag_collision_events(self) -> Any:
+        events = []
+        for i, ts in enumerate(
+            [before_now(seconds=10), before_now(seconds=8), before_now(seconds=6)]
+        ):
+            event = self.store_event(
+                data={
+                    "event_id": f"{i + 1}" * 32,
+                    "timestamp": ts.isoformat(),
+                    "fingerprint": ["platform-collision-group"],
+                    "tags": {"platform": "SJ1"},
+                },
+                project_id=self.project_1.id,
+            )
+            events.append(event)
+        return event.group, events
+
+    def test_platform_tag_collision_without_option(self) -> None:
+        group, _events = self._store_platform_tag_collision_events()
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
+        response = self.client.get(url, {"query": "platform:SJ1"}, format="json")
+        assert response.status_code == 404
+
+    def test_platform_tag_collision_with_option(self) -> None:
+        group, events = self._store_platform_tag_collision_events()
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
+        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
+            response = self.client.get(url, {"query": "platform:SJ1"}, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == events[-1].event_id
+
+    def test_explicit_tag_query_works_regardless_of_option(self) -> None:
+        group, events = self._store_platform_tag_collision_events()
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
+        for option_value in (False, True):
+            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
+                response = self.client.get(url, {"query": "tags[platform]:SJ1"}, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == events[-1].event_id

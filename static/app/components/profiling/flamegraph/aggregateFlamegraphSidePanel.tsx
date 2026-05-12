@@ -20,7 +20,7 @@ import {
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
 
 interface AggregateFlamegraphSidePanelProps {
   scheduler: CanvasScheduler;

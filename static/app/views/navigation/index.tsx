@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MobileNavigation,
@@ -55,9 +56,8 @@ function CommandPaletteSlotOutlets() {
 }
 
 function UserAndOrganizationNavigation() {
-  const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
-  const {visible} = useGlobalModal();
+  const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
 
   const hasPageFrame = useHasPageFrameFeature();
@@ -67,7 +67,7 @@ function UserAndOrganizationNavigation() {
       ? []
       : [
           {
-            match: ['command+b', 'ctrl+b'],
+            match: 'mod+b',
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]
@@ -77,9 +77,7 @@ function UserAndOrganizationNavigation() {
     <NavigationLayout>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
-      {organization.features.includes('cmd-k-supercharged') && (
-        <GlobalCommandPaletteActions />
-      )}
+      <GlobalCommandPaletteActions />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}
@@ -129,14 +127,20 @@ export function Navigation() {
 
   if (!organization) {
     // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
-    return <UserOnlyNavigation />;
+    return (
+      <HoverOverlayGroupProvider>
+        <UserOnlyNavigation />
+      </HoverOverlayGroupProvider>
+    );
   }
 
   return (
-    <NavigationTourProvider>
-      <SkipLink />
-      <UserAndOrganizationNavigation />
-    </NavigationTourProvider>
+    <HoverOverlayGroupProvider>
+      <NavigationTourProvider>
+        <SkipLink />
+        <UserAndOrganizationNavigation />
+      </NavigationTourProvider>
+    </HoverOverlayGroupProvider>
   );
 }
 

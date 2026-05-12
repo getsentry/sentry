@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypedDict, cast
@@ -60,6 +60,9 @@ class ResolvedColumn:
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
     validator: Callable[[Any], bool] | list[Callable[[Any], bool]] | None = None
+    # Normalizer transforms a search value before sending to Snuba (e.g. stripping dashes from UUIDs).
+    # Called after validation, before building the AttributeValue proto.
+    normalizer: Callable[[Any], Any] | None = None
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
@@ -70,6 +73,20 @@ class ResolvedColumn:
         if self.processor:
             return self.processor(value)
         return value
+
+    def normalize(
+        self, value: str | float | datetime | Sequence[float] | Sequence[str]
+    ) -> str | float | datetime | Sequence[float] | Sequence[str]:
+        """Normalize a search value before building the AttributeValue proto.
+
+        If a normalizer is defined, applies it to each element of a list or to the scalar value.
+        Returns the value unchanged when no normalizer is set.
+        """
+        if self.normalizer is None:
+            return value
+        if isinstance(value, list):
+            return [self.normalizer(item) for item in value]
+        return self.normalizer(value)
 
     def validate(self, value: Any) -> None:
         if callable(self.validator):
@@ -187,6 +204,7 @@ class ResolvedFunction(ResolvedColumn):
     """
 
     is_aggregate: bool
+    default_value: float | None = None
 
     @property
     def proto_definition(
@@ -237,12 +255,21 @@ class ResolvedAggregate(ResolvedFunction):
     @property
     def proto_definition(self) -> AttributeAggregation:
         """The definition of this function as needed by the RPC"""
-        return AttributeAggregation(
-            aggregate=self.internal_name,
-            key=self.argument,
-            label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
-        )
+        if self.default_value is not None:
+            return AttributeAggregation(
+                aggregate=self.internal_name,
+                key=self.argument,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+                default_value_double=self.default_value,
+            )
+        else:
+            return AttributeAggregation(
+                aggregate=self.internal_name,
+                key=self.argument,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+            )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -262,12 +289,21 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
         self,
     ) -> AttributeAggregation | AttributeConditionalAggregation:
         if self.trace_metric is None and self.trace_filter is None:
-            return AttributeAggregation(
-                aggregate=self.internal_name,
-                key=self.key,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-            )
+            if self.default_value is not None:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
+            else:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                )
 
         if self.trace_filter is None and self.trace_metric is not None:
             trace_filter = self.trace_metric.get_filter()
@@ -278,13 +314,23 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
                 and_filter=AndFilter(filters=[self.trace_metric.get_filter(), self.trace_filter])
             )
 
-        return AttributeConditionalAggregation(
-            aggregate=self.internal_name,
-            key=self.key,
-            filter=trace_filter,
-            label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
-        )
+        if self.default_value is not None:
+            return AttributeConditionalAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                filter=trace_filter,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+                default_value_double=self.default_value,
+            )
+        else:
+            return AttributeConditionalAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                filter=trace_filter,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+            )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -302,13 +348,23 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     @property
     def proto_definition(self) -> AttributeConditionalAggregation:
         """The definition of this function as needed by the RPC"""
-        return AttributeConditionalAggregation(
-            aggregate=self.internal_name,
-            key=self.key,
-            filter=self.trace_filter,
-            label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
-        )
+        if self.default_value is not None:
+            return AttributeConditionalAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                filter=self.trace_filter,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+                default_value_double=self.default_value,
+            )
+        else:
+            return AttributeConditionalAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                filter=self.trace_filter,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+            )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -361,6 +417,7 @@ class FunctionDefinition:
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         raise NotImplementedError()
 
@@ -382,6 +439,7 @@ class AggregateDefinition(FunctionDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -407,6 +465,7 @@ class AggregateDefinition(FunctionDefinition):
                 search_config, self.extrapolation_mode_override
             ),
             argument=resolved_attribute,
+            default_value=default_value,
         )
 
 
@@ -426,6 +485,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         if not isinstance(resolved_arguments[self.offset], AttributeKey):
             raise InvalidSearchQuery(
@@ -452,7 +512,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 trace_metric.metric_unit in constants.DURATION_TYPE
                 or trace_metric.metric_unit in constants.SIZE_TYPE
             ):
-                resolved_search_type = cast(constants.SearchType, trace_metric.metric_unit)
+                resolved_search_type = trace_metric.metric_unit
 
         return ResolvedTraceMetricAggregate(
             public_alias=alias,
@@ -470,6 +530,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 if isinstance(self, ConditionalTraceMetricAggregateDefinition)
                 else None
             ),
+            default_value=default_value,
         )
 
 
@@ -499,6 +560,7 @@ class ConditionalAggregateDefinition(AggregateDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -512,6 +574,7 @@ class ConditionalAggregateDefinition(AggregateDefinition):
             extrapolation_mode=resolve_extrapolation_mode(
                 search_config, self.extrapolation_mode_override
             ),
+            default_value=default_value,
         )
 
 
@@ -535,6 +598,7 @@ class FormulaDefinition(FunctionDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
@@ -553,6 +617,7 @@ class FormulaDefinition(FunctionDefinition):
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
+            default_value=default_value,
         )
 
 
@@ -574,6 +639,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
@@ -600,6 +666,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
             internal_type=self.internal_type,
             processor=self.processor,
             trace_metric=trace_metric,
+            default_value=default_value,
         )
 
 

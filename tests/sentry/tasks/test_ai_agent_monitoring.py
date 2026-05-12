@@ -1,15 +1,10 @@
 import pytest
 import responses
 
-from sentry.relay.config.ai_model_costs import (
-    AI_MODEL_COSTS_CACHE_KEY,
-    AI_MODEL_METADATA_CACHE_KEY,
-    AIModelMetadataConfig,
-)
+from sentry.relay.config.ai_model_costs import AI_MODEL_METADATA_CACHE_KEY, AIModelMetadataConfig
 from sentry.tasks.ai_agent_monitoring import (
     MODELS_DEV_API_URL,
     OPENROUTER_MODELS_API_URL,
-    fetch_ai_model_costs,
     fetch_ai_model_metadata,
 )
 from sentry.testutils.cases import TestCase
@@ -21,13 +16,6 @@ def _get_metadata_from_cache() -> AIModelMetadataConfig | None:
     Utility function to retrieve LLM model metadata from cache.
     """
     return cache.get(AI_MODEL_METADATA_CACHE_KEY)
-
-
-def _get_legacy_costs_from_cache():
-    """
-    Utility function to retrieve legacy AI model costs from cache.
-    """
-    return cache.get(AI_MODEL_COSTS_CACHE_KEY)
 
 
 MOCK_OPENROUTER_API_RESPONSE = {
@@ -190,7 +178,6 @@ class FetchAIModelMetadataTest(TestCase):
         super().setUp()
         # Clear cache before each test
         cache.delete(AI_MODEL_METADATA_CACHE_KEY)
-        cache.delete(AI_MODEL_COSTS_CACHE_KEY)
 
     def _mock_openrouter_api_response(self, mock_response: dict):
         responses.add(

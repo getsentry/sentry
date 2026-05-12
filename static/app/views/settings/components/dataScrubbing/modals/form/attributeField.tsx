@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Input} from '@sentry/scraps/input';
 
@@ -36,7 +37,11 @@ const datasetToTraceItemType: Record<
 const HIDDEN_SCRUBBING_ATTRIBUTES: Partial<
   Record<AllowedDataScrubbingDatasets, Set<string>>
 > = {
-  [AllowedDataScrubbingDatasets.METRICS]: new Set(['metric.name']),
+  [AllowedDataScrubbingDatasets.METRICS]: new Set([
+    'metric.name',
+    'metric.type',
+    'metric.unit',
+  ]),
 };
 
 type FieldProps = {

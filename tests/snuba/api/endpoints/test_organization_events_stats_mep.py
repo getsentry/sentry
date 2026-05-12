@@ -850,7 +850,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "discoverSplitDecision"
         ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
 
-        widget.refresh_from_db()
+        widget = DashboardWidget.objects.get(id=widget.id)
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
         assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
@@ -928,7 +928,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "discoverSplitDecision"
         ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
 
-        widget.refresh_from_db()
+        widget = DashboardWidget.objects.get(id=widget.id)
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
         assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
@@ -956,7 +956,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "discoverSplitDecision"
         ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
-        widget.refresh_from_db()
+        widget = DashboardWidget.objects.get(id=widget.id)
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 

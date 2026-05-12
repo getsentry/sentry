@@ -11,6 +11,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  ConversationDetailPanel,
+  ConversationLeftPanel,
+  ConversationSplitLayout,
+} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -158,6 +163,7 @@ export function TraceAiSpans({
           replay: null,
           traceId: traceSlug,
           hideNodeActions: true,
+          initiallyCollapseAiIO: false,
         })}
       </RightPanel>
     </Wrapper>
@@ -208,6 +214,7 @@ export function AiSpansSplitView({
         <ConversationDetailPanel
           selectedNode={selectedNode}
           nodeTraceMap={nodeTraceMap}
+          initiallyCollapseAiIO={false}
         />
       }
     />

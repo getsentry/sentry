@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,7 +18,6 @@ import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -59,9 +59,7 @@ function DashboardGrid({
   });
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
-  const [currentDashboards, setCurrentDashboards] = useState<
-    DashboardListItem[] | undefined
-  >(dashboards);
+  const [currentDashboards, setCurrentDashboards] = useState(dashboards);
 
   useEffect(() => {
     if (dashboards?.length) {
@@ -130,8 +128,9 @@ function DashboardGrid({
     ];
 
     const disabledKeys = [];
-    if ((dashboards && dashboards.length <= 1) || disableDelete)
+    if (disableDelete) {
       disabledKeys.push('dashboard-delete');
+    }
     if (disableDuplicate) {
       disabledKeys.push('dashboard-duplicate');
     }
@@ -144,7 +143,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
-import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -19,10 +18,15 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import type {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
 import {
-  useMutateCreatePr,
+  getProjectStoppingPointValueFromSettings,
+  type MutateStoppingPoint,
+  PROJECT_STOPPING_POINT_OPTIONS,
+} from 'sentry/utils/seer/stoppingPoint';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
 } from 'sentry/views/settings/seer/seerAgentHooks';
@@ -30,10 +34,11 @@ import {
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: ReturnType<typeof useFetchAgentOptions>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;
+  mutateStoppingPoint: MutateStoppingPoint;
   project: Project;
 }
 
@@ -42,8 +47,10 @@ export function SeerProjectTableRow({
   autofixSettings,
   integrations,
   isPendingIntegrations,
+  mutateStoppingPoint,
   project,
 }: Props) {
+  const location = useLocation();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
@@ -60,14 +67,10 @@ export function SeerProjectTableRow({
   });
 
   const mutateSelectedAgent = useMutateSelectedAgent({project});
-  const mutateCreatePr = useMutateCreatePr({project});
 
-  const isCreatePrEnabled = autofixSettings
-    ? autofixAgent === 'seer'
-      ? organization.enableSeerCoding !== false &&
-        autofixSettings.automatedRunStoppingPoint !== 'code_changes'
-      : (autofixSettings.automationHandoff?.auto_create_pr ?? false)
-    : false;
+  const stoppingPointValue = autofixSettings
+    ? getProjectStoppingPointValueFromSettings(autofixSettings)
+    : 'off';
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -82,9 +85,32 @@ export function SeerProjectTableRow({
         </CheckboxClickTarget>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Link to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}>
+        <Link
+          to={{
+            pathname: `/settings/${organization.slug}/seer/projects/${project.slug}/`,
+            query: location.query,
+          }}
+        >
           <ProjectBadge disableLink project={project} avatarSize={16} />
         </Link>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
+        {autofixSettings ? (
+          autofixSettings.reposCount === 0 ? (
+            <Tooltip
+              title={t('Seer works best on projects with at least one connected repo.')}
+            >
+              <Flex align="center" gap="sm">
+                <IconWarning variant="warning" />
+                <Text tabular>{0}</Text>
+              </Flex>
+            </Tooltip>
+          ) : (
+            <Text tabular>{autofixSettings.reposCount}</Text>
+          )
+        ) : (
+          <Placeholder height="28px" width="36px" />
+        )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" align="stretch" overflow="visible">
         {!autofixSettings || isPendingIntegrations ? (
@@ -120,71 +146,36 @@ export function SeerProjectTableRow({
           </Stack>
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
+      <SimpleTable.RowCell justify="end" align="stretch" overflow="visible">
         {autofixSettings ? (
-          <Flex align="center" gap="sm">
-            {organization.enableSeerCoding === false && autofixAgent === 'seer' ? (
-              <InfoTip
-                title={tct(
-                  '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+          <Stack align="stretch" flex="1">
+            <Select
+              size="xs"
+              disabled={!canWrite}
+              name="stoppingPoint"
+              options={PROJECT_STOPPING_POINT_OPTIONS}
+              value={stoppingPointValue}
+              onChange={option => {
+                mutateStoppingPoint(
+                  {stoppingPoint: option.value, project},
                   {
-                    settings: (
-                      <Link
-                        to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
-                      />
-                    ),
+                    onSuccess: () =>
+                      addSuccessMessage(
+                        tct('Updated automation steps for [project]', {
+                          project: project.name,
+                        })
+                      ),
+                    onError: () =>
+                      addErrorMessage(
+                        t('Failed to update automation steps for %s', project.name)
+                      ),
                   }
-                )}
-                size="xs"
-              />
-            ) : null}
-
-            <Switch
-              disabled={
-                !canWrite ||
-                (organization.enableSeerCoding === false && autofixAgent === 'seer')
-              }
-              checked={isCreatePrEnabled}
-              onChange={e => {
-                const value = e.target.checked;
-                mutateCreatePr(autofixAgent, value, {
-                  onSuccess: () =>
-                    addSuccessMessage(
-                      value
-                        ? t('Enabled auto create pull requests for %s', project.name)
-                        : t('Disabled auto create pull requests for %s', project.name)
-                    ),
-                  onError: () =>
-                    addErrorMessage(
-                      t(
-                        'Failed to update auto create pull requests setting for %s',
-                        project.name
-                      )
-                    ),
-                });
+                );
               }}
             />
-          </Flex>
+          </Stack>
         ) : (
-          <Placeholder height="28px" width="36px" />
-        )}
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
-        {autofixSettings ? (
-          autofixSettings.reposCount === 0 ? (
-            <Tooltip
-              title={t('Seer works best on projects with at least one connected repo.')}
-            >
-              <Flex align="center" gap="sm">
-                <IconWarning variant="warning" />
-                <Text tabular>{0}</Text>
-              </Flex>
-            </Tooltip>
-          ) : (
-            <Text tabular>{autofixSettings.reposCount}</Text>
-          )
-        ) : (
-          <Placeholder height="28px" width="36px" />
+          <Placeholder height="28px" width="100%" />
         )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>

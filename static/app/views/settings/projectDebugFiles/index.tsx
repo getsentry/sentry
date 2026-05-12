@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {
   addErrorMessage,
@@ -11,14 +12,12 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -44,7 +43,15 @@ export default function ProjectDebugSymbols() {
 
   const query = location.query.query as string | undefined;
   const cursor = location.query.cursor as string | undefined;
-  const hasSymbolSourcesFeatureFlag = organization.features.includes('symbol-sources');
+
+  const debugFilesApiOptions = apiOptions.as<DebugFile[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      query: {query, cursor},
+      staleTime: 0,
+    }
+  );
 
   const debugFilesApiOptions = apiOptions.as<DebugFile[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
@@ -84,7 +91,6 @@ export default function ProjectDebugSymbols() {
     refetch: refetchSymbolSources,
   } = useQuery({
     ...symbolSourcesOptions,
-    enabled: hasSymbolSourcesFeatureFlag,
     retry: 0,
   });
 
@@ -130,43 +136,38 @@ export default function ProjectDebugSymbols() {
 
   return (
     <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), project.slug, false)}>
-      <SettingsPageHeader title={t('Debug Information Files')} />
-
-      <TextBlock>
-        {t(`
+      <SettingsPageHeader
+        title={t('Debug Information Files')}
+        subtitle={t(`
           Debug information files are used to convert addresses and minified
           function names from native crash reports into function names and
           locations.
         `)}
-      </TextBlock>
+      />
 
-      {organization.features.includes('symbol-sources') && (
-        <Fragment>
-          <ProjectPermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
-          {isLoadingSymbolSources ? (
-            <LoadingIndicator />
-          ) : isErrorSymbolSources ? (
-            <LoadingError
-              onRetry={refetchSymbolSources}
-              message={t('There was an error loading repositories.')}
-            />
-          ) : (
-            <Sources
-              api={api}
-              location={location}
-              project={project}
-              organization={organization}
-              customRepositories={
-                (project.symbolSources
-                  ? JSON.parse(project.symbolSources)
-                  : []) as CustomRepo[]
-              }
-              builtinSymbolSources={project.builtinSymbolSources ?? []}
-              builtinSymbolSourceOptions={builtinSymbolSources ?? []}
-            />
-          )}
-        </Fragment>
+      {isLoadingSymbolSources ? (
+        <LoadingIndicator />
+      ) : isErrorSymbolSources ? (
+        <LoadingError
+          onRetry={refetchSymbolSources}
+          message={t('There was an error loading repositories.')}
+        />
+      ) : (
+        <Sources
+          api={api}
+          location={location}
+          project={project}
+          organization={organization}
+          customRepositories={
+            (project.symbolSources
+              ? JSON.parse(project.symbolSources)
+              : []) as CustomRepo[]
+          }
+          builtinSymbolSources={project.builtinSymbolSources ?? []}
+          builtinSymbolSourceOptions={builtinSymbolSources ?? []}
+        />
       )}
 
       {isLoadingDebugFiles ? (

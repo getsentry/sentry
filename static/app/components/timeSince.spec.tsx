@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {TimezoneProvider} from 'sentry/components/timezoneProvider';
@@ -67,8 +67,6 @@ describe('TimeSince', () => {
     );
     const timeElement = screen.getByRole('time');
     await userEvent.hover(timeElement);
-    await waitFor(() => {
-      expect(screen.getByText(/EST/)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/E[SD]T/)).toBeInTheDocument();
   });
 });

@@ -6,15 +6,15 @@ interface GroupRelease {
   lastRelease: Release;
 }
 
-interface FirstLastReleaseQueryOptions {
+type FirstLastReleaseQueryOptions = {
   environment?: string[];
-}
+};
 
-interface GetIssueFirstLastReleaseQueryOptions {
+type GetIssueFirstLastReleaseQueryOptions = {
   groupId: string;
   organizationSlug: string;
   query?: FirstLastReleaseQueryOptions;
-}
+};
 
 export function issueFirstLastReleaseQueryOptions({
   groupId,

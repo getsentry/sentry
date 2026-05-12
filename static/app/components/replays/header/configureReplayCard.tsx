@@ -12,8 +12,8 @@ import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export function ConfigureReplayCard({
   isMobile,

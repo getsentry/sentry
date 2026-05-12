@@ -3,7 +3,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -13,13 +13,14 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarVisualizeHeader() {
   return (
@@ -43,6 +44,7 @@ interface ToolbarVisualizeDropdownProps {
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   parsedFunction: ParsedFunction | null;
   dragColumnId?: number;
+  fieldDefinitionType?: GetFieldDefinitionType;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
@@ -62,6 +64,7 @@ export function ToolbarVisualizeDropdown({
   parsedFunction,
   label,
   loading,
+  fieldDefinitionType = 'span',
 }: ToolbarVisualizeDropdownProps) {
   const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: dragColumnId ?? 0,
@@ -93,7 +96,16 @@ export function ToolbarVisualizeDropdown({
         return (
           <FieldCompactSelect
             key={param.name}
-            search={{onChange: onSearch}}
+            search={{
+              onChange: onSearch,
+              filter: (option, searchText) => {
+                return sortSearchedAttributes({
+                  fieldDefinitionType,
+                  option,
+                  searchText,
+                });
+              },
+            }}
             options={fieldOptions}
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => onChangeArgument(index, option)}
@@ -105,7 +117,16 @@ export function ToolbarVisualizeDropdown({
       })}
       {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
         <FieldCompactSelect
-          search={{onChange: onSearch}}
+          search={{
+            onChange: onSearch,
+            filter: (option, searchText) => {
+              return sortSearchedAttributes({
+                fieldDefinitionType,
+                option,
+                searchText,
+              });
+            },
+          }}
           options={fieldOptions}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => onChangeArgument(0, option)}
@@ -116,7 +137,7 @@ export function ToolbarVisualizeDropdown({
       )}
       {onDelete ? (
         <Button
-          priority="transparent"
+          variant="transparent"
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}
@@ -132,6 +153,7 @@ interface ToolbarVisualizeAddProps {
   disabled: boolean;
   display?: 'button' | 'link';
   label?: string;
+  size?: ButtonProps['size'];
 }
 
 export function ToolbarVisualizeAddChart({
@@ -139,13 +161,14 @@ export function ToolbarVisualizeAddChart({
   disabled,
   label,
   display = 'link',
+  size = 'md',
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      size={display === 'link' ? 'zero' : 'md'}
+      size={display === 'link' ? 'zero' : size}
       icon={<IconAdd />}
       onClick={add}
-      priority={display === 'link' ? 'link' : undefined}
+      variant={display === 'link' ? 'link' : undefined}
       aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >
@@ -160,7 +183,7 @@ export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAdd
       size="zero"
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      variant="link"
       aria-label={t('Add Equation')}
       disabled={disabled}
     >

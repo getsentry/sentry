@@ -13,6 +13,7 @@ from sentry.issues.auto_source_code_config.constants import (
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
 from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
@@ -40,7 +41,7 @@ class ExpectedCodeMapping(TypedDict):
 
 
 def _repo_info(name: str, branch: str) -> dict[str, str]:
-    return {"full_name": name, "default_branch": branch}
+    return {"full_name": name, "default_branch": branch, "external_id": name}
 
 
 def _repo_tree_files(files: Sequence[str]) -> list[dict[str, Any]]:
@@ -183,6 +184,12 @@ class BaseDeriveCodeMappings(TestCase):
                         )
                         assert code_mapping is not None
                         assert code_mapping.repository.name == expected_cm["repo_name"]
+                        assert code_mapping.project_repository is not None
+                        assert code_mapping.project_repository.project_id == self.project.id
+                        assert (
+                            code_mapping.project_repository.repository_id
+                            == code_mapping.repository_id
+                        )
                 else:
                     assert current_code_mappings.count() == starting_code_mappings_count
 
@@ -202,6 +209,10 @@ class BaseDeriveCodeMappings(TestCase):
                     )
                 else:
                     assert current_enhancements == starting_enhancements
+
+            if not dry_run and expected_new_code_mappings:
+                project_repos = ProjectRepository.objects.filter(project=self.project)
+                assert project_repos.count() > 0
 
             if (current_repositories.count() > starting_repositories_count) or dry_run:
                 mock_incr.assert_any_call(
@@ -887,7 +898,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
         # Let's pretend that we have already added the two level tld rule
         # This means that the uk.co.not-example.baz.qux will be in-app
-        repo = RepoAndBranch(name="repo1", branch="default")
+        repo = RepoAndBranch(name="repo1", branch="default", external_id="1")
         # The source root will only work for the foo package
         cm = CodeMapping(repo=repo, stacktrace_root="uk/co/", source_path="src/main/uk/co/")
         create_code_mapping(self.organization, cm, self.project)

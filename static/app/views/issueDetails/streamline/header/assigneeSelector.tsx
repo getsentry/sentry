@@ -19,27 +19,13 @@ import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
-
-function useProjectMembers(projectId: string) {
-  const organization = useOrganization();
-  return useQuery({
-    ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {project: [projectId]},
-      staleTime: 30_000,
-    }),
-    select: data =>
-      data.json
-        .filter((m): m is Member & {user: NonNullable<Member['user']>} => m.user !== null)
-        .map(m => ({...m.user, role: m.role})),
-  });
-}
 
 interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
@@ -67,7 +53,6 @@ export function GroupHeaderAssigneeSelector({
     projectSlug: project.slug,
     group,
   });
-  const {data: members} = useProjectMembers(project.id);
 
   const owners = getOwnerList(
     committersResponse?.committers ?? [],
@@ -123,19 +108,22 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     projectSlug: project.slug,
     group,
   });
+  const {data: members = []} = useQuery({
+    ...useProjectMembersQueryOptions([project.id]),
+    select: resp => selectUsersFromMembers(resp.json),
+  });
 
   const owners = getOwnerList(
     committersResponse?.committers ?? [],
     eventOwners,
     group.assignedTo
   );
-  const {data: members} = useProjectMembers(project.id);
   const currentAssigneeIcon = group.assignedTo ? (
     <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
   ) : (
     <IconUser />
   );
-  const assignableUsers = (members ?? []).filter(member => member.id !== user?.id);
+  const assignableUsers = members.filter(member => member.id !== user?.id);
   const assignableTeams = (ProjectsStore.getBySlug(project.slug)?.teams ?? []).sort(
     (a, b) => a.slug.localeCompare(b.slug)
   );
@@ -146,6 +134,11 @@ export function GroupHeaderAssigneeCommandPaletteAction({
   const additionalOwners = owners.filter(
     owner => !assignableActorKeys.has(`${owner.type}:${owner.id}`)
   );
+  const currentAssigneeLabel = group.assignedTo
+    ? group.assignedTo.type === 'team'
+      ? `#${group.assignedTo.name}`
+      : group.assignedTo.name
+    : null;
 
   return (
     <CMDKAction
@@ -153,6 +146,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         label: t('Assign to'),
         icon: currentAssigneeIcon,
       }}
+      limit={4}
     >
       {user && (
         <CMDKAction
@@ -173,6 +167,15 @@ export function GroupHeaderAssigneeCommandPaletteAction({
               type: 'user',
             })
           }
+        />
+      )}
+      {group.assignedTo && (
+        <CMDKAction
+          display={{
+            label: t('Unassign from %s', currentAssigneeLabel),
+            icon: <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />,
+          }}
+          onAction={() => handleAssigneeChange(null)}
         />
       )}
       {assignableUsers.map(member => (

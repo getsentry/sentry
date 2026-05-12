@@ -71,19 +71,6 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
-      - run: mkdir -p config/chartcuterie
-
-      - uses: ./.github/actions/setup-devservices
-        with:
-          mode: acceptance-ci
-
-      - name: Start Snuba bootstrap
-        if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: |
-          # Start in background early so it overlaps with webpack and sentry env setup.
-          # The script polls for ClickHouse readiness itself.
-          python3 ./.github/actions/setup-devservices/bootstrap-snuba.py &
-
       - name: Step configurations
         id: config
         run: |
@@ -129,6 +116,10 @@ jobs:
           rc=$(</tmp/snuba-bootstrap-exit)
           [ "$rc" -eq 0 ] || { echo "::error::Snuba per-worker bootstrap failed"; exit "$rc"; }
 
+      - name: Bootstrap per-worker Snuba instances
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
@@ -158,6 +149,7 @@ jobs:
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
+        continue-on-error: true
         with:
           artifact_path: .artifacts/pytest.acceptance.json
           gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}

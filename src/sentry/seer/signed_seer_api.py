@@ -1,8 +1,7 @@
 import hashlib
 import hmac
 import logging
-from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import orjson
@@ -160,6 +159,8 @@ def make_signed_seer_api_request(
     if retries is not None:
         options["retries"] = retries
 
+    request_target = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+
     with metrics.timer(
         "seer.request_to_seer",
         sample_rate=1.0,
@@ -167,7 +168,7 @@ def make_signed_seer_api_request(
     ):
         return connection_pool.urlopen(
             method,
-            parsed.path,
+            request_target,
             body=body,
             headers=headers,
             **options,
@@ -206,13 +207,26 @@ class BulkRemoveRepositoriesRequest(TypedDict):
     repositories: list[RepoIdentifier]
 
 
-class ExplorerIndexProject(TypedDict):
+class RemoveHandoffsForIntegrationRequest(TypedDict):
+    organization_id: int
+    integration_id: int
+
+
+class AgentIndexProject(TypedDict):
     org_id: int
     project_id: int
 
 
-class ExplorerIndexRequest(TypedDict):
-    projects: list[ExplorerIndexProject]
+class AgentIndexRequest(TypedDict):
+    projects: list[AgentIndexProject]
+
+
+class AgentExportIndexesRequest(TypedDict):
+    org_id: int
+
+
+class AgentIndexSentryKnowledgeRequest(TypedDict):
+    replace_existing: bool
 
 
 class ExplorerExportIndexesRequest(TypedDict):
@@ -232,6 +246,37 @@ class LlmGenerateRequest(TypedDict):
     temperature: float
     max_tokens: int
     response_schema: NotRequired[dict[str, Any]]
+    timeout: NotRequired[float | None]
+    reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
+
+
+class RepoDetails(TypedDict):
+    project_ids: list[int]
+    provider: str
+    owner: str
+    name: str
+    external_id: str
+    languages: list[str]
+    integration_id: NotRequired[str | None]
+
+
+class AgentIndexOrgRepoRequest(TypedDict):
+    org_id: int
+    repos: list[RepoDetails]
+
+
+def make_org_repo_knowledge_index_request(
+    body: AgentIndexOrgRepoRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/org-repo-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
 
 
 class RepoDetails(TypedDict):
@@ -278,7 +323,7 @@ def make_org_project_knowledge_index_request(
 
 
 def make_index_sentry_knowledge_request(
-    body: ExplorerIndexSentryKnowledgeRequest,
+    body: AgentIndexSentryKnowledgeRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
@@ -319,8 +364,22 @@ def make_bulk_remove_repositories_request(
     )
 
 
-def make_explorer_export_indexes_request(
-    body: ExplorerExportIndexesRequest,
+def make_remove_handoffs_for_integration_request(
+    body: RemoveHandoffsForIntegrationRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/remove-handoffs-for-integration",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_agent_export_indexes_request(
+    body: AgentExportIndexesRequest,
     viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
@@ -333,8 +392,8 @@ def make_explorer_export_indexes_request(
     )
 
 
-def make_explorer_index_request(
-    body: ExplorerIndexRequest,
+def make_agent_index_request(
+    body: AgentIndexRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
@@ -392,16 +451,38 @@ class SummarizeIssueRequest(TypedDict):
     experiment_variant: NotRequired[str | None]
 
 
-class RCASource(StrEnum):
-    EXPLORER = "EXPLORER"
-    LIGHTWEIGHT = "LIGHTWEIGHT"
-
-
-class SupergroupsEmbeddingRequest(TypedDict):
-    organization_id: int
+class LightweightRCAClusterRequest(TypedDict):
     group_id: int
+    issue: dict[str, Any]
+    organization_slug: str
+    organization_id: int
     project_id: int
-    artifact_data: dict[str, Any]
+
+
+class SupergroupsGetRequest(TypedDict):
+    organization_id: int
+    supergroup_id: int
+
+
+class SupergroupsGetByGroupIdsRequest(TypedDict):
+    organization_id: int
+    group_ids: list[int]
+
+
+class SupergroupDetailData(TypedDict):
+    id: int
+    title: str
+    summary: str
+    error_type: str
+    code_area: str
+    group_ids: list[int]
+    project_ids: list[int]
+    created_at: str
+    updated_at: str
+
+
+class SupergroupsByGroupIdsResponse(TypedDict):
+    data: list[SupergroupDetailData]
 
 
 class LightweightRCAClusterRequest(TypedDict):
@@ -525,14 +606,42 @@ def make_summarize_issue_request(
     )
 
 
-def make_supergroups_embedding_request(
-    body: SupergroupsEmbeddingRequest,
+def make_lightweight_rca_cluster_request(
+    body: LightweightRCAClusterRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
-        "/v0/issues/supergroups",
+        "/v0/issues/supergroups/cluster-lightweight",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_supergroups_get_request(
+    body: SupergroupsGetRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_supergroups_get_by_group_ids_request(
+    body: SupergroupsGetByGroupIdsRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get-by-group-ids",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -729,12 +838,3 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         )
         metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
-
-
-def sign_viewer_context(context_bytes: bytes) -> str:
-    """Sign the viewer context payload with the shared secret."""
-    return hmac.new(
-        settings.SEER_API_SHARED_SECRET.encode("utf-8"),
-        context_bytes,
-        hashlib.sha256,
-    ).hexdigest()

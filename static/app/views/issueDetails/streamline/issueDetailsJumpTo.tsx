@@ -24,7 +24,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
   [SectionKey.LOGS]: t('Logs'),
-  [SectionKey.METRICS]: t('Metrics'),
+  [SectionKey.METRICS]: t('Application Metrics'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
@@ -121,7 +121,7 @@ function JumpToLink({config}: {config: SectionConfig}) {
             ?.scrollIntoView({block: 'start', behavior: 'smooth'});
         });
       }}
-      priority="transparent"
+      variant="transparent"
       size="xs"
       css={css`
         color: ${theme.tokens.content.secondary};

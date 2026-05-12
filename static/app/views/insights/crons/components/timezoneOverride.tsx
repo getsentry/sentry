@@ -12,6 +12,7 @@ interface TimezoneOverrideProps {
   monitor: Monitor;
   onTimezoneSelected: (timezone: string) => void;
   userTimezone: string;
+  size?: 'sm' | 'xs';
 }
 
 type Mode = 'user' | 'monitor' | 'utc';
@@ -19,6 +20,7 @@ type Mode = 'user' | 'monitor' | 'utc';
 export function TimezoneOverride({
   monitor,
   onTimezoneSelected,
+  size = 'xs',
   userTimezone,
 }: TimezoneOverrideProps) {
   const monitorTimezone = monitor.config.timezone ?? 'UTC';
@@ -41,7 +43,7 @@ export function TimezoneOverride({
 
   return (
     <CompactSelect
-      size="xs"
+      size={size}
       value={mode}
       position="bottom-end"
       onChange={option => handleChange(option.value)}

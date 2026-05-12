@@ -269,6 +269,7 @@ DETAILED_PROJECT = {
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
+    "seerNightshiftTweaks": None,
     "highlightTags": [],
     "highlightContext": {},
     "highlightPreset": {"tags": [], "context": {}},

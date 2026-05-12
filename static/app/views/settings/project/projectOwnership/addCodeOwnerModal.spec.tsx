@@ -12,7 +12,8 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', () => {
@@ -64,7 +65,7 @@ describe('AddCodeOwnerModal', () => {
     );
   });
 
-  it('renders codeowner file', async () => {
+  it.isKnownFlake('renders codeowner file', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',

@@ -41,7 +41,7 @@ def fetch_threshold_type(
     return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[condition_type]
 
 
-def fetch_alert_threshold(condition: dict[str, Any], group_status: GroupStatus) -> float | None:
+def fetch_alert_threshold(condition: dict[str, Any], group_status: int) -> float | None:
     condition_type = condition["type"]
     if condition_type == Condition.ANOMALY_DETECTION:
         return 0
@@ -52,7 +52,7 @@ def fetch_alert_threshold(condition: dict[str, Any], group_status: GroupStatus) 
         return comparison_value
 
 
-def fetch_resolve_threshold(condition: dict[str, Any], group_status: GroupStatus) -> float | None:
+def fetch_resolve_threshold(condition: dict[str, Any], group_status: int) -> float | None:
     """
     This is the opposite of `fetch_alert_threshold`.
     We keep it explicitly separate to make it clear that we are fetching the resolve threshold and to consolidate tech debt.
@@ -114,7 +114,7 @@ class AlertContext:
         cls,
         detector: Detector,
         evidence_data: MetricIssueEvidenceData,
-        group_status: GroupStatus,
+        group_status: int,
         detector_priority_level: DetectorPriorityLevel,
     ) -> AlertContext:
         try:

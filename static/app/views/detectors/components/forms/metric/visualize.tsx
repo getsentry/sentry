@@ -36,7 +36,7 @@ import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCus
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -223,13 +223,20 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 export function Visualize() {
   const organization = useOrganization();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
 
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
   if (dataset === DetectorDataset.METRICS) {
-    if (canUseMetricsEquationsInAlerts(organization) && isEquation(aggregateFunction)) {
-      return <MetricsEquationVisualize />;
+    if (canUseMetricsEquationsInAlerts(organization)) {
+      return (
+        <MetricsEquationVisualize
+          projectIds={projectId ? [Number(projectId)] : undefined}
+          environments={environment ? [environment] : undefined}
+        />
+      );
     }
     return <MetricsVisualize />;
   }

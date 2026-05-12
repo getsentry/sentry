@@ -7,8 +7,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -216,7 +217,10 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
+            pathname: makeReplaysPathname({
+              path: `/${row.replayId}/`,
+              organization,
+            }),
             query: {
               referrer: 'performance',
             },

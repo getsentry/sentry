@@ -11,7 +11,9 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {Edit} from 'sentry/views/settings/components/dataScrubbing/modals/edit';

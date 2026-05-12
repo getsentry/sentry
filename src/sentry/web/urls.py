@@ -556,11 +556,6 @@ urlpatterns += [
         name="sentry-accept-project-transfer",
     ),
     re_path(
-        r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        AcceptOrganizationInviteRedirectView.as_view(),
-        name="sentry-accept-invite",
-    ),
-    re_path(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-accept-invite",

@@ -1,9 +1,9 @@
 import type React from 'react';
 import {useMemo, useSyncExternalStore} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
-import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
-
 let context = import.meta.webpackContext('sentry', {
   recursive: true,
   regExp: /\.stories.tsx$/,
@@ -120,7 +120,7 @@ interface UseStoriesLoaderOptions {
 
 export function useStoriesLoader(
   options: UseStoriesLoaderOptions
-): UseQueryResult<StoryDescriptor[], Error> {
+): UseQueryResult<StoryDescriptor[]> {
   const hmrVersion = useSyncExternalStore(subscribeToStoriesHmr, getStoriesHmrVersion);
   return useQuery({
     queryKey: [options.files, hmrVersion],

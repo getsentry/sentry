@@ -14,6 +14,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {
   CMDKCollection,
   CommandPaletteProvider,
@@ -21,10 +23,8 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
@@ -95,7 +95,6 @@ describe('GroupActions', () => {
 
   beforeEach(() => {
     ConfigStore.init();
-    MemberListStore.reset();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -109,6 +108,19 @@ describe('GroupActions', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events//owners/`,
       body: {owners: [], rules: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: {
+        billing: null,
+        integration: {ok: false, reason: null},
+        seerReposLinked: false,
+        githubWriteIntegration: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
     });
   });
   afterEach(() => {
@@ -476,13 +488,12 @@ describe('GroupActions', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
         method: 'GET',
-        body: [],
+        body: [
+          UserFixture({id: '1', name: 'Test User'}),
+          UserFixture({id: '2', name: 'Grace Hopper'}),
+          UserFixture({id: '7', name: 'Ada Lovelace'}),
+        ].map(user => ({user})),
       });
-      MemberListStore.loadInitialData([
-        UserFixture({id: '1', name: 'Test User'}),
-        UserFixture({id: '2', name: 'Grace Hopper'}),
-        UserFixture({id: '7', name: 'Ada Lovelace'}),
-      ]);
     });
 
     function renderWithCommandPalette(commandGroup: Group) {
@@ -568,11 +579,21 @@ describe('GroupActions', () => {
         child => child.display.label === 'Assign to'
       );
       const assignLabels = assignAction?.children.map(child => child.display.label) ?? [];
+      const assignToMeIndex = assignLabels.indexOf('Assign to me');
+      const unassignIndex = assignLabels.indexOf('Unassign from Ada Lovelace');
+      const unassignAction = assignAction?.children.find(
+        child => child.display.label === 'Unassign from Ada Lovelace'
+      );
 
       expect(labels).toContain('Set Priority');
       expect(labels).toContain('Assign to');
       expect(assignLabels).toContain('Assign to me');
+      expect(assignLabels).toContain('Unassign from Ada Lovelace');
       expect(assignLabels).toContain('#frontend');
+      expect(unassignIndex).toBe(assignToMeIndex + 1);
+      expect(unassignAction?.display.icon).toMatchObject({
+        props: {actor: expect.objectContaining({name: 'Ada Lovelace'})},
+      });
       expect(setPriorityAction?.display.icon).toMatchObject({props: {bars: 3}});
       expect(assignAction?.display.icon).toMatchObject({
         props: {actor: expect.objectContaining({name: 'Ada Lovelace'})},

@@ -1,9 +1,9 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 
-import {replaceFreeTextTokens} from './useQueryBuilderState';
+import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderState';
 
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
@@ -244,5 +244,90 @@ describe('replaceFreeTextTokens', () => {
       expect(result?.newQuery).toBe(expected.query);
       expect(result?.focusOverride).toStrictEqual(expected.focusOverride);
     });
+  });
+});
+
+describe('multiSelectTokenValue', () => {
+  const filterKeys = {
+    'browser.name': {
+      key: 'browser.name',
+      name: 'browser.name',
+      kind: FieldKind.FIELD,
+    },
+    release: {
+      key: 'release',
+      name: 'release',
+      kind: FieldKind.FIELD,
+    },
+  };
+
+  function runToggle(query: string, value: string) {
+    const parsed = parseQueryBuilderValue(query, () => null, {filterKeys});
+    const token = parsed?.find(t => t.type === Token.FILTER);
+    if (!token) {
+      throw new Error(`No filter token found in query: ${query}`);
+    }
+
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+    return multiSelectTokenValue(state, {type: 'TOGGLE_FILTER_VALUE', token, value});
+  }
+
+  it('removes a manually-typed wildcard value when toggled off with its escaped form (list)', () => {
+    // User typed `browser.name:[test*,foo]` (wildcard). Suggestion checkbox
+    // dispatches the escaped `test\*` to toggle off.
+    const result = runToggle('browser.name:[test*,foo]', 'test\\*');
+    expect(result.query).toBe('browser.name:foo');
+  });
+
+  it('removes a manually-typed wildcard single value when toggled off with its escaped form', () => {
+    const result = runToggle('browser.name:test*', 'test\\*');
+    expect(result.query).toBe('browser.name:""');
+  });
+
+  it('appends a new value that does not match the existing raw value', () => {
+    const result = runToggle('browser.name:[test*,foo]', 'bar');
+    expect(result.query).toBe('browser.name:[test*,foo,bar]');
+  });
+
+  it('removes an already-escaped list value when toggled off with the same escaped form', () => {
+    const result = runToggle('browser.name:[test\\*,foo]', 'test\\*');
+    expect(result.query).toBe('browser.name:foo');
+  });
+
+  it('removes an existing release value from a list when toggled off', () => {
+    const result = runToggle('release:[1.0.0,2.0.0]', '1.0.0');
+    expect(result.query).toBe('release:2.0.0');
+  });
+
+  it('removes a quoted release value when toggled off with its escaped form', () => {
+    const result = runToggle('release:["1.0.0+build 1",2.0.0]', '"1.0.0+build 1"');
+    expect(result.query).toBe('release:2.0.0');
+  });
+
+  it.each([
+    ['release:["org/repo@1.0.0",2.0.0]', 'org/repo@1.0.0'],
+    ['release:["1.0.0+build 1",2.0.0]', '"1.0.0+build 1"'],
+    ['release:["1.0.0 (build 1)",2.0.0]', '"1.0.0 (build 1)"'],
+    ['release:["1.0.0,build1",2.0.0]', '"1.0.0,build1"'],
+    ['release:[1.0.0\\*,2.0.0]', '1.0.0\\*'],
+  ])('removes special-character value %s', (query, value) => {
+    const result = runToggle(query, value);
+    expect(result.query).toBe('release:2.0.0');
+  });
+
+  it('keeps repeated checkbox clicks from duplicating equivalent quoted values', () => {
+    const firstToggle = runToggle('release:2.0.0', '"1.0.0+build 1"');
+    expect(firstToggle.query).toBe('release:[2.0.0,"1.0.0+build 1"]');
+
+    const secondToggle = runToggle(firstToggle.query, '"1.0.0+build 1"');
+    expect(secondToggle.query).toBe('release:2.0.0');
+
+    const thirdToggle = runToggle(secondToggle.query, '"1.0.0+build 1"');
+    expect(thirdToggle.query).toBe('release:[2.0.0,"1.0.0+build 1"]');
   });
 });

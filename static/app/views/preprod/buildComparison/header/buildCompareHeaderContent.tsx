@@ -152,7 +152,11 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       <Flex align="center" gap="sm">
         {hasPageFrameFeature ? (
           <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={buildCompareFeedbackOptions}>
+            <FeedbackButton
+              feedbackOptions={buildCompareFeedbackOptions}
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
               {null}
             </FeedbackButton>
           </TopBar.Slot>

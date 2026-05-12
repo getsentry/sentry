@@ -1,11 +1,11 @@
 import type {ComponentPropsWithoutRef} from 'react';
 import styled from '@emotion/styled';
 
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
@@ -27,7 +27,7 @@ export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   padding: 0;
 `;
 
-export function CrumbContainer(props: FlexProps<'div'>) {
+export function CrumbContainer(props: FlexProps) {
   return <Flex align="center" gap="md" {...props} />;
 }
 

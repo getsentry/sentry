@@ -143,7 +143,7 @@ def drain_outbox_shards(
 ) -> None:
     try:
         if outbox_name is None:
-            outbox_name = settings.SENTRY_OUTBOX_MODELS["REGION"][0]
+            outbox_name = settings.SENTRY_OUTBOX_MODELS["CELL"][0]
 
         assert outbox_name, "Could not determine outbox name"
         outbox_model: type[CellOutboxBase] = CellOutboxBase.from_outbox_name(outbox_name)

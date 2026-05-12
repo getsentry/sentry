@@ -37,6 +37,12 @@ export function WidgetSyncContextProvider({
     if (!observerRef.current) {
       observerRef.current = new IntersectionObserver(entries => {
         for (const entry of entries) {
+          // Skip detached DOM nodes — they can appear in the observer callback
+          // during component unmount/navigation and cause echarts to call
+          // getAttribute on a null element (echarts-for-react race condition).
+          if (!entry.target.isConnected) {
+            continue;
+          }
           const chart = echarts.getInstanceByDom(entry.target as HTMLElement);
           if (!chart) {
             continue;

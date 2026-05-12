@@ -10,10 +10,10 @@ import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 /**
- * Provider keys shown as top-level pill buttons. Everything else is grouped
- * into the "More" dropdown to reduce visual clutter.
+ * Provider keys shown as top-level pill buttons, in display order.
+ * Everything else is grouped into the "More" dropdown.
  */
-const PRIMARY_PROVIDER_KEYS = new Set(['github', 'gitlab', 'bitbucket']);
+const PRIMARY_PROVIDER_KEYS: readonly string[] = ['github', 'gitlab', 'bitbucket'];
 
 interface ScmProviderPillsProps {
   onInstall: (data: Integration) => void;
@@ -23,8 +23,10 @@ interface ScmProviderPillsProps {
 export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
-  const primaryProviders = providers.filter(p => PRIMARY_PROVIDER_KEYS.has(p.key));
-  const moreProviders = providers.filter(p => !PRIMARY_PROVIDER_KEYS.has(p.key));
+  const primaryProviders = PRIMARY_PROVIDER_KEYS.map(key =>
+    providers.find(p => p.key === key)
+  ).filter((p): p is IntegrationProvider => p !== undefined);
+  const moreProviders = providers.filter(p => !PRIMARY_PROVIDER_KEYS.includes(p.key));
   const gridItemCount = primaryProviders.length + (moreProviders.length > 0 ? 1 : 0);
 
   const columnsXs = `repeat(${Math.min(gridItemCount, 2)}, 1fr)`;
@@ -36,14 +38,14 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
     .join(' ');
 
   return (
-    <Flex justify="center">
+    <Flex justify="start">
       <Grid
         columns={{
           xs: columnsXs,
           md: columnsMd,
         }}
         justify="center"
-        gap="lg"
+        gap="md"
       >
         {primaryProviders.map(provider => (
           <IntegrationContext
@@ -56,6 +58,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
                 view: 'onboarding_scm',
                 already_installed: false,
               },
+              suppressSuccessMessage: true,
             }}
           >
             <IntegrationButton
@@ -86,6 +89,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
                     view: 'onboarding_scm',
                     already_installed: false,
                   },
+                  suppressSuccessMessage: true,
                 }),
             }))}
           />

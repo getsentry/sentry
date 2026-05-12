@@ -10,13 +10,12 @@ from django.utils import timezone as django_timezone
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
-from sentry.options.rollout import in_rollout_group
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    ExplorerIndexProject,
-    ExplorerIndexRequest,
+    AgentIndexProject,
+    AgentIndexRequest,
     SeerViewerContext,
-    make_explorer_index_request,
+    make_agent_index_request,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
@@ -54,10 +53,6 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         projects,
         result_value_getter=lambda p: p.id,
     ):
-        if options.get("seer.explorer_index.killswitch.enable"):
-            logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
-            return
-
         if project.id % 23 != current_hour:
             continue
 
@@ -65,7 +60,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         if not project.flags.has_transactions:
             continue
 
-        # Check open team membership (Explorer requires this for context)
+        # Check open team membership (the agent requires this for context)
         if not project.organization.flags.allow_joinleave:
             continue
 
@@ -90,8 +85,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                 ) or org_features.get("organizations:seer-added", False)
 
                 if has_seer_plan and has_gen_ai:
-                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
-                        is_eligible = True
+                    is_eligible = True
 
             else:
                 has_gen_ai = features.has("organizations:gen-ai-features", project.organization)
@@ -107,8 +101,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                 ) or features.has("organizations:seer-added", project.organization)
 
                 if has_seer_plan and has_gen_ai:
-                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
-                        is_eligible = True
+                    is_eligible = True
 
         if not is_eligible:
             continue
@@ -128,8 +121,8 @@ def schedule_explorer_index() -> None:
     """
     logger.info("Started schedule_explorer_index task")
 
-    if not options.get("seer.explorer_index.enable"):
-        logger.info("seer.explorer_index.enable flag is disabled")
+    if options.get("seer.explorer_index.killswitch.enable"):
+        logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
         return
 
     now = django_timezone.now()
@@ -218,24 +211,29 @@ def run_explorer_index_for_projects(
         projects: List of (project_id, organization_id) tuples
         start: ISO format timestamp string for when this batch was scheduled
     """
-    if not options.get("seer.explorer_index.enable"):
+
+    if options.get("seer.explorer_index.killswitch.enable"):
+        logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
         return
 
     if not projects:
         return
 
     project_list = [
-        ExplorerIndexProject(org_id=org_id, project_id=project_id)
-        for project_id, org_id in projects
+        AgentIndexProject(org_id=org_id, project_id=project_id) for project_id, org_id in projects
     ]
-    payload = ExplorerIndexRequest(projects=project_list)
+    payload = AgentIndexRequest(projects=project_list)
+
+    # Only set viewer_context when all projects in the batch share the same org
+    org_ids = {org_id for _, org_id in projects}
+    viewer_context = SeerViewerContext(organization_id=org_ids.pop()) if len(org_ids) == 1 else None
 
     # Only set viewer_context when all projects in the batch share the same org
     org_ids = {org_id for _, org_id in projects}
     viewer_context = SeerViewerContext(organization_id=org_ids.pop()) if len(org_ids) == 1 else None
 
     try:
-        response = make_explorer_index_request(
+        response = make_agent_index_request(
             payload,
             timeout=30,
             viewer_context=viewer_context,

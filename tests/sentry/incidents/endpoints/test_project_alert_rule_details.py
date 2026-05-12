@@ -158,7 +158,10 @@ class AlertRuleDetailsGetDeltaTest(AlertRuleDetailsBase):
 
 
 @with_feature(
-    ["organizations:incidents", "organizations:workflow-engine-projectalertruledetails-get"]
+    [
+        "organizations:incidents",
+        "organizations:workflow-engine-metric-alert-endpoints-get",
+    ]
 )
 class AlertRuleDetailsGetEndpointWorkflowEngineMethodFlagTest(AlertRuleDetailsBase):
     """Verify that the per-method flag alone (without the broad rule-serializers flag)

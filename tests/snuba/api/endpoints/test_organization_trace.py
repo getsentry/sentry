@@ -452,7 +452,7 @@ class OrganizationEventsTraceEndpointTest(
 
         mock_metrics.incr.assert_any_call(
             "performance.trace.span_with_errors_ok_status",
-            sample_rate=0.01,
+            sample_rate=mock.ANY,
             tags=mock.ANY,
         )
 

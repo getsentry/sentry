@@ -7,18 +7,11 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {usePrebuiltDashboardUrl} from 'sentry/views/dashboards/utils/usePrebuiltDashboardUrl';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
-import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-import {
-  querySummaryRouteWithQuery,
-  resourceSummaryRouteWithQuery,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/utils';
 
 interface Props {
   category: string | undefined;
@@ -29,9 +22,29 @@ interface Props {
 }
 
 export function SpanSummaryLink(props: Props) {
-  const location = useLocation();
-  const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
-  const queryBaseUrl = useModuleURL(ModuleName.DB);
+  const spanGroupFilter = props.group
+    ? {
+        globalFilter: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {
+              key: SpanFields.SPAN_GROUP,
+              name: SpanFields.SPAN_GROUP,
+              kind: FieldKind.TAG,
+            },
+            value: `${SpanFields.SPAN_GROUP}:[${props.group}]`,
+          },
+        ],
+      }
+    : undefined;
+  const platformizedResourceUrl = usePrebuiltDashboardUrl(
+    PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+    {filters: spanGroupFilter}
+  );
+  const platformizedQueryUrl = usePrebuiltDashboardUrl(
+    PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+    {filters: spanGroupFilter}
+  );
 
   const isPlatformized = hasPlatformizedInsights(props.organization);
   const spanGroupFilter = props.group
@@ -68,22 +81,13 @@ export function SpanSummaryLink(props: Props) {
     props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
-    if (isPlatformized && !platformizedQueryUrl) {
+    if (!platformizedQueryUrl) {
       return null;
     }
 
-    const target = isPlatformized
-      ? platformizedQueryUrl!
-      : querySummaryRouteWithQuery({
-          base: queryBaseUrl,
-          query: location.query,
-          group: props.group,
-          projectID: props.project_id,
-        });
-
     return (
       <Link
-        to={target}
+        to={platformizedQueryUrl}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
             organization: props.organization,
@@ -102,22 +106,13 @@ export function SpanSummaryLink(props: Props) {
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(props.op)
   ) {
-    if (isPlatformized && !platformizedResourceUrl) {
+    if (!platformizedResourceUrl) {
       return null;
     }
 
-    const target = isPlatformized
-      ? platformizedResourceUrl!
-      : resourceSummaryRouteWithQuery({
-          baseUrl: resourceBaseUrl,
-          query: location.query,
-          group: props.group,
-          projectID: props.project_id,
-        });
-
     return (
       <Link
-        to={target}
+        to={platformizedResourceUrl}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
             organization: props.organization,

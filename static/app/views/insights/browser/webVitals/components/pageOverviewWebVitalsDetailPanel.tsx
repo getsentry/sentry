@@ -2,10 +2,10 @@ import {useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -102,7 +102,7 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const transactionFromDashboard = useMemo(() => {
     if (!dashboardFilters?.globalFilter) {
-      return undefined;
+      return;
     }
     const transactionFilter = dashboardFilters.globalFilter.find(
       filter => filter.tag.key === 'transaction'
@@ -112,7 +112,7 @@ export function PageOverviewWebVitalsDetailPanel({
       const values = search.getFilterValues('transaction');
       return values?.[0];
     }
-    return undefined;
+    return;
   }, [dashboardFilters]);
 
   // Transaction filter can come from dashboard filters or URL (for insights module)

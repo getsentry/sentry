@@ -7,6 +7,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -25,7 +26,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {
+  type Actions,
+  CellAction,
+  updateQuery,
+} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
@@ -47,7 +52,9 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface FieldProps {
   data: EventData;
   meta: MetaType;
+  allowActions?: Actions[];
   column?: TableColumn<keyof TableDataRow>;
+  extraMenuItems?: MenuItemProps[];
   unit?: string;
   usePortalOnDropdown?: boolean;
 }
@@ -57,6 +64,8 @@ export function FieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
+  extraMenuItems,
   usePortalOnDropdown,
 }: FieldProps) {
   const userQuery = useQueryParamsQuery();
@@ -68,6 +77,8 @@ export function FieldRenderer({
       meta={meta}
       unit={unit}
       column={column}
+      allowActions={allowActions}
+      extraMenuItems={extraMenuItems}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
       usePortalOnDropdown={usePortalOnDropdown}
@@ -85,6 +96,7 @@ export function MultiQueryFieldRenderer({
   unit,
   column,
   index,
+  extraMenuItems,
 }: MultiQueryFieldProps) {
   const queries = useReadQueriesFromLocation();
   const userQuery = queries[index]?.query ?? '';
@@ -96,6 +108,7 @@ export function MultiQueryFieldRenderer({
       meta={meta}
       unit={unit}
       column={column}
+      extraMenuItems={extraMenuItems}
       userQuery={userQuery}
       setUserQuery={(query: string) => updateQuerySearch({query})}
     />
@@ -105,7 +118,6 @@ export function MultiQueryFieldRenderer({
 interface BaseFieldProps extends FieldProps {
   setUserQuery: (query: string) => void;
   userQuery: string;
-  usePortalOnDropdown?: boolean;
 }
 
 function BaseExploreFieldRenderer({
@@ -113,6 +125,8 @@ function BaseExploreFieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
+  extraMenuItems,
   userQuery,
   setUserQuery,
   usePortalOnDropdown,
@@ -289,7 +303,8 @@ function BaseExploreFieldRenderer({
         updateQuery(query, actions, column, value);
         setUserQuery(query.formatString());
       }}
-      allowActions={ALLOWED_CELL_ACTIONS}
+      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
+      extraMenuItems={extraMenuItems}
       usePortalOnDropdown={usePortalOnDropdown}
     >
       {rendered}

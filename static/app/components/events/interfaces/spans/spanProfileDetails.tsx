@@ -31,7 +31,7 @@ import {
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
@@ -189,7 +189,7 @@ export function useSpanProfileDetails(
       }
     }
 
-    return undefined;
+    return;
   }, [organization, project, event, span, threadId]);
 
   return {

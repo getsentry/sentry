@@ -15,8 +15,8 @@ import {
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getProfileMeta(event: EventTransaction | null) {

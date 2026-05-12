@@ -12,6 +12,7 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -19,7 +20,6 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {Pagination} from 'sentry/components/pagination';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -249,7 +249,7 @@ function DataWidgetViewerModal(props: Props) {
     [start, end, selection]
   );
 
-  const [modalSelection, setModalSelection] = useState<PageFilters>(locationPageFilter);
+  const [modalSelection, setModalSelection] = useState(locationPageFilter);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
@@ -283,12 +283,16 @@ function DataWidgetViewerModal(props: Props) {
     selectedQueryIndex = 0;
   }
 
-  // Top N widget charts (including widgets with limits) results rely on the sorting of the query
-  // Set the orderby of the widget chart to match the location query params
-  const primaryWidget =
-    widget.displayType === DisplayType.TOP_N || defined(widget.limit)
-      ? {...widget, queries: sortedQueries}
+  const resolvedWidget =
+    widget.displayType === DisplayType.TOP_N
+      ? {...widget, displayType: DisplayType.AREA}
       : widget;
+
+  // Widgets with limits rely on the sorting of the query
+  // Set the orderby of the widget chart to match the location query params
+  const primaryWidget = defined(resolvedWidget.limit)
+    ? {...resolvedWidget, queries: sortedQueries}
+    : resolvedWidget;
   const api = useApi();
 
   // Create Table widget
@@ -925,7 +929,7 @@ function OpenButton({
           <Tooltip
             title={t('Explore does not support multiple queries for this dataset')}
           >
-            <Button priority="primary" disabled>
+            <Button variant="primary" disabled>
               {openLabel}
             </Button>
           </Tooltip>
@@ -957,7 +961,7 @@ function OpenButton({
     <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
-        priority="primary"
+        variant="primary"
         disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
@@ -1231,10 +1235,6 @@ function ViewerTableV2({
 export const modalCss = css`
   width: 100%;
   max-width: 1200px;
-`;
-
-export const backdropCss = css`
-  z-index: 9998;
 `;
 
 const Container = styled('div')<{height?: number | null}>`

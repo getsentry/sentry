@@ -8,7 +8,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   DeadRageSelectorListResponse,
   DeadRageSelectorQueryParams,
-} from 'sentry/views/replays/types';
+} from 'sentry/views/explore/replays/types';
 
 export function useDeadRageSelectors(params: DeadRageSelectorQueryParams) {
   const organization = useOrganization();

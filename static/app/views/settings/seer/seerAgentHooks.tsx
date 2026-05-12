@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
@@ -14,7 +15,6 @@ import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useSelectedAgentFromBulkSettings({
@@ -148,55 +148,5 @@ export function useMutateSelectedAgent({project}: {project: Project}) {
       }
     },
     [updateProject, updateProjectSeerPreferences, applyOptimisticUpdate, fetchPreferences]
-  );
-}
-
-export function useMutateCreatePr({project}: {project: Project}) {
-  const {mutateAsync: updateProjectSeerPreferences} =
-    useUpdateProjectSeerPreferences(project);
-  const applyOptimisticUpdate = useApplyOptimisticUpdate({project});
-  const fetchPreferences = useFetchProjectSeerPreferences({project});
-
-  return useCallback(
-    (
-      autofixAgent: 'seer' | 'none' | CodingAgentIntegration | undefined,
-      value: boolean,
-      {onSuccess, onError}: MutateOptions
-    ) => {
-      if (autofixAgent === 'seer') {
-        const stoppingPoint = value ? ('open_pr' as const) : ('code_changes' as const);
-        applyOptimisticUpdate({automatedRunStoppingPoint: stoppingPoint});
-        fetchPreferences()
-          .then(preference =>
-            updateProjectSeerPreferences({
-              repositories: preference?.repositories ?? [],
-              automated_run_stopping_point: stoppingPoint,
-              automation_handoff: preference?.automation_handoff,
-            })
-          )
-          .then(() => onSuccess?.())
-          .catch(() => onError?.(new Error('Failed to update PR setting')));
-      } else if (autofixAgent && autofixAgent !== 'none') {
-        fetchPreferences()
-          .then(preference => {
-            const updatedHandoff = {
-              handoff_point: 'root_cause' as const,
-              integration_id: Number(autofixAgent.id),
-              ...preference?.automation_handoff,
-              target: PROVIDER_TO_HANDOFF_TARGET[autofixAgent.provider]!,
-              auto_create_pr: value,
-            };
-            applyOptimisticUpdate({automationHandoff: updatedHandoff});
-            return updateProjectSeerPreferences({
-              repositories: preference?.repositories ?? [],
-              automated_run_stopping_point: preference?.automated_run_stopping_point,
-              automation_handoff: updatedHandoff,
-            });
-          })
-          .then(() => onSuccess?.())
-          .catch(() => onError?.(new Error('Failed to update PR setting')));
-      }
-    },
-    [updateProjectSeerPreferences, applyOptimisticUpdate, fetchPreferences]
   );
 }

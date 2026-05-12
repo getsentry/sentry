@@ -38,7 +38,6 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
                   block={block}
                   blockIndex={index}
                   runId={seerRunId}
-                  isLast={index === blocksToRender.length - 1}
                 />
               ))}
             </Stack>

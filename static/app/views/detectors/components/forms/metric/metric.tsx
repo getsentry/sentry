@@ -24,6 +24,7 @@ import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -33,7 +34,7 @@ import {
   TransactionsDatasetWarning,
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
-import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -64,6 +65,7 @@ import {
   getMetricDetectorSuffix,
   getStaticDetectorThresholdPlaceholder,
 } from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -79,7 +81,7 @@ function MetricDetectorForm() {
       <DetectSection step={4} />
       <IssueOwnershipSection step={5} />
       <MetricIssuePreview step={6} />
-      <AutomateSection step={7} />
+      <AutomateSectionDeprecated step={7} />
     </Stack>
   );
 }
@@ -221,6 +223,20 @@ function validateMediumThreshold({
   }
 
   return [];
+}
+
+// The medium threshold's validation depends on the high threshold value, but the
+// form model only validates the field being edited. Without this, the medium
+// threshold's error tooltip persists after the high threshold is corrected.
+function useRevalidateMediumThreshold() {
+  const formContext = useContext(FormContext);
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
+  );
+
+  useEffect(() => {
+    formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+  }, [highThreshold, formContext.form]);
 }
 
 interface PriorityRowProps {
@@ -395,6 +411,7 @@ function IntervalPicker() {
 }
 
 function CustomizeMetricSection({step}: {step?: number}) {
+  const organization = useOrganization();
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -475,21 +492,25 @@ function CustomizeMetricSection({step}: {step?: number}) {
             <Visualize />
           </DisabledSection>
         </Tooltip>
-        <Tooltip
-          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
-          disabled={!isTransactionsDataset}
-        >
-          <FilterRow disabled={isTransactionsDataset}>
-            <DetectorQueryFilterBuilder />
-          </FilterRow>
-        </Tooltip>
+        {canUseMetricsEquationsInAlerts(organization) &&
+        dataset === DetectorDataset.METRICS ? null : (
+          <Tooltip
+            title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+            isHoverable
+            disabled={!isTransactionsDataset}
+          >
+            <FilterRow disabled={isTransactionsDataset}>
+              <DetectorQueryFilterBuilder />
+            </FilterRow>
+          </Tooltip>
+        )}
       </FormSection>
     </Container>
   );
 }
 
 function DetectSection({step}: {step?: number}) {
+  useRevalidateMediumThreshold();
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );

@@ -547,7 +547,6 @@ class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
 class UptimeDetectorUpdateCacheInvalidationTest(UptimeDetectorBaseTest):
     """Tests that updating detectors correctly invalidates the cache."""
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_update_detector_invalidates_cache(self) -> None:
         data_source = self.detector.data_sources.first()
         assert data_source is not None

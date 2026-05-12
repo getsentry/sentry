@@ -220,6 +220,18 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         assert len(serialized_warning_condition["actions"]) == 1
         assert serialized_warning_condition["actions"][0]["id"] == str(warning_action.id)
 
+    def test_missing_detector(self) -> None:
+        self.detector.delete()
+
+        serialized = serialize(
+            self.critical_detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+        assert serialized["alertThreshold"] == float(self.critical_detector_trigger.comparison)
+        assert serialized["resolveThreshold"] is not None
+        assert serialized["alertRuleId"] is None
+
     def test_missing_resolve_condition(self) -> None:
         # Delete the resolve condition created during setUp
         DataCondition.objects.filter(

@@ -4,6 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
+  createTraceMetricEventsFilter,
+  getEquationMetricsTotalFilter,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
 } from 'sentry/views/explore/metrics/utils';
@@ -239,5 +241,53 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
 
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
+  });
+});
+
+describe('getEquationMetricsTotalFilter', () => {
+  it('returns the correct filter for an equation', () => {
+    const equation =
+      'equation|sum(value,metricA,counter,none) + count(value,metricB,distribution,millisecond)';
+    const result = getEquationMetricsTotalFilter(equation);
+    expect(result).toBe(
+      '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:distribution metric.unit:millisecond )'
+    );
+  });
+
+  it('returns an empty string when provided a non-equation', () => {
+    const equation = 'i dont know what this is';
+    const result = getEquationMetricsTotalFilter(equation);
+    expect(result).toBe('');
+  });
+
+  it('works with equations that have _if conditions', () => {
+    const equation =
+      'equation|sum_if(`status:[ok,error]`,value,metricA,counter,none) + sum_if(`status:error`,value,metricB,counter,none)';
+    const result = getEquationMetricsTotalFilter(equation);
+    expect(result).toBe(
+      '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
+});
+
+describe('createTraceMetricEventsFilter', () => {
+  it('matches both !has:metric.unit and metric.unit:none when unit is absent', () => {
+    const result = createTraceMetricEventsFilter([
+      {name: 'chat.message_sent', type: 'counter'},
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
+
+  it('treats the legacy dash unit sentinel as no unit', () => {
+    const result = createTraceMetricEventsFilter([
+      {name: 'chat.message_sent', type: 'counter', unit: '-'},
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
   });
 });

@@ -8,22 +8,18 @@ _logger = logging.getLogger(__name__)
 
 UNKNOWN_COMMAND_MESSAGE = "Unknown command: `{command}`"
 HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-install the app!"
-DM_COMMAND_HEADER = "*Direct Message Commands:*"
-CHANNEL_COMMANDS_HEADER = "*Channel Commands:*"
-HELP_COMMANDS_HEADER = "*Help Commands:*"
-HELP_COMMANDS_HEADER_MESSAGE = (
-    "These commands can be run in a direct message with the Sentry app or in a channel."
-)
+COMMANDS_HEADER = "*Commands:*"
+HELP_COMMANDS_HEADER = "*Help:*"
 CONTACT_HEADER = "*Contact:*"
 GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/integrations/notification-incidents/slack/|documentation>."
 
-DM_COMMANDS = {
+SLASH_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
     "unlink": "Unlink your Slack identity from your Sentry account.",
-}
-CHANNEL_COMMANDS = {
-    "link team [organization_slug]": "Get your Sentry team's issue alert notifications in this channel.",
-    "unlink team [organization_slug]": "Unlink a team from this channel.",
+    "link team <organization_slug>": "Use in a channel to get your Sentry team's alert notifications sent here.",
+    "unlink team <organization_slug>": "Unlink this channel from your Sentry team.",
+    "set org <organization_slug>": "Set your default Sentry organization for this Slack Workspace.",
+    "unset org": "Clear your default Sentry organization for this Slack Workspace.",
 }
 HELP_COMMANDS = {
     "support": "Get support resources.",
@@ -42,15 +38,11 @@ DOCS_OPTIONS_MESSAGE = "• <https://docs.sentry.io/organization/integrations/|G
 
 def list_commands(commands: Mapping[str, str]) -> str:
     return "\n".join(
-        (
-            f"`/sentry {command}`: {description}"
-            for command, description in sorted(tuple(commands.items()))
-        )
+        (f"`/sentry {command}`: {description}" for command, description in tuple(commands.items()))
     )
 
 
-DM_COMMANDS_MESSAGE = list_commands(DM_COMMANDS)
-CHANNEL_COMMANDS_MESSAGE = list_commands(CHANNEL_COMMANDS)
+COMMANDS_MESSAGE = list_commands(SLASH_COMMANDS)
 HELP_COMMANDS_MESSAGE = list_commands(HELP_COMMANDS)
 
 
@@ -74,12 +66,9 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
     def get_help_message(self) -> SlackBlock:
         return self._build_blocks(
             *self.get_header_blocks(),
-            self.get_markdown_block(DM_COMMAND_HEADER),
-            self.get_markdown_block(DM_COMMANDS_MESSAGE),
-            self.get_markdown_block(CHANNEL_COMMANDS_HEADER),
-            self.get_markdown_block(CHANNEL_COMMANDS_MESSAGE),
+            self.get_markdown_block(COMMANDS_HEADER),
+            self.get_markdown_block(COMMANDS_MESSAGE),
             self.get_markdown_block(HELP_COMMANDS_HEADER),
-            self.get_markdown_block(HELP_COMMANDS_HEADER_MESSAGE),
             self.get_markdown_block(HELP_COMMANDS_MESSAGE),
             self.get_markdown_block(CONTACT_HEADER),
             self.get_markdown_block(CONTACT_MESSAGE),

@@ -1,13 +1,14 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -19,7 +20,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -53,10 +54,12 @@ type OwnedOrg = {
 };
 
 function AccountClose() {
+  const {openModal} = useModal();
+
   const api = useApi();
 
   const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);
-  const [orgsToRemove, setOrgsToRemove] = useState<Set<string>>(new Set());
+  const [orgsToRemove, setOrgsToRemove] = useState(new Set<string>());
   const [isLoading, setIsLoading] = useState(true);
   const leaveRedirectTimeout = useRef<number | undefined>(undefined);
 
@@ -141,14 +144,19 @@ function AccountClose() {
   return (
     <div>
       <SentryDocumentTitle title={t('Close Account')} />
-      <SettingsPageHeader title={t('Close Account')} />
-
-      <TextBlock>
-        {t(
-          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
-        )}
-        <strong>{t('Closing your account is permanent and cannot be undone')}!</strong>
-      </TextBlock>
+      <SettingsPageHeader
+        title={t('Close Account')}
+        subtitle={
+          <Fragment>
+            {t(
+              'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
+            )}
+            <strong>
+              {t('Closing your account is permanent and cannot be undone')}!
+            </strong>
+          </Fragment>
+        }
+      />
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>

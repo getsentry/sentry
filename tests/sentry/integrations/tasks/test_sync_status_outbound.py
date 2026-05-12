@@ -110,7 +110,7 @@ class TestSyncStatusOutbound(TestCase):
             group=self.group, key="foo_integration", integration=self.example_integration
         )
 
-        with pytest.raises(RetryTaskError):
+        with pytest.raises(Exception, match="Something went wrong"):
             sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
 
         assert mock_record_failure.call_count == 1

@@ -545,7 +545,7 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Metrics category when tracemetrics-enabled and explore-dev-features flags are enabled', async () => {
+  it('shows Application Metric Counts category when tracemetrics-enabled and explore-dev-features flags are enabled', async () => {
     const newOrg = OrganizationFixture({
       features: ['team-insights', 'tracemetrics-enabled', 'explore-dev-features'],
     });
@@ -555,10 +555,12 @@ describe('OrganizationStats', () => {
     });
 
     await userEvent.click(await screen.findByText('Category'));
-    expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Application Metric Counts'})
+    ).toBeInTheDocument();
   });
 
-  it('does not show Metrics category without explore-dev-features flag', async () => {
+  it('does not show Application Metric Counts category without explore-dev-features flag', async () => {
     const newOrg = OrganizationFixture({
       features: ['team-insights', 'tracemetrics-enabled'],
     });
@@ -568,7 +570,9 @@ describe('OrganizationStats', () => {
     });
 
     await userEvent.click(await screen.findByText('Category'));
-    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'Application Metric Counts'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows Application Metrics category when tracemetrics-stats-bytes-ui flag is enabled', async () => {

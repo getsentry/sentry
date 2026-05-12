@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, keepPreviousData} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -23,7 +23,7 @@ import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {groupByOrganization} from 'sentry/views/settings/account/notifications/utils';

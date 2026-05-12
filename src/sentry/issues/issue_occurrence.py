@@ -14,6 +14,8 @@ from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.types.actor import Actor
 from sentry.utils.dates import parse_timestamp
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_LEVEL = "info"
 
 
@@ -147,10 +149,10 @@ class IssueOccurrence:
             # that, so subsequent fetches won't cause IO.
             assignee = Actor.from_identifier(data.get("assignee"))
         except ValidationError:
-            logging.exception("Failed to parse assignee actor identifier")
+            logger.exception("Failed to parse assignee actor identifier")
         except Exception:
             # We never want this to cause parsing an occurrence to fail
-            logging.exception("Unexpected error parsing assignee")
+            logger.exception("Unexpected error parsing assignee")
         return cls(
             data["id"],
             data["project_id"],

@@ -7,8 +7,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconPause} from 'sentry/icons';
+import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -34,7 +33,6 @@ interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
   inputValue: string;
-  isPolling: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -42,13 +40,14 @@ interface InputSectionProps {
   onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onPRWidgetClick: () => void;
+  onSend: () => void;
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
-  waitingForInterrupt: boolean;
+  canSendMessage?: boolean;
   fileApprovalActions?: FileApprovalActions;
-  isMinimized?: boolean;
-  isVisible?: boolean;
+  interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
+  isTimedOut?: boolean;
   questionActions?: QuestionActions;
 }
 
@@ -56,16 +55,16 @@ export function InputSection({
   blocks,
   enabled,
   inputValue,
-  isMinimized = false,
-  isPolling,
-  waitingForInterrupt,
-  isVisible = false,
+  canSendMessage = true,
+  interruptState = 'disabled',
+  isTimedOut = false,
   onCreatePR,
   onInputChange,
   onInputClick,
   onInterrupt,
   onKeyDown,
   onPRWidgetClick,
+  onSend,
   prWidgetButtonRef,
   repoPRStates,
   textAreaRef,
@@ -79,8 +78,8 @@ export function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
-      return undefined;
+    if (!enabled || !fileApprovalActions) {
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -103,12 +102,12 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, fileApprovalActions, isVisible, isMinimized]);
+  }, [enabled, fileApprovalActions]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!enabled || !questionActions || !isVisible || isMinimized) {
-      return undefined;
+    if (!enabled || !questionActions) {
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -143,7 +142,7 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, questionActions, isVisible, isMinimized]);
+  }, [enabled, questionActions]);
 
   // Render disabled input element if not enabled
   if (!enabled) {
@@ -157,6 +156,7 @@ export function InputSection({
                 'This conversation is owned by another user and is read-only'
               )}
               rows={1}
+              size="md"
               data-test-id="seer-explorer-input"
             />
           </StyledInputGroup>
@@ -193,7 +193,7 @@ export function InputSection({
               <Button size="md" onClick={onReject}>
                 {t('Reject')} <Kbd>esc</Kbd>
               </Button>
-              <Button size="md" priority="primary" onClick={onApprove}>
+              <Button size="md" variant="primary" onClick={onApprove}>
                 {t('Approve')} <Kbd>↵</Kbd>
               </Button>
             </Grid>
@@ -242,7 +242,7 @@ export function InputSection({
               )}
               <Button
                 size="md"
-                priority="primary"
+                variant="primary"
                 onClick={onNext}
                 disabled={!canSubmitQuestion}
               >
@@ -255,47 +255,55 @@ export function InputSection({
     );
   }
 
-  const renderActionButton = () => {
-    if (waitingForInterrupt) {
-      return (
-        <ActionButtonWrapper title={t('Winding down...')} isDanger>
-          <LoadingIndicator size={16} />
-        </ActionButtonWrapper>
-      );
-    }
-
-    if (isPolling) {
-      return (
-        <Button
-          icon={<IconPause variant="muted" />}
-          onClick={onInterrupt}
-          size="sm"
-          priority="transparent"
-          aria-label={t('Interrupt')}
-          tooltipProps={{title: t('Press Esc to interrupt')}}
-        />
-      );
-    }
-
-    return null;
-  };
-
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup>
+        <StyledInputGroup
+          isWarningPlaceholder={interruptState === 'completed' || isTimedOut}
+        >
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={t('Type your message or / command and press Enter ↵')}
+            placeholder={
+              isTimedOut
+                ? t('Response timed out. Please try again.')
+                : interruptState === 'completed'
+                  ? t('Interrupted. What should Seer do instead?')
+                  : t('Ask Seer a question, or press / for commands.')
+            }
             rows={1}
+            maxRows={5}
+            autosize
+            size="md"
             data-test-id="seer-explorer-input"
           />
-          <InputGroup.TrailingItems>{renderActionButton()}</InputGroup.TrailingItems>
         </StyledInputGroup>
+        {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
+          <Button
+            icon={<IconPause />}
+            onClick={onInterrupt}
+            size="md"
+            variant="primary"
+            disabled={interruptState === 'requested'}
+            aria-label={t('Interrupt button')}
+            tooltipProps={{
+              title:
+                interruptState === 'requested' ? t('Winding down...') : t('Interrupt'),
+            }}
+          />
+        ) : (
+          <Button
+            icon={<IconArrow direction="right" />}
+            onClick={onSend}
+            size="md"
+            variant="secondary"
+            disabled={!canSendMessage}
+            aria-label={t('Send message')}
+          />
+        )}
         {enabled && hasCodeChanges && (
           <PRWidget
             ref={prWidgetButtonRef}
@@ -322,17 +330,18 @@ const InputRow = styled('div')`
   display: flex;
   align-items: flex-end;
   gap: ${p => p.theme.space.sm};
-  margin: ${p => p.theme.space.sm};
+  margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
+const StyledInputGroup = styled(InputGroup)<{isWarningPlaceholder?: boolean}>`
   flex: 1;
 
   textarea {
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
+      color: ${p =>
+        p.isWarningPlaceholder ? p.theme.tokens.content.warning : undefined};
     }
   }
 
@@ -347,25 +356,6 @@ const ActionBar = styled(motion.div)`
   background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
-`;
-
-const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-
-  .loading-indicator {
-    margin: 0;
-    padding: 0;
-    ${p =>
-      p.isDanger &&
-      `
-      border-color: ${p.theme.tokens.content.warning};
-      border-left-color: transparent;
-    `}
-  }
 `;
 
 const Kbd = styled('span')`

@@ -4,7 +4,7 @@ from typing import Any
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from sentry.api.fields.actor import OwnerActorField
+from sentry.api.fields.actor import ActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group
@@ -53,7 +53,7 @@ class GroupValidator(serializers.Serializer[Group]):
     discard = serializers.BooleanField(
         help_text="If true, discards the issues instead of updating them."
     )
-    assignedTo = OwnerActorField(
+    assignedTo = ActorField(
         help_text="The user or team that should be assigned to the issues. Values take the form of `<user_id>`, `user:<user_id>`, `<username>`, `<user_primary_email>`, or `team:<team_id>`."
     )
     priority = serializers.ChoiceField(
@@ -82,19 +82,21 @@ class GroupValidator(serializers.Serializer[Group]):
     # for the moment, the CLI sends this for any issue update, so allow nulls
     snoozeDuration = serializers.IntegerField(allow_null=True)
 
-    def validate_assignedTo(self, value: Actor) -> Actor:
+    def validate_assignedTo(self, value: Actor | None) -> Actor | None:
+        if not value:
+            return value
+
+        organization = self.context.get("organization")
+        if organization and organization.flags.allow_joinleave:
+            return value
+
         if (
-            value
-            and value.is_user
+            value.is_user
             and not self.context["project"].member_set.filter(user_id=value.id).exists()
         ):
             raise serializers.ValidationError("Cannot assign to non-team member")
 
-        if (
-            value
-            and value.is_team
-            and not self.context["project"].teams.filter(id=value.id).exists()
-        ):
+        if value.is_team and not self.context["project"].teams.filter(id=value.id).exists():
             raise serializers.ValidationError(
                 "Cannot assign to a team without access to the project"
             )

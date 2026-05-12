@@ -1,4 +1,4 @@
-import {useCallback, useMemo, type ReactNode} from 'react';
+import {useCallback, useMemo, useState, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -84,6 +84,52 @@ function getMultiMetricsQueryParamsFromLocation(
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 
   return limit ? queries.slice(0, limit) : queries;
+}
+
+interface LocalMultiMetricsQueryParamsProviderProps {
+  children: ReactNode;
+  /**
+   * Initial metric queries to seed local state. Typically derived from a
+   * saved aggregate string via `parseAggregateExpression`. If empty, the
+   * provider falls back to a single default row (matching the URL-backed
+   * provider's behavior on an empty URL).
+   */
+  initialQueries: BaseMetricQuery[];
+  /**
+   * Gates insert-before-equation behavior in `addMetricQuery`.
+   */
+  hasEquations?: boolean;
+}
+
+/**
+ * Local-state counterpart to `MultiMetricsQueryParamsProvider`. Holds the
+ * metric queries in `useState` instead of URL params, so the same consumer
+ * hooks (`useMultiMetricsQueryParams`, `useAddMetricQuery`,
+ * `useReorderMetricQueries`) work unchanged for callers that need an
+ * in-memory editing surface (e.g. the tracemetric alert editor, where only
+ * the selected row is persisted on save and the rest is discarded on
+ * reopen).
+ *
+ * `initialQueries` seeds the initial state only once; changes to the prop
+ * after mount are ignored. Callers that need to re-hydrate from an external
+ * source should remount the provider (e.g. via a `key`).
+ */
+export function LocalMultiMetricsQueryParamsProvider({
+  children,
+  initialQueries,
+  hasEquations,
+}: LocalMultiMetricsQueryParamsProviderProps) {
+  const [queries, setQueries] = useState<BaseMetricQuery[]>(() =>
+    initialQueries.length > 0 ? initialQueries : [defaultMetricQuery()]
+  );
+
+  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+
+  return (
+    <MultiMetricsQueryParamsContext value={value}>
+      {children}
+    </MultiMetricsQueryParamsContext>
+  );
 }
 
 export function useMultiMetricsQueryParams() {

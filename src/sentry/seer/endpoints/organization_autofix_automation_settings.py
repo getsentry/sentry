@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from itertools import chain
 from typing import Any
 
@@ -17,16 +16,16 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import (
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
-    AutofixStoppingPoint,
     SeerAutofixSettingsSerializer,
-    bulk_get_project_preferences,
     bulk_read_preferences_from_sentry_db,
-    bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
     deduplicate_repositories,
     default_seer_project_preference,
@@ -37,7 +36,6 @@ from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
 
 logger = logging.getLogger(__name__)
-
 
 def merge_repositories(
     existing: list[dict], new: list[dict], key_by_org_id: bool = False
@@ -190,35 +188,32 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
             return []
 
         project_ids_list = [project.id for project in projects]
-        autofix_automation_tuning_map = ProjectOption.objects.get_value_bulk(
-            projects, "sentry:autofix_automation_tuning"
-        )
 
-        if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-            preferences = bulk_read_preferences_from_sentry_db(organization.id, project_ids_list)
-            preferences_map = {
-                str(project_id): preference.dict() if preference else None
-                for project_id, preference in preferences.items()
-            }
-        else:
-            preferences_map = bulk_get_project_preferences(organization.id, project_ids_list) or {}
+        preferences = bulk_read_preferences_from_sentry_db(organization.id, project_ids_list)
 
         results = []
         for project in projects:
-            autofix_automation_tuning = (
-                autofix_automation_tuning_map.get(project)
-                or AutofixAutomationTuningSettings.OFF.value
-            )
-            seer_pref = preferences_map.get(str(project.id)) or {}
+            preference = preferences.get(project.id)
             results.append(
                 {
                     "projectId": project.id,
-                    "autofixAutomationTuning": autofix_automation_tuning,  # project options
-                    "automatedRunStoppingPoint": seer_pref.get(
-                        "automated_run_stopping_point", AutofixStoppingPoint.CODE_CHANGES.value
+                    "projectSlug": project.slug,
+                    "autofixAutomationTuning": (
+                        preference.autofix_automation_tuning
+                        if preference
+                        else AUTOFIX_AUTOMATION_TUNING_DEFAULT
                     ),
-                    "automationHandoff": seer_pref.get("automation_handoff"),
-                    "reposCount": len(seer_pref.get("repositories") or []),
+                    "automatedRunStoppingPoint": (
+                        preference.automated_run_stopping_point
+                        if preference
+                        else SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+                    ),
+                    "automationHandoff": (
+                        preference.automation_handoff.dict()
+                        if preference and preference.automation_handoff
+                        else None
+                    ),
+                    "reposCount": len(preference.repositories) if preference else 0,
                 }
             )
         return results
@@ -239,7 +234,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        queryset = Project.objects.filter(organization_id=organization.id)
+        accessible_projects = self.get_projects(request, organization, include_all_accessible=True)
+        queryset = Project.objects.filter(id__in={p.id for p in accessible_projects})
 
         query = serializer.validated_data.get("query")
         if query:
@@ -313,18 +309,9 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         preferences_to_set: list[dict[str, Any]] = []
 
         if automated_run_stopping_point or filtered_repo_mappings:
-            if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-                existing_preferences = bulk_read_preferences_from_sentry_db(
-                    organization.id, list(projects_by_id.keys())
-                )
-                existing_preferences_map = {
-                    str(project_id): preference.dict() if preference else None
-                    for project_id, preference in existing_preferences.items()
-                }
-            else:
-                existing_preferences_map = bulk_get_project_preferences(
-                    organization.id, list(projects_by_id.keys())
-                )
+            existing_preferences = bulk_read_preferences_from_sentry_db(
+                organization.id, list(projects_by_id.keys())
+            )
 
             for proj_id, project in projects_by_id.items():
                 has_stopping_point_update = automated_run_stopping_point is not None
@@ -333,12 +320,11 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 if not has_stopping_point_update and not has_repo_update:
                     continue
 
-                project_id_str = str(proj_id)
-                existing_pref = existing_preferences_map.get(project_id_str) or {}
+                existing_pref = existing_preferences.get(proj_id)
 
                 pref_update: dict[str, Any] = {
                     **default_seer_project_preference(project).dict(),
-                    **existing_pref,
+                    **(existing_pref.dict() if existing_pref else {}),
                     "organization_id": organization.id,
                     "project_id": proj_id,
                 }
@@ -355,15 +341,17 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                         for repo_data in repos_data
                     ]
                     if append_repositories:
-                        existing_repos = existing_pref.get("repositories") or []
+                        existing_repos = (
+                            [repo.dict() for repo in existing_pref.repositories]
+                            if existing_pref
+                            else []
+                        )
                         pref_update["repositories"] = merge_repositories(existing_repos, new_repos)
                     else:
                         pref_update["repositories"] = new_repos
 
                 preferences_to_set.append(pref_update)
 
-        # Wrap DB writes and Seer API call in a transaction.
-        # If Seer API fails, DB changes are rolled back.
         with transaction.atomic(router.db_for_write(ProjectOption)):
             if autofix_automation_tuning:
                 for project in projects:
@@ -372,7 +360,10 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     )
 
             if preferences_to_set:
-                bulk_set_project_preferences(organization.id, preferences_to_set)
+                validated_preferences = [
+                    SeerProjectPreference.validate(pref) for pref in preferences_to_set
+                ]
+                bulk_write_preferences_to_sentry_db(projects, validated_preferences)
 
         if preferences_to_set and features.has(
             "organizations:seer-project-settings-dual-write", organization

@@ -58,9 +58,9 @@ export function addMessage(
 
   // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
   if (
-    typeof (msg as any)?.message !== 'undefined' &&
-    typeof (msg as any)?.code !== 'undefined' &&
-    typeof (msg as any)?.extra !== 'undefined'
+    (msg as any)?.message !== undefined &&
+    (msg as any)?.code !== undefined &&
+    (msg as any)?.extra !== undefined
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
   }
@@ -72,7 +72,7 @@ export function addMessage(
 
   // use default only if undefined, as 0 is a valid duration
   const duration =
-    typeof optionsDuration === 'undefined' ? DEFAULT_TOAST_DURATION : optionsDuration;
+    optionsDuration === undefined ? DEFAULT_TOAST_DURATION : optionsDuration;
 
   const action = append ? 'append' : 'add';
   // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created

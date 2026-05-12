@@ -8,11 +8,6 @@ jest.mock('sentry/utils/demoMode', () => ({
   isDemoModeActive: jest.fn(),
 }));
 
-jest.mock('sentry/locale', () => ({
-  t: jest.fn(key => key), // Mock translation function
-  td: jest.fn(key => key), // Mock translation description function
-}));
-
 describe('DisableInDemoMode', () => {
   it('renders children when demo mode is disabled', () => {
     (isDemoModeActive as jest.Mock).mockReturnValue(false);

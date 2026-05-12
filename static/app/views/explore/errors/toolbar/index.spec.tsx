@@ -35,6 +35,6 @@ describe('ErrorsToolbar', () => {
     render(<ErrorsToolbar />);
 
     const section = await screen.findByTestId('section-save-as');
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: /save as/i})).toBeInTheDocument();
   });
 });

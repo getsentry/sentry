@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,9 +13,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {tct} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -30,7 +29,7 @@ import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckIn
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
-import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
+import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
 export function useCronIssueAlertId({groupId}: {groupId: string}): string | undefined {
   /**
@@ -45,19 +44,17 @@ export function useCronIssueAlertId({groupId}: {groupId: string}): string | unde
 
   const hasCronDetector = detectorId && detectorType === 'cron_monitor';
 
-  const {data: event} = useApiQuery<Event>(
-    getGroupEventQueryKey({
+  const {data: event} = useQuery({
+    ...groupEventApiOptions({
       orgSlug: organization.slug,
       groupId,
       eventId: user.options.defaultIssueEvent,
       environments: [],
     }),
-    {
-      staleTime: Infinity,
-      enabled: !hasCronDetector,
-      retry: false,
-    }
-  );
+    staleTime: Infinity,
+    enabled: !hasCronDetector,
+    retry: false,
+  });
 
   // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
   return hasCronDetector

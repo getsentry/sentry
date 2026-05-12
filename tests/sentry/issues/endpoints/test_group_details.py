@@ -611,6 +611,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
+        group.project.organization.flags.allow_joinleave = False
+        group.project.organization.save()
         team = self.create_team(organization=group.project.organization, members=[self.user])
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"

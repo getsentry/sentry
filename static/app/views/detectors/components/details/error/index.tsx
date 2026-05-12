@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -106,9 +107,6 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
               ]}
             />
           </TopBar.Slot>
-          <TopBar.Slot name="actions">
-            <EditDetectorAction detector={detector} canEdit={canEdit} />
-          </TopBar.Slot>
           <MonitorFeedbackButton />
         </Fragment>
       ) : (
@@ -126,7 +124,16 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
             detector={detector}
             message={t('This monitor is disabled and not creating issues.')}
           />
-          <DatePageFilter />
+          {hasPageFrameFeature ? (
+            <Flex align="center" justify="between" gap="md">
+              <DatePageFilter />
+              <Flex flex={1} justify="end" gap="md">
+                <EditDetectorAction detector={detector} canEdit={canEdit} />
+              </Flex>
+            </Flex>
+          ) : (
+            <DatePageFilter />
+          )}
           <DetectorDetailsOngoingIssues
             detector={detector}
             dateTimeSelection={selection.datetime}

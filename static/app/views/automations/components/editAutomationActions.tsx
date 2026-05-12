@@ -60,19 +60,19 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
     <div>
       <Grid flow="column" align="center" gap="md">
         <Button
-          priority="default"
+          variant="secondary"
           size="sm"
           onClick={toggleDisabled}
           disabled={isUpdating}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
-        <Button priority="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
+        <Button variant="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
           {t('Delete')}
         </Button>
         <Observer>
           {() => (
-            <Button type="submit" priority="primary" size="sm" busy={form.isSaving}>
+            <Button type="submit" variant="primary" size="sm" busy={form.isSaving}>
               {t('Save')}
             </Button>
           )}

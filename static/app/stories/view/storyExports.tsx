@@ -2,6 +2,7 @@ import React, {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,7 +15,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {APIReference} from 'sentry/stories/apiReference';
-import {useQuery} from 'sentry/utils/queryClient';
 
 import {StoryFooter} from './storyFooter';
 import {storyMdxComponents} from './storyMdxComponent';

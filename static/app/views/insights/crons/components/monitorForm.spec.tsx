@@ -9,13 +9,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useMembers} from 'sentry/utils/useMembers';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useOwners} from 'sentry/utils/useOwners';
 import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
-jest.mock('sentry/utils/useTeams');
-jest.mock('sentry/utils/useMembers');
+jest.mock('sentry/utils/useOwners');
 
 describe('MonitorForm', () => {
   const organization = OrganizationFixture();
@@ -27,24 +25,12 @@ describe('MonitorForm', () => {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
 
-    jest.mocked(useTeams).mockReturnValue({
-      fetchError: null,
+    jest.mocked(useOwners).mockReturnValue({
       fetching: false,
-      hasMore: false,
-      initiallyLoaded: false,
-      loadMore: jest.fn(),
-      onSearch: jest.fn(),
-      teams: [team],
-    });
-
-    jest.mocked(useMembers).mockReturnValue({
-      fetchError: null,
-      fetching: false,
-      hasMore: false,
-      initiallyLoaded: false,
-      loadMore: jest.fn(),
-      onSearch: jest.fn(),
       members: [member.user!],
+      onMemberSearch: jest.fn(),
+      onTeamSearch: jest.fn(),
+      teams: [team],
     });
   });
 

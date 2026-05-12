@@ -124,7 +124,7 @@ export function DebugFileRow({
                   disabled={!hasAccess}
                 >
                   <Button
-                    priority="danger"
+                    variant="danger"
                     icon={<IconDelete />}
                     size="xs"
                     disabled={!hasAccess}

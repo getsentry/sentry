@@ -281,7 +281,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
-            {hasPlatformizedInsights && <MobileVitalsBanner />}
+            <MobileVitalsBanner />
             <ModuleLayout.Full>
               {showOnboarding ? (
                 <LegacyOnboarding

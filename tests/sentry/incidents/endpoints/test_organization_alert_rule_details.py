@@ -224,6 +224,80 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
         assert resp.status_code == 404
 
+    def assert_alert_detail_results_match(self, old_data: dict, new_data: dict) -> None:
+        """Compare old and new alert rule serializer outputs field-by-field.
+
+        Provides detailed diff messages for any mismatches between the legacy
+        DetailedAlertRuleSerializer and the new DetailedWorkflowEngineDetectorSerializer.
+        """
+        # Collect all differences rather than failing on the first one
+        mismatches: list[str] = []
+        missing_from_new: list[str] = []
+        value_diffs: list[str] = []
+
+        # Check every field in the old response
+        for field in old_data:
+            if field == "triggers":
+                continue  # checked separately below
+            if field not in new_data:
+                missing_from_new.append(field)
+            elif new_data[field] != old_data[field]:
+                value_diffs.append(f"  {field}: old={old_data[field]!r}, new={new_data[field]!r}")
+
+        extra_in_new = [f for f in new_data if f not in old_data and f != "triggers"]
+
+        # Triggers comparison
+        old_triggers = sorted(old_data.get("triggers", []), key=lambda t: t.get("label", ""))
+        new_triggers = sorted(new_data.get("triggers", []), key=lambda t: t.get("label", ""))
+        trigger_diffs: list[str] = []
+        if len(old_triggers) != len(new_triggers):
+            trigger_diffs.append(f"  count: old={len(old_triggers)}, new={len(new_triggers)}")
+        for old_t, new_t in zip(old_triggers, new_triggers):
+            for tfield in set(list(old_t.keys()) + list(new_t.keys())):
+                if tfield == "actions":
+                    continue  # checked below
+                if tfield not in new_t:
+                    trigger_diffs.append(f"  trigger[{old_t.get('label')}] missing field: {tfield}")
+                elif tfield not in old_t:
+                    trigger_diffs.append(f"  trigger[{new_t.get('label')}] extra field: {tfield}")
+                elif old_t[tfield] != new_t[tfield]:
+                    trigger_diffs.append(
+                        f"  trigger[{old_t.get('label')}].{tfield}: old={old_t[tfield]!r}, new={new_t[tfield]!r}"
+                    )
+            # Actions comparison
+            old_actions = old_t.get("actions", [])
+            new_actions = new_t.get("actions", [])
+            if len(old_actions) != len(new_actions):
+                trigger_diffs.append(
+                    f"  trigger[{old_t.get('label')}] action count: old={len(old_actions)}, new={len(new_actions)}"
+                )
+            for ai, (oa, na) in enumerate(zip(old_actions, new_actions)):
+                for afield in set(list(oa.keys()) + list(na.keys())):
+                    if afield not in na:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}] missing: {afield}"
+                        )
+                    elif afield not in oa:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}] extra: {afield}"
+                        )
+                    elif oa[afield] != na[afield]:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}].{afield}: old={oa[afield]!r}, new={na[afield]!r}"
+                        )
+
+        # Build failure message
+        if missing_from_new:
+            mismatches.append(f"Missing from new: {missing_from_new}")
+        if extra_in_new:
+            mismatches.append(f"Extra in new: {extra_in_new}")
+        if value_diffs:
+            mismatches.append("Value mismatches:\n" + "\n".join(value_diffs))
+        if trigger_diffs:
+            mismatches.append("Trigger mismatches:\n" + "\n".join(trigger_diffs))
+
+        assert not mismatches, "Old vs new serializer differences:\n" + "\n".join(mismatches)
+
 
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def assert_alert_detail_results_match(self, old_data: dict, new_data: dict) -> None:
@@ -1152,17 +1226,27 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-rule-serializers")
+    @freeze_time("2024-12-11 03:21:34")
     def test_workflow_engine_serializer(self) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
         self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["name"] = "what"
 
-        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
-        self.detector = Detector.objects.get(id=ard.detector_id)
-        fake_detector_id = get_fake_id_from_object_id(self.detector.id)
+        with self.feature("organizations:workflow-engine-metric-alert-endpoints-put"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
 
-        with outbox_runner():
-            self.get_error_response(self.organization.slug, fake_detector_id, status_code=400)
+        rule_resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
+        self.assert_alert_detail_results_match(rule_resp.data, resp.data)
 
     def test_not_updated_fields(self) -> None:
         self.create_member(

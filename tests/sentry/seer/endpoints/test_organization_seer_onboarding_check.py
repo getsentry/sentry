@@ -11,9 +11,8 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import (
     is_code_review_enabled,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.features import with_feature
 
 
 class TestHasSupportedScmIntegration(TestCase):
@@ -27,7 +26,7 @@ class TestHasSupportedScmIntegration(TestCase):
             external_id="123",
         )
 
-        assert has_supported_scm_integration(self.organization.id)
+        assert has_supported_scm_integration(self.organization)
 
     def test_scm_integration_github_enterprise(self) -> None:
         self.create_integration(
@@ -37,10 +36,10 @@ class TestHasSupportedScmIntegration(TestCase):
             external_id="456",
         )
 
-        assert has_supported_scm_integration(self.organization.id)
+        assert has_supported_scm_integration(self.organization)
 
     def test_no_integration(self) -> None:
-        assert not has_supported_scm_integration(self.organization.id)
+        assert not has_supported_scm_integration(self.organization)
 
     def test_inactive_integration(self) -> None:
         self.create_integration(
@@ -51,7 +50,7 @@ class TestHasSupportedScmIntegration(TestCase):
             oi_params={"status": ObjectStatus.DISABLED},
         )
 
-        assert not has_supported_scm_integration(self.organization.id)
+        assert not has_supported_scm_integration(self.organization)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -65,8 +64,34 @@ class TestHasSupportedScmIntegration(TestCase):
             external_id="123",
         )
 
-        assert has_supported_scm_integration(org1.id)
-        assert not has_supported_scm_integration(org2.id)
+        assert has_supported_scm_integration(org1)
+        assert not has_supported_scm_integration(org2)
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_gitlab_integration_with_feature_flag(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            name="GitLab Test",
+            external_id="789",
+        )
+
+        assert has_supported_scm_integration(self.organization)
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_no_integration_with_gitlab_feature_flag(self) -> None:
+        assert not has_supported_scm_integration(self.organization)
+
+    def test_gitlab_integration_without_feature_flag(self) -> None:
+        # GitLab should not count as a supported SCM without the feature flag
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            name="GitLab Test",
+            external_id="789",
+        )
+
+        assert not has_supported_scm_integration(self.organization)
 
 
 class TestIsCodeReviewEnabled(TestCase):
@@ -80,7 +105,7 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=True,
         )
 
-        assert is_code_review_enabled(self.organization.id)
+        assert is_code_review_enabled(self.organization)
 
     def test_code_review_disabled(self) -> None:
         repo = self.create_repo(project=self.project)
@@ -90,7 +115,7 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_multiple_repositories(self) -> None:
         repo1 = self.create_repo(project=self.project)
@@ -106,10 +131,10 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert is_code_review_enabled(self.organization.id)
+        assert is_code_review_enabled(self.organization)
 
     def test_no_repositories(self) -> None:
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_inactive_repository(self) -> None:
         repo = self.create_repo(project=self.project)
@@ -121,11 +146,11 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=True,
         )
 
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_no_settings(self) -> None:
         self.create_repo(project=self.project)
-        assert not is_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -147,8 +172,8 @@ class TestIsCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert is_code_review_enabled(org1.id)
-        assert not is_code_review_enabled(org2.id)
+        assert is_code_review_enabled(org1)
+        assert not is_code_review_enabled(org2)
 
 
 @with_feature("organizations:seer-project-settings-read-from-sentry")
@@ -167,6 +192,14 @@ class TestIsAutofixEnabled(TestCase):
         SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
         assert is_autofix_enabled(self.organization)
+
+    def test_inactive_repository(self) -> None:
+        repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        repo.status = ObjectStatus.DISABLED
+        repo.save()
+
+        assert not is_autofix_enabled(self.organization)
 
     def test_no_projects(self) -> None:
         repo = self.create_repo(project=self.project)
@@ -207,56 +240,6 @@ class TestIsAutofixEnabled(TestCase):
         assert not is_autofix_enabled(org2)
 
 
-class TestIsAutofixEnabledSeerApi(TestCase):
-    """Unit tests for is_autofix_enabled() without dual-read flag (calls Seer API)"""
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.project = self.create_project(organization=self.organization)
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_no_projects(self, mock_bulk_get: MagicMock) -> None:
-        org_without_projects = self.create_organization()
-        assert not is_autofix_enabled(org_without_projects)
-        mock_bulk_get.assert_not_called()
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_project_with_repositories(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
-        assert is_autofix_enabled(self.organization)
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_project_with_empty_repositories(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.return_value = {str(self.project.id): {"repositories": []}}
-        assert not is_autofix_enabled(self.organization)
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_project_with_no_preference(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.return_value = {str(self.project.id): None}
-        assert not is_autofix_enabled(self.organization)
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_multiple_projects(self, mock_bulk_get: MagicMock) -> None:
-        project2 = self.create_project(organization=self.organization)
-        mock_bulk_get.return_value = {
-            str(self.project.id): None,
-            str(project2.id): {"repositories": [{"name": "repo"}]},
-        }
-        assert is_autofix_enabled(self.organization)
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_api_error_raises(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.side_effect = SeerApiError("error", 500)
-        with pytest.raises(SeerApiError):
-            is_autofix_enabled(self.organization)
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_inactive_project_excluded(self, mock_bulk_get: MagicMock) -> None:
-        self.project.update(status=ObjectStatus.DISABLED)
-        assert not is_autofix_enabled(self.organization)
-        mock_bulk_get.assert_not_called()
-
-
 class OrganizationSeerOnboardingCheckTest(APITestCase):
     """Integration tests for the GET endpoint"""
 
@@ -285,9 +268,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_all_configured(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
+    def test_all_configured(self) -> None:
+        autofix_repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=autofix_repo)
 
         self.create_integration(
             organization=self.organization,
@@ -296,9 +279,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             external_id="123",
         )
 
-        repo = self.create_repo(project=self.project)
+        code_review_repo = self.create_repo(project=self.project)
         self.create_repository_settings(
-            repository=repo,
+            repository=code_review_repo,
             enabled_code_review=True,
         )
 
@@ -356,9 +339,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_autofix_enabled_only(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
+    def test_autofix_enabled_only(self) -> None:
+        repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
         response = self.get_response(self.organization.slug)
 
@@ -399,9 +382,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_github_and_autofix_enabled(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
+    def test_github_and_autofix_enabled(self) -> None:
+        repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
         self.create_integration(
             organization=self.organization,
@@ -421,13 +404,13 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_code_review_and_autofix_enabled(self, mock_bulk_get: MagicMock) -> None:
-        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
+    def test_code_review_and_autofix_enabled(self) -> None:
+        autofix_repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=autofix_repo)
 
-        repo = self.create_repo(project=self.project)
+        code_review_repo = self.create_repo(project=self.project)
         self.create_repository_settings(
-            repository=repo,
+            repository=code_review_repo,
             enabled_code_review=True,
         )
 
@@ -511,9 +494,6 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
     @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
     def test_config_reminder_with_complete_setup(self, mock_bulk_get: MagicMock) -> None:
         """Config reminder flag is independent of isSeerConfigured logic."""
-        # Set up SCM and code review
-        mock_bulk_get.return_value = {str(self.project.id): None}
-
         self.create_integration(
             organization=self.organization,
             provider="github",

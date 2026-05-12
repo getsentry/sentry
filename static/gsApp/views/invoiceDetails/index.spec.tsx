@@ -69,6 +69,11 @@ describe('InvoiceDetails', () => {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('renders basic invoice details', async () => {
@@ -328,6 +333,11 @@ describe('InvoiceDetails', () => {
         url: `/customers/${organization.slug}/billing-details/`,
         method: 'GET',
         body: billingDetails,
+      });
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/`,
+        method: 'GET',
+        body: [],
       });
     });
 

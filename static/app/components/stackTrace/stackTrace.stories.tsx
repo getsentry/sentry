@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
 import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
@@ -743,7 +742,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Copy file path')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy file path')}
             icon={<IconCopy size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -752,7 +751,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Open this line in GitHub')}
             icon={<IconGithub size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -1083,7 +1082,6 @@ export default Storybook.story('StackTrace', story => {
 
     return (
       <Flex direction="column" gap="md">
-        <LineCoverageLegend />
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
           <StackTraceFrames
             frameContextComponent={CoveredFrameContext}

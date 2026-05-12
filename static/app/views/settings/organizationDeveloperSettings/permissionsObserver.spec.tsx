@@ -13,7 +13,13 @@ describe('PermissionsObserver', () => {
     render(
       <Form model={model}>
         <PermissionsObserver
-          scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
+          scopes={[
+            'project:read',
+            'project:write',
+            'project:releases',
+            'org:admin',
+            'org:ci',
+          ]}
           events={['issue']}
           newApp={false}
         />
@@ -38,5 +44,10 @@ describe('PermissionsObserver', () => {
   it('selects the highest ranking scope to convert to permission', () => {
     renderForm();
     expect(model.getValue('Project--permission')).toBe('write');
+  });
+
+  it('stores the Continuous Integration scope separately', () => {
+    renderForm();
+    expect(model.getValue('ContinuousIntegration--permission')).toBe(true);
   });
 });

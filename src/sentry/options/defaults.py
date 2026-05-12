@@ -344,6 +344,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# POST rate limit for ProjectTransferEndpoint, overridable via automator.
+register(
+    "api.project-transfer.rate-limit-overrides",
+    type=Int,
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 register(
@@ -411,7 +419,17 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
-    default={"base_url": "http://127.0.0.1:8888"},
+    default={
+        "base_url": "http://127.0.0.1:8888",
+        # Test-only token generator with no permissions. Only active when no real
+        # objectstore config is deployed. Exists so mint_token() does not raise in
+        # test/dev environments that lack signing keys.
+        "token_generator": {
+            "kid": "test",
+            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
+            "permissions": [],
+        },
+    },
     flags=FLAG_NOSTORE,
 )
 
@@ -656,11 +674,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for expanding the unreal report in the endpoint rather than during processing
+# Killswitch for fetching projects in the endpoints.
 register(
-    "relay.unreal-report-expansion.rollout-rate",
-    type=Float,
-    default=0.0,
+    "relay.endpoint-fetch-config.enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -701,8 +719,6 @@ register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_
 register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Issue Summary on Alerts (timeout in seconds)
-register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register(
     "seer.max_num_autofix_autotriggered_per_hour",
@@ -748,6 +764,12 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
@@ -1211,7 +1233,7 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Explorer context engine indexing options
+# Agent context engine indexing options
 register(
     "explorer.context_engine_indexing.enable",
     default=False,
@@ -2260,6 +2282,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.trace.span_with_errors_ok_status.sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "insights.span-samples-query.sample-rate",
     type=Float,
     default=0.0,  # 0 acts as 'no sampling'
@@ -2340,6 +2368,36 @@ register(
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
 register("dynamic-sampling.config.killswitch", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Killswitch for the per-org dynamic sampling pipeline. When set to True, the
+# scheduled entry point exits before it can enqueue work.
+register(
+    "dynamic-sampling.per_org.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
+# organization id. A value of 0.0 disables the pipeline for every org; 1.0
+# enables it for every org. Intermediate values select a stable hash-based
+# subset so toggling the rate up and down does not reshuffle which orgs run.
+register(
+    "dynamic-sampling.per_org.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sample rate for metrics emitted by the per-org dynamic sampling pipeline
+# (status counters, org_status counters, duration timer). 1.0 emits every
+# event; lower values drop events proportionally. Use this to reduce metric
+# volume/cost when the pipeline is rolled out to many organizations.
+register(
+    "dynamic-sampling.per_org.metrics-sample-rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
@@ -2727,9 +2785,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("metric_alerts.extended_max_subscriptions", default=1250, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
-    "metric_alerts.extended_max_subscriptions_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+    "metric_alerts.extended_max_subscriptions",
+    default=1250,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metric_alerts.extended_max_subscriptions_orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # SDK Crash Detection
@@ -3044,6 +3108,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sending raw bytes payload to taskbroker instead of base64 encoded
+register(
+    "profiling.process.raw_bytes_payload.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
@@ -3221,6 +3293,30 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# TTL (in seconds) for the per-segment lock acquired at flush time to
+# prevent two flushers from producing the same segment concurrently.
+# The lock is never explicitly released and only expires via this TTL.
+# Pick a value larger than the expected flush+produce latency but smaller than
+# `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
+# next flush cycle. If set to 0, no locks will be acquired.
+register(
+    "spans.buffer.flusher.flush-lock-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, done_flush_segments uses Lua scripts to conditionally clean up
+# segments only if their state hasn't changed since the flush started: Phase 1
+# ZREMs the queue entry only if the score is unchanged, and Phase 2 deletes the
+# per-segment data keys (hrs, ic, ibc) only if the ingested count is unchanged.
+# When False, both phases unconditionally remove queue entries and delete data
+# keys for every flushed segment.
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
@@ -3262,6 +3358,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.flusher.log-flushed-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -3298,6 +3399,22 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# TTL in seconds for span deduplication tracking. When > 0, the consumer
+# will use Redis SETNX to detect duplicate spans and emit metrics.
+# Set to 0 to disable.
+register(
+    "spans.process-segments.dedupe-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When True (and dedupe-ttl > 0), actually filter out duplicate spans
+# instead of just detecting and emitting metrics.
+register(
+    "spans.process-segments.dedupe-filter-enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -3364,6 +3481,16 @@ register(
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch list of NotificationSource values that should be blocked from being
+# dispatched by the notification platform's NotificationService. Values must match
+# the string values of `sentry.notifications.platform.types.NotificationSource`.
+register(
+    "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End
 
@@ -3636,6 +3763,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "uptime.use-detectors-by-data-source-cache",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Configures the list of public IP addresses that are returned from the
 # `uptime-ips` API. This does NOT control what actual IPs are used to make the
 # check, we simply have this as an option so that we can quickly update this
@@ -3669,6 +3803,18 @@ register(
     "secret-scanning.github.enable-signature-verification",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Routes the seen-stats / TSDB conditions through `get_snuba_column_name`
+# so a column-name-vs-tag-name collision (e.g. user tag named `platform`)
+# resolves to the tag, matching the issue surfacing query. Without this,
+# `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
+# names as column references and the badge disagrees with surfacing.
+register(
+    "issues.search.use-tag-aware-condition-resolver",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3937,12 +4083,11 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Allow list for projects with LLM issue detection enabled
 register(
-    "issue-detection.llm-detection.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "issue-detection.llm-detection.traces-per-invocation",
+    type=Dict,
+    default={"team": 1, "business": 1},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls whether deletion from EAP is enabled.
@@ -3983,6 +4128,14 @@ register(
     "sentry-apps.webhook.restricted-webhook-sending",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforce is_disabled field on sentry app endpoints and webhooks.
+register(
+    "sentry-apps.disabled-enforcement",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4071,6 +4224,16 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Cells
+
+# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
+register(
+    "provision_organization_in_cell.record_analytics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # SCM

@@ -1,6 +1,7 @@
 import {useCallback, useReducer, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 

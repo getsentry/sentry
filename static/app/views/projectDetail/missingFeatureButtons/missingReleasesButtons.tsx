@@ -8,7 +8,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {RELEASES_TOUR_STEPS} from 'sentry/views/releases/list/releasesPromo';
+import {RELEASES_TOUR_STEPS} from 'sentry/views/explore/releases/list/releasesPromo';
 
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
 const DOCS_HEALTH_URL = 'https://docs.sentry.io/product/releases/health/';
@@ -55,7 +55,7 @@ export function MissingReleasesButtons({
     <Grid flow="column" align="center" gap="md">
       <LinkButton
         size="sm"
-        priority="primary"
+        variant="primary"
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
         disabled={setupDisabled}

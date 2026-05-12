@@ -26,9 +26,9 @@ import type {Organization} from 'sentry/types/organization';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
+import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
+import {sessionTerm} from 'sentry/views/explore/releases/utils/sessionTerm';
 import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
-import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
 import {ProjectSessionsAnrRequest} from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';

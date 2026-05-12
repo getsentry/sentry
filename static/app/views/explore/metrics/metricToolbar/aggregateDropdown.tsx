@@ -24,7 +24,13 @@ import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 const MULTI_SELECT_GROUP_KEYS = new Set(['percentiles', 'stats']);
 
-export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
+export function AggregateDropdown({
+  traceMetric,
+  singleSelect = false,
+}: {
+  traceMetric: TraceMetric;
+  singleSelect?: boolean;
+}) {
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
@@ -52,6 +58,11 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
       );
     }
   }
+
+  const selectedList = [...selectedNames].filter(Boolean);
+  const defaultValue = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
+  const isDefaultSelection =
+    selectedList.length === 1 && selectedList[0] === defaultValue;
 
   const selectedList = [...selectedNames].filter(Boolean);
   const defaultValue = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
@@ -93,7 +104,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
     >
       {groups.map(group => {
         const groupKey = String(group.key);
-        const isMulti = MULTI_SELECT_GROUP_KEYS.has(groupKey);
+        const isMulti = !singleSelect && MULTI_SELECT_GROUP_KEYS.has(groupKey);
         const activeValues = group.options
           .map(opt => String(opt.value))
           .filter(v => selectedNames.has(v));

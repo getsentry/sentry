@@ -68,7 +68,7 @@ import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -357,9 +357,9 @@ export function Visualize({error, setError}: VisualizeProps) {
         .filter(
           column =>
             column !== '' &&
-            !stringSpanTags.hasOwnProperty(column) &&
-            !numericSpanTags.hasOwnProperty(column) &&
-            !booleanSpanTags.hasOwnProperty(column)
+            !Object.hasOwn(stringSpanTags, column) &&
+            !Object.hasOwn(numericSpanTags, column) &&
+            !Object.hasOwn(booleanSpanTags, column)
         )
         .map(column => {
           return {
@@ -999,7 +999,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                             ) && (
                               <Tooltip title={LINK_FIELD_TOOLTIP}>
                                 <Button
-                                  priority="transparent"
+                                  variant="transparent"
                                   icon={<IconLink />}
                                   aria-label={t('Link field')}
                                   size="zero"
@@ -1048,7 +1048,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                             datasetConfig.enableEquations ||
                             (isBigNumberWidget && fields.length > 1)) && (
                             <Button
-                              priority="transparent"
+                              variant="transparent"
                               icon={<IconDelete />}
                               size="zero"
                               disabled={
@@ -1106,7 +1106,7 @@ export function Visualize({error, setError}: VisualizeProps) {
       {canAddFields && (
         <AddButtons>
           <AddButton
-            priority="link"
+            variant="link"
             disabled={disableTransactionWidget}
             aria-label={
               isTimeSeriesWidget
@@ -1121,7 +1121,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                 payload: [
                   ...(fields ?? []),
                   state.dataset === WidgetType.TRACEMETRICS && fields?.length
-                    ? cloneDeep(fields?.[fields.length - 1] as QueryFieldValue)
+                    ? cloneDeep(fields?.[fields.length - 1]!)
                     : cloneDeep(defaultField),
                 ],
               });
@@ -1145,7 +1145,7 @@ export function Visualize({error, setError}: VisualizeProps) {
           </AddButton>
           {datasetConfig.enableEquations && (
             <AddButton
-              priority="link"
+              variant="link"
               disabled={disableTransactionWidget}
               aria-label={t('Add Equation')}
               onClick={() => {
@@ -1251,7 +1251,7 @@ export const PrimarySelectRow = styled('div')<{
   }
 `;
 
-export function FieldRow(props: FlexProps<'div'>) {
+export function FieldRow(props: FlexProps) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
 }
 

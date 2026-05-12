@@ -6,7 +6,7 @@ import {
   REPLAY_LIST_FIELDS,
   type ReplayListQueryReferrer,
   type ReplayListRecord,
-} from 'sentry/views/replays/types';
+} from 'sentry/views/explore/replays/types';
 
 interface QueryOptions {
   cursor?: string;

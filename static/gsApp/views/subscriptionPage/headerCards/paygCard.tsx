@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,7 +14,6 @@ import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
@@ -33,7 +33,6 @@ import {
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
-
 export function PaygCard({
   subscription,
   organization,
@@ -58,9 +57,7 @@ export function PaygCard({
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const paygInput = useRef<HTMLInputElement>(null);
-  const [newBudgetDollars, setNewBudgetDollars] = useState<number>(
-    Math.ceil(totalBudget / 100)
-  );
+  const [newBudgetDollars, setNewBudgetDollars] = useState(Math.ceil(totalBudget / 100));
   const [error, setError] = useState<string | null>(null);
 
   const {mutate: handleSubmit} = useMutation({
@@ -169,7 +166,7 @@ export function PaygCard({
                 </Currency>
                 <Flex justify="between" align="center" gap="xl sm" wrap="wrap">
                   <Flex gap="sm" align="center">
-                    <Button priority="primary" onClick={() => handleSubmit()}>
+                    <Button variant="primary" onClick={() => handleSubmit()}>
                       {t('Save')}
                     </Button>
                     <Button
@@ -184,7 +181,7 @@ export function PaygCard({
                     </Button>
                   </Flex>
                   <Button
-                    priority="link"
+                    variant="link"
                     onClick={() =>
                       openSpendLimitsPricingModal({organization, subscription, theme})
                     }

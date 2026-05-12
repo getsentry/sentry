@@ -157,7 +157,7 @@ class TestCreateComment(TestCase):
             integration=self.example_integration,
         )
 
-        with pytest.raises(RetryTaskError):
+        with pytest.raises(Exception, match="Something went wrong creating comment"):
             create_comment(external_issue.id, self.user.id, self.activity.id)
 
         assert_failure_metric(mock_record_event, Exception("Something went wrong creating comment"))

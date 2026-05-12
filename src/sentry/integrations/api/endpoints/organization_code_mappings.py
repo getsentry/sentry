@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.db import router, transaction
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
@@ -21,6 +22,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 
 
@@ -120,20 +122,36 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return default_branch
 
     def create(self, validated_data):
-        return RepositoryProjectPathConfig.objects.create(
-            organization_integration_id=self.org_integration.id,
-            organization_id=self.context["organization"].id,
-            integration_id=self.context["organization_integration"].integration_id,
-            **validated_data,
-        )
+        with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project_id=validated_data["project_id"],
+                repository_id=validated_data["repository_id"],
+                defaults={"source": ProjectRepositorySource.MANUAL},
+            )
+            return RepositoryProjectPathConfig.objects.create(
+                organization_integration_id=self.org_integration.id,
+                organization_id=self.context["organization"].id,
+                integration_id=self.context["organization_integration"].integration_id,
+                project_repository=project_repo,
+                **validated_data,
+            )
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
             validated_data.pop("id")
         if self.instance:
-            for key, value in validated_data.items():
-                setattr(self.instance, key, value)
-            self.instance.save()
+            with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
+                project_id = validated_data.get("project_id", self.instance.project_id)
+                repository_id = validated_data.get("repository_id", self.instance.repository_id)
+                project_repo, _ = ProjectRepository.objects.get_or_create(
+                    project_id=project_id,
+                    repository_id=repository_id,
+                    defaults={"source": ProjectRepositorySource.MANUAL},
+                )
+                self.instance.project_repository = project_repo
+                for key, value in validated_data.items():
+                    setattr(self.instance, key, value)
+                self.instance.save()
         return self.instance
 
 

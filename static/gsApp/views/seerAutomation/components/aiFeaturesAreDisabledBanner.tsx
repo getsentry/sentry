@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -14,7 +15,7 @@ import {
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AiFeaturesAreDisabledBanner() {
@@ -60,7 +61,7 @@ export function AiFeaturesAreDisabledBanner() {
                   }
                 )}
               </Text>
-              <Button size="sm" priority="default" onClick={() => mutate()}>
+              <Button size="sm" variant="secondary" onClick={() => mutate()}>
                 {t('Enable Generative AI Features')}
               </Button>
             </Fragment>

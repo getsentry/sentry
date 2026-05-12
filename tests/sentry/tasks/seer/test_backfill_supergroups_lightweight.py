@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.eventstore import backend as eventstore
 from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.tasks.seer.backfill_supergroups_lightweight import (
     backfill_supergroups_lightweight_for_org,
@@ -15,11 +16,39 @@ from sentry.utils.snuba import SnubaError
 TEST_BATCH_SIZE = 5
 
 
+def _make_event_data(message="test error", fingerprint=None):
+    data = {
+        "message": message,
+        "level": "error",
+        "platform": "python",
+        "exception": {
+            "values": [
+                {
+                    "type": "ValueError",
+                    "value": message,
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "test_func",
+                                "filename": "test.py",
+                                "lineno": 1,
+                            }
+                        ]
+                    },
+                }
+            ]
+        },
+    }
+    if fingerprint is not None:
+        data["fingerprint"] = fingerprint
+    return data
+
+
 class BackfillSupergroupsLightweightForOrgTest(TestCase):
     def setUp(self):
         super().setUp()
         self.event = self.store_event(
-            data={"message": "test error", "level": "error"},
+            data=_make_event_data(),
             project_id=self.project.id,
         )
         self.group = self.event.group
@@ -53,7 +82,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
 
         project2 = self.create_project(organization=self.organization)
         event2 = self.store_event(
-            data={"message": "error in project2", "level": "error"},
+            data=_make_event_data("error in project2"),
             project_id=project2.id,
         )
         assert event2.group is not None
@@ -87,11 +116,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         # Create enough groups to fill a batch
         for i in range(TEST_BATCH_SIZE):
             evt = self.store_event(
-                data={
-                    "message": f"error {i}",
-                    "level": "error",
-                    "fingerprint": [f"group-{i}"],
-                },
+                data=_make_event_data(f"error {i}", fingerprint=[f"group-{i}"]),
                 project_id=self.project.id,
             )
             assert evt.group is not None
@@ -155,7 +180,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
     )
     def test_continues_on_individual_group_failure(self, mock_request):
         event2 = self.store_event(
-            data={"message": "second error", "level": "error", "fingerprint": ["group2"]},
+            data=_make_event_data("second error", fingerprint=["group2"]),
             project_id=self.project.id,
         )
         assert event2.group is not None
@@ -177,13 +202,69 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
     )
     @patch("sentry.tasks.seer.backfill_supergroups_lightweight.bulk_snuba_queries")
     def test_skips_old_groups_with_no_events(self, mock_snuba, mock_request):
-        """Old groups are still fetched from DB but skipped when Snuba returns no events."""
-        self.group.last_seen = datetime.now(UTC) - timedelta(days=91)
+        """Groups inside the age window but with no Snuba events are skipped."""
+        # Inside the 90-day DB cutoff so the group reaches Snuba; this exercises
+        # the secondary skip path (e.g. events aged out of Snuba retention).
+        self.group.last_seen = datetime.now(UTC) - timedelta(days=30)
         self.group.save(update_fields=["last_seen"])
 
         mock_snuba.return_value = [{"data": []}]
 
         backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_request.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    @patch("sentry.tasks.seer.backfill_supergroups_lightweight.bulk_snuba_queries")
+    def test_skips_groups_older_than_max_age(self, mock_snuba, mock_request):
+        self.group.last_seen = datetime.now(UTC) - timedelta(days=91)
+        self.group.save(update_fields=["last_seen"])
+
+        backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        # DB-level filter — Snuba is never queried for stale groups.
+        mock_snuba.assert_not_called()
+        mock_request.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_processes_groups_within_max_age(self, mock_request):
+        mock_request.return_value = MagicMock(status=200)
+        self.group.last_seen = datetime.now(UTC) - timedelta(days=89)
+        self.group.save(update_fields=["last_seen"])
+
+        backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_request.assert_called_once()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_skips_security_report_event_types(self, mock_request):
+        mock_request.return_value = MagicMock(status=200)
+
+        # Bind real node data, then stamp the event as a security report so the
+        # task's get_event_type() check trips. Avoids fighting Relay
+        # normalization to mint a real CSP fixture in the test.
+        original_bind = eventstore.bind_nodes
+
+        def bind_and_mark_csp(events):
+            original_bind(events)
+            for event in events:
+                if event.data:
+                    event.data["type"] = "csp"
+
+        with patch(
+            "sentry.tasks.seer.backfill_supergroups_lightweight.eventstore.bind_nodes",
+            side_effect=bind_and_mark_csp,
+        ):
+            backfill_supergroups_lightweight_for_org(self.organization.id)
 
         mock_request.assert_not_called()
 
@@ -240,7 +321,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         mock_request.return_value = MagicMock(status=200)
 
         event2 = self.store_event(
-            data={"message": "second error", "level": "error", "fingerprint": ["group2"]},
+            data=_make_event_data("second error", fingerprint=["group2"]),
             project_id=self.project.id,
         )
         assert event2.group is not None
@@ -267,11 +348,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         # Create exactly TEST_BATCH_SIZE groups total (setUp already created 1)
         for i in range(TEST_BATCH_SIZE - 1):
             evt = self.store_event(
-                data={
-                    "message": f"error {i}",
-                    "level": "error",
-                    "fingerprint": [f"boundary-{i}"],
-                },
+                data=_make_event_data(f"error {i}", fingerprint=[f"boundary-{i}"]),
                 project_id=self.project.id,
             )
             assert evt.group is not None
@@ -313,3 +390,49 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
             backfill_supergroups_lightweight_for_org(self.organization.id, **final_kwargs)
             mock_request.assert_not_called()
             mock_chain.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_skips_events_without_stacktrace(self, mock_request):
+        """Events without stacktraces are filtered out before sending to Seer."""
+        original_bind = eventstore.bind_nodes
+
+        def bind_and_strip_stacktrace(events):
+            original_bind(events)
+            for event in events:
+                if event.data:
+                    event.data.pop("exception", None)
+                    event.data.pop("threads", None)
+                    event.data.pop("stacktrace", None)
+
+        with patch(
+            "sentry.tasks.seer.backfill_supergroups_lightweight.eventstore.bind_nodes",
+            side_effect=bind_and_strip_stacktrace,
+        ):
+            backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_request.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_skips_events_with_unsupported_platform(self, mock_request):
+        """Events with platform 'other' are filtered out before sending to Seer."""
+        original_bind = eventstore.bind_nodes
+
+        def bind_and_set_platform_other(events):
+            original_bind(events)
+            for event in events:
+                if event.data:
+                    event.data["platform"] = "other"
+
+        with patch(
+            "sentry.tasks.seer.backfill_supergroups_lightweight.eventstore.bind_nodes",
+            side_effect=bind_and_set_platform_other,
+        ):
+            backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_request.assert_not_called()

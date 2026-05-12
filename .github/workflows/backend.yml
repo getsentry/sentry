@@ -265,13 +265,16 @@ jobs:
           # ClickHouse readiness itself, so it can begin before all containers
           # are healthy, overlapping with the remaining devservices health checks.
           if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            python3 ./.github/actions/setup-devservices/bootstrap-snuba.py &
+            (
+              python3 ./.github/workflows/scripts/bootstrap-snuba.py
+              echo $? > /tmp/snuba-bootstrap-exit
+            ) &
           fi
           ./.github/actions/setup-devservices/wait.py
 
       - name: Download odiff binary
         run: |
-          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
+          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
             | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
@@ -351,6 +354,7 @@ jobs:
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
+        continue-on-error: true
         with:
           artifact_path: .artifacts/pytest.json
           gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
@@ -634,6 +638,7 @@ jobs:
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
+        continue-on-error: true
         with:
           artifact_path: .artifacts/pytest.monolith-dbs.json
           gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}

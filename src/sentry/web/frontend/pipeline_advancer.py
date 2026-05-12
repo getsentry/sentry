@@ -124,12 +124,13 @@ class PipelineAdvancerView(BaseView):
         # GitHub apps may be installed directly from GitHub, in which case
         # they will redirect here *without* being in the pipeline. If that happens
         # redirect to the integration install org picker.
+        installation_id = request.GET.get("installation_id")
         if (
             provider_id == IntegrationProviderSlug.GITHUB.value
             and request.GET.get("setup_action") == "install"
             and pipeline is None
+            and installation_id
         ):
-            installation_id = request.GET.get("installation_id")
             return self.redirect(
                 reverse("integration-installation", args=[provider_id, installation_id])
             )

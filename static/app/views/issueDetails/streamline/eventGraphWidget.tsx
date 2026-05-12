@@ -11,10 +11,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useParams} from 'sentry/utils/useParams';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
 export default function EventGraphWidget({
   pageFilters,

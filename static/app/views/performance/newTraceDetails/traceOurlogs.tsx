@@ -77,7 +77,13 @@ function LogsSectionContent() {
         <LinkButton to={logsUrl}>{t('Open in Logs')}</LinkButton>
       </Flex>
       <TableContainer>
-        <LogsInfiniteTable embedded expanded />
+        <LogsInfiniteTable
+          analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+          embedded
+          expanded
+          showCellActions
+          showExploreSimilarSpansLink
+        />
       </TableContainer>
     </Fragment>
   );

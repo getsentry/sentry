@@ -91,6 +91,7 @@ export function MetricDetails({
                       acc[attr.name] = attr.value;
                       return acc;
                     }, {}),
+                    caseSensitiveHighlighting: false,
                     highlightTerms: [],
                     logColors: getLogColors(SeverityLevel.INFO, theme),
                     location,

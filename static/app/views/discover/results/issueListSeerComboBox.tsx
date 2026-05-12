@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -11,7 +12,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -232,8 +233,9 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         columns,
       });
 
-      trackAnalytics('errors.ai_query_applied', {
+      trackAnalytics('ai_query.applied', {
         organization,
+        area: analyticsArea,
         query: queryToUse,
       });
       trackAnalytics('ai_query.applied', {
@@ -293,8 +295,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       location,
       navigate,
       onSearch,
-      organization,
       pageFilters.selection.datetime,
+      organization,
     ]
   );
 
@@ -309,7 +311,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       strategy="Errors"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="errors"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

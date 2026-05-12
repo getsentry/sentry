@@ -19,7 +19,7 @@ function Wrapper({children}: {children: ReactNode}) {
 
 describe('useMetricReferences', () => {
   it('returns _if form for metrics with a filter and plain yAxis for metrics without', () => {
-    const metricWithFilter = encodeMetricQueryParams({
+    const metricWithFilter = {
       metric: {name: 'metric_a', type: 'counter', unit: 'none'},
       queryParams: new ReadableQueryParams({
         extrapolate: true,
@@ -32,9 +32,9 @@ describe('useMetricReferences', () => {
         aggregateFields: [new VisualizeFunction('count(value,metric_a,counter,none)')],
         aggregateSortBys: [{field: 'count(value,metric_a,counter,none)', kind: 'desc'}],
       }),
-    });
+    };
 
-    const metricWithoutFilter = encodeMetricQueryParams({
+    const metricWithoutFilter = {
       metric: {name: 'metric_b', type: 'counter', unit: 'none'},
       queryParams: new ReadableQueryParams({
         extrapolate: true,
@@ -47,11 +47,14 @@ describe('useMetricReferences', () => {
         aggregateFields: [new VisualizeFunction('sum(value,metric_b,counter,none)')],
         aggregateSortBys: [{field: 'sum(value,metric_b,counter,none)', kind: 'desc'}],
       }),
-    });
+    };
 
     const {result} = renderHookWithProviders(
       () => ({
-        references: useMetricReferences(),
+        references: useMetricReferences([
+          {...metricWithFilter, label: 'A'},
+          {...metricWithoutFilter, label: 'B'},
+        ]),
         queries: useMultiMetricsQueryParams(),
       }),
       {
@@ -60,7 +63,9 @@ describe('useMetricReferences', () => {
           location: {
             pathname: '/',
             query: {
-              metric: [metricWithFilter, metricWithoutFilter],
+              metric: [metricWithFilter, metricWithoutFilter].map(
+                encodeMetricQueryParams
+              ),
             },
           },
         },

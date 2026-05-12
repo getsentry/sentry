@@ -50,7 +50,7 @@ from sentry.models.project import Project
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.rpc_utils import and_trace_item_filters
+from sentry.search.eap.rpc_utils import and_trace_item_filters, anyvalue_to_python
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.types import (
     CONFIDENCES,
@@ -464,11 +464,11 @@ class RPCBase:
         **_context_kwargs: Any,
     ) -> None:
         for index, result in enumerate(column_value.results):
-            result_value: str | int | float | None
+            result_value: Any
             if result.is_null:
                 result_value = None
             else:
-                result_value = getattr(result, str(result.WhichOneof("value")))
+                result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
@@ -492,15 +492,14 @@ class RPCBase:
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
-        # Mapping from public alias to resolved column so we know type etc.
-        columns_by_name = {col.public_alias: col for col in table_request.columns}
-
+        by_public_alias = {col.public_alias: col for col in table_request.columns}
         for column_value in rpc_response.column_values:
             attribute = column_value.attribute_name
             # Skip internal sort columns used for virtual context ordering
             if attribute in table_request.sort_column_aliases:
                 continue
-            if attribute not in columns_by_name:
+            resolved_column = by_public_alias.get(attribute)
+            if resolved_column is None:
                 logger.warning(
                     "A column was returned by the rpc but not a known column",
                     extra={
@@ -509,8 +508,8 @@ class RPCBase:
                     },
                 )
                 continue
-            resolved_column = columns_by_name[attribute]
-            final_meta["fields"][attribute] = resolved_column.search_type
+            output_key = resolved_column.public_alias
+            final_meta["fields"][output_key] = resolved_column.search_type
 
             # When there's no aggregates reliabilities is an empty array
             has_reliability = len(column_value.reliabilities) > 0
@@ -526,12 +525,12 @@ class RPCBase:
             cls.process_column_values(
                 column_value,
                 final_data,
-                attribute,
+                output_key,
                 resolved_column,
                 **context_kwargs,
             )
             if has_reliability:
-                cls.process_column_confidence(column_value, final_confidence, attribute)
+                cls.process_column_confidence(column_value, final_confidence, output_key)
 
         if debug:
             set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)
@@ -648,7 +647,9 @@ class RPCBase:
             raise
 
     @classmethod
-    def process_timeseries_list(cls, timeseries_list: list[TimeSeries]) -> ProcessedTimeseries:
+    def process_timeseries_list(
+        cls, timeseries_list: list[TimeSeries], config: SearchResolverConfig
+    ) -> ProcessedTimeseries:
         result = ProcessedTimeseries()
 
         for timeseries in timeseries_list:
@@ -667,10 +668,22 @@ class RPCBase:
                     result.sample_count.append({"time": bucket.seconds})
 
             for index, data_point in enumerate(timeseries.data_points):
-                result.timeseries[index][label] = process_value(data_point.data)
-                result.confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
-                result.sampling_rate[index][label] = process_value(data_point.avg_sampling_rate)
-                result.sample_count[index][label] = process_value(data_point.sample_count)
+                if config.zerofill_timeseries:
+                    result.timeseries[index][label] = process_value(data_point.data)
+                    result.confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+                    result.sampling_rate[index][label] = process_value(data_point.avg_sampling_rate)
+                    result.sample_count[index][label] = process_value(data_point.sample_count)
+                else:
+                    result.timeseries[index][label] = process_value(
+                        data_point.data if data_point.data_present else None
+                    )
+                    result.confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+                    result.sampling_rate[index][label] = process_value(
+                        data_point.avg_sampling_rate if data_point.data_present else None
+                    )
+                    result.sample_count[index][label] = process_value(
+                        data_point.sample_count if data_point.data_present else None
+                    )
 
         return result
 
@@ -803,14 +816,14 @@ class RPCBase:
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
         for timeseries in rpc_response.result_timeseries:
-            processed = cls.process_timeseries_list([timeseries])
+            processed = cls.process_timeseries_list([timeseries], config)
             if len(result.timeseries) == 0:
                 result = processed
             else:
                 for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
                     for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
                         existing.update(new)
-        if len(result.timeseries) == 0:
+        if len(result.timeseries) == 0 and config.zerofill_timeseries:
             # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
             result.timeseries = zerofill(
                 [],
@@ -845,7 +858,7 @@ class RPCBase:
 
             if comp_rpc_response.result_timeseries:
                 timeseries = comp_rpc_response.result_timeseries[0]
-                processed = cls.process_timeseries_list([timeseries])
+                processed = cls.process_timeseries_list([timeseries], config)
                 for existing, new in zip(result.timeseries, processed.timeseries):
                     existing["comparisonCount"] = new[timeseries.label]
             else:
@@ -1060,7 +1073,7 @@ class RPCBase:
         for index, row in enumerate(top_events["data"]):
             result_key = create_result_key(row, groupby_columns, {})
             result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
-            result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key])
+            result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key], config)
             final_result[result_key] = SnubaTSResult(
                 {
                     "data": result.timeseries,
@@ -1076,7 +1089,7 @@ class RPCBase:
             )
         if include_other and other_response.result_timeseries:
             result = cls.process_timeseries_list(
-                [timeseries for timeseries in other_response.result_timeseries]
+                [timeseries for timeseries in other_response.result_timeseries], config
             )
             if check_timeseries_has_data(result.timeseries, y_axes):
                 final_result[OTHER_KEY] = SnubaTSResult(
@@ -1118,6 +1131,9 @@ class RPCBase:
         referrer: str,
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
+        attributes: list[AttributeKey] | None = None,
+        max_buckets: int = 75,
+        skip_translate_internal_to_public_alias: bool = False,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
 

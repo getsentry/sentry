@@ -3,12 +3,14 @@ from sentry.incidents.grouptype import (
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.data_packet import process_data_packet
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
 
 
@@ -130,6 +132,24 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         result = self.process_packet_and_return_result(data_packet)
         assert result is None
 
+    def test_event_data_environment(self) -> None:
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_subscription_packet(value)
+        results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+        evaluation_result = results[0][1][self.detector_group_key]
+        assert evaluation_result.event_data is not None
+        assert evaluation_result.event_data["environment"] == self.environment.name
+
+    def test_event_data_environment_unset(self) -> None:
+        self.snuba_query.environment = None
+        self.snuba_query.save()
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_subscription_packet(value)
+        results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+        evaluation_result = results[0][1][self.detector_group_key]
+        assert evaluation_result.event_data is not None
+        assert evaluation_result.event_data["environment"] is None
+
     def test_flipped_detector_trigger(self) -> None:
         self.warning_detector_trigger.delete()
         self.critical_detector_trigger.update(type=Condition.LESS)
@@ -216,6 +236,20 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             == f"Critical: Crash free session rate in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
+    def test_title_equation_aggregate(self) -> None:
+        self.snuba_query.aggregate = (
+            'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
+        )
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert (
+            title
+            == f'Critical: count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 in the last minute above {self.critical_detector_trigger.comparison}'
+        )
+
     def test_dynamic_alert_title(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})
         self.snuba_query.aggregate = "count_unique(user)"
@@ -244,6 +278,19 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             priority=self.critical_detector_trigger.condition_result,
         )
         assert title == "Detected an anomaly in the query for default_aggregate"
+
+    def test_dynamic_alert_title_equation(self) -> None:
+        self.detector.config.update({"detection_type": "dynamic"})
+        self.snuba_query.aggregate = (
+            'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
+        )
+        self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for eap_metrics"
 
 
 class TestGetAnomalyDetectionIssueTitle(TestCase):
@@ -349,6 +396,13 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
         assert (
             get_alert_type_from_aggregate_dataset(
                 "count(metric.name,metric_name_two,distribution,-)",
+                Dataset.EventsAnalyticsPlatform,
+            )
+            == "eap_metrics"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2',
                 Dataset.EventsAnalyticsPlatform,
             )
             == "eap_metrics"

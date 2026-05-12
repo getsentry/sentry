@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -54,6 +56,11 @@ function UnstyledSettingsPageHeader({
           title && <Layout.Title>{title}</Layout.Title>
         )}
         {action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
+        {subtitle && (
+          <Flex marginBottom="xl" width="100%">
+            <Subtitle hasPageFrame>{subtitle}</Subtitle>
+          </Flex>
+        )}
         {body && <BodyWrapper>{body}</BodyWrapper>}
         {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
       </Fragment>
@@ -94,7 +101,8 @@ const Title = styled('div')<{styled?: boolean}>`
   margin: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl}
     ${p => p.theme.space['2xl']} 0;
 `;
-const Subtitle = styled('div')`
+const Subtitle = styled('div')<{hasPageFrame?: boolean}>`
+  ${p => p.hasPageFrame && 'width: 100%;'}
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};

@@ -1,35 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  useBulkMutateSelectedAgent,
-  useFetchAgentOptions,
-} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 describe('seerPreferredAgent', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
   const project = ProjectFixture({slug: 'project-slug', id: '1'});
-
-  const integrations: CodingAgentIntegration[] = [
-    {id: '42', name: 'Cursor', provider: 'cursor'},
-    {id: '99', name: 'Claude Code', provider: 'claude_code'},
-  ];
-
-  function mockIntegrationsEndpoint(
-    body: {integrations: CodingAgentIntegration[]} = {integrations}
-  ) {
-    return MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      method: 'GET',
-      body,
-    });
-  }
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
@@ -39,65 +21,6 @@ describe('seerPreferredAgent', () => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     ProjectsStore.reset();
-  });
-
-  describe('useFetchPreferredAgentOptions', () => {
-    it('includes "seer" as first option plus integration options', async () => {
-      mockIntegrationsEndpoint();
-
-      const {result} = renderHookWithProviders(useFetchAgentOptions, {
-        initialProps: {organization},
-        organization,
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      const options = result.current.data!;
-      expect(options).toHaveLength(3);
-      expect(options[0]).toEqual({value: 'seer', label: expect.any(String)});
-      expect(options[1]).toMatchObject({
-        value: {id: '42', name: 'Cursor'},
-        label: 'Cursor',
-      });
-      expect(options[2]).toMatchObject({
-        value: {id: '99', name: 'Claude Code'},
-        label: 'Claude Code',
-      });
-    });
-
-    it('filters out integrations without an id', async () => {
-      mockIntegrationsEndpoint({
-        integrations: [
-          {id: null, name: 'No Id', provider: 'other'},
-          {id: '1', name: 'With Id', provider: 'cursor'},
-        ],
-      });
-
-      const {result} = renderHookWithProviders(useFetchAgentOptions, {
-        initialProps: {organization},
-        organization,
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      const options = result.current.data!;
-      expect(options).toHaveLength(2); // seer + one integration
-      expect(options[1]).toMatchObject({
-        value: {id: '1', name: 'With Id'},
-        label: 'With Id',
-      });
-    });
-
-    it('returns only "seer" when there are no integrations', async () => {
-      mockIntegrationsEndpoint({integrations: []});
-
-      const {result} = renderHookWithProviders(useFetchAgentOptions, {
-        initialProps: {organization},
-        organization,
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(result.current.data).toHaveLength(1);
-      expect(result.current.data![0]).toEqual({value: 'seer', label: expect.any(String)});
-    });
   });
 
   describe('useBulkMutateSelectedAgent', () => {

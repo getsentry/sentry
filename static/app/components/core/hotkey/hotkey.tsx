@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {isMac as detectIsMac} from '@react-aria/utils';
 
 import {toArray} from 'sentry/utils/array/toArray';
 
@@ -28,12 +27,10 @@ interface HotkeyProps {
 }
 
 export function Hotkey({value, variant}: HotkeyProps) {
-  const isMac = detectIsMac();
-
   const keySets = toArray(value).map(v => v.trim().split('+'));
 
   // Resolve glyphs for each key set
-  const resolved = keySets.map(keys => keys.map(key => resolveKeyGlyph(key, isMac)));
+  const resolved = keySets.map(keys => keys.map(key => resolveKeyGlyph(key)));
 
   // If multiple combos provided, prefer the first one.
   // (With auto platform mapping, a single string works cross-platform,
@@ -46,9 +43,15 @@ export function Hotkey({value, variant}: HotkeyProps) {
 
   return (
     <WrapperKbd variant={variant}>
-      {finalKeys.map((glyph, i) => (
-        <StyledKbd key={i}>{glyph}</StyledKbd>
-      ))}
+      {finalKeys.map((glyph, i) =>
+        'icon' in glyph ? (
+          <StyledKbd key={i} aria-label={glyph.label}>
+            {glyph.icon}
+          </StyledKbd>
+        ) : (
+          <StyledKbd key={i}>{glyph.label}</StyledKbd>
+        )
+      )}
     </WrapperKbd>
   );
 }
@@ -59,15 +62,17 @@ const WrapperKbd = styled(Kbd)`
 `;
 
 const StyledKbd = styled('kbd')`
+  scale: 0.9;
   color: inherit;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin: 0;
+  padding: 0;
   font-family: inherit;
   font-size: inherit;
   background: none;
   border: 0;
-  border-radius: ${p => p.theme.radius['2xs']};
+  border-radius: 0;
   box-shadow: none;
 `;

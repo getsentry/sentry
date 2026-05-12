@@ -198,4 +198,11 @@ describe('ApiNewToken', () => {
 
     await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalled());
   });
+
+  it('does not render CI-only permissions for personal tokens', () => {
+    render(<ApiNewToken />);
+    expect(
+      screen.queryByRole('checkbox', {name: 'Continuous Integration (CI)'})
+    ).not.toBeInTheDocument();
+  });
 });

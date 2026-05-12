@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -23,7 +24,6 @@ import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -53,12 +53,12 @@ export function BreadcrumbsDataSection({
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
-  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
   // Use the local storage preferences, but allow the drawer to do updates
-  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, _setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );

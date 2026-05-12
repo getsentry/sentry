@@ -12,6 +12,13 @@ import {
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
+// TODO: covers the legacy (non-EAP) path. useTransactionSummaryEAP now
+// always returns true after the flag graduated; mock back to false until
+// the legacy paths are deleted.
+jest.mock('sentry/views/performance/eap/useTransactionSummaryEAP', () => ({
+  useTransactionSummaryEAP: () => false,
+}));
+
 const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
   return render(<TransactionSummaryLayout />, {
     organization: data.organization,
@@ -144,6 +151,15 @@ const setupMockApiResponeses = () => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/tags/',
     body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    body: {data: []},
+    match: [
+      (_url, options) => {
+        return options.query?.dataset === 'spans';
+      },
+    ],
   });
 };
 

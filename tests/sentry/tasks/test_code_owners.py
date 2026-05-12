@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 from rest_framework.exceptions import NotFound
 from taskbroker_client.retry import RetryTaskError
 
@@ -75,6 +74,7 @@ class CodeOwnersTest(TestCase):
                 }
             ],
         }
+        assert code_owners.date_synced is None
 
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # delete external team mapping
@@ -86,6 +86,7 @@ class CodeOwnersTest(TestCase):
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
 
         assert code_owners.schema == {"$version": 1, "rules": []}
+        assert code_owners.date_synced is None
 
     @freeze_time("2023-01-01 00:00:00")
     @patch(
@@ -134,6 +135,8 @@ class CodeOwnersTest(TestCase):
             ],
         }
         assert code_owners.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
+        assert code_owners.date_synced is not None
+        assert code_owners.date_synced.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
@@ -303,16 +306,6 @@ class CodeOwnersTest(TestCase):
 
             mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
 
-    def test_codeowners_auto_sync_retries_on_missing_commit(self) -> None:
-        non_existent_commit_id = 999999999
-
-        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
-            with pytest.raises(RetryTaskError):
-                code_owners_auto_sync(non_existent_commit_id)
-
-        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
-        assert code_owners.raw == self.data["raw"]
-
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         side_effect=NotImplementedError("Integration does not support CODEOWNERS"),
@@ -356,6 +349,79 @@ class CodeOwnersTest(TestCase):
         assert code_owners.raw == original_raw
         # Notification should have been sent
         mock_send_email.assert_called_once_with()
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        return_value=LATEST_GITHUB_CODEOWNERS,
+    )
+    def test_codeowners_auto_sync_no_code_mappings(
+        self, mock_get_codeowner_file: MagicMock
+    ) -> None:
+        other_repo = Repository.objects.create(
+            name="other-repo",
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        )
+        commit = Commit.objects.create(
+            repository_id=other_repo.id,
+            organization_id=self.organization.id,
+            key="5678",
+            message="Other commit",
+        )
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            code_owners_auto_sync(commit.id)
+
+        mock_get_codeowner_file.assert_not_called()
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == self.data["raw"]
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        return_value=LATEST_GITHUB_CODEOWNERS,
+    )
+    def test_codeowners_auto_sync_disabled(self, mock_get_codeowner_file: MagicMock) -> None:
+        self.ownership.codeowners_auto_sync = False
+        self.ownership.save()
+
+        commit = self.create_commit(repo=self.repo)
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            code_owners_auto_sync(commit.id)
+
+        mock_get_codeowner_file.assert_not_called()
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == self.data["raw"]
+
+    @freeze_time("2023-01-01 00:00:00")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        return_value=LATEST_GITHUB_CODEOWNERS,
+    )
+    def test_codeowners_auto_sync_multiple_code_mappings(
+        self, mock_get_codeowner_file: MagicMock
+    ) -> None:
+        project2 = self.create_project(
+            organization=self.organization, teams=[self.team], slug="siberian"
+        )
+        code_mapping2 = self.create_code_mapping(
+            repo=self.repo,
+            project=project2,
+        )
+        ProjectOwnership.objects.create(
+            project=project2, auto_assignment=True, codeowners_auto_sync=True
+        )
+        self.create_codeowners(project2, code_mapping2, raw=self.data["raw"])
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            self.create_external_team()
+            self.create_external_user(external_name="@NisanthanNanthakumar")
+            commit = self.create_commit(repo=self.repo)
+            code_owners_auto_sync(commit.id)
+
+        for co in ProjectCodeOwners.objects.all():
+            assert co.raw == LATEST_GITHUB_CODEOWNERS["raw"]
+            assert co.date_synced is not None
 
     def test_build_associations_case_insensitive_matching(self) -> None:
         self.create_external_user(

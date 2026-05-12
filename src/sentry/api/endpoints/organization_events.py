@@ -5,6 +5,7 @@ from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +23,12 @@ from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
@@ -109,7 +115,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         feature_names = [
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
             "organizations:on-demand-metrics-extraction-experimental",
@@ -150,13 +155,14 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationEventsResponseDict", EventsApiResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
-            404: api_constants.RESPONSE_NOT_FOUND,
+            403: api_constants.RESPONSE_FORBIDDEN,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
@@ -172,7 +178,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         - The `meta` key contains information about the response, including the unit or type of the fields requested
         """
         if not self.has_feature(organization, request):
-            return Response(status=404)
+            return Response(
+                {
+                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         referrer = request.GET.get("referrer")
 
@@ -211,7 +222,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         save_discover_dataset_decision = True
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
@@ -495,6 +506,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
                 extrapolation_mode = self.get_extrapolation_mode(request)
 
+                disable_array_attributes = not features.has(
+                    "organizations:trace-item-details-array-fields",
+                    organization,
+                    actor=request.user,
+                )
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
@@ -502,6 +519,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
@@ -509,6 +527,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         use_aggregate_conditions=False,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -520,6 +539,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -528,6 +548,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
@@ -535,6 +556,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
+                    )
+                elif scoped_dataset == ProcessingErrors:
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProcessingErrors:
                     return SearchResolverConfig(
@@ -548,12 +578,14 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":

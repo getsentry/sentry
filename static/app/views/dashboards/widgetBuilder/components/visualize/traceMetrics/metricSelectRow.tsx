@@ -21,7 +21,41 @@ import {
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
+
+function getUpdatedAggregatesMultiMetric(
+  aggregateSource: Column[],
+  index: number,
+  newTraceMetric: TraceMetric
+): Column[] | undefined {
+  const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
+  const currentAggregateKey =
+    aggregateSource?.[index]?.kind === 'function'
+      ? aggregateSource[index].function[0]
+      : undefined;
+
+  if (!currentAggregateKey) {
+    return undefined;
+  }
+
+  const isValid = validAggregateOptions.some(opt => opt.value === currentAggregateKey);
+
+  const nextAggregateKey = isValid
+    ? currentAggregateKey
+    : ((DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+        validAggregateOptions[0]?.value) as AggregationKeyWithAlias);
+
+  if (!nextAggregateKey) {
+    return undefined;
+  }
+
+  const updatedAggregate = buildTraceMetricAggregate(nextAggregateKey, newTraceMetric);
+
+  const updatedAggregates = [...(aggregateSource ?? [])];
+  updatedAggregates[index] = updatedAggregate;
+
+  return updatedAggregates;
+}
 
 function getUpdatedAggregatesMultiMetric(
   aggregateSource: Column[],
@@ -84,6 +118,7 @@ export function MetricSelectRow({
       <MetricSelectorWrapper>
         <MetricSelector
           traceMetric={traceMetric}
+          usePortal
           onChange={newTraceMetric => {
             if (field.kind !== 'function' || !newTraceMetric) {
               return;

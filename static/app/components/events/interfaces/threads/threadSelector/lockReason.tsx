@@ -14,7 +14,7 @@ export function getLockReason(
     return undefined;
   }
 
-  const firstLock = values[0] as Lock;
+  const firstLock = values[0]!;
   if (!defined(firstLock)) {
     return undefined;
   }

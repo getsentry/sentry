@@ -64,8 +64,9 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === ASK_SEER_ITEM_KEY) {
-        trackAnalytics('trace.explorer.ai_query_interface', {
+        trackAnalytics('ai_query.interface', {
           organization,
+          area: analyticsArea,
           action: 'opened',
         });
         trackAnalytics('ai_query.interface', {
@@ -85,8 +86,9 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       }
 
       if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
-        trackAnalytics('trace.explorer.ai_query_interface', {
+        trackAnalytics('ai_query.interface', {
           organization,
+          area: analyticsArea,
           action: 'consent_accepted',
         });
         trackAnalytics('ai_query.interface', {

@@ -169,7 +169,7 @@ function CronEmptyState() {
             .map(({platform, label}) => (
               <Flex key={platform} direction="column" gap="xs" align="center">
                 <PlatformLinkButton
-                  priority="default"
+                  variant="secondary"
                   to={makeCreateUrl(platform)}
                   aria-label={t('Create %s Monitor', platform)}
                 >
@@ -252,7 +252,11 @@ export default function CronDetectorsList() {
           <InsightsRedirectNotice>
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
-          <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
+          <DetectorListHeader
+            detectorType="monitor_check_in_failure"
+            showTimeRangeSelector
+            showTypeFilter={false}
+          />
           <GlobalMonitorProcessingErrors project={selectedProjects} />
           <DetectorListContent
             isError={detectorListQuery.isError}

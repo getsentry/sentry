@@ -9,13 +9,21 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('CursorIntegrationCta', () => {
   const project = ProjectFixture();
-  const organization = OrganizationFixture({
-    features: ['integrations-cursor'],
+  const enabledProject = ProjectFixture({
+    ...project,
+    seerScannerAutomation: true,
+    autofixAutomationTuning: 'medium',
   });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${enabledProject.slug}/`,
+      body: enabledProject,
+    });
 
     // Default mock for seer preferences
     MockApiClient.addMockResponse({
@@ -32,28 +40,6 @@ describe('CursorIntegrationCta', () => {
       body: {
         integrations: [],
       },
-    });
-  });
-
-  describe('Feature Flag', () => {
-    it('does not render without integrations-cursor feature flag', () => {
-      const orgWithoutFlag = OrganizationFixture({
-        features: [],
-      });
-
-      const {container} = render(<CursorIntegrationCta project={project} />, {
-        organization: orgWithoutFlag,
-      });
-
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it('renders with integrations-cursor feature flag', async () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
-
-      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
     });
   });
 
@@ -113,7 +99,7 @@ describe('CursorIntegrationCta', () => {
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
       expect(docsLink).toHaveAttribute(
         'href',
-        'https://docs.sentry.io/organization/integrations/cursor/'
+        'https://docs.sentry.io/organization/integrations/coding-agents/cursor/'
       );
     });
   });
@@ -211,6 +197,10 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/`,
+        body: projectWithoutAutomation,
+      });
 
       const updatedProject = {
         ...projectWithoutAutomation,
@@ -295,6 +285,10 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
+      });
 
       const projectUpdateMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
@@ -377,6 +371,10 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/`,
+        body: projectWithoutAutomation,
+      });
 
       render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
         organization,
@@ -433,6 +431,31 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
+      });
+
+      render(<CursorIntegrationCta project={projectWithAutomation} />, {
+        organization,
+      });
+
+      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
+      expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set Seer to hand off to Cursor'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('treats missing scanner automation as enabled when tuning is enabled', async () => {
+      const projectWithAutomation = ProjectFixture({
+        autofixAutomationTuning: 'medium',
+      });
+      delete projectWithAutomation.seerScannerAutomation;
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
+      });
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
@@ -449,6 +472,10 @@ describe('CursorIntegrationCta', () => {
       const projectWithAutomation = ProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
       });
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {

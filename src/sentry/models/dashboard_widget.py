@@ -177,11 +177,9 @@ DiscoverFullFallbackWidgetType = [
 class DashboardWidgetDisplayTypes(TypesClass):
     LINE_CHART = 0
     AREA_CHART = 1
-    STACKED_AREA_CHART = 2
     BAR_CHART = 3
     TABLE = 4
     BIG_NUMBER = 6
-    TOP_N = 7
     DETAILS = 8
     CATEGORICAL_BAR_CHART = 9
     WHEEL = 10
@@ -192,11 +190,9 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
-        (STACKED_AREA_CHART, "stacked_area"),
         (BAR_CHART, "bar"),
         (TABLE, "table"),
         (BIG_NUMBER, "big_number"),
-        (TOP_N, "top_n"),
         (DETAILS, "details"),
         (CATEGORICAL_BAR_CHART, "categorical_bar"),
         (WHEEL, "wheel"),
@@ -213,7 +209,6 @@ class DashboardWidgetDisplayTypes(TypesClass):
     # widgets should not be created with these, but existing widgets remain
     # editable.
     DEPRECATED_TYPES: list[int] = [STACKED_AREA_CHART, TOP_N]
-
 
 @cell_silo_model
 class DashboardWidgetQuery(Model):

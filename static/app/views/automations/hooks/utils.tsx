@@ -22,7 +22,7 @@ export function getAutomationActions(automation: Automation): ActionType[] {
         .flatMap(dataConditionGroup =>
           dataConditionGroup.actions?.map(action => action.type)
         )
-        .filter(x => x)
+        .filter(Boolean)
     ),
   ] as ActionType[];
 }
@@ -65,7 +65,7 @@ export function useAutomationProjectSlugs(automation: Automation) {
   });
 
   const projectIds = [
-    ...new Set(detectors?.map(detector => detector.projectId).filter(defined) ?? []),
+    ...new Set(detectors?.map(detector => detector.projectId).filter(defined)),
   ];
 
   const projectSlugs = projectIds

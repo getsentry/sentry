@@ -89,7 +89,7 @@ function UpgradeNowModal({
       <Header>{t('Get to the root cause of an error faster')}</Header>
       <p>
         {t(
-          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occured.'
+          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occurred.'
         )}
       </p>
       <CTAPanel>
@@ -97,7 +97,7 @@ function UpgradeNowModal({
           <CTAPrimary>{t('500 replays')}</CTAPrimary>
           <CTASecondary>{t('at no additional cost')}</CTASecondary>
         </div>
-        <Button priority="primary" onClick={onUpdatePlan}>
+        <Button variant="primary" onClick={onUpdatePlan}>
           {t('Enable Now')}
         </Button>
       </CTAPanel>

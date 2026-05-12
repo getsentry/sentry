@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {useApi} from 'sentry/utils/useApi';

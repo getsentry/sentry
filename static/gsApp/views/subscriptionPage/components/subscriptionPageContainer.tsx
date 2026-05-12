@@ -21,7 +21,9 @@ export function SubscriptionPageContainer({
   return (
     <Container
       background={hasPageFrame ? 'primary' : background}
-      borderTop={background === 'secondary' ? 'primary' : undefined}
+      borderTop={
+        hasPageFrame ? undefined : background === 'secondary' ? 'primary' : undefined
+      }
       flexGrow={1}
       padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : {xs: 'xl', md: '3xl'}}
       {...rest}

@@ -8,7 +8,7 @@ export function filterProjects(rawProjects: Project[]) {
   // filter on projects that have not sent a first transaction event
   const projectsWithoutFirstTransactionEvent = rawProjects.filter(
     p =>
-      p.firstTransactionEvent === false &&
+      !p.firstTransactionEvent &&
       (!p.platform || !withoutPerformanceSupport.has(p.platform))
   );
 

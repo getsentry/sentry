@@ -679,12 +679,16 @@ function setUpMocks(
     url: `/customers/${organization.slug}/integrations/`,
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/audit-logs/`,
+    body: {rows: [], filters: {}},
+  });
 }
 
 describe('Customer Details', () => {
   const {organization} = initializeOrg();
 
-  const mockUser = UserFixture({permissions: new Set([])});
+  const mockUser = UserFixture({permissions: new Set()});
   ConfigStore.loadInitialData(ConfigFixture({user: mockUser}));
 
   afterEach(() => {
@@ -1276,7 +1280,7 @@ describe('Customer Details', () => {
         screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
-      expect(screen.getByTestId('changeSoftCap')).toHaveAttribute(
+      expect(await screen.findByTestId('changeSoftCap')).toHaveAttribute(
         'aria-disabled',
         'true'
       );

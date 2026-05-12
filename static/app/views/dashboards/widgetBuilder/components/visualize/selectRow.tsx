@@ -201,6 +201,7 @@ export function SelectRow({
         options={sortSelectedFirst(aggregateValue, aggregateOptions)}
         value={aggregateValue}
         position="bottom-start"
+        menuMinWidth={300}
         onChange={dropdownSelection => {
           const isNone = dropdownSelection.value === NONE;
           let newFields = cloneDeep(fields);

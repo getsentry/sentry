@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
@@ -12,12 +14,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -53,7 +50,7 @@ export function SentryAppDetails() {
     onSuccess: updatedData => {
       addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
       clearIndicators();
-      setApiQueryData<any>(queryClient, [ENDPOINT], updatedData);
+      setApiQueryData(queryClient, [ENDPOINT], updatedData);
     },
     onError: () => {
       addErrorMessage('There was an internal error with updating the resource.');
@@ -93,6 +90,20 @@ export function SentryAppDetails() {
       publishingAction = undefined;
   }
 
+  const disableAction: ActionItem = data.isDisabled
+    ? {
+        key: 'enable',
+        name: 'Enable App',
+        help: 'Re-enables this Sentry App',
+        onAction: () => onUpdateMutation.mutate({isDisabled: false}),
+      }
+    : {
+        key: 'disable',
+        name: 'Disable App',
+        help: 'Disables this Sentry App, blocking all API access and webhook delivery',
+        onAction: () => onUpdateMutation.mutate({isDisabled: true}),
+      };
+
   const updateDetailsAction = {
     key: 'update-details',
     name: 'Update Details',
@@ -110,8 +121,8 @@ export function SentryAppDetails() {
 
   const actions =
     publishingAction === undefined
-      ? [updateDetailsAction]
-      : [updateDetailsAction, publishingAction];
+      ? [updateDetailsAction, disableAction]
+      : [updateDetailsAction, publishingAction, disableAction];
   const sentryAppBadgeLevel: Partial<Record<string, NonNullable<BadgeItem['level']>>> = {
     unpublished: 'danger',
     internal: 'warning',
@@ -127,6 +138,7 @@ export function SentryAppDetails() {
           <Link to={`/_admin/customers/${data.owner.slug}/`}>{data.owner.slug}</Link>
         </DetailLabel>
         <DetailLabel title="isAlertable" yesNo={data.isAlertable} />
+        <DetailLabel title="Enabled" yesNo={!data.isDisabled} />
         <DetailLabel title="Popularity">{data.popularity}</DetailLabel>
         <DetailLabel title="Scopes">
           {data.scopes.map((scope: any) => (
@@ -166,6 +178,7 @@ export function SentryAppDetails() {
           name: data.status,
           level: sentryAppBadgeLevel[data.status] ?? 'success',
         },
+        ...(data.isDisabled ? [{name: 'disabled', level: 'danger' as const}] : []),
       ]}
       actions={actions}
       sections={[{content: overview}]}

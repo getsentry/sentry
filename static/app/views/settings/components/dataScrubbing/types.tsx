@@ -82,7 +82,7 @@ type RuleReplace = RuleBase & {
   placeholder?: string;
 } & Pick<RuleDefault, 'type'>;
 
-export type KeysOfUnion<T> = T extends any ? keyof T : never;
+type KeysOfUnion<T> = T extends any ? keyof T : never;
 
 type RuleReplaceAndPattern = Omit<RulePattern, 'method'> & Omit<RuleReplace, 'type'>;
 

@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
-import type {FlexProps} from '@sentry/scraps/layout';
+import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
-interface ViewportConstrainedPageProps extends FlexProps<'main'> {
+interface ViewportConstrainedPageProps extends FlexProps {
   constrained?: boolean;
   hideFooter?: boolean;
 }
@@ -14,9 +13,7 @@ interface ViewportConstrainedPageProps extends FlexProps<'main'> {
  * A page layout that constrains itself to the viewport height to prevent
  * window-level scrolling. Uses CSS size containment so that the page's
  * intrinsic size doesn't bubble up through the flex chain — the flex
- * algorithm sizes it to exactly the remaining space after siblings
- * (TopBar, Footer, etc.), and content within must manage its own
- * overflow (e.g. via scrollable table bodies).
+ * algorithm sizes it to exactly the remaining space after siblings.
  *
  * When constrained, the global footer sibling is hidden on smaller
  * viewport heights and when `hideFooter` is set.
@@ -27,11 +24,12 @@ export function ViewportConstrainedPage({
   ...rest
 }: ViewportConstrainedPageProps) {
   if (!constrained) {
-    return <Layout.Page {...rest} />;
+    return <Stack flex="1" {...rest} />;
   }
 
   return (
     <ConstrainedPage
+      flex="1"
       minHeight="0"
       overflow="hidden"
       data-hide-footer={hideFooter ? '' : undefined}
@@ -40,8 +38,9 @@ export function ViewportConstrainedPage({
   );
 }
 
-const ConstrainedPage = styled(Layout.Page)`
+const ConstrainedPage = styled(Stack)`
   contain: size;
+  overflow-y: auto;
 
   @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
     ~ footer {

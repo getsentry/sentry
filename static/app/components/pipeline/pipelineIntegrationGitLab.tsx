@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {CodeBlock} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -224,9 +225,12 @@ function InstallationConfigStep({
           <Stack gap="xs">
             <Text density="comfortable">
               {tct(
-                'Navigate to [bold:User Settings \u203A Access \u203A Applications] in GitLab.',
+                'Navigate to [bold:[link:User Settings \u203A Access \u203A Applications]] in GitLab.',
                 {
                   bold: <strong />,
+                  link: (
+                    <ExternalLink href="https://gitlab.com/-/user_settings/applications" />
+                  ),
                 }
               )}
             </Text>

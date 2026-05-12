@@ -10,7 +10,7 @@
 //   node scripts/routes.ts --origin https://sentry.io --orgId sentry
 //   node scripts/routes.ts --all
 //
-// ─── AGENT MAINTENANCE GUIDE ─────────────────────────────────────────────────
+// AGENT MAINTENANCE GUIDE
 //
 // HOW THE PARSER WORKS
 //   This script reads static/app/router/routes.tsx line by line and builds full
@@ -73,8 +73,7 @@
 //   Used when --defaults is passed.  If a new :param appears in routes.tsx
 //   that isn't in PARAM_DEFAULTS, it will remain unresolved.  Add it with any
 //   realistic value (fixture IDs, slugs, etc. from tests/js/fixtures/).
-//
-// ─────────────────────────────────────────────────────────────────────────────
+
 import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';

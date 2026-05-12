@@ -48,9 +48,7 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentTrigger,
     IncidentType,
-    TriggerStatus,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -109,7 +107,6 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
-from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -245,12 +242,6 @@ def update_incident_status(
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-
-        if status == IncidentStatus.CLOSED and (
-            status_method == IncidentStatusMethod.MANUAL
-            or status_method == IncidentStatusMethod.RULE_UPDATED
-        ):
-            _trigger_incident_triggers(incident)
 
         return incident
 
@@ -472,10 +463,6 @@ def get_metric_issue_aggregates(
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]
-
-
-def get_incident_activity(incident: Incident) -> Iterable[IncidentActivity]:
-    return IncidentActivity.objects.filter(incident=incident).select_related("incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
@@ -701,7 +688,7 @@ def subscribe_projects_to_alert_rule(
     alert_rule: AlertRule,
     projects: Iterable[Project],
     query_extra: str | None = None,
-):
+) -> list[QuerySubscription]:
     """
     Subscribes a list of projects to an alert rule
     :return: The list of created subscriptions
@@ -1094,15 +1081,33 @@ def enable_disable_subscriptions(
         bulk_disable_snuba_subscriptions(query_subscriptions)
 
 
-def update_detector(detector: Detector, enabled: bool) -> None:
+def update_detector_status(detector: Detector, enabled: bool) -> None:
+    """
+    Updates the status of a detector and the associated query subscriptions.
+
+    This is used to toggle whether a metric Detector is allowed for the owning
+    organization, and manages the associated subscription state.
+
+    This is separate from Detector.enabled, which is for snoozing.
+    """
     with transaction.atomic(router.db_for_write(Detector)):
-        toggle_detector(detector, enabled)
+        target_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+        detector.update(status=target_status)
 
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
             enable_disable_subscriptions(query_subscriptions, enabled)
+        # TODO: Determine whether there was work to be done, and return the result
+        # as a boolean.
+
+
+def update_detector(detector: Detector, enabled: bool) -> None:
+    """
+    Temporary alias for update_detector_status to ease cross-repo changes.
+    """
+    update_detector_status(detector, enabled)
 
 
 def delete_alert_rule(
@@ -1227,43 +1232,6 @@ def delete_alert_rule_trigger(trigger: AlertRuleTrigger) -> None:
 
 def get_triggers_for_alert_rule(alert_rule: AlertRule) -> QuerySet[AlertRuleTrigger]:
     return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-
-
-def _trigger_incident_triggers(incident: Incident) -> None:
-    incident_triggers = IncidentTrigger.objects.filter(incident=incident)
-    triggers = get_triggers_for_alert_rule(incident.alert_rule)
-    actions = deduplicate_trigger_actions(triggers=list(triggers))
-    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
-        for trigger in incident_triggers:
-            trigger.status = TriggerStatus.RESOLVED.value
-            trigger.save()
-
-        for action in actions:
-            for project in incident.projects.all():
-                _schedule_trigger_action(
-                    action_id=action.id,
-                    incident_id=incident.id,
-                    project_id=project.id,
-                    method="resolve",
-                    new_status=IncidentStatus.CLOSED.value,
-                )
-
-
-def _schedule_trigger_action(
-    action_id: int, incident_id: int, project_id: int, method: str, new_status: int
-) -> None:
-    from sentry.incidents.tasks import handle_trigger_action
-
-    transaction.on_commit(
-        lambda: handle_trigger_action.delay(
-            action_id=action_id,
-            incident_id=incident_id,
-            project_id=project_id,
-            method=method,
-            new_status=new_status,
-        ),
-        using=router.db_for_write(AlertRuleTrigger),
-    )
 
 
 def _sort_by_priority_list(
@@ -1420,8 +1388,8 @@ def update_alert_rule_trigger_action(
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
-    input_channel_id=None,
-    sentry_app_config=None,
+    input_channel_id: str | None = None,
+    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
     priority: str | None = None,
@@ -2050,14 +2018,10 @@ def schedule_update_project_config(
     """
     enabled_features = on_demand_metrics_feature_flags(_unpack_organization(alert_rule))
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    prefilling_for_deprecation = (
-        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-    )
     if (
         not projects
         or "organizations:on-demand-metrics-extraction" not in enabled_features
         and not prefilling
-        and not prefilling_for_deprecation
     ):
         return
 
@@ -2068,7 +2032,7 @@ def schedule_update_project_config(
         alert_snuba_query.query,
         None,
         prefilling,
-        prefilling_for_deprecation=prefilling_for_deprecation,
+        prefilling_for_deprecation=False,
     )
     if should_use_on_demand:
         for project in projects:

@@ -1,9 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData} from '@tanstack/react-query';
 
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {keepPreviousData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
@@ -28,7 +28,7 @@ type GroupEventAttachmentsTypeFilter =
   | 'event.applecrashreport'
   | 'event.screenshot';
 
-interface GroupEventAttachmentsQuery {
+type GroupEventAttachmentsQuery = {
   cursor?: string;
   end?: DateString;
   environment?: string[] | string;
@@ -38,7 +38,7 @@ interface GroupEventAttachmentsQuery {
   start?: DateString;
   statsPeriod?: string;
   types?: GroupEventAttachmentsTypeFilter | GroupEventAttachmentsTypeFilter[];
-}
+};
 
 export interface FetchGroupEventAttachmentsApiOptionsParams {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';

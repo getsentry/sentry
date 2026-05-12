@@ -19,7 +19,6 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.utils.http import absolute_uri

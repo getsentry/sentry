@@ -9,6 +9,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
@@ -17,6 +18,7 @@ from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleWorkflow,
     Condition,
     DataConditionGroup,
     DataConditionGroupAction,
@@ -873,6 +875,23 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         with outbox_runner():
             response = self.get_error_response(self.organization.slug, workflow.id)
             assert response.status_code == 404
+
+    def test_delete_dual_written_workflow_cleans_up_rule(self) -> None:
+        rule = self.create_project_rule(project=self.project)
+        self.create_alert_rule_workflow(
+            rule_id=rule.id,
+            workflow=self.workflow,
+        )
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.workflow.id)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects_for_deletion.filter(id=self.workflow.id).exists()
+        assert not Rule.objects.filter(id=rule.id).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
 
 
 @cell_silo_test

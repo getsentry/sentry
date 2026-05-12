@@ -46,6 +46,9 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
+    PreprodSnapshotComparison,
+    PreprodSnapshotMetrics,
 )
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -952,6 +955,32 @@ class Fixtures:
             head_size_analysis=head_size_analysis,
             base_size_analysis=base_size_analysis,
             **kwargs,
+        )
+
+    def create_preprod_snapshot_metrics(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodSnapshotMetrics:
+        return Factories.create_preprod_snapshot_metrics(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
+
+    def create_preprod_snapshot_comparison(
+        self,
+        head_snapshot_metrics: PreprodSnapshotMetrics,
+        base_snapshot_metrics: PreprodSnapshotMetrics,
+        **kwargs,
+    ) -> PreprodSnapshotComparison:
+        return Factories.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_snapshot_metrics,
+            base_snapshot_metrics=base_snapshot_metrics,
+            **kwargs,
+        )
+
+    def create_preprod_comparison_approval(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodComparisonApproval:
+        return Factories.create_preprod_comparison_approval(
+            preprod_artifact=preprod_artifact, **kwargs
         )
 
     def create_preprod_build_configuration(

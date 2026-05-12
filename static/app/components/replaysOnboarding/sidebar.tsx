@@ -8,11 +8,11 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';

@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -31,6 +32,7 @@ export function useSimilarIssuesDrawer({
       project_id: project.id,
     });
     openDrawer(() => <SimilarIssuesDrawer group={group} project={project} />, {
+      drawerKey: 'similar-issues-drawer',
       ariaLabel: t('Similar Issues'),
       shouldCloseOnInteractOutside: () => false,
       onClose: () => {

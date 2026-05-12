@@ -24,16 +24,22 @@ LAZY_OBJECT_KEY = "lazyobjectrpcuser"
 MODEL_KEY = "model"
 
 
+def _serialize_value(v: Any) -> Any:
+    """Recursively convert values to JSON-serializable types."""
+    if isinstance(v, datetime):
+        return v.isoformat()
+    if isinstance(v, frozenset):
+        return [_serialize_value(item) for item in v]
+    if isinstance(v, list):
+        return [_serialize_value(item) for item in v]
+    if isinstance(v, dict):
+        return {k: _serialize_value(val) for k, val in v.items()}
+    return v
+
+
 def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
     raw_data = arg.dict()  # type: ignore[attr-defined]
-    parsed_data = {}
-    for k, v in raw_data.items():
-        if isinstance(v, datetime):
-            v = v.isoformat()
-        if isinstance(v, frozenset):
-            v = list(v)
-
-        parsed_data[k] = v
+    parsed_data = {k: _serialize_value(v) for k, v in raw_data.items()}
 
     return {
         "type": LAZY_OBJECT_KEY,

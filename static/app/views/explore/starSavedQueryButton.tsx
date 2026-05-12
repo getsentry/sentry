@@ -72,9 +72,13 @@ export function StarSavedQueryButton() {
   if (isLoading || !locationId) {
     return null;
   }
+
+  const label = isStarred ? t('Unstar') : t('Star');
+
   return (
     <Button
-      aria-label={isStarred ? t('Unstar') : t('Star')}
+      tooltipProps={{title: label}}
+      aria-label={label}
       icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={() => debouncedOnClick(locationId, !isStarred)}

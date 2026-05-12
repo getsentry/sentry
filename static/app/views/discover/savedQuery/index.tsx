@@ -74,13 +74,13 @@ const renderDisabled = (p: any) => (
 type SaveAsDropdownProps = {
   disabled: boolean;
   modifiedHandleCreateQuery: (
-    e: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
+    e: React.MouseEvent | React.FormEvent<HTMLFormElement>
   ) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
 };
 
-function SaveAsDropdown({
+export function SaveAsDropdown({
   queryName,
   disabled,
   onChangeInput,
@@ -96,11 +96,11 @@ function SaveAsDropdown({
       <Button
         {...triggerProps}
         size="sm"
-        icon={<IconStar />}
+        variant="primary"
         aria-label={t('Save as')}
         disabled={disabled}
       >
-        {`${t('Save as')}\u2026`}
+        {t('Save as')}
       </Button>
       <AnimatePresence>
         {isOpen && (
@@ -120,7 +120,7 @@ function SaveAsDropdown({
                     <SaveAsButton
                       type="submit"
                       onClick={modifiedHandleCreateQuery}
-                      priority="primary"
+                      variant="primary"
                       disabled={disabled || !queryName}
                     >
                       {t('Save for Organization')}
@@ -160,6 +160,7 @@ type Props = DefaultProps & {
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  hasPageFrameFeature?: boolean;
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
 };
@@ -256,9 +257,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
    * 1) Creating a query from scratch and saving it
    * 2) Modifying an existing query and saving it
    */
-  handleCreateQuery = (
-    event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
-  ) => {
+  handleCreateQuery = (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -286,7 +285,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   };
 
-  handleUpdateQuery = (event: React.MouseEvent<Element>) => {
+  handleUpdateQuery = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -304,7 +303,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   };
 
-  handleDeleteQuery = (event?: React.MouseEvent<Element>) => {
+  handleDeleteQuery = (event?: React.MouseEvent) => {
     event?.preventDefault();
     event?.stopPropagation();
 
@@ -608,7 +607,15 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, eventView, savedQuery, yAxis, location, isHomepage} = this.props;
+    const {
+      organization,
+      eventView,
+      savedQuery,
+      yAxis,
+      location,
+      isHomepage,
+      hasPageFrameFeature,
+    } = this.props;
 
     const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
@@ -685,13 +692,17 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar>
-        {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
-        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
-        <Feature organization={organization} features="incidents">
-          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
-        </Feature>
+        {!hasPageFrameFeature &&
+          this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
+        {!hasPageFrameFeature &&
+          this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        {!hasPageFrameFeature && (
+          <Feature organization={organization} features="incidents">
+            {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+          </Feature>
+        )}
 
-        {contextMenuItems.length > 0 && contextMenu}
+        {!hasPageFrameFeature && contextMenuItems.length > 0 && contextMenu}
 
         {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
       </ResponsiveButtonBar>
@@ -715,7 +726,7 @@ const SaveAsButton = styled(Button)`
   width: 100%;
 `;
 
-const IconUpdate = styled('div')`
+export const IconUpdate = styled('div')`
   display: inline-block;
   width: 10px;
   height: 10px;

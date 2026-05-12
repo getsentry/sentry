@@ -136,13 +136,31 @@ export function isSentryApp(
 export function isPlugin(
   integration: AppOrProviderOrPlugin
 ): integration is PluginWithProjectList {
-  return integration.hasOwnProperty('shortName');
+  return Object.hasOwn(integration, 'shortName');
 }
 
 export function isDocIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocIntegration {
-  return integration.hasOwnProperty('isDraft');
+  return Object.hasOwn(integration, 'isDraft');
+}
+
+/**
+ * True when the provider exposes the `commits` feature gate, which is the
+ * canonical marker for source-code-management integrations (GitHub, GitLab,
+ * Bitbucket, Azure DevOps, and their enterprise/server variants).
+ */
+export function isScmProvider(provider: IntegrationProvider): boolean {
+  return provider.metadata.features.some(f => f.featureGate.includes('commits'));
+}
+
+/**
+ * True when the plugin declares the `commits` feature gate. The legacy GitHub
+ * and Bitbucket plugins both declare this, so they must not be reported as
+ * non-SCM to analytics.
+ */
+export function isScmPlugin(plugin: PluginNoProject): boolean {
+  return plugin.features.includes('commits');
 }
 
 /**
@@ -166,7 +184,7 @@ export function isScmPlugin(plugin: PluginNoProject): boolean {
 export function isExternalActorMapping(
   mapping: ExternalActorMappingOrSuggestion
 ): mapping is ExternalActorMapping {
-  return mapping.hasOwnProperty('id');
+  return Object.hasOwn(mapping, 'id');
 }
 
 export const getIntegrationType = (
@@ -204,7 +222,7 @@ export const safeGetQsParam = (param: string) => {
     const query = qs.parse(window.location.search) || {};
     return query[param];
   } catch {
-    return undefined;
+    return;
   }
 };
 

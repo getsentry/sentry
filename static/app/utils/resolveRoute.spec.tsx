@@ -96,7 +96,7 @@ describe('resolveRoute', () => {
   });
 
   it('should use path slugs when switching orgs without multi-region', () => {
-    ConfigStore.set('features', new Set([]));
+    ConfigStore.set('features', new Set());
     ConfigStore.set('customerDomain', null);
 
     const result = resolveRoute(
