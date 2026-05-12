@@ -409,7 +409,7 @@ def _unfurl_explore(
             params.setlist("yAxis", y_axes)
 
         display_type = _resolve_display_type(chart_type, y_axes)
-        if display_type is None:
+        if display_type not in SUPPORTED_DISPLAY_TYPES:
             continue
 
         group_bys = params.getlist("groupBy")
@@ -491,17 +491,17 @@ SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
 _BAR_AGGREGATES = {"count", "count_unique", "sum"}
 
 
-def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str | None:
-    """Return the display type string for the chart, or ``None`` when the
-    resolved type isn't supported by the unfurl renderer.
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
+    """Return the display type string for the chart.
 
     Uses the explicit chartType from the URL when present, otherwise mirrors
     the frontend's ``determineDefaultChartType`` logic which maps
     count/count_unique/sum aggregates to bar and everything else to line.
+    Unknown chartType values pass through as ``"unknown"`` so the caller can
+    decide how to handle them (see ``SUPPORTED_DISPLAY_TYPES``).
     """
     if chart_type is not None:
-        resolved = CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type)
-        return resolved if resolved in SUPPORTED_DISPLAY_TYPES else None
+        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "unknown")
 
     for y_axis in y_axes:
         func_name = y_axis.split("(")[0] if "(" in y_axis else ""
