@@ -1,15 +1,10 @@
 import {Fragment} from 'react';
-import {
-  skipToken,
-  useMutation,
-  useQuery,
-  type UseMutationResult,
-} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {LinkButton} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -152,7 +147,23 @@ function ApplyCodeMappings({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      if (!value.codeMappingId || !codeownersFile) {
+        return;
+      }
+      return mutation
+        .mutateAsync({codeMappingId: value.codeMappingId, raw: codeownersFile.raw})
+        .then(data => {
+          const codeMapping = codeMappings.find(cm => cm.id === value.codeMappingId);
+          onSave?.({...data, codeMapping});
+          closeModal();
+        })
+        .catch(() => {});
+    },
   });
+
+  const codeMappingId = useStore(form.store, state => state.values.codeMappingId);
+  const {data: codeownersFile} = useCodeownersFile(organization, codeMappingId);
 
   return (
     <form.AppForm form={form}>
@@ -174,32 +185,18 @@ function ApplyCodeMappings({
             )}
           </form.AppField>
 
-          <form.Subscribe selector={state => state.values.codeMappingId}>
-            {codeMappingId => (
-              <CodeownersFileStatus
-                codeMappingId={codeMappingId}
-                codeMappings={codeMappings}
-                organization={organization}
-                mutationError={mutation.error}
-                mutationIsError={mutation.isError}
-              />
-            )}
-          </form.Subscribe>
+          <CodeownersFileStatus
+            codeMappingId={codeMappingId}
+            codeMappings={codeMappings}
+            codeownersFile={codeownersFile}
+            organization={organization}
+            mutationError={mutation.error}
+            mutationIsError={mutation.isError}
+          />
         </Stack>
       </Body>
       <Footer>
-        <form.Subscribe selector={state => state.values.codeMappingId}>
-          {codeMappingId => (
-            <AddFileButton
-              codeMappingId={codeMappingId}
-              codeMappings={codeMappings}
-              organization={organization}
-              mutation={mutation}
-              onSave={onSave}
-              closeModal={closeModal}
-            />
-          )}
-        </form.Subscribe>
+        <form.SubmitButton disabled={!codeownersFile}>{t('Add File')}</form.SubmitButton>
       </Footer>
     </form.AppForm>
   );
@@ -222,17 +219,18 @@ function useCodeownersFile(organization: Organization, codeMappingId: string | n
 function CodeownersFileStatus({
   codeMappingId,
   codeMappings,
+  codeownersFile,
   organization,
   mutationError,
   mutationIsError,
 }: {
   codeMappingId: string | null;
   codeMappings: RepositoryProjectPathConfig[];
+  codeownersFile: CodeownersFile | undefined;
   mutationError: RequestError | null;
   mutationIsError: boolean;
   organization: Organization;
 }) {
-  const {data: codeownersFile} = useCodeownersFile(organization, codeMappingId);
   const rawError = mutationError?.responseJSON?.raw;
   const firstRawError =
     Array.isArray(rawError) && typeof rawError[0] === 'string' ? rawError[0] : undefined;
@@ -255,50 +253,6 @@ function CodeownersFileStatus({
         />
       ) : null}
     </Fragment>
-  );
-}
-
-function AddFileButton({
-  codeMappingId,
-  codeMappings,
-  organization,
-  mutation,
-  onSave,
-  closeModal,
-}: {
-  closeModal: ModalRenderProps['closeModal'];
-  codeMappingId: string | null;
-  codeMappings: RepositoryProjectPathConfig[];
-  mutation: UseMutationResult<
-    CodeOwner,
-    RequestError,
-    {codeMappingId: string; raw: string}
-  >;
-  onSave: ((data: CodeOwner) => void) | undefined;
-  organization: Organization;
-}) {
-  const {data: codeownersFile} = useCodeownersFile(organization, codeMappingId);
-
-  const addFile = () => {
-    if (!codeownersFile || !codeMappingId) {
-      return;
-    }
-    mutation.mutate(
-      {codeMappingId, raw: codeownersFile.raw},
-      {
-        onSuccess: data => {
-          const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
-          onSave?.({...data, codeMapping});
-          closeModal();
-        },
-      }
-    );
-  };
-
-  return (
-    <Button disabled={!codeownersFile} variant="primary" onClick={addFile}>
-      {t('Add File')}
-    </Button>
   );
 }
 
