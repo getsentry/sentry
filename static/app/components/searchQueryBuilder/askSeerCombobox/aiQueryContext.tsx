@@ -6,7 +6,10 @@ interface AiQueryContextValue {
   setRunId: (id: number | null) => void;
 }
 
-const AiQueryContext = createContext<AiQueryContextValue | null>(null);
+const AiQueryContext = createContext<AiQueryContextValue>({
+  runId: null,
+  setRunId: () => {},
+});
 
 export function AiQueryProvider({children}: {children: ReactNode}) {
   const [runId, setRunId] = useState<number | null>(null);
@@ -15,9 +18,5 @@ export function AiQueryProvider({children}: {children: ReactNode}) {
 }
 
 export function useAiQueryContext() {
-  const ctx = useContext(AiQueryContext);
-  if (!ctx) {
-    throw new Error('useAiQueryContext must be used within an AiQueryProvider');
-  }
-  return ctx;
+  return useContext(AiQueryContext);
 }

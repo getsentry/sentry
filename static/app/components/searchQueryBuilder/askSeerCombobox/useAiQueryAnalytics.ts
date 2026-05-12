@@ -23,10 +23,11 @@ export function useAiQueryAnalytics({
   const prevRunIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (rawCounts.total.count === null) {
-      return;
-    }
-    if (runId === null || runId === prevRunIdRef.current) {
+    if (
+      rawCounts.total.count === null ||
+      runId === null ||
+      runId === prevRunIdRef.current
+    ) {
       return;
     }
     prevRunIdRef.current = runId;
