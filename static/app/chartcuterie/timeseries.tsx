@@ -148,12 +148,12 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
     color: color?.[i] ?? '',
     plottable: createPlottable(ts, {color: color?.[i], hasGroups, index: i}),
   }));
-  const realizedPlottables = plottableEntries
+  const plottables = plottableEntries
     .map(entry => entry.plottable)
     .filter((plottable): plottable is Plottable => !!plottable);
 
   const {leftYAxisType, rightYAxisType, unitForType, getYAxisPosition} =
-    assignPlottablesToYAxes(realizedPlottables);
+    assignPlottablesToYAxes(plottables);
 
   const leftYAxis = makeYAxis(
     leftYAxisType,

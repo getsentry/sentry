@@ -56,7 +56,7 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn} = Sentry.logger;
+const {warn} = Sentry.logger;
 
 export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChartWidgetProps> {
   /**
@@ -188,13 +188,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // Partition plottables across left/right Y axes by data type. Shared with
   // the Slack dashboards-widget unfurl chart so unfurls render multi-aggregate
   // widgets (e.g. `count` + `avg(duration)`) the same way the UI does.
-  const {
-    leftYAxisDataTypes,
-    rightYAxisDataTypes,
-    leftYAxisType,
-    rightYAxisType,
-    unitForType,
-  } = assignPlottablesToYAxes(props.plottables);
+  const {leftYAxisType, rightYAxisType, unitForType, getYAxisPosition} =
+    assignPlottablesToYAxes(props.plottables);
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
@@ -486,36 +481,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       seriesColorIndex += 1;
     }
 
-    let yAxisPosition: 'left' | 'right' = 'left';
-
-    if (leftYAxisDataTypes.includes(plottable.dataType)) {
-      // This plottable is assigned to the left axis
-      yAxisPosition = 'left';
-    } else if (rightYAxisDataTypes.includes(plottable.dataType)) {
-      // This plottable is assigned to the right axis
-      yAxisPosition = 'right';
-    } else {
-      // This plottable's type isn't assignned to either axis! Mysterious.
-      // There's no graceful way to handle this.
-      Sentry.withScope(scope => {
-        const message =
-          '`TimeSeriesWidgetVisualization` Could not assign Plottable to an axis';
-
-        scope.setFingerprint(['could-not-assign-plottable-to-an-axis']);
-        Sentry.captureException(new Error(message));
-
-        error(message, {
-          dataType: plottable.dataType,
-          leftAxisType: leftYAxisType,
-          rightAxisType: rightYAxisType,
-        });
-      });
-    }
-
     // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
     const seriesOfPlottable = plottable.toSeries({
       color,
-      yAxisPosition,
+      yAxisPosition: getYAxisPosition(plottable),
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
       theme,
       maxOffset: thresholdMaxOffset,
