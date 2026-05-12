@@ -80,7 +80,7 @@ export function ScmFeatureCard({
               </Text>
             </Container>
 
-            <Container area="volume">
+            <Flex area="volume" align="center">
               {isVolumeLoading ? (
                 <Placeholder height="22px" width="100px" />
               ) : (
@@ -90,9 +90,9 @@ export function ScmFeatureCard({
                   </Tag>
                 </Tooltip>
               )}
-            </Container>
+            </Flex>
 
-            <Container area="switch">
+            <Flex area="switch" align="center">
               <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
                 <Switch
                   checked={isSelected}
@@ -103,7 +103,7 @@ export function ScmFeatureCard({
                   size="sm"
                 />
               </Tooltip>
-            </Container>
+            </Flex>
 
             <Container area="description" column="2 / 4">
               <Text variant="secondary">{description}</Text>
