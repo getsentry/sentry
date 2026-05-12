@@ -127,9 +127,9 @@ def get_eap_project_volumes(
                 projects=projects,
                 organization=organization,
             ),
-            "query_string": "is_transaction:true",
-            "selected_columns": ["project.id", "count()", "count_sample()"],
-            "orderby": ["project.id"],
+            "query_string": "is_segment:true",
+            "selected_columns": ["sentry.dsc.root_project", "count()", "count_sample()"],
+            "orderby": ["sentry.dsc.root_project"],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
             "config": SearchResolverConfig(
                 auto_fields=True,
@@ -143,7 +143,7 @@ def get_eap_project_volumes(
             keep = _get_aggregate_int(row, "count_sample()")
             project_volumes.append(
                 ProjectVolume(
-                    project_id=ProjectId(int(row["project.id"])),
+                    project_id=ProjectId(int(row["sentry.dsc.root_project"])),
                     total=total,
                     keep=keep,
                     drop=max(total - keep, 0),

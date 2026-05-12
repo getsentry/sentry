@@ -192,8 +192,16 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
             return_value={
                 "data": [
-                    {"project.id": project.id, "count()": 2, "count_sample()": 2},
-                    {"project.id": other_project.id, "count()": 1, "count_sample()": 1},
+                    {
+                        "sentry.dsc.root_project": project.id,
+                        "count()": 2,
+                        "count_sample()": 2,
+                    },
+                    {
+                        "sentry.dsc.root_project": other_project.id,
+                        "count()": 1,
+                        "count_sample()": 1,
+                    },
                 ]
             },
         ) as run_table_query:
@@ -210,7 +218,17 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             project,
             other_project,
         ]
-        assert run_table_query.call_args.kwargs["query_string"] == "is_transaction:true"
+        assert run_table_query.call_args.kwargs["query_string"] == "is_segment:true"
+        assert run_table_query.call_args.kwargs["selected_columns"] == [
+            "sentry.dsc.root_project",
+            "count()",
+            "count_sample()",
+        ]
+        assert run_table_query.call_args.kwargs["orderby"] == ["sentry.dsc.root_project"]
+        assert (
+            run_table_query.call_args.kwargs["referrer"]
+            == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
+        )
 
     def test_get_eap_project_volumes_without_traffic(self) -> None:
         organization = self.create_organization()
@@ -233,7 +251,13 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         with patch(
             "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
             return_value={
-                "data": [{"project.id": project.id, "count()": None, "count_sample()": None}]
+                "data": [
+                    {
+                        "sentry.dsc.root_project": project.id,
+                        "count()": None,
+                        "count_sample()": None,
+                    }
+                ]
             },
         ):
             project_volumes = get_eap_project_volumes(self.get_config(organization))
