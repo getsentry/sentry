@@ -12,7 +12,7 @@ import type {
   SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
-import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
+import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -93,6 +93,10 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
+
+// Silence proxy logs, they can be noisy and not interesting
+// eslint-disable-next-line no-console
+const proxyLoggerQuiet = {info: () => {}, warn: console.warn, error: console.error};
 
 const require = createRequire(import.meta.url);
 
@@ -266,16 +270,10 @@ const appConfig: Configuration = {
     sentry: 'less/sentry.less',
   },
   context: staticPrefix,
+  incremental: DEV_MODE,
   experiments: {
-    // https://rspack.dev/config/experiments#experimentsincremental
-    incremental: DEV_MODE,
     futureDefaults: true,
-    // Native css parsing not working in production
-    // Build production bundle and open the entrypoints/sentry.css file
-    // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
-    // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
-    css: false,
-    // https://rspack.dev/config/experiments#experimentsnativewatcher
+    // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
   },
@@ -312,7 +310,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(js|jsx|ts|tsx)$/,
+        test: /\.(?:tsx?|jsx?)$/,
         // core-js: Avoids recompiling core-js based on usage imports
         // react-select: Ships pre-compiled ESM with emotion's keyframes already
         // compiled via swc. Re-processing with @swc/plugin-emotion causes
@@ -354,7 +352,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.css/,
+        test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
       {
@@ -372,7 +370,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
         type: 'asset',
       },
     ],
@@ -550,7 +548,7 @@ const appConfig: Configuration = {
     // Prefers local modules over node_modules
     preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
+    extensions: ['.tsx', '.ts', '.js', '.json', '.less'],
     symlinks: true,
   },
   output: {
@@ -687,6 +685,7 @@ if (
             '/api/0/assistant/**',
           ],
           target: controlSiloAddress,
+          logger: proxyLoggerQuiet,
         },
       ];
     }
@@ -707,10 +706,12 @@ if (
             '/api/0/relays/outcomes/**',
           ],
           target: relayAddress,
+          logger: proxyLoggerQuiet,
         },
         {
           context: ['!/_static/dist/sentry/**'],
           target: backendAddress,
+          logger: proxyLoggerQuiet,
         },
       ],
     };
@@ -783,8 +784,10 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        logger: proxyLoggerQuiet,
         router: req => {
-          const orgSlug = extractSlug((req as any).hostname);
+          const host = req.headers.host!.split(':')[0]!;
+          const orgSlug = extractSlug(host);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },
@@ -805,13 +808,14 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        logger: proxyLoggerQuiet,
         pathRewrite: {
           '^/region/[^/]*': '',
         },
-        router: (req: any) => {
+        router: req => {
           const regionPathPattern = /^\/region\/([^/]+)/;
-          const regionname = req.path.match(regionPathPattern);
-          if (regionname) {
+          const regionname = (req.url ?? '').match(regionPathPattern);
+          if (regionname?.[1]) {
             return `https://${regionname[1]}.sentry.io`;
           }
           return 'https://sentry.io';
@@ -819,7 +823,12 @@ if (IS_UI_DEV_ONLY) {
       },
     ],
     historyApiFallback: {
-      rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
+      rewrites: [
+        {
+          from: /^(?!\/(?:_assets|api|avatar|organization-avatar|extensions|region)\/).*$/,
+          to: '/_assets/index.html',
+        },
+      ],
     },
   };
   // Hot reloading breaks if we aren't using a single runtime chunk
@@ -894,9 +903,9 @@ if (IS_PRODUCTION) {
 // Cache rspack builds
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.cache = true;
-  appConfig.experiments!.cache = {
+  appConfig.cache = {
     type: 'persistent',
-    // https://rspack.dev/config/experiments#cachestorage
+    // https://rspack.rs/config/cache
     storage: {
       type: 'filesystem',
       directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
