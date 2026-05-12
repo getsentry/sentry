@@ -20,7 +20,7 @@ from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
@@ -174,7 +174,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return data.get("original_message", {}).get("type") == "message"
 
 
-@cell_silo_endpoint
+@all_silo_endpoint  # Only LINK_IDENTITY is handled at control
 class SlackActionEndpoint(Endpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
@@ -738,9 +738,11 @@ class SlackActionEndpoint(Endpoint):
         if action_id in {
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-            SlackAction.LINK_IDENTITY.value,
         }:
             return self.respond()
+
+        if action_id == SlackAction.LINK_IDENTITY.value:
+            return self.handle_link_identity(slack_request)
 
         if action_option in UNFURL_ACTION_OPTIONS:
             return self.handle_unfurl(slack_request, action_option)
@@ -879,6 +881,19 @@ class SlackActionEndpoint(Endpoint):
         )
 
         webhook_client.send(text=message, replace_original=False, response_type="in_channel")
+        return self.respond()
+
+    def handle_link_identity(self, slack_request: SlackActionRequest) -> Response:
+        from sentry.integrations.slack.views.link_identity import (
+            stash_link_identity_response_url,
+        )
+
+        if slack_request.user_id and slack_request.response_url:
+            stash_link_identity_response_url(
+                integration_id=slack_request.integration.id,
+                slack_user_id=slack_request.user_id,
+                response_url=slack_request.response_url,
+            )
         return self.respond()
 
 

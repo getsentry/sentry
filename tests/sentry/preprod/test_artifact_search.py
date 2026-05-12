@@ -327,3 +327,117 @@ class ArtifactMatchesQueryIsApprovedFilterTest(TestCase):
 
         assert not artifact_matches_query(approved_artifact, "!is_approved:true", self.organization)
         assert artifact_matches_query(pending_artifact, "!is_approved:true", self.organization)
+
+
+class ArtifactMatchesQueryApprovalStatusFilterTest(TestCase):
+    def _create_artifact_with_approval(
+        self,
+        feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+        status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        with_approval_row: bool = True,
+        extras: dict | None = None,
+    ) -> PreprodArtifact:
+        artifact = self.create_preprod_artifact(project=self.project)
+        if with_approval_row:
+            self.create_preprod_comparison_approval(
+                preprod_artifact=artifact,
+                preprod_feature_type=feature_type,
+                approval_status=status,
+                extras=extras,
+            )
+        return artifact
+
+    def test_approval_status_approved_matches_manual_only(self) -> None:
+        manual = self._create_artifact_with_approval()
+        auto = self._create_artifact_with_approval(extras={"auto_approval": True})
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+
+        assert artifact_matches_query(manual, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(auto, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(pending, "approval_status:approved", self.organization)
+
+    def test_approval_status_auto_approved(self) -> None:
+        manual = self._create_artifact_with_approval()
+        auto = self._create_artifact_with_approval(extras={"auto_approval": True})
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+
+        assert not artifact_matches_query(
+            manual, "approval_status:auto_approved", self.organization
+        )
+        assert artifact_matches_query(auto, "approval_status:auto_approved", self.organization)
+        assert not artifact_matches_query(
+            pending, "approval_status:auto_approved", self.organization
+        )
+
+    def test_approval_status_requires_approval(self) -> None:
+        manual = self._create_artifact_with_approval()
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+
+        assert not artifact_matches_query(
+            manual, "approval_status:requires_approval", self.organization
+        )
+        assert artifact_matches_query(
+            pending, "approval_status:requires_approval", self.organization
+        )
+
+    def test_approval_status_no_record_matches_nothing(self) -> None:
+        no_row = self._create_artifact_with_approval(with_approval_row=False)
+
+        assert not artifact_matches_query(no_row, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(
+            no_row, "approval_status:auto_approved", self.organization
+        )
+        assert not artifact_matches_query(
+            no_row, "approval_status:requires_approval", self.organization
+        )
+
+    def test_approval_status_scoped_to_snapshots(self) -> None:
+        artifact = self._create_artifact_with_approval(
+            feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+        )
+
+        assert not artifact_matches_query(artifact, "approval_status:approved", self.organization)
+
+    def test_approval_status_in_filter(self) -> None:
+        manual = self._create_artifact_with_approval()
+        auto = self._create_artifact_with_approval(extras={"auto_approval": True})
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+
+        assert artifact_matches_query(
+            manual, "approval_status:[approved, auto_approved]", self.organization
+        )
+        assert artifact_matches_query(
+            auto, "approval_status:[approved, auto_approved]", self.organization
+        )
+        assert not artifact_matches_query(
+            pending, "approval_status:[approved, auto_approved]", self.organization
+        )
+
+    def test_approval_status_negation(self) -> None:
+        manual = self._create_artifact_with_approval()
+        auto = self._create_artifact_with_approval(extras={"auto_approval": True})
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+
+        assert not artifact_matches_query(manual, "!approval_status:approved", self.organization)
+        assert artifact_matches_query(auto, "!approval_status:approved", self.organization)
+        assert artifact_matches_query(pending, "!approval_status:approved", self.organization)
+
+    def test_approval_status_invalid_value(self) -> None:
+        import pytest
+
+        from sentry.exceptions import InvalidSearchQuery
+
+        artifact = self._create_artifact_with_approval()
+
+        with pytest.raises(InvalidSearchQuery):
+            artifact_matches_query(artifact, "approval_status:bogus", self.organization)

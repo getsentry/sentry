@@ -8,8 +8,13 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     SizeInfoPending,
     SizeInfoProcessing,
     to_size_info,
+    to_snapshot_comparison_info,
 )
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -241,3 +246,82 @@ class TestToSizeInfo(TestCase):
             ValueError, match="FAILED state requires both error_code and error_message"
         ):
             to_size_info(list([size_metrics]))
+
+
+@cell_silo_test
+class TestToSnapshotComparisonInfoApprovalStatus(TestCase):
+    def _create_artifact_with_snapshot_metrics(self) -> PreprodArtifact:
+        artifact = self.create_preprod_artifact(project=self.project)
+        self.create_preprod_snapshot_metrics(preprod_artifact=artifact, image_count=1)
+        return PreprodArtifact.objects.select_related("preprodsnapshotmetrics").get(pk=artifact.pk)
+
+    def test_manual_approval_returns_approved(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "approved"
+
+    def test_auto_approval_returns_auto_approved(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras={"auto_approval": True},
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "auto_approved"
+
+    def test_needs_approval_returns_requires_approval(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "requires_approval"
+
+    def test_no_approval_records_returns_none(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status is None
+
+    def test_extras_none_treated_as_manual(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras=None,
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "approved"
+
+    def test_extras_without_auto_approval_key_treated_as_manual(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras={"some_other_key": True},
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "approved"

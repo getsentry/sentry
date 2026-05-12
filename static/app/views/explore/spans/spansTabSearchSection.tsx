@@ -33,7 +33,7 @@ import {
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
