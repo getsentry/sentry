@@ -504,13 +504,13 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={menuMinWidth ?? overlayProps.style!.minWidth}
+              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
                   : undefined
               }
-              maxHeight={overlayProps.style!.maxHeight}
+              maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
               data-menu-has-search={searchEnabled}

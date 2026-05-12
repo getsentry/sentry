@@ -60,7 +60,10 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/events/:eventId/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
+  '/explore/logs/',
+  '/explore/releases/',
+]);
 
 function supportsStructuredContext(
   referrer: string,

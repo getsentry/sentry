@@ -14,6 +14,8 @@ from django.http.request import QueryDict
 from sentry import analytics, features
 from sentry.api import client
 from sentry.api.endpoints.timeseries import TimeSeries
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.dashboard import DashboardWidgetSerializer
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.messaging.metrics import (
@@ -60,11 +62,13 @@ DASHBOARDS_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 
 # Display types where a timeseries chart makes sense. Other display types
 # (table, big number, text, etc.) are not supported for unfurl yet.
-_TIMESERIES_DISPLAY_TYPES = {
-    DashboardWidgetDisplayTypes.LINE_CHART: "line",
-    DashboardWidgetDisplayTypes.AREA_CHART: "area",
-    DashboardWidgetDisplayTypes.BAR_CHART: "bar",
-}
+_TIMESERIES_DISPLAY_TYPES = frozenset(
+    {
+        DashboardWidgetDisplayTypes.LINE_CHART,
+        DashboardWidgetDisplayTypes.AREA_CHART,
+        DashboardWidgetDisplayTypes.BAR_CHART,
+    }
+)
 
 
 _UnfurlEndpoint = Literal["events-timeseries", "issues-timeseries"]
@@ -148,17 +152,16 @@ def _unfurl_dashboards(
         if config is None:
             continue
 
-        display_type = _TIMESERIES_DISPLAY_TYPES.get(widget.display_type)
-        if display_type is None:
+        if widget.display_type not in _TIMESERIES_DISPLAY_TYPES:
             continue
 
         per_query_params = build_widget_timeseries_params(widget, args["query"])
         if not per_query_params:
             continue
 
-        combined_time_series: list[TimeSeries] = []
+        combined_time_series: list[tuple[TimeSeries, int]] = []
         request_failed = False
-        for params in per_query_params:
+        for query_index, params in enumerate(per_query_params):
             try:
                 resp = client.get(
                     auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
@@ -171,19 +174,20 @@ def _unfurl_dashboards(
                 request_failed = True
                 break
 
-            combined_time_series.extend(resp.data.get("timeSeries", []))
+            for ts in resp.data.get("timeSeries", []):
+                combined_time_series.append((ts, query_index))
 
         if request_failed:
             continue
 
         chart_data: dict[str, Any] = {
             "timeSeries": combined_time_series,
-            "type": display_type,
+            "widget": serialize(widget, user, DashboardWidgetSerializer()),
         }
 
         try:
             url = charts.generate_chart(
-                ChartType.SLACK_TIMESERIES, chart_data, size=DASHBOARDS_CHART_SIZE
+                ChartType.SLACK_DASHBOARDS_WIDGET, chart_data, size=DASHBOARDS_CHART_SIZE
             )
         except RuntimeError:
             _logger.warning("Failed to generate chart for dashboards unfurl")

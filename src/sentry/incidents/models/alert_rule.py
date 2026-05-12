@@ -93,7 +93,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
 
     def fetch_for_organization(
         self, organization: Organization, projects: Collection[Project] | None = None
-    ):
+    ) -> BaseQuerySet[AlertRule]:
         queryset = self.filter(organization=organization)
         if projects is not None:
             queryset = queryset.filter(projects__in=projects).distinct()
@@ -121,7 +121,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         return alert_rule
 
     @classmethod
-    def clear_subscription_cache(cls, instance, **kwargs: Any) -> None:
+    def clear_subscription_cache(cls, instance: QuerySubscription, **kwargs: Any) -> None:
         cache.delete(cls.__build_subscription_cache_key(instance.id))
         assert cache.get(cls.__build_subscription_cache_key(instance.id)) is None
 
@@ -425,7 +425,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     EXEMPT_SERVICES = frozenset((Type.SENTRY_NOTIFICATION.value,))
 
     objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
-    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+    objects_for_deletion: ClassVar[BaseManager[Self]] = BaseManager()
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
