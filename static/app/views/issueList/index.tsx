@@ -7,7 +7,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {AiQueryRunIdProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
@@ -116,9 +116,9 @@ export function IssueListContainer({children, title = t('Issues')}: Props) {
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <AnalyticsArea name="issue_list">
-        <AiQueryRunIdProvider>
+        <AiQueryProvider>
           <IssueViewWrapper>{children}</IssueViewWrapper>
-        </AiQueryRunIdProvider>
+        </AiQueryProvider>
       </AnalyticsArea>
     </SentryDocumentTitle>
   );

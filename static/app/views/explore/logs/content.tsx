@@ -7,7 +7,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {AiQueryRunIdProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -60,7 +60,7 @@ export default function LogsContent() {
         }
       >
         <AnalyticsArea name="explore.logs">
-          <AiQueryRunIdProvider>
+          <AiQueryProvider>
             <LogsPageStack
               flex={1}
               data-footer-constrained={tableExpando ? '' : undefined}
@@ -87,7 +87,7 @@ export default function LogsContent() {
                 </LogsPageDataProvider>
               </LogsQueryParamsProvider>
             </LogsPageStack>
-          </AiQueryRunIdProvider>
+          </AiQueryProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>

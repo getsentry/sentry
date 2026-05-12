@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 
-import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -18,7 +18,7 @@ export function useAiQueryAnalytics({
   referrer,
   rawCounts,
 }: UseAiQueryAnalyticsOptions) {
-  const {runId} = useAiQueryRunId();
+  const {runId} = useAiQueryContext();
   const organization = useOrganization();
   const prevRunIdRef = useRef<number | null>(null);
 

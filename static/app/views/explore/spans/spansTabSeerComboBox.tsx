@@ -3,7 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -77,7 +77,7 @@ export function SpansTabSeerComboBox() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
-  const {setRunId} = useAiQueryRunId();
+  const {setRunId} = useAiQueryContext();
   const {
     currentInputValueRef,
     query,

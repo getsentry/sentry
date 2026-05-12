@@ -8,7 +8,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {AiQueryRunIdProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
@@ -88,7 +88,7 @@ function ExploreContentInner() {
       <SpansCommandPaletteActions />
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <AnalyticsArea name="explore.spans">
-          <AiQueryRunIdProvider>
+          <AiQueryProvider>
             <Stack flex={1}>
               <SpansTabWrapper>
                 <SpansTabHeader />
@@ -103,7 +103,7 @@ function ExploreContentInner() {
                 )}
               </SpansTabWrapper>
             </Stack>
-          </AiQueryRunIdProvider>
+          </AiQueryProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>

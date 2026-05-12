@@ -7,7 +7,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {AiQueryRunIdProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -61,7 +61,7 @@ export default function MetricsContent() {
         }
       >
         <AnalyticsArea name="explore.metrics">
-          <AiQueryRunIdProvider>
+          <AiQueryProvider>
             <Stack flex={1}>
               <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
                 <MetricsHeader />
@@ -76,7 +76,7 @@ export default function MetricsContent() {
                 )}
               </MultiMetricsQueryParamsProvider>
             </Stack>
-          </AiQueryRunIdProvider>
+          </AiQueryProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>

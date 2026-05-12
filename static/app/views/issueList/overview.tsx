@@ -17,7 +17,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
-import {useAiQueryRunId} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -169,7 +169,7 @@ function IssueListOverviewInner({
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
   const lastAiQueryRunIdRef = useRef<number | null>(null);
-  const {runId: aiQueryRunId} = useAiQueryRunId();
+  const {runId: aiQueryRunId} = useAiQueryContext();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {

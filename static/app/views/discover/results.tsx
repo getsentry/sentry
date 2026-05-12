@@ -39,9 +39,9 @@ import {
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
-  AiQueryRunIdProvider,
-  useAiQueryRunId,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryRunIdContext';
+  AiQueryProvider,
+  useAiQueryContext,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
@@ -1443,7 +1443,7 @@ function SavedQueryAPI(
 ) {
   const queryClient = useQueryClient();
   const {organization, location} = props;
-  const {runId: aiQueryRunId} = useAiQueryRunId();
+  const {runId: aiQueryRunId} = useAiQueryContext();
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
@@ -1521,7 +1521,7 @@ export default function ResultsContainer() {
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <AiQueryRunIdProvider>
+      <AiQueryProvider>
         <SavedQueryAPI
           api={api}
           organization={organization}
@@ -1529,7 +1529,7 @@ export default function ResultsContainer() {
           location={location}
           navigate={navigate}
         />
-      </AiQueryRunIdProvider>
+      </AiQueryProvider>
     </PageFiltersContainer>
   );
 }
