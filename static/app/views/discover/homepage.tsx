@@ -42,7 +42,9 @@ function Homepage() {
     makeDiscoverHomepageQueryKey(organization),
     {
       staleTime: 0,
-      enabled: organization.features.includes('discover-query'),
+      enabled:
+        organization.features.includes('discover-query') ||
+        organization.features.includes('discover'),
     }
   );
 

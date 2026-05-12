@@ -42,7 +42,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
+            return self.respond(status=status.HTTP_204_NO_CONTENT)
 
         try:
             query = get_homepage_query(organization, request.user)
@@ -53,7 +53,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
     def put(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
+            return self.respond(status=status.HTTP_204_NO_CONTENT)
 
         try:
             previous_homepage = get_homepage_query(organization, request.user)
@@ -114,7 +114,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
     def delete(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
+            return self.respond(status=status.HTTP_204_NO_CONTENT)
 
         try:
             homepage_query = get_homepage_query(organization, request.user)
