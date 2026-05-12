@@ -94,6 +94,8 @@ import {
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -244,12 +246,13 @@ const LogsSearchSection = memo(function LogsSearchSection({
   );
 });
 
-export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps) {
+function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) {
   const {openModal} = useModal();
 
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
+  const groupBys = useQueryParamsGroupBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
   const sortBys = useQueryParamsSortBys();
@@ -258,6 +261,20 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const searchQuery = useQueryParamsSearch().formatString();
+  const visualizes = useQueryParamsVisualizes();
+
+  useLLMContext({
+    contextHint:
+      'Sentry logs explorer page. Users search log entries by attributes and view samples or aggregates. ' +
+      'You can search live telemetry for logs, get detailed log attributes by trace ID, and discover attribute names via the telemetry index.',
+    searchQuery,
+    mode,
+    fields,
+    sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    groupBys: groupBys.filter(g => g !== ''),
+    visualizes: visualizes.map(v => v.yAxis),
+  });
 
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
@@ -268,7 +285,6 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const [interval] = useChartInterval();
-  const visualizes = useQueryParamsVisualizes();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
@@ -540,6 +556,8 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
     </Fragment>
   );
 }
+
+export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;

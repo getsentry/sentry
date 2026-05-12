@@ -2338,10 +2338,10 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.27" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-protos", specifier = ">=0.8.30" },
+    { name = "sentry-protos", specifier = ">=0.8.31" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
-    { name = "sentry-scm", specifier = "==0.10.1" },
+    { name = "sentry-scm", specifier = ">=0.14.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.59.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
@@ -2353,7 +2353,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=12.14.1" },
-    { name = "taskbroker-client", specifier = ">=0.1.13,<1" },
+    { name = "taskbroker-client", specifier = ">=0.1.14,<1" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2361,7 +2361,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12.0" },
     { name = "ua-parser", specifier = ">=0.10.0" },
     { name = "unidiff", specifier = ">=0.7.4" },
-    { name = "urllib3", specifier = ">=2.2.2" },
+    { name = "urllib3", specifier = ">=2.7.0" },
     { name = "vroomrs", specifier = ">=0.1.20" },
     { name = "xmlsec", specifier = ">=1.3.17" },
     { name = "zstandard", specifier = ">=0.18.0" },
@@ -2512,7 +2512,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.8.30"
+version = "0.8.31"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2521,7 +2521,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.8.30-py3-none-any.whl", hash = "sha256:01ff50c25b11955da05b37eeacb926e6f7bdfadadd46b3033c89078f36c6d6d5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.8.31-py3-none-any.whl", hash = "sha256:1dee1e9004ff15600505839b0010e2dfb6815dea5dff7081a872e143fc8f7b64" },
 ]
 
 [[package]]
@@ -2550,14 +2550,14 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "0.10.1"
+version = "0.14.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "msgspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-0.10.1-py3-none-any.whl", hash = "sha256:5e02e52fd14f5d8ea5c560f03207925faa4b2606d1b6fa63379cdbba3574bafd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-0.14.0-py3-none-any.whl", hash = "sha256:9f10c004949a305caa4f3df0ac8de444a8aa19be8c2f400a3c975ec453d94fd7" },
 ]
 
 [[package]]
@@ -2738,7 +2738,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.1.13"
+version = "0.1.14"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2756,7 +2756,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.1.13-py3-none-any.whl", hash = "sha256:1983895279909c74cce2c15316cd03c0e671a89ded8d3e65584b08ebc1282845" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.1.14-py3-none-any.whl", hash = "sha256:668395bccb219fafc55d17cc483babd1c888174d951b7fccf2a2bce3d9b87373" },
 ]
 
 [[package]]
@@ -3064,10 +3064,10 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "2.6.3"
+version = "2.7.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897" },
 ]
 
 [package.optional-dependencies]

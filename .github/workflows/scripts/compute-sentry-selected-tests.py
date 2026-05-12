@@ -297,7 +297,8 @@ def main() -> int:
         affected_test_files = existing_files
 
     output_tests = sorted(affected_test_files)
-    print(f"Selected {len(output_tests)} test files")
+    if selective_applied or output_tests:
+        print(f"Selected {len(output_tests)} test files")
 
     if args.output and (output_tests or selective_applied):
         output_path = Path(args.output)
@@ -314,7 +315,8 @@ def main() -> int:
             with open(github_output, "a") as f:
                 f.write(f"test-count={len(output_tests)}\n")
                 f.write(f"has-selected-tests={'true' if has_selected else 'false'}\n")
-            print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")
+            if has_selected:
+                print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")
 
     for test_file in output_tests:
         print(f"  {test_file}")

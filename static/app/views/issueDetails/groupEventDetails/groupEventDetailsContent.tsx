@@ -78,9 +78,9 @@ import {
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
@@ -145,14 +145,14 @@ export function EventDetailsContent({
         <ProfilePreviewSection event={event} project={project} />
       )}
       {event.userReport && (
-        <InterimSection title={t('User Feedback')} type={SectionKey.USER_FEEDBACK}>
+        <FoldSection title={t('User Feedback')} sectionKey={SectionKey.USER_FEEDBACK}>
           <EventUserFeedback
             report={event.userReport}
             orgSlug={organization.slug}
             issueId={group.id}
             showEventLink={false}
           />
-        </InterimSection>
+        </FoldSection>
       )}
       {(event.contexts?.metric_alert?.alert_rule_id ||
         event?.occurrence?.evidenceData?.alertId) && (
@@ -293,8 +293,8 @@ export function EventDetailsContent({
             <EventFunctionBreakpointChart event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
-            <InterimSection
-              type={SectionKey.REGRESSION_FLAMEGRAPH}
+            <FoldSection
+              sectionKey={SectionKey.REGRESSION_FLAMEGRAPH}
               title={t('Regression Flamegraph')}
             >
               <b>{t('Largest Changes in Call Stack Frequency')}</b>
@@ -304,7 +304,7 @@ export function EventDetailsContent({
             contributed to the cause for the duration regression.`)}
               </p>
               <EventDifferentialFlamegraph event={event} />
-            </InterimSection>
+            </FoldSection>
           </ErrorBoundary>
         </Fragment>
       )}

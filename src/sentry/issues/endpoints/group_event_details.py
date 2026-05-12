@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import functools
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
+from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -51,6 +53,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import metrics
+from sentry.utils.snuba import get_snuba_column_name
 
 
 def issue_search_query_to_conditions(
@@ -98,9 +101,13 @@ def issue_search_query_to_conditions(
 
     # the transformed conditions is generic and isn't 'dataset aware', we need to map the generic columns
     # being queried to the appropriate dataset column
-    resolved_legacy_conditions = (
-        resolve_conditions(legacy_conditions, resolve_column(dataset)) or []
-    )
+    column_resolver: Callable[[str], str]
+    if options.get("issues.search.use-tag-aware-condition-resolver"):
+        column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
+    else:
+        column_resolver = resolve_column(dataset)
+
+    resolved_legacy_conditions = resolve_conditions(legacy_conditions, column_resolver) or []
 
     # convert the legacy condition format into the SnQL condition format
     snql_conditions: list[Condition] = []
