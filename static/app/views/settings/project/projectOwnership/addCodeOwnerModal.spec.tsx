@@ -65,7 +65,7 @@ describe('AddCodeOwnerModal', () => {
     );
   });
 
-  it.isKnownFlake('renders codeowner file', async () => {
+  it('renders codeowner file', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',
@@ -90,7 +90,8 @@ describe('AddCodeOwnerModal', () => {
         `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
       )
     );
-    expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+    // The codeowners API fires after the code mapping is selected; wait for it to resolve.
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Preview File'})).toHaveAttribute(
       'href',
