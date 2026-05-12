@@ -5,6 +5,7 @@ import {claudeCodeIntegrationPipeline} from './pipelineIntegrationClaudeCode';
 import {cursorIntegrationPipeline} from './pipelineIntegrationCursor';
 import {discordIntegrationPipeline} from './pipelineIntegrationDiscord';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
+import {githubEnterpriseIntegrationPipeline} from './pipelineIntegrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {opsgenieIntegrationPipeline} from './pipelineIntegrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './pipelineIntegrationPagerDuty';
@@ -27,6 +28,7 @@ export const PIPELINE_REGISTRY = [
   discordIntegrationPipeline,
   dummyIntegrationPipeline,
   githubIntegrationPipeline,
+  githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,
