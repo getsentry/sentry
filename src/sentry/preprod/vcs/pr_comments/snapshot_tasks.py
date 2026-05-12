@@ -280,6 +280,14 @@ def post_snapshot_pr_comment_task(
                 save_pr_comment_result(cc, "snapshots", success=False, error=api_error)
             else:
                 save_pr_comment_result(cc, "snapshots", success=True, comment_id=comment_id)
+                logger.info(
+                    "preprod.snapshot_pr_comments.post.success",
+                    extra={
+                        "commit_comparison_id": commit_comparison_id,
+                        "organization_id": organization_id,
+                        "comment_id": comment_id,
+                    },
+                )
     except CommitComparison.DoesNotExist:
         logger.info(
             "preprod.snapshot_pr_comments.post.cc_deleted",
