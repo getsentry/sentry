@@ -34,6 +34,46 @@ DEFAULT_CONCURRENT_ERROR_MESSAGE = (
 logger = logging.getLogger("sentry.api.rate-limit")
 
 
+class APIRateLimited(Exception):
+    """Synthetic exception used to capture HTTP 429 responses to Sentry."""
+
+
+def _capture_429_to_sentry(request: HttpRequest) -> None:
+    """Capture a Sentry event for any response that resulted in HTTP 429.
+
+    Called from process_response so it covers all sources of 429s:
+    - this middleware's own rate limiting
+    - DRF Throttled exceptions handled by custom_exception_handler
+    - endpoints that return Response(status=429) directly
+    """
+    if getattr(request, "_rate_limit_captured_to_sentry", False):
+        return
+    request._rate_limit_captured_to_sentry = True
+
+    try:
+        with sentry_sdk.new_scope() as scope:
+            scope.fingerprint = ["api-rate-limited-429"]
+            scope.set_tag("rate_limit.path", request.path)
+            if request.method:
+                scope.set_tag("rate_limit.method", request.method)
+
+            rate_limit_metadata: RateLimitMeta | None = getattr(
+                request, "rate_limit_metadata", None
+            )
+            if rate_limit_metadata is not None:
+                scope.set_extra("rate_limit_key", getattr(request, "rate_limit_key", None))
+                scope.set_extra("rate_limit_type", rate_limit_metadata.rate_limit_type.value)
+                scope.set_extra("limit", rate_limit_metadata.limit)
+                scope.set_extra("window", rate_limit_metadata.window)
+
+            try:
+                raise APIRateLimited(f"{request.method} {request.path} returned 429")
+            except APIRateLimited:
+                sentry_sdk.capture_exception(level="warning")
+    except Exception:
+        logger.exception("Failed to capture 429 to Sentry")
+
+
 def _normalize_and_min_limit(a_limit: int, a_window: int, b_limit: int, b_window: int) -> int:
     """Normalize two (limit, window) pairs and return the minimum of the two normalized values."""
     norm_a = a_limit / a_window if a_window and a_window >= 1 else a_limit
@@ -223,4 +263,8 @@ class RatelimitMiddleware:
                     finish_request(request.rate_limit_key, request.rate_limit_uid)
             except Exception:
                 logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
+
+            if getattr(response, "status_code", None) == 429:
+                _capture_429_to_sentry(request)
+
             return response
