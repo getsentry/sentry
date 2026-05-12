@@ -1,7 +1,5 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useMemo} from 'react';
 import type {ComponentType, ReactNode} from 'react';
-import {useTheme} from '@emotion/react';
-import {motion} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -37,160 +35,21 @@ export type MarkdownComponents = Partial<{
 }>;
 
 interface MarkdownProps {
-  raw: string | AsyncIterable<string>;
+  raw: string;
   components?: MarkdownComponents;
 }
 
 export function Markdown({raw, components = {}}: MarkdownProps) {
+  const elements = useMemo(() => {
+    const tokens = MarkedLexer.lex(raw);
+    return tokens.map((token, i) => (
+      <Token key={i} token={token as MarkedToken} components={components} />
+    ));
+  }, [raw, components]);
+
   return (
     <Stack gap="lg" flex={1} maxWidth="72ch">
-      {typeof raw === 'string' ? (
-        <StaticMarkdown raw={raw} components={components} />
-      ) : (
-        <StreamingMarkdown raw={raw} components={components} />
-      )}
+      {elements}
     </Stack>
-  );
-}
-
-function StaticMarkdown({
-  raw,
-  components,
-}: {
-  components: MarkdownComponents;
-  raw: string;
-}) {
-  const tokenCache = useRef(new Map<string, ReactNode>());
-  const prevComponentsRef = useRef(components);
-
-  if (prevComponentsRef.current !== components) {
-    tokenCache.current.clear();
-    prevComponentsRef.current = components;
-  }
-
-  const tokens = MarkedLexer.lex(raw);
-  const elements: ReactNode[] = [];
-
-  for (const [i, token] of tokens.entries()) {
-    let el = tokenCache.current.get(token.raw);
-    if (el === undefined) {
-      el = <Token token={token as MarkedToken} components={components} />;
-      tokenCache.current.set(token.raw, el);
-    }
-    elements.push(<React.Fragment key={i}>{el}</React.Fragment>);
-  }
-
-  // Evict stale cache entries
-  const currentKeys = new Set(tokens.map(t => t.raw));
-  for (const key of tokenCache.current.keys()) {
-    if (!currentKeys.has(key)) {
-      tokenCache.current.delete(key);
-    }
-  }
-
-  return <React.Fragment>{elements}</React.Fragment>;
-}
-
-function splitAtLastBoundary(text: string): {
-  pending: string;
-  stable: string;
-} {
-  const boundary = text.lastIndexOf('\n\n');
-  if (boundary === -1) {
-    return {stable: '', pending: text};
-  }
-  return {
-    stable: text.slice(0, boundary + 2),
-    pending: text.slice(boundary + 2),
-  };
-}
-
-const segmenter = new Intl.Segmenter(undefined, {granularity: 'word'});
-const MARKDOWN_SYNTAX = /^[*`~#]+$/;
-
-const STAGGER_S = 0.02;
-
-function AnimatedPendingText({text}: {text: string}) {
-  const theme = useTheme();
-  const seen = useRef(new Set<number>());
-
-  let newIndex = 0;
-  const children = Array.from(segmenter.segment(text), ({segment, index, isWordLike}) => {
-    if (!isWordLike && MARKDOWN_SYNTAX.test(segment)) {
-      return null;
-    }
-    const isNew = !seen.current.has(index);
-    const delay = isNew ? newIndex++ * STAGGER_S : 0;
-    return (
-      <motion.span
-        key={index}
-        style={{display: 'inline-block', whiteSpace: 'pre'}}
-        initial={isNew ? {opacity: 0, filter: 'blur(4px) contrast(20)'} : false}
-        animate={{opacity: 1, filter: 'blur(0px) contrast(1)'}}
-        transition={{...theme.motion.framer.enter.fast, delay}}
-      >
-        {segment}
-      </motion.span>
-    );
-  });
-
-  useEffect(() => {
-    const next = new Set<number>();
-    for (const {index: i, isWordLike} of segmenter.segment(text)) {
-      if (isWordLike) {
-        next.add(i);
-      }
-    }
-    seen.current = next;
-  }, [text]);
-
-  return <span>{children}</span>;
-}
-
-function StreamingMarkdown({
-  raw,
-  components,
-}: {
-  components: MarkdownComponents;
-  raw: AsyncIterable<string>;
-}) {
-  const [accumulated, setAccumulated] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    let buffer = '';
-
-    async function consume() {
-      for await (const chunk of raw) {
-        if (cancelled) {
-          break;
-        }
-        buffer += chunk;
-        setAccumulated(buffer);
-      }
-      if (!cancelled) {
-        setIsComplete(true);
-      }
-    }
-
-    consume();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [raw]);
-
-  if (isComplete) {
-    return <StaticMarkdown raw={accumulated} components={components} />;
-  }
-
-  const {stable, pending} = splitAtLastBoundary(accumulated);
-
-  return (
-    <React.Fragment>
-      {stable && <StaticMarkdown raw={stable} components={components} />}
-      {pending && <AnimatedPendingText text={pending} />}
-    </React.Fragment>
   );
 }
