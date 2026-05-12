@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
@@ -49,16 +50,23 @@ export function SpanIdCell({
   );
 
   return (
-    <Link
-      onClick={() =>
-        trackAnalytics('performance_views.sample_spans.span_clicked', {
-          organization,
-          source: moduleName,
-        })
-      }
-      to={url}
-    >
-      {spanId.slice(0, SPAN_ID_DISPLAY_LENGTH)}
-    </Link>
+    <OverflowContainer>
+      <Link
+        onClick={() =>
+          trackAnalytics('performance_views.sample_spans.span_clicked', {
+            organization,
+            source: moduleName,
+          })
+        }
+        to={url}
+      >
+        {spanId.slice(0, SPAN_ID_DISPLAY_LENGTH)}
+      </Link>
+    </OverflowContainer>
   );
 }
+
+const OverflowContainer = styled('span')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
