@@ -42,7 +42,6 @@ export const PLATFORM_PRODUCT_INFO: Partial<
     ProductSolution.LOGS,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
     ProductSolution.METRICS,
   ],
   'javascript-nextjs': [
