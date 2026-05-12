@@ -196,7 +196,9 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
                 variant="transparent"
                 style={{minWidth: 0}}
               >
-                <Text ellipsis>{t('Continue without a repo')}</Text>
+                <Text ellipsis variant="inherit">
+                  {t('Continue without a repo')}
+                </Text>
               </Button>
             )}
 
