@@ -66,9 +66,9 @@ export function KeyRateLimitsForm({
   const {keyId, projectId} = params;
   const endpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
-  const mutation = useMutation<ProjectKey, Error, FormValues['rateLimit']>({
-    mutationFn: rateLimit =>
-      fetchMutation({
+  const mutation = useMutation({
+    mutationFn: (rateLimit: FormValues['rateLimit']) =>
+      fetchMutation<ProjectKey>({
         url: endpoint,
         method: 'PUT',
         data: {rateLimit},
