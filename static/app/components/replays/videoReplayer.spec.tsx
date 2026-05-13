@@ -597,4 +597,40 @@ describe('VideoReplayer - maxVideoElements eviction', () => {
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(0);
   });
+
+  it('tears down every live video on destroy() mid-playback', async () => {
+    const attachments = makeAttachments(50);
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50 * 5000,
+      config: {skipInactive: false, speed: 1},
+      maxVideoElements: 8,
+    });
+
+    // Build up a pool by scrubbing through a few positions.
+    for (const offset of [0, 25_000, 50_000, 100_000]) {
+      const p = inst.play(offset);
+      jest.advanceTimersByTime(100);
+      await p;
+    }
+    // @ts-expect-error accessing a private field
+    expect(inst._videos.size).toBeGreaterThan(0);
+
+    inst.destroy();
+
+    // @ts-expect-error accessing a private field
+    expect(inst._videos.size).toBe(0);
+    // @ts-expect-error accessing a private field
+    expect(inst._videoListeners.size).toBe(0);
+    // Wrapper has been removed from the root.
+    expect(root.contains(inst.wrapper)).toBe(false);
+    // No <video> elements remain inside the (now-detached) wrapper either.
+    expect(inst.wrapper.querySelectorAll('video')).toHaveLength(0);
+  });
 });

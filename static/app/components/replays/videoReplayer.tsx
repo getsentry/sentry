@@ -43,7 +43,7 @@ export interface VideoReplayerConfig {
   speed: number;
 }
 
-type RemoveListener = () => void;
+type TeardownVideo = () => void;
 
 /**
  * A special replayer that is specific to mobile replays. Should replicate rrweb's player interface.
@@ -62,11 +62,13 @@ export class VideoReplayer {
    */
   private _videos: Map<any, HTMLVideoElement>;
   /**
-   * Maps attachment index to a function that removes every event listener
-   * we attached to that video. Keyed by segment index so we can tear down
-   * one video's listeners independently when it's evicted from the pool.
+   * Maps attachment index to a function that fully tears down that video —
+   * removes its event listeners, aborts its media resource, detaches it from
+   * the DOM, and drops its entries from both this map and `_videos`. Used by
+   * both LRU eviction and `destroy()`, so the cleanup path is identical in
+   * either case.
    */
-  private _videoListeners: Map<number, RemoveListener>;
+  private _videoListeners: Map<number, TeardownVideo>;
   /**
    * Upper bound on simultaneously-attached <video> elements. Long mobile
    * replays (>1000 segments) blow past the browser's decoder budget; once
@@ -106,7 +108,7 @@ export class VideoReplayer {
       onBuffer,
     };
     this._videos = new Map<any, HTMLVideoElement>();
-    this._videoListeners = new Map<number, RemoveListener>();
+    this._videoListeners = new Map<number, TeardownVideo>();
     this._maxVideoElements = Math.max(
       // The protected window (current + ±PRELOAD_BUFFER) must always fit, so
       // floor the cap at 2 * PRELOAD_BUFFER + 1.
@@ -156,15 +158,33 @@ export class VideoReplayer {
   }
 
   public destroy() {
-    this._videoListeners.forEach(listener => listener());
-    this._videoListeners.clear();
+    // Snapshot keys: each teardown deletes itself from _videoListeners and
+    // _videos, so iterating the live Map would be order-dependent.
+    for (const index of Array.from(this._videoListeners.keys())) {
+      this._videoListeners.get(index)?.();
+    }
     this._trackList = [];
-    this._videos = new Map<any, HTMLVideoElement>();
     this._timer.stop();
     this.wrapper.remove();
   }
 
-  private addListeners(el: HTMLVideoElement, index: number): RemoveListener {
+  /**
+   * Wire up event listeners and lifecycle for a freshly-created <video> and
+   * return a function that tears the whole thing down: removes listeners,
+   * aborts the media resource, detaches the element from the DOM, and drops
+   * its entries from `_videos` and `_videoListeners`.
+   *
+   * Folding teardown into a single closure keeps the eviction path and the
+   * `destroy()` path identical — both just call this returned function.
+   *
+   * The resource-detach step (drop <source> children, clear src, call
+   * `.load()`) is what actually releases the decoder + aborts pending fetch.
+   * Calling `.remove()` alone doesn't, since the browser keeps the player
+   * alive as long as the media element is bound to a resource.
+   * See HTML spec, `HTMLMediaElement.load()`:
+   * https://html.spec.whatwg.org/multipage/media.html#dom-media-load
+   */
+  private setupVideo(el: HTMLVideoElement, index: number): TeardownVideo {
     const handleEnded = () => this.handleSegmentEnd(index);
 
     const handleLoadedData = (event: any) => {
@@ -221,6 +241,29 @@ export class VideoReplayer {
       el.removeEventListener('play', handlePlay);
       el.removeEventListener('loadedmetadata', handleLoadedMetaData);
       el.removeEventListener('seeking', handleSeeking);
+
+      el.pause();
+
+      // The src lives on a <source> child (see createVideo), not on the
+      // <video> src attribute. Drop the child(ren), clear any src that may
+      // have been set, then call .load() to run the media element load
+      // algorithm with no resource — that's what aborts the in-flight fetch
+      // and releases the decoder slot.
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+      el.removeAttribute('src');
+      // Wrap in try/catch: some test environments (jsdom) don't implement load.
+      try {
+        el.load();
+      } catch {
+        // ignore
+      }
+
+      el.remove();
+
+      this._videos.delete(index);
+      this._videoListeners.delete(index);
     };
   }
 
@@ -239,7 +282,7 @@ export class VideoReplayer {
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
-    this._videoListeners.set(index, this.addListeners(el, index));
+    this._videoListeners.set(index, this.setupVideo(el, index));
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
@@ -263,50 +306,6 @@ export class VideoReplayer {
   }
 
   /**
-   * Tear down a single video element and release its decoder + network
-   * resources. Just calling `.remove()` on a <video> doesn't free those — the
-   * media element must have its resource detached and `.load()` called to
-   * abort the resource-selection algorithm.
-   *
-   * See the HTML spec for `HTMLMediaElement.load()`:
-   * https://html.spec.whatwg.org/multipage/media.html#dom-media-load
-   */
-  private destroyVideo(index: number): void {
-    const el = this._videos.get(index);
-    if (el === undefined) {
-      return;
-    }
-
-    el.pause();
-
-    const removeListener = this._videoListeners.get(index);
-    if (removeListener !== undefined) {
-      removeListener();
-      this._videoListeners.delete(index);
-    }
-
-    // Source lives on a <source> child (see createVideo), not on the <video>
-    // src attribute. Remove the child(ren), clear any src that may have been
-    // set, then call .load() to force the element to abort the current
-    // resource-selection algorithm. Without .load(), browsers keep the
-    // network fetch + decoder alive even after DOM removal.
-    while (el.firstChild) {
-      el.removeChild(el.firstChild);
-    }
-    el.removeAttribute('src');
-    // Wrap in try/catch: some test environments (jsdom) don't implement load.
-    try {
-      el.load();
-    } catch {
-      // ignore
-    }
-
-    el.remove();
-
-    this._videos.delete(index);
-  }
-
-  /**
    * Evict the least-recently-used video in `_videos` that is safe to drop —
    * i.e. whose index falls outside the caller-supplied protected window.
    * The protected window is the active preload range; evicting inside it
@@ -316,7 +315,7 @@ export class VideoReplayer {
   private evictLRUVideo(protectedRange: {high: number; low: number}): boolean {
     for (const index of this._videos.keys()) {
       if (index < protectedRange.low || index > protectedRange.high) {
-        this.destroyVideo(index);
+        this._videoListeners.get(index)?.();
         return true;
       }
     }
