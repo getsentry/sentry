@@ -46,6 +46,7 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.SEVERITY,
   OurLogKnownFieldKey.TIMESTAMP,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+  OurLogKnownFieldKey.TEMPLATE,
 ] as const;
 
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
