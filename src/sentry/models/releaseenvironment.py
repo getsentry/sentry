@@ -1,7 +1,4 @@
-from datetime import timedelta
-
 from django.db import models
-from django.db.utils import OperationalError
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -14,6 +11,7 @@ from sentry.db.models import (
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.last_seen import try_bump_last_seen
 
 
 @cell_silo_model
@@ -64,22 +62,14 @@ class ReleaseEnvironment(Model):
 
         metric_tags["created"] = "true" if created else "false"
 
-        bump_key = f"releaseenv_bump:{instance.id}"
-        if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            if cache.add(bump_key, "1", timeout=60):
-                try:
-                    cls.objects.filter(id=instance.id, last_seen__lt=datetime).update(
-                        last_seen=datetime
-                    )
-                except OperationalError:
-                    metric_tags["bumped"] = "error"
-                    return instance
-                instance.last_seen = datetime
-                cache.set(cache_key, instance, 3600)
-                metric_tags["bumped"] = "true"
-            else:
-                metric_tags["bumped"] = "skipped"
-        else:
-            metric_tags["bumped"] = "false"
+        if not created:
+            try_bump_last_seen(
+                model_class=cls,
+                instance=instance,
+                datetime=datetime,
+                bump_key=f"releaseenv_bump:{instance.id}",
+                cache_key=cache_key,
+                metrics_tags=metric_tags,
+            )
 
         return instance
