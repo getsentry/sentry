@@ -550,6 +550,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             authorizations = slack_request.data.get("authorizations", [])
             if not authorizations:
                 return self.respond()
+
             bot_user_id = authorizations[0].get("user_id", "")
             if not bot_user_id:
                 return self.respond()
@@ -568,6 +569,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if not channel_id or not message_ts or not slack_request.user_id:
                 lifecycle.record_halt(SeerSlackHaltReason.MISSING_EVENT_DATA)
                 return self.respond()
+
             organization_id, halt_reason = slack_request.resolve_seer_organization()
             if halt_reason:
                 lifecycle.record_halt(halt_reason)
