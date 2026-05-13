@@ -126,7 +126,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
           }
         )) as AskSeerStartResponse;
 
-        const newRunId = response.sentry_run_uuid ?? response.run_id;
+        const newRunId = response.sentry_run_id ?? response.run_id;
         if (!newRunId) {
           throw new Error('Search agent start response missing run ID');
         }
