@@ -171,9 +171,6 @@ function SingleInstallTableContent({
     <Panel role="region" aria-label={provider.name}>
       <TableHeader>
         <Flex align="center" gap="sm">
-          {getIntegrationIcon(provider.key, 'sm')}
-          <Text bold>{provider.name}</Text>
-          <Text variant="muted">/</Text>
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
