@@ -9,7 +9,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
+import {getTitleFromLocation} from 'sentry/views/explore/queryParams/savedQuery';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';

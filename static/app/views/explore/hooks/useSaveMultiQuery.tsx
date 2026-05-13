@@ -7,10 +7,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {getTitleFromLocation} from 'sentry/views/explore/queryParams/savedQuery';
 
 const TRACE_EXPLORER_DATASET = 'spans';
 
