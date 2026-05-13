@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Container} from '@sentry/scraps/layout';
 
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -90,12 +91,14 @@ export function ChartVisualization({
 
     return (
       <StyledTransparentLoadingMask visible>
-        <TimeSeriesWidgetVisualization
-          ref={chartRef}
-          plottables={previousPlottables}
-          chartXRangeSelection={chartXRangeSelection}
-          notMerge={notMerge}
-        />
+        <ErrorBoundary mini customComponent={null}>
+          <TimeSeriesWidgetVisualization
+            ref={chartRef}
+            plottables={previousPlottables}
+            chartXRangeSelection={chartXRangeSelection}
+            notMerge={notMerge}
+          />
+        </ErrorBoundary>
       </StyledTransparentLoadingMask>
     );
   }
@@ -120,12 +123,14 @@ export function ChartVisualization({
   }
 
   return (
-    <TimeSeriesWidgetVisualization
-      ref={chartRef}
-      plottables={plottables}
-      chartXRangeSelection={chartXRangeSelection}
-      notMerge={notMerge}
-    />
+    <ErrorBoundary mini customComponent={null}>
+      <TimeSeriesWidgetVisualization
+        ref={chartRef}
+        plottables={plottables}
+        chartXRangeSelection={chartXRangeSelection}
+        notMerge={notMerge}
+      />
+    </ErrorBoundary>
   );
 }
 

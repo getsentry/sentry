@@ -252,7 +252,9 @@ function Graph({
       Title={Title}
       Actions={Actions}
       Visualization={
-        visualize.visible && <ChartVisualization chartInfo={chartInfo} notMerge={false} />
+        <ChartWrapper visible={visualize.visible}>
+          <ChartVisualization chartInfo={chartInfo} />
+        </ChartWrapper>
       }
       Footer={
         visualize.visible && (
@@ -426,6 +428,11 @@ function ContextMenu({
     />
   );
 }
+
+const ChartWrapper = styled('div')<{visible: boolean}>`
+  display: ${p => (p.visible ? 'block' : 'none')};
+  height: 100%;
+`;
 
 const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
