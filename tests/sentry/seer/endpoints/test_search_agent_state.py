@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 from django.test import override_settings
 
-from sentry.seer.models.run import SeerRunType
+from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 
 
@@ -58,6 +58,14 @@ class SearchAgentStateEndpointTest(APITestCase):
         with self.feature(self.features):
             response = self.get_response(other_org.slug, str(run.uuid))
         assert response.status_code in (403, 404)
+
+    def test_uuid_returns_error_when_flush_failed(self) -> None:
+        run = self.create_seer_run(
+            type=SeerRunType.ASSISTED_QUERY, mirror_status=SeerRunMirrorStatus.FAILED
+        )
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, str(run.uuid))
+        assert response.data == {"session": {"status": "error"}}
 
     def test_garbage_string_returns_400(self) -> None:
         with self.feature(self.features):

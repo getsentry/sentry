@@ -2,22 +2,29 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQuery
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 @register(SnubaQuery)
 class SnubaQuerySerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[SnubaQuery], user, **kwargs
+        self, item_list: Sequence[SnubaQuery], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[SnubaQuery, dict[str, Any]]:
         prefetch_related_objects(item_list, "environment", "snubaqueryeventtype_set")
         return {}
 
     def serialize(
-        self, obj: SnubaQuery, attrs: Mapping[str, Any], user, **kwargs
+        self,
+        obj: SnubaQuery,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         return {
             "id": str(obj.id),
@@ -38,7 +45,10 @@ class SnubaQuerySerializer(Serializer):
 @register(QuerySubscription)
 class QuerySubscriptionSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[QuerySubscription], user, **kwargs
+        self,
+        item_list: Sequence[QuerySubscription],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[QuerySubscription, dict[str, Any]]:
         attrs: dict[QuerySubscription, dict[str, Any]] = defaultdict(dict)
 
@@ -50,7 +60,11 @@ class QuerySubscriptionSerializer(Serializer):
         return attrs
 
     def serialize(
-        self, obj: QuerySubscription, attrs: Mapping[str, Any], user, **kwargs
+        self,
+        obj: QuerySubscription,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         return {
             "id": str(obj.id),

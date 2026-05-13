@@ -28,6 +28,7 @@ from sentry.utils.validators import (
     is_event_id_or_list,
     is_span_id,
     is_span_id_or_list,
+    normalize_event_id_strict,
 )
 
 logger = logging.getLogger(__name__)
@@ -139,6 +140,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.trace_id",
             search_type="string",
             validator=is_event_id_or_list,
+            normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(
             public_alias="transaction",

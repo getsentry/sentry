@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
@@ -123,6 +123,7 @@ function getDefaultSort({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
 
 function ManageDashboards() {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const api = useApi();
@@ -176,6 +177,10 @@ function ManageDashboards() {
     enabled: hasProjectAccess || !projectsLoaded,
   });
   const dashboardsWithoutPrebuiltConfigs = dashboardsResponse?.json;
+
+  function invalidateDashboards() {
+    queryClient.invalidateQueries(dashboardsApiOptions(organization));
+  }
 
   const dashboards = useMemo(
     () =>
@@ -505,7 +510,7 @@ function ManageDashboards() {
         api={api}
         dashboards={dashboards}
         organization={organization}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
@@ -516,7 +521,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
       />
     );

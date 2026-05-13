@@ -202,6 +202,7 @@ class OutboxCategory(IntEnum):
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.apitoken import ApiToken
         from sentry.models.organization import Organization
+        from sentry.seer.models.run import SeerRun
         from sentry.users.models.user import User
 
         assert (model is not None) ^ (object_identifier is not None), (
@@ -240,7 +241,8 @@ class OutboxCategory(IntEnum):
                 elif hasattr(model, "api_token_id"):
                     shard_identifier = model.api_token_id
             if scope == OutboxScope.SEER_SCOPE:
-                shard_identifier = model.id
+                if isinstance(model, SeerRun):
+                    shard_identifier = model.id
 
         assert (model is not None) or shard_identifier is not None, (
             "Either model or shard_identifier must be specified"

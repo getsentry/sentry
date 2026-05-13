@@ -15,19 +15,25 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
+from sentry.hybridcloud.models.outbox import (
+    CellOutbox,
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     SearchAgentStartRequest,
     SeerViewerContext,
     make_search_agent_start_request,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -115,12 +121,22 @@ def send_search_agent_start_request(
                         "viewer_context": dict(viewer_context) if viewer_context else None,
                     },
                 ).save()
-        except OutboxFlushError:
+        except (OutboxFlushError, OutboxDatabaseError):
+            metrics.incr("seer.outbox_flush_error", tags={"type": "assisted_query"})
             logger.exception(
                 "search_agent.outbox_flush_error",
-                extra={"organization_id": organization.id},
+                extra={
+                    "organization_id": organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
             )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise SeerApiError("Outbox flush failed", 500)
         run.refresh_from_db()
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise SeerApiError("Seer run failed during outbox drain", 500)
         return run
 
     response = make_search_agent_start_request(body, timeout=30, viewer_context=viewer_context)

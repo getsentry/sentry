@@ -26,7 +26,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -93,7 +92,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
 
     def fetch_for_organization(
         self, organization: Organization, projects: Collection[Project] | None = None
-    ):
+    ) -> BaseQuerySet[AlertRule]:
         queryset = self.filter(organization=organization)
         if projects is not None:
             queryset = queryset.filter(projects__in=projects).distinct()
@@ -121,7 +120,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         return alert_rule
 
     @classmethod
-    def clear_subscription_cache(cls, instance, **kwargs: Any) -> None:
+    def clear_subscription_cache(cls, instance: QuerySubscription, **kwargs: Any) -> None:
         cache.delete(cls.__build_subscription_cache_key(instance.id))
         assert cache.get(cls.__build_subscription_cache_key(instance.id)) is None
 
@@ -305,9 +304,6 @@ class AlertRuleTrigger(Model):
     threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
     resolve_threshold = models.FloatField(null=True)
-    triggered_incidents = models.ManyToManyField(
-        "sentry.Incident", related_name="triggers", through=IncidentTrigger
-    )
     date_added = models.DateTimeField(default=timezone.now)
 
     objects: ClassVar[AlertRuleTriggerManager] = AlertRuleTriggerManager()
@@ -425,7 +421,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     EXEMPT_SERVICES = frozenset((Type.SENTRY_NOTIFICATION.value,))
 
     objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
-    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+    objects_for_deletion: ClassVar[BaseManager[Self]] = BaseManager()
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
@@ -479,46 +475,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{type}")
             return None
-
-    def fire(
-        self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-        metric_value: int | float | None,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ) -> None:
-        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
-        if handler:
-            return handler.fire(
-                action=action,
-                incident=incident,
-                project=project,
-                new_status=new_status,
-                metric_value=metric_value,
-                notification_uuid=notification_uuid,
-            )
-
-    def resolve(
-        self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-        metric_value: int | float | None,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ) -> None:
-        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
-        if handler:
-            return handler.resolve(
-                action=action,
-                incident=incident,
-                project=project,
-                metric_value=metric_value,
-                new_status=new_status,
-                notification_uuid=notification_uuid,
-            )
 
     def get_single_sentry_app_config(self) -> dict[str, Any] | None:
         value = self.sentry_app_config

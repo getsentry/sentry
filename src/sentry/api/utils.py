@@ -63,7 +63,11 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCRateLimitExceeded
+from sentry.utils.snuba_rpc import (
+    SnubaRPCError,
+    SnubaRPCRateLimitExceeded,
+    SnubaRPCTooManySimultaneous,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -390,6 +394,9 @@ def handle_query_errors() -> Generator[None]:
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
         raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+    except SnubaRPCTooManySimultaneous:
+        sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+        raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
@@ -411,12 +418,14 @@ def handle_query_errors() -> Generator[None]:
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
             raise
+        if isinstance(error, QueryTooManySimultaneous):
+            sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
             (
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
-                QueryTooManySimultaneous,
             ),
         ) or isinstance(
             arg,

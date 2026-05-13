@@ -111,7 +111,7 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -157,7 +157,7 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -192,7 +192,7 @@ function getIssueDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -219,7 +219,7 @@ function getReplayDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -246,7 +246,7 @@ function getProfileFlamegraphEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -275,14 +275,21 @@ function getCodeSearchEvidenceProps({
       return null;
     }
     const filename = extractFileName(path);
-    const {code_url} = toolLink?.params ?? {};
+    const {code_url, start_line, end_line} = toolLink?.params ?? {};
 
     if (!defined(filename) || !defined(code_url)) {
       return null;
     }
 
+    const hash =
+      start_line && end_line
+        ? start_line === end_line
+          ? `L${start_line}`
+          : `L${start_line}-L${end_line}`
+        : undefined;
+
     return {
-      href: code_url,
+      href: hash ? `${code_url}#${hash}` : code_url,
       icon: <IconFile />,
       label: t('File: %s', truncateText(filename)),
       tooltip: path,

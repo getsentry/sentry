@@ -92,7 +92,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
           {t('Snapshots')}
           <Container display={{'2xs': 'none', xs: 'flex'}}>
             <PageHeadingQuestionTooltip
-              docsUrl="https://docs.sentry.io/product/preprod/snapshots/"
+              docsUrl="https://docs.sentry.io/product/snapshots/"
               title={t('Catch visual regressions before they reach users.')}
             />
           </Container>

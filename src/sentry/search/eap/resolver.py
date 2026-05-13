@@ -106,6 +106,23 @@ class SearchResolver:
         ],
     ] = field(default_factory=dict)
     qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
+    _internal_name_to_column: dict[str, ResolvedAttribute] = field(default_factory=dict, repr=False)
+
+    def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
+        """Look up a column definition by its internal name (e.g. 'sentry.item_id' -> 'id' column).
+
+        Uses a lazily-built reverse mapping from internal_name -> column definition,
+        cached for the lifetime of this resolver instance.
+        """
+        if not self._internal_name_to_column:
+            self._internal_name_to_column.update(
+                {
+                    col.internal_name: col
+                    for col in self.definitions.columns.values()
+                    if not col.secondary_alias
+                }
+            )
+        return self._internal_name_to_column.get(internal_name)
 
     def get_function_definition(
         self, function_name: str
@@ -836,6 +853,7 @@ class SearchResolver:
         value: str | float | datetime | Sequence[float] | Sequence[str],
     ) -> AttributeValue:
         column.validate(value)
+        value = column.normalize(value)
         if isinstance(column.proto_definition, AttributeKey):
             column_type = column.proto_definition.type
             if column_type == constants.STRING:
@@ -895,6 +913,17 @@ class SearchResolver:
                     return AttributeValue(val_bool=bool_value)
                 elif isinstance(value, bool):
                     return AttributeValue(val_bool=value)
+            elif column_type == constants.ARRAY:
+                # Only scalar value membership in an array is allowed.
+                # Allowed operators: =,!=, LIKE, NOT_LIKE.
+                # TODO: Add support for scalar: >, < for numbers
+                if operator in constants.IN_OPERATORS:
+                    raise InvalidSearchQuery(
+                        f"{column.public_alias} (array) cannot be used with an IN filter; "
+                        f"use {column.public_alias}[*]:value for membership"
+                    )
+                # All primitive types are converted to strings on EAP before comparison.
+                return AttributeValue(val_str=str(value))
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
@@ -939,6 +968,12 @@ class SearchResolver:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
             resolved_column, context = self.resolve_column(column, match)
+            if (
+                self.config.disable_array_attributes
+                and isinstance(resolved_column, ResolvedAttribute)
+                and resolved_column.internal_type == constants.ARRAY
+            ):
+                continue
             resolved_columns.append(resolved_column)
             resolved_contexts.append(context)
 
@@ -989,6 +1024,8 @@ class SearchResolver:
         resolved_contexts = []
         for column in columns:
             col, context = self.resolve_attribute(column)
+            if self.config.disable_array_attributes and col.internal_type == constants.ARRAY:
+                continue
             resolved_columns.append(col)
             resolved_contexts.append(context)
         return resolved_columns, resolved_contexts
@@ -1026,6 +1063,17 @@ class SearchResolver:
                     internal_name=column_definition.internal_name,
                     search_type=column_definition.search_type,
                 )
+        elif (internal_match := self._find_column_by_internal_name(column)) is not None:
+            column_context = None
+            column_definition = ResolvedAttribute(
+                public_alias=alias,
+                internal_name=internal_match.internal_name,
+                search_type=internal_match.search_type,
+                internal_type=internal_match.internal_type,
+                validator=internal_match.validator,
+                normalizer=internal_match.normalizer,
+                processor=internal_match.processor,
+            )
         else:
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
                 raise InvalidSearchQuery(
@@ -1057,9 +1105,8 @@ class SearchResolver:
                 if mapped_column is not None:
                     field = mapped_column
 
-            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedAttribute(
-                public_alias=alias, internal_name=field, search_type=search_type
+                public_alias=alias, internal_name=field, search_type=field_type
             )
             column_context = None
 

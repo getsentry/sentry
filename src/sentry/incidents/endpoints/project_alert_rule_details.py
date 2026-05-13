@@ -28,6 +28,7 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
     }
     workflow_engine_method_flags = {
         "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
+        "DELETE": "organizations:workflow-engine-metric-alert-endpoints-delete",
     }
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rule-details")
