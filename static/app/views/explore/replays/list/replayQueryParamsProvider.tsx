@@ -10,10 +10,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  ID_KEY,
-  TITLE_KEY,
-} from 'sentry/views/explore/queryParams/savedQuery';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const REPLAY_QUERY_KEY = 'query';

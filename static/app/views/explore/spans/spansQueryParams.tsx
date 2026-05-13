@@ -21,10 +21,7 @@ import {
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  ID_KEY,
-  TITLE_KEY,
-} from 'sentry/views/explore/queryParams/savedQuery';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
