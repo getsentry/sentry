@@ -34,6 +34,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import json as sentry_json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -1215,7 +1216,7 @@ class TestCallAutofix(TestCase):
         assert run.user_id == self.user.id
 
         sent_body = mock_request.call_args[0][0]
-        body = orjson.loads(sent_body)
+        body = sentry_json.loads(sent_body)
         assert body["organization_id"] == group.organization.id
         assert body["project_id"] == group.project.id
         assert "external_idempotency_key" in body

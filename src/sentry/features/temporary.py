@@ -308,7 +308,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-run-id-in-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Gate outbox-based mirroring of SeerRun records to Seer
     manager.add("organizations:seer-run-mirror", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Gate outbox-based mirroring for autofix writes (separate from assisted-query)
+    # Gate outbox-based mirroring for autofix writes
     manager.add("organizations:seer-run-mirror-autofix", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable search query attribute validation
     manager.add("organizations:search-query-attribute-validation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

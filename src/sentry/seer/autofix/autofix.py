@@ -542,7 +542,7 @@ def _call_autofix(
                     },
                 ).save()
         except OutboxFlushError:
-            metrics.incr("seer.outbox_flush_error", tags={"type": "autofix"})
+            metrics.incr("seer.outbox_flush_error", tags={"type": "autofix", "source": "legacy"})
             logger.exception(
                 "autofix.outbox_flush_error",
                 extra={
