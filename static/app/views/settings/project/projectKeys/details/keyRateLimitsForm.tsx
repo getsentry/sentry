@@ -8,7 +8,7 @@ import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
@@ -23,6 +23,7 @@ import type {Project, ProjectKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
@@ -102,6 +103,14 @@ export function KeyRateLimitsForm({
         })
       );
       updateData(updated);
+    },
+    onError: (error: unknown) => {
+      let message: string | undefined;
+      if (error instanceof RequestError) {
+        const detail = error.responseJSON?.detail;
+        message = typeof detail === 'string' ? detail : detail?.message;
+      }
+      addErrorMessage(message ?? t('Unable to save rate limit.'));
     },
   });
 
