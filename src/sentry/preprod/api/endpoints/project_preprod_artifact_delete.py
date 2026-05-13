@@ -73,7 +73,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
             {
                 "success": True,
                 "message": f"Artifact {head_artifact_id} deleted successfully.",
-                "preprod_artifact_id": str(head_artifact_id),
+                "artifact_id": str(head_artifact_id),
                 "files_deleted_count": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
                 "installable_artifacts_deleted": result.installable_artifacts_deleted,

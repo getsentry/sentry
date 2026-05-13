@@ -142,7 +142,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
         return Response(
             {
                 "success": True,
-                "preprod_artifact_id": str(head_artifact.id),
+                "artifact_id": str(head_artifact.id),
                 "message": f"Status check rerun initiated for artifact {head_artifact.id}",
                 "check_types": supported_types,
             },

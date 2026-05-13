@@ -245,7 +245,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                 artifact.refresh_from_db()
 
             result: dict[str, object] = {
-                "preprod_artifact_id": str(artifact_id),
+                "artifact_id": str(artifact_id),
                 "success": dispatched,
                 "new_state": artifact.state,
                 "cleanup_stats": asdict(cleanup_stats),
@@ -338,7 +338,7 @@ def success_response(
 ) -> Response:
     response_data = {
         "success": True,
-        "preprod_artifact_id": artifact_id,
+        "artifact_id": artifact_id,
         "message": f"Analysis rerun initiated for artifact {artifact_id}",
         "new_state": state,
     }

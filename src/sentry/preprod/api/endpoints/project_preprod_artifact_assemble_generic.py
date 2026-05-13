@@ -160,7 +160,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                         "project_id": project.id,
                         "checksum": checksum,
                         "chunks": chunks,
-                        "preprod_artifact_id": head_artifact_id,
+                        "artifact_id": head_artifact_id,
                     }
                 )
             elif assemble_type == AssembleType.INSTALLABLE_APP.value:
@@ -174,7 +174,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                         "project_id": project.id,
                         "checksum": checksum,
                         "chunks": chunks,
-                        "preprod_artifact_id": head_artifact_id,
+                        "artifact_id": head_artifact_id,
                     }
                 )
             else:
