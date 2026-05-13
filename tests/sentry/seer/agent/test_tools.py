@@ -2998,6 +2998,37 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
         assert row["count_rage_clicks"] == 1
         assert row["urls"] == ["https://example.com/checkout"]
 
+    def test_execute_replays_query_with_project_slugs(self) -> None:
+        replay_id = uuid.uuid4().hex
+        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        self.store_replays(
+            mock_replay(
+                replay_timestamp,
+                self.project.id,
+                replay_id,
+                urls=["https://example.com/checkout"],
+            )
+        )
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_slugs=[self.project.slug],
+                query="url:*checkout*",
+                fields=["id", "project_id", "started_at", "urls"],
+                sort="-started_at",
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result is not None
+        assert len(result["data"]) == 1
+        row = result["data"][0]
+        assert row["id"] == replay_id
+        assert row["project_id"] == str(self.project.id)
+        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
+        assert row["urls"] == ["https://example.com/checkout"]
+
 
 class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
     def setUp(self) -> None:
