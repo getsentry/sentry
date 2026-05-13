@@ -61,7 +61,7 @@ export function getSeriesSum(
   const groupSeries = groups.map(group => group.series[field]);
 
   groupSeries.forEach(series => {
-    series!.forEach((dataPoint, idx) => (dataPointsSums[idx]! += dataPoint));
+    series!.forEach((dataPoint, idx) => (dataPointsSums[idx]! += dataPoint ?? 0));
   });
 
   return dataPointsSums;
@@ -328,14 +328,14 @@ export function filterSessionsInTimeWindow(
   });
 
   const groups = sessions.groups.map(group => {
-    const series: Record<string, number[]> = {};
+    const series: Record<string, Array<number | null>> = {};
     const totals: Record<string, number> = {};
     Object.keys(group.series).forEach(field => {
       totals[field] = 0;
       series[field] = group.series[field]!.filter((value, index) => {
         const isBetween = filteredIndexes.includes(index);
         if (isBetween) {
-          totals[field] = (totals[field] ?? 0) + value;
+          totals[field] = (totals[field] ?? 0) + (value ?? 0);
         }
 
         return isBetween;
@@ -343,7 +343,8 @@ export function filterSessionsInTimeWindow(
       if (field.startsWith('p50')) {
         // Calculate the mean of the current field.
         const base = series[field] ?? [];
-        totals[field] = base.reduce((acc, curr) => acc + curr, 0) / base.length;
+        totals[field] =
+          base.reduce((acc: number, curr) => acc + (curr ?? 0), 0) / base.length;
       }
       if (field.startsWith('count_unique')) {
         // E.g. users

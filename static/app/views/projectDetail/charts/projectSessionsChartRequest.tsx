@@ -250,14 +250,16 @@ class ProjectSessionsChartRequest extends Component<
         data: responseData.intervals
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .map((interval, i) => {
-            const crashedSessionsPercent =
-              responseData.groups[0]?.series[field]!.slice(
-                fetchedWithPrevious ? dataMiddleIndex : 0
-              )[i]! * 100;
+            const rawValue = responseData.groups[0]?.series[field]?.slice(
+              fetchedWithPrevious ? dataMiddleIndex : 0
+            )[i];
 
             return {
               name: interval,
-              value: getCrashFreePercent(crashedSessionsPercent),
+              value:
+                rawValue === null || rawValue === undefined
+                  ? null
+                  : getCrashFreePercent(rawValue * 100),
             };
           }),
       },
@@ -267,12 +269,17 @@ class ProjectSessionsChartRequest extends Component<
       ? ({
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
-            const crashedSessionsPercent =
-              responseData.groups[0]?.series[field]!.slice(0, dataMiddleIndex)[i]! * 100;
+            const rawValue = responseData.groups[0]?.series[field]?.slice(
+              0,
+              dataMiddleIndex
+            )[i];
 
             return {
               name: responseData.intervals[i + dataMiddleIndex],
-              value: getCrashFreePercent(crashedSessionsPercent),
+              value:
+                rawValue === null || rawValue === undefined
+                  ? null
+                  : getCrashFreePercent(rawValue * 100),
             };
           }),
         } as Series) // TODO(project-detail): Change SeriesDataUnit value to support null

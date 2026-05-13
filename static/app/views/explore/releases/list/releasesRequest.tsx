@@ -55,7 +55,7 @@ function reduceTimeSeriesGroups(
   field: 'count_unique(user)' | 'sum(session)'
 ) {
   group.series[field]?.forEach(
-    (value, index) => (acc[index] = (acc[index] ?? 0) + value)
+    (value, index) => (acc[index] = (acc[index] ?? 0) + (value ?? 0))
   );
 
   return acc;

@@ -41,7 +41,9 @@ export function transformSessionsResponseToSeries(
       useSessionAPI
     );
 
-  const results: Series[] = [];
+  const results: Array<
+    Omit<Series, 'data'> & {data: Array<{name: string | number; value: number | null}>}
+  > = [];
 
   if (!data.groups.length) {
     return [
@@ -67,7 +69,7 @@ export function transformSessionsResponseToSeries(
           seriesName: getSeriesName(field, group, queryAlias),
           data: data.intervals.map((interval, index) => ({
             name: interval,
-            value: group.series[field]?.[index] ?? 0,
+            value: group.series[field]?.[index] ?? null,
           })),
         });
       }
@@ -91,7 +93,7 @@ export function transformSessionsResponseToSeries(
             seriesName: getSeriesName(status, group, queryAlias),
             data: data.intervals.map((interval, index) => ({
               name: interval,
-              value: metricField ? (group.series[metricField]?.[index] ?? 0) : 0,
+              value: metricField ? (group.series[metricField]?.[index] ?? null) : 0,
             })),
           });
         }
@@ -99,5 +101,5 @@ export function transformSessionsResponseToSeries(
     }
   });
 
-  return results;
+  return results as unknown as Series[];
 }

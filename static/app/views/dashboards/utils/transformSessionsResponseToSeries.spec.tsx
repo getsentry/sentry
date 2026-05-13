@@ -1143,6 +1143,38 @@ describe('transformSessionsResponseToSeries', () => {
     ]);
   });
 
+  it('preserves null values from API response', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: [],
+      orderby: '',
+    });
+
+    const response = {
+      start: '2022-01-15T00:00:00Z',
+      end: '2022-01-18T00:00:00Z',
+      query: '',
+      intervals: ['2022-01-15T00:00:00Z', '2022-01-16T00:00:00Z', '2022-01-17T00:00:00Z'],
+      groups: [
+        {
+          by: {},
+          series: {
+            'crash_free_rate(session)': [null, 0.99, 0.98],
+          },
+          totals: {
+            'crash_free_rate(session)': 0.985,
+          },
+        },
+      ],
+    };
+
+    const result = transformSessionsResponseToSeries(response, widgetQuery);
+    expect(result[0]!.data).toEqual([
+      {name: '2022-01-15T00:00:00Z', value: null},
+      {name: '2022-01-16T00:00:00Z', value: 0.99},
+      {name: '2022-01-17T00:00:00Z', value: 0.98},
+    ]);
+  });
+
   it('supports legend aliases', () => {
     const widgetQuery = WidgetQueryFixture({
       name: 'Lorem',

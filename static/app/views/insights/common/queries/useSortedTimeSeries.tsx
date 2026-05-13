@@ -242,7 +242,9 @@ export function convertEventsStatsToTimeSeriesData(
     ([timestamp, countsForTimestamp], index) => {
       const item: TimeSeriesItem = {
         timestamp: timestamp * 1000,
-        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        value: countsForTimestamp.some(({count}) => count === null)
+          ? null
+          : countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
       };
 
       if (seriesData.meta?.accuracy) {
