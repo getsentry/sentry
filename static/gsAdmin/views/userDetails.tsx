@@ -23,6 +23,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {MergeAccountsModal} from 'admin/components/mergeAccounts';
 import {SelectableContainer} from 'admin/components/selectableContainer';
+import {UserAuditLog} from 'admin/components/users/userAuditLog';
 import {UserCustomers} from 'admin/components/users/userCustomers';
 import {UserEmailLog} from 'admin/components/users/userEmailLog';
 import {UserEmails} from 'admin/components/users/userEmails';
@@ -329,6 +330,10 @@ export function UserDetails() {
         {
           noPanel: true,
           content: userEmails,
+        },
+        {
+          name: 'Admin Audit Log',
+          content: <UserAuditLog userId={user.id} />,
         },
       ]}
     />

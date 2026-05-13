@@ -42,6 +42,11 @@ describe('User Details', () => {
       url: `/users/${mockUser.id}/user-identities/`,
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/audit-logs/',
+      body: {rows: [], filters: {}},
+    });
   });
 
   afterEach(() => {
@@ -63,6 +68,7 @@ describe('User Details', () => {
       expect(await screen.findByText('Active')).toBeInTheDocument();
       expect(screen.getByText('Customer')).toBeInTheDocument();
       expect(screen.getByText('User Emails')).toBeInTheDocument();
+      expect(screen.getByText('Admin Audit Log')).toBeInTheDocument();
     });
 
     it('renders correct dropdown options for active account', async () => {
