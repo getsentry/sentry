@@ -78,6 +78,11 @@ export const Body = styled(
  * The entire layout is determined by the usage of <th> and <td>.
  */
 export const Grid = styled('table')<{
+  /**
+   * When true, the table stays within the panel width (no `min-width: max-content`
+   * growth) and clips overflow instead of introducing its own scrollbars.
+   */
+  fillContainer?: boolean;
   fit?: 'max-content';
   height?: CSSProperties['height'];
   scrollable?: boolean;
@@ -89,8 +94,23 @@ export const Grid = styled('table')<{
   border-collapse: collapse;
   margin: 0;
 
+  min-width: ${p => (p.fillContainer ? 0 : p.fit)};
+
+  ${p =>
+    p.fillContainer &&
+    css`
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+
+      & > tbody {
+        min-height: 0;
+      }
+    `}
+
   ${p =>
     p.scrollable &&
+    !p.fillContainer &&
     css`
       overflow-x: auto;
       overflow-y: scroll;
@@ -108,8 +128,6 @@ export const Grid = styled('table')<{
           }
         `
       : ''}
-
-  min-width: ${p => p.fit}
 `;
 
 /**
@@ -137,14 +155,17 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_STICKY_HEADER}` : '')}
 `;
 
-export const GridHeadCell = styled('th')<{isFirst: boolean}>`
+export const GridHeadCell = styled('th', {
+  shouldForwardProp: prop => prop !== '$emptyShell',
+})<{isFirst: boolean; $emptyShell?: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
   height: ${GRID_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
-  min-width: 24px;
+  min-width: ${p => (p.$emptyShell ? 0 : '24px')};
+  overflow: ${p => (p.$emptyShell ? 'hidden' : 'visible')};
   padding: 0 ${p => p.theme.space.xl};
 
   border-right: 1px solid transparent;
@@ -179,7 +200,9 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
  * Create spacing/padding similar to GridHeadCellWrapper but
  * without interactive aspects.
  */
-export const GridHeadCellStatic = styled('th')`
+export const GridHeadCellStatic = styled('th', {
+  shouldForwardProp: prop => prop !== '$emptyShell',
+})<{$emptyShell?: boolean}>`
   height: ${GRID_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
@@ -188,6 +211,12 @@ export const GridHeadCellStatic = styled('th')`
   white-space: nowrap;
   overflow: hidden;
   justify-content: center;
+
+  ${p =>
+    p.$emptyShell &&
+    css`
+      min-width: 0;
+    `}
 
   &:first-child {
     padding: ${p => `${p.theme.space.md} 0 ${p.theme.space.md} ${p.theme.space['2xl']}`};
@@ -258,6 +287,8 @@ export const GridBodyCellStatic = styled(GridBodyCell)`
 const GridStatusWrapper = styled(GridBodyCell)`
   grid-column: 1 / -1;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   background-color: transparent;
 `;
@@ -267,7 +298,10 @@ const GridStatusFloat = styled('div')`
   justify-content: center;
   align-items: center;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+  overflow: hidden;
 `;
 
 export function GridBodyCellStatus(props: any) {

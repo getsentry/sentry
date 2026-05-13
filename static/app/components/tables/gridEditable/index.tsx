@@ -3,7 +3,7 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import {GridEditableEmptyData} from 'sentry/components/tables/gridEditable/GridEditableEmptyData';
+import {GridEditableEmptyPlaceholder} from 'sentry/components/tables/gridEditable/GridEditableEmptyPlaceholder';
 import {GridEditableError} from 'sentry/components/tables/gridEditable/GridEditableError';
 import {GridEditableLoading} from 'sentry/components/tables/gridEditable/GridEditableLoading';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
@@ -14,6 +14,7 @@ import {
   GridBody,
   GridBodyCell,
   GridBodyCellStatic,
+  GridBodyCellStatus,
   GridHead,
   GridHeadCell,
   GridHeadCellStatic,
@@ -240,28 +241,48 @@ export function GridEditable<
         return;
       }
 
-      const prependColumns = props.grid.prependColumnWidths || [];
-      const prepend = prependColumns.join(' ');
-      const widths = columnOrder.map((item, index) => {
-        if (item.width === COL_WIDTH_UNDEFINED) {
-          return `minmax(${minimumColWidth}px, auto)`;
-        }
-        if (typeof item.width === 'number' && item.width > minimumColWidth) {
-          if (index === columnOrder.length - 1) {
-            return `minmax(${item.width}px, auto)`;
+      const prependColumnWidths = props.grid.prependColumnWidths || [];
+      /** Shell states (error / loading / empty): not the normal data body. */
+      const useFlexColumnTracks =
+        !!props.error || !!props.isLoading || !props.data || props.data.length === 0;
+
+      if (useFlexColumnTracks) {
+        const numPrepend = prependColumnWidths.length;
+        const prependTemplate =
+          numPrepend > 0
+            ? Array.from({length: numPrepend}, () => 'minmax(0, 1fr)').join(' ')
+            : '';
+        const numCols = columnOrder.length;
+        const dataTemplate =
+          numCols > 0
+            ? Array.from({length: numCols}, () => 'minmax(0, 1fr)').join(' ')
+            : '';
+        const combined = [prependTemplate, dataTemplate].filter(Boolean).join(' ');
+        refGrid.current.style.gridTemplateColumns =
+          combined.length > 0 ? combined : 'minmax(0, 1fr)';
+      } else {
+        const prepend = prependColumnWidths.join(' ');
+        const widths = columnOrder.map((item, index) => {
+          if (item.width === COL_WIDTH_UNDEFINED) {
+            return `minmax(${minimumColWidth}px, auto)`;
           }
-          return `${item.width}px`;
-        }
-        if (index === columnOrder.length - 1) {
-          return `minmax(${minimumColWidth}px, auto)`;
-        }
-        return `${minimumColWidth}px`;
-      });
+          if (typeof item.width === 'number' && item.width > minimumColWidth) {
+            if (index === columnOrder.length - 1) {
+              return `minmax(${item.width}px, auto)`;
+            }
+            return `${item.width}px`;
+          }
+          if (index === columnOrder.length - 1) {
+            return `minmax(${minimumColWidth}px, auto)`;
+          }
+          return `${minimumColWidth}px`;
+        });
 
-      // The last column has no resizer and should always be a flexible column
-      // to prevent underflows.
+        // The last column has no resizer and should always be a flexible column
+        // to prevent underflows.
 
-      refGrid.current.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
+        refGrid.current.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
+      }
 
       // Setting the rendered grid height as a CSS variable so `GridResizer` can
       // reliably span the full visible height even when rows grow (e.g. wrapped text).
@@ -270,7 +291,13 @@ export function GridEditable<
         `${refGrid.current.offsetHeight}px`
       );
     },
-    [minimumColWidth, props.grid.prependColumnWidths]
+    [
+      minimumColWidth,
+      props.data,
+      props.error,
+      props.grid.prependColumnWidths,
+      props.isLoading,
+    ]
   );
 
   const redrawGridColumn = useCallback(() => {
@@ -306,7 +333,7 @@ export function GridEditable<
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
               {i !== numColumn - 1 && resizable && (
                 <GridResizer
-                  dataRows={!error && !isLoading && data ? data.length : 0}
+                  dataRows={data.length}
                   onMouseDown={e => onResizeMouseDown(e, i)}
                   onDoubleClick={e => onResetColumnSize(e, i)}
                   onContextMenu={onResizeMouseDown}
@@ -319,21 +346,39 @@ export function GridEditable<
     );
   }
 
-  const renderGridBody = () => {
-    if (error) {
-      return <GridEditableError />;
-    }
+  /**
+   * Decorative header row for the empty state: same chrome as `GridHead` (including
+   * top border radius) without column labels or resizers.
+   */
+  function renderGridHeadEmptyShell() {
+    const prependColumns = grid.renderPrependColumns
+      ? grid.renderPrependColumns(true)
+      : [];
 
-    if (isLoading) {
-      return <GridEditableLoading />;
-    }
+    return (
+      <GridRow data-test-id="grid-head-row">
+        {prependColumns &&
+          props.columnOrder.length > 0 &&
+          prependColumns.map((_, i) => (
+            <GridHeadCellStatic
+              $emptyShell
+              data-test-id="grid-head-cell-static"
+              key={`prepend-${i}`}
+            />
+          ))}
+        {props.columnOrder.map((column, i) => (
+          <GridHeadCell
+            $emptyShell
+            data-test-id="grid-head-cell"
+            key={`${i}.${String(column.key)}`}
+            isFirst={i === 0}
+          />
+        ))}
+      </GridRow>
+    );
+  }
 
-    if (!data || data.length === 0) {
-      return <GridEditableEmptyData emptyMessage={props.emptyMessage} />;
-    }
-
-    return data.map(renderGridBodyRow);
-  };
+  const renderGridBody = () => data.map(renderGridBodyRow);
 
   const renderGridBodyRow = (dataRow: DataRow, row: number) => {
     const prependColumns = grid.renderPrependColumns
@@ -386,6 +431,59 @@ export function GridEditable<
   }, [clearWindowLifecycleEvents, redrawGridColumn]);
 
   const showHeader = title || headerButtons;
+  const isEmpty = !error && !isLoading && (!data || data.length === 0);
+
+  /** Grid chrome + decorative header shell (no column labels); body is caller content. */
+  function renderShellStatusGrid(body: React.ReactNode) {
+    return (
+      <Grid
+        fillContainer
+        aria-label={ariaLabel}
+        data-test-id="grid-editable"
+        scrollable={false}
+        height={height}
+        ref={refGrid}
+        fit={fit}
+      >
+        <GridHead sticky={stickyHeader} aria-hidden>
+          {renderGridHeadEmptyShell()}
+        </GridHead>
+        <GridBody>{body}</GridBody>
+      </Grid>
+    );
+  }
+
+  const renderTableBody = () => {
+    if (error) {
+      return renderShellStatusGrid(<GridEditableError />);
+    }
+    if (isLoading) {
+      return renderShellStatusGrid(<GridEditableLoading />);
+    }
+    if (isEmpty) {
+      return renderShellStatusGrid(
+        <GridRow>
+          <GridBodyCellStatus>
+            <GridEditableEmptyPlaceholder emptyMessage={props.emptyMessage} />
+          </GridBodyCellStatus>
+        </GridRow>
+      );
+    }
+    return (
+      <Grid
+        aria-label={ariaLabel}
+        data-test-id="grid-editable"
+        scrollable={scrollable}
+        height={height}
+        ref={refGrid}
+        fit={fit}
+      >
+        <GridHead sticky={stickyHeader}>{renderGridHead()}</GridHead>
+        <GridBody>{renderGridBody()}</GridBody>
+      </Grid>
+    );
+  };
+
   return (
     <Fragment>
       <Profiler id="GridEditable" onRender={onRenderCallback}>
@@ -398,17 +496,7 @@ export function GridEditable<
           </Header>
         )}
         <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
-          <Grid
-            aria-label={ariaLabel}
-            data-test-id="grid-editable"
-            scrollable={scrollable}
-            height={height}
-            ref={refGrid}
-            fit={fit}
-          >
-            <GridHead sticky={stickyHeader}>{renderGridHead()}</GridHead>
-            <GridBody>{renderGridBody()}</GridBody>
-          </Grid>
+          {renderTableBody()}
         </Body>
       </Profiler>
     </Fragment>
