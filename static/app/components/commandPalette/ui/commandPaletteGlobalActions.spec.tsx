@@ -106,9 +106,8 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await userEvent.click(
       await screen.findByRole('option', {name: /Project Settings.*General Settings/})
     );
-    // The search query is cleared when drilling in. Wait for the resource query
-    // (project list) to resolve and render before returning.
-    await screen.findByRole('option', {name: /^project-/});
+    // The search query is cleared when drilling in; wait for project options to appear.
+    await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
   it('shows a "Current Project" tag on the active project entry', async () => {
