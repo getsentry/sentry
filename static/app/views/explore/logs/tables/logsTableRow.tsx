@@ -321,6 +321,10 @@ export const LogRowContent = memo(function LogRowContent({
   });
   const [caseInsensitivity] = useCaseInsensitivity();
 
+  const observedTimestampAttr = traceItemsResult.data?.attributes?.find(
+    a => a.name === OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE
+  );
+
   const rendererExtra: RendererExtra = {
     highlightTerms,
     caseSensitiveHighlighting: !caseInsensitivity,
@@ -328,7 +332,12 @@ export const LogRowContent = memo(function LogRowContent({
     useFullSeverityText: false,
     location,
     organization,
-    attributes: dataRow as OurLogsResponseItem,
+    attributes: {
+      ...dataRow,
+      ...(observedTimestampAttr
+        ? {[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: observedTimestampAttr.value}
+        : {}),
+    } as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,

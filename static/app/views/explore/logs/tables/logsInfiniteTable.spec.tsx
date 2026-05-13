@@ -438,7 +438,6 @@ describe('LogsInfiniteTable', () => {
             'severity',
             'timestamp',
             'timestamp_precise',
-            'observed_timestamp',
             'message',
             'replay_id',
           ]),
