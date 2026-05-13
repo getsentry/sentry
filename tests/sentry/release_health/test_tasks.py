@@ -504,6 +504,13 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             for org_id, project_ids in org_projects.items()
         ]
 
+    def test_process_projects_with_sessions_countdown_uses_jitter_option(self) -> None:
+        with self.options({"release-health.monitor-release-adoption-jitter-seconds": 1}):
+            assert get_process_projects_with_sessions_countdown(1) == 0
+
+        with self.options({"release-health.monitor-release-adoption-jitter-seconds": 0}):
+            assert get_process_projects_with_sessions_countdown(self.organization.id) == 0
+
     def test_missing_rpe_is_created(self) -> None:
         self.bulk_store_sessions(
             [

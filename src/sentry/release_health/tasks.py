@@ -26,7 +26,9 @@ from sentry.utils.hashlib import md5_text
 
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
-PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS = 45 * 60
+PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS_OPTION = (
+    "release-health.monitor-release-adoption-jitter-seconds"
+)
 
 # Sampling rate for updating ReleaseProjectEnvironment.last_seen
 LAST_SEEN_UPDATE_SAMPLE_RATE = 0.01  # 1%
@@ -53,9 +55,11 @@ def monitor_release_adoption(**kwargs) -> None:
 
 
 def get_process_projects_with_sessions_countdown(org_id: int) -> int:
-    return (
-        int(md5_text(str(org_id)).hexdigest(), 16) % PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS
-    )
+    jitter_seconds = max(0, options.get(PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS_OPTION))
+    if jitter_seconds == 0:
+        return 0
+
+    return int(md5_text(str(org_id)).hexdigest(), 16) % jitter_seconds
 
 
 @instrumented_task(
