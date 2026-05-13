@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.constants import DataCategory
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
@@ -43,17 +44,18 @@ from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
-SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS = {
-    SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
-    SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
-    SentryAppEventType.SEER_SOLUTION_STARTED,
-    SentryAppEventType.SEER_SOLUTION_COMPLETED,
-    SentryAppEventType.SEER_CODING_STARTED,
-    SentryAppEventType.SEER_CODING_COMPLETED,
-    SentryAppEventType.SEER_PR_CREATED,
+SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
+    SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
+    SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED: ActivityType.SEER_RCA_COMPLETED,
+    SentryAppEventType.SEER_SOLUTION_STARTED: ActivityType.SEER_SOLUTION_STARTED,
+    SentryAppEventType.SEER_SOLUTION_COMPLETED: ActivityType.SEER_SOLUTION_COMPLETED,
+    SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
+    SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
+    SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
 }
 
 logger = logging.getLogger(__name__)
@@ -690,6 +692,46 @@ class SeerAgentOperator[CachePayloadT]:
             return run_id
 
 
+def _create_seer_activity(
+    group: Group,
+    event_type: SentryAppEventType,
+    event_payload: dict[str, Any],
+) -> None:
+    activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
+    if not activity_type:
+        return
+
+    organization = group.project.organization
+    if not features.has("organizations:seer-activity-timeline", organization):
+        return
+
+    run_id = event_payload.get("run_id")
+
+    activity_data: dict[str, Any] = {}
+    if run_id is not None:
+        activity_data["run_id"] = run_id
+
+    if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
+        if "root_cause" in event_payload:
+            activity_data["root_cause"] = event_payload["root_cause"]
+    elif event_type == SentryAppEventType.SEER_SOLUTION_COMPLETED:
+        if "solution" in event_payload:
+            activity_data["solution"] = event_payload["solution"]
+    elif event_type == SentryAppEventType.SEER_CODING_COMPLETED:
+        if "changes" in event_payload:
+            activity_data["changes"] = event_payload["changes"]
+    elif event_type == SentryAppEventType.SEER_PR_CREATED:
+        if "pull_requests" in event_payload:
+            activity_data["pull_requests"] = event_payload["pull_requests"]
+
+    Activity.objects.create_group_activity(
+        group,
+        activity_type,
+        data=activity_data if activity_data else None,
+        send_notification=False,
+    )
+
+
 @instrumented_task(
     name="sentry.seer.entrypoints.operator.process_autofix_updates",
     namespace=seer_tasks,
@@ -724,7 +766,7 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
+        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
             lifecycle.record_halt(halt_reason="skipped")
             return
 
@@ -739,6 +781,18 @@ def process_autofix_updates(
         if not SeerAutofixOperator.has_access(organization=organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
+
+        try:
+            _create_seer_activity(group, event_type, event_payload)
+        except Exception:
+            logger.exception(
+                "seer.activity_creation_failed",
+                extra={
+                    "group_id": group_id,
+                    "run_id": run_id,
+                    "event_type": str(event_type),
+                },
+            )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
