@@ -403,6 +403,14 @@ jobs:
       contents: read
       actions: read
       pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 2
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -434,7 +442,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
-          PYTEST_ARTIFACT_DIR: pytest-results-migration-${{ github.run_id }}
+          PYTEST_ARTIFACT_DIR: pytest-results-migration-${{ github.run_id }}-${{ matrix.instance }}
         with:
           script: |
             const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
