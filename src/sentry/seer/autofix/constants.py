@@ -55,6 +55,10 @@ class AutofixReferrer(enum.StrEnum):
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
     NIGHT_SHIFT = "night_shift"
+    CLI = "api.cli"
+    LINEAR_AGENT = "api.linear_agent"
+    MCP = "api.mcp"
+    WEB = "api.web"
     UNKNOWN = "unknown"
 
 
