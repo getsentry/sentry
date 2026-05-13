@@ -92,6 +92,8 @@ class ReleaseProjectEnvironment(Model):
                 cache_key=cache_key,
                 metrics_tags=metrics_tags,
             )
+        else:
+            metrics_tags["bumped"] = "false"
 
         return instance
 

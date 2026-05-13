@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime as dt
+from datetime import timedelta
+from typing import Any, Protocol
 
 from django.core.cache import cache
 from django.db.utils import OperationalError
 
 
+class HasLastSeen(Protocol):
+    id: int
+    last_seen: dt
+
+
 def try_bump_last_seen(
     *,
     model_class: Any,
-    instance: Any,
-    datetime: datetime,
+    instance: HasLastSeen,
+    datetime: dt,
     bump_key: str,
     cache_key: str,
     metrics_tags: dict[str, str],

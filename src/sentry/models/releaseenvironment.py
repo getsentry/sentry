@@ -71,5 +71,7 @@ class ReleaseEnvironment(Model):
                 cache_key=cache_key,
                 metrics_tags=metric_tags,
             )
+        else:
+            metric_tags["bumped"] = "false"
 
         return instance
