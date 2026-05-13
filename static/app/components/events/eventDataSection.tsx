@@ -6,7 +6,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 
-export interface EventDataSectionProps {
+interface EventDataSectionProps {
   children: React.ReactNode;
   /**
    * The title of the section

@@ -28,19 +28,9 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_search_agent_start_request,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-class SeerRunOutboxDrainFailedError(SeerApiError):
-    """Raised when the synchronous outbox drain fails after the SeerRun row
-    is committed. The run uuid lets future client retries reuse the same
-    run instead of creating a duplicate via a fresh idempotency key.
-    """
-
-    def __init__(self, run_uuid: str):
-        super().__init__("Seer run outbox drain failed", 500)
-        self.run_uuid = run_uuid
 
 
 class SearchAgentStartSerializer(serializers.Serializer):
@@ -85,10 +75,8 @@ def send_search_agent_start_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-) -> int:
-    """
-    Sends a request to Seer to start an async search agent and returns a run_id for polling.
-    """
+) -> SeerRun | int:
+    """Start an async search agent and return a run_id for polling."""
     body = SearchAgentStartRequest(
         org_id=organization.id,
         org_slug=organization.slug,
@@ -119,8 +107,8 @@ def send_search_agent_start_request(
                     last_triggered_at=now(),
                 )
                 CellOutbox(
-                    shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-                    shard_identifier=organization.id,
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
                     category=OutboxCategory.SEER_RUN_CREATE,
                     object_identifier=run.id,
                     payload={
@@ -128,12 +116,23 @@ def send_search_agent_start_request(
                         "viewer_context": dict(viewer_context) if viewer_context else None,
                     },
                 ).save()
-        except OutboxFlushError as e:
-            raise SeerRunOutboxDrainFailedError(run_uuid=str(run.uuid)) from e
+        except OutboxFlushError:
+            metrics.incr("seer.outbox_flush_error", tags={"type": "assisted_query"})
+            logger.exception(
+                "search_agent.outbox_flush_error",
+                extra={
+                    "organization_id": organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
+            )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise SeerApiError("Outbox flush failed", 500)
         run.refresh_from_db()
-        if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
-            raise SeerApiError("Seer run mirror failed to materialize", 500)
-        return run.seer_run_state_id
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise SeerApiError("Seer run failed during outbox drain", 500)
+        return run
 
     response = make_search_agent_start_request(body, timeout=30, viewer_context=viewer_context)
     if response.status >= 400:
@@ -230,7 +229,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
             viewer_context = SeerViewerContext(
                 organization_id=organization.id, user_id=request.user.id
             )
-            run_id = send_search_agent_start_request(
+            result = send_search_agent_start_request(
                 organization=organization,
                 user_id=request.user.id,
                 project_ids=project_ids,
@@ -242,21 +241,15 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 metric_context=metric_context,
                 viewer_context=viewer_context,
             )
-            return Response({"run_id": run_id})
+            if isinstance(result, SeerRun):
+                return Response(
+                    {
+                        "run_id": result.seer_run_state_id,
+                        "sentry_run_id": str(result.uuid),
+                    }
+                )
+            return Response({"run_id": result})
 
-        except SeerRunOutboxDrainFailedError as e:
-            logger.exception(
-                "search_agent.outbox_drain_failed",
-                extra={
-                    "organization_id": organization.id,
-                    "project_ids": project_ids,
-                    "run_uuid": e.run_uuid,
-                },
-            )
-            return Response(
-                {"detail": "Failed to start search agent", "retry_token": e.run_uuid},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
         except SeerApiError as e:
             logger.exception(
                 "search_agent.start_error",

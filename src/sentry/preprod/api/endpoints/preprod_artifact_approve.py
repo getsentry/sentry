@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -29,7 +31,7 @@ FEATURE_TYPE_MAP = {
     "size": PreprodComparisonApproval.FeatureType.SIZE,
 }
 
-STATUS_CHECK_TASK_MAP = {
+STATUS_CHECK_TASK_MAP: dict[PreprodComparisonApproval.FeatureType, Callable[..., Any]] = {
     PreprodComparisonApproval.FeatureType.SNAPSHOTS: create_preprod_snapshot_status_check_task,
     PreprodComparisonApproval.FeatureType.SIZE: create_preprod_status_check_task,
 }

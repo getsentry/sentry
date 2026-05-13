@@ -4,7 +4,7 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 import pytest
 
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
-from sentry.seer.models.run import SeerRunType
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -348,15 +348,13 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             self.organization, self.user, is_interactive=True, reasoning_effort="medium"
         )
 
-        with self.feature("organizations:seer-run-mirror"):
+        with self.feature("organizations:seer-run-mirror-explorer"):
             run_id = client.start_run(
                 prompt="What happened?",
                 run_type=SeerRunType.EXPLORER,
             )
 
         assert run_id == 99
-
-        from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 
         run = SeerRun.objects.get(organization_id=self.organization.id)
         assert run.type == SeerRunType.EXPLORER
@@ -369,6 +367,33 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert sent_body["organization_id"] == self.organization.id
         assert "external_idempotency_key" in sent_body
         assert sent_body["external_idempotency_key"] == str(run.uuid)
+
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_outbox_path_flush_error_marks_failed_and_raises(
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_request: Mock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_request.side_effect = Exception("Seer exploded")
+
+        from sentry.seer.agent.client import SeerAgentClient
+        from sentry.seer.models import SeerApiError
+
+        client = SeerAgentClient(
+            self.organization, self.user, is_interactive=True, reasoning_effort="medium"
+        )
+
+        with pytest.raises(SeerApiError, match="Outbox flush failed"):
+            with self.feature("organizations:seer-run-mirror-explorer"):
+                client.start_run(
+                    prompt="What happened?",
+                    run_type=SeerRunType.EXPLORER,
+                )
+
+        run = SeerRun.objects.get(organization_id=self.organization.id)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
 
 
 @with_feature("organizations:seer-explorer")

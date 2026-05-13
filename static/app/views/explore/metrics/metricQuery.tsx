@@ -19,7 +19,7 @@ import {
 export interface TraceMetric {
   name: string;
   type: string;
-  unit?: string;
+  unit?: string | null;
 }
 
 function isTraceMetric(value: unknown): value is TraceMetric {
@@ -27,11 +27,14 @@ function isTraceMetric(value: unknown): value is TraceMetric {
     return false;
   }
 
+  const unit = 'unit' in value ? value.unit : undefined;
+
   return (
     'name' in value &&
     typeof value.name === 'string' &&
     'type' in value &&
-    typeof value.type === 'string'
+    typeof value.type === 'string' &&
+    (unit === undefined || unit === null || typeof unit === 'string')
   );
 }
 

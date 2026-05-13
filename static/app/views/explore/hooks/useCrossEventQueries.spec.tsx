@@ -189,7 +189,7 @@ describe('useCrossEventQueries', () => {
     });
   });
 
-  it('defaults metric.unit to none when absent on the metric', () => {
+  it('matches both !has:metric.unit and metric.unit:none when unit is absent', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {
@@ -204,7 +204,9 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: [],
       spanQuery: [],
-      metricQuery: ['( metric.name:my_metric metric.type:counter metric.unit:none )'],
+      metricQuery: [
+        '( metric.name:my_metric metric.type:counter ( !has:metric.unit OR metric.unit:none ) )',
+      ],
     });
   });
 

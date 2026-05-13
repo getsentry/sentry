@@ -2,10 +2,10 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {defined} from 'sentry/utils';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {type SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
@@ -18,7 +18,7 @@ type Props = {
 export function ExploreSavedQueryNavigationItems({queries}: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const id = getIdFromLocation(location);
+  const id = decodeScalar(location.query.id);
 
   const {projects} = useProjects();
 

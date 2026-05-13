@@ -138,7 +138,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         run.refresh_from_db()
@@ -153,7 +153,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         run.refresh_from_db()
@@ -168,7 +168,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         run.refresh_from_db()
@@ -182,7 +182,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         mock_request.assert_not_called()
@@ -193,7 +193,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=999999,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=999999,
         )
 
     @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
@@ -204,7 +204,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         run.refresh_from_db()
@@ -220,7 +220,7 @@ class HandleSeerRunCreateTest(TestCase):
             handle_seer_run_create(
                 object_identifier=run.id,
                 payload=self._make_payload(),
-                shard_identifier=self.organization.id,
+                shard_identifier=run.id,
             )
 
         run.refresh_from_db()
@@ -236,7 +236,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         run.refresh_from_db()
@@ -250,7 +250,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload={"viewer_context": {}},  # missing "body"
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         mock_request.assert_not_called()
@@ -265,7 +265,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         run.refresh_from_db()
@@ -280,7 +280,7 @@ class HandleSeerRunCreateTest(TestCase):
         handle_seer_run_create(
             object_identifier=run.id,
             payload=self._make_payload(),
-            shard_identifier=self.organization.id,
+            shard_identifier=run.id,
         )
 
         run.refresh_from_db()

@@ -154,7 +154,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "preprod_snapshot.delete_failed",
-                extra={"artifact_id": artifact.id},
+                extra={"preprod_artifact_id": artifact.id},
             )
             return Response(
                 {"detail": "Internal error deleting snapshot."},
@@ -175,7 +175,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         logger.info(
             "preprod_snapshot.deleted",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "user_id": request.user.id if request.user else None,
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
@@ -294,15 +294,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        first_class = SnapshotImageResponse.__fields__
         global_threshold = manifest.diff_threshold
         image_list = [
             SnapshotImageResponse(
-                **{
-                    k: v
-                    for k, v in metadata.dict().items()
-                    if k not in first_class and k != "diff_threshold"
-                },
                 key=metadata.content_hash,
                 display_name=metadata.display_name,
                 image_file_name=key,
@@ -312,6 +306,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 diff_threshold=metadata.diff_threshold
                 if metadata.diff_threshold is not None
                 else global_threshold,
+                description=metadata.description,
+                tags=metadata.tags,
             )
             for key, metadata in sorted(manifest.images.items())
         ]
@@ -348,7 +344,12 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             if pending_or_failed_state is not None:
                 comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
 
-        comparison_type = "diff" if comparison_manifest is not None else "solo"
+        if comparison_manifest is not None:
+            comparison_type = "diff"
+        elif commit_comparison and commit_comparison.base_sha and pending_or_failed_state is None:
+            comparison_type = "waiting_for_base"
+        else:
+            comparison_type = "solo"
 
         run_info: SnapshotComparisonRunInfo | None = None
         if comparison_state is not None:

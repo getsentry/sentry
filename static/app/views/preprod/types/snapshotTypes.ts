@@ -8,7 +8,6 @@ export interface SnapshotImage {
   height: number;
   key: string;
   width: number;
-  content_hash: string;
 }
 
 export interface SnapshotDiffPair {
@@ -41,7 +40,7 @@ interface SnapshotApprovalInfo {
 }
 
 export interface SnapshotDetailsApiResponse {
-  comparison_type: 'solo' | 'diff';
+  comparison_type: 'solo' | 'diff' | 'waiting_for_base';
   head_artifact_id: string;
   image_count: number;
   images: SnapshotImage[];

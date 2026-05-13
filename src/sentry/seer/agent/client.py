@@ -16,7 +16,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -47,8 +47,19 @@ from sentry.tasks.seer.context_engine_index import build_service_map, index_org_
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _has_context_engine(
+    organization: Organization, user: User | RpcUser | AnonymousUser | None
+) -> bool:
+    return (
+        features.has("organizations:seer-explorer-context-engine", organization, actor=user)
+        or features.has("organizations:seat-based-seer-enabled", organization, actor=user)
+        or features.has("organizations:seer-added", organization, actor=user)
+    )
 
 
 class SeerAgentClient:
@@ -338,9 +349,7 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        if features.has(
-            "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):
+        if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 chat_body["is_context_engine_enabled"] = True
 
@@ -351,32 +360,48 @@ class SeerAgentClient:
         ):
             chat_body["is_context_engine_enabled"] = override_ce_enable
 
-        if run_type and features.has("organizations:seer-run-mirror", self.organization):
+        if run_type and features.has("organizations:seer-run-mirror-explorer", self.organization):
             user_id = (
                 self.user.id
                 if self.user and hasattr(self.user, "id") and self.user.id is not None
                 else None
             )
-            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
-                run = SeerRun.objects.create(
-                    organization=self.organization,
-                    user_id=user_id,
-                    type=run_type,
-                    last_triggered_at=now(),
-                )
-                CellOutbox(
-                    shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-                    shard_identifier=self.organization.id,
-                    category=OutboxCategory.SEER_RUN_CREATE,
-                    object_identifier=run.id,
-                    payload={
-                        "body": dict(chat_body),
-                        "viewer_context": dict(self.viewer_context),
+            try:
+                with outbox_context(
+                    transaction.atomic(using=router.db_for_write(SeerRun)), flush=True
+                ):
+                    run = SeerRun.objects.create(
+                        organization=self.organization,
+                        user_id=user_id,
+                        type=run_type,
+                        last_triggered_at=now(),
+                    )
+                    CellOutbox(
+                        shard_scope=OutboxScope.SEER_SCOPE,
+                        shard_identifier=run.id,
+                        category=OutboxCategory.SEER_RUN_CREATE,
+                        object_identifier=run.id,
+                        payload={
+                            "body": dict(chat_body),
+                            "viewer_context": dict(self.viewer_context),
+                        },
+                    ).save()
+            except OutboxFlushError:
+                metrics.incr("seer.outbox_flush_error", tags={"type": "explorer"})
+                logger.exception(
+                    "explorer.outbox_flush_error",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "seer_run_id": run.id,
+                        "seer_run_uuid": str(run.uuid),
                     },
-                ).save()
+                )
+                run.mirror_status = SeerRunMirrorStatus.FAILED
+                run.save(update_fields=["mirror_status"])
+                raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
             run.refresh_from_db()
-            if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
-                raise SeerApiError("Seer run mirror failed to materialize", 500)
+            if run.mirror_status == SeerRunMirrorStatus.FAILED:
+                raise SeerApiError("Seer run failed during outbox drain", 500)
             return run.seer_run_state_id
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
@@ -491,11 +516,7 @@ class SeerAgentClient:
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
-        if features.has(
-            "organizations:seer-explorer-context-engine",
-            self.organization,
-            actor=self.user,
-        ):
+        if _has_context_engine(self.organization, self.user):
             chat_body["is_context_engine_enabled"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)

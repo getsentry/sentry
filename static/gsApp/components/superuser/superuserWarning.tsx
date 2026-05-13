@@ -1,7 +1,8 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -19,7 +20,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 const POLICY_URL =
   'https://www.notion.so/sentry/Sentry-Rules-for-Handling-Customer-Data-9612532c37e14eeb943a6a584abbac99';
 
-const SUPERUSER_MESSAGE = 'You are in superuser mode';
+const SUPERUSER_MESSAGE = 'You are in superuser mode / Hover to exit or learn more';
 const SUPERUSER_SEPARATOR = ' ///// ';
 const WARNING_MESSAGE = (
   <Fragment>
@@ -73,6 +74,29 @@ export function SuperuserWarning({organization, className}: Props) {
   const hasPageFrame = useHasPageFrameFeature();
   const isExcludedOrg = shouldExcludeOrg(organization);
 
+  const stripRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [marqueeCount, setMarqueeCount] = useState(8);
+
+  useResizeObserver({
+    ref: stripRef,
+    onResize() {
+      const strip = stripRef.current;
+      const text = textRef.current;
+      if (!strip || !text) {
+        return;
+      }
+      const stripWidth = strip.clientWidth;
+      if (!stripWidth || !text.offsetWidth) {
+        return;
+      }
+      setMarqueeCount(currentCount => {
+        const repWidth = text.offsetWidth / currentCount;
+        return repWidth ? Math.ceil(stripWidth / repWidth) + 2 : currentCount;
+      });
+    },
+  });
+
   useEffect(() => {
     if (!isExcludedOrg) {
       AlertStore.addAlert({
@@ -109,7 +133,8 @@ export function SuperuserWarning({organization, className}: Props) {
         >
           <Tooltip
             isHoverable
-            position="top-start"
+            position="bottom-start"
+            containerDisplayMode="block"
             title={
               <TooltipContent>
                 <Content>{WARNING_MESSAGE}</Content>
@@ -117,8 +142,9 @@ export function SuperuserWarning({organization, className}: Props) {
               </TooltipContent>
             }
           >
-            <MarqueeStrip align="baseline" overflow="hidden">
+            <MarqueeStrip ref={stripRef} align="baseline" overflow="hidden">
               <MarqueeText
+                ref={textRef}
                 wrap="nowrap"
                 monospace
                 bold
@@ -129,9 +155,7 @@ export function SuperuserWarning({organization, className}: Props) {
                   } as React.CSSProperties
                 }
               >
-                {Array.from({length: 8}, () => SUPERUSER_MESSAGE).join(
-                  SUPERUSER_SEPARATOR
-                )}
+                {`${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.repeat(marqueeCount)}
               </MarqueeText>
             </MarqueeStrip>
           </Tooltip>
@@ -187,6 +211,8 @@ const Frame = styled(Container)`
   /* Ensures it stays on top of all content */
   z-index: 9999;
   border-width: ${p => p.theme.border.xl};
+  /* Keep the marquee strip pinned to the top so the tooltip anchors there too */
+  align-items: flex-start;
 `;
 
 const MarqueeStrip = styled(Flex)`
@@ -197,6 +223,7 @@ const MarqueeStrip = styled(Flex)`
   flex-shrink: 0;
   /* Re-enable pointer events so the tooltip is hoverable */
   pointer-events: auto;
+  cursor: help;
 `;
 
 const MarqueeText = styled(Text)`
