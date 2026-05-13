@@ -395,7 +395,7 @@ class ControlSiloOrganizationMappingSerializer(Serializer):
         return dict(
             id=str(obj.organization_id),
             slug=obj.slug,
-            name=obj.name,
+            name=obj.name or obj.slug,
             status={"id": status.name.lower(), "name": status.label},
             dateCreated=obj.date_created,
             isEarlyAdopter=obj.early_adopter,
