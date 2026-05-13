@@ -5,16 +5,6 @@ import {
   useLogsPinning,
 } from 'sentry/views/explore/logs/pinning/useLogsPinning';
 
-let replaceStateSpy: jest.SpyInstance;
-
-beforeEach(() => {
-  replaceStateSpy = jest.spyOn(window.history, 'replaceState');
-});
-
-afterEach(() => {
-  replaceStateSpy.mockRestore();
-});
-
 jest.mock('sentry/views/explore/logs/pinning/useOurLogsPinning', () => ({
   useOurLogsPinningEnabled: () => true,
 }));
@@ -110,35 +100,29 @@ describe('useLogsPinning', () => {
   });
 
   it('writes the pinned id to the URL query string when togglePinnedRow is called', () => {
-    const {result} = renderHookWithProviders(() => useLogsPinning(), {
+    const {result, router} = renderHookWithProviders(() => useLogsPinning(), {
       additionalWrapper: LogsPinningProvider,
     });
-
-    replaceStateSpy.mockClear();
 
     act(() => {
       result.current?.togglePinnedRow('log-1');
     });
 
-    const lastCall = replaceStateSpy.mock.calls.at(-1);
-    expect(lastCall?.[2]).toContain('logsPinned=log-1');
+    expect(router.location.query.logsPinned).toContain('log-1');
   });
 
   it('removes the logsPinned key from the URL when clearPinnedRows is called', () => {
-    const {result} = renderHookWithProviders(() => useLogsPinning(), {
+    const {result, router} = renderHookWithProviders(() => useLogsPinning(), {
       additionalWrapper: LogsPinningProvider,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-1'}},
       },
     });
 
-    replaceStateSpy.mockClear();
-
     act(() => {
       result.current?.clearPinnedRows();
     });
 
-    const lastCall = replaceStateSpy.mock.calls.at(-1);
-    expect(lastCall?.[2]).not.toContain('logsPinned');
+    expect(router.location.query.logsPinned).toHaveLength(0);
   });
 });

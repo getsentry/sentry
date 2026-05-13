@@ -10,6 +10,7 @@ import {
 
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning';
 
 const LOGS_PINNED_KEY = 'logsPinned';
@@ -24,6 +25,7 @@ const LogsPinningContext = createContext<LogsPinning | undefined>(undefined);
 
 export function LogsPinningProvider({children}: {children: ReactNode}) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [pinnedRows, setPinnedRows] = useState<Set<string>>(() => {
     return new Set(decodeList(location.query?.[LOGS_PINNED_KEY]).filter(Boolean));
@@ -46,20 +48,19 @@ export function LogsPinningProvider({children}: {children: ReactNode}) {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    params.delete(LOGS_PINNED_KEY);
-
-    for (const id of pinnedRows) {
-      params.append(LOGS_PINNED_KEY, id);
-    }
-
-    const newSearch = params.toString();
-    const newUrl = newSearch
-      ? `${window.location.pathname}?${newSearch}${window.location.hash}`
-      : `${window.location.pathname}${window.location.hash}`;
-
-    window.history.replaceState(window.history.state, '', newUrl);
-  }, [pinnedRows]);
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          [LOGS_PINNED_KEY]: Array.from(pinnedRows),
+        },
+      },
+      {replace: true}
+    );
+    // location is intentionally omitted — we only want to sync pinnedRows to the URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, pinnedRows]);
 
   const value = useMemo(
     () => ({
