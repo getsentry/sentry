@@ -31,6 +31,9 @@ const StyledPanel = styled(Panel)`
 `;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
+  margin-right: -1rem;
+  padding-right: 1rem;
+
   &:not(thead > &) {
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
@@ -63,6 +66,15 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
     &:hover {
       background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+    }
+  }
+
+  &[data-row-pinned='true']:not(thead > &) {
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
     }
   }
 
@@ -122,7 +134,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 2px ${p => p.theme.space.xl};
+    padding: 0 ${p => p.theme.space.md};
   }
 `;
 
@@ -284,6 +296,26 @@ export const LogsFilteredHelperText = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.colors.gray200};
+`;
+
+export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
+  position: absolute;
+  right: calc(-1 * var(--logsPinButtonArea));
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  ${LogTableRow}:focus-within &,
+  ${LogTableRow}:hover & {
+    background: none;
+    opacity: 1;
+  }
+
+  &:focus-within svg,
+  &:hover svg {
+    fill: ${p => p.theme.tokens.content.accent};
+    transition: fill ${p => p.theme.motion.smooth.fast};
+  }
 `;
 
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
