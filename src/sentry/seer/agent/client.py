@@ -270,7 +270,6 @@ class SeerAgentClient:
         request: Request | None = None,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
-        run_type: SeerRunType | None = None,
     ) -> int:
         """
         Start a new Seer Agent session.
@@ -360,7 +359,7 @@ class SeerAgentClient:
         ):
             chat_body["is_context_engine_enabled"] = override_ce_enable
 
-        if run_type and features.has("organizations:seer-run-mirror-explorer", self.organization):
+        if features.has("organizations:seer-run-mirror-explorer", self.organization):
             user_id = (
                 self.user.id
                 if self.user and hasattr(self.user, "id") and self.user.id is not None
@@ -373,7 +372,7 @@ class SeerAgentClient:
                     run = SeerRun.objects.create(
                         organization=self.organization,
                         user_id=user_id,
-                        type=run_type,
+                        type=SeerRunType.EXPLORER,
                         last_triggered_at=now(),
                     )
                     CellOutbox(

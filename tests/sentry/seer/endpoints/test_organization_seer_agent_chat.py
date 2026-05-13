@@ -127,7 +127,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             ui_tools=None,
             override_ce_enable=True,
             request=ANY,
-            run_type=SeerRunType.EXPLORER,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -351,7 +350,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         with self.feature("organizations:seer-run-mirror-explorer"):
             run_id = client.start_run(
                 prompt="What happened?",
-                run_type=SeerRunType.EXPLORER,
             )
 
         assert run_id == 99
@@ -389,7 +387,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             with self.feature("organizations:seer-run-mirror-explorer"):
                 client.start_run(
                     prompt="What happened?",
-                    run_type=SeerRunType.EXPLORER,
                 )
 
         run = SeerRun.objects.get(organization_id=self.organization.id)
