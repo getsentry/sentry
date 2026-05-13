@@ -11,7 +11,6 @@ from sentry.seer.code_review.contributor_seats import (
     should_increment_contributor_seat,
     track_contributor_seat,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import TestCase
 
 
@@ -31,7 +30,7 @@ class IsAutofixEnabledForRepoTest(TestCase):
         )
 
     def test_seer_project_repository_exists_for_repo(self) -> None:
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
 
         assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is True
 
@@ -44,12 +43,12 @@ class IsAutofixEnabledForRepoTest(TestCase):
             provider="integrations:github",
             integration_id=self.integration.id,
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=other_repo)
+        self.create_seer_project_repository(project=self.project, repository=other_repo)
 
         assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
 
     def test_project_is_inactive(self) -> None:
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
         self.project.update(status=ObjectStatus.PENDING_DELETION)
 
         assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
@@ -62,7 +61,7 @@ class IsAutofixEnabledForRepoTest(TestCase):
         assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
 
     def test_repo_is_inactive(self) -> None:
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
         self.repo.status = ObjectStatus.DISABLED
         self.repo.save()
 
@@ -114,7 +113,7 @@ class ShouldIncrementContributorSeatTest(TestCase):
             provider="integrations:github",
             integration_id=self.integration.id,
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=other_repo)
+        self.create_seer_project_repository(project=self.project, repository=other_repo)
 
         with self.feature("organizations:seat-based-seer-enabled"):
             result = should_increment_contributor_seat(
@@ -175,7 +174,7 @@ class ShouldIncrementContributorSeatTest(TestCase):
     def test_returns_true_when_autofix_enabled_and_quota_available(
         self, mock_quota: MagicMock
     ) -> None:
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
 
         with self.feature("organizations:seat-based-seer-enabled"):
             result = should_increment_contributor_seat(

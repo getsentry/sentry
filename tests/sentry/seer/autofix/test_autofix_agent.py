@@ -24,7 +24,6 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixRequest, AutofixState
 from sentry.seer.models import SeerPermissionError, SeerRepoDefinition
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
@@ -557,7 +556,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             external_id=external_id,
             name=f"{owner}/{name}",
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project,
             repository=repository,
             branch_name=branch_name,
