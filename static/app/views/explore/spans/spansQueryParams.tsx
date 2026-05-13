@@ -77,7 +77,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   const id = decodeScalar(location.query[SPANS_ID_KEY]);
-const title = decodeScalar(location.query[SPANS_TITLE_KEY]);
+  const title = decodeScalar(location.query[SPANS_TITLE_KEY]);
 
   const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
 
