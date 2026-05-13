@@ -2700,10 +2700,11 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
-  is_approved: {
-    desc: t('Whether the snapshot comparison has been approved'),
+  approval_status: {
+    desc: t('Approval status of the snapshot comparison'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
+    valueType: FieldValueType.STRING,
+    values: ['approved', 'auto_approved', 'requires_approval'],
   },
 };
 

@@ -202,6 +202,7 @@ def create_preprod_snapshot_pr_comment_task(
         provider=commit_comparison.provider,
         pr_number=commit_comparison.pr_number,
         commit_comparison_id=cc_id,
+        artifact_id=artifact.id,
         comment_body=comment_body,
         existing_comment_id=existing_comment_id,
     )
@@ -221,6 +222,7 @@ def post_snapshot_pr_comment_task(
     provider: str,
     pr_number: int,
     commit_comparison_id: int,
+    artifact_id: int | None = None,
     comment_body: str,
     existing_comment_id: str | None,
     **kwargs: Any,
@@ -280,6 +282,15 @@ def post_snapshot_pr_comment_task(
                 save_pr_comment_result(cc, "snapshots", success=False, error=api_error)
             else:
                 save_pr_comment_result(cc, "snapshots", success=True, comment_id=comment_id)
+                logger.info(
+                    "preprod.snapshot_pr_comments.post.success",
+                    extra={
+                        "commit_comparison_id": commit_comparison_id,
+                        "organization_id": organization_id,
+                        "artifact_id": artifact_id,
+                        "comment_id": comment_id,
+                    },
+                )
     except CommitComparison.DoesNotExist:
         logger.info(
             "preprod.snapshot_pr_comments.post.cc_deleted",

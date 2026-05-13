@@ -337,7 +337,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "high-fix", seer_fixability_score=0.9, times_seen=5
         )
         low_fix = self._store_event_and_update_group(
-            project, "low-fix", seer_fixability_score=0.2, times_seen=100
+            project, "low-fix", seer_fixability_score=0.5, times_seen=100
         )
         # Already triggered — should be excluded from triage.
         self._store_event_and_update_group(
@@ -781,26 +781,32 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
         Group.objects.filter(id=event.group_id).update(**group_attrs)
         return Group.objects.get(id=event.group_id)
 
-    def test_ranks_and_captures_signals(self) -> None:
+    def test_ranks_scored_above_threshold_first_then_preserves_recommended_order(self) -> None:
         project = self.create_project()
         high = self._store_event_and_update_group(
             project, "high", seer_fixability_score=0.9, times_seen=5, priority=75
         )
-        low = self._store_event_and_update_group(
+        medium = self._store_event_and_update_group(
+            project, "medium", seer_fixability_score=0.5, times_seen=50
+        )
+        self._store_event_and_update_group(
             project, "low", seer_fixability_score=0.2, times_seen=500
         )
-        for i in range(3):
-            self._store_event_and_update_group(
-                project, f"null-{i}", seer_fixability_score=None, times_seen=100
-            )
+        null = self._store_event_and_update_group(
+            project, "null", seer_fixability_score=None, times_seen=100
+        )
 
         result = fixability_score_strategy([project], max_candidates=10)
+
+        result_ids = [c.group.id for c in result]
 
         assert result[0].group.id == high.id
         assert result[0].fixability == 0.9
         assert result[0].times_seen == 5
-        assert result[0].severity == 1.0
-        assert result[1].group.id == low.id
+        assert medium.id in result_ids
+        assert null.id in result_ids
+        # Low-scored issue (below threshold) is excluded entirely
+        assert len(result) == 3
 
 
 class TestTriageActionFromFixabilityScore:
