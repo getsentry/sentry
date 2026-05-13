@@ -39,7 +39,7 @@ export function ReplayQueryParamsProvider({children}: ReplayQueryParamsProviderP
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
       setNuqsParams({
-        query: writableQueryParams.query ?? null,
+        query: writableQueryParams.query,
       });
     },
     [setNuqsParams]
