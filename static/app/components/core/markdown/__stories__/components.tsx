@@ -7,7 +7,7 @@ import {Markdown} from '@sentry/scraps/markdown';
 const STREAMING_CHUNKS = [
   'Investigating the issue in ',
   '`AuthService.validate()`...\n\n',
-  'Nam pulvinar suscipit elit, ut aliquam mauris mollis eu. Donec eget malesuada lacus. Etiam nec eros at tellus pellentesque scelerisque in eu augue. Proin quis est et lorem placerat ultrices. Curabitur egestas tincidunt nulla, in semper tortor iaculis ut. Sed quis blandit ligula. Praesent eget mauris risus. Duis eleifend elit leo, non porta ex gravida nec.\n\n',
+  'The session validation middleware rejects requests with a `401 Unauthorized` when the token appears expired. This affects roughly 12% of users during daylight saving transitions, as the expiration window straddles the clock change.\n\n',
   '## Root Cause\n\n',
   'The token expiration check uses **UTC timestamps** ',
   'but the session store uses **local time**, ',

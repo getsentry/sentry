@@ -31,25 +31,48 @@ The `<Markdown>` component renders markdown strings as native React elements usi
 
 Pass a markdown string to the `raw` prop.
 
-<Storybook.Demo>
-  <Markdown raw={`# Welcome
+<Storybook.Demo minHeight="max-content">
+  <Markdown raw={`# Issue Grouping
 
-This is a paragraph with **bold**, _italic_, and \`inline code\`.
+Sentry uses **fingerprints** to group similar events into issues. Each issue tracks _frequency_, ~~error count~~ impact, and affected users. Use \`sentry.set_fingerprint()\` to customize grouping.
 
-- List item one
-- List item two
+Visit the [Sentry docs](https://docs.sentry.io/product/issues/) for more on issue triage.
 
-> A blockquote for emphasis.
+## Triage Checklist
+
+- [x] Assign an owner via ownership rules
+- [ ] Review suspect commits
+- [ ] Set up alert rules
+
+## Resolve Strategies
+
+1. Resolve immediately
+2. Resolve in the next release
+3. Resolve in a specific commit
+
+> Events are grouped by stack trace similarity by default. Custom fingerprints override this behavior.
 
 \`\`\`python
-def hello():
-print("world")
+import sentry_sdk
+
+sentry_sdk.set_tag("region", "us-east")
+sentry_sdk.capture_exception(err)
 \`\`\`
 
-| Column A | Column B |
-| -------- | -------- |
-| Cell 1   | Cell 2   |
+| Status     | Description                     |
+| ---------- | ------------------------------- |
+| Unresolved | Active and needs triage         |
+| Resolved   | Fixed in a release              |
+| Regressed  | Reappeared after being resolved |
 
+---
+
+Hard line break:\\
+New line here.
+
+![Sentry Issue Detail](https://example.com/issue-detail.png)
+
+<mark>Note:</mark> Reprocessing events requires uploading new debug files.
 `} />
 
 </Storybook.Demo>
