@@ -10,10 +10,19 @@ export {MarkedLexer};
 export type {MarkedToken, Token};
 
 const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
+const INTERNAL_PATH_PATTERN = /^\/[^/]/;
 
 export function isSafeHref(href: string): boolean {
   try {
     return SAFE_LINK_PATTERN.test(decodeURIComponent(unescape(href)));
+  } catch {
+    return false;
+  }
+}
+
+export function isInternalHref(href: string): boolean {
+  try {
+    return INTERNAL_PATH_PATTERN.test(decodeURIComponent(unescape(href)));
   } catch {
     return false;
   }

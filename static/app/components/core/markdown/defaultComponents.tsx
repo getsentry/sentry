@@ -8,7 +8,7 @@ import {Quote} from '@sentry/scraps/quote';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {isSafeHref, sanitizeHtml} from 'sentry/utils/marked/marked';
+import {isSafeHref, isInternalHref, sanitizeHtml} from 'sentry/utils/marked/marked';
 
 export function DefaultParagraph({children}: {children: ReactNode}) {
   return (
@@ -51,7 +51,7 @@ export function DefaultLink({
   href: string;
   title?: string | null;
 }) {
-  if (href.startsWith('/')) {
+  if (isInternalHref(href)) {
     return (
       <Link to={href} title={title ?? undefined}>
         {children}
