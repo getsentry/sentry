@@ -309,7 +309,7 @@ def query_using_optimized_search(
             request_user_id=request_user_id,
         ),
         tenant_id,
-        used_referrer,
+        referrer or "replays.query.browse_query",
     )["data"]
 
     return QueryResponse(
