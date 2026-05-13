@@ -459,7 +459,6 @@ def test_project_config_with_trace_health_checks_enabled(
     with Feature(
         {
             "organizations:dynamic-sampling": True,
-            "organizations:ds-health-checks-trace-based": True,
         }
     ):
         with patch(
