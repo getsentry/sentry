@@ -6,7 +6,7 @@ import {motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,7 +15,6 @@ import {
   IconCheckmark,
   IconClose,
   IconCopy,
-  IconExclamation,
   IconLink,
   IconLinkBroken,
   IconThumb,
@@ -23,6 +22,7 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,98 +39,16 @@ import {
   postProcessLLMMarkdown,
 } from 'sentry/views/seerExplorer/utils';
 
+// ─── Export ──────────────────────────────────────────────────
+
 interface BlockProps {
   block: Block;
   blockIndex: number;
   getPageReferrer?: () => string;
-  isAwaitingFileApproval?: boolean;
-  isAwaitingQuestion?: boolean;
-  isLatestTodoBlock?: boolean;
+  interactionPending?: boolean;
   onClick?: () => void;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-  readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
-  showThinking?: boolean;
-}
-
-function hasValidContent(content: string): boolean {
-  if (!content) {
-    return false;
-  }
-  const trimmed = content.trim();
-  return trimmed.length > 0 && trimmed !== '.'; // sometimes the LLM just says '.' when calling a tool
-}
-
-/**
- * Convert todos to markdown format
- */
-function todosToMarkdown(todos: TodoItem[]): string {
-  return todos
-    .map(todo => {
-      const checkbox = todo.status === 'completed' ? '[x]' : '[ ]';
-      const content =
-        todo.status === 'completed'
-          ? `~~${todo.content}~~`
-          : todo.status === 'in_progress'
-            ? `_${todo.content}_`
-            : todo.content;
-      return `${checkbox} ${content}`;
-    })
-    .join('  \n');
-}
-
-/**
- * Determine the dot color based on tool execution status
- */
-function getToolStatus(
-  block: Block
-): 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending' {
-  if (block.loading) {
-    return 'loading';
-  }
-
-  // Check tool_links for empty_results metadata
-  const toolLinks = block.tool_links || [];
-  const toolCalls = block.message.tool_calls || [];
-  const hasTools = toolCalls.length > 0;
-
-  if (hasTools) {
-    // Check if any tool has pending approval or pending question
-    const hasPending = toolLinks.some(
-      link => link?.params?.pending_approval || link?.params?.pending_question
-    );
-    if (hasPending) {
-      return 'pending';
-    }
-
-    if (toolLinks.length === 0) {
-      // No metadata available, assume success
-      return 'success';
-    }
-
-    let hasSuccess = false;
-    let hasFailure = false;
-
-    toolLinks.forEach(link => {
-      if (link?.params?.empty_results === true || link?.params?.is_error === true) {
-        hasFailure = true;
-      } else if (link !== null) {
-        hasSuccess = true;
-      }
-    });
-
-    if (hasFailure && hasSuccess) {
-      return 'mixed';
-    }
-    if (hasFailure) {
-      return 'failure';
-    }
-    return 'success';
-  }
-
-  return 'content';
 }
 
 export function BlockComponent({
@@ -138,39 +56,182 @@ export function BlockComponent({
   blockIndex,
   runId,
   getPageReferrer,
-  isAwaitingFileApproval,
-  isAwaitingQuestion,
-  isLatestTodoBlock,
+  interactionPending,
   onClick,
-  onMouseEnter,
-  onMouseLeave,
   ref,
-  showThinking = false,
 }: BlockProps) {
-  const {copy} = useCopyToClipboard();
-  const organization = useOrganization();
-  const navigate = useNavigate();
-  const {projects} = useProjects();
+  const variant = useBlockVariant(block);
+  const actionsEnabled = variant === 'agent' && !block.loading && !interactionPending;
 
+  return (
+    <BlockWrapper ref={ref} onClick={onClick}>
+      <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
+        <BlockVariantContent
+          variant={variant}
+          block={block}
+          getPageReferrer={getPageReferrer}
+        />
+        {actionsEnabled && (
+          <BlockActionBar block={block} blockIndex={blockIndex} runId={runId} />
+        )}
+      </motion.div>
+    </BlockWrapper>
+  );
+}
+
+BlockComponent.displayName = 'BlockComponent';
+
+function BlockVariantContent({
+  variant,
+  block,
+  getPageReferrer,
+}: {
+  block: Block;
+  variant: BlockVariant;
+  getPageReferrer?: () => string;
+}) {
+  switch (variant) {
+    case 'user':
+      return <UserBlock block={block} />;
+    case 'thinking':
+      return <ThinkingBlock block={block} />;
+    case 'agent':
+      return <AssistantBlock block={block} getPageReferrer={getPageReferrer} />;
+    default:
+      return unreachable(variant);
+  }
+}
+
+// ─── Variants ────────────────────────────────────────────────
+
+function AssistantBlock({
+  block,
+  getPageReferrer,
+}: {
+  block: Block;
+  getPageReferrer?: () => string;
+}) {
+  const {processedContent, processedThinkingContent, hasContent, hasThinkingContent} =
+    useBlockContent(block);
+  const navigate = useNavigate();
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
+
+  return (
+    <Flex align="start" width="100%">
+      <Container
+        padding={!hasContent && !hasThinkingContent && hasTools ? 'md xl' : 'xl'}
+        flex={1}
+        minWidth={0}
+        overflow="hidden"
+      >
+        {hasThinkingContent && (
+          <Disclosure>
+            <Disclosure.Title>
+              <Text size="xs" variant="muted" monospace>
+                {t('Thinking')}
+              </Text>
+            </Disclosure.Title>
+            <Disclosure.Content>
+              <MarkedText text={processedThinkingContent} />
+            </Disclosure.Content>
+          </Disclosure>
+        )}
+        {hasContent && (
+          <MarkdownContent
+            text={processedContent}
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+              const anchor = (e.target as HTMLElement).closest('a');
+              if (anchor) {
+                const href = anchor.getAttribute('href');
+                if (!href) {
+                  return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                if (href.startsWith('/')) {
+                  navigate(href);
+                } else {
+                  window.open(href, '_blank', 'noopener,noreferrer');
+                }
+              }
+            }}
+          />
+        )}
+        {hasTools && <ToolCallList block={block} getPageReferrer={getPageReferrer} />}
+      </Container>
+    </Flex>
+  );
+}
+
+function UserBlock({block}: {block: Block}) {
+  return (
+    <Flex align="start" justify="end" width="100%" padding="xl">
+      <UserBubble>{block.message.content ?? ''}</UserBubble>
+    </Flex>
+  );
+}
+
+function ThinkingBlock({block}: {block: Block}) {
+  return (
+    <Flex align="center" gap="md" padding="xl" width="100%">
+      <Flex
+        display="inline-flex"
+        align="center"
+        justify="center"
+        width="12px"
+        height="12px"
+        flexShrink={0}
+      >
+        <Spinner />
+      </Flex>
+      <MarkdownContent text={block.message.content ?? ''} />
+    </Flex>
+  );
+}
+
+// ─── Types ───────────────────────────────────────────────────
+
+type BlockVariant = 'user' | 'agent' | 'thinking';
+
+type ToolCallStatus = 'pending' | 'success' | 'failure';
+
+// ─── Hooks ───────────────────────────────────────────────────
+
+function useBlockVariant(block: Block): BlockVariant {
+  if (block.message.role === 'user') {
+    return 'user';
+  }
+  const hasTools = (block.message.tool_calls ?? []).length > 0;
+  if (block.loading && !hasTools) {
+    return 'thinking';
+  }
+  return 'agent';
+}
+
+function useBlockContent(block: Block) {
   const hasContent = hasValidContent(block.message.content ?? '');
-  const hasThinkingContentToShow =
-    showThinking && hasValidContent(block.message.thinking_content ?? '');
+  const hasThinkingContent = hasValidContent(block.message.thinking_content ?? '');
+
   const processedContent = useMemo(
     () => postProcessLLMMarkdown(block.message.content),
     [block.message.content]
   );
   const processedThinkingContent = useMemo(
     () =>
-      hasThinkingContentToShow
+      hasThinkingContent
         ? postProcessLLMMarkdown(block.message.thinking_content ?? '')
         : '',
-    [block.message.thinking_content, hasThinkingContentToShow]
+    [block.message.thinking_content, hasThinkingContent]
   );
 
-  // Get valid tool links sorted by their corresponding tool call indices
-  // Also create a mapping from tool call index to sorted link index
+  return {processedContent, processedThinkingContent, hasContent, hasThinkingContent};
+}
+
+function useToolLinks(block: Block) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
   const {sortedToolLinks, toolCallToLinkIndexMap} = useMemo(() => {
     return getValidToolLinks(
       block.tool_links || [],
@@ -197,15 +258,23 @@ export function BlockComponent({
     return map;
   }, [block.tool_links, block.tool_results]);
 
-  // Allow 1 feedback per session. This only writes to session storage on change, not init.
+  return {
+    sortedToolLinks,
+    toolCallToLinkIndexMap,
+    toolLinkByCallId,
+    organization,
+    projects,
+  };
+}
+
+function useBlockFeedback(block: Block, blockIndex: number, runId: number | undefined) {
+  const organization = useOrganization();
   const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
     `seer-explorer-feedback:run-${runId ?? 'null'}:block-${block.id}`,
     false
   );
 
-  const trackThumbsFeedback = (type: 'positive' | 'negative') => {
-    // Guard against missing runId (shouldn't happen with showActions check, but be defensive)
-    // Do this instead of hiding buttons to prevent flickering while data's loading for this edge case.
+  const trackFeedback = (type: 'positive' | 'negative') => {
     if (!feedbackSubmitted && runId !== undefined) {
       trackAnalytics('seer.explorer.feedback_submitted', {
         organization,
@@ -217,279 +286,302 @@ export function BlockComponent({
         explorer_url: getExplorerUrl(runId),
         conversations_url: getConversationsUrlForExternalUse('sentry', runId),
       });
-      setFeedbackSubmitted(true); // disable button for rest of the session
+      setFeedbackSubmitted(true);
     }
   };
 
-  const thumbsFeedbackButton = (type: 'positive' | 'negative') => {
-    const ariaLabel =
-      type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down');
-    return (
-      <Button
-        aria-label={ariaLabel}
-        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-        disabled={feedbackSubmitted}
-        variant="transparent"
-        size="xs"
-        tooltipProps={{
-          title: feedbackSubmitted
-            ? t('Feedback submitted')
-            : type === 'positive'
-              ? t('I like this response')
-              : t("I don't like this response"),
-        }}
-        onClick={e => {
-          e.stopPropagation();
-          trackThumbsFeedback(type);
-        }}
-      >
-        {undefined}
-      </Button>
-    );
-  };
+  return {feedbackSubmitted, trackFeedback};
+}
 
-  const handleCopyClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    copy(block.message.content ?? '');
-  };
+// ─── Mid-level Components ────────────────────────────────────
 
-  const showActions =
-    !block.loading &&
-    !isAwaitingFileApproval &&
-    !isAwaitingQuestion &&
-    block.message.role === 'assistant';
-  const showFeedbackButtons = block.message.role === 'assistant';
-  const showCopyButton =
-    block.message.role === 'assistant' && !!block.message.content?.trim();
-
-  const blockStatus = getToolStatus(block);
-  const isLoadingPlaceholder = blockStatus === 'loading' && !hasTools;
+function ToolCallList({
+  block,
+  getPageReferrer,
+}: {
+  block: Block;
+  getPageReferrer?: () => string;
+}) {
+  const {
+    sortedToolLinks,
+    toolCallToLinkIndexMap,
+    toolLinkByCallId,
+    organization,
+    projects,
+  } = useToolLinks(block);
+  const toolsUsed = getToolsStringFromBlock(block);
 
   return (
-    <Block
-      ref={ref}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
-        {block.message.role === 'user' ? (
-          <Flex align="start" justify="end" width="100%" padding="xl">
-            <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
-          </Flex>
-        ) : isLoadingPlaceholder ? (
-          <Flex align="center" gap="md" padding="xl" width="100%">
-            <ToolStatusSlot>
-              <BlockStatusIndicator status={blockStatus} />
-            </ToolStatusSlot>
-            <BlockContent text={block.message.content ?? ''} />
-          </Flex>
-        ) : (
-          <Flex align="start" width="100%">
-            <BlockContentWrapper
-              hasOnlyTools={!hasContent && !hasThinkingContentToShow && hasTools}
-            >
-              {hasThinkingContentToShow && (
-                <Disclosure>
-                  <Disclosure.Title>
-                    <Text size="xs" variant="muted" monospace>
-                      {t('Thinking')}
-                    </Text>
-                  </Disclosure.Title>
-                  <Disclosure.Content>
-                    <MarkedText text={processedThinkingContent} />
-                  </Disclosure.Content>
-                </Disclosure>
-              )}
-              {hasContent && (
-                <BlockContent
-                  text={processedContent}
-                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                    // Intercept clicks on links to use client-side navigation for internal links
-                    // and open external links in a new tab
-                    const anchor = (e.target as HTMLElement).closest('a');
-                    if (anchor) {
-                      const href = anchor.getAttribute('href');
-                      if (!href) {
-                        return;
-                      }
+    <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
+      {block.message.tool_calls?.map((toolCall, idx) => {
+        const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
+        const toolLinkParams = toolCall.id
+          ? toolLinkByCallId.get(toolCall.id)
+          : undefined;
+        const status = getToolCallStatus(block.loading, toolLinkParams);
+        const hasLink = correspondingLinkIndex !== undefined;
+        const toolUrl = hasLink
+          ? buildToolLinkUrl(
+              sortedToolLinks[correspondingLinkIndex],
+              organization,
+              projects
+            )
+          : null;
 
-                      e.preventDefault();
-                      e.stopPropagation();
+        const handleLinkClick = hasLink
+          ? (e: React.MouseEvent) => {
+              e.stopPropagation();
+              const selectedLink = sortedToolLinks[correspondingLinkIndex];
+              if (selectedLink) {
+                trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+                  referrer: getPageReferrer?.() ?? '',
+                  organization,
+                  tool_kind: selectedLink.kind,
+                });
+              }
+            }
+          : undefined;
 
-                      if (href.startsWith('/')) {
-                        navigate(href);
-                      } else {
-                        window.open(href, '_blank', 'noopener,noreferrer');
-                      }
-                    }
-                  }}
-                />
-              )}
-              {hasTools && (
-                <ToolCallStack gap="md">
-                  {block.message.tool_calls?.map((toolCall, idx) => {
-                    const toolString = toolsUsed[idx];
-                    // Check if this tool call corresponds to the selected link
-                    const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
-                    const hasLink = correspondingLinkIndex !== undefined;
-                    const isLoading =
-                      blockStatus === 'loading' || blockStatus === 'pending';
+        const isTodoWrite = toolCall.function === 'todo_write';
+        const todos =
+          isTodoWrite && block.todos && block.todos.length > 0 ? block.todos : null;
 
-                    const toolLinkParams = toolCall.id
-                      ? toolLinkByCallId.get(toolCall.id)
-                      : undefined;
-                    const isFailed = Boolean(toolLinkParams?.is_error);
-                    const isEmptyResults = Boolean(toolLinkParams?.empty_results);
-                    const isTodoWriteCall = toolCall.function === 'todo_write';
-                    const showTodoList =
-                      isTodoWriteCall &&
-                      isLatestTodoBlock &&
-                      block.todos &&
-                      block.todos.length > 0;
+        const failureTooltip = toolLinkParams?.is_error
+          ? t('Tool call failed')
+          : toolLinkParams?.empty_results
+            ? t('Tool call returned empty results')
+            : null;
 
-                    const toolCallText = (
-                      <Tooltip
-                        title={
-                          isFailed
-                            ? t('Tool call failed')
-                            : t('Tool call returned empty results')
-                        }
-                        disabled={isLoading || (!isFailed && !isEmptyResults)}
-                      >
-                        <ToolCallText size="xs" variant="muted" monospace>
-                          {toolString}
-                        </ToolCallText>
-                      </Tooltip>
-                    );
-
-                    const toolUrl = hasLink
-                      ? buildToolLinkUrl(
-                          sortedToolLinks[correspondingLinkIndex],
-                          organization,
-                          projects
-                        )
-                      : null;
-
-                    const handleToolLinkClick = (e: React.MouseEvent) => {
-                      if (hasLink) {
-                        e.stopPropagation();
-                        const selectedLink = sortedToolLinks[correspondingLinkIndex];
-                        if (selectedLink) {
-                          trackAnalytics(
-                            'seer.explorer.global_panel.tool_link_navigation',
-                            {
-                              referrer: getPageReferrer?.() ?? '',
-                              organization,
-                              tool_kind: selectedLink.kind,
-                            }
-                          );
-                        }
-                      }
-                    };
-
-                    return (
-                      <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
-                        <ToolCallTextContainer>
-                          <ToolStatusSlot>
-                            {idx === 0 && <BlockStatusIndicator status={blockStatus} />}
-                          </ToolStatusSlot>
-                          {hasLink ? (
-                            <ToolCallLink
-                              to={toolUrl ?? ''}
-                              onClick={handleToolLinkClick}
-                            >
-                              {toolCallText}
-                              <ToolCallLinkIconWrapper>
-                                <ToolCallLinkIcon size="xs" />
-                              </ToolCallLinkIconWrapper>
-                            </ToolCallLink>
-                          ) : (
-                            <ToolCallPlainRow>
-                              {toolCallText}
-                              <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
-                                <ToolCallBrokenLinkIcon size="xs" />
-                              </ToolCallBrokenLinkIconWrapper>
-                            </ToolCallPlainRow>
-                          )}
-                        </ToolCallTextContainer>
-                        {showTodoList && (
-                          <TodoListContent text={todosToMarkdown(block.todos ?? [])} />
-                        )}
-                      </Stack>
-                    );
-                  })}
-                </ToolCallStack>
-              )}
-            </BlockContentWrapper>
-          </Flex>
-        )}
-        {showActions && (
-          <ActionButtonBar gap="xs">
-            {showFeedbackButtons && thumbsFeedbackButton('positive')}
-            {showFeedbackButtons && thumbsFeedbackButton('negative')}
-            {showCopyButton && (
-              <Button
-                aria-label={t('Copy block content')}
-                icon={<IconCopy />}
-                variant="transparent"
-                size="xs"
-                tooltipProps={{title: t('Copy to clipboard')}}
-                onClick={handleCopyClick}
-              />
-            )}
-          </ActionButtonBar>
-        )}
-      </motion.div>
-    </Block>
+        return (
+          <ToolCallRow
+            key={`${toolCall.function}-${idx}`}
+            toolString={toolsUsed[idx] ?? ''}
+            status={status}
+            toolUrl={toolUrl}
+            failureTooltip={failureTooltip}
+            onLinkClick={handleLinkClick}
+            todos={todos}
+          />
+        );
+      })}
+    </Stack>
   );
 }
 
-BlockComponent.displayName = 'BlockComponent';
+function ToolCallRow({
+  toolString,
+  status,
+  toolUrl,
+  failureTooltip,
+  onLinkClick,
+  todos,
+}: {
+  failureTooltip: string | null;
+  status: ToolCallStatus;
+  todos: TodoItem[] | null;
+  toolString: string;
+  toolUrl: ReturnType<typeof buildToolLinkUrl>;
+  onLinkClick?: (e: React.MouseEvent) => void;
+}) {
+  const hasLink = toolUrl !== null;
+  const isLoading = status === 'pending';
 
-const Block = styled('div')`
-  width: 100%;
-  position: relative;
-  flex-shrink: 0; /* Prevent blocks from shrinking */
-`;
+  const toolCallText = (
+    <Tooltip title={failureTooltip ?? ''} disabled={!failureTooltip}>
+      <ToolCallText size="xs" variant="muted" monospace>
+        {toolString}
+      </ToolCallText>
+    </Tooltip>
+  );
 
-function BlockStatusIndicator({status}: {status: ReturnType<typeof getToolStatus>}) {
-  if (status === 'loading' || status === 'pending') {
-    return (
-      <Tooltip title={status === 'pending' ? t('Waiting for approval') : t('Running...')}>
-        <Spinner />
-      </Tooltip>
-    );
-  }
-  if (status === 'failure') {
-    return (
-      <StatusIconContainer>
-        <Tooltip title={t('All tool calls failed')}>
-          <BlockFailureIcon size="xs" />
-        </Tooltip>
-      </StatusIconContainer>
-    );
-  }
-  if (status === 'mixed') {
-    return (
-      <StatusIconContainer>
-        <Tooltip title={t('Some tool calls succeeded and some failed')}>
-          <BlockPartialIcon size="xs" />
-        </Tooltip>
-      </StatusIconContainer>
-    );
-  }
-  if (status === 'success') {
-    return (
-      <StatusIconContainer>
-        <Tooltip title={t('All tool calls succeeded')}>
-          <BlockSuccessIcon size="xs" />
-        </Tooltip>
-      </StatusIconContainer>
-    );
-  }
-  return null;
+  return (
+    <Stack gap="xs">
+      <Flex display="inline-flex" align="start" gap="md" maxWidth="100%">
+        <Flex
+          display="inline-flex"
+          align="center"
+          justify="center"
+          width="12px"
+          height="12px"
+          flexShrink={0}
+        >
+          <BlockStatusIndicator status={status} />
+        </Flex>
+        {hasLink ? (
+          <ToolCallLink to={toolUrl} onClick={onLinkClick}>
+            {toolCallText}
+            <ToolCallLinkIconWrapper>
+              <ToolCallLinkIcon size="xs" />
+            </ToolCallLinkIconWrapper>
+          </ToolCallLink>
+        ) : (
+          <ToolCallPlainRow>
+            {toolCallText}
+            <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
+              <ToolCallBrokenLinkIcon size="xs" />
+            </ToolCallBrokenLinkIconWrapper>
+          </ToolCallPlainRow>
+        )}
+      </Flex>
+      {todos && <TodoListContent text={todosToMarkdown(todos)} />}
+    </Stack>
+  );
 }
+
+function BlockActionBar({
+  block,
+  blockIndex,
+  runId,
+}: {
+  block: Block;
+  blockIndex: number;
+  runId?: number;
+}) {
+  const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
+  const {copy} = useCopyToClipboard();
+  const showCopy = !!block.message.content?.trim();
+
+  return (
+    <ActionBarWrapper gap="xs">
+      <FeedbackButton
+        type="positive"
+        disabled={feedbackSubmitted}
+        onClick={trackFeedback}
+      />
+      <FeedbackButton
+        type="negative"
+        disabled={feedbackSubmitted}
+        onClick={trackFeedback}
+      />
+      {showCopy && (
+        <Button
+          aria-label={t('Copy block content')}
+          icon={<IconCopy />}
+          variant="transparent"
+          size="xs"
+          tooltipProps={{title: t('Copy to clipboard')}}
+          onClick={e => {
+            e.stopPropagation();
+            copy(block.message.content ?? '');
+          }}
+        >
+          {undefined}
+        </Button>
+      )}
+    </ActionBarWrapper>
+  );
+}
+
+// ─── Leaf Components ─────────────────────────────────────────
+
+function BlockStatusIndicator({status}: {status: ToolCallStatus}) {
+  switch (status) {
+    case 'pending':
+      return (
+        <Tooltip title={t('Running...')}>
+          <Spinner />
+        </Tooltip>
+      );
+    case 'failure':
+      return (
+        <Tooltip title={t('Failed')}>
+          <Text variant="danger">
+            <IconClose size="xs" />
+          </Text>
+        </Tooltip>
+      );
+    case 'success':
+      return (
+        <Tooltip title={t('Completed')}>
+          <Text variant="success">
+            <IconCheckmark size="xs" />
+          </Text>
+        </Tooltip>
+      );
+    default:
+      return unreachable(status);
+  }
+}
+
+function FeedbackButton({
+  type,
+  disabled,
+  onClick,
+}: {
+  disabled: boolean;
+  onClick: (type: 'positive' | 'negative') => void;
+  type: 'positive' | 'negative';
+}) {
+  const ariaLabel =
+    type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down');
+  return (
+    <Button
+      aria-label={ariaLabel}
+      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+      disabled={disabled}
+      variant="transparent"
+      size="xs"
+      tooltipProps={{
+        title: disabled
+          ? t('Feedback submitted')
+          : type === 'positive'
+            ? t('I like this response')
+            : t("I don't like this response"),
+      }}
+      onClick={e => {
+        e.stopPropagation();
+        onClick(type);
+      }}
+    >
+      {undefined}
+    </Button>
+  );
+}
+
+// ─── Pure Functions ──────────────────────────────────────────
+
+function getToolCallStatus(
+  blockLoading: boolean | undefined,
+  toolLinkParams?: Record<string, any>
+): ToolCallStatus {
+  if (
+    blockLoading ||
+    toolLinkParams?.pending_approval ||
+    toolLinkParams?.pending_question
+  ) {
+    return 'pending';
+  }
+  if (toolLinkParams?.is_error || toolLinkParams?.empty_results) {
+    return 'failure';
+  }
+  return 'success';
+}
+
+function todosToMarkdown(todos: TodoItem[]): string {
+  return todos
+    .map(todo => {
+      const checkbox = todo.status === 'completed' ? '[x]' : '[ ]';
+      const content =
+        todo.status === 'completed'
+          ? `~~${todo.content}~~`
+          : todo.status === 'in_progress'
+            ? `_${todo.content}_`
+            : todo.content;
+      return `${checkbox} ${content}`;
+    })
+    .join('  \n');
+}
+
+function hasValidContent(content: string): boolean {
+  if (!content) {
+    return false;
+  }
+  const trimmed = content.trim();
+  return trimmed.length > 0 && trimmed !== '.';
+}
+
+// ─── Styled Components ──────────────────────────────────────
+// Ordered by CSS reference dependencies (referenced before referencing).
 
 const spin = keyframes`
   to { transform: rotate(360deg); }
@@ -506,36 +598,95 @@ const Spinner = styled('div')`
   flex-shrink: 0;
 `;
 
-const StatusIconContainer = styled('span')`
+const BlockWrapper = styled('div')`
+  width: 100%;
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const ToolCallText = styled(Text)`
+  white-space: normal;
+  overflow: visible;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+`;
+
+const ToolCallLink = styled(Link)`
   display: inline-flex;
   align-items: center;
-  transform: translateY(0.15em);
+  gap: ${p => p.theme.space.md};
+  max-width: 100%;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+
+  &:hover {
+    ${ToolCallText} {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.hover};
+    }
+  }
 `;
 
-const BlockSuccessIcon = styled(IconCheckmark)`
-  color: ${p => p.theme.tokens.content.success};
+const ToolCallLinkIconWrapper = styled('span')`
+  display: inline-flex;
   flex-shrink: 0;
+  visibility: hidden;
+
+  ${ToolCallLink}:hover & {
+    visibility: visible;
+  }
 `;
 
-const BlockFailureIcon = styled(IconClose)`
-  color: ${p => p.theme.tokens.content.danger};
+const ToolCallLinkIcon = styled(IconLink)`
+  color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
+
+  ${ToolCallLink}:hover & {
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
+  }
 `;
 
-const BlockPartialIcon = styled(IconExclamation)`
-  color: ${p => p.theme.tokens.content.warning};
+const ToolCallPlainRow = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  max-width: 100%;
+`;
+
+const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
+  color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
+  transform: translateY(2px);
 `;
 
-const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
-  padding: ${p =>
-    p.hasOnlyTools ? `${p.theme.space.md} ${p.theme.space.xl}` : p.theme.space.xl};
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
+const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
+  display: inline-flex;
+  flex-shrink: 0;
+  visibility: hidden;
+
+  ${ToolCallPlainRow}:hover & {
+    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
+  }
 `;
 
-const BlockContent = styled(MarkedText)`
+const ActionBarWrapper = styled(Flex)`
+  position: absolute;
+  bottom: ${p => p.theme.space['2xs']};
+  right: ${p => p.theme.space.md};
+  white-space: nowrap;
+  font-size: ${p => p.theme.font.size.sm};
+  background: ${p => p.theme.tokens.background.primary};
+  visibility: hidden;
+
+  ${BlockWrapper}:hover &,
+  ${BlockWrapper}:focus-within & {
+    visibility: visible;
+  }
+`;
+
+const MarkdownContent = styled(MarkedText)`
   width: 100%;
   color: ${p => p.theme.tokens.content.primary};
   word-wrap: break-word;
@@ -585,7 +736,7 @@ const BlockContent = styled(MarkedText)`
   }
 `;
 
-const UserBlockContent = styled('div')`
+const UserBubble = styled('div')`
   max-width: 80%;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   white-space: pre-wrap;
@@ -596,110 +747,6 @@ const UserBlockContent = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
-`;
-
-const ToolCallStack = styled(Stack)`
-  width: 100%;
-  min-width: 0;
-  padding-right: ${p => p.theme.space.lg};
-`;
-
-const ToolCallTextContainer = styled('div')`
-  display: inline-flex;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
-  max-width: 100%;
-`;
-
-const ToolStatusSlot = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-`;
-
-const ToolCallText = styled(Text)`
-  white-space: normal;
-  overflow: visible;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-`;
-
-const ToolCallLink = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  max-width: 100%;
-  padding: 0;
-  cursor: pointer;
-  text-decoration: none;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-
-  &:hover {
-    /* Apply highlighted styles and underline to ToolCallText on hover */
-    ${ToolCallText} {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover};
-      text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.hover};
-    }
-  }
-`;
-
-const ToolCallLinkIconWrapper = styled('span')`
-  display: inline-flex;
-  flex-shrink: 0;
-  visibility: hidden;
-
-  ${ToolCallLink}:hover & {
-    visibility: visible;
-  }
-`;
-
-const ToolCallLinkIcon = styled(IconLink)`
-  color: ${p => p.theme.tokens.content.secondary};
-  flex-shrink: 0;
-
-  ${ToolCallLink}:hover & {
-    color: ${p => p.theme.tokens.interactive.link.accent.hover};
-  }
-`;
-
-const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
-  color: ${p => p.theme.tokens.content.secondary};
-  flex-shrink: 0;
-  transform: translateY(2px);
-`;
-
-const ToolCallPlainRow = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  max-width: 100%;
-`;
-
-const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
-  display: inline-flex;
-  flex-shrink: 0;
-  visibility: hidden;
-
-  ${ToolCallPlainRow}:hover & {
-    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
-  }
-`;
-
-const ActionButtonBar = styled(Flex)`
-  position: absolute;
-  bottom: ${p => p.theme.space['2xs']};
-  right: ${p => p.theme.space.md};
-  white-space: nowrap;
-  font-size: ${p => p.theme.font.size.sm};
-  background: ${p => p.theme.tokens.background.primary};
-  visibility: hidden;
-
-  ${Block}:hover & {
-    visibility: visible;
-  }
 `;
 
 const TodoListContent = styled(MarkedText)`

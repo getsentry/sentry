@@ -104,14 +104,6 @@ export function ExplorerDrawerContent({
     sendMessage(query, blocks.length);
   }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
 
-  const latestTodoBlockIndex = useMemo(() => {
-    for (let i = blocks.length - 1; i >= 0; i--) {
-      const block = blocks[i];
-      if (block && Array.isArray(block.todos) && block.todos.length > 0) return i;
-    }
-    return -1;
-  }, [blocks]);
-
   // - Pending user input (file approval + questions) -------------------------
   const {
     isFileApprovalPending,
@@ -393,11 +385,7 @@ export function ExplorerDrawerContent({
                   blockIndex={index}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
-                  isAwaitingFileApproval={isFileApprovalPending}
-                  isAwaitingQuestion={isQuestionPending}
-                  isLatestTodoBlock={index === latestTodoBlockIndex}
-                  readOnly={readOnly}
-                  showThinking={showThinking}
+                  interactionPending={isFileApprovalPending || isQuestionPending}
                 />
               );
             })}
