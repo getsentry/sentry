@@ -1127,18 +1127,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
-    "autopilot-run-sdk-update-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "autopilot-run-missing-sdk-integration-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": crontab("0", "*/4", "*", "*", "*"),
-    },
-    "autopilot-run-trace-instrumentation-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
-    },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
@@ -1336,7 +1324,6 @@ LOGGING: LoggingConfig = {
         },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
-        "sentry.autopilot.tasks.missing_sdk_integration": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df

@@ -325,16 +325,24 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         except json.JSONDecodeError:
             pass
 
+    traces_per_invocation_mapping = options.get(
+        "issue-detection.llm-detection.traces-per-invocation"
+    )
+    traces_per_invocation = traces_per_invocation_mapping.get(
+        plan_tier, DEFAULT_TRACES_PER_INVOCATION
+    )
+    sample_multiplier = 1 if traces_per_invocation == DEFAULT_TRACES_PER_INVOCATION else 2
+
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(
-        project_id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=START_TIME_DELTA_MINUTES
+        project_id,
+        limit=TRANSACTION_BATCH_SIZE,
+        sample_multiplier=sample_multiplier,
+        start_time_delta_minutes=START_TIME_DELTA_MINUTES,
     )
     if not evidence_traces:
         return
 
-    traces_per_invocation = options.get("issue-detection.llm-detection.traces-per-invocation")
-    traces_to_send = evidence_traces[
-        : traces_per_invocation.get(plan_tier, DEFAULT_TRACES_PER_INVOCATION)
-    ]
+    traces_to_send = evidence_traces[:traces_per_invocation]
 
     sentry_sdk.metrics.count(
         "llm_issue_detection.seer_request",

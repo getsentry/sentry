@@ -2,13 +2,13 @@ import {FieldGroup} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import SpikeProtectionProjectToggle from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 
 interface SpikeProtectionProjectSettingsProps {
-  project: Project;
+  project: DetailedProject;
 }
 
 export function SpikeProtectionProjectSettings({
