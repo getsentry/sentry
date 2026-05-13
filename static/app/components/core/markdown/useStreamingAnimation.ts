@@ -111,7 +111,7 @@ export const streamingAnimationStyles = css`
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    color: inherit;
+    color: var(--glyph-color, CanvasText);
     font: inherit;
     pointer-events: none;
   }
@@ -141,9 +141,11 @@ function prepareTextNode(
   if (!parent) {
     return null;
   }
+  const computedColor = getComputedStyle(parent as Element).color;
   const graphemes = Array.from(segmenter.segment(original), s => s.segment);
 
   const wrapper = document.createElement('span');
+  wrapper.style.setProperty('--glyph-color', computedColor);
   const spans: HTMLSpanElement[] = [];
   const active: boolean[] = [];
 
