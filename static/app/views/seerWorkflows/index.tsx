@@ -1,9 +1,10 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -24,16 +25,30 @@ import {
   IconFilter,
   IconOpen,
   IconRefresh,
+  IconSettings,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {MOCK_FEEDBACK_SUMMARY_ROWS} from 'sentry/views/seerWorkflows/mockRows';
+import {MOCK_INTERNAL_RUNS} from 'sentry/views/seerWorkflows/mockInternalRuns';
+import {
+  MOCK_FEEDBACK_SUMMARY_ROWS,
+  MOCK_OTHER_STRATEGY_ROWS,
+} from 'sentry/views/seerWorkflows/mockRows';
+import {MockToggle} from 'sentry/views/seerWorkflows/mockToggle';
+import {openOnboardingModal} from 'sentry/views/seerWorkflows/onboardingModal';
+import {
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
+  getActionLabel,
+  STRATEGY_META,
+} from 'sentry/views/seerWorkflows/strategies';
 import type {
   RunStatus,
   SeerNightShiftRun,
@@ -45,6 +60,7 @@ function SeerWorkflows() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const isSentryEmployee = useIsSentryEmployee();
   const [expanded, setExpanded] = useState(new Set<string>());
 
   const {data, isPending, isError, refetch} = useQuery(
@@ -61,8 +77,15 @@ function SeerWorkflows() {
 
   const rows = useMemo<WorkflowRow[]>(() => {
     const apiRows = (data ?? []).map(toWorkflowRow);
-    return showMocks ? [...MOCK_FEEDBACK_SUMMARY_ROWS, ...apiRows] : apiRows;
-  }, [data, showMocks]);
+    const internalRuns = isSentryEmployee && showMocks ? MOCK_INTERNAL_RUNS : [];
+    const mockRows = showMocks
+      ? [...MOCK_FEEDBACK_SUMMARY_ROWS, ...MOCK_OTHER_STRATEGY_ROWS]
+      : [];
+    const visibleApiRows = isSentryEmployee
+      ? apiRows
+      : apiRows.filter(row => STRATEGY_META[row.kind]?.visibility !== 'internal');
+    return [...mockRows, ...internalRuns, ...visibleApiRows];
+  }, [data, showMocks, isSentryEmployee]);
 
   const strategyFilter = decodeList(location.query.strategy) as WorkflowKind[];
   const statusFilter = decodeList(location.query.status) as RunStatus[];
@@ -160,13 +183,63 @@ function SeerWorkflows() {
     });
   };
 
+  const showOnboarding = location.query.onboarding === '1';
+  useEffect(() => {
+    if (!showOnboarding) return;
+    openOnboardingModal({
+      onClose: () => updateQuery({onboarding: undefined}),
+    });
+    // updateQuery captures location/navigate via closure; we only want to fire
+    // when the flag flips on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showOnboarding]);
+
+  const expandLatest = decodeScalar(location.query.expandLatest) as
+    | WorkflowKind
+    | undefined;
+  const autoExpandedForRef = useRef<WorkflowKind | null>(null);
+  useEffect(() => {
+    if (
+      !expandLatest ||
+      autoExpandedForRef.current === expandLatest ||
+      rows.length === 0
+    ) {
+      return;
+    }
+    const candidates = rows.filter(row => row.kind === expandLatest);
+    if (candidates.length === 0) return;
+    const latest = candidates.reduce((acc, row) =>
+      Date.parse(row.dateAdded) > Date.parse(acc.dateAdded) ? row : acc
+    );
+    setExpanded(prev => {
+      const next = new Set(prev);
+      next.add(latest.id);
+      return next;
+    });
+    autoExpandedForRef.current = expandLatest;
+  }, [expandLatest, rows]);
+
   return (
-    <SentryDocumentTitle title={t('Seer Workflows')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
       <Flex direction="column" gap="lg" padding="xl">
-        <Heading as="h1">{t('Seer Workflows')}</Heading>
-        <Text as="p" variant="muted">
-          {t('Historical runs of Seer workflows for this organization.')}
-        </Text>
+        <Flex justify="between" align="start" gap="md">
+          <Flex direction="column" gap="2xs">
+            <Heading as="h1">{t('Sentry Workflows')}</Heading>
+            <Text as="p" variant="muted">
+              {t('Historical runs of Sentry workflows for this organization.')}
+            </Text>
+          </Flex>
+          <Flex gap="sm" align="center">
+            <MockToggle />
+            <LinkButton
+              priority="primary"
+              icon={<IconSettings />}
+              to={`/organizations/${organization.slug}/issues/autofix/configure/`}
+            >
+              {t('Configure workflows')}
+            </LinkButton>
+          </Flex>
+        </Flex>
 
         {isError ? (
           <LoadingError onRetry={refetch} />
@@ -189,7 +262,7 @@ function SeerWorkflows() {
                   <CompactSelect
                     multiple
                     value={strategyFilter}
-                    options={STRATEGY_FILTER_OPTIONS}
+                    options={STRATEGY_FILTER_SECTIONS}
                     onChange={selected =>
                       updateQuery({strategy: selected.map(o => String(o.value))})
                     }
@@ -302,9 +375,21 @@ function SeerWorkflows() {
                           </Flex>
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
-                          <Flex gap="sm" align="center">
+                          <Flex gap="sm" align="center" wrap="wrap">
                             <SourceIcon source={row.source} />
-                            <Text size="sm">{KIND_LABELS[row.kind]}</Text>
+                            <Text size="sm">{STRATEGY_META[row.kind].label}</Text>
+                            {STRATEGY_META[row.kind]?.visibility === 'internal' ? (
+                              <Container
+                                display="inline-block"
+                                border="muted"
+                                radius="sm"
+                                padding="2xs xs"
+                              >
+                                <Text size="xs" variant="muted" uppercase>
+                                  {t('Internal')}
+                                </Text>
+                              </Container>
+                            ) : null}
                           </Flex>
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
@@ -353,11 +438,6 @@ function SeerWorkflows() {
   );
 }
 
-const KIND_LABELS: Record<WorkflowKind, string> = {
-  agentic_triage: 'Agentic triage',
-  feedback_summary: 'Feedback summary',
-};
-
 const SOURCE_LABELS: Record<string, string> = {
   cron: 'Automated',
   manual: 'Manual',
@@ -387,10 +467,13 @@ function SourceIcon({source}: {source: string | undefined}) {
   );
 }
 
-const STRATEGY_FILTER_OPTIONS: ReadonlyArray<{label: string; value: WorkflowKind}> = [
-  {value: 'agentic_triage', label: KIND_LABELS.agentic_triage},
-  {value: 'feedback_summary', label: KIND_LABELS.feedback_summary},
-];
+const STRATEGY_FILTER_SECTIONS = CATEGORY_ORDER.map(category => ({
+  key: category,
+  label: CATEGORY_LABELS[category],
+  options: (Object.keys(STRATEGY_META) as WorkflowKind[])
+    .filter(kind => STRATEGY_META[kind].category === category)
+    .map(kind => ({value: kind, label: STRATEGY_META[kind].label})),
+})).filter(section => section.options.length > 0);
 
 const STATUS_FILTER_OPTIONS: ReadonlyArray<{label: string; value: RunStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},
@@ -476,6 +559,12 @@ function getResultContent(row: WorkflowRow) {
       </Text>
     );
   }
+  // Caller-supplied result text wins. Used by mock runs for strategies that
+  // don't have specialized count rendering yet (everything except triage and
+  // feedback_summary).
+  if (row.resultText) {
+    return <Text size="sm">{row.resultText}</Text>;
+  }
   if (row.kind === 'agentic_triage') {
     const triage = row.triage;
     if (triage?.dryRun) {
@@ -491,28 +580,97 @@ function getResultContent(row: WorkflowRow) {
     }
     return <Text size="sm">{tn('%s issue', '%s issues', issueCount)}</Text>;
   }
-  const feedback = row.feedback;
-  if (row.status === 'skipped') {
+  if (row.kind === 'feedback_summary') {
+    const feedback = row.feedback;
+    if (row.status === 'skipped') {
+      return (
+        <Text variant="muted" size="sm">
+          {feedback?.reason === 'insufficient_feedbacks'
+            ? t('Skipped — too few feedbacks')
+            : t('Skipped')}
+        </Text>
+      );
+    }
+    const themeCount = feedback?.themes.length ?? 0;
+    const feedbackCount = feedback?.numFeedbacksAnalyzed ?? 0;
     return (
-      <Text variant="muted" size="sm">
-        {feedback?.reason === 'insufficient_feedbacks'
-          ? t('Skipped — too few feedbacks')
-          : t('Skipped')}
+      <Text size="sm">
+        {tn('%s theme', '%s themes', themeCount)}
+        {' · '}
+        {tn('%s feedback', '%s feedbacks', feedbackCount)}
       </Text>
     );
   }
-  const themeCount = feedback?.themes.length ?? 0;
-  const feedbackCount = feedback?.numFeedbacksAnalyzed ?? 0;
+  // Unknown kind without resultText — render an em dash so we never silently
+  // fall into a wrong-strategy template.
   return (
-    <Text size="sm">
-      {tn('%s theme', '%s themes', themeCount)}
-      {' · '}
-      {tn('%s feedback', '%s feedbacks', feedbackCount)}
+    <Text variant="muted" size="sm">
+      —
     </Text>
   );
 }
 
 function RunDetail({
+  row,
+  organizationSlug,
+}: {
+  organizationSlug: string;
+  row: WorkflowRow;
+}) {
+  const isSentryEmployee = useIsSentryEmployee();
+  return (
+    <Flex direction="column" gap="lg">
+      <UserSection row={row} organizationSlug={organizationSlug} />
+      {isSentryEmployee ? (
+        <Disclosure>
+          <Disclosure.Title>
+            <Flex gap="sm" align="center">
+              <Text bold>{t('Debug')}</Text>
+              <Container
+                display="inline-block"
+                border="warning"
+                radius="sm"
+                padding="2xs xs"
+              >
+                <Text size="xs" variant="warning" uppercase bold>
+                  {t('Employee only')}
+                </Text>
+              </Container>
+            </Flex>
+          </Disclosure.Title>
+          <Disclosure.Content>
+            <DebugSection row={row} organizationSlug={organizationSlug} />
+          </Disclosure.Content>
+        </Disclosure>
+      ) : null}
+    </Flex>
+  );
+}
+
+function UserSection({
+  row,
+  organizationSlug,
+}: {
+  organizationSlug: string;
+  row: WorkflowRow;
+}) {
+  return (
+    <Flex direction="column" gap="lg">
+      {row.summary ? (
+        <Text as="p" size="md">
+          {row.summary}
+        </Text>
+      ) : null}
+      {row.kind === 'agentic_triage' ? (
+        <TriageIssuesUserPanel row={row} organizationSlug={organizationSlug} />
+      ) : row.kind === 'feedback_summary' ? (
+        <FeedbackSummaryUserPanel row={row} organizationSlug={organizationSlug} />
+      ) : null}
+    </Flex>
+  );
+}
+
+function DebugSection({
   row,
   organizationSlug,
 }: {
@@ -532,61 +690,68 @@ function RunDetail({
     max_candidates !== undefined;
 
   return (
-    <Flex direction="column" gap="lg">
+    <Flex direction="column" gap="md">
+      <Grid columns="max-content 1fr" gap="sm xl" align="start">
+        <Text bold size="xs" variant="muted">
+          {t('Run ID')}
+        </Text>
+        <Text size="sm" monospace>
+          {row.runId}
+        </Text>
+        {hasSettings ? (
+          <Fragment>
+            {max_candidates === undefined ? null : (
+              <Fragment>
+                <Text bold size="xs" variant="muted">
+                  {t('Max candidates')}
+                </Text>
+                <Text size="sm">{max_candidates}</Text>
+              </Fragment>
+            )}
+            {reasoning_effort === undefined ? null : (
+              <Fragment>
+                <Text bold size="xs" variant="muted">
+                  {t('Reasoning effort')}
+                </Text>
+                <Text size="sm">{reasoning_effort}</Text>
+              </Fragment>
+            )}
+            {intelligence_level === undefined ? null : (
+              <Fragment>
+                <Text bold size="xs" variant="muted">
+                  {t('Intelligence level')}
+                </Text>
+                <Text size="sm">{intelligence_level}</Text>
+              </Fragment>
+            )}
+            {extra_triage_instructions === undefined ? null : (
+              <Fragment>
+                <Text bold size="xs" variant="muted">
+                  {t('Extra triage instructions')}
+                </Text>
+                <Text size="sm">{extra_triage_instructions}</Text>
+              </Fragment>
+            )}
+          </Fragment>
+        ) : null}
+      </Grid>
       {row.errorMessage ? (
-        <Text variant="danger" size="sm">
+        <Text variant="danger" size="sm" monospace>
           {t('Error: ')}
           {row.errorMessage}
         </Text>
       ) : null}
-
-      {hasSettings ? (
-        <Grid columns="max-content 1fr" gap="sm xl" align="start">
-          {max_candidates === undefined ? null : (
-            <Fragment>
-              <Text bold size="xs" variant="muted">
-                {t('Max candidates')}
-              </Text>
-              <Text size="sm">{max_candidates}</Text>
-            </Fragment>
-          )}
-          {reasoning_effort === undefined ? null : (
-            <Fragment>
-              <Text bold size="xs" variant="muted">
-                {t('Reasoning effort')}
-              </Text>
-              <Text size="sm">{reasoning_effort}</Text>
-            </Fragment>
-          )}
-          {intelligence_level === undefined ? null : (
-            <Fragment>
-              <Text bold size="xs" variant="muted">
-                {t('Intelligence level')}
-              </Text>
-              <Text size="sm">{intelligence_level}</Text>
-            </Fragment>
-          )}
-          {extra_triage_instructions === undefined ? null : (
-            <Fragment>
-              <Text bold size="xs" variant="muted">
-                {t('Extra triage instructions')}
-              </Text>
-              <Text size="sm">{extra_triage_instructions}</Text>
-            </Fragment>
-          )}
-        </Grid>
-      ) : null}
-
       {row.kind === 'agentic_triage' ? (
-        <TriageIssuesPanel row={row} organizationSlug={organizationSlug} />
-      ) : (
-        <FeedbackSummaryPanel row={row} organizationSlug={organizationSlug} />
-      )}
+        <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
+      ) : null}
+      {row.kind === 'feedback_summary' ? (
+        <FeedbackSummaryDebugAddendum row={row} />
+      ) : null}
     </Flex>
   );
 }
 
-function TriageIssuesPanel({
+function TriageIssuesUserPanel({
   row,
   organizationSlug,
 }: {
@@ -605,21 +770,13 @@ function TriageIssuesPanel({
           {t('No issues processed in this run.')}
         </Text>
       ) : (
-        <Grid
-          columns="max-content max-content max-content max-content max-content"
-          gap="sm xl"
-          align="center"
-        >
+        <Grid columns="max-content max-content max-content" gap="sm xl" align="center">
           <Text bold size="xs" variant="muted">
             {t('Group')}
           </Text>
           <Text bold size="xs" variant="muted">
             {t('Action')}
           </Text>
-          <Text bold size="xs" variant="muted">
-            {t('Seer Run ID')}
-          </Text>
-          <span />
           <span />
           {issues.flatMap(issue => [
             <Link
@@ -629,26 +786,8 @@ function TriageIssuesPanel({
               {issue.groupId}
             </Link>,
             <Text key={`${issue.id}-action`} size="sm">
-              {issue.action}
+              {getActionLabel(issue.action)}
             </Text>,
-            <Text key={`${issue.id}-seer`} size="sm" variant="muted">
-              {issue.seerRunId ?? '-'}
-            </Text>,
-            issue.seerRunId === null ? (
-              <span key={`${issue.id}-explorer`} />
-            ) : (
-              <LinkButton
-                key={`${issue.id}-explorer`}
-                size="xs"
-                icon={<IconOpen />}
-                to={{
-                  pathname: `/organizations/${organizationSlug}/issues/autofix/`,
-                  query: {explorerRunId: issue.seerRunId},
-                }}
-              >
-                {t('Explorer')}
-              </LinkButton>
-            ),
             <LinkButton
               key={`${issue.id}-autofix`}
               size="xs"
@@ -667,7 +806,67 @@ function TriageIssuesPanel({
   );
 }
 
-function FeedbackSummaryPanel({
+function TriageIssuesDebugAddendum({
+  row,
+  organizationSlug,
+}: {
+  organizationSlug: string;
+  row: WorkflowRow;
+}) {
+  const issues = row.triage?.issues ?? [];
+  if (issues.length === 0) return null;
+  return (
+    <Flex direction="column" gap="sm">
+      <Text bold size="xs" variant="muted" uppercase>
+        {t('Per-issue internals')}
+      </Text>
+      <Grid
+        columns="max-content max-content max-content max-content"
+        gap="sm xl"
+        align="center"
+      >
+        <Text bold size="xs" variant="muted">
+          {t('Group')}
+        </Text>
+        <Text bold size="xs" variant="muted">
+          {t('Raw action')}
+        </Text>
+        <Text bold size="xs" variant="muted">
+          {t('Seer Run ID')}
+        </Text>
+        <span />
+        {issues.flatMap(issue => [
+          <Text key={`${issue.id}-group`} size="sm" monospace>
+            {issue.groupId}
+          </Text>,
+          <Text key={`${issue.id}-action`} size="sm" monospace>
+            {issue.action}
+          </Text>,
+          <Text key={`${issue.id}-seer`} size="sm" variant="muted" monospace>
+            {issue.seerRunId ?? '-'}
+          </Text>,
+          issue.seerRunId === null ? (
+            <span key={`${issue.id}-explorer`} />
+          ) : (
+            <LinkButton
+              key={`${issue.id}-explorer`}
+              size="xs"
+              icon={<IconOpen />}
+              to={{
+                pathname: `/organizations/${organizationSlug}/issues/autofix/`,
+                query: {explorerRunId: issue.seerRunId},
+              }}
+            >
+              {t('Explorer')}
+            </LinkButton>
+          ),
+        ])}
+      </Grid>
+    </Flex>
+  );
+}
+
+function FeedbackSummaryUserPanel({
   row,
   organizationSlug,
 }: {
@@ -692,16 +891,11 @@ function FeedbackSummaryPanel({
   }
 
   if (row.status === 'failed' || !feedback) {
-    // Error banner is already shown at the top of RunDetail; nothing else to show.
     return null;
   }
 
   return (
     <Flex direction="column" gap="md">
-      <Text as="p" size="md">
-        {feedback.summary}
-      </Text>
-
       <Flex direction="column" gap="sm">
         <Text bold size="xs" variant="muted" uppercase>
           {t('Themes (%s)', feedback.themes.length)}
@@ -754,6 +948,39 @@ function FeedbackSummaryPanel({
         {t('Analyzed %s feedback entries.', feedback.numFeedbacksAnalyzed)}
       </Text>
     </Flex>
+  );
+}
+
+function FeedbackSummaryDebugAddendum({row}: {row: WorkflowRow}) {
+  const feedback = row.feedback;
+  if (!feedback) return null;
+  return (
+    <Grid columns="max-content 1fr" gap="sm xl" align="start">
+      {feedback.agentRunId === undefined ? null : (
+        <Fragment>
+          <Text bold size="xs" variant="muted">
+            {t('Agent run ID')}
+          </Text>
+          <Text size="sm" monospace>
+            {feedback.agentRunId}
+          </Text>
+        </Fragment>
+      )}
+      {feedback.reason === undefined ? null : (
+        <Fragment>
+          <Text bold size="xs" variant="muted">
+            {t('Skip reason')}
+          </Text>
+          <Text size="sm" monospace>
+            {feedback.reason}
+          </Text>
+        </Fragment>
+      )}
+      <Text bold size="xs" variant="muted">
+        {t('Analyzed count')}
+      </Text>
+      <Text size="sm">{feedback.numFeedbacksAnalyzed}</Text>
+    </Grid>
   );
 }
 

@@ -311,7 +311,7 @@
       "current node"
     ]
   },
-  "packageManager": "pnpm@10.30.2",
+  "packageManager": "pnpm@10.30.2+sha512.36cdc707e7b7940a988c9c1ecf88d084f8514b5c3f085f53a2e244c2921d3b2545bc20dd4ebe1fc245feec463bb298aecea7a63ed1f7680b877dc6379d8d0cb4",
   "pnpm": {
     "overrides": {
       "react-mentions>@babel/runtime": "7.28.6",

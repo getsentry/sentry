@@ -1,6 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import SeerWorkflows from 'sentry/views/seerWorkflows';
 
@@ -39,7 +45,7 @@ describe('SeerWorkflows', () => {
     expect(await screen.findByText('Agentic triage')).toBeInTheDocument();
     expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
     expect(screen.getByText('1 issue')).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Seer Workflows'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sentry Workflows'})).toBeInTheDocument();
   });
 
   it('shows a short failure label inline and the full error after expanding', async () => {
@@ -63,8 +69,11 @@ describe('SeerWorkflows', () => {
     expect(screen.getByLabelText('Failed')).toBeInTheDocument();
     expect(screen.queryByText('No Seer quota available')).not.toBeInTheDocument();
 
+    // The raw error string is now debug-only (employees see it inside the
+    // Debug disclosure). For a non-employee user, expanding the row should NOT
+    // surface the raw "No Seer quota available" string.
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
-    expect(screen.getByText(/No Seer quota available/)).toBeInTheDocument();
+    expect(screen.queryByText(/No Seer quota available/)).not.toBeInTheDocument();
   });
 
   it('renders zero-issue triage runs as muted "No issues processed"', async () => {
@@ -115,12 +124,15 @@ describe('SeerWorkflows', () => {
     const expandButton = await screen.findByRole('button', {name: 'Expand run'});
     await userEvent.click(expandButton);
 
-    expect(screen.getByText('autofix_triggered')).toBeInTheDocument();
-    expect(screen.getByText('seer-1')).toBeInTheDocument();
+    // User-facing view shows the friendly action label, not the raw enum.
+    expect(screen.getByText('Autofix queued')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '100'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/100/`
     );
+    // Seer Run ID is a debug field — only visible to employees inside the
+    // Debug disclosure. Non-employee tests should not see it.
+    expect(screen.queryByText('seer-1')).not.toBeInTheDocument();
   });
 
   it('links the Result cell to Seer Explorer when agent_run_id is present', async () => {
@@ -280,11 +292,11 @@ describe('SeerWorkflows', () => {
     // Clicking the Strategy text (anywhere in the row that isn't a Link or the
     // chevron button) should toggle the expanded view.
     await userEvent.click(await screen.findByText('Agentic triage'));
-    expect(screen.getByText('autofix_triggered')).toBeInTheDocument();
+    expect(screen.getByText('Autofix queued')).toBeInTheDocument();
 
     // Clicking again collapses.
     await userEvent.click(screen.getByText('Agentic triage'));
-    expect(screen.queryByText('autofix_triggered')).not.toBeInTheDocument();
+    expect(screen.queryByText('Autofix queued')).not.toBeInTheDocument();
   });
 
   it('shows empty state when no runs', async () => {
@@ -452,7 +464,8 @@ describe('SeerWorkflows', () => {
     });
 
     expect(await screen.findAllByText('Feedback summary')).toHaveLength(3);
-    expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
+    // Other configurable strategies have one mock run each.
+    expect(screen.getAllByLabelText('Succeeded').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByLabelText('Failed')).toBeInTheDocument();
     expect(screen.getByLabelText('Skipped')).toBeInTheDocument();
     // Result cells link to Explorer when agent_run_id is present.
@@ -463,5 +476,88 @@ describe('SeerWorkflows', () => {
     // Skipped never started a run, so its Result cell is plain text, not a link.
     expect(screen.getByText('Skipped — too few feedbacks')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /Skipped/})).not.toBeInTheDocument();
+    // Non-agentic / non-feedback strategies render their resultText verbatim.
+    expect(screen.getByText('3 endpoints regressed')).toBeInTheDocument();
+    expect(screen.getByText('4 friction themes · 87 replays')).toBeInTheDocument();
+  });
+
+  it('opens the onboarding modal when ?onboarding=1 is set', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [],
+    });
+
+    render(<SeerWorkflows />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/autofix/',
+          query: {onboarding: '1'},
+        },
+      },
+    });
+    renderGlobalModal();
+
+    expect(
+      await screen.findByRole('heading', {name: 'Welcome to Sentry Workflows'})
+    ).toBeInTheDocument();
+  });
+
+  it('does NOT open the onboarding modal without ?onboarding=1', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [],
+    });
+
+    render(<SeerWorkflows />, {organization});
+    renderGlobalModal();
+
+    await screen.findByText('No workflow runs yet.');
+    expect(
+      screen.queryByRole('heading', {name: 'Welcome to Sentry Workflows'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('Skip closes the onboarding modal and strips ?onboarding from the URL', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [],
+    });
+
+    const {router} = render(<SeerWorkflows />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/autofix/',
+          query: {onboarding: '1'},
+        },
+      },
+    });
+    renderGlobalModal();
+
+    await screen.findByRole('heading', {name: 'Welcome to Sentry Workflows'});
+    await userEvent.click(screen.getByRole('button', {name: 'Skip'}));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', {name: 'Welcome to Sentry Workflows'})
+      ).not.toBeInTheDocument();
+    });
+    expect(router.location.query.onboarding).toBeUndefined();
+  });
+
+  it('renders a "Configure workflows" link to the configure page', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    const link = await screen.findByRole('button', {name: /Configure workflows/});
+    expect(link).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/autofix/configure/`
+    );
   });
 });
