@@ -1200,6 +1200,11 @@ class Fixtures:
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
+    def create_seer_run(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_seer_run(organization=organization, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:
         self.insta_snapshot = insta_snapshot

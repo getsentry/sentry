@@ -31,7 +31,6 @@ import {
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
-import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
@@ -53,7 +52,7 @@ export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
   const mode = getModeFromLocation(location, LOGS_MODE_KEY);
-  const query = getQueryFromLocation(location, LOGS_QUERY_KEY) ?? '';
+  const query = decodeScalar(location.query[LOGS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, LOGS_CURSOR_KEY);
   const fields = getFieldsFromLocation(location, LOGS_FIELDS_KEY) ?? defaultLogFields();
