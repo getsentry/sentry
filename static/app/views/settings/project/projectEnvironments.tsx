@@ -12,7 +12,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type {Environment} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDisplayName} from 'sentry/utils/environment';
@@ -29,8 +28,14 @@ interface EnvironmentRowProps {
   children?: React.ReactNode;
 }
 
+interface ProjectEnvironment {
+  id: string;
+  isHidden: boolean;
+  name: string;
+}
+
 interface ToggleEnvironmentVariables {
-  environment: Environment;
+  environment: ProjectEnvironment;
   shouldHide: boolean;
 }
 
@@ -65,14 +70,6 @@ function EnvironmentTableSkeleton({isHidden}: {isHidden: boolean}) {
   );
 }
 
-function getEnvironmentPathParam(environment: Environment) {
-  // Django decodes route params before the endpoint calls
-  // `Environment.get_name_from_path_segment()`, which unquotes the value again.
-  // Pre-encode here so `getApiUrl`'s normal path-param encoding produces the
-  // double-encoded URL needed to preserve literal percent sequences in names.
-  return encodeURIComponent(environment.name || environment.displayName || 'none');
-}
-
 export default function ProjectEnvironments() {
   const location = useLocation();
   const params = useParams<{projectId: string}>();
@@ -81,7 +78,7 @@ export default function ProjectEnvironments() {
   const queryClient = useQueryClient();
 
   const isHidden = location.pathname.endsWith('hidden/');
-  const environmentsQueryOptions = apiOptions.as<Environment[]>()(
+  const environmentsQueryOptions = apiOptions.as<ProjectEnvironment[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
     {
       path: {
@@ -103,7 +100,11 @@ export default function ProjectEnvironments() {
             path: {
               organizationIdOrSlug: organization.slug,
               projectIdOrSlug: params.projectId,
-              environment: getEnvironmentPathParam(environment),
+              // Django decodes route params before the endpoint calls
+              // `Environment.get_name_from_path_segment()`, which unquotes the value again.
+              // Pre-encode here so `getApiUrl`'s normal path-param encoding produces the
+              // double-encoded URL needed to preserve literal percent sequences in names.
+              environment: encodeURIComponent(environment.name),
             },
           }
         ),

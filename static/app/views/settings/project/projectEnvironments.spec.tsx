@@ -78,7 +78,7 @@ describe('ProjectEnvironments', () => {
   ])('double-encodes environment path params for %s', async (name, encodedName) => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: [{id: '1', name, displayName: name}],
+      body: [{id: '1', name}],
     });
     const hideMock = MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/environments/${encodedName}/`,
