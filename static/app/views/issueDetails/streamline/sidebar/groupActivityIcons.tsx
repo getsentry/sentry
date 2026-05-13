@@ -25,6 +25,7 @@ import {
   IconPlay,
   IconPrevious,
   IconRefresh,
+  IconSeer,
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
@@ -137,6 +138,13 @@ export const groupActivityTypeIconMapping: Record<
     },
   },
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
+  [GroupActivityType.SEER_RCA_STARTED]: {Component: IconSeer, defaultProps: {}},
+  [GroupActivityType.SEER_RCA_COMPLETED]: {Component: IconSeer, defaultProps: {}},
+  [GroupActivityType.SEER_SOLUTION_STARTED]: {Component: IconSeer, defaultProps: {}},
+  [GroupActivityType.SEER_SOLUTION_COMPLETED]: {Component: IconSeer, defaultProps: {}},
+  [GroupActivityType.SEER_CODING_STARTED]: {Component: IconSeer, defaultProps: {}},
+  [GroupActivityType.SEER_CODING_COMPLETED]: {Component: IconSeer, defaultProps: {}},
+  [GroupActivityType.SEER_PR_CREATED]: {Component: IconSeer, defaultProps: {}},
 };
 
 const StyledUserAvatar = styled(UserAvatar)`
