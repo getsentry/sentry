@@ -33,7 +33,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-import QueryList from './queryList';
+import {QueryList} from './queryList';
 import {getPrebuiltQueries} from './utils';
 
 const SORT_OPTIONS = [

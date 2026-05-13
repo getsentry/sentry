@@ -11,7 +11,7 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import QueryList from 'sentry/views/discover/queryList';
+import {QueryList} from 'sentry/views/discover/queryList';
 
 jest.mock('sentry/actionCreators/modal');
 

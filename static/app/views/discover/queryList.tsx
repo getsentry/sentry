@@ -64,7 +64,6 @@ function QueryList({
 
   useEffect(() => {
     resetPageFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleDeleteSavedQuery(eventView: EventView) {
@@ -400,4 +399,4 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
 `;
 
-export default QueryList;
+export {QueryList};
