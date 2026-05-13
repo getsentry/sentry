@@ -41,7 +41,7 @@ from sentry.replays.query import (
     query_replays_collection_paginated,
     replay_url_parser_config,
 )
-from sentry.replays.validators import VALID_FIELD_SET
+from sentry.replays.validators import VALID_FIELD_SET as REPLAY_VALID_FIELD_SET
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
