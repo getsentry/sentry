@@ -23,7 +23,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import workspace
 from sentry.integrations.slack.metrics import translate_slack_api_error
-from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.sdk_client import SlackResponse, SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.types import IntegrationProviderSlug
@@ -162,10 +162,11 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         renderable: SlackRenderable,
         thread_ts: str,
-    ) -> None:
+    ) -> SlackResponse | None:
+        """Post a message in a thread. Returns the posted message's ts, or None on failure."""
         client = self.get_client()
         try:
-            client.chat_postMessage(
+            return client.chat_postMessage(
                 channel=channel_id,
                 blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
                 text=renderable["text"],
@@ -174,6 +175,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
+            return None
 
     def send_threaded_ephemeral_message(
         self,
