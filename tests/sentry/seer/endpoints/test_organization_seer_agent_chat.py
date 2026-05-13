@@ -1,9 +1,10 @@
 from typing import Any
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
 
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -329,6 +330,67 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         call_kwargs = mock_client.start_run.call_args[1]
         assert call_kwargs["on_page_context"] == ascii_screenshot
+
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_outbox_path_creates_run_and_returns_run_id(
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_request: Mock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 99}))
+
+        from sentry.seer.agent.client import SeerAgentClient
+
+        client = SeerAgentClient(
+            self.organization, self.user, is_interactive=True, reasoning_effort="medium"
+        )
+
+        with self.feature("organizations:seer-run-mirror-explorer"):
+            run_id = client.start_run(
+                prompt="What happened?",
+            )
+
+        assert run_id == 99
+
+        run = SeerRun.objects.get(organization_id=self.organization.id)
+        assert run.type == SeerRunType.EXPLORER
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.seer_run_state_id == 99
+        assert run.user_id == self.user.id
+
+        sent_body = mock_request.call_args[0][0]
+        assert sent_body["query"] == "What happened?"
+        assert sent_body["organization_id"] == self.organization.id
+        assert "external_idempotency_key" in sent_body
+        assert sent_body["external_idempotency_key"] == str(run.uuid)
+
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_outbox_path_flush_error_marks_failed_and_raises(
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_request: Mock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_request.side_effect = Exception("Seer exploded")
+
+        from sentry.seer.agent.client import SeerAgentClient
+        from sentry.seer.models import SeerApiError
+
+        client = SeerAgentClient(
+            self.organization, self.user, is_interactive=True, reasoning_effort="medium"
+        )
+
+        with pytest.raises(SeerApiError, match="Outbox flush failed"):
+            with self.feature("organizations:seer-run-mirror-explorer"):
+                client.start_run(
+                    prompt="What happened?",
+                )
+
+        run = SeerRun.objects.get(organization_id=self.organization.id)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
 
 
 @with_feature("organizations:seer-explorer")
