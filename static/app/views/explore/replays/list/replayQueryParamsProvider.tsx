@@ -11,7 +11,6 @@ import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/conte
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
 } from 'sentry/views/explore/queryParams/savedQuery';
@@ -22,7 +21,7 @@ const REPLAY_QUERY_KEY = 'query';
 function getReadableQueryParamsFromLocation(location: Location): ReadableQueryParams {
   const query = getQueryFromLocation(location, REPLAY_QUERY_KEY) ?? '';
   const id = decodeScalar(location.query?.[ID_KEY]);
-  const title = getTitleFromLocation(location, TITLE_KEY);
+  const title = decodeScalar(location.query?.[TITLE_KEY]);
 
   return new ReadableQueryParams({
     extrapolate: false,

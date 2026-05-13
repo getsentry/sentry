@@ -22,7 +22,6 @@ import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
 } from 'sentry/views/explore/queryParams/savedQuery';
@@ -81,7 +80,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   const id = decodeScalar(location.query?.[SPANS_ID_KEY]);
-  const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
+  const title = decodeScalar(location.query?.[SPANS_TITLE_KEY]);
 
   const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
 

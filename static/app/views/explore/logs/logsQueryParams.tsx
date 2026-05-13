@@ -34,7 +34,6 @@ import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
 } from 'sentry/views/explore/queryParams/savedQuery';
@@ -74,7 +73,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   const id = decodeScalar(location.query?.[LOGS_ID_KEY]);
-  const title = getTitleFromLocation(location, LOGS_TITLE_KEY);
+  const title = decodeScalar(location.query?.[LOGS_TITLE_KEY]);
 
   return new ReadableQueryParams({
     extrapolate: true,

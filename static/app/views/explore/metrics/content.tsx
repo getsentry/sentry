@@ -23,7 +23,6 @@ import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboardi
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
-  getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
 } from 'sentry/views/explore/queryParams/savedQuery';
@@ -91,7 +90,7 @@ const metricsFeedbackOptions = {
 function MetricsHeader() {
   const location = useLocation();
   const pageId = decodeScalar(location.query?.[ID_KEY]);
-  const title = getTitleFromLocation(location, TITLE_KEY);
+  const title = decodeScalar(location.query?.[TITLE_KEY]);
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasSavedQueryTitle =
