@@ -57,7 +57,7 @@ export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
   const mode = getModeFromLocation(location, LOGS_MODE_KEY);
-  const query = decodeScalar(location.query?.[LOGS_QUERY_KEY]) ?? '';
+  const query = decodeScalar(location.query[LOGS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, LOGS_CURSOR_KEY);
   const fields = getFieldsFromLocation(location, LOGS_FIELDS_KEY) ?? defaultLogFields();

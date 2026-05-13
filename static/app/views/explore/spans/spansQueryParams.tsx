@@ -64,7 +64,7 @@ export function getReadableQueryParamsFromLocation(
 ): ReadableQueryParams {
   const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
-  const query = decodeScalar(location.query?.[SPANS_QUERY_KEY]) ?? '';
+  const query = decodeScalar(location.query[SPANS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
   const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();

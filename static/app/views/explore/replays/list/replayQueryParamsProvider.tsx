@@ -20,7 +20,7 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 const REPLAY_QUERY_KEY = 'query';
 
 function getReadableQueryParamsFromLocation(location: Location): ReadableQueryParams {
-  const query = decodeScalar(location.query?.[REPLAY_QUERY_KEY]) ?? '';
+  const query = decodeScalar(location.query[REPLAY_QUERY_KEY]) ?? '';
   const id = getIdFromLocation(location, ID_KEY);
   const title = getTitleFromLocation(location, TITLE_KEY);
 
