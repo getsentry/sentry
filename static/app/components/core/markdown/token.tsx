@@ -1,7 +1,6 @@
 import type {ElementType, ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Separator} from '@sentry/scraps/separator';
 
 import type {MarkedToken, Token as TokenType} from 'sentry/utils/marked/marked';
 import {sanitizeHtml} from 'sentry/utils/marked/marked';
@@ -10,11 +9,27 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {
   DefaultBlockquote,
   DefaultCodeBlock,
+  DefaultEmphasis,
   DefaultHeading,
+  DefaultHorizontalRule,
   DefaultHtmlBlock,
   DefaultInlineCode,
+  DefaultLineBreak,
   DefaultLink,
+  DefaultListItem,
+  DefaultOrderedList,
   DefaultParagraph,
+  DefaultStrikethrough,
+  DefaultStrong,
+  DefaultTable,
+  DefaultTableBody,
+  DefaultTableCell,
+  DefaultTableHead,
+  DefaultTableHeaderCell,
+  DefaultTableRow,
+  DefaultTaskList,
+  DefaultTaskListItem,
+  DefaultUnorderedList,
 } from './defaultComponents';
 import type {MarkdownComponents} from './markdown';
 
@@ -84,9 +99,12 @@ export function Token({
     }
 
     case 'list': {
-      const List: ElementType = token.ordered
-        ? (components.OrderedList ?? 'ol')
-        : (components.UnorderedList ?? 'ul');
+      const isTaskList = token.items.some(item => item.task);
+      const List: ElementType = isTaskList
+        ? (components.TaskList ?? DefaultTaskList)
+        : token.ordered
+          ? (components.OrderedList ?? DefaultOrderedList)
+          : (components.UnorderedList ?? DefaultUnorderedList);
       return (
         <List>
           {token.items.map((item, i) => (
@@ -97,21 +115,28 @@ export function Token({
     }
 
     case 'list_item': {
-      const Li = components.ListItem ?? 'li';
-      const checked = token.task ? token.checked : undefined;
-      return <Li checked={checked}>{renderInline(token.tokens, components)}</Li>;
+      if (token.task) {
+        const TaskLi = components.TaskListItem ?? DefaultTaskListItem;
+        return (
+          <TaskLi checked={token.checked ?? false}>
+            {renderInline(token.tokens, components)}
+          </TaskLi>
+        );
+      }
+      const Li = components.ListItem ?? DefaultListItem;
+      return <Li>{renderInline(token.tokens, components)}</Li>;
     }
 
     case 'checkbox':
-      return <Checkbox checked={token.checked} disabled />;
+      return <Checkbox checked={token.checked} readOnly />;
 
     case 'table': {
-      const TableComp = components.Table ?? 'table';
-      const Thead = components.TableHead ?? 'thead';
-      const Tbody = components.TableBody ?? 'tbody';
-      const Tr = components.TableRow ?? 'tr';
-      const Th = components.TableHeaderCell ?? 'th';
-      const Td = components.TableCell ?? 'td';
+      const TableComp = components.Table ?? DefaultTable;
+      const Thead = components.TableHead ?? DefaultTableHead;
+      const Tbody = components.TableBody ?? DefaultTableBody;
+      const Tr = components.TableRow ?? DefaultTableRow;
+      const Th = components.TableHeaderCell ?? DefaultTableHeaderCell;
+      const Td = components.TableCell ?? DefaultTableCell;
 
       return (
         <TableComp>
@@ -140,8 +165,8 @@ export function Token({
     }
 
     case 'hr': {
-      const Hr = components.HorizontalRule ?? Separator;
-      return <Hr orientation="horizontal" />;
+      const Hr = components.HorizontalRule ?? DefaultHorizontalRule;
+      return <Hr />;
     }
 
     case 'html': {
@@ -150,17 +175,17 @@ export function Token({
     }
 
     case 'strong': {
-      const Strong = components.Strong ?? 'strong';
+      const Strong = components.Strong ?? DefaultStrong;
       return <Strong>{renderInline(token.tokens, components)}</Strong>;
     }
 
     case 'em': {
-      const Em = components.Emphasis ?? 'em';
+      const Em = components.Emphasis ?? DefaultEmphasis;
       return <Em>{renderInline(token.tokens, components)}</Em>;
     }
 
     case 'del': {
-      const Del = components.Strikethrough ?? 'del';
+      const Del = components.Strikethrough ?? DefaultStrikethrough;
       return <Del>{renderInline(token.tokens, components)}</Del>;
     }
 
@@ -198,7 +223,7 @@ export function Token({
       return token.text;
 
     case 'br': {
-      const Br = components.LineBreak ?? 'br';
+      const Br = components.LineBreak ?? DefaultLineBreak;
       return <Br />;
     }
 

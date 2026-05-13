@@ -32,6 +32,8 @@ export type MarkdownComponents = Partial<{
   TableHead: ComponentType<{children: ReactNode}>;
   TableHeaderCell: ComponentType<{children: ReactNode; align?: string | null}>;
   TableRow: ComponentType<{children: ReactNode}>;
+  TaskList: ComponentType<{children: ReactNode}>;
+  TaskListItem: ComponentType<{checked: boolean; children: ReactNode}>;
   Text: ComponentType<{children: string}>;
   UnorderedList: ComponentType<{children: ReactNode}>;
 }>;

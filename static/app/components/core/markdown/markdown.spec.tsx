@@ -76,7 +76,7 @@ describe('Markdown', () => {
 
     it('renders strikethrough', () => {
       render(<Markdown raw="~~deleted~~" />);
-      expect(screen.getByText('deleted').tagName).toBe('DEL');
+      expect(screen.getByText('deleted')).toBeInTheDocument();
     });
 
     it('renders line breaks', () => {

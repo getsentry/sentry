@@ -38,20 +38,6 @@ Sentry uses **fingerprints** to group similar events into issues. Each issue tra
 
 Visit the [Sentry docs](https://docs.sentry.io/product/issues/) for more on issue triage.
 
-## Triage Checklist
-
-- [x] Assign an owner via ownership rules
-- [ ] Review suspect commits
-- [ ] Set up alert rules
-
-## Resolve Strategies
-
-1. Resolve immediately
-2. Resolve in the next release
-3. Resolve in a specific commit
-
-> Events are grouped by stack trace similarity by default. Custom fingerprints override this behavior.
-
 \`\`\`python
 import sentry_sdk
 
@@ -59,18 +45,37 @@ sentry_sdk.set_tag("region", "us-east")
 sentry_sdk.capture_exception(err)
 \`\`\`
 
+Custom fingerprints are useful when:
+
+- The default stack trace grouping is too broad or too narrow
+- You want to group errors by business logic rather than code path
+
+See the [grouping best practices](https://docs.sentry.io/product/issues/grouping-and-fingerprints/) guide for advanced configuration.
+
+> Events are grouped by stack trace similarity by default. Custom fingerprints override this behavior.
+
+## Resolution Strategies
+
+1. Resolve immediately
+2. Resolve in the next release
+3. Resolve in a specific commit
+
 | Status     | Description                     |
 | ---------- | ------------------------------- |
 | Unresolved | Active and needs triage         |
 | Resolved   | Fixed in a release              |
 | Regressed  | Reappeared after being resolved |
 
+## Triage Checklist
+
+- [x] Assign an owner via ownership rules
+- [ ] Review suspect commits
+- [ ] Set up alert rules
+
 ---
 
 Hard line break:\\
 New line here.
-
-![Sentry Issue Detail](https://example.com/issue-detail.png)
 
 <mark>Note:</mark> Reprocessing events requires uploading new debug files.
 `} />
@@ -168,23 +173,25 @@ The component applies the same security model as the existing `MarkedText`:
 
 ## Available Component Keys
 
-| Key              | Default                     | Props                       |
-| ---------------- | --------------------------- | --------------------------- |
-| `Paragraph`      | `<Text as="p">`             | `children`                  |
-| `Heading`        | `<Heading as="h1-h6">`      | `children`, `level` (1-6)   |
-| `CodeBlock`      | `<CodeBlock>` (with Prism)  | `children` (string), `lang` |
-| `InlineCode`     | `<InlineCode>`              | `children` (string)         |
-| `Link`           | `<Link>` / `<ExternalLink>` | `children`, `href`, `title` |
-| `Blockquote`     | `<Quote>`                   | `children`                  |
-| `Strong`         | `<strong>`                  | `children`                  |
-| `Emphasis`       | `<em>`                      | `children`                  |
-| `Strikethrough`  | `<del>`                     | `children`                  |
-| `Image`          | stripped                    | `src`, `alt`, `title`       |
-| `Text`           | passthrough                 | `children` (string)         |
-| `OrderedList`    | `<ol>`                      | `children`                  |
-| `UnorderedList`  | `<ul>`                      | `children`                  |
-| `ListItem`       | `<li>`                      | `children`, `checked`       |
-| `Table`          | `<table>`                   | `children`                  |
-| `HorizontalRule` | `<hr>`                      | -                           |
-| `LineBreak`      | `<br>`                      | -                           |
-| `Html`           | DOMPurify sanitized         | `html` (string)             |
+| Key              | Default                        | Props                        |
+| ---------------- | ------------------------------ | ---------------------------- |
+| `Paragraph`      | `<Text as="p">`                | `children`                   |
+| `Heading`        | `<Heading as="h1-h6">`         | `children`, `level` (1-6)    |
+| `CodeBlock`      | `<CodeBlock>`                  | `children` (string), `lang`  |
+| `InlineCode`     | `<InlineCode>`                 | `children` (string)          |
+| `Link`           | `<Link>` / `<ExternalLink>`    | `children`, `href`, `title`  |
+| `Blockquote`     | `<Quote>`                      | `children`                   |
+| `Strong`         | `<strong>`                     | `children`                   |
+| `Emphasis`       | `<em>`                         | `children`                   |
+| `Strikethrough`  | `<Text strikethrough>`         | `children`                   |
+| `Image`          | stripped                       | `src`, `alt`, `title`        |
+| `Text`           | passthrough                    | `children` (string)          |
+| `OrderedList`    | `<Stack as="ol">`              | `children`                   |
+| `UnorderedList`  | `<Stack as="ul">`              | `children`                   |
+| `ListItem`       | `<Container as="li">`          | `children`                   |
+| `TaskList`       | `<Stack as="ul">` (no bullets) | `children`                   |
+| `TaskListItem`   | `<Container as="li">`          | `children`, `checked` (bool) |
+| `Table`          | styled `<table>`               | `children`                   |
+| `HorizontalRule` | `<Separator>`                  | -                            |
+| `LineBreak`      | `<br>`                         | -                            |
+| `Html`           | DOMPurify sanitized            | `html` (string)              |
