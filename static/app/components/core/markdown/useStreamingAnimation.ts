@@ -74,32 +74,51 @@ export function useStreamingAnimation(
   }, [containerRef, enabled]);
 }
 
-const CHAR_ARRAY = Array.from('0123456789ABCDEF#');
 const STAGGER_MS = 11;
 const FADE_LEAD_MS = 200;
 const MAX_DURATION_MS = 1200;
+const CYCLE_DURATION_MS = 400;
 
 const ATTR = 'data-scraps-decode';
 const ATTR_SEL = `[${ATTR}]`;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
 
-function pick(arr: string[]): string {
-  return arr[Math.floor(Math.random() * arr.length)] ?? '0';
-}
-
-function randomGlyph(): string {
-  return pick(CHAR_ARRAY);
-}
-
 function isSimpleChar(grapheme: string): boolean {
   return grapheme.length === 1 && !/\s/.test(grapheme);
 }
 
 export const streamingAnimationStyles = css`
+  @keyframes decode-cycle {
+    0% {
+      content: '0';
+    }
+    12% {
+      content: '7';
+    }
+    25% {
+      content: 'A';
+    }
+    37% {
+      content: '#';
+    }
+    50% {
+      content: 'F';
+    }
+    62% {
+      content: '3';
+    }
+    75% {
+      content: 'C';
+    }
+    87% {
+      content: '9';
+    }
+  }
   ${ATTR_SEL} {
     position: relative;
     color: transparent;
+    contain: style paint;
     opacity: 0;
     transition: opacity 200ms ease-out;
   }
@@ -107,7 +126,9 @@ export const streamingAnimationStyles = css`
     opacity: 1;
   }
   ${ATTR_SEL}::after {
-    content: attr(${ATTR});
+    content: '0';
+    animation: decode-cycle ${CYCLE_DURATION_MS}ms steps(1) infinite;
+    animation-delay: var(--dd, 0ms);
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -159,7 +180,8 @@ function prepareTextNode(
     span.textContent = grapheme;
 
     if (isSimpleChar(grapheme) && globalOffset + idx >= skipChars) {
-      span.setAttribute(ATTR, randomGlyph());
+      span.setAttribute(ATTR, '');
+      span.style.setProperty('--dd', `-${Math.random() * CYCLE_DURATION_MS}ms`);
       active.push(true);
     } else {
       active.push(false);
@@ -225,6 +247,15 @@ function fadeOutRuns(runs: TextRun[]) {
   setTimeout(() => restoreRuns(runs), 200);
 }
 
+const scheduleIdle: (cb: () => void) => number | ReturnType<typeof setTimeout> =
+  typeof requestIdleCallback === 'function'
+    ? requestIdleCallback
+    : cb => setTimeout(cb, 0);
+const cancelIdle: (id: number | ReturnType<typeof setTimeout>) => void =
+  typeof cancelIdleCallback === 'function'
+    ? id => cancelIdleCallback(id as number)
+    : id => clearTimeout(id);
+
 function animateElement(element: Element): () => void {
   const htmlEl = element as HTMLElement;
   const skipChars = Number.parseInt(htmlEl.dataset.skip ?? '0', 10);
@@ -263,11 +294,35 @@ function animateElement(element: Element): () => void {
   let settled = false;
   const startTime = performance.now();
 
+  let pendingIdle: number | ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleCollapse() {
+    if (pendingIdle !== null) {
+      return;
+    }
+    pendingIdle = scheduleIdle(() => {
+      pendingIdle = null;
+      if (settled) {
+        return;
+      }
+      for (const run of runs) {
+        collapseSettledPrefix(run);
+      }
+    });
+  }
+
   function settle() {
     if (settled) {
       return;
     }
     settled = true;
+    if (pendingIdle !== null) {
+      cancelIdle(pendingIdle);
+      pendingIdle = null;
+    }
+    for (const run of runs) {
+      collapseSettledPrefix(run);
+    }
     fadeOutRuns(runs);
   }
 
@@ -304,13 +359,12 @@ function animateElement(element: Element): () => void {
           span.removeAttribute(ATTR);
           run.active[i] = false;
         } else {
-          span.setAttribute(ATTR, randomGlyph());
           allSettled = false;
         }
       }
-
-      collapseSettledPrefix(run);
     }
+
+    scheduleCollapse();
 
     if (allSettled || elapsed >= MAX_DURATION_MS) {
       settle();
