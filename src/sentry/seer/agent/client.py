@@ -16,7 +16,12 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
-from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
+from sentry.hybridcloud.models.outbox import (
+    CellOutbox,
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -385,7 +390,7 @@ class SeerAgentClient:
                             "viewer_context": dict(self.viewer_context),
                         },
                     ).save()
-            except OutboxFlushError:
+            except (OutboxFlushError, OutboxDatabaseError):
                 metrics.incr("seer.outbox_flush_error", tags={"type": "explorer"})
                 logger.exception(
                     "explorer.outbox_flush_error",
