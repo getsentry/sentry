@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -181,7 +181,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             {period === defaultStatsPeriod &&
                             !defaultStatsPeriod.isMaxRetention &&
                             shouldShowSinceFirstSeenOption
-                              ? t('Since First Seen')
+                              ? tct('Since First Seen ([period])', {
+                                  period: triggerProps.children,
+                                })
                               : triggerProps.children}
                           </TimeRangeSelectTrigger>
                         )}
