@@ -49,9 +49,12 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/',
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
+  '/explore/logs/',
+  '/explore/releases/',
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
   '/issues/',
+  '/issues/views/:viewId/',
   '/issues/errors-outages/',
   '/issues/breached-metrics/',
   '/issues/warnings/',
@@ -60,10 +63,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/events/:eventId/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
-  '/explore/logs/',
-  '/explore/releases/',
-]);
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
 
 function supportsStructuredContext(
   referrer: string,
@@ -391,7 +391,7 @@ export const useSeerExplorer = () => {
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: number | null) => {
+    (newRunId: number | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
       if (newRunId === runId) {
         return;
       }
@@ -407,12 +407,19 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
         });
       }
+
+      onSuccess?.();
     },
     [orgSlug, queryClient, runId, setRunId]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
-  const startNewSession = useCallback(() => switchToRun(null), [switchToRun]);
+  const startNewSession = useCallback(
+    ({onSuccess}: {onSuccess?: () => void} = {}) => {
+      switchToRun(null, {onSuccess});
+    },
+    [switchToRun]
+  );
 
   const sendMessage = useCallback(
     (query: string, explicitInsertIndex?: number, explicitRunId?: number | null) => {
