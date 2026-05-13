@@ -120,7 +120,9 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'text',
-          text: t('Renderer process error - Add a test button to one of your HTML pages:'),
+          text: t(
+            'Renderer process error - Add a test button to one of your HTML pages:'
+          ),
         },
         {
           type: 'code',
