@@ -57,7 +57,7 @@ def backfill_project_repository(apps: StateApps, schema_editor: BaseDatabaseSche
 
     existing_pairs = set(ProjectRepository.objects.values_list("project_id", "repository_id"))
 
-    batch: list = []
+    batch: list[object] = []
     for (project_id, repository_id), source in pair_to_source.items():
         if (project_id, repository_id) in existing_pairs:
             continue
