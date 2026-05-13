@@ -1,12 +1,11 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import type {Location, Query} from 'history';
+import type {Query} from 'history';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -17,12 +16,13 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
@@ -42,8 +42,6 @@ import {
 } from './utils';
 
 type Props = {
-  api: Client;
-  location: Location;
   organization: Organization;
   pageLinks: string;
   refetchSavedQueries: () => void;
@@ -52,68 +50,49 @@ type Props = {
   savedQuerySearchQuery: string;
 };
 
-class QueryList extends Component<Props> {
-  componentDidMount() {
-    /**
-     * We need to reset global selection here because the saved queries can define their own projects
-     * in the query. This can lead to mismatched queries for the project
-     */
+function QueryList({
+  organization,
+  pageLinks,
+  refetchSavedQueries,
+  renderPrebuilt,
+  savedQueries,
+  savedQuerySearchQuery,
+}: Props) {
+  const api = useApi();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
     resetPageFilters();
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  handleDeleteQuery = (eventView: EventView) => {
-    const {api, organization, location, savedQueries, refetchSavedQueries} = this.props;
-
+  function handleDeleteSavedQuery(eventView: EventView) {
     handleDeleteQuery(api, organization, eventView).then(() => {
       refetchSavedQueries();
       if (savedQueries.length === 1 && location.query.cursor) {
-        browserHistory.push({
+        navigate({
           pathname: location.pathname,
           query: {...location.query, cursor: undefined},
         });
       }
     });
-  };
+  }
 
-  handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    const {api, location, organization, refetchSavedQueries} = this.props;
-
+  function handleDuplicateQuery(eventView: EventView, yAxis: string[]) {
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
       refetchSavedQueries();
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {},
       });
     });
-  };
-
-  renderQueries() {
-    const {pageLinks, renderPrebuilt} = this.props;
-    const links = parseLinkHeader(pageLinks || '');
-    let cards: React.ReactNode[] = [];
-
-    // If we're on the first page (no-previous page exists)
-    // include the pre-built queries.
-    if (renderPrebuilt && (!links.previous || links.previous.results === false)) {
-      cards = cards.concat(this.renderPrebuiltQueries());
-    }
-    cards = cards.concat(this.renderSavedQueries());
-
-    if (cards.filter(Boolean).length === 0) {
-      return (
-        <StyledEmptyStateWarning>
-          <p>{t('No saved queries match that filter')}</p>
-        </StyledEmptyStateWarning>
-      );
-    }
-
-    return cards;
   }
 
-  renderDropdownMenu(items: MenuItemProps[]) {
+  function renderDropdownMenu(items: MenuItemProps[]) {
     return (
       <DropdownMenu
         items={items}
@@ -139,8 +118,7 @@ class QueryList extends Component<Props> {
     );
   }
 
-  renderPrebuiltQueries() {
-    const {api, location, organization, savedQuerySearchQuery} = this.props;
+  function renderPrebuiltQueries() {
     const views = getPrebuiltQueries(organization);
 
     const hasSearchQuery =
@@ -151,8 +129,6 @@ class QueryList extends Component<Props> {
       const newQuery = getSavedQueryWithDataset(view)!;
       const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-      // if a search is performed on the list of queries, we filter
-      // on the pre-built queries
       if (
         hasSearchQuery &&
         eventView.name &&
@@ -237,7 +213,7 @@ class QueryList extends Component<Props> {
           renderContextMenu={() => (
             <Feature organization={organization} features="dashboards-edit">
               {({hasFeature}) => {
-                return hasFeature && this.renderDropdownMenu(menuItems);
+                return hasFeature && renderDropdownMenu(menuItems);
               }}
             </Feature>
           )}
@@ -248,9 +224,7 @@ class QueryList extends Component<Props> {
     return list;
   }
 
-  renderSavedQueries() {
-    const {api, savedQueries, location, organization} = this.props;
-
+  function renderSavedQueries() {
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
     }
@@ -313,14 +287,14 @@ class QueryList extends Component<Props> {
           key: 'duplicate',
           label: t('Duplicate Query'),
           onAction: () =>
-            this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
+            handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
           disabled: deprecateTransactionQuery,
         },
         {
           key: 'delete',
           label: t('Delete Query'),
           priority: 'danger',
-          onAction: () => this.handleDeleteQuery(eventView),
+          onAction: () => handleDeleteSavedQuery(eventView),
         },
       ];
 
@@ -347,7 +321,7 @@ class QueryList extends Component<Props> {
           )}
           renderContextMenu={() => (
             <Feature organization={organization} features="dashboards-edit">
-              {({hasFeature}) => this.renderDropdownMenu(menuItems(hasFeature))}
+              {({hasFeature}) => renderDropdownMenu(menuItems(hasFeature))}
             </Feature>
           )}
         />
@@ -355,32 +329,49 @@ class QueryList extends Component<Props> {
     });
   }
 
-  render() {
-    const {pageLinks} = this.props;
-    return (
-      <Fragment>
-        <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <PaginationRow
-          pageLinks={pageLinks}
-          onCursor={(cursor, path, query, direction) => {
-            const offset = Number(cursor?.split(':')?.[1] ?? 0);
+  function renderAllQueries() {
+    const links = parseLinkHeader(pageLinks || '');
+    let cards: React.ReactNode[] = [];
 
-            const newQuery: Query & {cursor?: string} = {...query, cursor};
-            const isPrevious = direction === -1;
+    if (renderPrebuilt && (!links.previous || links.previous.results === false)) {
+      cards = cards.concat(renderPrebuiltQueries());
+    }
+    cards = cards.concat(renderSavedQueries());
 
-            if (offset <= 0 && isPrevious) {
-              delete newQuery.cursor;
-            }
+    if (cards.filter(Boolean).length === 0) {
+      return (
+        <StyledEmptyStateWarning>
+          <p>{t('No saved queries match that filter')}</p>
+        </StyledEmptyStateWarning>
+      );
+    }
 
-            browserHistory.push({
-              pathname: path,
-              query: newQuery,
-            });
-          }}
-        />
-      </Fragment>
-    );
+    return cards;
   }
+
+  return (
+    <Fragment>
+      <QueryGrid>{renderAllQueries()}</QueryGrid>
+      <PaginationRow
+        pageLinks={pageLinks}
+        onCursor={(cursor, path, query, direction) => {
+          const offset = Number(cursor?.split(':')?.[1] ?? 0);
+
+          const newQuery: Query & {cursor?: string} = {...query, cursor};
+          const isPrevious = direction === -1;
+
+          if (offset <= 0 && isPrevious) {
+            delete newQuery.cursor;
+          }
+
+          navigate({
+            pathname: path,
+            query: newQuery,
+          });
+        }}
+      />
+    </Fragment>
+  );
 }
 
 const PaginationRow = styled(Pagination)`
@@ -409,4 +400,4 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
 `;
 
-export default withApi(QueryList);
+export default QueryList;

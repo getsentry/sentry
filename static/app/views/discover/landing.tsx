@@ -295,7 +295,6 @@ function DiscoverLanding() {
                     savedQueries={savedQueries}
                     savedQuerySearchQuery={savedSearchQuery}
                     renderPrebuilt={renderPrebuilt}
-                    location={location}
                     organization={organization}
                     refetchSavedQueries={refreshSavedQueries}
                   />

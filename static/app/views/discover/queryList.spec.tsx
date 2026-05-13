@@ -1,5 +1,4 @@
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -17,7 +16,6 @@ import QueryList from 'sentry/views/discover/queryList';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Discover > QueryList', () => {
-  let location: ReturnType<typeof LocationFixture>;
   let savedQueries: Array<ReturnType<typeof DiscoverSavedQueryFixture>>;
   let organization: ReturnType<typeof OrganizationFixture>;
   let deleteMock: jest.Mock;
@@ -25,6 +23,13 @@ describe('Discover > QueryList', () => {
   let updateHomepageMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
   const refetchSavedQueries = jest.fn();
+
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/discover/queries/',
+      query: {cursor: '0:1:1', statsPeriod: '14d'},
+    },
+  };
 
   beforeAll(async () => {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
@@ -68,11 +73,6 @@ describe('Discover > QueryList', () => {
       method: 'PUT',
       statusCode: 204,
     });
-
-    location = LocationFixture({
-      pathname: '/organizations/org-slug/discover/queries/',
-      query: {cursor: '0:1:1', statsPeriod: '14d'},
-    });
   });
 
   afterEach(() => {
@@ -87,9 +87,9 @@ describe('Discover > QueryList', () => {
         savedQuerySearchQuery="no matches"
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
@@ -103,9 +103,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries}
         renderPrebuilt
         pageLinks=""
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     await waitFor(() => {
@@ -141,9 +141,9 @@ describe('Discover > QueryList', () => {
         savedQueries={[]}
         renderPrebuilt
         pageLinks=""
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     await waitFor(() => {
@@ -198,9 +198,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries}
         renderPrebuilt
         pageLinks=""
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     await waitFor(() => {
@@ -233,9 +233,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries}
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -248,7 +248,7 @@ describe('Discover > QueryList', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: location.pathname,
+          pathname: initialRouterConfig.location.pathname,
           query: {},
         })
       );
@@ -265,9 +265,9 @@ describe('Discover > QueryList', () => {
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(1);
@@ -288,9 +288,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries}
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
@@ -310,9 +310,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
         pageLinks=""
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -343,9 +343,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -373,9 +373,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -412,9 +412,9 @@ describe('Discover > QueryList', () => {
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const chart = await screen.findByTestId('area-chart');
@@ -437,9 +437,9 @@ describe('Discover > QueryList', () => {
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
         pageLinks=""
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     await userEvent.click(screen.getByTestId('menu-trigger'));
@@ -472,9 +472,9 @@ describe('Discover > QueryList', () => {
         ]}
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -508,9 +508,9 @@ describe('Discover > QueryList', () => {
         ]}
         pageLinks=""
         renderPrebuilt={false}
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -543,9 +543,9 @@ describe('Discover > QueryList', () => {
             }),
           ]}
           pageLinks=""
-          location={location}
           refetchSavedQueries={refetchSavedQueries}
-        />
+        />,
+        {initialRouterConfig}
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
@@ -609,9 +609,9 @@ describe('Discover > QueryList', () => {
             }),
           ]}
           pageLinks=""
-          location={location}
           refetchSavedQueries={refetchSavedQueries}
-        />
+        />,
+        {initialRouterConfig}
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
@@ -675,9 +675,9 @@ describe('Discover > QueryList', () => {
             }),
           ]}
           pageLinks=""
-          location={location}
           refetchSavedQueries={refetchSavedQueries}
-        />
+        />,
+        {initialRouterConfig}
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
@@ -711,9 +711,9 @@ describe('Discover > QueryList', () => {
             }),
           ]}
           pageLinks=""
-          location={location}
           refetchSavedQueries={refetchSavedQueries}
-        />
+        />,
+        {initialRouterConfig}
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
@@ -748,9 +748,9 @@ describe('Discover > QueryList', () => {
           }),
         ]}
         pageLinks=""
-        location={location}
         refetchSavedQueries={refetchSavedQueries}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     const contextMenu = await screen.findByTestId('menu-trigger');
