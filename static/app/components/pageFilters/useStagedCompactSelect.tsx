@@ -407,9 +407,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   useEffect(() => {
     const onKeyChange = (e: KeyboardEvent) => {
-      // Cmd/Ctrl takes precedence over Shift when both are held so that
-      // Cmd+Shift+Click toggles a single option instead of selecting the
-      // entire range from the last anchor.
       const isModifier =
         (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey);
       keyRef.current = isModifier ? 'modifier' : e.shiftKey ? 'shift' : null;
