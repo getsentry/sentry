@@ -31,45 +31,14 @@ interface PreprodBuildsSnapshotTableProps {
 function ApprovalBadge({
   comparisonState,
   approvalStatus,
+  errorMessage,
 }: {
   approvalStatus: SnapshotApprovalStatus | null | undefined;
   comparisonState: SnapshotComparisonState | null | undefined;
+  errorMessage: string | null | undefined;
 }) {
   if (!comparisonState) {
     return <Tag variant="info">{t('Base')}</Tag>;
-  }
-  if (comparisonState !== 'success') {
-    return <Text variant="muted">{'–'}</Text>;
-  }
-  if (approvalStatus === 'approved') {
-    return <Tag variant="success">{t('Approved')}</Tag>;
-  }
-  if (approvalStatus === 'auto_approved') {
-    return <Tag variant="success">{t('Auto Approved')}</Tag>;
-  }
-  if (approvalStatus === 'requires_approval') {
-    return <Tag variant="warning">{t('Needs Approval')}</Tag>;
-  }
-  return <Text variant="muted">{'–'}</Text>;
-}
-
-function ChangeCounts({
-  added,
-  removed,
-  changed,
-  unchanged,
-  comparisonState,
-  errorMessage,
-}: {
-  added: number;
-  changed: number;
-  comparisonState: SnapshotComparisonState | null | undefined;
-  errorMessage: string | null | undefined;
-  removed: number;
-  unchanged: number;
-}) {
-  if (!comparisonState) {
-    return <Text variant="muted">{'–'}</Text>;
   }
   if (comparisonState === 'waiting_for_base') {
     return (
@@ -102,6 +71,34 @@ function ChangeCounts({
         <Tag variant="danger">{t('Failed')}</Tag>
       </Tooltip>
     );
+  }
+  if (approvalStatus === 'approved') {
+    return <Tag variant="success">{t('Approved')}</Tag>;
+  }
+  if (approvalStatus === 'auto_approved') {
+    return <Tag variant="success">{t('Auto Approved')}</Tag>;
+  }
+  if (approvalStatus === 'requires_approval') {
+    return <Tag variant="warning">{t('Needs Approval')}</Tag>;
+  }
+  return <Text variant="muted">{'–'}</Text>;
+}
+
+function ChangeCounts({
+  added,
+  removed,
+  changed,
+  unchanged,
+  comparisonState,
+}: {
+  added: number;
+  changed: number;
+  comparisonState: SnapshotComparisonState | null | undefined;
+  removed: number;
+  unchanged: number;
+}) {
+  if (comparisonState !== 'success') {
+    return <Text variant="muted">{'–'}</Text>;
   }
   if (added === 0 && removed === 0 && changed === 0) {
     return (
@@ -165,6 +162,7 @@ export function PreprodBuildsSnapshotTable({
             <ApprovalBadge
               comparisonState={info?.comparison_state}
               approvalStatus={info?.approval_status}
+              errorMessage={info?.comparison_error_message}
             />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
@@ -174,7 +172,6 @@ export function PreprodBuildsSnapshotTable({
               changed={info?.images_changed ?? 0}
               unchanged={info?.images_unchanged ?? 0}
               comparisonState={info?.comparison_state}
-              errorMessage={info?.comparison_error_message}
             />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="start">
