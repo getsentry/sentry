@@ -12,6 +12,7 @@ import {
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useModal} from '@sentry/scraps/modal';
 
+import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
@@ -63,18 +64,33 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     setLastViewedAt(Date.now());
   }, [runId]);
 
+  const [isWindowVisible, setIsWindowVisible] = useState(
+    () => document.visibilityState === 'visible'
+  );
+  useEffect(() => {
+    const handler = () => {
+      const visible = document.visibilityState === 'visible';
+      setIsWindowVisible(visible);
+      if (!visible) {
+        setLastViewedAt(Date.now());
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+
   const unreadCount = useMemo(() => {
-    if (!blocks?.length || runId === null || isOpen) {
+    if (!blocks?.length || runId === null || (isOpen && isWindowVisible)) {
       return 0;
     }
     return blocks.filter(block => {
       if (block.message.role === 'user' || block.loading) {
         return false;
       }
-      const ts = new Date(block.timestamp).getTime();
-      return Number.isFinite(ts) && ts > lastViewedAt;
+      const ts = getDateFromTimestampAssumeUtc(block.timestamp)?.getTime();
+      return ts !== null && ts !== undefined && ts > lastViewedAt;
     }).length;
-  }, [blocks, isOpen, lastViewedAt, runId]);
+  }, [blocks, isOpen, isWindowVisible, lastViewedAt, runId]);
 
   // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
   // runId from sessionStorage flashes polling state before the user engages.

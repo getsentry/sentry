@@ -31,7 +31,7 @@ import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryN
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import {SeerExplorerUnreadTitle} from 'sentry/views/seerExplorer/components/seerExplorerUnreadTitle';
+import {useSeerExplorerUnreadTitle} from 'sentry/views/seerExplorer/components/seerExplorerUnreadTitle';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
@@ -54,7 +54,6 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <GlobalDrawer>
           <SeerExplorerContextProvider>
-            <SeerExplorerUnreadTitle />
             <AppLayout organization={organization} />
           </SeerExplorerContextProvider>
         </GlobalDrawer>
@@ -80,6 +79,7 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
+  useSeerExplorerUnreadTitle();
   const hasPageFrame = useHasPageFrameFeature();
   const showSuperuserWarning =
     isActiveSuperuser() &&

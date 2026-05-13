@@ -5,17 +5,15 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 
 const PREFIX_ID = 'seer-explorer-unread';
 
-export function SeerExplorerUnreadTitle() {
+export function useSeerExplorerUnreadTitle() {
   const {unreadCount} = useSeerExplorerContext();
-  const {setPrefix, unregister} = useDocumentTitleManager();
+  const {setPrefix} = useDocumentTitleManager();
 
   useEffect(() => {
     setPrefix(PREFIX_ID, unreadCount > 0 ? `(${unreadCount}) ` : '');
   }, [setPrefix, unreadCount]);
 
   useEffect(() => {
-    return () => unregister(PREFIX_ID);
-  }, [unregister]);
-
-  return null;
+    return () => setPrefix(PREFIX_ID, '');
+  }, [setPrefix]);
 }

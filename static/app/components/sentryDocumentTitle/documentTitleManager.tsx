@@ -26,6 +26,7 @@ export const useDocumentTitleManager = () => useContext(DocumentTitleContext);
 
 export function DocumentTitleManager({children}: React.PropsWithChildren) {
   const [entries, setEntries] = useState<TitleEntry[]>([]);
+  // Maps prefix id -> prefix string (e.g. "(3) ") prepended to the document title
   const [prefixes, setPrefixes] = useState<Record<string, string>>({});
 
   const [manager] = useState<DocumentTitleManager>(() => ({
@@ -38,12 +39,10 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
         return [...prev, {id, text, noSuffix, order}];
       });
     },
+    // Set a prefix by id; passing an empty string removes it
     setPrefix: (id, prefix) => {
       setPrefixes(prev => {
         if (!prefix) {
-          if (!(id in prev)) {
-            return prev;
-          }
           const {[id]: _, ...rest} = prev;
           return rest;
         }
