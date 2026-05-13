@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import type {RefObject} from 'react';
-import {css} from '@emotion/react';
+import {css, keyframes} from '@emotion/react';
 import {useReducedMotion} from 'framer-motion';
 
 /**
@@ -81,10 +81,10 @@ export function useStreamingAnimation(
   }, [containerRef, enabled, prefersReducedMotion]);
 }
 
-const STAGGER_MS = 11;
-const FADE_LEAD_MS = 200;
-const MAX_DURATION_MS = 1200;
-const CYCLE_DURATION_MS = 400;
+const STAGGER_MS = 8;
+const FADE_LEAD_MS = 120;
+const MAX_DURATION_MS = 1280;
+const CYCLE_DURATION_MS = 160;
 
 const ATTR = 'data-scraps-decode';
 const ATTR_SEL = `[${ATTR}]`;
@@ -95,87 +95,18 @@ function isSimpleChar(grapheme: string): boolean {
   return grapheme.length === 1 && !/\s/.test(grapheme);
 }
 
-const DECODE_ANIMATIONS = ['decode-a', 'decode-b', 'decode-c'] as const;
+// not used as colors, just the hex values
+const DECODE_PATTERNS = ['#7553FF', '#00F261', '#FC5CB4'];
+const DECODE_ANIMATIONS = DECODE_PATTERNS.map(chars => {
+  const glyphs = Array.from(chars);
+  const step = Math.floor(100 / glyphs.length);
+  return keyframes(
+    Object.fromEntries(glyphs.map((ch, i) => [`${i * step}%`, {content: `'${ch}'`}]))
+  );
+});
 
 export const streamingAnimationStyles = css`
-  @keyframes decode-a {
-    0% {
-      content: '0';
-    }
-    12% {
-      content: 'A';
-    }
-    25% {
-      content: '7';
-    }
-    37% {
-      content: '#';
-    }
-    50% {
-      content: 'F';
-    }
-    62% {
-      content: '3';
-    }
-    75% {
-      content: 'c';
-    }
-    87% {
-      content: '9';
-    }
-  }
-  @keyframes decode-b {
-    0% {
-      content: 'E';
-    }
-    12% {
-      content: '2';
-    }
-    25% {
-      content: '#';
-    }
-    37% {
-      content: 'B';
-    }
-    50% {
-      content: '5';
-    }
-    62% {
-      content: 'd';
-    }
-    75% {
-      content: '8';
-    }
-    87% {
-      content: '1';
-    }
-  }
-  @keyframes decode-c {
-    0% {
-      content: '4';
-    }
-    12% {
-      content: 'f';
-    }
-    25% {
-      content: '6';
-    }
-    37% {
-      content: 'b';
-    }
-    50% {
-      content: '#';
-    }
-    62% {
-      content: 'a';
-    }
-    75% {
-      content: '0';
-    }
-    87% {
-      content: 'e';
-    }
-  }
+  ${DECODE_ANIMATIONS}
   ${ATTR_SEL} {
     position: relative;
     color: transparent;
@@ -188,7 +119,8 @@ export const streamingAnimationStyles = css`
   }
   ${ATTR_SEL}::after {
     content: '1';
-    animation: var(--da, decode-a) ${CYCLE_DURATION_MS}ms steps(1) infinite;
+    animation: var(--da, ${DECODE_ANIMATIONS[0]?.name}) ${CYCLE_DURATION_MS}ms steps(1)
+      infinite;
     animation-delay: var(--dd, 0ms);
     position: absolute;
     left: 50%;
@@ -246,7 +178,9 @@ function prepareTextNode(
       s.setProperty('--dd', `-${Math.random() * CYCLE_DURATION_MS}ms`);
       s.setProperty(
         '--da',
-        DECODE_ANIMATIONS[idx % DECODE_ANIMATIONS.length] ?? DECODE_ANIMATIONS[0]
+        DECODE_ANIMATIONS[idx % DECODE_ANIMATIONS.length]?.name ??
+          DECODE_ANIMATIONS[0]?.name ??
+          ''
       );
       s.setProperty('--go', `${0.4 + Math.random() * 0.6}`);
       active.push(true);
