@@ -1272,6 +1272,78 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
+    def _store_platform_tag_collision_events(self):
+        group = None
+        for i in range(3):
+            event = self.store_event(
+                data={
+                    "event_id": f"{i + 1}" * 32,
+                    "timestamp": (self.day_ago + timedelta(minutes=i + 1)).isoformat(),
+                    "fingerprint": ["platform-collision-group"],
+                    "tags": {"platform": "SJ1"},
+                },
+                project_id=self.project.id,
+            )
+            group = event.group
+        return group
+
+    def test_platform_tag_collision_without_option(self) -> None:
+        group = self._store_platform_tag_collision_events()
+        response = self.do_request(
+            {
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+                "query": f"issue:{group.qualified_short_id} platform:SJ1",
+                "dataset": "errors",
+                "yAxis": "count()",
+            },
+        )
+        assert response.status_code == 200, response.content
+        total = sum(
+            attrs[0]["count"] for _time, attrs in response.data["data"] if attrs[0]["count"] > 0
+        )
+        assert total == 0
+
+    def test_platform_tag_collision_with_option(self) -> None:
+        group = self._store_platform_tag_collision_events()
+        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
+            response = self.do_request(
+                {
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "interval": "1h",
+                    "query": f"issue:{group.qualified_short_id} platform:SJ1",
+                    "dataset": "errors",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200, response.content
+        total = sum(
+            attrs[0]["count"] for _time, attrs in response.data["data"] if attrs[0]["count"] > 0
+        )
+        assert total == 3
+
+    def test_explicit_tag_query_works_regardless_of_option(self) -> None:
+        group = self._store_platform_tag_collision_events()
+        for option_value in (False, True):
+            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
+                response = self.do_request(
+                    {
+                        "start": self.day_ago,
+                        "end": self.day_ago + timedelta(hours=2),
+                        "interval": "1h",
+                        "query": f"issue:{group.qualified_short_id} tags[platform]:SJ1",
+                        "dataset": "errors",
+                        "yAxis": "count()",
+                    },
+                )
+            assert response.status_code == 200, response.content
+            total = sum(
+                attrs[0]["count"] for _time, attrs in response.data["data"] if attrs[0]["count"] > 0
+            )
+            assert total == 3
+
 
 class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     def setUp(self) -> None:

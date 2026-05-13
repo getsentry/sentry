@@ -194,7 +194,12 @@ export function isStatusCheckFailure(
   return result?.success === false;
 }
 
-export type SnapshotComparisonState = 'pending' | 'processing' | 'success' | 'failed';
+export type SnapshotComparisonState =
+  | 'pending'
+  | 'processing'
+  | 'success'
+  | 'failed'
+  | 'waiting_for_base';
 export type SnapshotApprovalStatus = 'approved' | 'requires_approval';
 
 interface SnapshotComparisonInfo {

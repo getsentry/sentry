@@ -798,6 +798,7 @@ class Referrer(StrEnum):
     SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SEER_AUTOFIX_GET_TRACE_EVENTS = "seer.autofix.trace.get-events"
+    SEER_AGENT_IN_CHAT_LINK = "seer.agent.in-chat-link"
     SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
         "supergroups_backfill_lightweight.get_latest_events"
     )

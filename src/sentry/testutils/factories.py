@@ -57,9 +57,7 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentTrigger,
     IncidentType,
-    TriggerStatus,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
@@ -1852,16 +1850,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident_trigger(incident, alert_rule_trigger, status=None):
-        if status is None:
-            status = TriggerStatus.ACTIVE.value
-
-        return IncidentTrigger.objects.create(
-            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule_trigger_action(
         trigger,
         type=AlertRuleTriggerAction.Type.EMAIL,
@@ -2610,6 +2598,7 @@ class Factories:
         approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
         approved_at: datetime | None = None,
         approved_by_id: int | None = None,
+        extras: dict | None = None,
     ) -> PreprodComparisonApproval:
         return PreprodComparisonApproval.objects.create(
             preprod_artifact=preprod_artifact,
@@ -2617,6 +2606,7 @@ class Factories:
             approval_status=approval_status,
             approved_at=approved_at,
             approved_by_id=approved_by_id,
+            extras=extras,
         )
 
     @staticmethod

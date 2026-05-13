@@ -65,6 +65,17 @@ function ChangeCounts({
   if (!comparisonState) {
     return <Tag variant="info">{t('Base')}</Tag>;
   }
+  if (comparisonState === 'waiting_for_base') {
+    return (
+      <Tooltip
+        title={t(
+          "Base snapshots haven't been uploaded yet. This will resolve automatically within ~10 minutes or fail."
+        )}
+      >
+        <Tag variant="muted">{t('Waiting for base')}</Tag>
+      </Tooltip>
+    );
+  }
   if (comparisonState === 'pending') {
     return (
       <Tooltip title={t('Waiting to start comparison')}>
