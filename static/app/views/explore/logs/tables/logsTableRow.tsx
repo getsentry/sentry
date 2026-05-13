@@ -321,8 +321,8 @@ export const LogRowContent = memo(function LogRowContent({
   });
   const [caseInsensitivity] = useCaseInsensitivity();
 
-  const observedTimestampAttr = traceItemsResult.data?.attributes?.find(
-    a => a.name === OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE
+  const observedTimestamp = traceItemsResult.data?.attributes?.find(
+    a => a.name === 'sentry.observed_timestamp_nanos'
   );
 
   const rendererExtra: RendererExtra = {
@@ -334,9 +334,9 @@ export const LogRowContent = memo(function LogRowContent({
     organization,
     attributes: {
       ...dataRow,
-      ...(observedTimestampAttr
-        ? {[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: observedTimestampAttr.value}
-        : {}),
+      ...(observedTimestamp && {
+        [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: String(observedTimestamp.value),
+      }),
     } as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
     theme,

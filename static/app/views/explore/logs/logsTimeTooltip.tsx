@@ -39,10 +39,9 @@ function TimestampTooltipBody({
   const timestampToUse = preciseTimestampMs ? new Date(preciseTimestampMs) : timestamp;
 
   const observedTimeNanos = attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE];
-  const observedTimeMs =
-    observedTimeNanos && typeof observedTimeNanos === 'string'
-      ? Math.floor(Number(observedTimeNanos) / 1_000_000)
-      : null;
+  const observedTimeMs = observedTimeNanos
+    ? Math.floor(Number(observedTimeNanos) / 1_000_000)
+    : null;
   const observedTime = observedTimeMs ? new Date(observedTimeMs) : null;
 
   const isUTCLocalTimezone = currentTimezone === 'UTC';
