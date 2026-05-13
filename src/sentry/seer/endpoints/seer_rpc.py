@@ -705,7 +705,10 @@ def validate_repo(
     if not repo:
         return {"valid": False, "reason": "repository_not_found"}
 
-    organization = Organization.objects.get_from_cache(id=organization_id)
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return {"valid": False, "reason": "repository_not_found"}
     if repo.provider not in get_supported_scm_providers(organization):
         return {"valid": False, "reason": "unsupported_provider"}
 
@@ -739,7 +742,10 @@ def get_repo_installation_id(
     if not repo:
         return {"error": "repository_not_found"}
 
-    organization = Organization.objects.get_from_cache(id=organization_id)
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return {"error": "repository_not_found"}
     if repo.provider not in get_supported_scm_providers(organization):
         return {"error": "unsupported_provider"}
 

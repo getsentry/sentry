@@ -684,7 +684,10 @@ def get_repository_definition(
         dict with RepoDefinition fields if found, None otherwise. Includes external_id
         which should be stored for future lookups.
     """
-    organization = Organization.objects.get_from_cache(id=organization_id)
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return None
     supported_providers = get_supported_scm_providers(organization)
 
     repo: Repository | None = None
