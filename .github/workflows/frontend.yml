@@ -59,8 +59,8 @@ jobs:
         id: tsc
         run: pnpm run typecheck
 
-      - name: typecheck (mdx)
-        id: typecheck-mdx
+      - name: tsc (mdx)
+        id: tsc-mdx
         run: pnpm run typecheck:mdx
 
   eslint:
