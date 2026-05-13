@@ -1,13 +1,16 @@
 import logging
+import random
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
-from sentry import ratelimits
+from sentry import options, ratelimits
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
+
+from sentry.integrations.data_forwarding.tasks import forward_event
 
 
 class BaseDataForwarder(ABC):
@@ -57,6 +60,26 @@ class BaseDataForwarder(ABC):
     ) -> dict[str, Any]:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_task_payload(self, event: Event | GroupEvent, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Allows providers to create task-safe payloads from the event to avoid refetching in the task.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def forward_event_from_task(
+        *,
+        config: dict[str, Any],
+        event_payload: dict[str, Any],
+        task_payload: dict[str, Any],
+    ) -> None:
+        """
+        Similar to forward_event, but raises any exception to allow for retries in a task.
+        The task_payload is derived from get_task_payload, to avoid needing to refetch the event.
+        """
+        raise NotImplementedError
+
     def post_process(
         self, event: Event | GroupEvent, data_forwarder_project: DataForwarderProject
     ) -> None:
@@ -65,5 +88,13 @@ class BaseDataForwarder(ABC):
         if self.is_ratelimited(event):
             return
 
-        payload = self.get_event_payload(event=event, config=config)
-        self.forward_event(event=event, payload=payload, config=config)
+        event_payload = self.get_event_payload(event=event, config=config)
+        task_payload = self.get_task_payload(event=event, config=config)
+        if random.random() < options.get("data-forwarding.task-rollout-rate"):
+            forward_event.delay(
+                data_forwarder_project_id=data_forwarder_project.id,
+                event_payload=event_payload,
+                task_payload=task_payload,
+            )
+        else:
+            self.forward_event(event=event, payload=event_payload, config=config)
