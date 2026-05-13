@@ -33,7 +33,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {Status} from './debugImage/status';
 import {DebugImage} from './debugImage';
@@ -228,12 +228,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const showFilters = filterOptions.some(s => 'options' in s && s.options.length > 1);
 
   return (
-    <InterimSection
-      type={SectionKey.DEBUGMETA}
+    <FoldSection
+      sectionKey={SectionKey.DEBUGMETA}
       title={t('Images Loaded')}
-      help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash.'
-      )}
       initialCollapse
     >
       <Fragment>
@@ -328,7 +325,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           )}
         </Container>
       </Fragment>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

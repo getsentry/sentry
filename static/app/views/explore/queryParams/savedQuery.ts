@@ -8,10 +8,3 @@ export const TITLE_KEY = 'title';
 export function getIdFromLocation(location: Location, key: string): string | undefined {
   return decodeScalar(location.query?.[key]);
 }
-
-export function getTitleFromLocation(
-  location: Location,
-  key: string
-): string | undefined {
-  return decodeScalar(location.query?.[key]);
-}

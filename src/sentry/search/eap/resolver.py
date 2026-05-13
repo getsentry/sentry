@@ -968,6 +968,12 @@ class SearchResolver:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
             resolved_column, context = self.resolve_column(column, match)
+            if (
+                self.config.disable_array_attributes
+                and isinstance(resolved_column, ResolvedAttribute)
+                and resolved_column.internal_type == constants.ARRAY
+            ):
+                continue
             resolved_columns.append(resolved_column)
             resolved_contexts.append(context)
 
@@ -1018,6 +1024,8 @@ class SearchResolver:
         resolved_contexts = []
         for column in columns:
             col, context = self.resolve_attribute(column)
+            if self.config.disable_array_attributes and col.internal_type == constants.ARRAY:
+                continue
             resolved_columns.append(col)
             resolved_contexts.append(context)
         return resolved_columns, resolved_contexts
@@ -1097,9 +1105,8 @@ class SearchResolver:
                 if mapped_column is not None:
                     field = mapped_column
 
-            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedAttribute(
-                public_alias=alias, internal_name=field, search_type=search_type
+                public_alias=alias, internal_name=field, search_type=field_type
             )
             column_context = None
 

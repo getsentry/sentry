@@ -216,6 +216,25 @@ mutationOptions={{
 
 Make sure the zod schema's types are compatible with (i.e., assignable to) the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
 
+**Don't pass generics to `useMutation` either.** Type the `mutationFn` payload, and let `fetchMutation<TReturn>` carry the return type. `useMutation<TData, TError, TVariables>` is not the codebase style.
+
+```tsx
+// ❌ Generics on useMutation
+const mutation = useMutation<CodeOwner, RequestError, [Payload]>({
+  mutationFn: ([payload]) => fetchMutation({url, method: 'POST', data: payload}),
+});
+
+// ✅ Type the payload; fetchMutation<T> carries the return type
+const mutation = useMutation({
+  mutationFn: (payload: {codeMappingId: string; raw: string}) =>
+    fetchMutation<CodeOwner>({
+      url: `/projects/${org}/${project}/codeowners/`,
+      method: 'POST',
+      data: payload,
+    }),
+});
+```
+
 ### mapFormErrors → `setFieldErrors`
 
 The `mapFormErrors` function transformed API error responses into field-specific errors. In the new system, handle this in the catch block using `setFieldErrors`.
@@ -497,6 +516,27 @@ function SlugForm({project}: {project: Project}) {
 - Large multiline text fields where you want to finish editing before saving (fingerprint rules, filters)
 - Any field where auto-save doesn't make sense
 
+**Submit through the form, not around it.** Follow the `SlugForm` pattern above — the mutation runs in `onSubmit` and the Save button is `<form.SubmitButton>`. Don't render `<form.AppForm>` without an `onSubmit` and trigger the mutation from a standalone `<Button onClick>`:
+
+```tsx
+// ❌ Form is never submitted; mutation fires from a separate button
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  // no onSubmit
+});
+
+return (
+  <form.AppForm form={form}>
+    <form.AppField name="codeMappingId">{...}</form.AppField>
+    <Button onClick={() => mutation.mutate(...)}>Save</Button>
+  </form.AppForm>
+);
+```
+
+A form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
+
 ## Preserving Form Search Functionality
 
 Sentry's SettingsSearch allows users to search for individual settings fields. When migrating forms, you must preserve this searchability by wrapping migrated forms with `FormSearch`.
@@ -602,6 +642,8 @@ This pattern is necessary whenever a required field has no meaningful initial va
 ## Migration Checklist
 
 - [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
+- [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
+- [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
 - [ ] Convert field config objects to JSX AppField components
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`

@@ -4,6 +4,7 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
@@ -29,13 +30,10 @@ import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
-import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   getIdFromLocation,
-  getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
 } from 'sentry/views/explore/queryParams/savedQuery';
@@ -58,7 +56,7 @@ export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
   const mode = getModeFromLocation(location, LOGS_MODE_KEY);
-  const query = getQueryFromLocation(location, LOGS_QUERY_KEY) ?? '';
+  const query = decodeScalar(location.query[LOGS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, LOGS_CURSOR_KEY);
   const fields = getFieldsFromLocation(location, LOGS_FIELDS_KEY) ?? defaultLogFields();
@@ -75,7 +73,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   const id = getIdFromLocation(location, LOGS_ID_KEY);
-  const title = getTitleFromLocation(location, LOGS_TITLE_KEY);
+  const title = decodeScalar(location.query?.[LOGS_TITLE_KEY]);
 
   return new ReadableQueryParams({
     extrapolate: true,

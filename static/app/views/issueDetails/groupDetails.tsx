@@ -569,15 +569,14 @@ function getIssueDetailContextHint(
   view: 'specific-event' | 'events-list' | 'issue-overview'
 ): string {
   const tools =
-    'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
-    'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-    'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.';
+    'You can get issue details for aggregate stats and stack trace, get event details for a specific error event, ' +
+    'and search live telemetry for related spans/errors/logs/metrics.';
   const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
 
   if (view === 'specific-event') {
     return (
       'Sentry issue detail page. The user is viewing a specific event — ' +
-      'call get_event_details(event_id) with the eventId below to see what they see. ' +
+      'You can get event details with the eventId below to see what they see. ' +
       shortIdNote +
       tools
     );
@@ -586,7 +585,7 @@ function getIssueDetailContextHint(
   if (view === 'events-list') {
     return (
       'Sentry issue events list. The user is browsing all events for this issue. ' +
-      'Use telemetry_live_search to query events matching this issue. ' +
+      'You can search live telemetry to query events matching this issue. ' +
       shortIdNote +
       tools
     );

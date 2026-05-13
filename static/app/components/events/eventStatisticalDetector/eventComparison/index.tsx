@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const COMPARISON_DESCRIPTION = t(
   'To better understand what happened before and after this regression, compare a baseline event with a regressed event. Look for any significant shape changes, operation percentage changes, and tag differences.'
@@ -25,8 +25,8 @@ export function EventComparison({event, project}: EventComparisonProps) {
     event?.occurrence?.evidenceData ?? {};
 
   return (
-    <InterimSection
-      type={SectionKey.REGRESSION_EVENT_COMPARISON}
+    <FoldSection
+      sectionKey={SectionKey.REGRESSION_EVENT_COMPARISON}
       title={t('Compare Events')}
     >
       <p>{COMPARISON_DESCRIPTION}</p>
@@ -52,7 +52,7 @@ export function EventComparison({event, project}: EventComparisonProps) {
           />
         </StyledGridItem>
       </StyledGrid>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

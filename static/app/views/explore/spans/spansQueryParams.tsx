@@ -3,26 +3,24 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
-import {getExtrapolateFromLocation} from 'sentry/views/explore/queryParams/extrapolate';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
-import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   getIdFromLocation,
-  getTitleFromLocation,
   ID_KEY,
   TITLE_KEY,
 } from 'sentry/views/explore/queryParams/savedQuery';
@@ -62,9 +60,9 @@ export function isDefaultFields(location: Location): boolean {
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
-  const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
+  const extrapolate = decodeScalar(location.query?.[SPANS_EXTRAPOLATE_KEY], '1') === '1';
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
-  const query = getQueryFromLocation(location, SPANS_QUERY_KEY) ?? '';
+  const query = decodeScalar(location.query[SPANS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
   const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
@@ -81,7 +79,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   const id = getIdFromLocation(location, SPANS_ID_KEY);
-  const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
+  const title = decodeScalar(location.query?.[SPANS_TITLE_KEY]);
 
   const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
 

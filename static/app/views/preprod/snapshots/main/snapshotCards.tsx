@@ -308,7 +308,7 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
-const METADATA_BLOCKLIST = new Set(['content_hash', 'key', 'diff_image_key']);
+const METADATA_BLOCKLIST = new Set(['key', 'diff_image_key']);
 
 function MetadataInfoButton({
   copyData,
@@ -320,7 +320,7 @@ function MetadataInfoButton({
   const {copy} = useCopyToClipboard();
   const json = JSON.stringify(
     copyData,
-    (k, v) => (METADATA_BLOCKLIST.has(k) ? undefined : v),
+    (k, v) => (METADATA_BLOCKLIST.has(k) || v === null ? undefined : v),
     2
   );
 

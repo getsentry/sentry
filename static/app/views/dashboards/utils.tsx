@@ -28,9 +28,7 @@ import {
   getAggregateAlias,
   isEquation,
   isMeasurement,
-  RATE_UNIT_MULTIPLIERS,
   RateUnit,
-  SIZE_UNIT_MULTIPLIERS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -118,21 +116,6 @@ export function getThresholdUnitSelectOptions(
   }
 
   return [];
-}
-
-export function normalizeUnit(value: number, unit: string, dataType: string): number {
-  const multiplier =
-    dataType === 'rate'
-      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        RATE_UNIT_MULTIPLIERS[unit]
-      : dataType === 'duration'
-        ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          DURATION_UNITS[unit]
-        : dataType === 'size'
-          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            SIZE_UNIT_MULTIPLIERS[unit]
-          : 1;
-  return value * multiplier;
 }
 
 export function getWidgetInterval(

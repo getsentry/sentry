@@ -42,6 +42,7 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   TraceItemDetailsResponse,
@@ -129,6 +130,7 @@ const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.ADD,
   Actions.EXCLUDE,
   Actions.COPY_TO_CLIPBOARD,
+  Actions.COPY_LINK,
 ];
 const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-logs-table-similar-spans';
 
@@ -291,6 +293,7 @@ export const LogRowContent = memo(function LogRowContent({
   }, [isExpanded, onExpandHeight, dataRow]);
 
   const addSearchFilter = useAddSearchFilter();
+  const {copy} = useCopyToClipboard();
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -495,6 +498,23 @@ export const LogRowContent = memo(function LogRowContent({
                       case Actions.COPY_TO_CLIPBOARD:
                         copyToClipboard(cellValue);
                         break;
+                      case Actions.COPY_LINK: {
+                        const logId = String(dataRow[OurLogKnownFieldKey.ID]);
+                        const url = new URL(window.location.origin + location.pathname);
+                        const params = new URLSearchParams(location.search);
+                        params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                        url.search = params.toString();
+                        copy(url.toString(), {
+                          successMessage: t('Copied!'),
+                          errorMessage: t('Failed to copy'),
+                        }).then(() => {
+                          trackAnalytics('logs.table.row_link_copied', {
+                            log_id: logId,
+                            organization,
+                          });
+                        });
+                        break;
+                      }
                       default:
                         break;
                     }

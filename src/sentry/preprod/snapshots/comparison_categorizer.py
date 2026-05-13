@@ -37,17 +37,17 @@ def _base_image_from_comparison(name: str, img: ComparisonImageResult) -> Snapsh
 def _build_base_images(
     base_images: dict[str, ImageMetadata],
 ) -> dict[str, SnapshotImageResponse]:
-    first_class = SnapshotImageResponse.__fields__
     result: dict[str, SnapshotImageResponse] = {}
     for key, meta in base_images.items():
         result[key] = SnapshotImageResponse(
-            **{k: v for k, v in meta.dict().items() if k not in first_class},
             key=meta.content_hash,
             display_name=meta.display_name,
             image_file_name=key,
             group=meta.group,
             width=meta.width,
             height=meta.height,
+            description=meta.description,
+            tags=meta.tags,
         )
     return result
 

@@ -3274,7 +3274,8 @@ register(
 )
 # TTL (in seconds) for the per-segment lock acquired at flush time to
 # prevent two flushers from producing the same segment concurrently.
-# The lock is never explicitly released and only expires via this TTL.
+# The lock is explicitly released by the flusher after the segment payloads
+# are flushed/produced and metadata are cleaned up.
 # Pick a value larger than the expected flush+produce latency but smaller than
 # `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
 # next flush cycle. If set to 0, no locks will be acquired.
@@ -3379,11 +3380,6 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.process-segments.semantic-partitioning",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # TTL in seconds for span deduplication tracking. When > 0, the consumer
 # will use Redis SETNX to detect duplicate spans and emit metrics.
 # Set to 0 to disable.
@@ -3391,6 +3387,13 @@ register(
     "spans.process-segments.dedupe-ttl",
     type=Int,
     default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When True (and dedupe-ttl > 0), actually filter out duplicate spans
+# instead of just detecting and emitting metrics.
+register(
+    "spans.process-segments.dedupe-filter-enable",
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

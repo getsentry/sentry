@@ -135,7 +135,7 @@ function DashboardInner({
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     contextHint:
-      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. Use telemetry_live_search or telemetry_index_list_nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
+      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. You can search live telemetry or list telemetry index nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
     queryHints: getQueryHintLegend(dashboard.widgets),
