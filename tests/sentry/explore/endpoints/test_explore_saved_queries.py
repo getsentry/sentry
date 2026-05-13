@@ -414,16 +414,16 @@ class ExploreSavedQueriesTest(APITestCase):
         restricted_team = self.create_team(organization=self.org, members=[])
         restricted_project = self.create_project(organization=self.org, teams=[restricted_team])
 
-        # Use a `prebuilt_id` that matches an entry in `PREBUILT_SAVED_QUERIES` so
-        # `sync_prebuilt_queries` keeps the row in place (same version, not deleted).
-        canonical = PREBUILT_SAVED_QUERIES[0]
+        # `prebuilt_id` / `prebuilt_version` must match the first entry of
+        # `PREBUILT_SAVED_QUERIES` so `sync_prebuilt_queries` doesn't update or delete
+        # the row from under us when the list endpoint runs.
         prebuilt = ExploreSavedQuery.objects.create(
             organization=self.org,
             created_by_id=None,
             name="Edge-case prebuilt",
             query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
-            prebuilt_id=canonical["prebuilt_id"],
-            prebuilt_version=canonical["prebuilt_version"],
+            prebuilt_id=1,
+            prebuilt_version=1,
         )
         prebuilt.set_projects([restricted_project.id])
 
