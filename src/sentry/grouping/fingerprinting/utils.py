@@ -246,7 +246,7 @@ def resolve_fingerprint_variable(
         exception_type = get_path(event.data, "exception", "values", -1, "type")
         return exception_type or "<no-type>"
 
-    elif variable_key in ("value", "error.value"):
+    elif variable_key in ("value", "raw_value", "error.value", "error.raw_value"):
         value = get_path(event.data, "exception", "values", -1, "value")
         return value or "<no-value>"
 
