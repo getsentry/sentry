@@ -605,23 +605,33 @@ function VirtualizedRepoList({
                 style={{transform: `translateY(${virtualItem.start}px)`}}
               >
                 <Flex align="center" gap="sm" minWidth="0">
-                  <Text>
-                    {nameMatch
-                      ? highlightFuseMatches(nameMatch, HighlightMark)
-                      : repo.name}
-                  </Text>
-                  <LinkButton
-                    className="hover-reveal"
-                    href={repo.url ?? ''}
-                    external
-                    size="zero"
-                    variant="transparent"
-                    icon={<IconOpen variant="muted" />}
-                    aria-label={t('View repository on %s', providerName)}
-                    tooltipProps={{
-                      title: t('View repository on %s', providerName),
-                    }}
-                  />
+                  {repo.url ? (
+                    <Fragment>
+                      <RepoNameLink href={repo.url}>
+                        {nameMatch
+                          ? highlightFuseMatches(nameMatch, HighlightMark)
+                          : repo.name}
+                      </RepoNameLink>
+                      <LinkButton
+                        className="hover-reveal"
+                        href={repo.url}
+                        external
+                        size="zero"
+                        variant="transparent"
+                        icon={<IconOpen variant="muted" />}
+                        aria-label={t('View repository on %s', providerName)}
+                        tooltipProps={{
+                          title: t('View repository on %s', providerName),
+                        }}
+                      />
+                    </Fragment>
+                  ) : (
+                    <Text>
+                      {nameMatch
+                        ? highlightFuseMatches(nameMatch, HighlightMark)
+                        : repo.name}
+                    </Text>
+                  )}
                 </Flex>
                 {mappedProjectSlugsByRepoId && (
                   <RepoMappings
@@ -700,6 +710,15 @@ const RepoRow = styled(Flex)`
   &:hover .hover-reveal,
   &:focus-within .hover-reveal {
     opacity: 1;
+  }
+`;
+
+const RepoNameLink = styled(ExternalLink)`
+  color: ${p => p.theme.tokens.content.primary};
+  text-decoration: none;
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
