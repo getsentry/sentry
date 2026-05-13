@@ -96,11 +96,11 @@ export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NU
 export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'app_id',
   'app_name',
+  'approval_status',
   'artifact_type',
   'build_configuration_name',
   'build_number',
   'build_version',
-  'approval_status',
   'git_base_ref',
   'git_head_ref',
   'platform_name',
