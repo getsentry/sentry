@@ -318,6 +318,7 @@ function ReleasesListInnerPage() {
     activeDisplay,
     activeStatus,
     selectedTab,
+    currentSelectedDateRange: selection.datetime,
   });
 
   const handleSearch = useCallback(

@@ -8,21 +8,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  getIdFromLocation,
-  ID_KEY,
-  TITLE_KEY,
-} from 'sentry/views/explore/queryParams/savedQuery';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const REPLAY_QUERY_KEY = 'query';
 
 function getReadableQueryParamsFromLocation(location: Location): ReadableQueryParams {
-  const query = getQueryFromLocation(location, REPLAY_QUERY_KEY) ?? '';
-  const id = getIdFromLocation(location, ID_KEY);
-  const title = decodeScalar(location.query?.[TITLE_KEY]);
+  const query = decodeScalar(location.query[REPLAY_QUERY_KEY]) ?? '';
+  const id = decodeScalar(location.query[ID_KEY]);
+  const title = decodeScalar(location.query[TITLE_KEY]);
 
   return new ReadableQueryParams({
     extrapolate: false,

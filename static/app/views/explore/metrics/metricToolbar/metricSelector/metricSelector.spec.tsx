@@ -12,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const SORTED_METRIC_NAMES = [
   'bar',
@@ -419,6 +420,80 @@ describe('MetricSelector', () => {
         'aria-selected',
         'true'
       );
+    });
+
+    it('preserves null units when selecting between same-name metrics', async () => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {
+          data: [
+            {
+              [TraceMetricKnownFieldKey.METRIC_NAME]: 'lighthouse.cls',
+              [TraceMetricKnownFieldKey.METRIC_TYPE]: 'distribution',
+              [TraceMetricKnownFieldKey.METRIC_UNIT]: 'none',
+              [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 1,
+              [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
+            },
+            {
+              [TraceMetricKnownFieldKey.METRIC_NAME]: 'lighthouse.cls',
+              [TraceMetricKnownFieldKey.METRIC_TYPE]: 'distribution',
+              [TraceMetricKnownFieldKey.METRIC_UNIT]: null,
+              [`count(${TraceMetricKnownFieldKey.METRIC_NAME})`]: 1,
+              [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
+            },
+          ],
+          meta: {
+            fields: {},
+            units: {},
+            dataScanned: 'full',
+          },
+        },
+        match: [
+          MockApiClient.matchQuery({
+            dataset: 'tracemetrics',
+            referrer: 'api.explore.metric-options',
+          }),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'string',
+            key: 'release',
+            name: 'release',
+          },
+        ],
+      });
+
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={{name: 'lighthouse.cls', type: 'distribution', unit: 'none'}}
+          onChange={onChange}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'lighthouse.cls'}));
+
+      const options = await screen.findAllByRole('option', {name: 'lighthouse.cls'});
+
+      expect(options).toHaveLength(2);
+      expect(
+        options.filter(option => option.getAttribute('aria-selected') === 'true')
+      ).toHaveLength(1);
+
+      await userEvent.click(options[1]!);
+
+      expect(onChange).toHaveBeenCalledWith({
+        name: 'lighthouse.cls',
+        type: 'distribution',
+        unit: null,
+      });
     });
 
     it('shows unselected metrics as aria-selected="false"', async () => {

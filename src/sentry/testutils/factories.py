@@ -143,6 +143,7 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -2855,3 +2856,9 @@ class Factories:
             type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_run(organization, type: str = SeerRunType.AUTOFIX, **kwargs) -> SeerRun:
+        kwargs.setdefault("last_triggered_at", timezone.now())
+        return SeerRun.objects.create(organization=organization, type=type, **kwargs)

@@ -10,7 +10,6 @@ import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
@@ -23,7 +22,7 @@ export default function MultiQueryMode() {
   const organization = useOrganization();
   const title = decodeScalar(location.query.title);
 
-  const id = getIdFromLocation(location);
+  const id = decodeScalar(location.query.id);
   const {data: savedQuery} = useGetSavedQuery(id);
 
   return (
