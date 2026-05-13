@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
@@ -15,14 +15,14 @@ import {
   EditHighlightsModal,
   type EditHighlightsModalProps,
 } from 'sentry/components/events/highlights/editHighlightsModal';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 describe('EditHighlightsModal', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
+  const project = DetailedProjectFixture();
   const event = EventFixture({
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
@@ -48,7 +48,7 @@ describe('EditHighlightsModal', () => {
     'missingType:missingKey',
   ]);
 
-  const highlightPreset: Project['highlightPreset'] = {
+  const highlightPreset: DetailedProject['highlightPreset'] = {
     context: {presetType: ['presetKey']},
     tags: ['presetTag'],
   };

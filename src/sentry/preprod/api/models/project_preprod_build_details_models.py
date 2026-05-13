@@ -444,7 +444,7 @@ def _parse_success_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
         logger.warning(
             "preprod.build_details.invalid_check_id",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "check_id_type": type(check_id).__name__,
             },
         )
@@ -463,7 +463,7 @@ def _parse_failure_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
             logger.warning(
                 "preprod.build_details.invalid_error_type",
                 extra={
-                    "artifact_id": artifact_id,
+                    "preprod_artifact_id": artifact_id,
                     "error_type": error_type_str,
                 },
             )

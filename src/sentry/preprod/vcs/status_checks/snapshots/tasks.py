@@ -16,6 +16,7 @@ from sentry.preprod.models import (
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
@@ -72,26 +73,26 @@ def create_preprod_snapshot_status_check_task(
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.snapshot_status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id, "caller": caller},
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not preprod_artifact or not isinstance(preprod_artifact, PreprodArtifact):
         logger.error(
             "preprod.snapshot_status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id, "caller": caller},
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     logger.info(
         "preprod.snapshot_status_checks.create.start",
-        extra={"artifact_id": preprod_artifact.id, "caller": caller},
+        extra={"preprod_artifact_id": preprod_artifact.id, "caller": caller},
     )
 
     if not preprod_artifact.commit_comparison:
         logger.info(
             "preprod.snapshot_status_checks.create.no_commit_comparison",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={"preprod_artifact_id": preprod_artifact.id},
         )
         return
 
@@ -100,7 +101,7 @@ def create_preprod_snapshot_status_check_task(
         logger.error(
             "preprod.snapshot_status_checks.create.missing_git_info",
             extra={
-                "artifact_id": preprod_artifact.id,
+                "preprod_artifact_id": preprod_artifact.id,
                 "commit_comparison_id": commit_comparison.id,
             },
         )
@@ -111,7 +112,7 @@ def create_preprod_snapshot_status_check_task(
         logger.info(
             "preprod.snapshot_status_checks.create.disabled",
             extra={
-                "artifact_id": preprod_artifact.id,
+                "preprod_artifact_id": preprod_artifact.id,
                 "project_id": preprod_artifact.project.id,
             },
         )
@@ -136,7 +137,7 @@ def create_preprod_snapshot_status_check_task(
     if not all_artifacts:
         logger.info(
             "preprod.snapshot_status_checks.create.no_snapshot_metrics",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={"preprod_artifact_id": preprod_artifact.id},
         )
         return
 
@@ -242,7 +243,7 @@ def create_preprod_snapshot_status_check_task(
                 logger.info(
                     "preprod.snapshot_status_checks.create.missing_base_grace_period",
                     extra={
-                        "artifact_id": preprod_artifact.id,
+                        "preprod_artifact_id": preprod_artifact.id,
                         "countdown": MISSING_BASE_GRACE_PERIOD_SECONDS,
                     },
                 )
@@ -319,6 +320,14 @@ def create_preprod_snapshot_status_check_task(
             },
             countdown=MISSING_BASE_GRACE_PERIOD_SECONDS,
         )
+        create_preprod_snapshot_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": preprod_artifact_id,
+                "caller": "missing_base_timeout",
+                "is_timeout_check": True,
+            },
+            countdown=MISSING_BASE_GRACE_PERIOD_SECONDS,
+        )
 
 
 def _compute_snapshot_status(
@@ -385,7 +394,7 @@ def post_snapshot_status_check_task(
     except PreprodArtifact.DoesNotExist:
         logger.info(
             "preprod.snapshot_status_checks.post.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"preprod_artifact_id": preprod_artifact_id},
         )
         return
 
@@ -393,7 +402,7 @@ def post_snapshot_status_check_task(
     if not commit_comparison:
         logger.info(
             "preprod.snapshot_status_checks.post.no_commit_comparison",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"preprod_artifact_id": preprod_artifact_id},
         )
         return
 
@@ -436,7 +445,7 @@ def post_snapshot_status_check_task(
         )
     except Exception as e:
         extra: dict[str, Any] = {
-            "artifact_id": preprod_artifact.id,
+            "preprod_artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
             "error_type": type(e).__name__,
         }
@@ -451,7 +460,7 @@ def post_snapshot_status_check_task(
     if check_id is None:
         logger.error(
             "preprod.snapshot_status_checks.post.null_check_id",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={"preprod_artifact_id": preprod_artifact.id},
         )
         update_posted_status_check(preprod_artifact, check_type="snapshots", success=False)
         return
@@ -462,7 +471,7 @@ def post_snapshot_status_check_task(
     logger.info(
         "preprod.snapshot_status_checks.post.success",
         extra={
-            "artifact_id": preprod_artifact.id,
+            "preprod_artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
             "check_id": check_id,
         },
