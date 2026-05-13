@@ -2157,7 +2157,6 @@ module = [
     "tests.sentry.notifications.test_class_manager",
     "tests.sentry.notifications.test_helpers",
     "tests.sentry.notifications.test_notificationcontroller",
-    "tests.sentry.notifications.test_notificationmessage_table_constraints",
     "tests.sentry.notifications.test_notifications",
     "tests.sentry.notifications.test_utils",
     "tests.sentry.objectstore.*",
