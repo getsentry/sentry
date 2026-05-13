@@ -69,8 +69,8 @@ export function getReadableQueryParamsFromLocation(
       aggregateFields
     ) ?? defaultAggregateSortBys(aggregateFields);
 
-  const id = decodeScalar(location.query?.[LOGS_ID_KEY]);
-  const title = decodeScalar(location.query?.[LOGS_TITLE_KEY]);
+  const id = decodeScalar(location.query[LOGS_ID_KEY]);
+const title = decodeScalar(location.query[LOGS_TITLE_KEY]);
 
   return new ReadableQueryParams({
     extrapolate: true,

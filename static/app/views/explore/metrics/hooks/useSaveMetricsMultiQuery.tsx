@@ -12,7 +12,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
   isVisualize,
   isVisualizeFunction,
@@ -23,7 +22,7 @@ const METRICS_DATASET = 'metrics';
 export function useSaveMetricsMultiQuery() {
   const location = useLocation();
   const id = decodeScalar(location.query.id);
-  const title = decodeScalar(location.query?.[TITLE_KEY]);
+  const title = decodeScalar(location.query.title);
 
   const metricQueries = useMultiMetricsQueryParams();
 

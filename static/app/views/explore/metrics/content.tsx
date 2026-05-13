@@ -86,8 +86,8 @@ const metricsFeedbackOptions = {
 
 function MetricsHeader() {
   const location = useLocation();
-  const pageId = decodeScalar(location.query?.[ID_KEY]);
-  const title = decodeScalar(location.query?.[TITLE_KEY]);
+  const pageId = decodeScalar(location.query[ID_KEY]);
+const title = decodeScalar(location.query[TITLE_KEY]);
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasSavedQueryTitle =

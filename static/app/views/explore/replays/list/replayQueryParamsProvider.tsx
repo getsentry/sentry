@@ -17,8 +17,8 @@ const REPLAY_QUERY_KEY = 'query';
 
 function getReadableQueryParamsFromLocation(location: Location): ReadableQueryParams {
   const query = getQueryFromLocation(location, REPLAY_QUERY_KEY) ?? '';
-  const id = decodeScalar(location.query?.[ID_KEY]);
-  const title = decodeScalar(location.query?.[TITLE_KEY]);
+  const id = decodeScalar(location.query[ID_KEY]);
+const title = decodeScalar(location.query[TITLE_KEY]);
 
   return new ReadableQueryParams({
     extrapolate: false,

@@ -10,14 +10,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 
 const TRACE_EXPLORER_DATASET = 'spans';
 
 export function useSaveMultiQuery() {
   const location = useLocation();
   const id = decodeScalar(location.query.id);
-  const title = decodeScalar(location.query?.[TITLE_KEY]);
+  const title = decodeScalar(location.query.title);
 
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
 
