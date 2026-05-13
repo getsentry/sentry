@@ -490,6 +490,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/download/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/images/$imageIdentifier/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/recompare/'
+  | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/latest/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/sync/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/tokens/'
