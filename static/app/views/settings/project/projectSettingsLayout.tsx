@@ -10,7 +10,7 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -24,7 +24,7 @@ import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 
 interface ProjectSettingsOutletContext {
-  project: Project;
+  project: DetailedProject;
 }
 
 interface InnerProjectSettingsLayoutProps {
@@ -32,7 +32,7 @@ interface InnerProjectSettingsLayoutProps {
 }
 
 interface ProjectSettingsLayoutContentProps extends InnerProjectSettingsLayoutProps {
-  project: Project;
+  project: DetailedProject;
 }
 
 function ProjectSettingsOutlet(props: ProjectSettingsOutletContext) {

@@ -317,6 +317,23 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             owners = [owner.id for owner in org.get_owners()]
             assert [self.user.id] == owners
 
+    @override_options(
+        {
+            "provision_organization.override.rate": 1.0,
+            "provision_organization.override.mapping": {"us": "de"},
+        }
+    )
+    def test_locality_to_cell_overrides(self) -> None:
+        # When these options are active we can redirect one storage location to another.
+        response = self.get_success_response(
+            name="implicit org", slug="implicit-org", dataStorageLocation="us"
+        )
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
+        assert mapping.cell_name == "de"
+
     def test_with_default_team_true(self) -> None:
         data = {"name": "hello world", "slug": "foobar", "defaultTeam": True}
         response = self.get_success_response(**data)
@@ -683,7 +700,6 @@ class OrganizationsCreateInCellTest(OrganizationIndexTest, HybridCloudTestMixin)
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
 
-    @override_options({"provision_organization_in_cell.record_analytics": True})
     @mock.patch("sentry.analytics.record")
     def test_success_analytics_in_rpc_call(self, mock_record: mock.MagicMock) -> None:
         self.login_as(user=self.user)
