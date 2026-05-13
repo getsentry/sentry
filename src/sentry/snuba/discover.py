@@ -823,7 +823,7 @@ def histogram_query(
     query_source: QuerySource | None = None,
     *,
     referrer: str,
-):
+) -> dict[str, Any] | EventsResponse:
     """
     API for generating histograms for numeric columns.
 
@@ -991,7 +991,7 @@ def find_histogram_min_max(
     user_query: str,
     snuba_params: SnubaParams,
     data_filter: Literal["exclude_outliers"] | None = None,
-    query_fn: Callable | None = None,
+    query_fn: Callable[..., Any] | None = None,
 ) -> tuple[float | None, float | None]:
     """
     Find the min/max value of the specified fields. If either min/max is already

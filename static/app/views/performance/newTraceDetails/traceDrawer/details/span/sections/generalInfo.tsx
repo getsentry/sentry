@@ -15,7 +15,7 @@ import {FullSpanDescription} from 'sentry/views/insights/common/components/fullS
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {
   TraceDrawerComponents,
   type SectionCardKeyValueList,
@@ -226,17 +226,17 @@ export function GeneralInfo(props: GeneralnfoProps) {
   items = [...items, ...ancestryAndGroupingItems];
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey="trace_transaction_general"
       title={t('General')}
       disableCollapsePersistence
-      type="trace_transaction_general"
     >
       <ContentWrapper>
         {items.map(item => (
           <Content key={item.key} item={item} />
         ))}
       </ContentWrapper>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

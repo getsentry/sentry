@@ -1515,6 +1515,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "release-health.monitor-release-adoption-jitter-seconds",
+    type=Int,
+    default=45 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3108,14 +3115,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sending raw bytes payload to taskbroker instead of base64 encoded
-register(
-    "profiling.process.raw_bytes_payload.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
@@ -3282,7 +3281,8 @@ register(
 )
 # TTL (in seconds) for the per-segment lock acquired at flush time to
 # prevent two flushers from producing the same segment concurrently.
-# The lock is never explicitly released and only expires via this TTL.
+# The lock is explicitly released by the flusher after the segment payloads
+# are flushed/produced and metadata are cleaned up.
 # Pick a value larger than the expected flush+produce latency but smaller than
 # `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
 # next flush cycle. If set to 0, no locks will be acquired.
@@ -4195,11 +4195,18 @@ register(
 
 # Whether or not provisioning analytics and audits are made in the provision_organization RPC call
 register(
-    "provision_organization_in_cell.record_analytics",
-    type=Bool,
-    default=False,
+    "provision_organization.override.mapping",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "provision_organization.override.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # SCM
 

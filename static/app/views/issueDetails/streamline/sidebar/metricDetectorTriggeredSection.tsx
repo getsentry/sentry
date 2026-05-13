@@ -47,7 +47,7 @@ import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -281,9 +281,9 @@ function ContributingIssues({
   };
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey="contributing_issues"
       title={t('Contributing Issues')}
-      type="contributing_issues"
       actions={
         queryContainsBooleanLogic ? null : (
           <LinkButton
@@ -312,7 +312,7 @@ function ContributingIssues({
           />
         )}
       </GroupListWrapper>
-    </InterimSection>
+    </FoldSection>
   );
 }
 
@@ -403,9 +403,9 @@ function TriggeredConditionDetails({
           openPeriodEnd={endDate}
         />
       )}
-      <InterimSection
+      <FoldSection
         title="Triggered Condition"
-        type="triggered_condition"
+        sectionKey="triggered_condition"
         actions={
           <Flex gap="xs">
             <FeedbackButton
@@ -485,7 +485,7 @@ function TriggeredConditionDetails({
             },
           ]}
         />
-      </InterimSection>
+      </FoldSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
       {detectorDataset === DetectorDataset.SPANS && openPeriod && (
         <AttributeComparisonSection
@@ -498,9 +498,9 @@ function TriggeredConditionDetails({
       )}
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
-          <InterimSection title={t('Contributing Issues')} type="contributing_issues">
+          <FoldSection title={t('Contributing Issues')} sectionKey="contributing_issues">
             <Placeholder height="200px" />
-          </InterimSection>
+          </FoldSection>
         ) : (
           <ContributingIssues
             projectId={projectId}
@@ -533,9 +533,9 @@ export function MetricDetectorTriggeredSection({
   return (
     <Fragment>
       {message && (
-        <InterimSection title="Message" type="message">
+        <FoldSection title="Message" sectionKey="message">
           <AnnotatedText value={message} />
-        </InterimSection>
+        </FoldSection>
       )}
       <ErrorBoundary mini>
         <TriggeredConditionDetails

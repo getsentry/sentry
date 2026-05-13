@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export interface HangProfileData {
   exceptionValue: string;
@@ -61,8 +61,8 @@ export function getHangProfileData(event: Event): HangProfileData | null {
 export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
   return (
     <ErrorBoundary mini>
-      <InterimSection
-        type={SectionKey.STACKTRACE_FLAMEGRAPH}
+      <FoldSection
+        sectionKey={SectionKey.STACKTRACE_FLAMEGRAPH}
         title={
           <span>
             {t('Hang Profile')}
@@ -77,7 +77,7 @@ export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
       >
         {data.exceptionValue && <StyledPre>{data.exceptionValue}</StyledPre>}
         <StacktraceFlamegraph frames={data.frames} />
-      </InterimSection>
+      </FoldSection>
     </ErrorBoundary>
   );
 }

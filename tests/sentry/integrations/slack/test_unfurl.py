@@ -438,9 +438,7 @@ class UnfurlTest(TestCase):
         )
         incident.update(identifier=123)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         links = [
             UnfurlableUrl(
@@ -477,9 +475,7 @@ class UnfurlTest(TestCase):
         )
         incident.update(identifier=123)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
@@ -587,9 +583,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
@@ -1896,6 +1890,35 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["type"] == "line"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_skips_unsupported_chart_type(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # chartType=3 (histogram) is mapped but isn't in SUPPORTED_DISPLAY_TYPES,
+        # so the unfurl should be skipped rather than rendered as a line chart.
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%2C%22chartType%22%3A3%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert unfurls == {}
+        # Skip happens before the events-timeseries call, so neither the API
+        # nor chartcuterie should be hit for unsupported visualizations.
+        assert mock_client_get.call_count == 0
+        assert mock_generate_chart.call_count == 0
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",

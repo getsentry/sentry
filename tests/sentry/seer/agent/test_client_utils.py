@@ -3,6 +3,7 @@ from django.test import override_settings
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.agent.client_utils import (
+    _normalize_wildcard_operators,
     collect_user_org_context,
     get_proxy_headers,
     has_seer_agent_access_with_detail,
@@ -371,6 +372,61 @@ class SnapshotToMarkdownTest(TestCase):
         result = snapshot_to_markdown(snapshot)
         assert "# Widget" in result
         assert '- "some string"' in result
+
+    def test_wildcard_operators_normalized_in_output(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "explorer",
+                    "data": {
+                        "searchQuery": (
+                            "span.name:\uf00dStartsWith\uf00d/api"
+                            " title:\uf00dDoesNotContain\uf00dtest"
+                        )
+                    },
+                    "children": [],
+                }
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "\uf00d" not in result
+        assert "starts with" in result
+        assert "does not contain" in result
+
+
+class NormalizeWildcardOperatorsTest(TestCase):
+    W = "\uf00d"
+
+    def test_all_operators(self) -> None:
+        W = self.W
+        cases = [
+            (f"f:{W}Contains{W}x", "f: contains x"),
+            (f"f:{W}DoesNotContain{W}x", "f: does not contain x"),
+            (f"f:{W}StartsWith{W}x", "f: starts with x"),
+            (f"f:{W}DoesNotStartWith{W}x", "f: does not start with x"),
+            (f"f:{W}EndsWith{W}x", "f: ends with x"),
+            (f"f:{W}DoesNotEndWith{W}x", "f: does not end with x"),
+        ]
+        for input_text, expected in cases:
+            assert _normalize_wildcard_operators(input_text) == expected
+
+    def test_escaped_and_mixed_sequences(self) -> None:
+        assert _normalize_wildcard_operators("f:\\uf00dContains\\uf00dx") == "f: contains x"
+        assert _normalize_wildcard_operators("f:\\uF00DContains\\uF00Dx") == "f: contains x"
+        assert _normalize_wildcard_operators("f:\uf00dContains\\uf00dx") == "f: contains x"
+
+    def test_passthrough(self) -> None:
+        assert _normalize_wildcard_operators("") == ""
+        assert (
+            _normalize_wildcard_operators("browser:Firefox count():>100")
+            == "browser:Firefox count():>100"
+        )
+
+    def test_multiple_operators(self) -> None:
+        W = self.W
+        text = f"a:{W}Contains{W}foo b:{W}EndsWith{W}.js"
+        assert _normalize_wildcard_operators(text) == "a: contains foo b: ends with .js"
 
 
 _TEST_SECRET = "test-secret-must-be-at-least-32-bytes-long-for-hs256"

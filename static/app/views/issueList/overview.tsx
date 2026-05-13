@@ -59,6 +59,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
@@ -874,18 +875,22 @@ function IssueListOverviewInner({
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
 
+  const {data: groupSearchView} = useSelectedGroupSearchView();
+
   useLLMContext({
     contextHint:
       (isTaxonomyView
         ? 'Sentry issue feed — filtered taxonomy view. The query below contains the active category filter. '
         : 'Sentry issue list page. ') +
       'Shows a filterable, sortable list of grouped issues. ' +
+      'viewName is the name of the saved issue view being displayed (if any). ' +
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
       'Tools: get_issue_details(issue_id) for issue aggregate stats; ' +
       'get_event_details(event_id?, issue_id?) for a specific error event; ' +
       'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    viewName: groupSearchView?.name,
     query,
     sort,
     issueCount: queryCount,

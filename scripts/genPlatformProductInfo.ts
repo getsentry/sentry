@@ -77,6 +77,19 @@ const FEATURES: Record<string, string> = {
   METRICS: 'metrics',
 };
 
+// Overrides for (platform, product) combinations that the sentry-docs
+// frontmatter declares as supported, but which the SDK owners have asked us
+// not to surface in new-project onboarding (typically because the feature is
+// still alpha or has narrower real-world scope than the frontmatter implies).
+//
+// Keep this list small and document the rationale per-entry so future
+// regenerations don't quietly drop or restore overrides.
+const PRODUCT_EXCLUSIONS: Record<string, Set<string>> = {
+  // Flutter profiling is still alpha and iOS/macOS-only as of 2026-05.
+  // Confirmed by Chris Aigner (Flutter SDK) in #team-value-discovery.
+  flutter: new Set(['PROFILING']),
+};
+
 // Sentry platform-ids whose docs canonical doesn't fall out of the link path.
 // Most platforms map cleanly via /platforms/<lang>/(guides|integrations)/<guide>/.
 const CANONICAL_OVERRIDES: Record<string, {lang: string; guide?: string}> = {
@@ -341,6 +354,7 @@ function deriveProducts(
 
     if (!supported) continue;
     if (product === 'METRICS' && !withMetricsOnboarding.has(platform.id)) continue;
+    if (PRODUCT_EXCLUSIONS[platform.id]?.has(product)) continue;
 
     products.push(product);
   }

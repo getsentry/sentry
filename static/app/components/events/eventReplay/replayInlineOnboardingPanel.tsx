@@ -17,7 +17,7 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -48,7 +48,7 @@ export default function ReplayInlineOnboardingPanel({
   }
 
   return (
-    <InterimSection type={SectionKey.REPLAY} title={t('Session Replay')}>
+    <FoldSection sectionKey={SectionKey.REPLAY} title={t('Session Replay')}>
       <BannerWrapper>
         <div>
           <BannerTitle>
@@ -106,7 +106,7 @@ export default function ReplayInlineOnboardingPanel({
           ]}
         />
       </BannerWrapper>
-    </InterimSection>
+    </FoldSection>
   );
 }
 
