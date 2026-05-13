@@ -65,6 +65,14 @@ function EnvironmentTableSkeleton({isHidden}: {isHidden: boolean}) {
   );
 }
 
+function getEnvironmentPathParam(environment: Environment) {
+  // Django decodes route params before the endpoint calls
+  // `Environment.get_name_from_path_segment()`, which unquotes the value again.
+  // Pre-encode here so `getApiUrl`'s normal path-param encoding produces the
+  // double-encoded URL needed to preserve literal percent sequences in names.
+  return encodeURIComponent(environment.name || environment.displayName || 'none');
+}
+
 export default function ProjectEnvironments() {
   const location = useLocation();
   const params = useParams<{projectId: string}>();
@@ -95,7 +103,7 @@ export default function ProjectEnvironments() {
             path: {
               organizationIdOrSlug: organization.slug,
               projectIdOrSlug: params.projectId,
-              environment: environment.name,
+              environment: getEnvironmentPathParam(environment),
             },
           }
         ),

@@ -178,9 +178,6 @@ export type Environment = {
   displayName: string;
   id: string;
   name: string;
-
-  // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
-  // urlRoutingName: string;
 };
 
 export interface TeamWithProjects extends Team {
