@@ -1,0 +1,5 @@
+[mcp_servers.sentry]
+url = "https://mcp.sentry.dev/mcp/sentry?experimental=1"
+
+[mcp_servers.devinfra-mcp]
+url = "https://devinfra-mcp.getsentry.net/mcp"

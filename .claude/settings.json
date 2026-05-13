@@ -102,5 +102,5 @@
   },
   "enableAllProjectMcpServers": true,
   "includeCoAuthoredBy": false,
-  "enabledMcpjsonServers": ["sentry"]
+  "enabledMcpjsonServers": ["sentry", "devinfra-mcp"]
 }
