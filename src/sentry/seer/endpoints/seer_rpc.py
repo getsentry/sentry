@@ -710,7 +710,7 @@ def validate_repo(
     except Organization.DoesNotExist:
         return {"valid": False, "reason": "organization_not_found"}
     if repo.provider not in get_supported_scm_providers(organization):
-        logger.info("seer.scm.unsupported_provider", extra={"provider": repo.provider})
+        logger.warning("seer.scm.unsupported_provider", extra={"provider": repo.provider})
         return {"valid": False, "reason": "unsupported_provider"}
 
     return {"valid": True, "integration_id": repo.integration_id}
@@ -748,7 +748,7 @@ def get_repo_installation_id(
     except Organization.DoesNotExist:
         return {"error": "organization_not_found"}
     if repo.provider not in get_supported_scm_providers(organization):
-        logger.info("seer.scm.unsupported_provider", extra={"provider": repo.provider})
+        logger.warning("seer.scm.unsupported_provider", extra={"provider": repo.provider})
         return {"error": "unsupported_provider"}
 
     if repo.integration_id is None:
@@ -765,7 +765,7 @@ def get_repo_installation_id(
     elif integration.provider == IntegrationProviderSlug.GITHUB.value:
         installation_id = integration.external_id
     else:
-        logger.info("seer.scm.unsupported_provider", extra={"provider": integration.provider})
+        logger.warning("seer.scm.unsupported_provider", extra={"provider": integration.provider})
         return {"error": "unsupported_provider"}
 
     if not installation_id:
