@@ -236,6 +236,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             ),
             "auth_provider": auth_provider,
             "provider_name": provider.name,
+            "require_link": not auth_provider.flags.allow_unlinked,
             "scim_token_display": scim_token_display,
             "scim_url": get_scim_url(auth_provider, organization),
             "content": response,
