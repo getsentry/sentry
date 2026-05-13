@@ -15,7 +15,7 @@ class SeerProjectRepository(DefaultFieldsModel):
     relevant for a project and any per-repo overrides (branch, instructions).
     """
 
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     repository = FlexibleForeignKey("sentry.Repository", on_delete=models.CASCADE)
@@ -39,7 +39,7 @@ class SeerProjectRepositoryBranchOverride(DefaultFieldsModel):
     autofix uses the corresponding branch_name instead of the default.
     """
 
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Excluded
 
     seer_project_repository = FlexibleForeignKey(
         "seer.SeerProjectRepository",
