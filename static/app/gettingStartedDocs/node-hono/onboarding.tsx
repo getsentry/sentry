@@ -1,20 +1,138 @@
-import {ExternalLink} from '@sentry/scraps/link';
-
-import type {
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {
-  getImportInstrumentSnippet,
-  getInstallCodeBlock,
-  getSdkInitSnippet,
-  getSentryImportSnippet,
-} from 'sentry/gettingStartedDocs/node/utils';
+import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
-const getVerifySnippet = (params: DocsParams) => `app.get("/debug-sentry", () => {${
+import {Runtime, type Params, type PlatformOptions} from './utils';
+
+function getNodeInstrumentSnippet(params: Params): string {
+  const imports = [`import * as Sentry from "@sentry/hono/node";`];
+  if (params.isProfilingSelected) {
+    imports.push('import { nodeProfilingIntegration } from "@sentry/profiling-node";');
+  }
+
+  return `${imports.join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",${
+    params.isProfilingSelected
+      ? `
+  integrations: [
+    nodeProfilingIntegration(),
+  ],`
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
+  tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode !== 'continuous'
+      ? `
+  profilesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
+  profileSessionSampleRate: 1.0,
+  profileLifecycle: 'trace',`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  enableLogs: true,`
+      : ''
+  }
+  sendDefaultPii: true,
+});`;
+}
+
+function getNodeAppSnippet(): string {
+  return `import { Hono } from "hono";
+import { serve } from "@hono/node-server";
+import { sentry } from "@sentry/hono/node";
+
+const app = new Hono();
+
+app.use(sentry(app));
+
+// Your routes here
+
+serve(app);`;
+}
+
+function getBunAppSnippet(params: Params): string {
+  return `import { Hono } from "hono";
+import { sentry } from "@sentry/hono/bun";
+
+const app = new Hono();
+
+app.use(
+  sentry(app, {
+    dsn: "${params.dsn.public}",${
+      params.isPerformanceSelected
+        ? `
+    tracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+    enableLogs: true,`
+        : ''
+    }
+    sendDefaultPii: true,
+  }),
+);
+
+// Your routes here
+app.get("/", (c) => {
+  return c.text("Hello Hono!");
+});
+
+export default app;`;
+}
+
+function getCloudflareAppSnippet(params: Params): string {
+  return `import { Hono } from "hono";
+import { sentry } from "@sentry/hono/cloudflare";
+
+const app = new Hono();
+
+app.use(
+  sentry(app, {
+    dsn: "${params.dsn.public}",${
+      params.isPerformanceSelected
+        ? `
+    tracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+    enableLogs: true,`
+        : ''
+    }
+    sendDefaultPii: true,
+  }),
+);
+
+// Your routes here
+app.get("/", (c) => {
+  return c.text("Hello Hono!");
+});
+
+export default app;`;
+}
+
+function getWranglerSnippet(): string {
+  return `{
+  "compatibility_flags": ["nodejs_compat"]
+}`;
+}
+
+const getVerifySnippet = (params: Params) => `app.get("/debug-sentry", () => {${
   params.isLogsSelected
     ? `
   // Send a log before throwing the error
@@ -32,160 +150,311 @@ const getVerifySnippet = (params: DocsParams) => `app.get("/debug-sentry", () =>
   throw new Error("My first Sentry error!");
 });`;
 
-const getSdkSetupSnippet = () => `
-${getImportInstrumentSnippet()}
-
-// All other imports below
-${getSentryImportSnippet('@sentry/node')}
-const { Hono } = require("hono");
-const { HTTPException } = require("hono/http-exception");
-
-
-const app = new Hono()
-  // Add an onError hook to report unhandled exceptions to Sentry.
-  .onError((err, c) => {
-    // Report _all_ unhandled errors.
-    Sentry.captureException(err);
-    if (err instanceof HTTPException) {
-      return err.getResponse();
-    }
-    // Or just report errors which are not instances of HTTPException
-    // Sentry.captureException(err);
-    return c.json({ error: "Internal server error" }, 500);
-  })
-  // Optional: Bind global context via Hono middleware
-  // Note: This requires session middleware to be configured
-  .use((c, next) => {
-    // Only set user context if session exists and has user data
-    if (c.session?.user?.email) {
-      Sentry.setUser({
-        email: c.session.user.email,
-      });
-    }
-
-    // Only set project tag if session has project data
-    if (c.session?.projectId !== undefined && c.session?.projectId !== null) {
-      Sentry.setTag("project_id", c.session.projectId);
-    }
-
-    return next();
-  })
-  // Your routes...
-  .get("/", () => {
-    // ...
-  });
-`;
-
-export const onboarding: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'alert',
-          alertType: 'info',
-          showIcon: false,
-          text: tct(
-            "This guide assumes you're using the Node.js runtime for Hono. For setup instructions on Cloudflare Workers, see our [honoCloudFlareLink:Hono on Cloudflare guide].",
+const runtimeOnboarding: Record<Runtime, OnboardingConfig<PlatformOptions>> = {
+  [Runtime.NODE]: {
+    install: (params: Params) => [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'Install the [code:@sentry/hono] package and the [code:@sentry/node] peer dependency for the Node.js runtime:',
+              {code: <code />}
+            ),
+          },
+          getInstallCodeBlock(params, {
+            packageName: '@sentry/hono',
+            additionalPackages: ['@sentry/node'],
+          }),
+        ],
+      },
+    ],
+    configure: (params: Params) => [
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'Node.js requires Sentry to initialize before your application loads. Create a file called [code:instrument.mjs]:',
+              {code: <code />}
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                filename: 'instrument.mjs',
+                value: 'javascript',
+                code: getNodeInstrumentSnippet(params),
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: tct(
+              'Start your app with the [code:--import] flag to load the instrument file:',
+              {code: <code />}
+            ),
+          },
+          {
+            type: 'code',
+            language: 'bash',
+            code: 'node --import ./instrument.mjs app.js',
+          },
+          {
+            type: 'text',
+            text: tct(
+              'Add the [code:sentry()] middleware as early as possible in your Hono app:',
+              {code: <code />}
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                filename: 'app.js',
+                value: 'javascript',
+                code: getNodeAppSnippet(),
+              },
+            ],
+          },
+        ],
+      },
+      getUploadSourceMapsStep({
+        guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hono/sourcemaps/',
+        ...params,
+      }),
+    ],
+    verify: (params: Params) => [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t('Add a route that triggers an error to verify Sentry is working:'),
+          },
+          {
+            type: 'code',
+            language: 'javascript',
+            code: getVerifySnippet(params),
+          },
+        ],
+      },
+    ],
+  },
+  [Runtime.CLOUDFLARE]: {
+    install: (params: Params) => [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'Install the [code:@sentry/hono] package and the [code:@sentry/cloudflare] peer dependency for Cloudflare Workers:',
+              {code: <code />}
+            ),
+          },
+          getInstallCodeBlock(
+            {...params, isProfilingSelected: false},
             {
-              honoCloudFlareLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/cloudflare/frameworks/hono/" />
-              ),
+              packageName: '@sentry/hono',
+              additionalPackages: ['@sentry/cloudflare'],
             }
           ),
-        },
-        {
-          type: 'text',
-          text: t('Add the Sentry Node SDK as a dependency:'),
-        },
-        getInstallCodeBlock(params),
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            "Initialize Sentry as early as possible in your application's lifecycle."
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
+        ],
+      },
+    ],
+    configure: (params: Params) => [
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          {
+            type: 'conditional',
+            condition: params.isProfilingSelected,
+            content: [
+              {
+                type: 'alert',
+                alertType: 'info',
+                showIcon: true,
+                text: t(
+                  'Profiling is only available on the Node.js runtime. Select the Node.js runtime above to see profiling setup instructions.'
+                ),
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: tct(
+              'Enable the [code:nodejs_compat] compatibility flag in your [code:wrangler.jsonc]. The SDK needs [code:AsyncLocalStorage], which requires this flag:',
+              {code: <code />}
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'jsonc',
+                language: 'json',
+                filename: 'wrangler.jsonc',
+                value: 'jsonc',
+                code: getWranglerSnippet(),
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: tct(
+              'Add the [code:sentry()] middleware as early as possible in your Hono app. On Cloudflare, you pass your Sentry options directly to the middleware:',
+              {code: <code />}
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'TypeScript',
+                language: 'typescript',
+                filename: 'index.ts',
+                value: 'typescript',
+                code: getCloudflareAppSnippet(params),
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: tct(
+              'To access environment variables from Worker Bindings (e.g. to store the DSN as a secret), pass a callback instead: [code:sentry(app, (env) => (\\{ dsn: env.SENTRY_DSN \\}))].',
+              {code: <code />}
+            ),
+          },
+        ],
+      },
+      getUploadSourceMapsStep({
+        guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hono/sourcemaps/',
+        ...params,
+      }),
+    ],
+    verify: (params: Params) => [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t('Add a route that triggers an error to verify Sentry is working:'),
+          },
+          {
+            type: 'code',
+            language: 'javascript',
+            code: getVerifySnippet(params),
+          },
+        ],
+      },
+    ],
+  },
+  [Runtime.BUN]: {
+    install: (params: Params) => [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'Install the [code:@sentry/hono] package and the [code:@sentry/bun] peer dependency for the Bun runtime:',
+              {code: <code />}
+            ),
+          },
+          getInstallCodeBlock(
+            {...params, isProfilingSelected: false},
             {
-              label: 'JavaScript',
-              language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              value: 'javascript',
-              code: getSdkInitSnippet(params, 'node'),
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
-            {
-              code: <code />,
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/hono/install/" />
-              ),
+              packageName: '@sentry/hono',
+              additionalPackages: ['@sentry/bun'],
             }
           ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              filename: 'index.(js|mjs)',
-              value: 'javascript',
-              code: getSdkSetupSnippet(),
-            },
-          ],
-        },
-      ],
-    },
-    getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hono/sourcemaps/',
-      ...params,
-    }),
-  ],
-  verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Add the following code snippet to your main application file, adding a route that triggers an error that Sentry will capture.'
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getVerifySnippet(params),
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  nextSteps: (params: DocsParams) => {
+        ],
+      },
+    ],
+    configure: (params: Params) => [
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          {
+            type: 'conditional',
+            condition: params.isProfilingSelected,
+            content: [
+              {
+                type: 'alert',
+                alertType: 'info',
+                showIcon: true,
+                text: t(
+                  'Profiling is only available on the Node.js runtime. Select the Node.js runtime above to see profiling setup instructions.'
+                ),
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: tct(
+              'Add the [code:sentry()] middleware as early as possible in your Hono app. On Bun, you pass your Sentry options directly to the middleware:',
+              {code: <code />}
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'TypeScript',
+                language: 'typescript',
+                filename: 'index.ts',
+                value: 'typescript',
+                code: getBunAppSnippet(params),
+              },
+            ],
+          },
+        ],
+      },
+      getUploadSourceMapsStep({
+        guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hono/sourcemaps/',
+        ...params,
+      }),
+    ],
+    verify: (params: Params) => [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t('Add a route that triggers an error to verify Sentry is working:'),
+          },
+          {
+            type: 'code',
+            language: 'javascript',
+            code: getVerifySnippet(params),
+          },
+        ],
+      },
+    ],
+  },
+};
+
+export const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () =>
+    tct(
+      'The [code:@sentry/hono] SDK supports Hono 4+ across multiple runtimes. Select your runtime below to see the setup instructions.',
+      {code: <code />}
+    ),
+  install: (params: Params) =>
+    runtimeOnboarding[params.platformOptions.runtime].install(params),
+  configure: (params: Params) =>
+    runtimeOnboarding[params.platformOptions.runtime].configure(params),
+  verify: (params: Params) =>
+    runtimeOnboarding[params.platformOptions.runtime].verify(params),
+  nextSteps: (params: Params) => {
     const steps = [];
 
     if (params.isLogsSelected) {

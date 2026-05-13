@@ -24,18 +24,16 @@ export const feedback: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: `import * as Sentry from "@sentry/node";
-
-const eventId = Sentry.captureMessage("User Feedback");
-// OR: const eventId = Sentry.lastEventId();
+              code: `// Use the import for your runtime:
+// "@sentry/hono/cloudflare", "@sentry/hono/node", or "@sentry/hono/bun"
+import * as Sentry from "@sentry/hono/<your-runtime>";
 
 const userFeedback = {
-  event_id: eventId,
   name: "John Doe",
   email: "john@doe.com",
-  comments: "I really like your App, thanks!",
+  message: "I really like your App, thanks!",
 };
-Sentry.captureUserFeedback(userFeedback);
+Sentry.captureFeedback(userFeedback);
 `,
             },
           ],

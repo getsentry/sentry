@@ -6,201 +6,402 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
+import {Runtime} from './utils';
 import {docs} from '.';
 
 describe('hono onboarding docs', () => {
-  it('renders onboarding docs correctly', () => {
-    renderWithOnboardingLayout(docs);
+  describe('Cloudflare Workers runtime (default)', () => {
+    it('renders onboarding docs correctly', () => {
+      renderWithOnboardingLayout(docs);
 
-    // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: /Upload Source Maps/i})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Includes import statement
-    const allMatches = screen.getAllByText(
-      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/)
-    );
-    allMatches.forEach(match => {
-      expect(match).toBeInTheDocument();
-    });
-  });
-
-  it('includes error handler', () => {
-    renderWithOnboardingLayout(docs);
-
-    expect(screen.getByText(textWithMarkupMatcher(/\.onError/))).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.captureException\(err\)/))
-    ).toBeInTheDocument();
-  });
-
-  it('displays sample rates by default', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-      ],
+      expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {name: /Upload Source Maps/i})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-  });
+    it('shows @sentry/cloudflare as peer dependency', () => {
+      renderWithOnboardingLayout(docs);
 
-  it('enables logs by setting enableLogs to true', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      expect(
+        screen.getByText(textWithMarkupMatcher(/@sentry\/cloudflare/))
+      ).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toBeInTheDocument();
-  });
+    it('shows wrangler.jsonc with nodejs_compat flag', () => {
+      renderWithOnboardingLayout(docs);
 
-  it('does not enable logs when not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING],
+      expect(
+        screen.getByText(textWithMarkupMatcher(/nodejs_compat/))
+      ).toBeInTheDocument();
     });
 
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).not.toBeInTheDocument();
-  });
+    it('shows sentry middleware import from @sentry/hono/cloudflare', () => {
+      renderWithOnboardingLayout(docs);
 
-  it('displays logs integration next step when logs are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
-  });
-
-  it('does not display logs integration next step when logs are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING],
-    });
-
-    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
-  });
-
-  it('displays logging code in verify section when logs are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('does not display logging code in verify section when logs are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING],
-    });
-
-    expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
-      )
-    ).not.toBeInTheDocument();
-  });
-
-  it('enables performance setting the tracesSampleRate to 1', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-  });
-
-  it('enables profiling by setting profiling samplerates', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
-    });
-
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/import { sentry } from "@sentry\/hono\/cloudflare"/)
         )
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-  });
-
-  it('continuous profiling', () => {
-    const organization = OrganizationFixture({
-      features: ['continuous-profiling'],
+      ).toBeInTheDocument();
     });
 
-    renderWithOnboardingLayout(
-      docs,
-      {},
-      {
-        organization,
-      }
-    );
+    it('passes options directly to middleware', () => {
+      renderWithOnboardingLayout(docs);
 
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+      expect(
+        screen.getByText(textWithMarkupMatcher(/sentry\(app, \{/))
+      ).toBeInTheDocument();
+    });
+
+    it('displays tracesSampleRate when performance is selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [
+          ProductSolution.ERROR_MONITORING,
+          ProductSolution.PERFORMANCE_MONITORING,
+        ],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+      ).toBeInTheDocument();
+    });
+
+    it('enables logs by setting enableLogs to true', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+      ).toBeInTheDocument();
+    });
+
+    it('does not enable logs when not selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING],
+      });
+
+      expect(
+        screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows profiling info alert when profiling is selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
+      });
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/Profiling is only available on the Node.js runtime/)
         )
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-
-    // Profiles sample rate should not be set for continuous profiling
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
-    ).not.toBeInTheDocument();
-  });
-
-  it('displays metrics code in verify section when metrics are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+      ).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
-      )
-    ).toBeInTheDocument();
+    it('does not show profiling alert when profiling is not selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING],
+      });
+
+      expect(
+        screen.queryByText(
+          textWithMarkupMatcher(/Profiling is only available on the Node.js runtime/)
+        )
+      ).not.toBeInTheDocument();
+    });
   });
 
-  it('does not display metrics code in verify section when metrics are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING],
+  describe('Node.js runtime', () => {
+    let nodeDocs: typeof docs;
+    beforeAll(() => {
+      nodeDocs = {
+        ...docs,
+        platformOptions: {
+          ...docs.platformOptions,
+          runtime: {
+            ...docs.platformOptions!.runtime,
+            defaultValue: Runtime.NODE,
+          },
+        },
+      };
     });
 
-    expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
-      )
-    ).not.toBeInTheDocument();
+    it('renders onboarding docs correctly', () => {
+      renderWithOnboardingLayout(nodeDocs);
+
+      expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {name: /Upload Source Maps/i})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    });
+
+    it('shows @sentry/hono/node import in instrument file', () => {
+      renderWithOnboardingLayout(nodeDocs);
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/import \* as Sentry from "@sentry\/hono\/node"/)
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('shows sentry middleware import from @sentry/hono/node', () => {
+      renderWithOnboardingLayout(nodeDocs);
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/import { sentry } from "@sentry\/hono\/node"/)
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('includes sentry middleware', () => {
+      renderWithOnboardingLayout(nodeDocs);
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/app\.use\(sentry\(app\)\)/))
+      ).toBeInTheDocument();
+    });
+
+    it('shows node --import command', () => {
+      renderWithOnboardingLayout(nodeDocs);
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/node --import .\/instrument.mjs app.js/))
+      ).toBeInTheDocument();
+    });
+
+    it('displays tracesSampleRate when performance is selected', () => {
+      renderWithOnboardingLayout(nodeDocs, {
+        selectedProducts: [
+          ProductSolution.ERROR_MONITORING,
+          ProductSolution.PERFORMANCE_MONITORING,
+        ],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+      ).toBeInTheDocument();
+    });
+
+    it('enables profiling by setting profiling samplerates', () => {
+      renderWithOnboardingLayout(nodeDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
+      });
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(
+            /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
+          )
+        )
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      ).toBeInTheDocument();
+    });
+
+    it('continuous profiling', () => {
+      const organization = OrganizationFixture({
+        features: ['continuous-profiling'],
+      });
+
+      renderWithOnboardingLayout(
+        nodeDocs,
+        {},
+        {
+          organization,
+        }
+      );
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+      ).toBeInTheDocument();
+
+      expect(
+        screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      ).not.toBeInTheDocument();
+    });
+
+    it('enables logs by setting enableLogs to true', () => {
+      renderWithOnboardingLayout(nodeDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+      ).toBeInTheDocument();
+    });
+
+    it('does not enable logs when not selected', () => {
+      renderWithOnboardingLayout(nodeDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING],
+      });
+
+      expect(
+        screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not show profiling alert when profiling is selected', () => {
+      renderWithOnboardingLayout(nodeDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
+      });
+
+      expect(
+        screen.queryByText(
+          textWithMarkupMatcher(/Profiling is only available on the Node.js runtime/)
+        )
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Bun runtime', () => {
+    let bunDocs: typeof docs;
+    beforeAll(() => {
+      bunDocs = {
+        ...docs,
+        platformOptions: {
+          ...docs.platformOptions,
+          runtime: {
+            ...docs.platformOptions!.runtime,
+            defaultValue: Runtime.BUN,
+          },
+        },
+      };
+    });
+
+    it('renders onboarding docs correctly', () => {
+      renderWithOnboardingLayout(bunDocs);
+
+      expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {name: /Upload Source Maps/i})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    });
+
+    it('shows @sentry/bun as peer dependency', () => {
+      renderWithOnboardingLayout(bunDocs);
+
+      expect(screen.getByText(textWithMarkupMatcher(/@sentry\/bun/))).toBeInTheDocument();
+    });
+
+    it('shows sentry middleware import from @sentry/hono/bun', () => {
+      renderWithOnboardingLayout(bunDocs);
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/import { sentry } from "@sentry\/hono\/bun"/)
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('passes options directly to middleware', () => {
+      renderWithOnboardingLayout(bunDocs);
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/sentry\(app, \{/))
+      ).toBeInTheDocument();
+    });
+
+    it('displays tracesSampleRate when performance is selected', () => {
+      renderWithOnboardingLayout(bunDocs, {
+        selectedProducts: [
+          ProductSolution.ERROR_MONITORING,
+          ProductSolution.PERFORMANCE_MONITORING,
+        ],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+      ).toBeInTheDocument();
+    });
+
+    it('enables logs by setting enableLogs to true', () => {
+      renderWithOnboardingLayout(bunDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+      ).toBeInTheDocument();
+    });
+
+    it('shows profiling info alert when profiling is selected', () => {
+      renderWithOnboardingLayout(bunDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
+      });
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/Profiling is only available on the Node.js runtime/)
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('shared behavior', () => {
+    it('displays logs integration next step when logs are selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      });
+
+      expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+    });
+
+    it('does not display logs integration next step when logs are not selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING],
+      });
+
+      expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
+    });
+
+    it('displays logging code in verify section when logs are selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      });
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('displays metrics code in verify section when metrics are selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+      });
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not display metrics code in verify section when metrics are not selected', () => {
+      renderWithOnboardingLayout(docs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING],
+      });
+
+      expect(
+        screen.queryByText(
+          textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+        )
+      ).not.toBeInTheDocument();
+    });
   });
 });
