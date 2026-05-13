@@ -1,5 +1,6 @@
 import functools
 import logging
+import time
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -100,6 +101,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      belong to.
         :auth: required
         """
+        request_start = time.monotonic()
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -195,6 +197,19 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
             context = [r for r in context if "status" not in r or r["status"] in status_labels]
+
+        if project.slug.startswith("eval-"):
+            logger.info(
+                "seer_eval_seed.project_issues_query",
+                extra={
+                    "project_slug": project.slug,
+                    "project_id": project.id,
+                    "query": query,
+                    "raw_result_count": len(results),
+                    "response_count": len(context),
+                    "duration_ms": round((time.monotonic() - request_start) * 1000, 2),
+                },
+            )
 
         response = Response(context)
 

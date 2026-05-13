@@ -990,11 +990,39 @@ def process_code_mappings(job: PostProcessJob) -> None:
         # issue for at least 24 hours.
         project_cache_key = f"code-mappings:project:{project.id}"
         issue_cache_key = f"code-mappings:group:{group_id}"
-        if cache.get(project_cache_key) is None and cache.get(issue_cache_key) is None:
+        project_cache_hit = cache.get(project_cache_key) is not None
+        issue_cache_hit = cache.get(issue_cache_key) is not None
+        if project.slug.startswith("eval-"):
+            logger.info(
+                "seer_eval_seed.code_mapping_consider",
+                extra={
+                    "project_slug": project.slug,
+                    "project_id": project.id,
+                    "event_id": event.event_id,
+                    "group_id": group_id,
+                    "platform": platform,
+                    "frame_count": len(frames_to_process),
+                    "project_cache_hit": project_cache_hit,
+                    "issue_cache_hit": issue_cache_hit,
+                },
+            )
+
+        if not project_cache_hit and not issue_cache_hit:
             cache.set(project_cache_key, True, 3600)  # 1 hour
             cache.set(issue_cache_key, True, 86400)  # 24 hours
         else:
             return
+
+        if project.slug.startswith("eval-"):
+            logger.info(
+                "seer_eval_seed.code_mapping_queued",
+                extra={
+                    "project_slug": project.slug,
+                    "project_id": project.id,
+                    "event_id": event.event_id,
+                    "group_id": group_id,
+                },
+            )
 
         auto_source_code_config.delay(project.id, event_id=event.event_id, group_id=group_id)
 
