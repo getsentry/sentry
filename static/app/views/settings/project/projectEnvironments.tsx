@@ -37,10 +37,10 @@ interface ToggleEnvironmentVariables {
 function EnvironmentRow({children, name}: EnvironmentRowProps) {
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell minHeight="40px" padding="md lg">
+      <SimpleTable.RowCell minHeight="45px" padding="md xl">
         {name}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" minHeight="40px" padding="md lg">
+      <SimpleTable.RowCell justify="end" minHeight="45px" padding="md xl">
         {children}
       </SimpleTable.RowCell>
     </SimpleTable.Row>
@@ -53,10 +53,10 @@ function EnvironmentTableSkeleton({isHidden}: {isHidden: boolean}) {
       {!isHidden && <EnvironmentRow name={t('All Environments')} />}
       {['35%', '28%', '42%', '24%'].map(width => (
         <SimpleTable.Row key={width}>
-          <SimpleTable.RowCell minHeight="40px" padding="md lg">
+          <SimpleTable.RowCell minHeight="40px" padding="md xl">
             <Placeholder height="16px" width={width} />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell justify="end" minHeight="40px" padding="md lg">
+          <SimpleTable.RowCell justify="end" minHeight="40px" padding="md xl">
             <Placeholder height="24px" width="44px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -224,12 +224,4 @@ export default function ProjectEnvironments() {
 
 const EnvironmentTable = styled(SimpleTable)`
   grid-template-columns: minmax(0, 1fr) max-content;
-
-  > [role='row']:first-child {
-    min-height: 32px;
-  }
-
-  [role='columnheader'] {
-    padding: 0 ${p => p.theme.space.xl};
-  }
 `;
