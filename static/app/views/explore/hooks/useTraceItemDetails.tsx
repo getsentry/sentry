@@ -1,13 +1,10 @@
 import {useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
 import type {Meta} from 'sentry/types/group';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {QUERY_API_CLIENT, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -107,55 +104,50 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
     );
   }
 
-  const queryParams: TraceItemDetailsQueryParams = {
-    referrer: props.referrer,
-    traceItemType: props.traceItemType,
-    traceId: props.traceId,
-  };
-
-  const result = useApiQuery<TraceItemDetailsResponse>(
-    traceItemDetailsQueryKey({
-      urlParams: {
-        organizationSlug: organization.slug,
-        projectSlug: project?.slug ?? '',
-        traceItemId: props.traceItemId,
-      },
-      queryParams,
+  const result = useQuery({
+    ...traceItemDetailsApiOptions({
+      organizationSlug: organization.slug,
+      projectSlug: project?.slug ?? '',
+      traceItemId: props.traceItemId,
+      traceItemType: props.traceItemType,
+      referrer: props.referrer,
+      traceId: props.traceId,
     }),
-    {
-      enabled,
-      retry: shouldRetryHandler,
-      retryDelay: getRetryDelay,
-      staleTime: Infinity,
-    }
-  );
+    enabled,
+    retry: shouldRetryHandler,
+    retryDelay: getRetryDelay,
+  });
 
   return result;
 }
 
-function traceItemDetailsQueryKey({
-  urlParams,
-  queryParams,
-}: {
-  queryParams: TraceItemDetailsQueryParams;
-  urlParams: TraceItemDetailsUrlParams;
-}): ApiQueryKey {
-  const query: Record<string, string | string[]> = {
-    item_type: queryParams.traceItemType,
-    referrer: queryParams.referrer,
-    trace_id: queryParams.traceId,
-  };
-
-  return [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/', {
-      path: {
-        organizationIdOrSlug: urlParams.organizationSlug,
-        projectIdOrSlug: urlParams.projectSlug,
-        itemId: urlParams.traceItemId,
+function traceItemDetailsApiOptions({
+  organizationSlug,
+  projectSlug,
+  traceItemId,
+  traceItemType,
+  referrer,
+  traceId,
+}: TraceItemDetailsUrlParams & TraceItemDetailsQueryParams) {
+  return apiOptions.as<TraceItemDetailsResponse>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',
+    {
+      path:
+        organizationSlug && projectSlug && traceItemId
+          ? {
+              organizationIdOrSlug: organizationSlug,
+              projectIdOrSlug: projectSlug,
+              itemId: traceItemId,
+            }
+          : skipToken,
+      query: {
+        item_type: traceItemType,
+        referrer,
+        trace_id: traceId,
       },
-    }),
-    {query},
-  ];
+      staleTime: Infinity,
+    }
+  );
 }
 
 export function usePrefetchTraceItemDetailsOnHover({
@@ -193,35 +185,17 @@ export function usePrefetchTraceItemDetailsOnHover({
         clearTimeout(sharedHoverTimeoutRef.current);
       }
       sharedHoverTimeoutRef.current = setTimeout(() => {
-        const queryKey = traceItemDetailsQueryKey({
-          urlParams: {
-            organizationSlug: organization.slug,
-            projectSlug: project?.slug ?? '',
-            traceItemId,
-          },
-          queryParams: {
-            traceItemType,
-            referrer,
-            traceId,
-          },
+        const options = traceItemDetailsApiOptions({
+          organizationSlug: organization.slug,
+          projectSlug: project?.slug ?? '',
+          traceItemId,
+          traceItemType,
+          referrer,
+          traceId,
         });
-        queryClient
-          .prefetchQuery({
-            queryKey,
-            queryFn: () => {
-              const {url, options} = parseQueryKey(queryKey);
-              return QUERY_API_CLIENT.requestPromise(url, {
-                includeAllArgs: true,
-                query: options?.query,
-              });
-            },
-            staleTime: Infinity,
-          })
-          .then(() => {
-            const cached = queryClient.getQueryData(queryKey);
-            const response = (cached as ApiResult<TraceItemDetailsResponse>)?.[0];
-            setTraceItemMeta(response?.meta);
-          });
+        queryClient.fetchQuery(options).then(response => {
+          setTraceItemMeta(response?.json?.meta);
+        });
       }, timeout);
     },
     onHoverEnd: () => {
