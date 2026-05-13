@@ -18,8 +18,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOptions>(
   platformOptions?: PlatformOptions
 ): SelectedPlatformOptions<PlatformOptions> {
-  const location = useLocation();
-  const {query} = location;
+  const {query} = useLocation();
 
   return useMemo(() => {
     if (!platformOptions) {
