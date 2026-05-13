@@ -163,6 +163,7 @@ export function MetricSelector({
     const apiOptions =
       metricOptionsData?.data?.map(option => {
         const metricName = option[TraceMetricKnownFieldKey.METRIC_NAME];
+
         const metricType = option[TraceMetricKnownFieldKey.METRIC_TYPE];
         const rawMetricUnit: unknown = option[TraceMetricKnownFieldKey.METRIC_UNIT];
         const metricUnit =
@@ -173,24 +174,32 @@ export function MetricSelector({
           metricUnit && metricUnit !== '-' ? metricUnit : NONE_UNIT;
         const metricSelectValueUnit =
           metricUnit === null ? NULL_METRIC_UNIT_SELECT_VALUE : metricDisplayUnit;
-        const count = option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`];
+        const value = makeMetricSelectValue({
+          name: metricName,
+          type: metricType,
+          unit: metricSelectValueUnit,
+        });
+        const countField = option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`];
+        const count =
+          typeof countField === 'number'
+            ? countField
+            : typeof countField === 'string'
+              ? Number(countField)
+              : undefined;
+        const lastSeen =
+          option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`] === undefined
+            ? undefined
+            : Number(option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]) /
+              1_000_000;
 
         return {
           label: metricName,
-          value: makeMetricSelectValue({
-            name: metricName,
-            type: metricType,
-            unit: metricSelectValueUnit,
-          }),
+          value,
           metricType,
           metricName,
           metricUnit,
-          count: typeof count === 'number' ? count : undefined,
-          lastSeen:
-            option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`] === undefined
-              ? undefined
-              : Number(option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]) /
-                1_000_000,
+          count,
+          lastSeen,
           trailingItems: () => (
             <MetricOptionTrailingItems
               hasMetricUnitsUI={hasMetricUnitsUI}
