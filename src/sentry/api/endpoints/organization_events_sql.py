@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
@@ -22,6 +23,10 @@ logger = logging.getLogger(__name__)
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationEventsSqlEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(
