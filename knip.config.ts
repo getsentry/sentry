@@ -11,14 +11,13 @@ const productionEntryPoints = [
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
-  // frontend experiemnt framework may be unused when we have no experiemnets
+  // keep even when hook is unused due to no active experiments
   'static/app/utils/useExperiment.tsx',
-  // --- we should be able to get rid of those: ---
-  // Only used in stories (so far)
+  // TODO: Only used in stories
   'static/app/components/core/quote/*.tsx',
-  // todo we currently keep all icons
+  // TODO: we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
-  // todo find out how chartcuterie works
+  // TODO: find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when integration into Explore has started
   'static/app/views/dashboards/widgets/heatMapWidget/**/*.{ts,tsx}',
