@@ -36,7 +36,7 @@ from .preprod_artifact_snapshot_download import OrganizationPreprodSnapshotDownl
 from .preprod_artifact_snapshot_image_detail import (
     OrganizationPreprodSnapshotImageDetailEndpoint,
 )
-from .preprod_artifact_snapshot_latest import OrganizationPreprodLatestBaseSnapshotEndpoint
+from .preprod_artifact_snapshot_latest_base import OrganizationPreprodLatestBaseSnapshotEndpoint
 from .preprod_snapshot_recompare import PreprodSnapshotRecompareEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
