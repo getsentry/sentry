@@ -153,8 +153,8 @@ def _build_project_playlist(
 def get_project_top_transaction_traces_for_llm_detection(
     project_id: int,
     limit: int,
-    sample_multiplier: int,
     start_time_delta_minutes: int,
+    sample_multiplier: int = 1,
 ) -> list[TraceMetadataWithSpanCount]:
     """
     Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
