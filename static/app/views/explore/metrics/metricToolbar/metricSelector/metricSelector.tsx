@@ -34,6 +34,7 @@ import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metr
 import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
+  isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
@@ -80,25 +81,6 @@ function MetricOptionTrailingItems({
   );
 }
 
-function getMetricSelectorUnit(metricUnit?: string | null) {
-  return metricUnit && metricUnit !== '-' ? metricUnit : NONE_UNIT;
-}
-
-function getMetricSelectorValueUnit(metricUnit?: string | null) {
-  if (metricUnit === null) {
-    return NULL_METRIC_UNIT_SELECT_VALUE;
-  }
-  return getMetricSelectorUnit(metricUnit);
-}
-
-function makeMetricSelectorValue(traceMetric: TraceMetric) {
-  return makeMetricSelectValue({
-    name: traceMetric.name,
-    type: traceMetric.type,
-    unit: getMetricSelectorValueUnit(traceMetric.unit),
-  });
-}
-
 export function MetricSelector({
   traceMetric,
   onChange,
@@ -131,34 +113,48 @@ export function MetricSelector({
     environments,
   });
 
-  const traceMetricSelectValue = makeMetricSelectorValue(traceMetric);
+  const traceMetricDisplayUnit =
+    traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
+  const traceMetricSelectValue = makeMetricSelectValue({
+    name: traceMetric.name,
+    type: traceMetric.type,
+    unit:
+      traceMetric.unit === null ? NULL_METRIC_UNIT_SELECT_VALUE : traceMetricDisplayUnit,
+  });
+  const traceMetricType = isTraceMetricTypeValue(traceMetric.type)
+    ? traceMetric.type
+    : null;
 
   // Build an option object from the currently selected trace metric so it
   // can be shown in the list even if the API response hasn't loaded yet or
   // doesn't include it (e.g. it was filtered out by search).
-  const optionFromTraceMetric: MetricSelectorOption = useMemo(
-    () => ({
+  const optionFromTraceMetric: MetricSelectorOption | null = useMemo(() => {
+    if (!traceMetricType) {
+      return null;
+    }
+
+    return {
       label: traceMetric.name,
       value: traceMetricSelectValue,
-      metricType: traceMetric.type as TraceMetricTypeValue,
+      metricType: traceMetricType,
       metricUnit: traceMetric.unit,
       metricName: traceMetric.name,
       trailingItems: () => (
         <MetricOptionTrailingItems
-          metricType={traceMetric.type as TraceMetricTypeValue}
-          metricUnit={getMetricSelectorUnit(traceMetric.unit)}
+          metricType={traceMetricType}
+          metricUnit={traceMetricDisplayUnit}
           hasMetricUnitsUI={hasMetricUnitsUI}
         />
       ),
-    }),
-    [
-      traceMetricSelectValue,
-      traceMetric.name,
-      traceMetric.type,
-      traceMetric.unit,
-      hasMetricUnitsUI,
-    ]
-  );
+    };
+  }, [
+    traceMetricSelectValue,
+    traceMetric.name,
+    traceMetricType,
+    traceMetric.unit,
+    traceMetricDisplayUnit,
+    hasMetricUnitsUI,
+  ]);
 
   // Always show the selected metric at the top of the list so it's easy to
   // find when the dropdown is reopened. Filter it out of the API results to
@@ -167,28 +163,29 @@ export function MetricSelector({
     const apiOptions =
       metricOptionsData?.data?.map(option => {
         const metricName = option[TraceMetricKnownFieldKey.METRIC_NAME];
-        const metricType = option[
-          TraceMetricKnownFieldKey.METRIC_TYPE
-        ] as TraceMetricTypeValue;
-        const metricUnit = option[TraceMetricKnownFieldKey.METRIC_UNIT] as
-          | string
-          | null
-          | undefined;
-        const metricSelectValueUnit = getMetricSelectorValueUnit(
-          option[TraceMetricKnownFieldKey.METRIC_UNIT]
-        );
+        const metricType = option[TraceMetricKnownFieldKey.METRIC_TYPE];
+        const rawMetricUnit: unknown = option[TraceMetricKnownFieldKey.METRIC_UNIT];
+        const metricUnit =
+          typeof rawMetricUnit === 'string' || rawMetricUnit === null
+            ? rawMetricUnit
+            : undefined;
+        const metricDisplayUnit =
+          metricUnit && metricUnit !== '-' ? metricUnit : NONE_UNIT;
+        const metricSelectValueUnit =
+          metricUnit === null ? NULL_METRIC_UNIT_SELECT_VALUE : metricDisplayUnit;
+        const count = option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`];
 
         return {
           label: metricName,
-          value: makeMetricSelectorValue({
+          value: makeMetricSelectValue({
             name: metricName,
             type: metricType,
             unit: metricSelectValueUnit,
           }),
           metricType,
           metricName,
-          metricUnit: metricUnit as string | undefined,
-          count: option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`] as number,
+          metricUnit: metricUnit ?? undefined,
+          count: typeof count === 'number' ? count : undefined,
           lastSeen:
             option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`] === undefined
               ? undefined
@@ -198,7 +195,7 @@ export function MetricSelector({
             <MetricOptionTrailingItems
               hasMetricUnitsUI={hasMetricUnitsUI}
               metricType={metricType}
-              metricUnit={getMetricSelectorUnit(metricUnit)}
+              metricUnit={metricDisplayUnit}
             />
           ),
         };
