@@ -35,7 +35,10 @@ function ApprovalBadge({
   approvalStatus: SnapshotApprovalStatus | null | undefined;
   comparisonState: SnapshotComparisonState | null | undefined;
 }) {
-  if (!comparisonState || comparisonState !== 'success') {
+  if (!comparisonState) {
+    return <Tag variant="info">{t('Base')}</Tag>;
+  }
+  if (comparisonState !== 'success') {
     return <Text variant="muted">{'–'}</Text>;
   }
   if (approvalStatus === 'approved') {
@@ -66,7 +69,7 @@ function ChangeCounts({
   unchanged: number;
 }) {
   if (!comparisonState) {
-    return <Tag variant="info">{t('Base')}</Tag>;
+    return <Text variant="muted">{'–'}</Text>;
   }
   if (comparisonState === 'waiting_for_base') {
     return (
@@ -159,6 +162,12 @@ export function PreprodBuildsSnapshotTable({
             </SimpleTable.RowCell>
           )}
           <SimpleTable.RowCell>
+            <ApprovalBadge
+              comparisonState={info?.comparison_state}
+              approvalStatus={info?.approval_status}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
             <ChangeCounts
               added={info?.images_added ?? 0}
               removed={info?.images_removed ?? 0}
@@ -191,12 +200,6 @@ export function PreprodBuildsSnapshotTable({
             </Flex>
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
-            <ApprovalBadge
-              comparisonState={info?.comparison_state}
-              approvalStatus={info?.approval_status}
-            />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell>
             {build.app_info?.date_added ? (
               <TimeSince date={build.app_info.date_added} unitStyle="short" />
             ) : (
@@ -215,9 +218,9 @@ export function PreprodBuildsSnapshotTable({
         {showProjectColumn && (
           <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
         )}
+        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Changes')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Branch')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {content ?? rows}
@@ -226,10 +229,10 @@ export function PreprodBuildsSnapshotTable({
 }
 
 const snapshotTableColumns = {
-  withProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(100px, 1fr) minmax(80px, 120px)`,
-  withoutProject: `minmax(200px, 2fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(100px, 1fr) minmax(80px, 120px)`,
+  withProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 140px)
+    minmax(180px, 2fr) minmax(80px, 120px)`,
+  withoutProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
+    minmax(180px, 2fr) minmax(80px, 120px)`,
 };
 
 const BuildsSnapshotTable = styled(SimpleTable)<{showProjectColumn?: boolean}>`
