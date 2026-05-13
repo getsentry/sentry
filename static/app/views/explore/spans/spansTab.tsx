@@ -182,7 +182,7 @@ function SpanTabContentSectionInner({
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
-  const {isReady} = usePageFilters();
+  const {isReady, selection} = usePageFilters();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -207,6 +207,7 @@ function SpanTabContentSectionInner({
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    currentSelectedDateRange: selection.datetime,
   });
 
   const hasCrossEventQueries = organization.features.includes(

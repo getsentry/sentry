@@ -22,10 +22,12 @@ import {
   IconOpen,
   IconReceipt,
   IconRefresh,
+  IconSettings,
   IconThumb,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
@@ -56,6 +58,7 @@ export function SnapshotHeaderActions({
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
   const isSentryEmployee = useIsSentryEmployee();
+  const project = ProjectsStore.getById(data.project_id);
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -298,6 +301,24 @@ export function SnapshotHeaderActions({
               onAction: handleRerunStatusChecks,
               textValue: t('Rerun Status Checks'),
             },
+            ...(project
+              ? [
+                  {
+                    key: 'snapshot-settings',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconSettings size="sm" />
+                        {t('Snapshot Settings')}
+                      </Flex>
+                    ),
+                    onAction: () =>
+                      navigate(
+                        `/settings/${organizationSlug}/projects/${project.slug}/snapshots/`
+                      ),
+                    textValue: t('Snapshot Settings'),
+                  },
+                ]
+              : []),
             {
               key: 'delete',
               label: (
