@@ -17,11 +17,11 @@ from sentry.seer.autofix.utils import (
     read_preference_from_sentry_db,
     write_preference_to_sentry_db,
 )
-from sentry.seer.constants import get_supported_scm_providers
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     RepositorySerializer as BaseRepositorySerializer,
 )
 from sentry.seer.models import PreferenceResponse, SeerProjectPreference
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
