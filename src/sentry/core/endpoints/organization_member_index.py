@@ -146,6 +146,11 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         return valid_teams
 
     def validate_teamRoles(self, teamRoles: list[dict[str, Any]]) -> list[tuple[Team, str]]:
+        for item in teamRoles:
+            if not isinstance(item, dict) or "role" not in item or "teamSlug" not in item:
+                raise serializers.ValidationError(
+                    "Each team-role entry must be an object with 'teamSlug' and 'role' keys"
+                )
         roles = {item["role"] for item in teamRoles}
         valid_roles = [r.id for r in team_roles.get_all()] + [None]
         if roles.difference(valid_roles):
