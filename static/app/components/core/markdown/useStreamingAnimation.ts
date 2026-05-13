@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import type {RefObject} from 'react';
 import {css} from '@emotion/react';
+import {useReducedMotion} from 'framer-motion';
 
 /**
  * Imperative streaming decode animation for Markdown.
@@ -36,6 +37,7 @@ export function useStreamingAnimation(
   containerRef: RefObject<HTMLElement | null>,
   enabled: boolean
 ): void {
+  const prefersReducedMotion = useReducedMotion();
   useEffect(() => {
     if (!enabled) {
       return;
@@ -46,7 +48,7 @@ export function useStreamingAnimation(
       return;
     }
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (prefersReducedMotion) {
       return;
     }
 
@@ -76,7 +78,7 @@ export function useStreamingAnimation(
       }
       activeAnimations = [];
     };
-  }, [containerRef, enabled]);
+  }, [containerRef, enabled, prefersReducedMotion]);
 }
 
 const STAGGER_MS = 11;
