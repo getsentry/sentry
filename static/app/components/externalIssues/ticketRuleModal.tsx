@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
@@ -434,7 +435,7 @@ export function TicketRuleModal({
         <Heading as="h4">{title}</Heading>
       </Header>
       <Body>
-        <BodyText>
+        <Container marginBottom="2xl">
           {link
             ? tct(
                 'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs:stay in sync] with the new Sentry Issue.',
@@ -444,7 +445,7 @@ export function TicketRuleModal({
                 'When this alert is triggered [ticketType] will be created with the following fields.',
                 {ticketType}
               )}
-        </BodyText>
+        </Container>
         {Object.entries(formErrors).map(([name, errorNode]) => (
           <Fragment key={name}>{errorNode}</Fragment>
         ))}
@@ -469,10 +470,6 @@ export function TicketRuleModal({
     </Fragment>
   );
 }
-
-const BodyText = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
 
 const FieldErrorLabel = styled('label')`
   padding-bottom: ${p => p.theme.space.xl};

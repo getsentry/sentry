@@ -100,7 +100,6 @@ export function EventDetailsContent({
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const shouldUseNewStackTrace =
-    organization.features.includes('issue-details-new-stack-trace') &&
     // New stack trace is currently only non-native platforms.
     !isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);

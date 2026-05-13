@@ -4225,13 +4225,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "integrations.jira.multi-cell-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # ViewerContext — unified caller identity for all entrypoints.
 # Set via deploy config (SENTRY_OPTIONS); requires restart to change.
 register(
