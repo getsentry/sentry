@@ -14,7 +14,7 @@ import {
  * Assigns sequential labels to queries based on their type.
  * Metrics get letter labels (A, B, C...), equations get function labels (ƒ1, ƒ2...).
  */
-function assignSequentialLabels(queries: BaseMetricQuery[]): string[] {
+export function assignSequentialLabels(queries: BaseMetricQuery[]): string[] {
   let nextMetricIndex = 0;
   let nextEquationIndex = 1;
   return queries.map(query => {

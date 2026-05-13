@@ -526,7 +526,9 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               </Flex>
               <Stack gap="lg" width="100%">
                 {isDetecting ? (
-                  <LoadingIndicator mini />
+                  <Flex justify="center">
+                    <LoadingIndicator mini />
+                  </Flex>
                 ) : (
                   <Grid
                     columns={{

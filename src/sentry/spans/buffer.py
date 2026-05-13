@@ -1,6 +1,6 @@
 """
-Span buffer is a consumer that takes individual spans from snuba-spans (soon
-ingest-spans, anyway, from Relay) and assembles them to segments of this form:
+Span buffer is a consumer that takes individual spans from Relay, in the `ingest-spans` topic,
+and assembles them to segments of this form:
 
     {"spans": <span1>,<span2>,<span3>}
 
@@ -25,10 +25,10 @@ We simplify this set of conditions for the span buffer:
 * Relay writes is_segment based on some other attributes for us, so that we don't have to look at N span-local attributes. This simplifies condition 2.
 * The span buffer is sharded by project. Therefore, condition 4 is handled by the code for condition 3, although with some delay.
 
-Segments are flushed out to `buffered-spans` topic under two conditions:
+Segments are flushed out to `buffered-segments` topic under two conditions:
 
-* If the segment has a root span, it is flushed out after `span_buffer_root_timeout` seconds of inactivity.
-* Otherwise, it is flushed out after `span_buffer_timeout` seconds of inactivity.
+* If the segment has a root span, it is flushed out after `spans.buffer.root-timeout` seconds of inactivity.
+* Otherwise, it is flushed out after `spans.buffer.timeout` seconds of inactivity.
 
 Now how does that look like in Redis? For each incoming span, we:
 
@@ -46,11 +46,15 @@ Now how does that look like in Redis? For each incoming span, we:
       current segment root.
    d. If the segment exceeds max_segment_bytes, detaches the subsegment
       into its own segment keyed by the salt.
+   e. If the target segment is currently locked by a flusher, detaches the
+      subsegment into its own segment so new spans are not written into data
+      that is being produced and cleaned up.
 3. To a "global queue", we write the segment key, sorted by timeout.
 
-Eventually, flushing cronjob looks at that global queue, and removes all timed
-out keys from it. Then fetches the payload keys for each segment via the
-member-keys index, loads their data, and cleans up.
+Eventually, flusher subprocesses read timed-out segment keys from the queue,
+acquire a per-segment flush lock when configured, fetch the payload keys for
+each segment via the member-keys index, load their data, and produce the
+segment.
 
 This happens in two steps: Get the to-be-flushed segments in `flush_segments`,
 then the consumer produces them, then they are deleted from Redis
@@ -68,18 +72,18 @@ Segments can grow unboundedly as spans arrive. To prevent oversized segments fro
 consuming excessive memory during flush, the buffer enforces a maximum byte limit
 per segment (controlled by `spans.buffer.max-segment-bytes`).
 
-Each subsegment is assigned a unique salt (UUID). The Lua script tracks cumulative
+Each subsegment is assigned a unique salt. The Lua script tracks cumulative
 ingested bytes per segment via `span-buf:ibc` keys. If adding a subsegment would
-push the segment over the byte limit, the script detaches it into a new segment
-keyed by the salt instead of merging it into the parent. The detached segment is
-independently tracked and flushed.
+push the segment over the byte limit, or if the target segment is being flushed,
+the script detaches the subsegment into a new segment keyed by the salt instead of
+merging it into the parent. The detached segment is independently tracked and flushed.
 
 During flush, segments that exceed `max-segment-bytes` are chunked into multiple
 Kafka messages to stay within downstream size limits.
 
 Glossary for types of keys:
 
-    * span-buf:s:{project_id:trace_id:span_id}:span_id -- payload keys containing span payloads, distributed across cluster nodes.
+    * span-buf:s:{project_id:trace_id:salt}:salt -- payload keys containing span payloads, distributed across cluster nodes.
     * span-buf:mk:{project_id:trace_id}:root_span_id -- member-keys index, tracks which payload keys belong to a segment.
     * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
     * span-buf:ssr:{project_id:trace_id} -- redirect mappings so that each incoming span ID can be mapped to the right segment.
@@ -88,6 +92,7 @@ Glossary for types of keys:
     * span-buf:ibc:<segment_key> -- ingested byte count, total bytes originally ingested for a segment.
     * span-buf:fl:<segment_key> -- a per-segment lock (with TTL) to prevent the same segment from being flushed multiple times concurrently.
     <segment_key> -- an internal identifier, see `spans.segment_key` module.
+    <salt> -- a unique identifier for a subsegment, determined by hashing all span IDs in the subsegment.
 """
 
 from __future__ import annotations
@@ -951,6 +956,12 @@ class SpansBuffer:
                         for payload_key in flushed_segment.payload_keys:
                             p.unlink(payload_key)
 
+                    # A segment can be queued in more than one shard when spans from the
+                    # same segment land in different Kafka partitions. Releasing the lock
+                    # here lets a contending flusher later acquire it and remove those stale
+                    # queue entries instead of blocking on ZRANGEBYSCORE until lock TTL expires.
+                    # Since the segment metadata and payload keys have already been deleted
+                    # above, a stale queue entry cannot produce the segment again.
                     p.delete(self._get_flush_lock_key(segment_key))
 
                 for queue_key, keys in queue_removals.items():

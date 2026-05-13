@@ -477,6 +477,7 @@ class SearchAgentStartRequest(TypedDict):
     project_ids: list[int]
     natural_language_query: str
     strategy: str
+    external_idempotency_key: NotRequired[str]
     user_email: NotRequired[str]
     timezone: NotRequired[str]
     options: NotRequired[dict[str, Any]]

@@ -41,6 +41,9 @@ function ApprovalBadge({
   if (approvalStatus === 'approved') {
     return <Tag variant="success">{t('Approved')}</Tag>;
   }
+  if (approvalStatus === 'auto_approved') {
+    return <Tag variant="success">{t('Auto Approved')}</Tag>;
+  }
   if (approvalStatus === 'requires_approval') {
     return <Tag variant="warning">{t('Needs Approval')}</Tag>;
   }
@@ -64,6 +67,17 @@ function ChangeCounts({
 }) {
   if (!comparisonState) {
     return <Tag variant="info">{t('Base')}</Tag>;
+  }
+  if (comparisonState === 'waiting_for_base') {
+    return (
+      <Tooltip
+        title={t(
+          "Base snapshots haven't been uploaded yet. This will resolve automatically within ~10 minutes or fail."
+        )}
+      >
+        <Tag variant="muted">{t('Waiting for base')}</Tag>
+      </Tooltip>
+    );
   }
   if (comparisonState === 'pending') {
     return (
@@ -203,7 +217,7 @@ export function PreprodBuildsSnapshotTable({
         )}
         <SimpleTable.HeaderCell>{t('Changes')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Branch')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Approval')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {content ?? rows}

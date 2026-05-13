@@ -11,6 +11,7 @@ from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
+    format_waiting_for_base_snapshot_status_check_messages,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -1139,3 +1140,46 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
 
         assert "✅ Approved" in summary
         assert "⏳ Needs approval" in summary
+
+
+@cell_silo_test
+class SnapshotWaitingForBaseFormattingTest(SnapshotStatusCheckTestBase):
+    def test_waiting_for_base_single_artifact(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=24
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        title, subtitle, summary = format_waiting_for_base_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map, project=self.project
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Waiting for base snapshots..."
+        assert "My App" in summary
+        assert "24" in summary
+        assert "✅ Uploaded" in summary
+        assert "Waiting for base snapshots to finish uploading" in summary
+
+    def test_waiting_for_base_multiple_artifacts(self) -> None:
+        artifacts = []
+        snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
+
+        for i in range(2):
+            artifact, metrics = self._create_artifact_with_metrics(
+                app_id=f"com.example.app{i}",
+                app_name=f"App {i}",
+                build_number=i + 1,
+                image_count=10,
+            )
+            artifacts.append(artifact)
+            snapshot_metrics_map[artifact.id] = metrics
+
+        title, subtitle, summary = format_waiting_for_base_snapshot_status_check_messages(
+            artifacts, snapshot_metrics_map, project=self.project
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Waiting for base snapshots..."
+        assert "App 0" in summary
+        assert "App 1" in summary
