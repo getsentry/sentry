@@ -96,7 +96,7 @@ export const streamingAnimationStyles = css`
       content: '0';
     }
     12% {
-      content: 'a';
+      content: 'A';
     }
     25% {
       content: '7';
@@ -134,7 +134,7 @@ export const streamingAnimationStyles = css`
       content: '5';
     }
     62% {
-      content: 'D';
+      content: 'd';
     }
     75% {
       content: '8';
