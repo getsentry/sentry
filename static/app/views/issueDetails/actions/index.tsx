@@ -6,6 +6,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -14,7 +15,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
@@ -107,6 +108,8 @@ interface GroupActionsProps {
 }
 
 export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();

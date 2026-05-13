@@ -6,7 +6,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -53,12 +52,18 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
   '/issues/',
+  '/issues/errors-outages/',
+  '/issues/breached-metrics/',
+  '/issues/warnings/',
   '/issues/:groupId/',
   '/issues/:groupId/events/',
   '/issues/:groupId/events/:eventId/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
+  '/explore/logs/',
+  '/explore/releases/',
+]);
 
 function supportsStructuredContext(
   referrer: string,
@@ -141,10 +146,10 @@ export const useSeerExplorer = () => {
   const [lastSentMessage, setLastSentMessage] = useState<{
     insertIndex: number;
     loadingPlaceholderContent: string;
+    prevInsertIndexBlockId: string | undefined;
     query: string;
-    timestampMs: number;
   } | null>(null);
-  const [waitingForInterrupt, setWaitingForInterrupt] = useState(false);
+  const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
@@ -163,14 +168,21 @@ export const useSeerExplorer = () => {
     }
   >({
     mutationFn: async params => {
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
       const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
           prev?.session
-            ? {...prev, session: {...prev.session, status: 'processing'}}
+            ? {
+                ...prev,
+                session: {
+                  ...prev.session,
+                  status: 'processing',
+                  updated_at: new Date().toISOString(),
+                },
+              }
             : prev
         );
       }
@@ -200,7 +212,6 @@ export const useSeerExplorer = () => {
       }
     },
     onError: (e, params) => {
-      setWaitingForInterrupt(false);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
         // Will be fixed soon when we get rid of setApiQueryData.
@@ -230,16 +241,23 @@ export const useSeerExplorer = () => {
     }
   >({
     mutationFn: async params => {
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           prev =>
             prev?.session
-              ? {...prev, session: {...prev.session, status: 'processing'}}
+              ? {
+                  ...prev,
+                  session: {
+                    ...prev.session,
+                    status: 'processing',
+                    updated_at: new Date().toISOString(),
+                  },
+                }
               : prev
         );
       }
@@ -262,7 +280,6 @@ export const useSeerExplorer = () => {
       });
     },
     onError: (e, params) => {
-      setWaitingForInterrupt(false);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
 
@@ -288,16 +305,23 @@ export const useSeerExplorer = () => {
     {orgSlug: string; runId: number | null; repoName?: string}
   >({
     mutationFn: async params => {
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           prev =>
             prev?.session
-              ? {...prev, session: {...prev.session, status: 'processing'}}
+              ? {
+                  ...prev,
+                  session: {
+                    ...prev.session,
+                    status: 'processing',
+                    updated_at: new Date().toISOString(),
+                  },
+                }
               : prev
         );
       }
@@ -319,7 +343,6 @@ export const useSeerExplorer = () => {
       });
     },
     onError: (e, params) => {
-      setWaitingForInterrupt(false);
       addErrorMessage(
         typeof e.responseJSON?.detail === 'string'
           ? e.responseJSON.detail
@@ -341,6 +364,7 @@ export const useSeerExplorer = () => {
     }
   >({
     mutationFn: async params => {
+      setHasSentInterrupt(true);
       return fetchMutation({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
@@ -352,22 +376,22 @@ export const useSeerExplorer = () => {
       });
     },
     onError: () => {
-      setWaitingForInterrupt(false);
       addErrorMessage('Failed to interrupt');
     },
   });
 
-  const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
-
-  const {apiData, isPolling, isError, errorStatusCode, isResponseComplete} =
+  const {apiData, isPolling, isError, errorStatusCode, isTimedOut} =
     useSeerExplorerPolling({
       runId,
-      isMutatePending,
+      shouldPollOverride:
+        isPendingSendMessage || isPendingUserInput || isPendingCreatePR
+          ? true
+          : undefined,
     });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: number | null) => {
+    (newRunId: number | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
       if (newRunId === runId) {
         return;
       }
@@ -375,7 +399,7 @@ export const useSeerExplorer = () => {
       // Set the new run ID and clear previous request states
       setRunId(newRunId);
       setLastSentMessage(null);
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
 
       // Invalidate the query to force a fresh fetch
       if (orgSlug && newRunId !== null) {
@@ -383,12 +407,19 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
         });
       }
+
+      onSuccess?.();
     },
     [orgSlug, queryClient, runId, setRunId]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
-  const startNewSession = useCallback(() => switchToRun(null), [switchToRun]);
+  const startNewSession = useCallback(
+    ({onSuccess}: {onSuccess?: () => void} = {}) => {
+      switchToRun(null, {onSuccess});
+    },
+    [switchToRun]
+  );
 
   const sendMessage = useCallback(
     (query: string, explicitInsertIndex?: number, explicitRunId?: number | null) => {
@@ -433,11 +464,11 @@ export const useSeerExplorer = () => {
       }
 
       // Calculate new insert index
-      const blocksLength = apiData?.session?.blocks.length || 0;
-      const newInsertIndex = Math.min(
-        Math.max(explicitInsertIndex ?? blocksLength, 0),
-        blocksLength
-      );
+      const blocks = apiData?.session?.blocks || [];
+      const newInsertIndex =
+        explicitInsertIndex === undefined
+          ? blocks.length
+          : Math.min(Math.max(explicitInsertIndex, 0), blocks.length);
 
       // Pick a random placeholder for the next loading block, so it's deterministic per user message
       const texts = getOptimisticAssistantTexts();
@@ -447,7 +478,7 @@ export const useSeerExplorer = () => {
       setLastSentMessage({
         query,
         insertIndex: newInsertIndex,
-        timestampMs: Date.now(),
+        prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
         loadingPlaceholderContent: placeholderContent,
       });
 
@@ -479,12 +510,11 @@ export const useSeerExplorer = () => {
   );
 
   const interruptRun = useCallback(() => {
-    if (!orgSlug || !runId || waitingForInterrupt) {
+    if (!orgSlug || !runId) {
       return;
     }
-    setWaitingForInterrupt(true);
     interruptRunMutate({orgSlug, runId});
-  }, [orgSlug, runId, waitingForInterrupt, interruptRunMutate]);
+  }, [orgSlug, runId, interruptRunMutate]);
 
   const respondToUserInput = useCallback(
     (inputId: string, responseData?: Record<string, any>) => {
@@ -528,18 +558,21 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
 
-  // Clear interrupt button loading spinner on any completed state
-  useEffect(() => {
-    if (isResponseComplete) {
-      setWaitingForInterrupt(false);
-    }
-  }, [isResponseComplete]);
-
   const rawSessionData = apiData?.session ?? null;
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (lastSentMessage === null || !isPolling) {
+    if (!isPolling) {
+      // filter out incomplete loading blocks (can happen on timeout)
+      return rawSessionData === null
+        ? null
+        : {
+            ...rawSessionData,
+            blocks: rawSessionData?.blocks?.filter(b => !b.loading) ?? [],
+          };
+    }
+
+    if (lastSentMessage === null) {
       return rawSessionData;
     }
 
@@ -548,7 +581,7 @@ export const useSeerExplorer = () => {
     const {
       insertIndex,
       query: userQuery,
-      timestampMs: lastSentTimestampMs,
+      prevInsertIndexBlockId,
       loadingPlaceholderContent,
     } = lastSentMessage;
 
@@ -557,9 +590,8 @@ export const useSeerExplorer = () => {
     const blockAtInsert = serverBlocks[insertIndex];
     const serverHasUserBlock =
       blockAtInsert?.message.role === 'user' &&
-      blockAtInsert?.message.content === userQuery &&
-      (getDateFromTimestampAssumeUtc(blockAtInsert?.timestamp)?.getTime() ?? 0) >=
-        Math.floor(lastSentTimestampMs / 1000) * 1000;
+      blockAtInsert.message.content === userQuery &&
+      blockAtInsert.id !== prevInsertIndexBlockId; // block ID has changed (should be unique for each query)
 
     const serverHasResponse = serverBlocks
       .slice(insertIndex + 1)
@@ -610,6 +642,7 @@ export const useSeerExplorer = () => {
     isPolling,
     isError,
     errorStatusCode,
+    isTimedOut,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */
@@ -617,7 +650,7 @@ export const useSeerExplorer = () => {
     /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
     interruptRun,
-    waitingForInterrupt,
+    hasSentInterrupt,
     respondToUserInput,
     createPR,
     overrideCtxEngEnable,

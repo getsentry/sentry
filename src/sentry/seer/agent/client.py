@@ -46,6 +46,16 @@ from sentry.users.services.user import RpcUser
 logger = logging.getLogger(__name__)
 
 
+def _has_context_engine(
+    organization: Organization, user: User | RpcUser | AnonymousUser | None
+) -> bool:
+    return (
+        features.has("organizations:seer-explorer-context-engine", organization, actor=user)
+        or features.has("organizations:seat-based-seer-enabled", organization, actor=user)
+        or features.has("organizations:seer-added", organization, actor=user)
+    )
+
+
 class SeerAgentClient:
     """
     A simple client for the Seer Agent, our general debugging agent.
@@ -332,9 +342,7 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        if features.has(
-            "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):
+        if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 chat_body["is_context_engine_enabled"] = True
 
@@ -367,9 +375,6 @@ class SeerAgentClient:
         has_org_project_context: bool | None,
     ) -> None:
         """Trigger explorer indexing for the org if Seer reports missing indexes."""
-        if not options.get("seer.explorer_index.enable"):
-            return
-
         if options.get("seer.explorer_index.killswitch.enable"):
             logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
@@ -460,11 +465,7 @@ class SeerAgentClient:
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
-        if features.has(
-            "organizations:seer-explorer-context-engine",
-            self.organization,
-            actor=self.user,
-        ):
+        if _has_context_engine(self.organization, self.user):
             chat_body["is_context_engine_enabled"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)

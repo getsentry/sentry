@@ -930,6 +930,71 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
         assert app_ids == {"com.approved.app"}
 
+    def test_query_approval_status(self) -> None:
+        manual_artifact = self.create_preprod_artifact(app_id="com.manual.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=manual_artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=manual_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+        auto_artifact = self.create_preprod_artifact(app_id="com.auto.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=auto_artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=auto_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras={"auto_approval": True},
+        )
+
+        pending_artifact = self.create_preprod_artifact(app_id="com.pending.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=pending_artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=pending_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+        )
+
+        response = self._request({"display": "snapshot", "query": "approval_status:approved"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.manual.app"}
+
+        response = self._request({"display": "snapshot", "query": "approval_status:auto_approved"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.auto.app"}
+
+        response = self._request(
+            {"display": "snapshot", "query": "approval_status:requires_approval"}
+        )
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.pending.app"}
+
+    def test_query_approval_status_invalid_value(self) -> None:
+        self.create_preprod_artifact(app_id="com.test.app")
+
+        response = self._request({"display": "snapshot", "query": "approval_status:bogus"})
+        assert response.status_code == 400
+
+    def test_snapshot_comparison_info_auto_approved(self) -> None:
+        artifact = self.create_preprod_artifact(app_id="com.auto.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras={"auto_approval": True},
+        )
+
+        response = self._request({"display": "snapshot"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["snapshot_comparison_info"]["approval_status"] == "auto_approved"
+
 
 class QuerysetForQueryTest(APITestCase):
     """Tests for the queryset_for_query, artifact_in_queryset, and artifact_matches_query functions."""

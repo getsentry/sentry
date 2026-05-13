@@ -1,220 +1,200 @@
-import {Component} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {useQuery} from '@tanstack/react-query';
 
-import {Select} from '@sentry/scraps/select';
+import {Select, type GeneralSelectValue, type StylesConfig} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {Client} from 'sentry/api';
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import {MemberListStore} from 'sentry/stores/memberListStore';
-import type {Member, Organization} from 'sentry/types/organization';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {withApi} from 'sentry/utils/withApi';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {
+  memberUsersQueryOptions,
+  selectUsersFromMembers,
+} from 'sentry/utils/members/shared';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
 
-type MentionableUser = {
+const EMPTY_USERS: User[] = [];
+
+type SelectMemberValue = null | number | string | undefined;
+
+interface MentionableUser extends SelectValue<string> {
   actor: {
+    email: string;
     id: string;
     name: string;
     type: 'user';
   };
   label: React.ReactElement;
   searchKey: string;
-  value: string;
-  disabled?: boolean;
-};
+}
 
-type Props = {
-  api: Client;
-  onChange: (value: any) => any;
+interface Props {
+  onChange: (value: MentionableUser) => void;
   organization: Organization;
-  value: any;
-  ariaLabel?: string;
+  value: SelectMemberValue;
+  'aria-label'?: string;
   disabled?: boolean;
-  onInputChange?: (value: any) => any;
-  placeholder?: string;
-  styles?: {control?: (provided: any) => any};
-};
+  projectIds?: readonly string[];
+  styles?: StylesConfig;
+}
 
-type State = {
-  inputValue: string;
-  loading: boolean;
-  memberListLoading: boolean;
-  options: MentionableUser[] | null;
-};
+interface FilterOption {
+  data: MentionableUser;
+}
 
-type FilterOption<T> = {
-  data: T;
-  label: React.ReactNode;
-  value: string;
-};
+function isMentionableUser(option: GeneralSelectValue): option is MentionableUser {
+  const actor = (option as Partial<MentionableUser>).actor;
+
+  return typeof option.value === 'string' && actor?.type === 'user';
+}
+
+function filterMemberOption(option: FilterOption, filterText: string) {
+  return option?.data?.searchKey?.includes(filterText.toLowerCase());
+}
 
 /**
- * A component that allows you to select either members and/or teams
+ * A component that allows you to select organization members.
  */
-class SelectMembers extends Component<Props, State> {
-  state: State = {
-    loading: false,
-    inputValue: '',
-    options: null,
-    memberListLoading: MemberListStore.state.loading,
-  };
+function SelectMembers({
+  'aria-label': ariaLabel,
+  disabled,
+  onChange,
+  organization,
+  projectIds,
+  styles,
+  value,
+}: Props) {
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const {data: users = [], isPending: memberListLoading} = useQuery({
+    ...useProjectMembersQueryOptions(projectIds),
+    select: resp => selectUsersFromMembers(resp.json),
+  });
+  const searchMembersQuery = useQuery({
+    ...memberUsersQueryOptions({
+      orgSlug: organization.slug,
+      search: debouncedSearch,
+    }),
+    enabled: debouncedSearch !== '',
+    placeholderData: previousData => (debouncedSearch ? previousData : undefined),
+  });
+  const searchedUsers = debouncedSearch
+    ? (searchMembersQuery.data ?? EMPTY_USERS)
+    : EMPTY_USERS;
+  const searchLoading = debouncedSearch !== '' && searchMembersQuery.isFetching;
 
-  componentWillUnmount() {
-    this.unlisteners.forEach(listener => {
-      if (typeof listener === 'function') {
-        listener();
-      }
-    });
-  }
-
-  unlisteners = [
-    MemberListStore.listen(
-      () => this.setState({memberListLoading: MemberListStore.state.loading}),
-      undefined
-    ),
-  ];
-
-  renderUserBadge = (user: User) => (
-    <IdBadge avatarSize={24} user={user} hideEmail disableLink />
+  const renderUserBadge = useCallback(
+    (user: User) => <IdBadge avatarSize={24} user={user} hideEmail disableLink />,
+    []
   );
 
-  createMentionableUser = (user: User): MentionableUser => ({
-    value: user.id,
-    label: this.renderUserBadge(user),
-    searchKey: getSearchKeyForUser(user),
-    actor: {
-      type: 'user',
-      id: user.id,
-      name: user.name,
-    },
-  });
-
-  createUnmentionableUser = ({user}: any) => ({
-    ...this.createMentionableUser(user),
-    disabled: true,
-    label: (
-      <DisabledLabel>
-        <Tooltip
-          position="left"
-          title={t('%s is not a member of project', user.name || user.email)}
-        >
-          {this.renderUserBadge(user)}
-        </Tooltip>
-      </DisabledLabel>
-    ),
-  });
-
-  getMentionableUsers() {
-    return MemberListStore.getAll().map(this.createMentionableUser);
-  }
-
-  handleChange = (newValue: any) => {
-    this.props.onChange(newValue);
-  };
-
-  handleInputChange = (inputValue: any) => {
-    this.setState({inputValue});
-
-    if (this.props.onInputChange) {
-      this.props.onInputChange(inputValue);
-    }
-  };
-
-  queryMembers = debounce(
-    (query: string, cb: (...args: [Error] | [null, Member[]]) => void) => {
-      const {api, organization} = this.props;
-
-      // Because this function is debounced, the component can potentially be
-      // unmounted before this fires, in which case, `api` is null
-      if (!api) {
-        return null;
-      }
-
-      return api
-        .requestPromise(`/organizations/${organization.slug}/members/`, {
-          query: {query},
-        })
-        .then(
-          data => cb(null, data),
-          err => cb(err as Error)
-        );
-    },
-    250
+  const createMentionableUser = useCallback(
+    (user: User): MentionableUser => ({
+      value: user.id,
+      label: renderUserBadge(user),
+      searchKey: getSearchKeyForUser(user),
+      actor: {
+        type: 'user',
+        email: user.email,
+        id: user.id,
+        name: user.name,
+      },
+    }),
+    [renderUserBadge]
   );
 
-  handleLoadOptions = (): Promise<MentionableUser[]> => {
-    const usersInProject = this.getMentionableUsers();
-    const usersInProjectById = usersInProject.map(({actor}) => actor.id);
+  const createUnmentionableUser = useCallback(
+    (user: User): MentionableUser => ({
+      ...createMentionableUser(user),
+      disabled: true,
+      label: (
+        <DisabledLabel>
+          <Tooltip
+            position="left"
+            title={t('%s is not a member of project', user.name || user.email)}
+          >
+            {renderUserBadge(user)}
+          </Tooltip>
+        </DisabledLabel>
+      ),
+    }),
+    [createMentionableUser, renderUserBadge]
+  );
 
-    // Return a promise for `react-select`
-    return new Promise<Member[]>((resolve, reject) => {
-      this.queryMembers(this.state.inputValue, (...errOrResult) => {
-        if (errOrResult[0]) {
-          reject(errOrResult[0]);
-        } else {
-          resolve(errOrResult[1]);
-        }
-      });
-    })
-      .then(members =>
-        // Be careful here as we actually want the `users` object, otherwise it means user
-        // has not registered for sentry yet, but has been invited
-        members
-          ? members
-              .filter(({user}) => user && !usersInProjectById.includes(user.id))
-              .map(this.createUnmentionableUser)
-          : []
-      )
-      .then(members => {
-        const options = [...usersInProject, ...members];
-        this.setState({options});
-        return options;
-      });
+  const usersInProjectById = useMemo(() => new Set(users.map(({id}) => id)), [users]);
+  const mentionableUsers = useMemo(
+    () => users.map(createMentionableUser),
+    [createMentionableUser, users]
+  );
+  const unmentionableUsers = useMemo(
+    () =>
+      searchedUsers
+        .filter(user => !usersInProjectById.has(user.id))
+        .map(createUnmentionableUser),
+    [createUnmentionableUser, searchedUsers, usersInProjectById]
+  );
+
+  const currentOptions = useMemo(
+    () => [...mentionableUsers, ...unmentionableUsers],
+    [mentionableUsers, unmentionableUsers]
+  );
+
+  const handleInputChange = (nextInputValue: string) => {
+    setSearch(nextInputValue);
   };
-
-  render() {
-    const {placeholder, styles, ariaLabel} = this.props;
-
-    // If memberList is still loading we need to disable a placeholder Select,
-    // otherwise `react-select` will call `loadOptions` and prematurely load
-    // options
-    if (this.state.memberListLoading) {
-      return <StyledSelectControl isDisabled placeholder={t('Loading')} />;
+  const handleChange = (option: GeneralSelectValue | GeneralSelectValue[] | null) => {
+    if (!option || Array.isArray(option)) {
+      return;
     }
 
+    if (isMentionableUser(option)) {
+      onChange(option);
+    }
+  };
+  const selectStyles: StylesConfig = useMemo(
+    () => ({
+      ...styles,
+      option: (provided, state) => ({
+        ...provided,
+        svg: {
+          color: state.isSelected ? '#fff' : undefined,
+        },
+      }),
+    }),
+    [styles]
+  );
+
+  // Keep the select disabled until project-scoped members have loaded so the
+  // default option set is complete before users can search.
+  if (memberListLoading) {
     return (
-      <StyledSelectControl
-        aria-label={ariaLabel}
-        filterOption={(option: FilterOption<MentionableUser>, filterText: string) =>
-          option?.data?.searchKey?.indexOf(filterText) > -1
-        }
-        loadOptions={this.handleLoadOptions}
-        defaultOptions
-        async
-        isDisabled={this.props.disabled}
-        cacheOptions={false}
-        placeholder={placeholder}
-        onInputChange={this.handleInputChange}
-        onChange={this.handleChange}
-        value={this.state.options?.find(({value}) => value === this.props.value)}
-        styles={{
-          ...styles,
-          option: (provided: any, state: any) => ({
-            ...provided,
-
-            svg: {
-              color: state.isSelected && '#fff',
-            },
-          }),
-        }}
-      />
+      <StyledSelectControl aria-label={ariaLabel} isDisabled placeholder={t('Loading')} />
     );
   }
+
+  const selectedValue = value === null || value === undefined ? undefined : String(value);
+  const selectedOption = currentOptions.find(option => option.value === selectedValue);
+
+  return (
+    <StyledSelectControl
+      aria-label={ariaLabel}
+      options={currentOptions}
+      filterOption={filterMemberOption}
+      isDisabled={disabled}
+      isLoading={searchLoading}
+      onInputChange={handleInputChange}
+      onChange={handleChange}
+      value={selectedOption}
+      styles={selectStyles}
+    />
+  );
 }
 
 const DisabledLabel = styled('div')`
@@ -233,4 +213,5 @@ const StyledSelectControl = styled(Select)`
   }
 `;
 
-export default withApi(SelectMembers);
+// eslint-disable-next-line @sentry/no-default-exports
+export default SelectMembers;

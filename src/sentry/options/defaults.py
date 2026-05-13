@@ -3379,8 +3379,19 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# TTL in seconds for span deduplication tracking. When > 0, the consumer
+# will use Redis SETNX to detect duplicate spans and emit metrics.
+# Set to 0 to disable.
 register(
-    "spans.process-segments.semantic-partitioning",
+    "spans.process-segments.dedupe-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When True (and dedupe-ttl > 0), actually filter out duplicate spans
+# instead of just detecting and emitting metrics.
+register(
+    "spans.process-segments.dedupe-filter-enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

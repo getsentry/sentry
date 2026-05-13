@@ -22,7 +22,6 @@ import type {
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -179,9 +178,7 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
           <Fragment key={dataSource.id}>
             <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
             <DetailItem>
-              {datasetConfig.fromApiAggregate(
-                stripEquationPrefix(dataSource.queryObj.snubaQuery.aggregate)
-              )}
+              {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
             </DetailItem>
             <DetailItem>
               {middleEllipsis(

@@ -384,13 +384,13 @@ describe('desktop navigation', () => {
           [`${ORG}/insights/mobile/`, 'Insights', 'Mobile'],
           [`${ORG}/insights/ai-agents/`, 'Insights', 'Agents'],
           [`${ORG}/insights/mcp/`, 'Insights', 'MCP'],
-          [`${ORG}/monitors/crons/?insightsRedirect=true`, 'Monitors', 'Crons'],
+          [`${ORG}/monitors/crons/?insightsRedirect=true`, 'Monitors', 'Cron'],
           // Monitors
           [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           [`${ORG}/monitors/my-monitors/`, 'Monitors', 'My Monitors'],
-          [`${ORG}/monitors/errors/`, 'Monitors', 'Errors'],
-          [`${ORG}/monitors/metrics/`, 'Monitors', 'Metrics'],
-          [`${ORG}/monitors/crons/`, 'Monitors', 'Crons'],
+          [`${ORG}/monitors/errors/`, 'Monitors', 'Error'],
+          [`${ORG}/monitors/metrics/`, 'Monitors', 'Metric'],
+          [`${ORG}/monitors/crons/`, 'Monitors', 'Cron'],
           [`${ORG}/monitors/alerts/`, 'Monitors', 'Alerts'],
           // Settings
           ['/settings/org-slug/', 'Settings', 'General Settings'],

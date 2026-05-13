@@ -1,11 +1,14 @@
 import {Fragment} from 'react';
+import {useMemo} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {NotFound} from 'sentry/components/errors/notFound';
@@ -59,6 +62,9 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
   const {provider} = dataForwarder;
   const organization = useOrganization();
   const {projects} = useProjects({orgId: organization.slug});
+  const projectMap = useMemo(() => {
+    return new Map(projects.map(p => [p.id, p]));
+  }, [projects]);
 
   return (
     <Fragment>
@@ -131,22 +137,68 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                   ))}
                 </TabList>
               </Tabs>
-              <ProviderEditForm
-                dataForwarder={dataForwarder}
-                projects={projects}
-                disabled={!hasFeature}
-              />
-              {dataForwarder.enrolledProjects.length > 0 && (
-                <FieldGroup title={t('Project Overrides')}>
-                  {dataForwarder.enrolledProjects.map(project => (
-                    <ProjectOverrideForm
-                      key={project.id}
-                      project={project}
+              <Access access={['org:write']}>
+                {({hasAccess}) =>
+                  hasAccess ? (
+                    <ProviderEditForm
                       dataForwarder={dataForwarder}
+                      projects={projects}
                       disabled={!hasFeature}
                     />
-                  ))}
+                  ) : (
+                    <Alert
+                      variant="warning"
+                      expand={t(
+                        'If you manage projects that are opted into this data forwarder, you can set their overrides below. For all non-overridden fields, the default configuration will be applied. To opt-in more projects, or modify the global default configuration, contact your Sentry organization owner, manager or admin.'
+                      )}
+                    >
+                      {t(
+                        'Only organization owners, managers or admins can edit the global data forwarding configuration.'
+                      )}
+                    </Alert>
+                  )
+                }
+              </Access>
+              {dataForwarder.enrolledProjects.length > 0 ? (
+                <FieldGroup title={t('Project Overrides')}>
+                  <Access access={['org:write']}>
+                    {({hasAccess}) =>
+                      hasAccess ? null : (
+                        <Alert
+                          variant="muted"
+                          system
+                          expand={t(
+                            "Only projects that have been opted in to this data forwarder AND that you have access to manage, will appear here. To opt in more of your projects, you'll need to contact an owner, manager or admin for your Sentry organization."
+                          )}
+                        >
+                          {t(
+                            'You have limited access to project overrides for this data forwarder.'
+                          )}
+                          <br />
+                        </Alert>
+                      )
+                    }
+                  </Access>
+                  {dataForwarder.enrolledProjects.map(enrolledProject => {
+                    return (
+                      <Access
+                        key={enrolledProject.id}
+                        access={['project:write']}
+                        project={projectMap.get(`${enrolledProject.id}`)}
+                      >
+                        <ProjectOverrideForm
+                          project={enrolledProject}
+                          dataForwarder={dataForwarder}
+                          disabled={!hasFeature}
+                        />
+                      </Access>
+                    );
+                  })}
                 </FieldGroup>
+              ) : (
+                <Alert variant="muted">
+                  {t('This data forwarder is not connected to any projects yet.')}
+                </Alert>
               )}
             </Fragment>
           )}

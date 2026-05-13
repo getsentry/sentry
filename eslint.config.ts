@@ -793,19 +793,19 @@ export default typescript.config([
       'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
 
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-array-push-push': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-zero-fractions': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'error',
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'error',
 
       // TODO: Evaluate which rules we could practically fix violations from & enable
       'unicorn/consistent-date-clone': 'off',
@@ -1391,6 +1391,14 @@ export default typescript.config([
     files: ['static/app/components/core/inspector.tsx'],
     rules: {
       'boundaries/dependencies': 'off',
+    },
+  },
+  {
+    name: 'files/scraps',
+    files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+    ignores: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'error',
     },
   },
 ]);

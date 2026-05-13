@@ -303,7 +303,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             run_id: The run ID
             state: The current run state
         """
-        current_step, _ = cls._get_current_step(state)
+        current_step, referrer = cls._get_current_step(state)
 
         # Get pipeline metadata from state
         metadata = state.metadata
@@ -372,7 +372,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         trigger_autofix_agent(
             group=group,
             step=next_step,
-            referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+            referrer=referrer or AutofixReferrer.ON_COMPLETION_HOOK,
             run_id=run_id,
         )
 

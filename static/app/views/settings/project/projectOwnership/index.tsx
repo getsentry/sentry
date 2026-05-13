@@ -7,8 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
+import {closeModal, openEditOwnershipRules} from 'sentry/actionCreators/modal';
 import {Access, hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -41,6 +42,8 @@ const ownershipSchema = z.object({
 });
 
 export default function ProjectOwnership() {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
   const queryClient = useQueryClient();

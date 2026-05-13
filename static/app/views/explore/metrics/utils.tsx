@@ -57,14 +57,16 @@ export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): stri
 
     search.addFilterValue('metric.name', traceMetric.name);
     search.addFilterValue('metric.type', traceMetric.type);
-    const addNoneOperators = traceMetric.unit === NONE_UNIT;
+    const metricUnit =
+      traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
+    const addNoneOperators = metricUnit === NONE_UNIT;
     if (addNoneOperators) {
       search.addOp('(');
       search.addFilterValue('!has', 'metric.unit');
       search.addOp('OR');
     }
 
-    search.addFilterValue('metric.unit', traceMetric.unit ?? NONE_UNIT);
+    search.addFilterValue('metric.unit', metricUnit);
 
     if (addNoneOperators) {
       search.addOp(')');
