@@ -14,14 +14,13 @@ import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -48,8 +47,8 @@ export interface InstallationWrapperProps {
   installation: ScmInstallation;
 }
 
-const REPO_LIST_MAX_HEIGHT = 400;
-const ESTIMATED_REPO_ROW_HEIGHT = 32;
+const REPO_LIST_MAX_HEIGHT = 410;
+const ESTIMATED_REPO_ROW_HEIGHT = 36;
 
 interface ScmRepositoryTableProps {
   /**
@@ -73,14 +72,39 @@ interface ScmRepositoryTableProps {
   repoMatches?: ScmRepoMatches;
 }
 
-export function ScmRepositoryTable({installations, ...rest}: ScmRepositoryTableProps) {
-  const soleInstallation = installations.length === 1 ? installations[0]! : null;
+export function ScmRepositoryTable({
+  installations,
+  provider,
+  installationWrapper: Wrapper,
+  repoMatches,
+}: ScmRepositoryTableProps) {
+  const {expandedIds, toggle} = useExpandedInstallations(installations);
 
-  if (soleInstallation !== null) {
-    return <SingleInstallTable installation={soleInstallation} {...rest} />;
-  }
-
-  return <MultiInstallTable installations={installations} {...rest} />;
+  return (
+    <Flex direction="column" gap="xl">
+      {installations.map(installation => {
+        const hasSearchHits =
+          repoMatches !== undefined &&
+          installation.repositories.some(r => repoMatches[r.id]);
+        const panel = (
+          <InstallationPanel
+            installation={installation}
+            provider={provider}
+            expanded={hasSearchHits || expandedIds.has(installation.integration.id)}
+            onToggle={() => toggle(installation.integration.id)}
+            repoMatches={repoMatches}
+          />
+        );
+        return Wrapper ? (
+          <Wrapper key={installation.integration.id} installation={installation}>
+            {panel}
+          </Wrapper>
+        ) : (
+          <Fragment key={installation.integration.id}>{panel}</Fragment>
+        );
+      })}
+    </Flex>
+  );
 }
 
 interface OverrideProviderProps {
@@ -109,11 +133,12 @@ export function InstallationOverrideProvider({value, children}: OverrideProvider
 function useExpandedInstallations(installations: ScmInstallation[]) {
   const [overrides, setOverrides] = useState<Map<string, boolean>>(() => new Map());
 
-  const defaultExpandedById = useMemo(
-    () =>
-      new Map(installations.map(i => [i.integration.id, i.initiallyExpanded ?? false])),
-    [installations]
-  );
+  const defaultExpandedById = useMemo(() => {
+    const fallback = installations.length === 1;
+    return new Map(
+      installations.map(i => [i.integration.id, i.initiallyExpanded ?? fallback])
+    );
+  }, [installations]);
 
   const expandedIds = useMemo(() => {
     const expanded = installations
@@ -147,109 +172,7 @@ function useMergedInstallation(installation: ScmInstallation): ScmInstallation {
   return useMemo(() => ({...installation, ...overrides}), [installation, overrides]);
 }
 
-interface SoloInstallTableProps extends Omit<ScmRepositoryTableProps, 'installations'> {
-  installation: ScmInstallation;
-}
-
-function SingleInstallTable({
-  installation,
-  installationWrapper: Wrapper,
-  ...rest
-}: SoloInstallTableProps) {
-  const content = <SingleInstallTableContent installation={installation} {...rest} />;
-  return Wrapper ? <Wrapper installation={installation}>{content}</Wrapper> : content;
-}
-
-function SingleInstallTableContent({
-  provider,
-  installation,
-  repoMatches,
-}: SoloInstallTableProps) {
-  const merged = useMergedInstallation(installation);
-
-  return (
-    <Panel role="region" aria-label={provider.name}>
-      <TableHeader>
-        <Flex align="center" gap="sm">
-          <IntegrationSummary installation={merged} />
-        </Flex>
-        <Flex align="center" gap="sm">
-          <Flex display={{xs: 'none', sm: 'flex'}}>
-            <InstallationRepoCountTag installation={merged} />
-          </Flex>
-          <InstallationActions installation={merged} providerName={provider.name} />
-        </Flex>
-      </TableHeader>
-      <VirtualizedRepoList
-        installation={merged}
-        repoMatches={repoMatches}
-        providerName={provider.name}
-      />
-    </Panel>
-  );
-}
-
-function MultiInstallTable({
-  provider,
-  installations,
-  installationWrapper: Wrapper,
-  repoMatches,
-}: ScmRepositoryTableProps) {
-  const {expandedIds, toggle} = useExpandedInstallations(installations);
-
-  return (
-    <Panel role="region" aria-label={provider.name}>
-      <TableHeader>
-        <Flex align="center" gap="sm">
-          {getIntegrationIcon(provider.key, 'sm')}
-          <Text bold>{provider.name}</Text>
-        </Flex>
-      </TableHeader>
-      <Grid role="list" columns="max-content 1fr max-content max-content" gap="0 md">
-        {installations.map(installation => {
-          const hasSearchHits =
-            repoMatches !== undefined &&
-            installation.repositories.some(r => repoMatches[r.id]);
-          const row = (
-            <InstallationRow
-              provider={provider}
-              installation={installation}
-              expanded={hasSearchHits || expandedIds.has(installation.integration.id)}
-              onToggle={() => toggle(installation.integration.id)}
-              repoMatches={repoMatches}
-            />
-          );
-          return Wrapper ? (
-            <Wrapper key={installation.integration.id} installation={installation}>
-              <InstallationSubgrid role="listitem">{row}</InstallationSubgrid>
-            </Wrapper>
-          ) : (
-            <InstallationSubgrid key={installation.integration.id} role="listitem">
-              {row}
-            </InstallationSubgrid>
-          );
-        })}
-      </Grid>
-    </Panel>
-  );
-}
-
-function TableHeader({children}: {children: React.ReactNode}) {
-  return (
-    <Flex
-      justify="between"
-      background="secondary"
-      padding="xs lg"
-      radius="sm sm 0 0"
-      borderBottom="secondary"
-      minHeight="36px"
-    >
-      {children}
-    </Flex>
-  );
-}
-
-interface InstallationRowProps {
+interface InstallationPanelProps {
   expanded: boolean;
   installation: ScmInstallation;
   onToggle: () => void;
@@ -257,17 +180,18 @@ interface InstallationRowProps {
   repoMatches?: ScmRepoMatches;
 }
 
-function InstallationRow({
-  provider,
+function InstallationPanel({
   installation,
+  provider,
   expanded,
   onToggle,
   repoMatches,
-}: InstallationRowProps) {
+}: InstallationPanelProps) {
   const merged = useMergedInstallation(installation);
   const {expandDisabled} = merged;
+  const isExpanded = expanded && !expandDisabled;
 
-  const handleRowClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleHeaderClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (expandDisabled) {
       return;
     }
@@ -278,7 +202,7 @@ function InstallationRow({
     onToggle();
   };
 
-  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleHeaderKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (expandDisabled || event.target !== event.currentTarget) {
       return;
     }
@@ -289,36 +213,46 @@ function InstallationRow({
   };
 
   return (
-    <Fragment>
-      <RowButton
+    <Stack
+      role="region"
+      aria-label={merged.integration.name}
+      border="primary"
+      radius="md"
+      overflow="hidden"
+    >
+      <ExpandableHeader
         role="button"
         tabIndex={expandDisabled ? -1 : 0}
         aria-label={merged.integration.name}
-        aria-expanded={expandDisabled ? undefined : expanded}
+        aria-expanded={expandDisabled ? undefined : isExpanded}
         aria-disabled={expandDisabled || undefined}
-        onClick={handleRowClick}
-        onKeyDown={handleRowKeyDown}
+        onClick={handleHeaderClick}
+        onKeyDown={handleHeaderKeyDown}
       >
-        <IconChevron direction={expanded && !expandDisabled ? 'down' : 'right'} />
         <Flex align="center" gap="sm">
+          <IconChevron direction={isExpanded ? 'up' : 'right'} />
           <IntegrationSummary installation={merged} />
         </Flex>
-        <Flex align="center" display={{xs: 'none', sm: 'flex'}}>
-          <InstallationRepoCountTag installation={merged} />
+        <Flex align="center" gap="sm">
+          <Flex align="center" gap="sm" paddingRight="lg" borderRight="secondary">
+            <Flex display={{xs: 'none', sm: 'flex'}}>
+              <InstallationRepoCountTag installation={merged} />
+            </Flex>
+            {merged.manageUrl && (
+              <ManageLink href={merged.manageUrl} providerName={provider.name} />
+            )}
+          </Flex>
+          <InstallationActions installation={merged} />
         </Flex>
-        <Flex align="center" gap="md" justifySelf="end">
-          <InstallationActions installation={merged} providerName={provider.name} />
-        </Flex>
-      </RowButton>
-      {expanded && !expandDisabled && (
+      </ExpandableHeader>
+      {isExpanded && (
         <VirtualizedRepoList
           installation={merged}
           repoMatches={repoMatches}
           providerName={provider.name}
-          nested
         />
       )}
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -357,14 +291,32 @@ function IntegrationSummary({installation}: {installation: ScmInstallation}) {
     <Fragment>
       {getIntegrationIcon(integration.provider.key, 'sm')}
       <Text bold>{integration.name}</Text>
-      {integration.status === 'disabled' && <Tag variant="warning">{t('Disabled')}</Tag>}
+      {integration.status === 'disabled' && <Tag variant="danger">{t('Disabled')}</Tag>}
     </Fragment>
   );
 }
 
 interface InstallationActionsProps {
   installation: ScmInstallation;
-  providerName: string;
+}
+
+function ManageLink({href, providerName}: {href: string; providerName: string}) {
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  return (
+    <NeutralLinkButton
+      tooltipProps={{
+        title: t('Add or remove repository access on %s', providerName),
+      }}
+      href={href}
+      external
+      variant="link"
+      size="xs"
+      icon={<IconOpen />}
+    >
+      {isSmallScreen ? undefined : t('Manage')}
+    </NeutralLinkButton>
+  );
 }
 
 function getRepoCountTooltip(
@@ -399,9 +351,8 @@ function getRepoCountTooltip(
   return tct('Repositories not yet synced. [syncNow]', {syncNow: syncNowButton});
 }
 
-function InstallationActions({installation, providerName}: InstallationActionsProps) {
+function InstallationActions({installation}: InstallationActionsProps) {
   const {
-    manageUrl,
     overflowMenuItems,
     settingsButtonProps,
     uninstallButtonProps,
@@ -409,65 +360,48 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onUninstall,
   } = installation;
 
-  const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  if (!onUninstall && !onSettings && !overflowMenuItems?.length) {
+    return null;
+  }
 
   return (
-    <Fragment>
-      {manageUrl && (
-        <LinkButton
-          tooltipProps={{
-            title: t('Add or remove repository access on %s', providerName),
-          }}
-          href={manageUrl}
-          external
-          variant="link"
+    <Flex align="center" gap="2xs">
+      {onUninstall && (
+        <Button
+          aria-label={t('Uninstall')}
           size="xs"
-          icon={<IconOpen />}
-        >
-          {isSmallScreen ? undefined : t('Manage repositories')}
-        </LinkButton>
+          variant="transparent"
+          icon={<IconDelete />}
+          {...uninstallButtonProps}
+          onClick={onUninstall}
+        />
       )}
-      {(onUninstall || onSettings || !!overflowMenuItems?.length) && (
-        <Flex align="center" gap="2xs">
-          {onUninstall && (
+      {onSettings && (
+        <Button
+          aria-label={t('Integration settings')}
+          size="xs"
+          variant="transparent"
+          icon={<IconSliders />}
+          {...settingsButtonProps}
+          onClick={onSettings}
+        />
+      )}
+      {overflowMenuItems && overflowMenuItems.length > 0 && (
+        <DropdownMenu
+          items={overflowMenuItems}
+          position="bottom-end"
+          trigger={triggerProps => (
             <Button
-              aria-label={t('Uninstall')}
+              {...triggerProps}
               size="xs"
               variant="transparent"
-              icon={<IconDelete />}
-              {...uninstallButtonProps}
-              onClick={onUninstall}
+              aria-label={t('More Actions')}
+              icon={<IconEllipsis />}
             />
           )}
-          {onSettings && (
-            <Button
-              aria-label={t('Integration settings')}
-              size="xs"
-              variant="transparent"
-              icon={<IconSliders />}
-              {...settingsButtonProps}
-              onClick={onSettings}
-            />
-          )}
-          {overflowMenuItems && overflowMenuItems.length > 0 && (
-            <DropdownMenu
-              items={overflowMenuItems}
-              position="bottom-end"
-              trigger={triggerProps => (
-                <Button
-                  {...triggerProps}
-                  size="xs"
-                  variant="transparent"
-                  aria-label={t('More Actions')}
-                  icon={<IconEllipsis />}
-                />
-              )}
-            />
-          )}
-        </Flex>
+        />
       )}
-    </Fragment>
+    </Flex>
   );
 }
 
@@ -494,7 +428,6 @@ function RepoMappings({
 interface VirtualizedRepoListProps {
   installation: ScmInstallation;
   providerName: string;
-  nested?: boolean;
   repoMatches?: ScmRepoMatches;
 }
 
@@ -502,7 +435,6 @@ function VirtualizedRepoList({
   installation,
   repoMatches,
   providerName,
-  nested = false,
 }: VirtualizedRepoListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const {
@@ -555,138 +487,124 @@ function VirtualizedRepoList({
     );
   };
 
-  const outerColumn = nested ? '1/-1' : undefined;
-  const outerColumns = nested ? 'subgrid' : '1fr';
-  const contentColumn = nested ? '2/-1' : undefined;
-
-  const items =
-    visibleRepos.length === 0 ? (
-      <Flex column={contentColumn} padding="md xl" justify="center">
+  if (visibleRepos.length === 0) {
+    return (
+      <Flex padding="xl xl" justify="center" borderTop="primary">
         {renderEmptyMessage()}
       </Flex>
-    ) : (
-      <Grid
-        column={outerColumn}
-        columns={outerColumns}
-        position="relative"
-        style={{height: virtualizer.getTotalSize()}}
+    );
+  }
+
+  return (
+    <Stack borderTop="primary">
+      <Flex
+        justify="between"
+        align="center"
+        padding="lg 3xl"
+        borderBottom="primary"
+        background="secondary"
       >
-        {virtualizer.getVirtualItems().map(virtualItem => {
-          const repo = visibleRepos[virtualItem.index]!;
-          const nameMatch = repoMatches?.[repo.id]?.find(m => m.key === 'name');
-          const isLast = virtualItem.index === visibleRepos.length - 1;
-          return (
-            <Fragment key={virtualItem.key}>
-              <Container
-                column="1/-1"
-                position="absolute"
-                top="0"
-                left="0"
-                right="0"
-                borderBottom={isLast ? undefined : 'secondary'}
-                style={{
-                  transform: `translateY(${virtualItem.start}px)`,
-                  height: virtualItem.size,
-                }}
-              />
-              <RepoRow
-                role="listitem"
-                ref={virtualizer.measureElement}
-                data-index={virtualItem.index}
-                column={contentColumn}
-                position="absolute"
-                top="0"
-                left="0"
-                right="0"
-                align="center"
-                justify="between"
-                gap="sm"
-                padding={nested ? 'xs xl xs 0' : 'xs lg'}
-                style={{transform: `translateY(${virtualItem.start}px)`}}
-              >
-                <Flex align="center" gap="sm" minWidth="0">
-                  {repo.url ? (
-                    <Fragment>
-                      <RepoNameLink href={repo.url}>
+        <Text as="span" variant="secondary" size="sm" uppercase bold>
+          {t('Repositories')}
+        </Text>
+        <Text as="span" variant="secondary" size="sm" uppercase bold>
+          {t('Connected Projects')}
+        </Text>
+      </Flex>
+      <Container
+        ref={scrollRef}
+        role="list"
+        aria-label={t('Repositories')}
+        maxHeight={`${REPO_LIST_MAX_HEIGHT}px`}
+        overflowY="auto"
+        position="relative"
+      >
+        <Container position="relative" style={{height: virtualizer.getTotalSize()}}>
+          {virtualizer.getVirtualItems().map(virtualItem => {
+            const repo = visibleRepos[virtualItem.index]!;
+            const nameMatch = repoMatches?.[repo.id]?.find(m => m.key === 'name');
+            const isLast = virtualItem.index === visibleRepos.length - 1;
+            return (
+              <Fragment key={virtualItem.key}>
+                <Container
+                  position="absolute"
+                  top="0"
+                  left="0"
+                  right="0"
+                  borderBottom={isLast ? undefined : 'secondary'}
+                  style={{
+                    transform: `translateY(${virtualItem.start}px)`,
+                    height: virtualItem.size,
+                  }}
+                />
+                <RepoRow
+                  role="listitem"
+                  ref={virtualizer.measureElement}
+                  data-index={virtualItem.index}
+                  position="absolute"
+                  top="0"
+                  left="0"
+                  right="0"
+                  align="center"
+                  justify="between"
+                  gap="sm"
+                  padding="lg 3xl"
+                  style={{transform: `translateY(${virtualItem.start}px)`}}
+                >
+                  <Flex align="center" gap="sm" minWidth="0">
+                    {repo.url ? (
+                      <Fragment>
+                        <RepoNameLink href={repo.url}>
+                          {nameMatch
+                            ? highlightFuseMatches(nameMatch, HighlightMark)
+                            : repo.name}
+                        </RepoNameLink>
+                        <LinkButton
+                          className="hover-reveal"
+                          href={repo.url}
+                          external
+                          size="zero"
+                          variant="transparent"
+                          icon={<IconOpen variant="muted" />}
+                          aria-label={t('View repository on %s', providerName)}
+                          tooltipProps={{
+                            title: t('View repository on %s', providerName),
+                          }}
+                        />
+                      </Fragment>
+                    ) : (
+                      <Text>
                         {nameMatch
                           ? highlightFuseMatches(nameMatch, HighlightMark)
                           : repo.name}
-                      </RepoNameLink>
-                      <LinkButton
-                        className="hover-reveal"
-                        href={repo.url}
-                        external
-                        size="zero"
-                        variant="transparent"
-                        icon={<IconOpen variant="muted" />}
-                        aria-label={t('View repository on %s', providerName)}
-                        tooltipProps={{
-                          title: t('View repository on %s', providerName),
-                        }}
-                      />
-                    </Fragment>
-                  ) : (
-                    <Text>
-                      {nameMatch
-                        ? highlightFuseMatches(nameMatch, HighlightMark)
-                        : repo.name}
-                    </Text>
+                      </Text>
+                    )}
+                  </Flex>
+                  {mappedProjectSlugsByRepoId && (
+                    <RepoMappings
+                      slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
+                      mappingsLoading={mappingsLoading}
+                      action={installation.repoActions?.(repo)}
+                    />
                   )}
-                </Flex>
-                {mappedProjectSlugsByRepoId && (
-                  <RepoMappings
-                    slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
-                    mappingsLoading={mappingsLoading}
-                    action={installation.repoActions?.(repo)}
-                  />
-                )}
-              </RepoRow>
-            </Fragment>
-          );
-        })}
-      </Grid>
-    );
-
-  const commonProps = {
-    ref: scrollRef,
-    role: 'list',
-    'aria-label': t('Repositories'),
-    maxHeight: `${REPO_LIST_MAX_HEIGHT}px`,
-    overflowY: 'auto',
-    position: 'relative',
-  } as const;
-
-  return nested ? (
-    <Grid {...commonProps} column={outerColumn} columns={outerColumns}>
-      {items}
-    </Grid>
-  ) : (
-    <Container {...commonProps}>{items}</Container>
+                </RepoRow>
+              </Fragment>
+            );
+          })}
+        </Container>
+      </Container>
+    </Stack>
   );
 }
 
-const InstallationSubgrid = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-`;
-
-const RowButton = styled('div')`
+const ExpandableHeader = styled('div')`
   cursor: pointer;
-
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-
-  &[aria-expanded='true'] {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
+  min-height: 36px;
 
   &[aria-disabled='true'] {
     cursor: default;
@@ -699,6 +617,18 @@ const RowButton = styled('div')`
   &:focus-visible {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
     outline-offset: -2px;
+  }
+
+  &:not([aria-disabled='true']):active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+`;
+
+const NeutralLinkButton = styled(LinkButton)`
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
   }
 `;
 
