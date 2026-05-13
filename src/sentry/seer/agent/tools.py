@@ -6,7 +6,7 @@ from typing import Any, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ParseError
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
@@ -41,6 +41,7 @@ from sentry.replays.query import (
     query_replays_collection_paginated,
     replay_url_parser_config,
 )
+from sentry.replays.validators import VALID_FIELD_SET
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
@@ -451,6 +452,11 @@ def execute_replays_query(
     if not resolved_project_ids:
         return {"data": []}
 
+    requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
+    invalid_fields = sorted(set(requested_fields) - set(VALID_FIELD_SET))
+    if invalid_fields:
+        return {"error": f"Invalid replay field(s): {', '.join(invalid_fields)}"}
+
     date_params: dict[str, Any] = {}
     if start and end:
         date_params["start"] = start
@@ -467,15 +473,26 @@ def execute_replays_query(
             end=end_dt,
             environment=[],
             sort=sort,
-            fields=fields or DEFAULT_REPLAY_SEARCH_FIELDS,
-            limit=per_page,
+            fields=requested_fields,
+            limit=per_page + 1,
             offset=0,
             search_filters=search_filters,
             preferred_source="scalar",
             organization=organization,
             actor=None,
         )
-    except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest) as e:
+        processed_response = process_raw_response(response.response, fields=requested_fields)
+    except KeyError as e:
+        logger.exception(
+            "execute_replays_query: unsupported response field",
+            extra={
+                "org_id": organization_id,
+                "query": query,
+                "field": e.args[0] if e.args else None,
+            },
+        )
+        return {"error": f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"}
+    except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
         logger.exception(
             "execute_replays_query: bad request",
             extra={"org_id": organization_id, "query": query},
@@ -483,9 +500,7 @@ def execute_replays_query(
         return {"error": str(e)}
 
     return {
-        "data": process_raw_response(
-            response.response, fields=fields or DEFAULT_REPLAY_SEARCH_FIELDS
-        ),
+        "data": processed_response,
         "meta": {"source": response.source, "has_more": response.has_more},
     }
 

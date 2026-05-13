@@ -3029,6 +3029,60 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
         assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
         assert row["urls"] == ["https://example.com/checkout"]
 
+    def test_execute_replays_query_rejects_invalid_fields(self) -> None:
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                fields=["id", "not_a_replay_field"],
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result == {"error": "Invalid replay field(s): not_a_replay_field"}
+
+    def test_execute_replays_query_handles_invalid_sort(self) -> None:
+        replay_id = uuid.uuid4().hex
+        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        self.store_replays(mock_replay(replay_timestamp, self.project.id, replay_id))
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                fields=["id", "started_at"],
+                sort="-not_a_sortable_field",
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result is not None
+        assert "not_a_sortable_field" in result["error"]
+        assert "sortable field" in result["error"]
+
+    def test_execute_replays_query_pagination_has_more(self) -> None:
+        older_replay_id = uuid.uuid4().hex
+        newer_replay_id = uuid.uuid4().hex
+        older_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        newer_timestamp = datetime.now(UTC) - timedelta(minutes=5)
+        self.store_replays(mock_replay(older_timestamp, self.project.id, older_replay_id))
+        self.store_replays(mock_replay(newer_timestamp, self.project.id, newer_replay_id))
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                fields=["id", "started_at"],
+                sort="-started_at",
+                stats_period="7d",
+                per_page=1,
+            )
+
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == newer_replay_id
+        assert result["meta"]["has_more"] is True
+
 
 class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
     def setUp(self) -> None:
