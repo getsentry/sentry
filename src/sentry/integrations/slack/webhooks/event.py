@@ -576,6 +576,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 # We should consider telling the user to link their account for feedback to be it.
                 return self.respond()
 
+            if not organization_id:
+                return self.respond()
+
             process_reaction_for_slack.apply_async(
                 kwargs={
                     "integration_id": slack_request.integration.id,
