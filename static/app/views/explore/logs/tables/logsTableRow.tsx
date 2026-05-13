@@ -170,7 +170,6 @@ export const LogRowContent = memo(function LogRowContent({
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
   const expansionKey = expansionKeyProp ?? rowId;
   const logsPinning = useLogsPinning();
-  const isHoverLinked = logsPinning?.hoveringRow === rowId;
   const isPinned = logsPinning?.pinnedRows.has(rowId);
 
   const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(isPinned);
@@ -333,17 +332,14 @@ export const LogRowContent = memo(function LogRowContent({
         data-test-id="log-table-row"
         data-row-highlighted={isPseudoRow}
         data-row-pinned={isPinned}
-        data-row-hover-linked={isHoverLinked}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
         onMouseEnter={e => {
           setShouldRenderHoverElements(true);
           rowInteractProps.onMouseEnter?.(e);
-          logsPinning?.updateHoveringRow(true, rowId);
         }}
         onMouseLeave={e => {
           rowInteractProps.onMouseLeave?.(e);
-          logsPinning?.updateHoveringRow(false, rowId);
         }}
       >
         <LogsTableBodyFirstCell key="first">

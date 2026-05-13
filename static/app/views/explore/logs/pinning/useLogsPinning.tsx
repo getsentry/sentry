@@ -16,10 +16,8 @@ const LOGS_PINNED_KEY = 'logsPinned';
 
 interface LogsPinning {
   clearPinnedRows: () => void;
-  hoveringRow: string | undefined;
   pinnedRows: Set<string>;
   togglePinnedRow: (id: string) => void;
-  updateHoveringRow: (hovering: boolean, rowId: string) => void;
 }
 
 const LogsPinningContext = createContext<LogsPinning | undefined>(undefined);
@@ -30,17 +28,6 @@ export function LogsPinningProvider({children}: {children: ReactNode}) {
   const [pinnedRows, setPinnedRows] = useState<Set<string>>(() => {
     return new Set(decodeList(location.query?.[LOGS_PINNED_KEY]).filter(Boolean));
   });
-
-  const [hoveringRow, setHoveringRow] = useState<string | undefined>(undefined);
-
-  const updateHoveringRow = useCallback((hovering: boolean, rowId: string) => {
-    setHoveringRow(previous => {
-      if (!previous || previous === rowId) {
-        return hovering ? rowId : undefined;
-      }
-      return;
-    });
-  }, []);
 
   const togglePinnedRow = useCallback((id: string) => {
     setPinnedRows(previous => {
@@ -77,12 +64,10 @@ export function LogsPinningProvider({children}: {children: ReactNode}) {
   const value = useMemo(
     () => ({
       clearPinnedRows,
-      hoveringRow,
       pinnedRows,
-      updateHoveringRow,
       togglePinnedRow,
     }),
-    [clearPinnedRows, hoveringRow, pinnedRows, updateHoveringRow, togglePinnedRow]
+    [clearPinnedRows, pinnedRows, togglePinnedRow]
   );
 
   return (

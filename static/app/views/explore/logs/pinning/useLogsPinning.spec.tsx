@@ -141,46 +141,4 @@ describe('useLogsPinning', () => {
     const lastCall = replaceStateSpy.mock.calls.at(-1);
     expect(lastCall?.[2]).not.toContain('logsPinned');
   });
-
-  it('sets hoveringRow when updateHoveringRow is called and no row is currently hovered', () => {
-    const {result} = renderHookWithProviders(() => useLogsPinning(), {
-      additionalWrapper: LogsPinningProvider,
-    });
-
-    act(() => {
-      result.current?.updateHoveringRow(true, 'log-1');
-    });
-
-    expect(result.current?.hoveringRow).toBe('log-1');
-  });
-
-  it('clears hoveringRow when updateHoveringRow is called for the same hovered row leaving', () => {
-    const {result} = renderHookWithProviders(() => useLogsPinning(), {
-      additionalWrapper: LogsPinningProvider,
-    });
-
-    act(() => {
-      result.current?.updateHoveringRow(true, 'log-1');
-    });
-    act(() => {
-      result.current?.updateHoveringRow(false, 'log-1');
-    });
-
-    expect(result.current?.hoveringRow).toBeUndefined();
-  });
-
-  it('clears hoveringRow when updateHoveringRow is called for a different row while one is already hovered', () => {
-    const {result} = renderHookWithProviders(() => useLogsPinning(), {
-      additionalWrapper: LogsPinningProvider,
-    });
-
-    act(() => {
-      result.current?.updateHoveringRow(true, 'log-1');
-    });
-    act(() => {
-      result.current?.updateHoveringRow(true, 'log-2');
-    });
-
-    expect(result.current?.hoveringRow).toBeUndefined();
-  });
 });

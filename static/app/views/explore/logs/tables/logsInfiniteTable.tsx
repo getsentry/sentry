@@ -502,9 +502,6 @@ export function LogsInfiniteTable({
         {!isPending && (
           <PinnedLogs
             allRows={data}
-            // TODO: This is a lot of copy & paste!
-            // I'd like to refactor the components to be more shared.
-            // TBD.
             renderRow={dataRow => {
               const pinnedId = dataRow[OurLogKnownFieldKey.ID];
               const pinnedExpandKey = `pinned-${pinnedId}`;
