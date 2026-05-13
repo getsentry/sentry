@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
+from sentry.models.organization import Organization
 from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
@@ -16,6 +17,7 @@ from sentry.preprod.models import (
     PreprodComparisonApproval,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
@@ -161,6 +163,8 @@ class BuildDetailsApiResponse(BaseModel):
     vcs_info: BuildDetailsVcsInfo
     project_id: int
     project_slug: str
+    artifact_url: str
+    install_url: str
     distribution_info: DistributionInfo
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
@@ -399,6 +403,8 @@ def transform_preprod_artifact_to_build_details(
 
     snapshot_comparison_info = to_snapshot_comparison_info(artifact)
 
+    organization = Organization.objects.get_from_cache(id=artifact.project.organization_id)
+
     return BuildDetailsApiResponse(
         id=artifact.id,
         state=artifact.state,
@@ -406,6 +412,10 @@ def transform_preprod_artifact_to_build_details(
         vcs_info=vcs_info,
         project_id=artifact.project.id,
         project_slug=artifact.project.slug,
+        artifact_url=get_preprod_artifact_url(artifact, organization=organization),
+        install_url=get_preprod_artifact_url(
+            artifact, view_type="install", organization=organization
+        ),
         distribution_info=distribution_info,
         size_info=size_info,
         posted_status_checks=posted_status_checks,

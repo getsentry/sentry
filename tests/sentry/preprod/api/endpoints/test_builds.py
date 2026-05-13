@@ -106,6 +106,8 @@ class BuildsEndpointTest(APITestCase):
                 "project_id": ANY,
                 "posted_status_checks": None,
                 "project_slug": "bar",
+                "artifact_url": ANY,
+                "install_url": ANY,
                 "size_info": None,
                 "snapshot_comparison_info": None,
             }

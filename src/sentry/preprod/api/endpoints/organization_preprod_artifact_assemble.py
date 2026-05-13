@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
@@ -237,12 +238,17 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
-        artifact_url = get_preprod_artifact_url(artifact)
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        artifact_url = get_preprod_artifact_url(artifact, organization=organization)
+        install_url = get_preprod_artifact_url(
+            artifact, view_type="install", organization=organization
+        )
 
         return Response(
             {
                 "state": ChunkFileState.CREATED,
                 "missingChunks": [],
                 "artifactUrl": artifact_url,
+                "installUrl": install_url,
             }
         )

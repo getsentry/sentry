@@ -9,14 +9,20 @@ ViewType = Literal["size", "snapshots", "install"]
 
 
 def get_preprod_artifact_url(
-    preprod_artifact: PreprodArtifact, view_type: ViewType = "size"
+    preprod_artifact: PreprodArtifact,
+    view_type: ViewType = "size",
+    organization: Organization | None = None,
 ) -> str:
     """
     Build a region/customer-domain aware absolute URL for the preprod artifact UI.
+
+    Pass ``organization`` when building multiple URLs for the same artifact to
+    avoid repeated Organization cache lookups.
     """
-    organization: Organization = Organization.objects.get_from_cache(
-        id=preprod_artifact.project.organization_id
-    )
+    if organization is None:
+        organization = Organization.objects.get_from_cache(
+            id=preprod_artifact.project.organization_id
+        )
 
     path = f"/organizations/{organization.slug}/preprod/{view_type}/{preprod_artifact.id}"
     return organization.absolute_url(path)

@@ -70,6 +70,14 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["app_info"]["version"] == self.mobile_app_info.build_version
         assert resp_data["app_info"]["build_number"] == self.mobile_app_info.build_number
         assert resp_data["app_info"]["artifact_type"] == self.preprod_artifact.artifact_type
+        expected_artifact_path = (
+            f"/organizations/{self.org.slug}/preprod/size/{self.preprod_artifact.id}"
+        )
+        expected_install_path = (
+            f"/organizations/{self.org.slug}/preprod/install/{self.preprod_artifact.id}"
+        )
+        assert expected_artifact_path in resp_data["artifact_url"]
+        assert expected_install_path in resp_data["install_url"]
 
     def test_get_build_details_distribution_info(self) -> None:
         self.preprod_artifact.extras = {"release_notes": "Build notes"}
