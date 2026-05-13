@@ -756,8 +756,8 @@ export function getGroupActivityItem(
         };
       case GroupActivityType.SEER_PR_CREATED: {
         const {data: prData} = activity;
-        if (prData.pull_requests?.length) {
-          const pr = prData.pull_requests[0]!;
+        const pr = prData.pull_requests?.[0];
+        if (pr) {
           return {
             title: t('Pull Request Created'),
             message: tct('Seer created a [link:pull request] in [repo]', {

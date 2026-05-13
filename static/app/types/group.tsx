@@ -956,7 +956,7 @@ interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_CODING_COMPLETED;
 }
 
-export interface GroupActivitySeerPrCreated extends GroupActivityBase {
+interface GroupActivitySeerPrCreated extends GroupActivityBase {
   data: {
     pull_requests?: Array<{
       provider: string;

@@ -634,8 +634,8 @@ export function GroupActivityItem({
         return t('Seer completed implementing a fix');
       case GroupActivityType.SEER_PR_CREATED: {
         const {data: prData} = activity;
-        if (prData.pull_requests?.length) {
-          const pr = prData.pull_requests[0]!;
+        const pr = prData.pull_requests?.[0];
+        if (pr) {
           return tct('Seer created a [link:pull request] in [repo]', {
             link: <ExternalLink href={pr.pull_request.pr_url} />,
             repo: pr.repo_name,
