@@ -25,14 +25,17 @@ describe('useTraceMeta', () => {
         data: [
           {
             trace: 'trace1',
-            'min(timestamp)': 1,
+            'min(precise.start_ts)': 1,
+            'max(precise.finish_ts)': 1.5,
           },
           {
             trace: 'trace2',
-            'min(timestamp)': 2,
+            'min(precise.start_ts)': 2,
+            'max(precise.finish_ts)': 2.5,
           },
         ],
       },
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
     });
 
     const {result} = renderHookWithProviders(() => useReplayTraces({replayRecord}));
@@ -59,6 +62,7 @@ describe('useTraceMeta', () => {
       headers: {Link: pageLinks},
       url: '/organizations/org-slug/events/',
       statusCode: 400,
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
     });
 
     const {result} = renderHookWithProviders(() => useReplayTraces({replayRecord}));
