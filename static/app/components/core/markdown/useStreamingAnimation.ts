@@ -88,8 +88,10 @@ function isSimpleChar(grapheme: string): boolean {
   return grapheme.length === 1 && !/\s/.test(grapheme);
 }
 
+const DECODE_ANIMATIONS = ['decode-a', 'decode-b', 'decode-c'] as const;
+
 export const streamingAnimationStyles = css`
-  @keyframes decode-cycle {
+  @keyframes decode-a {
     0% {
       content: '0';
     }
@@ -115,6 +117,58 @@ export const streamingAnimationStyles = css`
       content: '9';
     }
   }
+  @keyframes decode-b {
+    0% {
+      content: 'E';
+    }
+    12% {
+      content: '2';
+    }
+    25% {
+      content: '#';
+    }
+    37% {
+      content: 'B';
+    }
+    50% {
+      content: '5';
+    }
+    62% {
+      content: '8';
+    }
+    75% {
+      content: 'D';
+    }
+    87% {
+      content: '1';
+    }
+  }
+  @keyframes decode-c {
+    0% {
+      content: '4';
+    }
+    12% {
+      content: 'F';
+    }
+    25% {
+      content: '6';
+    }
+    37% {
+      content: '0';
+    }
+    50% {
+      content: '#';
+    }
+    62% {
+      content: 'A';
+    }
+    75% {
+      content: '8';
+    }
+    87% {
+      content: 'E';
+    }
+  }
   ${ATTR_SEL} {
     position: relative;
     color: transparent;
@@ -123,11 +177,11 @@ export const streamingAnimationStyles = css`
     transition: opacity 200ms ease-out;
   }
   ${ATTR_SEL}.visible {
-    opacity: 1;
+    opacity: var(--go, 1);
   }
   ${ATTR_SEL}::after {
     content: '0';
-    animation: decode-cycle ${CYCLE_DURATION_MS}ms steps(1) infinite;
+    animation: var(--da, decode-a) ${CYCLE_DURATION_MS}ms steps(1) infinite;
     animation-delay: var(--dd, 0ms);
     position: absolute;
     left: 50%;
@@ -181,7 +235,13 @@ function prepareTextNode(
 
     if (isSimpleChar(grapheme) && globalOffset + idx >= skipChars) {
       span.setAttribute(ATTR, '');
-      span.style.setProperty('--dd', `-${Math.random() * CYCLE_DURATION_MS}ms`);
+      const s = span.style;
+      s.setProperty('--dd', `-${Math.random() * CYCLE_DURATION_MS}ms`);
+      s.setProperty(
+        '--da',
+        DECODE_ANIMATIONS[idx % DECODE_ANIMATIONS.length] ?? DECODE_ANIMATIONS[0]
+      );
+      s.setProperty('--go', `${0.4 + Math.random() * 0.6}`);
       active.push(true);
     } else {
       active.push(false);
