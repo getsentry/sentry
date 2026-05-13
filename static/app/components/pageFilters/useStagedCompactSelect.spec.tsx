@@ -55,6 +55,44 @@ function useTestOptions(
   ];
 }
 
+function StagedSelectTestComponent({onChange}: {onChange: (value: string[]) => void}) {
+  const [value, setValue] = useState<string[]>([]);
+  const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+  const options = useTestOptions(toggleOptionRef);
+  const handleChange = (newValue: string[]) => {
+    onChange(newValue);
+    setValue(newValue);
+  };
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    options,
+    onChange: handleChange,
+    multiple: true,
+  });
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
+  return (
+    <CompactSelect
+      grid
+      multiple
+      search
+      {...stagedSelect.compactSelectProps}
+      menuFooter={
+        xor(stagedSelect.value, value).length > 0 ? (
+          <Flex>
+            <MenuComponents.ApplyButton
+              onClick={() => {
+                stagedSelect.dispatch({type: 'remove staged'});
+                handleChange(stagedSelect.value);
+              }}
+            />
+          </Flex>
+        ) : null
+      }
+    />
+  );
+}
+
 describe('useStagedCompactSelect', () => {
   it('renders', async () => {
     function TestComponent() {
@@ -929,65 +967,21 @@ describe('useStagedCompactSelect', () => {
 
     it('Cmd/Ctrl takes precedence over Shift when both are held', async () => {
       const onChange = jest.fn();
+      render(<StagedSelectTestComponent onChange={onChange} />);
 
-      function TestComponent() {
-        const [value, setValue] = useState<string[]>([]);
-        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
-        const options = useTestOptions(toggleOptionRef);
-        const handleChange = (newValue: string[]) => {
-          onChange(newValue);
-          setValue(newValue);
-        };
-        const stagedSelect = useStagedCompactSelect({
-          value,
-          options,
-          onChange: handleChange,
-          multiple: true,
-        });
-        toggleOptionRef.current = stagedSelect.toggleOption;
-
-        return (
-          <CompactSelect
-            grid
-            multiple
-            search
-            {...stagedSelect.compactSelectProps}
-            menuFooter={
-              xor(stagedSelect.value, value).length > 0 ? (
-                <Flex>
-                  <MenuComponents.ApplyButton
-                    onClick={() => {
-                      stagedSelect.dispatch({type: 'remove staged'});
-                      handleChange(stagedSelect.value);
-                    }}
-                  />
-                </Flex>
-              ) : null
-            }
-          />
-        );
-      }
-
-      render(<TestComponent />);
-
-      // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Ctrl-click row for Option One to set the anchor
       await userEvent.keyboard('{Control>}');
       await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
       await userEvent.keyboard('{/Control}');
 
-      // Ctrl+Shift-click row for Option Three. Ctrl should win and toggle a
-      // single option rather than range-selecting Option Two as well.
+      // Ctrl should win when both are held — single toggle, not range select.
       await userEvent.keyboard('{Control>}{Shift>}');
       await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
       await userEvent.keyboard('{/Shift}{/Control}');
 
-      // Apply the changes
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
-      // Should only select options one and three (not two)
       expect(onChange).toHaveBeenLastCalledWith(['one', 'three']);
     });
 
