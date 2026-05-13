@@ -4,9 +4,9 @@ import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';  
+import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-  
+
 interface ReplayQueryParamsProviderProps {
   children: ReactNode;
 }
