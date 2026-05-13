@@ -403,6 +403,40 @@ class ExploreSavedQueriesTest(APITestCase):
         prebuilt_names = {q["name"] for q in PREBUILT_SAVED_QUERIES}
         assert prebuilt_names.issubset(names)
 
+    def test_get_prebuilt_visible_even_with_inaccessible_project(self) -> None:
+        # Prebuilts normally have no projects, but the queryset filter must mirror
+        # `has_object_permission`, which exempts prebuilts before any project check.
+        # Pin that contract: even a prebuilt that has somehow been linked to an
+        # inaccessible project must remain visible to a closed-membership member.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        restricted_team = self.create_team(organization=self.org, members=[])
+        restricted_project = self.create_project(organization=self.org, teams=[restricted_team])
+
+        # Use a `prebuilt_id` that matches an entry in `PREBUILT_SAVED_QUERIES` so
+        # `sync_prebuilt_queries` keeps the row in place (same version, not deleted).
+        canonical = PREBUILT_SAVED_QUERIES[0]
+        prebuilt = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=None,
+            name="Edge-case prebuilt",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+            prebuilt_id=canonical["prebuilt_id"],
+            prebuilt_version=canonical["prebuilt_version"],
+        )
+        prebuilt.set_projects([restricted_project.id])
+
+        outsider = self.create_user()
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[])
+        self.login_as(outsider)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        names = {item["name"] for item in response.data}
+        assert "Edge-case prebuilt" in names
+
     def test_get_shows_unprojected_query_to_creator_only(self) -> None:
         self.org.flags.allow_joinleave = False
         self.org.save()

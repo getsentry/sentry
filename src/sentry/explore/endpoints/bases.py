@@ -63,20 +63,24 @@ def filter_to_accessible_explore_queries(
 
     accessible_project_ids = access.accessible_project_ids
 
-    # Hide queries that reference at least one project the actor can't access.
+    # Prebuilt queries are product-level content and bypass project access in
+    # `has_object_permission`; the queryset filter must do the same.
+    is_prebuilt = Q(prebuilt_id__isnull=False)
+
+    # Hide non-prebuilt queries that reference at least one project the actor can't access.
     has_inaccessible_project = ExploreSavedQueryProject.objects.filter(
         explore_saved_query_id=OuterRef("id"),
     ).exclude(project_id__in=accessible_project_ids)
-    queryset = queryset.exclude(Exists(has_inaccessible_project))
+    queryset = queryset.exclude(Q(Exists(has_inaccessible_project)) & ~is_prebuilt)
 
-    # For queries that target no projects ("All Projects" / "My Projects"), only show
-    # those the actor created. Prebuilt queries are product-level content and stay visible
-    # to any org member. Open Membership and org:write are already short-circuited above.
+    # For non-prebuilt queries that target no projects ("All Projects" / "My Projects"),
+    # only show those the actor created. Open Membership and org:write are already
+    # short-circuited above.
     has_any_project = ExploreSavedQueryProject.objects.filter(
         explore_saved_query_id=OuterRef("id"),
     )
     queryset = queryset.filter(
-        Exists(has_any_project) | Q(created_by_id=request.user.id) | Q(prebuilt_id__isnull=False)
+        Exists(has_any_project) | Q(created_by_id=request.user.id) | is_prebuilt
     )
 
     return queryset
