@@ -17,12 +17,15 @@ from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATAS
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     query_attribute_distributions,
 )
+from sentry.api.event_search import parse_search_query
+from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -32,7 +35,12 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
+from sentry.replays.query import (
+    query_replay_id_by_prefix,
+    query_replay_instance,
+    query_replays_collection_paginated,
+    replay_url_parser_config,
+)
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
@@ -372,6 +380,114 @@ def execute_trace_table_query(
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return {"error": str(error_detail) if error_detail is not None else str(e.body)}
         raise
+
+
+DEFAULT_REPLAY_SEARCH_FIELDS = [
+    "id",
+    "project_id",
+    "started_at",
+    "finished_at",
+    "duration",
+    "count_errors",
+    "count_dead_clicks",
+    "count_rage_clicks",
+    "count_urls",
+    "urls",
+    "user",
+    "trace_ids",
+    "platform",
+]
+
+
+def execute_replays_query(
+    *,
+    organization_id: int,
+    per_page: int,
+    query: str | None = None,
+    fields: list[str] | None = None,
+    sort: str | None = None,
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Execute a session replay search using the dedicated Replay collection query.
+
+    Arg notes:
+        project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
+        project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
+        If neither project_ids nor project_slugs are provided, all active projects will be queried.
+        Start/end params take precedence over stats_period. Defaults to Sentry's standard max period.
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "execute_replays_query: Organization not found", extra={"org_id": organization_id}
+        )
+        return None
+
+    if not features.has("organizations:session-replay", organization):
+        return {"error": "Session Replay is not enabled for this organization."}
+
+    if project_ids and project_slugs:
+        return {"error": "Pass either project_ids or project_slugs, not both."}
+
+    project_filter: dict[str, Any] = {}
+    if project_ids:
+        project_filter["id__in"] = project_ids
+    elif project_slugs:
+        project_filter["slug__in"] = project_slugs
+
+    resolved_project_ids = list(
+        Project.objects.filter(
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            **project_filter,
+        ).values_list("id", flat=True)
+    )
+    if not resolved_project_ids:
+        return {"data": []}
+
+    date_params: dict[str, Any] = {}
+    if start and end:
+        date_params["start"] = start
+        date_params["end"] = end
+    elif stats_period:
+        date_params["statsPeriod"] = stats_period
+
+    try:
+        start_dt, end_dt = get_date_range_from_params(date_params)
+        search_filters = parse_search_query(query or "", config=replay_url_parser_config)
+        response = query_replays_collection_paginated(
+            project_ids=resolved_project_ids,
+            start=start_dt,
+            end=end_dt,
+            environment=[],
+            sort=sort,
+            fields=fields or DEFAULT_REPLAY_SEARCH_FIELDS,
+            limit=per_page,
+            offset=0,
+            search_filters=search_filters,
+            preferred_source="scalar",
+            organization=organization,
+            actor=None,
+        )
+    except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest) as e:
+        logger.exception(
+            "execute_replays_query: bad request",
+            extra={"org_id": organization_id, "query": query},
+        )
+        return {"error": str(e)}
+
+    return {
+        "data": process_raw_response(
+            response.response, fields=fields or DEFAULT_REPLAY_SEARCH_FIELDS
+        ),
+        "meta": {"source": response.source, "has_more": response.has_more},
+    }
 
 
 def get_trace_waterfall(

@@ -15,12 +15,13 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
-from sentry.replays.testutils import mock_replay
+from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_issue_event_timeseries,
     _get_recommended_event,
+    execute_replays_query,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -2953,6 +2954,49 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
                 )
                 is None
             )
+
+    def test_execute_replays_query(self) -> None:
+        replay_id = uuid.uuid4().hex
+        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        self.store_replays(
+            mock_replay(
+                replay_timestamp,
+                self.project.id,
+                replay_id,
+                urls=["https://example.com/checkout"],
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                replay_timestamp + timedelta(seconds=5),
+                self.project.id,
+                replay_id,
+                node_id=1,
+                tag="button",
+                is_dead=1,
+                is_rage=1,
+            )
+        )
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                query="count_rage_clicks:>0",
+                fields=["id", "project_id", "started_at", "count_rage_clicks", "urls"],
+                sort="-started_at",
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result is not None
+        assert len(result["data"]) == 1
+        row = result["data"][0]
+        assert row["id"] == replay_id
+        assert row["project_id"] == str(self.project.id)
+        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
+        assert row["count_rage_clicks"] == 1
+        assert row["urls"] == ["https://example.com/checkout"]
 
 
 class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
