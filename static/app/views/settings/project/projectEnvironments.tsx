@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -156,7 +155,7 @@ export default function ProjectEnvironments() {
       <SettingsPageHeader
         title={t('Manage Environments')}
         tabs={
-          <Container marginBottom="xl">
+          <TabsContainer>
             <Tabs value={isHidden ? 'hidden' : 'environments'}>
               <TabList>
                 <TabList.Item
@@ -173,7 +172,7 @@ export default function ProjectEnvironments() {
                 </TabList.Item>
               </TabList>
             </Tabs>
-          </Container>
+          </TabsContainer>
         }
       />
       <ProjectPermissionAlert project={project} />
@@ -222,6 +221,10 @@ export default function ProjectEnvironments() {
     </div>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${p => p.theme.space.xl};
+`;
 
 const EnvironmentTable = styled(SimpleTable)`
   grid-template-columns: minmax(0, 1fr) max-content;
