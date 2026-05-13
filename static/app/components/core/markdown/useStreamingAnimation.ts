@@ -96,10 +96,10 @@ export const streamingAnimationStyles = css`
       content: '0';
     }
     12% {
-      content: '7';
+      content: 'a';
     }
     25% {
-      content: 'A';
+      content: '7';
     }
     37% {
       content: '#';
@@ -111,7 +111,7 @@ export const streamingAnimationStyles = css`
       content: '3';
     }
     75% {
-      content: 'C';
+      content: 'c';
     }
     87% {
       content: '9';
@@ -134,10 +134,10 @@ export const streamingAnimationStyles = css`
       content: '5';
     }
     62% {
-      content: '8';
+      content: 'D';
     }
     75% {
-      content: 'D';
+      content: '8';
     }
     87% {
       content: '1';
@@ -148,25 +148,25 @@ export const streamingAnimationStyles = css`
       content: '4';
     }
     12% {
-      content: 'F';
+      content: 'f';
     }
     25% {
       content: '6';
     }
     37% {
-      content: '0';
+      content: 'b';
     }
     50% {
       content: '#';
     }
     62% {
-      content: 'A';
+      content: 'a';
     }
     75% {
-      content: '8';
+      content: '0';
     }
     87% {
-      content: 'E';
+      content: 'e';
     }
   }
   ${ATTR_SEL} {
@@ -180,7 +180,7 @@ export const streamingAnimationStyles = css`
     opacity: var(--go, 1);
   }
   ${ATTR_SEL}::after {
-    content: '0';
+    content: '1';
     animation: var(--da, decode-a) ${CYCLE_DURATION_MS}ms steps(1) infinite;
     animation-delay: var(--dd, 0ms);
     position: absolute;
