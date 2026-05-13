@@ -16,6 +16,7 @@ from sentry.preprod.models import (
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
@@ -312,6 +313,14 @@ def create_preprod_snapshot_status_check_task(
 
     if waiting_for_base:
         create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": preprod_artifact_id,
+                "caller": "missing_base_timeout",
+                "is_timeout_check": True,
+            },
+            countdown=MISSING_BASE_GRACE_PERIOD_SECONDS,
+        )
+        create_preprod_snapshot_pr_comment_task.apply_async(
             kwargs={
                 "preprod_artifact_id": preprod_artifact_id,
                 "caller": "missing_base_timeout",
