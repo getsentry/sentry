@@ -81,6 +81,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             "name": repo.name,
             "organization_id": repo.organization_id,
             "provider_name": repo.provider.removeprefix("integrations:"),
+            "web_base_url": None,
         },
     )
 

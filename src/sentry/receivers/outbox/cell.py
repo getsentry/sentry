@@ -12,7 +12,6 @@ import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejso
 import logging
 from typing import Any, assert_never, cast
 
-import orjson
 from django.dispatch import receiver
 
 from sentry import options
@@ -40,6 +39,7 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
+from sentry.utils import json as sentry_json
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -257,6 +257,8 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         return
     if run.seer_run_state_id is not None:
         return
+    if run.mirror_status == SeerRunMirrorStatus.FAILED:
+        return
 
     # Validate the payload shape and parse run.type up front. A malformed
     # outbox payload or out-of-band run.type value can't self-heal on retry,
@@ -274,7 +276,9 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     match run_type:
         case SeerRunType.AUTOFIX:
-            response = make_autofix_start_request(orjson.dumps(body), viewer_context=viewer_context)
+            response = make_autofix_start_request(
+                sentry_json.dumps(body).encode(), viewer_context=viewer_context
+            )
         case SeerRunType.EXPLORER:
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context

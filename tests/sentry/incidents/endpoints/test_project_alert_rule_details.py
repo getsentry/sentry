@@ -22,6 +22,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
 )
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = [requires_snuba]
 
@@ -174,6 +175,37 @@ class AlertRuleDetailsGetEndpointWorkflowEngineMethodFlagTest(AlertRuleDetailsBa
         )
         assert resp.data["id"] == str(self.alert_rule.id)
         assert resp.data["name"] == self.alert_rule.name
+
+
+@with_feature(
+    [
+        "organizations:incidents",
+        "organizations:workflow-engine-metric-alert-endpoints-delete",
+    ]
+)
+class AlertRuleDetailsDeleteEndpointWorkflowEngineMethodFlagTest(AlertRuleDetailsBase):
+    method = "delete"
+
+    def test_single_written_detector_deleted(self) -> None:
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+        AlertRuleDetector.objects.filter(detector=detector).delete()
+        fake_id = get_fake_id_from_object_id(detector.id)
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, fake_id, status_code=204
+        )
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+
+    def test_dual_written_detector_deleted(self) -> None:
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+        )
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):

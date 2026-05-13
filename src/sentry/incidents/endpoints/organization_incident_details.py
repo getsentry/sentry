@@ -72,11 +72,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        has_workflow_engine_flags = features.has(
-            "organizations:workflow-engine-metric-alert-endpoints-get", organization
-        ) or features.has("organizations:workflow-engine-rule-serializers", organization)
-
-        if request.method == "GET" and has_workflow_engine_flags:
+        if request.method == "GET":
             gop: GroupOpenPeriod | None = None
 
             # Try the association table first (dual-written data).
@@ -112,7 +108,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
             kwargs["incident"] = gop
             return args, kwargs
 
-        # Legacy path (flag off): replicate IncidentEndpoint.convert_args lookup.
+        # PUT: update_incident_status operates on the legacy Incident model.
         try:
             incident = kwargs["incident"] = Incident.objects.get(
                 organization=organization, identifier=int_id
@@ -137,15 +133,12 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         ``````````````````
         :auth: required
         """
-        if isinstance(incident, GroupOpenPeriod):
-            expand = request.GET.getlist("expand", [])
-            return Response(
-                serialize(
-                    incident, request.user, WorkflowEngineDetailedIncidentSerializer(expand=expand)
-                )
+        expand = request.GET.getlist("expand", [])
+        return Response(
+            serialize(
+                incident, request.user, WorkflowEngineDetailedIncidentSerializer(expand=expand)
             )
-
-        return Response(serialize(incident, request.user, DetailedIncidentSerializer()))
+        )
 
     @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-incident-details")
     def put(self, request: Request, organization: Organization, incident) -> Response:

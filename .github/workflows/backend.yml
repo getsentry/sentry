@@ -272,6 +272,36 @@ jobs:
           fi
           ./.github/actions/setup-devservices/wait.py
 
+      # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
+      # default, and each ORM call is multiple round-trips — switching to a Unix socket
+      # eliminates TCP loopback overhead and saves ~36s per shard.
+      - name: Reconnect postgres via Unix socket
+        run: |
+          mkdir -p /tmp/pg-sock
+          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+          docker run -d --name postgres-postgres-1 \
+            --network devservices --label orchestrator=devservices \
+            -p 127.0.0.1:5432:5432 \
+            -v postgres-data:/var/lib/postgresql/data \
+            -v /tmp/pg-sock:/var/run/postgresql \
+            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+            "$PG_IMAGE" postgres \
+              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+          # docker run -d returns 0 even if postgres dies right after — bound the
+          # wait so a crashing postgres surfaces fast instead of hitting the job
+          # timeout silently.
+          for _ in $(seq 1 120); do
+            [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] && break
+            sleep 0.5
+          done
+          if [ ! -S "/tmp/pg-sock/.s.PGSQL.5432" ]; then
+            echo "::error::postgres unix socket did not appear after 60s"
+            docker logs postgres-postgres-1 2>&1 | tail -30 || true
+            exit 1
+          fi
+          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+
       - name: Download odiff binary
         run: |
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \

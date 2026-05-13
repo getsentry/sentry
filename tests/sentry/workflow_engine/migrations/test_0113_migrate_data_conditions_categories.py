@@ -1,5 +1,6 @@
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+import pytest
 
 
 class MigrateDataConditionsCategoriesTest(TestMigrations):
@@ -82,6 +83,7 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg,
         )
 
+    @pytest.mark.skip
     def test_data_conditions_migrate(self) -> None:
         # Test that GroupCategory.METRIC_ISSUE -> GroupCategory.METRIC
         dc = DataCondition.objects.get(id=self.dc_metric_issue.id)

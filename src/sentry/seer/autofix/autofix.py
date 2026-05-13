@@ -17,7 +17,7 @@ from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import (
@@ -55,6 +55,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.event_frames import EventFrame
 
@@ -521,27 +522,41 @@ def _call_autofix(
     if not isinstance(user, AnonymousUser):
         viewer_context["user_id"] = user.id
 
-    if features.has("organizations:seer-run-mirror", group.organization):
-        with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
-            run = SeerRun.objects.create(
-                organization=group.organization,
-                user_id=user.id if not isinstance(user, AnonymousUser) else None,
-                type=SeerRunType.AUTOFIX,
-                last_triggered_at=now(),
-            )
-            CellOutbox(
-                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-                shard_identifier=group.organization.id,
-                category=OutboxCategory.SEER_RUN_CREATE,
-                object_identifier=run.id,
-                payload={
-                    "body": body_dict,
-                    "viewer_context": dict(viewer_context),
+    if features.has("organizations:seer-run-mirror-autofix", group.organization):
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+                run = SeerRun.objects.create(
+                    organization=group.organization,
+                    user_id=user.id if not isinstance(user, AnonymousUser) else None,
+                    type=SeerRunType.AUTOFIX,
+                    last_triggered_at=now(),
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": body_dict,
+                        "viewer_context": dict(viewer_context),
+                    },
+                ).save()
+        except OutboxFlushError:
+            metrics.incr("seer.outbox_flush_error", tags={"type": "autofix"})
+            logger.exception(
+                "autofix.outbox_flush_error",
+                extra={
+                    "organization_id": group.organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
                 },
-            ).save()
+            )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise Exception("Outbox flush failed for autofix SeerRun")
         run.refresh_from_db()
-        if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
-            raise Exception("Seer run mirror failed to materialize")
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise Exception("Seer run failed during outbox drain")
         return run.seer_run_state_id
 
     response = make_autofix_start_request(

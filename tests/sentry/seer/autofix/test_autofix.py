@@ -28,6 +28,7 @@ from sentry.seer.models import (
     SeerRepoDefinition,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.utils import get_github_username_for_user
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1192,7 +1193,7 @@ class TestCallAutofix(TestCase):
             repositories=[],
         )
 
-        with self.feature("organizations:seer-run-mirror"):
+        with self.feature("organizations:seer-run-mirror-autofix"):
             run_id = _call_autofix(
                 user=self.user,
                 group=group,
@@ -1206,8 +1207,6 @@ class TestCallAutofix(TestCase):
             )
 
         assert run_id == 42
-
-        from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 
         run = SeerRun.objects.get(organization_id=group.organization.id)
         assert run.type == SeerRunType.AUTOFIX
