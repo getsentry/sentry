@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -139,7 +140,12 @@ export function Checkbox({
   );
 }
 
-const CheckboxWrapper = styled('div')<{
+const CheckboxWrapper = styled('div', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' &&
+    isPropValid(prop) &&
+    !['disabled', 'readOnly'].includes(prop),
+})<{
   size: NonNullable<CheckboxProps['size']>;
   disabled?: boolean;
   readOnly?: boolean;
