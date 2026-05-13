@@ -821,19 +821,23 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
     org_ids = {item["organization_id"] for item in repository_integrations}
     orgs_by_id = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
-    supported_providers: set[str] = set()
-    for org in orgs_by_id.values():
-        supported_providers.update(get_supported_scm_providers(org))
+    supported_by_org: dict[int, set[str]] = {
+        org_id: set(get_supported_scm_providers(org)) for org_id, org in orgs_by_id.items()
+    }
+    all_supported_providers: set[str] = set()
+    for providers in supported_by_org.values():
+        all_supported_providers.update(providers)
 
     existing_repos = Repository.objects.filter(
-        q_objects, status=ObjectStatus.ACTIVE, provider__in=supported_providers
+        q_objects, status=ObjectStatus.ACTIVE, provider__in=all_supported_providers
     ).values_list("organization_id", "provider", "integration_id", "external_id")
 
     existing_map: dict[tuple, int | None] = {}
 
     for org_id, provider, integration_id, external_id in existing_repos:
+        if provider not in supported_by_org.get(org_id, set()):
+            continue
         key = (org_id, provider, external_id)
-        # If multiple repos match (shouldn't happen), keep the first one
         if key not in existing_map:
             existing_map[key] = integration_id
 
