@@ -406,10 +406,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1]
+        instance: [0, 1, 2, 3]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 2
+      MATRIX_INSTANCE_TOTAL: 4
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
