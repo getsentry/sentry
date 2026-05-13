@@ -184,7 +184,7 @@ export function MetricSelector({
           }),
           metricType,
           metricName,
-          metricUnit: metricUnit ?? undefined,
+          metricUnit,
           count: typeof count === 'number' ? count : undefined,
           lastSeen:
             option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`] === undefined

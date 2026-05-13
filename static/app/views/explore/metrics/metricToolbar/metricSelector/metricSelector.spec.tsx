@@ -422,7 +422,7 @@ describe('MetricSelector', () => {
       );
     });
 
-    it('only highlights the selected metric when same-name metrics have none and null units', async () => {
+    it('preserves null units when selecting between same-name metrics', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
@@ -469,10 +469,11 @@ describe('MetricSelector', () => {
         ],
       });
 
+      const onChange = jest.fn();
       render(
         <MetricSelector
-          traceMetric={{name: 'lighthouse.cls', type: 'distribution', unit: null} as any}
-          onChange={jest.fn()}
+          traceMetric={{name: 'lighthouse.cls', type: 'distribution', unit: 'none'}}
+          onChange={onChange}
         />,
         {organization}
       );
@@ -485,6 +486,14 @@ describe('MetricSelector', () => {
       expect(
         options.filter(option => option.getAttribute('aria-selected') === 'true')
       ).toHaveLength(1);
+
+      await userEvent.click(options[1]!);
+
+      expect(onChange).toHaveBeenCalledWith({
+        name: 'lighthouse.cls',
+        type: 'distribution',
+        unit: null,
+      });
     });
 
     it('shows unselected metrics as aria-selected="false"', async () => {
