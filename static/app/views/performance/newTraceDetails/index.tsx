@@ -125,6 +125,13 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       'thread.id',
       'tags[performance.timeOrigin,number]',
       'gen_ai.operation.type',
+      // TODO: switch to clean names (e.g. 'app.vitals.ttid.value') once sentry-conventions
+      // registers these as public aliases in deprecated_attributes.json with backfill status.
+      // The `tags[...,number]` form is a temporary bridge for unregistered attributes.
+      'tags[app.vitals.ttid.value,number]',
+      'tags[app.vitals.ttfd.value,number]',
+      'tags[app.vitals.start.cold.value,number]',
+      'tags[app.vitals.start.warm.value,number]',
     ],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});

@@ -58,7 +58,10 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
 
   const collectedVitals =
     traceNode.isEAPEvent && tree.vital_types.has('mobile')
-      ? getMobileVitalsFromRootEventResults(rootEventResults.data)
+      ? mergeVitals(
+          getMobileVitalsFromRootEventResults(rootEventResults.data),
+          Array.from(tree.vitals.values()).flat()
+        )
       : Array.from(tree.vitals.values()).flat();
 
   const primaryVitalsCount = getPrimaryVitalsCount(
@@ -287,4 +290,14 @@ function defaultVitalValueFormatter(vital: Vital, value: number) {
   }
 
   return value.toFixed(2);
+}
+
+// Merges vitals from root event results with span-based vitals from the tree.
+// Root event vitals take priority; span-based vitals fill in keys not present.
+function mergeVitals(
+  rootEventVitals: TraceTree.CollectedVital[],
+  treeVitals: TraceTree.CollectedVital[]
+): TraceTree.CollectedVital[] {
+  const existingKeys = new Set(rootEventVitals.map(v => v.key));
+  return [...rootEventVitals, ...treeVitals.filter(v => !existingKeys.has(v.key))];
 }
