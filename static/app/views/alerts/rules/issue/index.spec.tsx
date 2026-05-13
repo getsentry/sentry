@@ -26,6 +26,7 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -510,7 +511,7 @@ describe('IssueRuleEditor', () => {
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
-      expect(router.push).toHaveBeenCalledWith(
+      expect(browserHistory.push).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
       );
     });
