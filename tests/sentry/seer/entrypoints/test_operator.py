@@ -43,7 +43,7 @@ from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPr
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
-from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
+from sentry.types.activity import ActivityType
 
 
 class MockCachePayload(TypedDict):
@@ -864,7 +864,7 @@ class SeerOperatorTest(TestCase):
                 organization_id=self.organization.id,
             )
 
-        seer_type_values = [t.value for t in SEER_ACTIVITY_TYPES]
+        seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
         assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
@@ -877,7 +877,7 @@ class SeerOperatorTest(TestCase):
             organization_id=self.organization.id,
         )
 
-        seer_type_values = [t.value for t in SEER_ACTIVITY_TYPES]
+        seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
         assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
