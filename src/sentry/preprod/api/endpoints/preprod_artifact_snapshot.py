@@ -110,6 +110,26 @@ def _strip_to_compact(img: dict[str, Any]) -> dict[str, Any]:
     return {k: img[k] for k in _COMPACT_FIELDS if k in img}
 
 
+def build_snapshot_image_response(
+    image_file_name: str,
+    metadata: ImageMetadata,
+    global_diff_threshold: float | None,
+) -> SnapshotImageResponse:
+    return SnapshotImageResponse(
+        key=metadata.content_hash,
+        display_name=metadata.display_name,
+        image_file_name=image_file_name,
+        group=metadata.group,
+        width=metadata.width,
+        height=metadata.height,
+        diff_threshold=metadata.diff_threshold
+        if metadata.diff_threshold is not None
+        else global_diff_threshold,
+        description=metadata.description,
+        tags=metadata.tags,
+    )
+
+
 def validate_preprod_snapshot_post_schema(
     request_body: bytes,
 ) -> tuple[dict[str, Any], str | None]:
@@ -304,21 +324,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        global_threshold = manifest.diff_threshold
         image_list = [
-            SnapshotImageResponse(
-                key=metadata.content_hash,
-                display_name=metadata.display_name,
-                image_file_name=key,
-                group=metadata.group,
-                width=metadata.width,
-                height=metadata.height,
-                diff_threshold=metadata.diff_threshold
-                if metadata.diff_threshold is not None
-                else global_threshold,
-                description=metadata.description,
-                tags=metadata.tags,
-            )
+            build_snapshot_image_response(key, metadata, manifest.diff_threshold)
             for key, metadata in sorted(manifest.images.items())
         ]
 
