@@ -73,7 +73,7 @@ describe('TimestampTooltipBody', () => {
     );
 
     expect(screen.getByText('Occurred')).toBeInTheDocument();
-    expect(screen.getByText('Received')).toBeInTheDocument();
+    expect(screen.queryAllByRole('time')).toHaveLength(3);
   });
 
   it('does not render received time when observed timestamp is not provided', () => {
@@ -92,7 +92,7 @@ describe('TimestampTooltipBody', () => {
     );
 
     expect(screen.getByText('Occurred')).toBeInTheDocument();
-    expect(screen.queryByText('Received')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('time')).toHaveLength(2);
   });
 
   it('renders in 24h format when user preference is set', () => {
