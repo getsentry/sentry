@@ -746,7 +746,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         assert response.data["meta"]["fields"] == {"count()": "integer"}
         assert response.data["meta"]["units"] == {"count()": None}
-        assert response.data["data"] == [{"count()": 0}]
+        assert response.data["data"] == [{}]
 
     def _test_simple_measurements(self, keys):
         self.store_spans(
@@ -4514,7 +4514,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data == [
             {
-                "tags[http.response.status_code,number]": None,
                 "description": "foo",
                 "count()": 1,
             },
@@ -4580,7 +4579,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
             {
                 "id": span_without_profile["span_id"],
-                "profile.id": None,
                 "project.name": self.project.slug,
                 "timestamp": mock.ANY,
             },
@@ -4913,7 +4911,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "id": spans[0]["span_id"],
-                "parent_span": None,
                 "project.name": self.project.slug,
             }
         ]
@@ -7290,13 +7287,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["data"] == [
-            {
-                "failure_rate()": None,
-                "failure_count()": 0,
-                "count()": 0,
-            }
-        ]
+        assert response.data["data"] == [{"failure_count()": 0}]
 
     def test_failure_count_and_rate_zero(self):
         self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])

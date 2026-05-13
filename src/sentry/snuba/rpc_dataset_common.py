@@ -464,11 +464,9 @@ class RPCBase:
         **_context_kwargs: Any,
     ) -> None:
         for index, result in enumerate(column_value.results):
-            result_value: Any
             if result.is_null:
-                result_value = None
-            else:
-                result_value = anyvalue_to_python(result)
+                continue
+            result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
@@ -891,7 +889,7 @@ class RPCBase:
                             event.get("project") or event["project.slug"]
                         ]
                 else:
-                    value = event[key]
+                    value = event.get(key)
                 resolved_term, context = resolver.resolve_term(
                     SearchFilter(
                         key=SearchKey(name=key),

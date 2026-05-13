@@ -13,7 +13,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
     dataset = "uptime_results"
 
     def build_expected_result(self, **kwargs):
-        return {"project.name": None, **kwargs}
+        return {**kwargs}
 
     @pytest.mark.querybuilder
     def test_simple_uptime_query(self) -> None:

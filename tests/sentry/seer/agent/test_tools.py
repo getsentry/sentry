@@ -3019,6 +3019,8 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
 
         for log in data:
             for field in self.default_fields:
+                if field == "message.template":
+                    continue  # absent when log has no template
                 assert field in log, field
 
 

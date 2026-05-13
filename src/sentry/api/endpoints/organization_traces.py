@@ -457,7 +457,8 @@ class TracesExecutor:
 
             # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
             # So make sure to handle both in case something changes.
-            if not span["parent_span"] or int(span["parent_span"], 16) == 0:
+            parent_span = span.get("parent_span")
+            if not parent_span or int(parent_span, 16) == 0:
                 traces_primary_info[span["trace"]] = name
 
             if span["trace"] in traces_fallback_info:

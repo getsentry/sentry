@@ -216,14 +216,14 @@ class FlamegraphExecutor:
             results = builder.process_results(results)
 
             for row in results["data"]:
-                if row["profile.id"] is not None:
+                if row.get("profile.id") is not None:
                     transaction_profile_candidates.append(
                         {
                             "project_id": row["project.id"],
                             "profile_id": row["profile.id"],
                         }
                     )
-                elif row["profiler.id"] is not None and row["thread.id"]:
+                elif row.get("profiler.id") is not None and row.get("thread.id"):
                     profiler_metas.append(
                         ProfilerMeta(
                             project_id=row["project.id"],

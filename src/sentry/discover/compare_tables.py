@@ -61,14 +61,10 @@ def compare_table_results(
 
     mismatches: list[str] = []
     no_metrics_data = len(metrics_data_row) == 0
-    no_eap_data = len(eap_data_row) == 0
-
     # if there's no metrics data we know there are mismatches,
     # we will check the EAP data for the names of the mismatched fields
     if no_metrics_data:
         return (False, [], CompareTableResult.NO_DATA)
-    if no_eap_data:
-        return (False, [], CompareTableResult.QUERY_FAILED)
 
     try:
         for field, data in metrics_data_row.items():
@@ -91,7 +87,7 @@ def compare_table_results(
             ):
                 continue
 
-            if eap_data_row[translated_field] is None:
+            if eap_data_row.get(translated_field) is None:
                 logger.info("Field %s not found in EAP response", field)
                 mismatches.append(field)
 
