@@ -27,6 +27,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -166,8 +167,20 @@ class ProjectKey(ReplicatedCellModel):
         public_key = urlparts.username
         project_id = urlparts.path.rsplit("/", 1)[-1]
 
+        # Validate project_id is a positive integer within the bounds of
+        # BoundedBigAutoField. A non-integer or out-of-range value cannot
+        # match any ProjectKey, so treat it as a DoesNotExist instead of
+        # letting ValueError / AssertionError escape from the ORM layer.
         try:
-            return ProjectKey.objects.get(public_key=public_key, project=project_id)
+            project_id_int = int(project_id)
+        except (TypeError, ValueError):
+            raise ProjectKey.DoesNotExist("ProjectKey matching query does not exist.")
+
+        if project_id_int <= 0 or project_id_int > BoundedBigAutoField.MAX_VALUE:
+            raise ProjectKey.DoesNotExist("ProjectKey matching query does not exist.")
+
+        try:
+            return ProjectKey.objects.get(public_key=public_key, project=project_id_int)
         except ValueError:
             # ValueError would come from a non-integer project_id,
             # which is obviously a DoesNotExist. We catch and rethrow this
