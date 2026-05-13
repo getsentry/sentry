@@ -9,10 +9,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getTitleFromLocation, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {getTitleFromLocation} from 'sentry/views/explore/queryParams/savedQuery';
 import {
   isVisualize,
   isVisualizeFunction,
@@ -23,7 +23,7 @@ const METRICS_DATASET = 'metrics';
 export function useSaveMetricsMultiQuery() {
   const location = useLocation();
   const id = decodeScalar(location.query.id);
-  const title = getTitleFromLocation(location);
+  const title = getTitleFromLocation(location, TITLE_KEY);
 
   const metricQueries = useMultiMetricsQueryParams();
 
