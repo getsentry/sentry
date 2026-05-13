@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
@@ -27,7 +27,7 @@ function getField(role: string, name: string) {
 
 describe('projectGeneralSettings', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({
+  const project = DetailedProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
     allowedDomains: ['example.com', 'https://example.com'],
@@ -484,7 +484,7 @@ describe('projectGeneralSettings', () => {
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
       });
 
-      const projectWithPlatform = ProjectFixture();
+      const projectWithPlatform = DetailedProjectFixture();
 
       // Add project API mock for this specific org
       MockApiClient.addMockResponse({
@@ -527,7 +527,7 @@ describe('projectGeneralSettings', () => {
       const orgWithoutGamingFeature = OrganizationFixture({
         enabledConsolePlatforms: ['nintendo-switch'], // only has nintendo access
       });
-      const baseProject = ProjectFixture();
+      const baseProject = DetailedProjectFixture();
 
       MockApiClient.addMockResponse({
         url: `/projects/${orgWithoutGamingFeature.slug}/${baseProject.slug}/`,

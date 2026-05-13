@@ -27,7 +27,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
@@ -46,7 +46,7 @@ function useOpenEditHighlightsModal({
   event,
 }: {
   event: Event;
-  highlightsProject?: Project;
+  highlightsProject?: DetailedProject;
 }) {
   const {openModal} = useModal();
 
@@ -94,7 +94,7 @@ function EditHighlightsButton({
   event,
 }: {
   event: Event;
-  highlightsProject?: Project;
+  highlightsProject?: DetailedProject;
 }) {
   const {openEditHighlightsModal, editProps} = useOpenEditHighlightsModal({
     highlightsProject,
@@ -115,7 +115,7 @@ function EditHighlightsButton({
 
 interface HighlightsDataProps {
   event: Event;
-  highlightsProject: Project;
+  highlightsProject: DetailedProject;
   project: Project;
 }
 

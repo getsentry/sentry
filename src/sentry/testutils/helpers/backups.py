@@ -47,7 +47,7 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -541,11 +541,6 @@ class ExhaustiveFixtures(Fixtures):
             type=1,
             comment=f"hello {slug}",
             user_id=owner_id,
-        )
-        IncidentTrigger.objects.create(
-            incident=incident,
-            alert_rule_trigger=trigger,
-            status=1,
         )
 
         # Dashboard

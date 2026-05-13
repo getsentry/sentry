@@ -28,15 +28,6 @@ from .preprod_artifact_rerun_analysis import (
     PreprodArtifactRerunAnalysisEndpoint,
 )
 from .preprod_artifact_rerun_status_checks import PreprodArtifactRerunStatusChecksEndpoint
-from .preprod_artifact_snapshot import (
-    OrganizationPreprodSnapshotEndpoint,
-    ProjectPreprodSnapshotEndpoint,
-)
-from .preprod_artifact_snapshot_download import OrganizationPreprodSnapshotDownloadEndpoint
-from .preprod_artifact_snapshot_image_detail import (
-    OrganizationPreprodSnapshotImageDetailEndpoint,
-)
-from .preprod_snapshot_recompare import PreprodSnapshotRecompareEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
 )
@@ -68,6 +59,20 @@ from .pull_request.organization_pullrequest_details import OrganizationPullReque
 from .pull_request.organization_pullrequest_size_analysis_download import (
     OrganizationPullRequestSizeAnalysisDownloadEndpoint,
 )
+from .snapshots.preprod_artifact_snapshot import (
+    OrganizationPreprodSnapshotEndpoint,
+    ProjectPreprodSnapshotEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_download import (
+    OrganizationPreprodSnapshotDownloadEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_image_detail import (
+    OrganizationPreprodSnapshotImageDetailEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_latest_base import (
+    OrganizationPreprodLatestBaseSnapshotEndpoint,
+)
+from .snapshots.preprod_snapshot_recompare import PreprodSnapshotRecompareEndpoint
 
 __all__ = [
     "preprod_project_urlpatterns",
@@ -209,6 +214,11 @@ preprod_organization_urlpatterns = [
         name="sentry-api-0-organization-preprod-artifact-approve",
     ),
     # Snapshots
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/latest-base/$",
+        OrganizationPreprodLatestBaseSnapshotEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-latest-base",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
         OrganizationPreprodSnapshotEndpoint.as_view(),

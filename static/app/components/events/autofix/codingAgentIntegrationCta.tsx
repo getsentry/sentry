@@ -43,14 +43,13 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
 
     const hasFeatureFlag =
       !config.featureFlag || organization.features.includes(config.featureFlag);
-    const {data: projectDetails = project, isPending: isLoadingProject} =
-      useDetailedProject(
-        {
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-        },
-        {enabled: hasFeatureFlag}
-      );
+    const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject(
+      {
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+      },
+      {enabled: hasFeatureFlag}
+    );
     const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
     const preference = data?.preference;
     const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
@@ -66,8 +65,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
 
     const hasIntegration = Boolean(integration);
     const isAutomationEnabled =
-      projectDetails.seerScannerAutomation !== false &&
-      projectDetails.autofixAutomationTuning !== 'off';
+      projectDetails?.seerScannerAutomation !== false &&
+      projectDetails?.autofixAutomationTuning !== 'off';
     const isConfigured =
       preference?.automation_handoff?.target === config.target && isAutomationEnabled;
 
@@ -95,8 +94,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       });
 
       const isAutomationDisabled =
-        projectDetails.seerScannerAutomation === false ||
-        projectDetails.autofixAutomationTuning === 'off';
+        projectDetails?.seerScannerAutomation === false ||
+        projectDetails?.autofixAutomationTuning === 'off';
 
       if (isAutomationDisabled) {
         await updateProjectAutomation({

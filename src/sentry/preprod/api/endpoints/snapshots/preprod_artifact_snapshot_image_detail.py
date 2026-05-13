@@ -18,7 +18,7 @@ from sentry.api.bases.organization import (
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
-from sentry.preprod.api.endpoints.preprod_artifact_snapshot import (
+from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     build_snapshot_image_response,
 )
 from sentry.preprod.models import PreprodArtifact

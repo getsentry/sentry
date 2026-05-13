@@ -5,7 +5,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -33,7 +33,7 @@ describe('SeerDrawer', () => {
     ],
   });
   const mockGroup = GroupFixture();
-  const mockProject = ProjectFixture();
+  const mockProject = DetailedProjectFixture();
 
   const mockAutofixData = AutofixDataFixture({steps: [AutofixStepFixture()]});
 

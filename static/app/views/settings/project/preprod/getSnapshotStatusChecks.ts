@@ -1,4 +1,4 @@
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 
 const ENABLED_KEY = 'sentry:preprod_snapshot_status_checks_enabled';
 const FAIL_ON_ADDED_KEY = 'sentry:preprod_snapshot_status_checks_fail_on_added';
@@ -6,7 +6,7 @@ const FAIL_ON_REMOVED_KEY = 'sentry:preprod_snapshot_status_checks_fail_on_remov
 const FAIL_ON_CHANGED_KEY = 'sentry:preprod_snapshot_status_checks_fail_on_changed';
 const FAIL_ON_RENAMED_KEY = 'sentry:preprod_snapshot_status_checks_fail_on_renamed';
 
-export function getSnapshotStatusChecks(project: Project) {
+export function getSnapshotStatusChecks(project: DetailedProject) {
   const enabled =
     project.preprodSnapshotStatusChecksEnabled ??
     project.options?.[ENABLED_KEY] !== false;
