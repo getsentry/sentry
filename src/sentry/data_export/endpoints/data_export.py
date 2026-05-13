@@ -3,17 +3,20 @@ from typing import Any
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.parameters import GlobalParams
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.processors.discover import DiscoverProcessor
@@ -54,12 +57,49 @@ MAX_SYNC_LIMIT = 10_000
 
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
-    query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
-    query_info = serializers.JSONField(required=True)
-    format = serializers.ChoiceField(
-        choices=OutputMode.supported_values(), required=False, default=OutputMode.CSV.value
+    query_type = serializers.ChoiceField(
+        choices=ExportQueryType.as_str_choices(),
+        required=True,
+        help_text=(
+            "The type of export to perform. Use `trace_item_full_export` to export all fields "
+            "for logs or spans as JSONL (recommended for agent use). Use `Explore` to export "
+            "a selected set of columns as CSV or JSONL."
+        ),
     )
-    limit = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    query_info = serializers.JSONField(
+        required=True,
+        help_text=(
+            "A JSON object describing the export query. Required keys vary by `query_type`. "
+            'For `trace_item_full_export` and `Explore`: `dataset` ("logs" or "spans"), '
+            '`query` (filter string, e.g. `"severity:error"`), and a time range via '
+            '`statsPeriod` (e.g. `"24h"`), or `start`/`end` (ISO 8601). '
+            "For `Explore` also include `field` (list of column names to export). "
+            "Optionally include `project` (list of project IDs), "
+            "`environment` (list of environment names), "
+            "`sort` (list of sort columns, prefix with `-` for descending), and "
+            "`sampling` (one of `NORMAL`, `LOW`, `HIGH`)."
+        ),
+    )
+    format = serializers.ChoiceField(
+        choices=OutputMode.supported_values(),
+        required=False,
+        default=OutputMode.CSV.value,
+        help_text=(
+            'Output format. `"jsonl"` (JSON Lines) or `"csv"`.'
+            ' Must be `"jsonl"` when `query_type` is `trace_item_full_export`.'
+        ),
+    )
+    limit = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=1,
+        help_text=(
+            "Maximum number of rows to export. When `query_type` is `trace_item_full_export`, "
+            "`dataset` is `logs`, and `limit` is ≤ 10,000, the export runs synchronously "
+            "and the response is returned immediately with the file ready to download. "
+            "Omit or set above 10,000 for an asynchronous export (user receives an email)."
+        ),
+    )
 
     def _validate_dataset(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
         dataset = query_info.get("dataset")
@@ -257,11 +297,13 @@ def issues_by_tag_validate(query_info: dict[str, Any]) -> None:
             raise serializers.ValidationError("Invalid group ID")
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.EXPLORE
     permission_classes = (OrganizationDataExportPermission,)
 
     def _get_project_id(self, request: Request) -> str:
@@ -290,10 +332,37 @@ class DataExportEndpoint(OrganizationEndpoint):
         )
         return limit, run_sync
 
+    @extend_schema(
+        operation_id="Export Logs",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        request=DataExportQuerySerializer,
+    )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Create a new asynchronous or sync file export task depending on requested file size,
-        and email user upon completion.
+        Initiate a data export for logs (or spans) stored in the Events Analytics Platform (EAP).
+
+        Two export paths are available via the `query_type` field:
+
+        **`trace_item_full_export`** *(recommended for agents)*
+        Returns all fields for each log/span row as JSONL. When `limit` is ≤ 10,000 and
+        `dataset=logs` the export runs synchronously — the response is returned immediately
+        with `status=VALID` and the file is ready to download via the `GET
+        /api/0/organizations/{organization_id_or_slug}/data-export/{export_id}/` endpoint.
+        Larger requests are processed asynchronously and the user receives an email.
+
+        **`Explore`**
+        Returns only the columns specified in `query_info.field` as CSV or JSONL.
+        Always processed asynchronously.
+
+        ### Downloading the file
+
+        Once `status` is `VALID`, retrieve the file:
+
+        ```
+        GET /api/0/organizations/{org}/data-export/{id}/?download=1
+        ```
         """
 
         extra = {
