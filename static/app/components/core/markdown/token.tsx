@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {ElementType, ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Separator} from '@sentry/scraps/separator';
@@ -84,7 +84,7 @@ export function Token({
     }
 
     case 'list': {
-      const List = token.ordered
+      const List: ElementType = token.ordered
         ? (components.OrderedList ?? 'ol')
         : (components.UnorderedList ?? 'ul');
       return (

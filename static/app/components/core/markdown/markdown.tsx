@@ -77,7 +77,10 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
     let changed = false;
 
     for (let i = 0; i < children.length; i++) {
-      const child = children[i] as HTMLElement;
+      const child = children[i];
+      if (!(child instanceof HTMLElement)) {
+        continue;
+      }
       const len = (child.textContent ?? '').length;
       const prevLen = prevTextLensRef.current.get(i) ?? 0;
       if (prevLen > 0) {
