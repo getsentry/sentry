@@ -1515,6 +1515,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "release-health.monitor-release-adoption-jitter-seconds",
+    type=Int,
+    default=45 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -4188,11 +4195,18 @@ register(
 
 # Whether or not provisioning analytics and audits are made in the provision_organization RPC call
 register(
-    "provision_organization_in_cell.record_analytics",
-    type=Bool,
-    default=False,
+    "provision_organization.override.mapping",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "provision_organization.override.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # SCM
 
