@@ -35,7 +35,7 @@ export function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
           disabled:
             disableUnallowed && !r.isAllowed && !(isMemberInvite && r.id === 'member'),
           details: (
-            <Container as="span" width="20rem">
+            <Container as="span" display="inline-block" width="20rem">
               {r.desc}
             </Container>
           ),
