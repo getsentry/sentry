@@ -227,9 +227,14 @@ class BaseEventFrequencyQueryHandler(ABC):
             if condition["match"] not in (MatchType.IS_SET, MatchType.NOT_SET)
             else None
         )
-        if attribute == "error.unhandled":
-            # flip values, since the queried column is "error.handled"
-            rhs = not condition["value"]
+        if attribute in ("error.handled", "error.unhandled"):
+            # The queried column (exception_stacks.mechanism_handled) is UInt8, so rhs must be a
+            # Python bool/int, not a string like 'false'. Parse the stored string value first.
+            bool_value = condition["value"] not in ("false", False, 0)
+            if attribute == "error.unhandled":
+                # flip values, since the queried column is "error.handled"
+                bool_value = not bool_value
+            rhs = bool_value
 
         match condition["match"]:
             case MatchType.EQUAL:
