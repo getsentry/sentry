@@ -3,7 +3,7 @@ import type {ElementType, ReactNode} from 'react';
 import {Checkbox} from '@sentry/scraps/checkbox';
 
 import type {MarkedToken, Token as TokenType} from 'sentry/utils/marked/marked';
-import {sanitizeHtml} from 'sentry/utils/marked/marked';
+import {isSafeHref, isInternalHref, sanitizeHtml} from 'sentry/utils/marked/marked';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {
@@ -171,7 +171,7 @@ export function Token({
 
     case 'html': {
       const Html = components.Html ?? DefaultHtmlBlock;
-      return <Html html={token.text} />;
+      return <Html html={sanitizeHtml(token.text)} />;
     }
 
     case 'strong': {
@@ -190,6 +190,9 @@ export function Token({
     }
 
     case 'link': {
+      if (!isSafeHref(token.href) && !isInternalHref(token.href)) {
+        return <span>{renderInline(token.tokens, components)}</span>;
+      }
       const A = components.Link ?? DefaultLink;
       return (
         <A href={token.href} title={token.title}>

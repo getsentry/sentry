@@ -305,6 +305,52 @@ describe('Markdown', () => {
     });
   });
 
+  describe('safety is non-overridable', () => {
+    it('custom Link never receives unsafe hrefs', () => {
+      const linkFn = jest.fn(({href, children}: any) => (
+        <span data-href={href}>{children}</span>
+      ));
+      render(<Markdown raw="[click](javascript:alert(1))" components={{Link: linkFn}} />);
+      expect(linkFn).not.toHaveBeenCalled();
+      expect(screen.getByText('click')).toBeInTheDocument();
+    });
+
+    it('custom Link receives safe hrefs normally', () => {
+      const linkFn = jest.fn(({href, children}: any) => (
+        <a data-test-id="safe-link" href={href}>
+          {children}
+        </a>
+      ));
+      render(<Markdown raw="[click](https://example.com)" components={{Link: linkFn}} />);
+      expect(linkFn).toHaveBeenCalled();
+      expect(screen.getByTestId('safe-link')).toHaveAttribute(
+        'href',
+        'https://example.com'
+      );
+    });
+
+    it('custom Html receives sanitized content', () => {
+      let receivedHtml = '';
+      render(
+        <Markdown
+          raw="<script>alert(1)</script>"
+          components={{
+            Html: ({html}: {html: string}) => {
+              receivedHtml = html;
+              return <span data-test-id="custom-html" />;
+            },
+          }}
+        />
+      );
+      expect(receivedHtml).not.toContain('<script');
+    });
+
+    it('images are stripped without an explicit Image component', () => {
+      render(<Markdown raw="![alt](https://example.com/img.png)" />);
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    });
+  });
+
   describe('token caching', () => {
     it('renders correctly when raw prop changes', () => {
       const {rerender} = render(<Markdown raw="First" />);

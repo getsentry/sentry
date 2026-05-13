@@ -8,7 +8,7 @@ import {Quote} from '@sentry/scraps/quote';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {isSafeHref, isInternalHref, sanitizeHtml} from 'sentry/utils/marked/marked';
+import {isSafeHref, isInternalHref} from 'sentry/utils/marked/marked';
 
 export function DefaultParagraph({children}: {children: ReactNode}) {
   return (
@@ -77,7 +77,7 @@ export function DefaultCodeBlock({children, lang}: {children: string; lang?: str
 }
 
 export function DefaultHtmlBlock({html}: {html: string}) {
-  return <span dangerouslySetInnerHTML={{__html: sanitizeHtml(html)}} />;
+  return <span dangerouslySetInnerHTML={{__html: html}} />;
 }
 
 export function DefaultStrong({children}: {children: ReactNode}) {
