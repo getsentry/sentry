@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
@@ -59,19 +60,29 @@ def process_event(
     """
     project = Project.objects.get(id=project_id)
     org = Organization.objects.get(id=project.organization_id)
+    task_start = time.monotonic()
+    is_eval_project = project.slug.startswith("eval-")
     set_tag("organization.slug", org.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
     extra = {
         "organization.slug": org.slug,
+        "project_slug": project.slug,
         "project_id": project_id,
         "group_id": group_id,
         "event_id": event_id,
     }
+    if is_eval_project:
+        logger.info("seer_eval_seed.auto_source_code_config_start", extra=extra)
 
     event = fetch_event(project_id, event_id, group_id, extra)
     if event is None:
+        if is_eval_project:
+            logger.info(
+                "seer_eval_seed.auto_source_code_config_done",
+                extra={**extra, "status": "event_not_found", "duration_ms": 0.0},
+            )
         return [], []
 
     platform = event.platform
@@ -84,13 +95,32 @@ def process_event(
 
     frames_to_process = get_frames_to_process(event.data, platform)
     if not frames_to_process:
+        if is_eval_project:
+            logger.info(
+                "seer_eval_seed.auto_source_code_config_done",
+                extra={
+                    **extra,
+                    "status": "no_frames",
+                    "duration_ms": round((time.monotonic() - task_start) * 1000, 2),
+                },
+            )
         return [], []
 
     code_mappings: list[CodeMapping] = []
     in_app_stack_trace_rules: list[str] = []
     try:
         installation = get_installation(org)
+        tree_start = time.monotonic()
         trees = get_trees_for_org(installation, org, extra)
+        if is_eval_project:
+            logger.info(
+                "seer_eval_seed.auto_source_code_config_trees",
+                extra={
+                    **extra,
+                    "tree_count": len(trees),
+                    "duration_ms": round((time.monotonic() - tree_start) * 1000, 2),
+                },
+            )
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
         _, in_app_stack_trace_rules = create_configurations(
@@ -99,6 +129,18 @@ def process_event(
 
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
+
+    if is_eval_project:
+        logger.info(
+            "seer_eval_seed.auto_source_code_config_done",
+            extra={
+                **extra,
+                "status": "ok",
+                "code_mapping_count": len(code_mappings),
+                "in_app_stack_trace_rule_count": len(in_app_stack_trace_rules),
+                "duration_ms": round((time.monotonic() - task_start) * 1000, 2),
+            },
+        )
 
     return code_mappings, in_app_stack_trace_rules
 

@@ -1,3 +1,5 @@
+import logging
+import time
 from functools import partial
 
 from drf_spectacular.utils import extend_schema
@@ -24,6 +26,8 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.services import eventstore
 from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Events"])
@@ -72,6 +76,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         """
         from sentry.api.paginator import GenericOffsetPaginator
 
+        request_start = time.monotonic()
         query = request.GET.get("query")
         conditions = []
         eap_conditions = TraceItemFilter()
@@ -118,8 +123,25 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             data_fn = partial(data_fn, orderby=[Columns.EVENT_ID.value.alias])
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
+
+        def serialize_and_log_results(results):
+            serialized = serialize(results, request.user, serializer)
+            if project.slug.startswith("eval-"):
+                logger.info(
+                    "seer_eval_seed.project_events_query",
+                    extra={
+                        "project_slug": project.slug,
+                        "project_id": project.id,
+                        "query": query,
+                        "result_count": len(results),
+                        "response_count": len(serialized),
+                        "duration_ms": round((time.monotonic() - request_start) * 1000, 2),
+                    },
+                )
+            return serialized
+
         return self.paginate(
             request=request,
-            on_results=lambda results: serialize(results, request.user, serializer),
+            on_results=serialize_and_log_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )

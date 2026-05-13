@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+import time
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Any
@@ -510,6 +511,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
+    task_start = time.monotonic()
     set_current_event_project(project_id)
 
     from sentry.event_manager import EventManager, resolve_project
@@ -582,6 +584,7 @@ def _do_save_event(
 
             manager = EventManager(data)
             # event.project.organization is populated after this statement.
+            manager_save_start = time.monotonic()
             manager.save(
                 project=project,
                 assume_normalized=True,
@@ -589,6 +592,7 @@ def _do_save_event(
                 cache_key=cache_key,
                 attachments=attachments,
             )
+            manager_save_elapsed = time.monotonic() - manager_save_start
             # Put the updated event back into the cache so that post_process
             # has the most recent data.
 
@@ -599,6 +603,23 @@ def _do_save_event(
                 if not isinstance(data, dict):
                     data = dict(data.items())
                 processing_store.store(data)
+
+            if project.slug.startswith("eval-"):
+                info_logger.info(
+                    "seer_eval_seed.save_event",
+                    extra={
+                        "project_slug": project.slug,
+                        "project_id": project_id,
+                        "event_id": event_id,
+                        "event_type": event_type,
+                        "group_id": data.get("group_id") or data.get("group"),
+                        "manager_save_ms": round(manager_save_elapsed * 1000, 2),
+                        "task_elapsed_ms": round((time.monotonic() - task_start) * 1000, 2),
+                        "since_received_seconds": round(time.time() - start_time, 3)
+                        if start_time is not None
+                        else None,
+                    },
+                )
 
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.

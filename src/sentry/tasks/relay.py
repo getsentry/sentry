@@ -48,7 +48,11 @@ def build_project_config(public_key=None, **kwargs):
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
     sentry_sdk.set_tag("public_key", public_key)
-
+    task_start = time.monotonic()
+    tmp_scheduled = kwargs.get("tmp_scheduled")
+    scheduled_delay_ms = (
+        round((time.time() - tmp_scheduled) * 1000, 2) if isinstance(tmp_scheduled, float) else None
+    )
     try:
         from sentry.models.projectkey import ProjectKey
 
@@ -60,8 +64,32 @@ def build_project_config(public_key=None, **kwargs):
             # avoid creating more tasks for it.
             projectconfig_cache.backend.set_many({public_key: {"disabled": True}})
         else:
+            project = key.project
+            is_eval_project = project.slug.startswith("eval-")
+            if is_eval_project:
+                logger.info(
+                    "seer_eval_seed.projectconfig_build_start",
+                    extra={
+                        "public_key": public_key,
+                        "project_id": project.id,
+                        "project_slug": project.slug,
+                        "scheduled_delay_ms": scheduled_delay_ms,
+                    },
+                )
             config = compute_projectkey_config(key)
             projectconfig_cache.backend.set_many({public_key: config})
+            if is_eval_project:
+                logger.info(
+                    "seer_eval_seed.projectconfig_build_done",
+                    extra={
+                        "public_key": public_key,
+                        "status": "ok",
+                        "project_id": project.id,
+                        "project_slug": project.slug,
+                        "duration_ms": round((time.monotonic() - task_start) * 1000, 2),
+                        "scheduled_delay_ms": scheduled_delay_ms,
+                    },
+                )
 
     finally:
         # Delete the key in this `finally` block to make sure the debouncing key

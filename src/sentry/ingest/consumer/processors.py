@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+import time
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
@@ -87,6 +88,19 @@ def process_event(
     project_id = int(message["project_id"])
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
+
+    if project.slug.startswith("eval-"):
+        logger.info(
+            "seer_eval_seed.ingest_event",
+            extra={
+                "project_slug": project.slug,
+                "project_id": project_id,
+                "event_id": event_id,
+                "consumer_type": consumer_type,
+                "queue_lag_seconds": round(time.time() - start_time, 3),
+                "attachment_count": len(attachments),
+            },
+        )
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
