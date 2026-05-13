@@ -77,12 +77,6 @@ class GroupCategory(IntEnum):
     PREPROD = 17
 
     """
-    Issues detected by autopilot instrumentation analysis suggesting
-    improvements to product usage and observability coverage.
-    """
-    INSTRUMENTATION = 18
-
-    """
     Issues detected from SDK/tooling configuration problems,
     such as missing or broken source maps.
     """

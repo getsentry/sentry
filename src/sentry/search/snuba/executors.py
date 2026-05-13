@@ -164,7 +164,6 @@ def group_categories_from_search_filters(search_filters: Sequence[SearchFilter])
         group_categories = set(get_search_strategies().keys())
         # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
-        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
         group_categories.discard(GroupCategory.CONFIGURATION.value)
 
     return group_categories
