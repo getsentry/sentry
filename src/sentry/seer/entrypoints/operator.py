@@ -712,17 +712,13 @@ def _create_seer_activity(
         activity_data["run_id"] = run_id
 
     if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
-        if "root_cause" in event_payload:
-            activity_data["root_cause"] = event_payload["root_cause"]
+        activity_data["root_cause"] = event_payload.get("root_cause")
     elif event_type == SentryAppEventType.SEER_SOLUTION_COMPLETED:
-        if "solution" in event_payload:
-            activity_data["solution"] = event_payload["solution"]
+        activity_data["solution"] = event_payload.get("solution")
     elif event_type == SentryAppEventType.SEER_CODING_COMPLETED:
-        if "changes" in event_payload:
-            activity_data["changes"] = event_payload["changes"]
+        activity_data["changes"] = event_payload.get("changes")
     elif event_type == SentryAppEventType.SEER_PR_CREATED:
-        if "pull_requests" in event_payload:
-            activity_data["pull_requests"] = event_payload["pull_requests"]
+        activity_data["pull_requests"] = event_payload.get("pull_requests")
 
     Activity.objects.create_group_activity(
         group,
