@@ -31,6 +31,7 @@ import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryN
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
+import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
@@ -53,7 +54,9 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <GlobalDrawer>
           <SeerExplorerContextProvider>
-            <AppLayout organization={organization} />
+            <SeerExplorerSessionsProvider>
+              <AppLayout organization={organization} />
+            </SeerExplorerSessionsProvider>
           </SeerExplorerContextProvider>
         </GlobalDrawer>
       </OrganizationContainer>
