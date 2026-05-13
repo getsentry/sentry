@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.explore.endpoints.explore_saved_queries import (
+    PREBUILT_SAVED_QUERIES,
     sync_prebuilt_queries,
     sync_prebuilt_queries_starred,
 )
@@ -398,6 +399,9 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "Accessible query" in names
         assert "Test query" not in names
         assert "Owner all-projects query" not in names
+        # Prebuilt queries are product-level content and must remain visible to any org member.
+        prebuilt_names = {q["name"] for q in PREBUILT_SAVED_QUERIES}
+        assert prebuilt_names.issubset(names)
 
     def test_get_shows_unprojected_query_to_creator_only(self) -> None:
         self.org.flags.allow_joinleave = False

@@ -19,6 +19,11 @@ class ExploreSavedQueryPermission(OrganizationPermission):
             return super().has_object_permission(request, view, obj)
 
         if isinstance(obj, ExploreSavedQuery):
+            # Prebuilt queries are product-level content with no user data; any org member
+            # should be able to see and open them regardless of project access.
+            if obj.prebuilt_id is not None:
+                return True
+
             # 1. Saved Query contains certain projects
             if obj.projects.exists():
                 return request.access.has_projects_access(obj.projects.all())
@@ -65,10 +70,13 @@ def filter_to_accessible_explore_queries(
     queryset = queryset.exclude(Exists(has_inaccessible_project))
 
     # For queries that target no projects ("All Projects" / "My Projects"), only show
-    # those the actor created — Open Membership and org:write are already short-circuited above.
+    # those the actor created. Prebuilt queries are product-level content and stay visible
+    # to any org member. Open Membership and org:write are already short-circuited above.
     has_any_project = ExploreSavedQueryProject.objects.filter(
         explore_saved_query_id=OuterRef("id"),
     )
-    queryset = queryset.filter(Exists(has_any_project) | Q(created_by_id=request.user.id))
+    queryset = queryset.filter(
+        Exists(has_any_project) | Q(created_by_id=request.user.id) | Q(prebuilt_id__isnull=False)
+    )
 
     return queryset
