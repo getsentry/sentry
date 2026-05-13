@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0011_add_project_repository_fk_to_seer
+seer: 0012_make_project_repository_fk_notnull
 
-sentry: 1094_delete_incidenttrigger
+sentry: 1095_make_project_repository_fk_notnull
 
 social_auth: 0003_social_auth_json_field
 
