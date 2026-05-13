@@ -229,7 +229,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     "project_id": project.id,
                     "checksum": checksum,
                     "chunks": chunks,
-                    "artifact_id": artifact.id,
+                    "preprod_artifact_id": artifact.id,
                     "build_configuration": data.get("build_configuration"),
                 }
             )

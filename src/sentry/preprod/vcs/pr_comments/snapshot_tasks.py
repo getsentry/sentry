@@ -58,14 +58,14 @@ def create_preprod_snapshot_pr_comment_task(
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.snapshot_pr_comments.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id, "caller": caller},
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not artifact.commit_comparison:
         logger.info(
             "preprod.snapshot_pr_comments.create.no_commit_comparison",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return
 
@@ -78,7 +78,7 @@ def create_preprod_snapshot_pr_comment_task(
         logger.info(
             "preprod.snapshot_pr_comments.create.no_pr_info",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "pr_number": commit_comparison.pr_number,
                 "head_repo_name": commit_comparison.head_repo_name,
             },
@@ -88,7 +88,7 @@ def create_preprod_snapshot_pr_comment_task(
     if not artifact.project.get_option(ENABLED_OPTION_KEY):
         logger.info(
             "preprod.snapshot_pr_comments.create.project_disabled",
-            extra={"artifact_id": artifact.id, "project_id": artifact.project.id},
+            extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
         )
         return
 
@@ -96,7 +96,7 @@ def create_preprod_snapshot_pr_comment_task(
     if not features.has(FEATURE_FLAG, organization):
         logger.info(
             "preprod.snapshot_pr_comments.create.feature_disabled",
-            extra={"artifact_id": artifact.id, "organization_id": organization.id},
+            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
         )
         return
 
@@ -106,7 +106,7 @@ def create_preprod_snapshot_pr_comment_task(
     if not client:
         logger.info(
             "preprod.snapshot_pr_comments.create.no_client",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return
 
@@ -219,7 +219,7 @@ def create_preprod_snapshot_pr_comment_task(
             if not has_changes and not has_failures and not existing_comment_id:
                 logger.info(
                     "preprod.snapshot_pr_comments.create.skipped_no_diff",
-                    extra={"artifact_id": artifact.id},
+                    extra={"preprod_artifact_id": artifact.id},
                 )
                 return
 
@@ -324,7 +324,7 @@ def post_snapshot_pr_comment_task(
                     extra={
                         "commit_comparison_id": commit_comparison_id,
                         "organization_id": organization_id,
-                        "artifact_id": artifact_id,
+                        "preprod_artifact_id": artifact_id,
                         "comment_id": comment_id,
                     },
                 )

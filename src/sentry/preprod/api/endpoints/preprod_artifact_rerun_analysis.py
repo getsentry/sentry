@@ -80,7 +80,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         logger.info(
             "preprod_artifact.rerun_analysis",
             extra={
-                "artifact_id": head_artifact_id,
+                "preprod_artifact_id": head_artifact_id,
                 "user_id": request.user.id,
                 "organization_id": organization.id,
                 "project_id": head_artifact.project.id,
@@ -159,7 +159,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         logger.info(
             "preprod_artifact.admin_rerun_analysis",
             extra={
-                "artifact_id": preprod_artifact_id,
+                "preprod_artifact_id": preprod_artifact_id,
                 "user_id": request.user.id,
                 "organization_id": preprod_artifact.project.organization_id,
                 "project_id": preprod_artifact.project.id,
@@ -245,7 +245,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                 artifact.refresh_from_db()
 
             result: dict[str, object] = {
-                "artifact_id": str(artifact_id),
+                "preprod_artifact_id": str(artifact_id),
                 "success": dispatched,
                 "new_state": artifact.state,
                 "cleanup_stats": asdict(cleanup_stats),
@@ -258,7 +258,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                 logger.info(
                     "preprod_artifact.admin_batch_rerun_analysis",
                     extra={
-                        "artifact_id": artifact_id,
+                        "preprod_artifact_id": artifact_id,
                         "user_id": request.user.id,
                         "organization_id": organization.id,
                         "project_id": artifact.project.id,
@@ -338,7 +338,7 @@ def success_response(
 ) -> Response:
     response_data = {
         "success": True,
-        "artifact_id": artifact_id,
+        "preprod_artifact_id": artifact_id,
         "message": f"Analysis rerun initiated for artifact {artifact_id}",
         "new_state": state,
     }

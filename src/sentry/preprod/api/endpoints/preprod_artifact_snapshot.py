@@ -154,7 +154,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "preprod_snapshot.delete_failed",
-                extra={"artifact_id": artifact.id},
+                extra={"preprod_artifact_id": artifact.id},
             )
             return Response(
                 {"detail": "Internal error deleting snapshot."},
@@ -175,7 +175,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         logger.info(
             "preprod_snapshot.deleted",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "user_id": request.user.id if request.user else None,
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
