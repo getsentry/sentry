@@ -103,6 +103,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
             provider="github",
             pr_number=42,
             commit_comparison_id=artifact.commit_comparison.id,
+            artifact_id=artifact.id,
             comment_body="## Sentry Snapshot Testing\n...",
             existing_comment_id=None,
         )
