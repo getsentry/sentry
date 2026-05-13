@@ -188,6 +188,7 @@ export const createablePlatforms = new Set<PlatformKey>([
  * Additional aliases used for filtering in the platform picker
  */
 export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
+  javascript: ['typescript', 'ts'],
   native: ['cpp', 'c++'],
 };
 

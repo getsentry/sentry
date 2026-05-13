@@ -34,6 +34,12 @@ describe('PlatformPicker', () => {
     expect(screen.getByTestId('platform-native')).toBeInTheDocument();
   });
 
+  it('should render JavaScript platform when filtered with typescript alias', () => {
+    render(<PlatformPicker {...baseProps} defaultCategory="all" platform="typescript" />);
+
+    expect(screen.getByTestId('platform-javascript')).toBeInTheDocument();
+  });
+
   it('should render renderPlatformList with community SDKs message if platform not found', async () => {
     render(<PlatformPicker {...baseProps} />);
 
