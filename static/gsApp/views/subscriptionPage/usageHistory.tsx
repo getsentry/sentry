@@ -40,6 +40,7 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
+  isUnlimitedReserved,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -53,7 +54,10 @@ interface Props {
   subscription: Subscription;
 }
 
-function usagePercentage(usage: number, prepaid: number | null): string {
+export function usagePercentage(usage: number, prepaid: number | null): string {
+  if (isUnlimitedReserved(prepaid)) {
+    return UNLIMITED;
+  }
   if (prepaid === null || prepaid === 0) {
     return t('0%');
   }
@@ -334,13 +338,15 @@ function UsageHistoryRow({history}: RowProps) {
                     <td>
                       {metricHistory.reserved === RESERVED_BUDGET_QUOTA
                         ? 'N/A'
-                        : usagePercentage(
-                            convertUsageToReservedUnit(
-                              metricHistory.usage,
-                              metricHistory.category
-                            ),
-                            metricHistory.prepaid
-                          )}
+                        : isUnlimitedReserved(metricHistory.reserved)
+                          ? UNLIMITED
+                          : usagePercentage(
+                              convertUsageToReservedUnit(
+                                metricHistory.usage,
+                                metricHistory.category
+                              ),
+                              metricHistory.prepaid
+                            )}
                     </td>
                   </tr>
                 ))}

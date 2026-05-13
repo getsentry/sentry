@@ -8,7 +8,7 @@ import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DataCategory} from 'sentry/types/core';
@@ -23,7 +23,9 @@ import {
 } from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
-import UsageHistory from 'getsentry/views/subscriptionPage/usageHistory';
+import UsageHistory, {
+  usagePercentage,
+} from 'getsentry/views/subscriptionPage/usageHistory';
 
 describe('Subscription > UsageHistory', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
@@ -164,6 +166,88 @@ describe('Subscription > UsageHistory', () => {
 
     expect(screen.queryByText('On-Demand Spend')).not.toBeInTheDocument();
     expect(mockCall).toHaveBeenCalled();
+  });
+
+  it('renders ∞ when reserved and prepaid are UNLIMITED_RESERVED', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/`,
+      method: 'GET',
+      body: [
+        BillingHistoryFixture({
+          categories: {
+            errors: MetricHistoryFixture({
+              usage: 12345,
+              reserved: UNLIMITED_RESERVED,
+              prepaid: UNLIMITED_RESERVED,
+            }),
+            transactions: MetricHistoryFixture({
+              category: DataCategory.TRANSACTIONS,
+              reserved: 1000,
+              prepaid: 1000,
+            }),
+            attachments: MetricHistoryFixture({
+              category: DataCategory.ATTACHMENTS,
+              reserved: 1,
+              prepaid: 1,
+            }),
+          },
+        }),
+      ],
+    });
+
+    const subscription = SubscriptionFixture({
+      plan: 'am1_f',
+      planTier: PlanTier.AM1,
+      organization,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<UsageHistory />, {organization});
+
+    const errorsRow = await screen.findByRole('row', {name: /^Errors/});
+    expect(within(errorsRow).getAllByRole('cell', {name: UNLIMITED})).toHaveLength(2);
+    expect(screen.queryByText('>100%')).not.toBeInTheDocument();
+  });
+
+  it('renders ∞ when prepaid is UNLIMITED_RESERVED but reserved is positive', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/`,
+      method: 'GET',
+      body: [
+        BillingHistoryFixture({
+          categories: {
+            errors: MetricHistoryFixture({
+              usage: 9999,
+              reserved: 1000,
+              prepaid: UNLIMITED_RESERVED,
+            }),
+            transactions: MetricHistoryFixture({
+              category: DataCategory.TRANSACTIONS,
+              reserved: 1000,
+              prepaid: 1000,
+            }),
+            attachments: MetricHistoryFixture({
+              category: DataCategory.ATTACHMENTS,
+              reserved: 1,
+              prepaid: 1,
+            }),
+          },
+        }),
+      ],
+    });
+
+    const subscription = SubscriptionFixture({
+      plan: 'am1_f',
+      planTier: PlanTier.AM1,
+      organization,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<UsageHistory />, {organization});
+
+    const errorsRow = await screen.findByRole('row', {name: /^Errors/});
+    expect(within(errorsRow).getByRole('cell', {name: UNLIMITED})).toBeInTheDocument();
+    expect(screen.queryByText('>100%')).not.toBeInTheDocument();
   });
 
   it('overage is shown as >100%', async () => {
@@ -911,5 +995,38 @@ describe('Subscription > UsageHistory', () => {
     // Should show >100% when usage exceeds prepaid limit
     expect(await screen.findByText(/UI Profile Hours/i)).toBeInTheDocument();
     expect(await screen.findByText('>100%')).toBeInTheDocument();
+  });
+});
+
+describe('usagePercentage', () => {
+  it('returns 0% when prepaid is null', () => {
+    expect(usagePercentage(0, null)).toBe('0%');
+    expect(usagePercentage(100, null)).toBe('0%');
+  });
+
+  it('returns 0% when prepaid is 0', () => {
+    expect(usagePercentage(0, 0)).toBe('0%');
+    expect(usagePercentage(50, 0)).toBe('0%');
+  });
+
+  it('returns UNLIMITED when prepaid equals UNLIMITED_RESERVED', () => {
+    expect(usagePercentage(0, UNLIMITED_RESERVED)).toBe(UNLIMITED);
+    expect(usagePercentage(1_000_000, UNLIMITED_RESERVED)).toBe(UNLIMITED);
+  });
+
+  it('returns >100% when usage exceeds prepaid', () => {
+    expect(usagePercentage(1001, 1000)).toBe('>100%');
+  });
+
+  it('returns formatted percentage when usage is below prepaid', () => {
+    expect(usagePercentage(500, 1000)).toBe('50%');
+  });
+
+  it('returns 0% when usage is 0 and prepaid is positive', () => {
+    expect(usagePercentage(0, 1000)).toBe('0%');
+  });
+
+  it('returns 100% when usage equals prepaid', () => {
+    expect(usagePercentage(1000, 1000)).toBe('100%');
   });
 });
