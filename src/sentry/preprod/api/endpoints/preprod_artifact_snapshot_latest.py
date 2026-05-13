@@ -5,6 +5,7 @@ from typing import Any
 
 import orjson
 from django.conf import settings
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,7 +30,7 @@ from sentry.preprod.snapshots.manifest import SnapshotManifest
 
 logger = logging.getLogger(__name__)
 
-LATEST_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
+LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
     "app_id": {"type": "string", "required": True, "description": "App identifier to match"},
     "branch": {
         "type": "string",
@@ -51,7 +52,7 @@ LATEST_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
 
 
 @cell_silo_endpoint
-class OrganizationPreprodLatestSnapshotEndpoint(OrganizationEndpoint):
+class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -68,7 +69,7 @@ class OrganizationPreprodLatestSnapshotEndpoint(OrganizationEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        for param, spec in LATEST_SNAPSHOT_GET_QUERY_PARAMS.items():
+        for param, spec in LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS.items():
             if spec.get("required") and not request.GET.get(param):
                 return Response({"detail": f"{param} query parameter is required"}, status=400)
 
@@ -82,12 +83,20 @@ class OrganizationPreprodLatestSnapshotEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response({"detail": "No snapshot found"}, status=404)
 
-        qs = PreprodArtifact.objects.filter(
-            project__organization_id=organization.id,
-            project_id__in=params["project_id"],
-            app_id=app_id,
-            preprodsnapshotmetrics__isnull=False,
-        ).select_related("commit_comparison", "project", "preprodsnapshotmetrics")
+        qs = (
+            PreprodArtifact.objects.filter(
+                project__organization_id=organization.id,
+                project_id__in=params["project_id"],
+                app_id=app_id,
+                preprodsnapshotmetrics__isnull=False,
+            )
+            .filter(
+                Q(commit_comparison__isnull=True)
+                | Q(commit_comparison__base_sha__isnull=True)
+                | Q(commit_comparison__base_sha="")
+            )
+            .select_related("commit_comparison", "project", "preprodsnapshotmetrics")
+        )
 
         if branch:
             qs = qs.filter(commit_comparison__head_ref=branch)
