@@ -29,6 +29,26 @@ from sentry.preprod.snapshots.manifest import SnapshotManifest
 
 logger = logging.getLogger(__name__)
 
+LATEST_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
+    "app_id": {"type": "string", "required": True, "description": "App identifier to match"},
+    "branch": {
+        "type": "string",
+        "required": False,
+        "description": "Git branch name (filters on commit_comparison.head_ref)",
+    },
+    "compact_metadata": {
+        "type": "string",
+        "required": False,
+        "default": "0",
+        "description": "Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, description",
+    },
+    "project": {
+        "type": "integer",
+        "required": False,
+        "description": "Project ID to scope the lookup; recommended since app_id may not be unique across projects",
+    },
+}
+
 
 @cell_silo_endpoint
 class OrganizationPreprodLatestSnapshotEndpoint(OrganizationEndpoint):
@@ -48,9 +68,11 @@ class OrganizationPreprodLatestSnapshotEndpoint(OrganizationEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
+        for param, spec in LATEST_SNAPSHOT_GET_QUERY_PARAMS.items():
+            if spec.get("required") and not request.GET.get(param):
+                return Response({"detail": f"{param} query parameter is required"}, status=400)
+
         app_id = request.GET.get("app_id")
-        if not app_id:
-            return Response({"detail": "app_id query parameter is required"}, status=400)
 
         branch = request.GET.get("branch")
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
