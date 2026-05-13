@@ -112,11 +112,12 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     read_preference_from_sentry_db,
 )
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -704,7 +705,8 @@ def validate_repo(
     if not repo:
         return {"valid": False, "reason": "repository_not_found"}
 
-    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if repo.provider not in get_supported_scm_providers(organization):
         return {"valid": False, "reason": "unsupported_provider"}
 
     return {"valid": True, "integration_id": repo.integration_id}
@@ -737,7 +739,8 @@ def get_repo_installation_id(
     if not repo:
         return {"error": "repository_not_found"}
 
-    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if repo.provider not in get_supported_scm_providers(organization):
         return {"error": "unsupported_provider"}
 
     if repo.integration_id is None:
@@ -816,8 +819,14 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
             external_id=item["external_id"],
         )
 
+    org_ids = {item["organization_id"] for item in repository_integrations}
+    orgs_by_id = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
+    supported_providers: set[str] = set()
+    for org in orgs_by_id.values():
+        supported_providers.update(get_supported_scm_providers(org))
+
     existing_repos = Repository.objects.filter(
-        q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
+        q_objects, status=ObjectStatus.ACTIVE, provider__in=supported_providers
     ).values_list("organization_id", "provider", "integration_id", "external_id")
 
     existing_map: dict[tuple, int | None] = {}

@@ -47,7 +47,7 @@ from sentry.seer.agent.utils import (
     get_retention_boundary,
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -684,6 +684,9 @@ def get_repository_definition(
         dict with RepoDefinition fields if found, None otherwise. Includes external_id
         which should be stored for future lookups.
     """
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    supported_providers = get_supported_scm_providers(organization)
+
     repo: Repository | None = None
 
     if external_id:
@@ -691,7 +694,7 @@ def get_repository_definition(
             organization_id=organization_id,
             external_id=external_id,
             status=ObjectStatus.ACTIVE,
-            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+            provider__in=supported_providers,
         ).first()
 
     if not repo:
@@ -707,7 +710,7 @@ def get_repository_definition(
             organization_id=organization_id,
             name=repo_full_name,
             status=ObjectStatus.ACTIVE,
-            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+            provider__in=supported_providers,
         ).first()
 
     if not repo:
