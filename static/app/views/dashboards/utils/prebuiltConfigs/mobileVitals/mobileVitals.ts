@@ -296,9 +296,9 @@ const APP_START_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [
         t('Screen'),
-        t('Avg. Cold Start'),
-        t('Avg. Warm Start'),
-        t('App Starts'),
+        t('Avg Cold Start'),
+        t('Avg Warm Start'),
+        t('Screen Loads'),
       ],
       conditions: APP_START_TABLE_CONDITION,
       orderby: `-${TRANSACTION_COUNT}`,
@@ -393,7 +393,7 @@ const SCREEN_LOAD_TABLE: Widget = {
         TRANSACTION_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
-      fieldAliases: [t('Screen'), t('Avg. TTID'), t('Avg. TTFD'), t('Screen Loads')],
+      fieldAliases: [t('Screen'), t('Avg TTID'), t('Avg TTFD'), t('Screen Loads')],
       conditions: SCREEN_LOAD_TABLE_CONDITION,
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
