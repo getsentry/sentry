@@ -225,7 +225,7 @@ function fadeOutRuns(runs: TextRun[]) {
 
 function animateElement(element: Element): () => void {
   const htmlEl = element as HTMLElement;
-  const skipChars = parseInt(htmlEl.dataset.skip ?? '0', 10);
+  const skipChars = Number.parseInt(htmlEl.dataset.skip ?? '0', 10);
   delete htmlEl.dataset.skip;
 
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
@@ -302,7 +302,7 @@ function animateElement(element: Element): () => void {
           span.removeAttribute(ATTR);
           run.active[i] = false;
         } else {
-          span.setAttribute(ATTR, randomGlyph(grapheme));
+          span.setAttribute(ATTR, randomGlyph());
           allSettled = false;
         }
       }
