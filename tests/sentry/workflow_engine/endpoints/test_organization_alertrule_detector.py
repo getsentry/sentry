@@ -67,6 +67,12 @@ class OrganizationAlertRuleDetectorIndexGetTest(OrganizationAlertRuleDetectorAPI
 
         assert response.data == serialize(self.alert_rule_detector_1, self.user)
 
+    def test_get_with_string_integer_ids(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, detector_id=str(self.detector_1.id)
+        )
+        assert response.data == serialize(self.alert_rule_detector_1, self.user)
+
     def test_get_with_non_integer_detector_id(self) -> None:
         self.get_error_response(
             self.organization.slug,
