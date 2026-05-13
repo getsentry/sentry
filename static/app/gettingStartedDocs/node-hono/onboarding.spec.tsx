@@ -25,17 +25,15 @@ describe('hono onboarding docs', () => {
     it('shows @sentry/cloudflare as peer dependency', () => {
       renderWithOnboardingLayout(docs);
 
-      expect(
-        screen.getByText(textWithMarkupMatcher(/@sentry\/cloudflare/))
-      ).toBeInTheDocument();
+      const matches = screen.getAllByText(textWithMarkupMatcher(/@sentry\/cloudflare/));
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows wrangler.jsonc with nodejs_compat flag', () => {
       renderWithOnboardingLayout(docs);
 
-      expect(
-        screen.getByText(textWithMarkupMatcher(/nodejs_compat/))
-      ).toBeInTheDocument();
+      const matches = screen.getAllByText(textWithMarkupMatcher(/nodejs_compat/));
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows sentry middleware import from @sentry/hono/cloudflare', () => {
@@ -294,7 +292,8 @@ describe('hono onboarding docs', () => {
     it('shows @sentry/bun as peer dependency', () => {
       renderWithOnboardingLayout(bunDocs);
 
-      expect(screen.getByText(textWithMarkupMatcher(/@sentry\/bun/))).toBeInTheDocument();
+      const matches = screen.getAllByText(textWithMarkupMatcher(/@sentry\/bun/));
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows sentry middleware import from @sentry/hono/bun', () => {
