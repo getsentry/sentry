@@ -531,7 +531,7 @@ describe('getSlot', () => {
 
   it('should return the slot index which matches the current price', () => {
     const reservedEvents = undefined;
-    const currentPrice = 29.0;
+    const currentPrice = 29;
     const buckets = [
       makeBucket({price: 29}), // matches the current price
       makeBucket({price: 39}),
@@ -570,7 +570,7 @@ describe('getSlot', () => {
 
   it('should return the slot index that is above the current price', () => {
     const reservedEvents = undefined;
-    const currentPrice = 33.0;
+    const currentPrice = 33;
     const buckets = [
       makeBucket({price: 29}),
       makeBucket({price: 39}), // next highest
@@ -582,7 +582,7 @@ describe('getSlot', () => {
 
   it('should return the slot index that is below the current price with minimize strategy', () => {
     const reservedEvents = undefined;
-    const currentPrice = 33.0;
+    const currentPrice = 33;
     const buckets = [
       makeBucket({price: 29}), // next lowest
       makeBucket({price: 39}),

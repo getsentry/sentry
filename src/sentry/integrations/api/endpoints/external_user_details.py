@@ -24,6 +24,7 @@ from sentry.integrations.api.bases.external_actor import (
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +43,14 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         self,
         request: Request,
         organization_id_or_slug: int | str,
-        external_user_id: int,
+        external_user_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
         kwargs["external_user"] = self.get_external_actor_or_404(
-            external_user_id, kwargs["organization"]
+            to_valid_int_id("external_user_id", external_user_id, raise_404=True),
+            kwargs["organization"],
         )
         return args, kwargs
 

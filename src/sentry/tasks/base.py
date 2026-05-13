@@ -1,19 +1,15 @@
 from __future__ import annotations
 
 import datetime
-import functools
 import logging
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import TypeVar
 
-import sentry_sdk
 from django.db.models import Model
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.registry import TaskNamespace
-from taskbroker_client.retry import Retry, RetryTaskError, retry_task
-from taskbroker_client.state import current_task
+from taskbroker_client.retry import Retry
 from taskbroker_client.task import P, R, Task
-from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloMode
 from sentry.taskworker.silolimiter import TaskSiloLimit
@@ -164,92 +160,6 @@ def instrumented_task(
         return task
 
     return wrapped
-
-
-def retry(
-    func: Callable[..., Any] | None = None,
-    on: type[Exception] | tuple[type[Exception], ...] = (Exception,),
-    on_silent: type[Exception] | tuple[type[Exception], ...] = (),
-    exclude: type[Exception] | tuple[type[Exception], ...] = (),
-    ignore: type[Exception] | tuple[type[Exception], ...] = (),
-    ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
-    timeouts: bool = False,
-    raise_on_no_retries: bool = True,
-) -> Callable[..., Callable[..., Any]]:
-    """
-    >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
-    >>> def my_task():
-    >>>     ...
-
-    The first set of parameters define how different exceptions are handled.
-    Raising an error will still report a Sentry event.
-
-    | Parameter          | Retry | Report | Raise | Description |
-    |--------------------|-------|--------|-------|-------------|
-    | on                 | Yes   | Yes    | No    | Exceptions that will trigger a retry & report to Sentry. |
-    | on_silent          | Yes   | No     | No    | Exceptions that will trigger a retry but not be captured to Sentry. |
-    | exclude            | No    | No     | Yes   | Exceptions that will not trigger a retry and will be raised. |
-    | ignore             | No    | No     | No    | Exceptions that will be ignored and not trigger a retry & not report to Sentry. |
-    | ignore_and_capture | No    | Yes    | No    | Exceptions that will not trigger a retry and will be captured to Sentry. |
-
-    The following modifiers modify the behavior of the retry decorator.
-
-    | Modifier               | Description |
-    |------------------------|-------------|
-    | timeouts               | ProcessingDeadlineExceeded trigger a retry. |
-    | raise_on_no_retries    | Makes a RetryTaskError not be raised if no retries are left. |
-    """
-    if func:
-        return retry()(func)
-
-    timeout_exceptions: tuple[type[BaseException], ...]
-    timeout_exceptions = (ProcessingDeadlineExceeded,)
-    if not timeouts:
-        timeout_exceptions = ()
-
-    def inner(func):
-        @functools.wraps(func)
-        def wrapped(*args, **kwargs):
-            task_state = current_task()
-            no_retries_remaining = task_state and not task_state.retries_remaining
-            try:
-                return func(*args, **kwargs)
-            except ignore:
-                return
-            except RetryTaskError:
-                if not raise_on_no_retries and no_retries_remaining:
-                    return
-                # If we haven't been asked to ignore no-retries, pass along the RetryTaskError.
-                raise
-            except timeout_exceptions:
-                if timeouts:
-                    with sentry_sdk.isolation_scope() as scope:
-                        task_state = current_task()
-                        if task_state:
-                            scope.fingerprint = [
-                                "task.processing_deadline_exceeded",
-                                task_state.namespace,
-                                task_state.taskname,
-                            ]
-                        sentry_sdk.capture_exception(level="info")
-                    retry_task(raise_on_no_retries=raise_on_no_retries)
-                else:
-                    raise
-            except ignore_and_capture:
-                sentry_sdk.capture_exception(level="info")
-                return
-            except exclude:
-                raise
-            except on_silent as exc:
-                logger.info("silently retrying %s due to %s", func.__name__, exc)
-                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
-            except on as exc:
-                sentry_sdk.capture_exception()
-                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
-
-        return wrapped
-
-    return inner
 
 
 def track_group_async_operation(function):

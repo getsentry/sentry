@@ -1,8 +1,6 @@
 from unittest import mock
 from uuid import uuid4
 
-from django.utils import timezone
-
 from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
@@ -23,20 +21,12 @@ from sentry.web.frontend.base import internal_cell_silo_view
 from .mail import MailPreviewView
 
 
-class MockedIncidentTrigger:
-    date_added = timezone.now()
-
-
 @internal_cell_silo_view
 class DebugIncidentTriggerEmailView(MailPreviewView):
     @mock.patch(
-        "sentry.incidents.models.incident.IncidentTrigger.objects.get",
-        return_value=MockedIncidentTrigger(),
-    )
-    @mock.patch(
         "sentry.users.models.user_option.UserOption.objects.get_value", return_value="US/Pacific"
     )
-    def get_context(self, request, incident_trigger_mock, user_option_mock):
+    def get_context(self, request, user_option_mock):
         organization = Organization(slug="myorg")
         project = Project(slug="myproject", organization=organization)
         user = User()

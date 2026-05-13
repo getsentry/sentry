@@ -18,10 +18,10 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import type {FoldSectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
-export function getFoldSectionKey(key: SectionKey) {
+export function getFoldSectionKey(key: FoldSectionKey) {
   // Original key had a typo, this will migrate existing keys to the correct key
   const localStorageValue = localStorage.getItem(
     `'issue-details-fold-section-collapse:${key}`
@@ -33,9 +33,9 @@ export function getFoldSectionKey(key: SectionKey) {
   return `issue-details-fold-section-collapse:${key}`;
 }
 
-export interface FoldSectionProps {
+interface FoldSectionProps {
   children: React.ReactNode;
-  sectionKey: SectionKey;
+  sectionKey: FoldSectionKey;
   /**
    * Title of the section, always visible
    */
@@ -64,7 +64,7 @@ export interface FoldSectionProps {
 }
 
 function useOptionalLocalStorageState(
-  key: SectionKey,
+  key: FoldSectionKey,
   initialState: boolean,
   disablePersistence: boolean
 ): [boolean, (value: boolean) => void] {
@@ -80,7 +80,7 @@ function useOptionalLocalStorageState(
 }
 
 function useScrollToSection(
-  sectionKey: SectionKey,
+  sectionKey: FoldSectionKey,
   expanded: boolean,
   setIsCollapsed: (value: boolean) => void
 ): React.RefCallback<HTMLDivElement | null> {

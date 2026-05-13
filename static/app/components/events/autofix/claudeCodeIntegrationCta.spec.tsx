@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,13 +9,27 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('ClaudeCodeIntegrationCta', () => {
   const project = ProjectFixture();
+  const enabledProject = DetailedProjectFixture({
+    ...project,
+    seerScannerAutomation: true,
+    autofixAutomationTuning: 'medium',
+  });
   const organization = OrganizationFixture({
     features: ['integrations-claude-code'],
   });
 
+  function mockDetailedProject(projectBody = enabledProject) {
+    return MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${projectBody.slug}/`,
+      body: projectBody,
+    });
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
+
+    mockDetailedProject();
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
@@ -205,10 +219,11 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('does not enable automation when already enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       const projectUpdateMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
@@ -252,10 +267,11 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('enables automation when setup button is clicked and automation is disabled', async () => {
-      const projectWithoutAutomation = ProjectFixture({
+      const projectWithoutAutomation = DetailedProjectFixture({
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       const updatedProject = {
         ...projectWithoutAutomation,
@@ -366,10 +382,11 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('shows configure stage when handoff is configured but automation is disabled', async () => {
-      const projectWithoutAutomation = ProjectFixture({
+      const projectWithoutAutomation = DetailedProjectFixture({
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithoutAutomation} />, {
         organization,
@@ -419,10 +436,11 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('shows configured stage when handoff is set up and automation is enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,
@@ -436,10 +454,11 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('does not show setup button in configured stage', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,

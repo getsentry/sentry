@@ -41,7 +41,7 @@ describe('StacktraceLink', () => {
     HookStore.init?.();
   });
 
-  it.isKnownFlake('renders setup CTA with integration but no configs', async () => {
+  it('renders setup CTA with integration but no configs', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: [integration]},
