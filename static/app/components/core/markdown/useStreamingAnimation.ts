@@ -74,8 +74,7 @@ export function useStreamingAnimation(
   }, [containerRef, enabled]);
 }
 
-const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$#!%&*◆+@~^°±§¶×÷';
-const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+const CHAR_ARRAY = Array.from('0123456789ABCDEF#');
 const STAGGER_MS = 11;
 const FADE_LEAD_MS = 200;
 const MAX_DURATION_MS = 1200;
@@ -85,18 +84,12 @@ const ATTR_SEL = `[${ATTR}]`;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
 
-const UPPER_ARRAY = Array.from(UPPER);
-const LOWER_ARRAY = Array.from(LOWER);
-
 function pick(arr: string[]): string {
-  return arr[Math.floor(Math.random() * arr.length)] ?? '$';
+  return arr[Math.floor(Math.random() * arr.length)] ?? '0';
 }
 
-function randomGlyph(char: string): string {
-  if (char >= 'a' && char <= 'z') {
-    return pick(LOWER_ARRAY);
-  }
-  return pick(UPPER_ARRAY);
+function randomGlyph(): string {
+  return pick(CHAR_ARRAY);
 }
 
 function isSimpleChar(grapheme: string): boolean {
@@ -168,7 +161,7 @@ function prepareTextNode(
     span.textContent = grapheme;
 
     if (isSimpleChar(grapheme) && globalOffset + idx >= skipChars) {
-      span.setAttribute(ATTR, randomGlyph(grapheme));
+      span.setAttribute(ATTR, randomGlyph());
       active.push(true);
     } else {
       active.push(false);
