@@ -102,7 +102,7 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       },
       {
         key: 'add-group-by',
-        label: t('Group by'),
+        label: t('Group by attribute'),
         hidden: embedded,
         disabled: groupBys.includes(content.originalAttribute.original_attribute_key),
         onAction: () => addGroupBy(content),

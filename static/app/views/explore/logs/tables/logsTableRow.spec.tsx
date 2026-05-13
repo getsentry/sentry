@@ -612,7 +612,9 @@ describe('logsTableRow', () => {
       })
     );
 
-    const groupByItem = await screen.findByRole('menuitemradio', {name: 'Group by'});
+    const groupByItem = await screen.findByRole('menuitemradio', {
+      name: 'Group by attribute',
+    });
     await userEvent.click(groupByItem);
 
     expect(router.location.query).toEqual(
@@ -669,7 +671,9 @@ describe('logsTableRow', () => {
       })
     );
 
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Group by'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Group by attribute'})
+    );
 
     expect(setSidebarOpen).toHaveBeenCalledWith(true);
   });
@@ -717,7 +721,9 @@ describe('logsTableRow', () => {
       })
     );
 
-    const groupByItem = await screen.findByRole('menuitemradio', {name: 'Group by'});
+    const groupByItem = await screen.findByRole('menuitemradio', {
+      name: 'Group by attribute',
+    });
     expect(groupByItem).toHaveAttribute('aria-disabled', 'true');
   });
 
