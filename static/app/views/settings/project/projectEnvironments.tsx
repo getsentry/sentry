@@ -7,6 +7,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
+import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -88,7 +89,12 @@ export default function ProjectEnvironments() {
       staleTime: 0,
     }
   );
-  const {data: environments, isPending} = useQuery(environmentsQueryOptions);
+  const {
+    data: environments,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery(environmentsQueryOptions);
 
   const toggleEnvironment = useMutation({
     mutationFn: ({environment, shouldHide}: ToggleEnvironmentVariables) =>
@@ -186,6 +192,10 @@ export default function ProjectEnvironments() {
         </SimpleTable.Header>
         {isPending ? (
           <EnvironmentTableSkeleton isHidden={isHidden} />
+        ) : isError ? (
+          <SimpleTable.Empty>
+            <LoadingError onRetry={refetch} />
+          </SimpleTable.Empty>
         ) : environments?.length ? (
           <Fragment>
             {!isHidden && <EnvironmentRow name={t('All Environments')} />}
