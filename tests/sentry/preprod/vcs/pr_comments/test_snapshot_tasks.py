@@ -430,6 +430,26 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
 @cell_silo_test
 class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
+    def _create_previous_snapshot(self, app_id: str = "com.example.app") -> None:
+        prev_cc = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="prev" + "0" * 36,
+            base_sha="prev" + "1" * 36,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="main",
+            pr_number=None,
+        )
+        prev_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id=app_id,
+            commit_comparison=prev_cc,
+        )
+        PreprodSnapshotMetrics.objects.create(preprod_artifact=prev_artifact, image_count=5)
+
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_solo_snapshot_pr_comment")
@@ -461,6 +481,24 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
 
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_solo_snapshot_pr_comment")
+    def test_first_upload_with_base_sha_posts_solo_comment(
+        self, mock_format_solo, mock_get_client, mock_delay
+    ):
+        mock_get_client.return_value = Mock()
+        mock_format_solo.return_value = "first upload body"
+
+        artifact, _ = self._create_artifact_with_metrics()
+
+        with self.feature(self._feature):
+            create_preprod_snapshot_pr_comment_task(artifact.id)
+
+        mock_format_solo.assert_called_once()
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args.kwargs["comment_body"] == "first upload body"
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch(
         "sentry.preprod.vcs.pr_comments.snapshot_tasks.format_waiting_for_base_snapshot_pr_comment"
     )
@@ -470,6 +508,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
         mock_get_client.return_value = Mock()
         mock_format_waiting.return_value = "waiting body"
 
+        self._create_previous_snapshot()
         artifact, _ = self._create_artifact_with_metrics()
 
         with self.feature(self._feature):
@@ -488,6 +527,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
         mock_get_client.return_value = Mock()
         mock_format_missing.return_value = "missing body"
 
+        self._create_previous_snapshot()
         artifact, _ = self._create_artifact_with_metrics()
 
         with self.feature(self._feature):
@@ -518,6 +558,41 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
         mock_format_normal.assert_called_once()
         mock_delay.assert_called_once()
         assert mock_delay.call_args.kwargs["comment_body"] == "normal body"
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
+    @patch("sentry.preprod.models.PreprodArtifact.get_base_artifacts_for_commit")
+    def test_updates_existing_comment_when_no_changes(
+        self, mock_get_base, mock_format, mock_get_client, mock_build_changes_map, mock_delay
+    ):
+        mock_get_client.return_value = Mock()
+        mock_format.return_value = "unchanged body"
+
+        cc = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+            extras={"pr_comments": {"snapshots": {"success": True, "comment_id": "waiting_123"}}},
+        )
+
+        head_artifact, _ = self._create_artifact_with_metrics(commit_comparison=cc)
+        mock_get_base.return_value = {head_artifact.id: Mock()}
+        mock_build_changes_map.return_value = {head_artifact.id: False}
+
+        with self.feature(self._feature):
+            create_preprod_snapshot_pr_comment_task(head_artifact.id)
+
+        mock_format.assert_called_once()
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args.kwargs["existing_comment_id"] == "waiting_123"
 
 
 @cell_silo_test

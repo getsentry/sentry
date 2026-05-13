@@ -169,7 +169,20 @@ def create_preprod_snapshot_pr_comment_task(
         cc_id = cc.id
 
         if is_solo:
-            if not commit_comparison.base_sha:
+            app_ids = {a.app_id for a in all_artifacts if a.app_id}
+            has_previous_snapshots = (
+                PreprodSnapshotMetrics.objects.filter(
+                    preprod_artifact__project_id=artifact.project_id,
+                    preprod_artifact__app_id__in=app_ids,
+                )
+                .exclude(preprod_artifact__commit_comparison_id=commit_comparison.id)
+                .exists()
+                if app_ids
+                else False
+            )
+            is_first_upload = not has_previous_snapshots
+
+            if is_first_upload or not commit_comparison.base_sha:
                 comment_body = format_solo_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
@@ -203,7 +216,7 @@ def create_preprod_snapshot_pr_comment_task(
             has_failures = any(
                 c.state == PreprodSnapshotComparison.State.FAILED for c in comparisons_map.values()
             )
-            if not has_changes and not has_failures:
+            if not has_changes and not has_failures and not existing_comment_id:
                 logger.info(
                     "preprod.snapshot_pr_comments.create.skipped_no_diff",
                     extra={"artifact_id": artifact.id},
