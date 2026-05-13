@@ -23,7 +23,7 @@ export default function SeerProjectFlyout() {
   const {projectSlug} = useParams<{projectSlug: string}>();
   const {data: project, isPending: fetching} = useDetailedProject({
     orgSlug: organization.slug,
-    projectSlug: projectSlug ?? '',
+    projectSlug,
   });
   const {openDrawer} = useDrawer();
 
