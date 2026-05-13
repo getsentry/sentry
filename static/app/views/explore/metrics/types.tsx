@@ -65,6 +65,19 @@ export type TraceMetricFieldKey = TraceMetricCustomFieldKey | TraceMetricKnownFi
 
 export type TraceMetricTypeValue = 'counter' | 'gauge' | 'distribution';
 
+export function isTraceMetricTypeValue(
+  metricType: string
+): metricType is TraceMetricTypeValue {
+  switch (metricType) {
+    case 'counter':
+    case 'distribution':
+    case 'gauge':
+      return true;
+    default:
+      return false;
+  }
+}
+
 type TraceMetricsKnownFieldResponseMap = Record<
   TraceMetricKnownFieldKey,
   string | number

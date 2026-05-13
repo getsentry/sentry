@@ -1,4 +1,4 @@
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +11,7 @@ describe('ProjectAlertSettings', () => {
   // 55 minutes
   const digestsMaxDelay = 55 * 60;
 
-  const project = ProjectFixture({
+  const project = DetailedProjectFixture({
     digestsMinDelay,
     digestsMaxDelay,
   });

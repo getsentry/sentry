@@ -8,13 +8,17 @@ from typing import Any
 import orjson
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 from django.utils import timezone
+from django.utils.timezone import now
 from rest_framework.response import Response
 
 from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
@@ -41,6 +45,7 @@ from sentry.seer.autofix.utils import (
     read_preference_from_sentry_db,
 )
 from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.utils import get_github_username_for_user
 from sentry.services import eventstore
@@ -50,6 +55,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.event_frames import EventFrame
 
@@ -473,53 +479,90 @@ def _call_autofix(
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
 ):
-    body = orjson.dumps(
-        {
-            "organization_id": group.organization.id,
-            "project_id": group.project.id,
-            "preference": preference.dict(),
-            "repos": [repo.dict() for repo in preference.repositories],
-            "issue": {
-                "id": group.id,
-                "title": group.title,
-                "short_id": group.qualified_short_id,
-                "first_seen": group.first_seen.isoformat(),
-                "events": [serialized_event],
-            },
-            "profile": profile,
-            "trace_tree": trace_tree,
-            "logs": logs,
-            "tags_overview": tags_overview,
-            "instruction": instruction,
-            "timeout_secs": timeout_secs,
-            "last_updated": datetime.now().isoformat(),
-            "invoking_user": (
-                {
-                    "id": user.id,
-                    "display_name": user.get_display_name(),
-                    "github_username": github_username,
-                }
-                if not isinstance(user, AnonymousUser)
-                else None
-            ),
-            "options": {
-                "comment_on_pr_with_url": pr_to_comment_on_url,
-                "auto_run_source": auto_run_source,
-                "referrer": referrer.value,
-                "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
-                ),
-                "stopping_point": stopping_point.value if stopping_point else None,
-            },
+    body_dict = {
+        "organization_id": group.organization.id,
+        "project_id": group.project.id,
+        "preference": preference.dict(),
+        "repos": [repo.dict() for repo in preference.repositories],
+        "issue": {
+            "id": group.id,
+            "title": group.title,
+            "short_id": group.qualified_short_id,
+            "first_seen": group.first_seen.isoformat(),
+            "events": [serialized_event],
         },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
+        "profile": profile,
+        "trace_tree": trace_tree,
+        "logs": logs,
+        "tags_overview": tags_overview,
+        "instruction": instruction,
+        "timeout_secs": timeout_secs,
+        "last_updated": datetime.now().isoformat(),
+        "invoking_user": (
+            {
+                "id": user.id,
+                "display_name": user.get_display_name(),
+                "github_username": github_username,
+            }
+            if not isinstance(user, AnonymousUser)
+            else None
+        ),
+        "options": {
+            "comment_on_pr_with_url": pr_to_comment_on_url,
+            "auto_run_source": auto_run_source,
+            "referrer": referrer.value,
+            "disable_coding_step": not group.organization.get_option(
+                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+            ),
+            "stopping_point": stopping_point.value if stopping_point else None,
+        },
+    }
 
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     if not isinstance(user, AnonymousUser):
         viewer_context["user_id"] = user.id
 
-    response = make_autofix_start_request(body, viewer_context=viewer_context)
+    if features.has("organizations:seer-run-mirror-autofix", group.organization):
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+                run = SeerRun.objects.create(
+                    organization=group.organization,
+                    user_id=user.id if not isinstance(user, AnonymousUser) else None,
+                    type=SeerRunType.AUTOFIX,
+                    last_triggered_at=now(),
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": body_dict,
+                        "viewer_context": dict(viewer_context),
+                    },
+                ).save()
+        except OutboxFlushError:
+            metrics.incr("seer.outbox_flush_error", tags={"type": "autofix", "source": "legacy"})
+            logger.exception(
+                "autofix.outbox_flush_error",
+                extra={
+                    "organization_id": group.organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
+            )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise Exception("Outbox flush failed for autofix SeerRun")
+        run.refresh_from_db()
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise Exception("Seer run failed during outbox drain")
+        return run.seer_run_state_id
+
+    response = make_autofix_start_request(
+        orjson.dumps(body_dict, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")

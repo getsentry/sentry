@@ -101,6 +101,34 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     **VCS_ERROR_MESSAGES,
 }
 
+_COMPACT_FIELDS = {"display_name", "image_file_name", "group", "description"}
+_COMPACT_IMAGE_LIST_KEYS = ("images", "added", "removed", "unchanged", "skipped")
+_COMPACT_PAIR_LIST_KEYS = ("changed", "renamed", "errored")
+
+
+def _strip_to_compact(img: dict[str, Any]) -> dict[str, Any]:
+    return {k: img[k] for k in _COMPACT_FIELDS if k in img}
+
+
+def build_snapshot_image_response(
+    image_file_name: str,
+    metadata: ImageMetadata,
+    global_diff_threshold: float | None,
+) -> SnapshotImageResponse:
+    return SnapshotImageResponse(
+        key=metadata.content_hash,
+        display_name=metadata.display_name,
+        image_file_name=image_file_name,
+        group=metadata.group,
+        width=metadata.width,
+        height=metadata.height,
+        diff_threshold=metadata.diff_threshold
+        if metadata.diff_threshold is not None
+        else global_diff_threshold,
+        description=metadata.description,
+        tags=metadata.tags,
+    )
+
 
 def validate_preprod_snapshot_post_schema(
     request_body: bytes,
@@ -154,7 +182,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "preprod_snapshot.delete_failed",
-                extra={"artifact_id": artifact.id},
+                extra={"preprod_artifact_id": artifact.id},
             )
             return Response(
                 {"detail": "Internal error deleting snapshot."},
@@ -175,7 +203,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         logger.info(
             "preprod_snapshot.deleted",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "user_id": request.user.id if request.user else None,
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
@@ -190,6 +218,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             "organizations:preprod-snapshots", organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
+
+        compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
         try:
             artifact = PreprodArtifact.objects.select_related("commit_comparison", "project").get(
@@ -294,21 +324,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        global_threshold = manifest.diff_threshold
         image_list = [
-            SnapshotImageResponse(
-                key=metadata.content_hash,
-                display_name=metadata.display_name,
-                image_file_name=key,
-                group=metadata.group,
-                width=metadata.width,
-                height=metadata.height,
-                diff_threshold=metadata.diff_threshold
-                if metadata.diff_threshold is not None
-                else global_threshold,
-                description=metadata.description,
-                tags=metadata.tags,
-            )
+            build_snapshot_image_response(key, metadata, manifest.diff_threshold)
             for key, metadata in sorted(manifest.images.items())
         ]
 
@@ -435,36 +452,44 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 approvers=[],
             )
 
-        return Response(
-            SnapshotDetailsApiResponse(
-                head_artifact_id=str(artifact.id),
-                base_artifact_id=base_artifact_id,
-                project_id=str(artifact.project_id),
-                comparison_type=comparison_type,
-                state=artifact.state,
-                vcs_info=vcs_info,
-                app_id=artifact.app_id,
-                images=image_list,
-                image_count=snapshot_metrics.image_count,
-                changed=categorized.changed,
-                changed_count=len(categorized.changed),
-                added=categorized.added,
-                added_count=len(categorized.added),
-                removed=categorized.removed,
-                removed_count=len(categorized.removed),
-                renamed=categorized.renamed,
-                renamed_count=len(categorized.renamed),
-                unchanged=categorized.unchanged,
-                unchanged_count=len(categorized.unchanged),
-                errored=categorized.errored,
-                errored_count=len(categorized.errored),
-                skipped=categorized.skipped,
-                skipped_count=len(categorized.skipped),
-                comparison_run_info=run_info,
-                approval_info=approval_info,
-                diff_threshold=manifest.diff_threshold,
-            ).dict()
-        )
+        response_data = SnapshotDetailsApiResponse(
+            head_artifact_id=str(artifact.id),
+            base_artifact_id=base_artifact_id,
+            project_id=str(artifact.project_id),
+            comparison_type=comparison_type,
+            state=artifact.state,
+            vcs_info=vcs_info,
+            app_id=artifact.app_id,
+            images=image_list,
+            image_count=snapshot_metrics.image_count,
+            changed=categorized.changed,
+            changed_count=len(categorized.changed),
+            added=categorized.added,
+            added_count=len(categorized.added),
+            removed=categorized.removed,
+            removed_count=len(categorized.removed),
+            renamed=categorized.renamed,
+            renamed_count=len(categorized.renamed),
+            unchanged=categorized.unchanged,
+            unchanged_count=len(categorized.unchanged),
+            errored=categorized.errored,
+            errored_count=len(categorized.errored),
+            skipped=categorized.skipped,
+            skipped_count=len(categorized.skipped),
+            comparison_run_info=run_info,
+            approval_info=approval_info,
+            diff_threshold=manifest.diff_threshold,
+        ).dict()
+
+        if compact:
+            for key in _COMPACT_IMAGE_LIST_KEYS:
+                response_data[key] = [_strip_to_compact(img) for img in response_data[key]]
+            for key in _COMPACT_PAIR_LIST_KEYS:
+                for pair in response_data[key]:
+                    pair["base_image"] = _strip_to_compact(pair["base_image"])
+                    pair["head_image"] = _strip_to_compact(pair["head_image"])
+
+        return Response(response_data)
 
 
 @cell_silo_endpoint

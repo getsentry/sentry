@@ -1,6 +1,6 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -23,10 +23,10 @@ describe('SeerNotices', () => {
     automationTuning = 'off' as 'off' | 'low' | 'medium' | 'high' | 'always'
   ) {
     return {
-      ...ProjectFixture(),
+      ...DetailedProjectFixture(),
       autofixAutomationTuning: automationTuning,
       organization: {
-        ...ProjectFixture().organization,
+        ...DetailedProjectFixture().organization,
       },
     };
   }
@@ -36,7 +36,7 @@ describe('SeerNotices', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/seer/preferences/`,
       body: {
         code_mapping_repos: [],
         preference: null,
@@ -47,7 +47,7 @@ describe('SeerNotices', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/autofix-repos/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/autofix-repos/`,
       body: [createRepository()],
     });
     MockApiClient.addMockResponse({
@@ -61,15 +61,15 @@ describe('SeerNotices', () => {
   it('shows automation step if automation is allowed and tuning is off', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/`,
       body: {
         autofixAutomationTuning: 'off',
       },
     });
     const project = {
-      ...ProjectFixture(),
+      ...DetailedProjectFixture(),
       organization: {
-        ...ProjectFixture().organization,
+        ...DetailedProjectFixture().organization,
         features: [],
       },
     };
@@ -88,7 +88,7 @@ describe('SeerNotices', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/`,
       body: {
         autofixAutomationTuning: 'medium',
       },
@@ -119,7 +119,7 @@ describe('SeerNotices', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/seer/preferences/`,
       body: {
         code_mapping_repos: [],
         preference: {
@@ -131,7 +131,7 @@ describe('SeerNotices', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/`,
       body: {
         autofixAutomationTuning: 'medium',
       },
@@ -159,7 +159,10 @@ describe('SeerNotices', () => {
 
   it('does not show cursor integration step if localStorage skip key is set', () => {
     // Set localStorage skip key
-    localStorage.setItem(`seer-onboarding-cursor-skipped:${ProjectFixture().id}`, 'true');
+    localStorage.setItem(
+      `seer-onboarding-cursor-skipped:${DetailedProjectFixture().id}`,
+      'true'
+    );
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
@@ -175,7 +178,7 @@ describe('SeerNotices', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/`,
       body: {
         autofixAutomationTuning: 'medium',
       },
@@ -201,7 +204,9 @@ describe('SeerNotices', () => {
     expect(screen.queryByText('Hand Off to Cursor Cloud Agents')).not.toBeInTheDocument();
 
     // Clean up localStorage
-    localStorage.removeItem(`seer-onboarding-cursor-skipped:${ProjectFixture().id}`);
+    localStorage.removeItem(
+      `seer-onboarding-cursor-skipped:${DetailedProjectFixture().id}`
+    );
   });
 
   it('does not show cursor integration step if handoff is already configured', () => {
@@ -218,7 +223,7 @@ describe('SeerNotices', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/seer/preferences/`,
       body: {
         code_mapping_repos: [],
         preference: {
@@ -234,7 +239,7 @@ describe('SeerNotices', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/`,
       body: {
         autofixAutomationTuning: 'medium',
       },
@@ -263,7 +268,7 @@ describe('SeerNotices', () => {
   it('does not render guided steps if all onboarding steps are complete', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      url: `/projects/${organization.slug}/${DetailedProjectFixture().slug}/`,
       body: {
         autofixAutomationTuning: 'medium',
       },
