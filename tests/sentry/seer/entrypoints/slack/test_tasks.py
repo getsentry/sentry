@@ -859,7 +859,7 @@ class ProcessReactionForSlackTest(TestCase):
             channel="C1234567890",
             blocks=ANY,
             attachments=None,
-            text="Thanks for the feedback!",
+            text="Feedback received...",
             thread_ts="1234567890.000001",
             user="U1234567890",
         )

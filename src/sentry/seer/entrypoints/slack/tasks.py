@@ -568,8 +568,14 @@ def process_reaction_for_slack(
         except Exception:
             _logger.warning("seer.slack.process_reaction.analytics_failed", exc_info=True)
 
-        message = "Thanks for the feedback!"
-        renderable = SlackRenderable(blocks=[MarkdownBlock(text=message)], text=message)
+        message = (
+            "_**Feedback received** — My ego is intact and thriving, thanks._"
+            if feedback_type == "positive"
+            else "_**Feedback received** — Appreciated, even if it stings a little._"
+        )
+        renderable = SlackRenderable(
+            blocks=[MarkdownBlock(text=message)], text="Feedback received..."
+        )
         try:
             install.send_threaded_ephemeral_message(
                 channel_id=channel_id,
