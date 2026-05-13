@@ -12,14 +12,12 @@ def _get_repository_child_relations(instance: Repository) -> list[BaseRelation]:
         RepositoryProjectPathConfig,
     )
     from sentry.models.commit import Commit
-    from sentry.models.projectrepository import ProjectRepository
     from sentry.models.pullrequest import PullRequest
 
     return [
         ModelRelation(Commit, {"repository_id": instance.id}),
         ModelRelation(PullRequest, {"repository_id": instance.id}),
         ModelRelation(RepositoryProjectPathConfig, {"repository_id": instance.id}),
-        ModelRelation(ProjectRepository, {"repository_id": instance.id}),
     ]
 
 
@@ -31,11 +29,16 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
         return instance.status in {ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS}
 
     def get_child_relations(self, instance: Repository) -> list[BaseRelation]:
+        from sentry.models.projectrepository import ProjectRepository
         from sentry.seer.models.project_repository import SeerProjectRepository
 
         return _get_repository_child_relations(instance) + [
-            # We only delete SeerProjectRepository when the repo is actually deleted,
-            # but not when it's hidden/disabled (repository_cascade_delete_on_hide).
+            # Only delete ProjectRepository and SeerProjectRepository when the
+            # repo is actually deleted, not when it's hidden/disabled
+            # (repository_cascade_delete_on_hide). Seer preferences and
+            # project-repo links should survive a hide so they're restored
+            # if the repo is re-enabled.
+            ModelRelation(ProjectRepository, {"repository_id": instance.id}),
             ModelRelation(SeerProjectRepository, {"repository_id": instance.id}),
         ]
 
