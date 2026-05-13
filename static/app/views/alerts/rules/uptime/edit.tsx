@@ -25,7 +25,8 @@ type Props = {
   onChangeTitle: (data: string) => void;
   organization: Organization;
   userTeamIds: string[];
-} & RouteComponentProps<RouteParams>;
+} & Omit<RouteComponentProps<RouteParams>, 'router' | 'routes'> &
+  Partial<Pick<RouteComponentProps<RouteParams>, 'router' | 'routes'>>;
 
 export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
   const api = useApi();

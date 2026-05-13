@@ -141,7 +141,8 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps;
+} & Omit<RouteComponentProps, 'router' | 'routes'> &
+  Partial<Pick<RouteComponentProps, 'router' | 'routes'>>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
@@ -450,7 +451,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization, router} = this.props;
+    const {organization} = this.props;
     const {project} = this.state;
 
     metric.endSpan({name: 'saveAlertRule'});
@@ -461,7 +462,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       });
     }
 
-    router.push(
+    browserHistory.push(
       makeAlertsPathname({
         path: `/rules/${project.slug}/${rule.id}/details/`,
         organization,
@@ -581,6 +582,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       browserHistory.replace(
         recreateRoute('', {
           ...this.props,
+          routes: this.props.routes || [],
           params: {...this.props.params, orgId: organization.slug},
           stepBack: -2,
         })
@@ -594,9 +596,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleCancel = () => {
-    const {organization, router} = this.props;
+    const {organization} = this.props;
 
-    router.push(
+    browserHistory.push(
       makeAlertsPathname({
         path: '/rules/',
         organization,

@@ -13,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useRouter} from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
@@ -27,7 +28,8 @@ type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
-} & RouteComponentProps<RouteParams>;
+} & Omit<RouteComponentProps<RouteParams>, 'router' | 'routes'> &
+  Partial<Pick<RouteComponentProps<RouteParams>, 'router' | 'routes'>>;
 
 export function MetricRulesEdit({
   organization,
@@ -35,10 +37,13 @@ export function MetricRulesEdit({
   project,
   userTeamIds,
   onChangeTitle,
-  ...props
+  location,
+  route,
+  routeParams,
 }: Props) {
   const theme = useTheme();
   const navigate = useNavigate();
+  const router = useRouter();
 
   const {
     isPending,
@@ -103,7 +108,11 @@ export function MetricRulesEdit({
   return (
     <RuleForm
       theme={theme}
-      {...props}
+      location={location}
+      route={route}
+      routeParams={routeParams}
+      router={router}
+      routes={router.routes}
       // HACK: gnarly workaround to force the component to re-render when rule updates
       // Remove this once the RuleForm component is refactored to use `react-query`
       key={JSON.stringify(rule)}
