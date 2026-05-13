@@ -108,6 +108,11 @@ export function useProjectStats({hasPerformance, organization}: Props) {
   const getOne = useCallback(
     (project: Project): ProjectStatsData => {
       const initialStats = getStatsData(project);
+      const cachedStats = projectStats.read([project.id])?.[project.id];
+
+      if (cachedStats && hasStats(cachedStats, hasPerformance)) {
+        return cachedStats;
+      }
 
       if (!hasStats(initialStats, hasPerformance)) {
         projectStats.buffer([project.id]);

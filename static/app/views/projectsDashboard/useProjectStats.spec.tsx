@@ -1,7 +1,15 @@
+import type {ReactNode} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {
+  act,
+  renderHook,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectStats} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -71,5 +79,46 @@ describe('useProjectStats', () => {
       expect(result.current.getOne(projects[1]!).stats).toEqual(responseStats);
       expect(result.current.getOne(projects[2]!).stats).toEqual(responseStats);
     });
+  });
+
+  it('keeps cached stats when the hook remounts', async () => {
+    const queryClient = makeTestQueryClient();
+    const wrapper = ({children}: {children?: ReactNode}) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const project = ProjectFixture({id: '1', slug: 'm'});
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [
+        {
+          ...project,
+          stats: responseStats,
+        },
+      ],
+    });
+
+    const {result, unmount} = renderHook(
+      () => useProjectStats({organization, hasPerformance: false}),
+      {wrapper}
+    );
+
+    act(() => {
+      expect(result.current.getOne(project).stats).toBeUndefined();
+    });
+
+    await waitFor(() =>
+      expect(result.current.getOne(project).stats).toEqual(responseStats)
+    );
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    unmount();
+
+    const {result: remountResult} = renderHook(
+      () => useProjectStats({organization, hasPerformance: false}),
+      {wrapper}
+    );
+
+    expect(remountResult.current.getOne(project).stats).toEqual(responseStats);
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 });
