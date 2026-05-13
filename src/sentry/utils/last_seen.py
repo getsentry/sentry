@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.core.cache import cache
 from django.db.utils import OperationalError
 
-from sentry.db.models import Model
-
 
 def try_bump_last_seen(
     *,
-    model_class: type[Model],
-    instance: Model,
+    model_class: Any,
+    instance: Any,
     datetime: datetime,
     bump_key: str,
     cache_key: str,
