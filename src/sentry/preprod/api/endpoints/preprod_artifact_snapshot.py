@@ -344,7 +344,12 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             if pending_or_failed_state is not None:
                 comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
 
-        comparison_type = "diff" if comparison_manifest is not None else "solo"
+        if comparison_manifest is not None:
+            comparison_type = "diff"
+        elif commit_comparison and commit_comparison.base_sha and pending_or_failed_state is None:
+            comparison_type = "waiting_for_base"
+        else:
+            comparison_type = "solo"
 
         run_info: SnapshotComparisonRunInfo | None = None
         if comparison_state is not None:
