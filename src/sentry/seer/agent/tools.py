@@ -991,6 +991,42 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 ]
 
 
+def _extract_metric_alert_context(serialized_event: dict[str, Any]) -> dict[str, Any] | None:
+    occurrence = serialized_event.get("occurrence")
+    if not isinstance(occurrence, dict):
+        return None
+
+    return {
+        "event_id": serialized_event.get("eventID") or serialized_event.get("id"),
+        "subtitle": occurrence.get("subtitle"),
+        "evidence_data": occurrence.get("evidenceData") or {},
+        "evidence_display": occurrence.get("evidenceDisplay") or [],
+        "detection_time": occurrence.get("detectionTime"),
+        "level": occurrence.get("level"),
+    }
+
+
+def _get_metric_alert_context(
+    group: Group,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> dict[str, Any] | None:
+    if group.issue_category != GroupCategory.METRIC:
+        return None
+
+    # Metric issue group metadata only has the short summary string. The
+    # aggregate/query/window/condition evidence lives on the latest occurrence event.
+    event = group.get_latest_event(start=start, end=end)
+    if event is None:
+        return None
+
+    if isinstance(event, Event):
+        event = event.for_group(group)
+
+    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    return _extract_metric_alert_context(serialized_event)
+
+
 def get_issue_and_event_response(
     event: Event | GroupEvent,
     group: Group | None,
@@ -1013,6 +1049,11 @@ def get_issue_and_event_response(
         serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
+        metric_alert_context = (
+            _extract_metric_alert_context(serialized_event)
+            if group.issue_category == GroupCategory.METRIC
+            else None
+        )
 
         logger.info(
             "get_issue_and_event_details_v2: Querying for tags overview",
@@ -1087,6 +1128,7 @@ def get_issue_and_event_response(
             "timeseries_interval": timeseries_interval,
             "tags_overview": tags_overview,
             "user_activity": serialized_activities,
+            "metric_alert_context": metric_alert_context,
         }
 
     return result
@@ -1111,7 +1153,8 @@ def get_issue_details(
         project_slug: The slug of the project (optional, used to improve numeric ID lookups).
 
     Returns:
-        Dict with issue metadata, event_timeseries, tags_overview, and user_activity, or None if not found.
+        Dict with issue metadata, event_timeseries, tags_overview, user_activity, and
+        optional metric_alert_context, or None if not found.
     """
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
@@ -1168,6 +1211,15 @@ def get_issue_details(
         timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     try:
+        metric_alert_context = _get_metric_alert_context(group, start_dt, end_dt)
+    except Exception:
+        logger.exception(
+            "get_issue_details: Failed to get metric alert context",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        metric_alert_context = None
+
+    try:
         activities = Activity.objects.filter(
             group=group,
             type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
@@ -1189,6 +1241,7 @@ def get_issue_details(
         "timeseries_interval": timeseries_interval,
         "tags_overview": tags_overview,
         "user_activity": serialized_activities,
+        "metric_alert_context": metric_alert_context,
         "project_id": group.project_id,
         "project_slug": group.project.slug,
     }
