@@ -13,6 +13,7 @@ from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.models.night_shift import SeerNightShiftRun
+from sentry.seer.models.run import SeerRunType
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
@@ -112,6 +113,7 @@ def _triage_candidates(
             prompt=_build_triage_prompt(candidates, extra_triage_instructions),
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
+            run_type=SeerRunType.EXPLORER,
         )
 
         run.update(extras={**run.extras, "agent_run_id": agent_run_id})
