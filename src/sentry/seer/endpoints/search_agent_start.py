@@ -250,7 +250,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 return Response(
                     {
                         "run_id": result.seer_run_state_id,
-                        "sentry_run_id": str(result.uuid),
+                        "sentry_run_uuid": str(result.uuid),
                     }
                 )
             return Response({"run_id": result})

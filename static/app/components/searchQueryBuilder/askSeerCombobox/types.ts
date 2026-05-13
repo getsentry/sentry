@@ -44,7 +44,7 @@ export interface AskSeerStep {
  */
 export interface AskSeerStartResponse {
   run_id: number | null;
-  sentry_run_id?: string;
+  sentry_run_uuid?: string;
 }
 
 /**
