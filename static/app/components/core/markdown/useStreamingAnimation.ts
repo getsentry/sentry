@@ -50,19 +50,18 @@ export function useStreamingAnimation(
       return;
     }
 
-    let activeSettles: Array<() => void> = [];
+    let activeAnimations: Array<{destroy: () => void; settle: () => void}> = [];
 
     const observer = new MutationObserver(mutations => {
-      for (const settle of activeSettles) {
-        settle();
+      for (const anim of activeAnimations) {
+        anim.settle();
       }
-      activeSettles = [];
+      activeAnimations = [];
 
       for (const mutation of mutations) {
         for (const addedNode of mutation.addedNodes) {
           if (addedNode instanceof Element) {
-            const settle = animateElement(addedNode);
-            activeSettles.push(settle);
+            activeAnimations.push(animateElement(addedNode));
           }
         }
       }
@@ -70,7 +69,13 @@ export function useStreamingAnimation(
 
     observer.observe(container, {childList: true});
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      for (const anim of activeAnimations) {
+        anim.destroy();
+      }
+      activeAnimations = [];
+    };
   }, [containerRef, enabled]);
 }
 
@@ -294,7 +299,7 @@ function restoreRuns(runs: TextRun[]) {
   }
 }
 
-function fadeOutRuns(runs: TextRun[]) {
+function fadeOutRuns(runs: TextRun[]): ReturnType<typeof setTimeout> {
   for (const run of runs) {
     for (let i = run.collapseCursor; i < run.spans.length; i++) {
       const span = run.spans[i];
@@ -304,7 +309,7 @@ function fadeOutRuns(runs: TextRun[]) {
       }
     }
   }
-  setTimeout(() => restoreRuns(runs), 200);
+  return setTimeout(() => restoreRuns(runs), 200);
 }
 
 const scheduleIdle: (cb: () => void) => number | ReturnType<typeof setTimeout> =
@@ -316,7 +321,14 @@ const cancelIdle: (id: number | ReturnType<typeof setTimeout>) => void =
     ? id => cancelIdleCallback(id as number)
     : id => clearTimeout(id);
 
-function animateElement(element: Element): () => void {
+interface Animation {
+  destroy: () => void;
+  settle: () => void;
+}
+
+const NOOP_ANIMATION: Animation = {settle() {}, destroy() {}};
+
+function animateElement(element: Element): Animation {
   const htmlEl = element as HTMLElement;
   const skipChars = Number.parseInt(htmlEl.dataset.skip ?? '0', 10);
   delete htmlEl.dataset.skip;
@@ -333,7 +345,7 @@ function animateElement(element: Element): () => void {
   }
 
   if (textNodes.length === 0) {
-    return () => {};
+    return NOOP_ANIMATION;
   }
 
   const runs: TextRun[] = [];
@@ -348,13 +360,14 @@ function animateElement(element: Element): () => void {
   }
 
   if (runs.length === 0) {
-    return () => {};
+    return NOOP_ANIMATION;
   }
 
   let settled = false;
   const startTime = performance.now();
 
   let pendingIdle: number | ReturnType<typeof setTimeout> | null = null;
+  let fadeTimeout: ReturnType<typeof setTimeout> | null = null;
 
   function scheduleCollapse() {
     if (pendingIdle !== null) {
@@ -383,7 +396,22 @@ function animateElement(element: Element): () => void {
     for (const run of runs) {
       collapseSettledPrefix(run);
     }
-    fadeOutRuns(runs);
+    fadeTimeout = fadeOutRuns(runs);
+  }
+
+  function destroy() {
+    if (!settled) {
+      settled = true;
+      if (pendingIdle !== null) {
+        cancelIdle(pendingIdle);
+        pendingIdle = null;
+      }
+    }
+    if (fadeTimeout !== null) {
+      clearTimeout(fadeTimeout);
+      fadeTimeout = null;
+    }
+    restoreRuns(runs);
   }
 
   function tick(now: number) {
@@ -434,5 +462,5 @@ function animateElement(element: Element): () => void {
   }
 
   requestAnimationFrame(tick);
-  return settle;
+  return {settle, destroy};
 }

@@ -51,6 +51,7 @@ export function Token({
 }): ReactNode {
   switch (token.type) {
     case 'space':
+      // Blank-line tokens — layout gap is handled by the parent flex container
       return null;
 
     case 'paragraph': {
@@ -175,8 +176,10 @@ export function Token({
     case 'image': {
       const Img = components.Image;
       if (!Img) {
+        // No default <img> to avoid uncontrolled network requests
         return null;
       }
+      // marked stores the image URL in `href`
       return <Img src={token.href} alt={token.text} title={token.title} />;
     }
 

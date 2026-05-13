@@ -74,18 +74,25 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
 
     const children = Array.from(container.children);
     const nextLens = new Map<number, number>();
+    let changed = false;
 
     for (let i = 0; i < children.length; i++) {
       const child = children[i] as HTMLElement;
+      const len = (child.textContent ?? '').length;
       const prevLen = prevTextLensRef.current.get(i) ?? 0;
       if (prevLen > 0) {
         child.dataset.skip = String(prevLen);
       }
-      nextLens.set(i, (child.textContent ?? '').length);
+      if (len !== prevLen) {
+        changed = true;
+      }
+      nextLens.set(i, len);
     }
 
-    prevTextLensRef.current = nextLens;
-  });
+    if (changed) {
+      prevTextLensRef.current = nextLens;
+    }
+  }, [isStreaming, elements]);
 
   return (
     <Stack ref={containerRef} gap="lg" flex={1} maxWidth="72ch">
