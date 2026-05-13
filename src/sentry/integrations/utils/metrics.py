@@ -11,6 +11,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
+from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -360,6 +361,13 @@ class IntegrationEventLifecycle(EventLifecycle):
 
         if exc_value is not None and isinstance(exc_value.__cause__, RestrictedIPAddress):
             # ApiHostError is raised from RestrictedIPAddress
+            self.record_halt(exc_value)
+            return
+        if exc_value is not None and isinstance(exc_value, ApiInvalidRequestError):
+            # A 400 Bad Request from the integration proxy indicates invalid/expired
+            # credentials or a misconfigured installation. This is a known condition
+            # handled gracefully by callers, so treat it as a halt rather than a
+            # failure that generates a Sentry issue.
             self.record_halt(exc_value)
             return
         super().__exit__(exc_type, exc_value, traceback)
