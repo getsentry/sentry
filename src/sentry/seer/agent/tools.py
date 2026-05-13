@@ -41,6 +41,7 @@ from sentry.replays.query import (
     query_replays_collection_paginated,
     replay_url_parser_config,
 )
+from sentry.replays.validators import VALID_FIELD_SET as REPLAY_VALID_FIELD_SET
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
@@ -452,7 +453,7 @@ def execute_replays_query(
         return {"data": []}
 
     requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
-    invalid_fields = sorted(set(requested_fields) - set(VALID_FIELD_SET))
+    invalid_fields = sorted(set(requested_fields) - set(REPLAY_VALID_FIELD_SET))
     if invalid_fields:
         return {"error": f"Invalid replay field(s): {', '.join(invalid_fields)}"}
 
@@ -479,6 +480,7 @@ def execute_replays_query(
             preferred_source="scalar",
             organization=organization,
             actor=None,
+            referrer=Referrer.SEER_EXPLORER_TOOLS.value,
         )
         processed_response = process_raw_response(response.response, fields=requested_fields)
     except KeyError as e:
