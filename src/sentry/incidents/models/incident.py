@@ -280,37 +280,6 @@ class TriggerStatus(Enum):
     RESOLVED = 1
 
 
-class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
-    CACHE_KEY = "incident:triggers:%s"
-
-    @classmethod
-    def _build_cache_key(cls, incident_id: int) -> str:
-        return cls.CACHE_KEY % incident_id
-
-    def get_for_incident(self, incident: Incident) -> list[IncidentTrigger]:
-        """
-        Fetches the IncidentTriggers associated with an Incident. Attempts to fetch from
-        cache then hits the database.
-        """
-        cache_key = self._build_cache_key(incident.id)
-        triggers = cache.get(cache_key)
-        if triggers is None:
-            triggers = list(IncidentTrigger.objects.filter(incident=incident))
-            cache.set(cache_key, triggers, 3600)
-
-        return triggers
-
-    @classmethod
-    def clear_incident_cache(cls, instance: Incident, **kwargs: Any) -> None:
-        cache.delete(cls._build_cache_key(instance.id))
-        assert cache.get(cls._build_cache_key(instance.id)) is None
-
-    @classmethod
-    def clear_incident_trigger_cache(cls, instance: IncidentTrigger, **kwargs: Any) -> None:
-        cache.delete(cls._build_cache_key(instance.incident_id))
-        assert cache.get(cls._build_cache_key(instance.incident_id)) is None
-
-
 @cell_silo_model
 class IncidentTrigger(Model):
     """
@@ -319,8 +288,6 @@ class IncidentTrigger(Model):
     """
 
     __relocation_scope__ = RelocationScope.Global
-
-    objects: ClassVar[IncidentTriggerManager] = IncidentTriggerManager()
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
@@ -338,7 +305,3 @@ class IncidentTrigger(Model):
 post_save.connect(IncidentManager.clear_active_incident_cache, sender=Incident)
 post_save.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
 post_delete.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
-
-post_delete.connect(IncidentTriggerManager.clear_incident_cache, sender=Incident)
-post_save.connect(IncidentTriggerManager.clear_incident_trigger_cache, sender=IncidentTrigger)
-post_delete.connect(IncidentTriggerManager.clear_incident_trigger_cache, sender=IncidentTrigger)
