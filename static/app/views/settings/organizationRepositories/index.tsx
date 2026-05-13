@@ -336,7 +336,7 @@ export default function OrganizationRepositories() {
             }}
           />
         ) : (
-          <Stack gap="lg">
+          <Stack gap="xl">
             <Input
               type="search"
               placeholder={t('Search repositories')}
