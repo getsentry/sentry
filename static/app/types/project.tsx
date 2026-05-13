@@ -75,8 +75,8 @@ interface ProjectSummary extends AvatarProject {
     hasHealthData: boolean;
     previousCrashFreeRate: number | null;
   };
-  stats?: TimeseriesValue[];
-  transactionStats?: TimeseriesValue[];
+  stats?: ProjectStats;
+  transactionStats?: ProjectStats;
 }
 
 /**
