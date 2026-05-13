@@ -1222,6 +1222,34 @@ class TestCallAutofix(TestCase):
         assert "external_idempotency_key" in body
         assert body["external_idempotency_key"] == str(run.uuid)
 
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_flush_error_marks_failed_and_raises(self, mock_request: Mock) -> None:
+        mock_request.side_effect = Exception("Seer exploded")
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with pytest.raises(Exception, match="Outbox flush failed"):
+            with self.feature("organizations:seer-run-mirror-autofix"):
+                _call_autofix(
+                    user=self.user,
+                    group=group,
+                    preference=preference,
+                    serialized_event={"event_id": "test-event"},
+                    profile=None,
+                    trace_tree=None,
+                    logs=None,
+                    tags_overview=None,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                )
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
+
 
 class TestGetGithubUsernameForUser(TestCase):
     def test_get_github_username_for_user_with_github(self) -> None:
