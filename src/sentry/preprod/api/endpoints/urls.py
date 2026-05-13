@@ -36,6 +36,7 @@ from .preprod_artifact_snapshot_download import OrganizationPreprodSnapshotDownl
 from .preprod_artifact_snapshot_image_detail import (
     OrganizationPreprodSnapshotImageDetailEndpoint,
 )
+from .preprod_artifact_snapshot_latest import OrganizationPreprodLatestSnapshotEndpoint
 from .preprod_snapshot_recompare import PreprodSnapshotRecompareEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
@@ -209,6 +210,11 @@ preprod_organization_urlpatterns = [
         name="sentry-api-0-organization-preprod-artifact-approve",
     ),
     # Snapshots
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/latest/$",
+        OrganizationPreprodLatestSnapshotEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-latest",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
         OrganizationPreprodSnapshotEndpoint.as_view(),
