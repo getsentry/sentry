@@ -8,6 +8,7 @@ from typing import Any, Optional
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry.identity.slack.provider import SlackIdentityProvider
 from sentry.integrations.base import (
@@ -23,7 +24,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import workspace
 from sentry.integrations.slack.metrics import translate_slack_api_error
-from sentry.integrations.slack.sdk_client import SlackResponse, SlackSdkClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.types import IntegrationProviderSlug
