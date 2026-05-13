@@ -272,9 +272,9 @@ export const LogRowContent = memo(function LogRowContent({
   function toggleExpanded() {
     if (onExpand) {
       if (isExpanded) {
-        onCollapse?.(rowId);
+        onCollapse?.(expansionKey);
       } else {
-        onExpand?.(rowId);
+        onExpand?.(expansionKey);
       }
     } else {
       setExpanded(e => !e);
