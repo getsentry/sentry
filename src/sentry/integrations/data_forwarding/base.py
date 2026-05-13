@@ -10,8 +10,6 @@ from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
 
-from sentry.integrations.data_forwarding.tasks import forward_event
-
 
 class BaseDataForwarder(ABC):
     """
@@ -68,6 +66,7 @@ class BaseDataForwarder(ABC):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def forward_event_from_task(
         *,
         config: dict[str, Any],
@@ -91,6 +90,8 @@ class BaseDataForwarder(ABC):
         event_payload = self.get_event_payload(event=event, config=config)
         task_payload = self.get_task_payload(event=event, config=config)
         if random.random() < options.get("data-forwarding.task-rollout-rate"):
+            from sentry.integrations.data_forwarding.tasks import forward_event
+
             forward_event.delay(
                 data_forwarder_project_id=data_forwarder_project.id,
                 event_payload=event_payload,

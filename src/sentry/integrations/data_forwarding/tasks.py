@@ -8,37 +8,42 @@ from taskbroker_client.retry import Retry
 
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 
 logger = logging.getLogger(__name__)
 
-retry_decorator = retry(
-    on=(RequestException,),
-    on_silent=(
-        ChunkedEncodingError,
-        Timeout,
-        ApiHostError,
-        ApiTimeoutError,
-        ConnectionError,
-        HTTPError,
-    ),
-    ignore=(
-        ClientError,
-        ParamValidationError,
-        ValueError,
-    ),
-    raise_on_no_retries=False,
+
+_DATA_FORWARDING_RETRY_ON = (RequestException,)
+_DATA_FORWARDING_RETRY_IGNORE = (
+    ClientError,
+    ParamValidationError,
+    ValueError,
+)
+_DATA_FORWARDING_SILENCED = (
+    ChunkedEncodingError,
+    Timeout,
+    ApiHostError,
+    ApiTimeoutError,
+    ConnectionError,
+    HTTPError,
+    *_DATA_FORWARDING_RETRY_IGNORE,
 )
 
 
 @instrumented_task(
     name="sentry.integrations.data_forwarding.tasks.forward_event",
     namespace=integrations_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_DATA_FORWARDING_RETRY_ON,
+        ignore=_DATA_FORWARDING_RETRY_IGNORE,
+    ),
+    processing_deadline_duration=12,
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=_DATA_FORWARDING_SILENCED,
 )
-@retry_decorator
 def forward_event(
     data_forwarder_project_id: int,
     event_payload: dict[str, Any],

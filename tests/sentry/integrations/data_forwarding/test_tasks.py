@@ -57,11 +57,12 @@ class ForwardEventTaskTest(TestCase):
         assert len(responses.calls) == 1
 
     def test_missing_data_forwarder_project(self) -> None:
-        forward_event(
+        result = forward_event(
             data_forwarder_project_id=999999,
             event_payload={},
             task_payload={},
         )
+        assert result is None
 
     @patch(
         "sentry.integrations.data_forwarding.segment.forwarder.SegmentForwarder.forward_event_from_task",
@@ -87,3 +88,58 @@ class ForwardEventTaskTest(TestCase):
                 event_payload=event_payload,
                 task_payload=task_payload,
             )
+
+
+class PostProcessRolloutTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.data_forwarder = DataForwarder.objects.create(
+            organization=self.organization,
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "secret-api-key"},
+            is_enabled=True,
+        )
+        self.data_forwarder_project = DataForwarderProject.objects.create(
+            data_forwarder=self.data_forwarder,
+            project=self.project,
+            is_enabled=True,
+        )
+        self.forwarder = SegmentForwarder()
+
+    @responses.activate
+    @patch("sentry.integrations.data_forwarding.base.random.random", return_value=0.0)
+    def test_rollout_dispatches_to_task(self, mock_random) -> None:
+        responses.add(responses.POST, "https://api.segment.io/v1/track")
+
+        event = self.store_event(
+            data={
+                "exception": {"type": "ValueError", "value": "foo bar"},
+                "user": {"id": "1"},
+                "type": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        with (
+            self.options({"data-forwarding.task-rollout-rate": 1.0}),
+            patch("sentry.integrations.data_forwarding.tasks.forward_event") as mock_task,
+        ):
+            self.forwarder.post_process(event, self.data_forwarder_project)
+            mock_task.delay.assert_called_once()
+
+    @responses.activate
+    def test_rollout_zero_calls_forward_event_directly(self) -> None:
+        responses.add(responses.POST, "https://api.segment.io/v1/track")
+
+        event = self.store_event(
+            data={
+                "exception": {"type": "ValueError", "value": "foo bar"},
+                "user": {"id": "1"},
+                "type": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        self.forwarder.post_process(event, self.data_forwarder_project)
+
+        assert len(responses.calls) == 1
