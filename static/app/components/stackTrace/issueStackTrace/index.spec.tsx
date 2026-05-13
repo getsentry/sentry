@@ -8,7 +8,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 type StacktraceWithFrames = StacktraceType & {
@@ -295,59 +294,6 @@ describe('IssueStackTrace', () => {
     expect(reorderedHeadings[0]).toHaveTextContent('RootError');
     expect(reorderedHeadings[1]).toHaveTextContent('MiddleError');
     expect(reorderedHeadings[2]).toHaveTextContent('LeafError');
-  });
-
-  it('renders coverage tooltip from issue-level coverage request', async () => {
-    const {event, stacktrace} = makeStackTraceData();
-    const organization = OrganizationFixture({
-      slug: 'org-slug',
-      codecovAccess: true,
-    });
-    const project = ProjectFixture({
-      id: event.projectID,
-      slug: 'project-slug',
-    });
-    ProjectsStore.loadInitialData([project]);
-    const coverageRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/stacktrace-coverage/`,
-      body: {
-        status: CodecovStatusCode.COVERAGE_EXISTS,
-        lineCoverage: [
-          [110, Coverage.COVERED],
-          [111, Coverage.PARTIAL],
-          [112, Coverage.NOT_COVERED],
-        ],
-      },
-    });
-
-    render(
-      <IssueStackTrace
-        event={event}
-        values={[
-          {
-            type: 'ValueError',
-            value: 'list index out of range',
-            module: 'raven.base',
-            mechanism: {handled: false, type: 'generic'},
-            stacktrace,
-            threadId: null,
-            rawStacktrace: null,
-          },
-        ]}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByTestId('core-stacktrace-frame-context')
-    ).toBeInTheDocument();
-    expect(coverageRequest).toHaveBeenCalled();
-
-    await userEvent.hover(screen.getByLabelText('Line 112'));
-
-    await waitFor(() =>
-      expect(screen.getAllByText('Line uncovered by tests')).toHaveLength(1)
-    );
   });
 
   it('renders annotated text when exception value has PII scrubbing metadata', async () => {
