@@ -126,11 +126,14 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
           }
         )) as AskSeerStartResponse;
 
-        const effectiveRunId = response.sentry_run_id ?? response.run_id;
-        setRunId(effectiveRunId);
+        const newRunId = response.sentry_run_id ?? response.run_id;
+        if (!newRunId) {
+          throw new Error('Search agent start response missing run ID');
+        }
+        setRunId(newRunId);
 
         // Invalidate to start polling
-        const newQueryKey = makeAskSeerQueryKey(orgSlug, effectiveRunId ?? undefined);
+        const newQueryKey = makeAskSeerQueryKey(orgSlug, newRunId);
         if (newQueryKey) {
           queryClient.invalidateQueries({
             queryKey: newQueryKey,
