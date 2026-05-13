@@ -20,6 +20,8 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
+export type ProjectStats = TimeseriesValue[];
+
 export type Project = {
   access: Scope[];
   allowedDomains: string[];
@@ -111,16 +113,9 @@ export type Project = {
   securityTokenHeader?: string;
   seerNightshiftTweaks?: SeerNightshiftTweaks | null;
   seerScannerAutomation?: boolean;
-  sessionStats?: {
-    currentCrashFreeRate: number | null;
-    hasHealthData: boolean;
-    previousCrashFreeRate: number | null;
-  };
-  stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
   tempestFetchScreenshots?: boolean;
-  transactionStats?: TimeseriesValue[];
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
