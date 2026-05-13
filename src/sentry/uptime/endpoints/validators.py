@@ -170,6 +170,9 @@ def _validate_check_config(
             "response_capture_enabled", uptime_subscription.response_capture_enabled
         )
 
+    if validated_data.get("assertion") is None:
+        return
+
     region = get_region_config(get_active_regions()[0].slug)
     assert region is not None
     check_config = checker_api.create_preview_check(validated_data, region)
