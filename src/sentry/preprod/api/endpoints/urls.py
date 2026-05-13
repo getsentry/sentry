@@ -33,6 +33,9 @@ from .preprod_artifact_snapshot import (
     ProjectPreprodSnapshotEndpoint,
 )
 from .preprod_artifact_snapshot_download import OrganizationPreprodSnapshotDownloadEndpoint
+from .preprod_artifact_snapshot_image_detail import (
+    OrganizationPreprodSnapshotImageDetailEndpoint,
+)
 from .preprod_snapshot_recompare import PreprodSnapshotRecompareEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
@@ -220,6 +223,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/download/$",
         OrganizationPreprodSnapshotDownloadEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-snapshots-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/images/(?P<image_identifier>.+)/$",
+        OrganizationPreprodSnapshotImageDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-image-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/distribution/$",
