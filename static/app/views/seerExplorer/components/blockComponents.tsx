@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -384,11 +385,7 @@ function ToolCallRow({
           </ToolCallPlainRow>
         )}
       </Flex>
-      {todos && (
-        <Text as="div" size="xs" monospace variant="muted">
-          <Markdown raw={todosToMarkdown(todos)} />
-        </Text>
-      )}
+      {todos && <TodoList todos={todos} />}
     </Stack>
   );
 }
@@ -475,6 +472,24 @@ function SeerMarkdown(props: Omit<MarkdownProps, 'components'>) {
   return <Markdown {...props} components={SEER_MARKDOWN_COMPONENTS} />;
 }
 
+function TodoList({todos}: {todos: TodoItem[]}) {
+  return (
+    <Stack as="ul" gap="sm" padding="0">
+      {todos.map(todo => {
+        const checked = todo.status === 'completed';
+        return (
+          <Flex key={todo.content} as="li" gap="sm" align="center">
+            <Checkbox size="xs" checked={checked} readOnly />
+            <Text size="xs" monospace strikethrough={checked} variant="muted">
+              {todo.content}
+            </Text>
+          </Flex>
+        );
+      })}
+    </Stack>
+  );
+}
+
 function BlockStatusIndicator({status}: {status: ToolCallStatus}) {
   switch (status) {
     case 'pending':
@@ -556,21 +571,6 @@ function getToolCallStatus(
     return 'failure';
   }
   return 'success';
-}
-
-function todosToMarkdown(todos: TodoItem[]): string {
-  return todos
-    .map(todo => {
-      const checkbox = todo.status === 'completed' ? '[x]' : '[ ]';
-      const content =
-        todo.status === 'completed'
-          ? `~~${todo.content}~~`
-          : todo.status === 'in_progress'
-            ? `_${todo.content}_`
-            : todo.content;
-      return `${checkbox} ${content}`;
-    })
-    .join('  \n');
 }
 
 function hasValidContent(content: string): boolean {
