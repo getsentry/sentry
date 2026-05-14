@@ -104,6 +104,9 @@ def _resolve_base_image_info(
     )
 
 
+# Intentionally uses a flat response format (nullable fields, no conditional shapes)
+# rather than matching the details endpoint's SnapshotDiffPair/SnapshotImageResponse split.
+# This endpoint is designed for LLM/MCP consumers that benefit from a single uniform shape.
 @cell_silo_endpoint
 class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
@@ -251,7 +254,7 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             base_fname = comp_result.previous_image_file_name
 
         base_image_info = None
-        if status in ("changed", "unchanged", "renamed", "errored"):
+        if status in ("changed", "unchanged", "renamed", "errored", "skipped"):
             base_image_info = _resolve_base_image_info(
                 base_fname, base_manifest, org_slug, project_slug
             )
