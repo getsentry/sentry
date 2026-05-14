@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -111,6 +112,17 @@ export function AssigneeSelector({
   });
   const currentMemberList = memberList ?? defaultMemberList;
 
+  // Resolve the full user object for the current assignee so we can render
+  // their real avatar (uploaded/gravatar) instead of a letter avatar.
+  const memberById = useMemo(
+    () => new Map(currentMemberList.map(member => [member.id, member])),
+    [currentMemberList]
+  );
+  const assignedUser =
+    group.assignedTo?.type === 'user'
+      ? memberById.get(group.assignedTo.id)
+      : undefined;
+
   return (
     <AssigneeSelectorDropdown
       group={group}
@@ -130,6 +142,7 @@ export function AssigneeSelector({
         >
           <AssigneeBadge
             assignedTo={group.assignedTo ?? undefined}
+            assignedUser={assignedUser}
             assignmentReason={
               group.owners?.find(owner => {
                 const [_ownershipType, ownerId] = owner.owner.split(':');
