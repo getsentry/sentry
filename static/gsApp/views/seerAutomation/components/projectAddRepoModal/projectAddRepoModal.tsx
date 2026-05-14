@@ -19,7 +19,6 @@ import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/ev
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -64,6 +63,15 @@ export function ProjectAddRepoModal({
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const stoppingPointOptions = PROJECT_STOPPING_POINT_OPTIONS;
 
+  const repoEntrySchema = z.object({
+    repoId: z
+      .string()
+      .refine(id => repositoriesById.has(id), {
+        message: t('Repository not found'),
+      })
+      .nonempty(),
+    branch: z.string(),
+  });
   const formSchema = z.object({
     project: z
       .string()
@@ -72,14 +80,7 @@ export function ProjectAddRepoModal({
       })
       .transform(id => projectsById.get(id)!),
     repoEntries: z
-      .array(
-        z.object({
-          repoId: z.string().refine(id => repositoriesById.has(id), {
-            message: t('Repository not found'),
-          }),
-          branch: z.string(),
-        })
-      )
+      .array(repoEntrySchema)
       .min(1, {message: t('Please add at least one repository')}),
     agent: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
     stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
@@ -91,11 +92,17 @@ export function ProjectAddRepoModal({
     ...defaultFormOptions,
     defaultValues: {
       project: defaultProject?.id ?? '',
-      repoEntries: [{repoId: '', branch: ''}],
+      repoEntries: [] as Array<{branch: string; repoId: string}>,
       agent: useOrgDefaultAgent(),
       stoppingPoint: useOrgDefaultStoppingPoint(),
     },
-    validators: {onDynamic: formSchema},
+    validators: {
+      onMount: formSchema.extend({
+        project: z.string(),
+        repoEntries: z.array(repoEntrySchema),
+      }),
+      onDynamic: formSchema,
+    },
     onSubmit: ({value}) => {
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
@@ -132,34 +139,42 @@ export function ProjectAddRepoModal({
 
             <Separator orientation="horizontal" />
 
-            <Grid columns="1fr max-content 1fr" gap="xl">
+            <Grid columns="minmax(0, 1fr) max-content minmax(0, 1fr)" gap="lg">
               <form.AppField name="project">
                 {field => (
-                  <CompactSelect
-                    style={{width: '100%'}}
-                    trigger={triggerProps => {
-                      const project = projectsById.get(field.state.value ?? '');
-                      return (
-                        <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
-                          {project ? (
-                            <Flex gap="sm" align="center">
-                              <ProjectAvatar project={project} />
-                              {project.name}
-                            </Flex>
-                          ) : (
-                            t('Select Project')
-                          )}
-                        </OverlayTrigger.Button>
-                      );
-                    }}
-                    disabled={Boolean(defaultProject)}
-                    emptyMessage={t('No projects found')}
-                    onChange={option => field.handleChange(option?.value ?? '')}
-                    options={projectOptions}
-                    search
-                    value={field.state.value ?? ''}
-                    virtualizeThreshold={50}
-                  />
+                  <Flex minWidth={0}>
+                    <Flex gap="sm" align="center" flexGrow={1} minWidth={0}>
+                      <CompactSelect
+                        style={{width: '100%'}}
+                        trigger={triggerProps => {
+                          const project = projectsById.get(field.state.value ?? '');
+                          return (
+                            <OverlayTrigger.Button
+                              {...triggerProps}
+                              style={{width: '100%', minWidth: 0}}
+                            >
+                              {project ? (
+                                <Flex gap="sm" align="center" minWidth={0}>
+                                  <ProjectAvatar project={project} />
+                                  <Text ellipsis>{project.name}</Text>
+                                </Flex>
+                              ) : (
+                                t('Select Project')
+                              )}
+                            </OverlayTrigger.Button>
+                          );
+                        }}
+                        disabled={Boolean(defaultProject)}
+                        emptyMessage={t('No projects found')}
+                        onChange={option => field.handleChange(option?.value ?? '')}
+                        options={projectOptions}
+                        search
+                        value={field.state.value ?? ''}
+                        virtualizeThreshold={50}
+                      />
+                      <field.Meta.Status />
+                    </Flex>
+                  </Flex>
                 )}
               </form.AppField>
 
@@ -167,13 +182,18 @@ export function ProjectAddRepoModal({
                 <IconArrow direction="right" size="md" />
               </Flex>
 
-              <Stack gap="md">
+              <Stack gap="xl">
                 <form.AppField name="repoEntries" mode="array">
                   {field => (
                     <Fragment>
                       {field.state.value.map((_, i) => (
-                        <Flex key={`repoEntries[${i}]`} gap="sm" align="start">
-                          <Stack gap="xs" flex={1}>
+                        <Flex
+                          key={`repoEntries[${i}]`}
+                          gap="sm"
+                          align="start"
+                          minWidth={0}
+                        >
+                          <Stack gap="xs" flex={1} minWidth={0}>
                             <form.Field name={`repoEntries[${i}].repoId`}>
                               {subField => (
                                 <CompactSelect
@@ -185,14 +205,14 @@ export function ProjectAddRepoModal({
                                     return (
                                       <OverlayTrigger.Button
                                         {...triggerProps}
-                                        style={{width: '100%'}}
+                                        style={{width: '100%', minWidth: 0}}
                                       >
                                         {repo ? (
-                                          <Flex gap="sm" align="center">
+                                          <Flex gap="sm" align="center" minWidth={0}>
                                             {getIntegrationIcon(
-                                              repo.provider?.name?.toLowerCase() || ''
+                                              repo.provider.name.toLowerCase() || ''
                                             )}
-                                            {repo.name}
+                                            <Text ellipsis>{repo.name}</Text>
                                           </Flex>
                                         ) : (
                                           t('Select Repository')
@@ -205,17 +225,16 @@ export function ProjectAddRepoModal({
                                     repositoryOptions.hasNextPage
                                   }
                                   emptyMessage={t('No repositories found')}
-                                  onChange={option =>
-                                    subField.handleChange(option.value ?? '')
-                                  }
+                                  onChange={option => subField.handleChange(option.value)}
                                   options={repositoryOptions.data ?? []}
                                   search
-                                  value={subField.state.value ?? ''}
+                                  value={subField.state.value}
                                   virtualizeThreshold={50}
                                 />
                               )}
                             </form.Field>
-                            <form.Field key={i} name={`repoEntries[${i}].branch`}>
+
+                            <form.Field name={`repoEntries[${i}].branch`}>
                               {subField => (
                                 <InputGroup>
                                   <InputGroup.LeadingItems disablePointerEvents>
@@ -231,26 +250,44 @@ export function ProjectAddRepoModal({
                               )}
                             </form.Field>
                           </Stack>
-                          {field.state.value.length > 1 && (
-                            <Button
-                              aria-label={t('Remove repository')}
-                              size="sm"
-                              variant="transparent"
-                              icon={<IconDelete size="xs" />}
-                              onClick={() => field.removeValue(i)}
-                            />
-                          )}
+                          <Button
+                            aria-label={t('Remove repository')}
+                            size="sm"
+                            variant="transparent"
+                            icon={<IconDelete size="xs" />}
+                            onClick={() => field.removeValue(i)}
+                          />
                         </Flex>
                       ))}
-                      <Flex>
-                        <Button
-                          size="sm"
-                          variant="transparent"
-                          icon={<IconAdd />}
-                          onClick={() => field.pushValue({repoId: '', branch: ''})}
-                        >
-                          {t('Add Repository')}
-                        </Button>
+                      <Flex gap="sm" align="center" minWidth={0}>
+                        {field.state.value.every(entry => entry.repoId !== '') && (
+                          <CompactSelect
+                            style={{width: '100%'}}
+                            trigger={triggerProps => (
+                              <OverlayTrigger.Button
+                                {...triggerProps}
+                                style={{width: '100%', minWidth: 0}}
+                              >
+                                {t('Add Repository')}
+                              </OverlayTrigger.Button>
+                            )}
+                            loading={
+                              repositoryOptions.isPending || repositoryOptions.hasNextPage
+                            }
+                            emptyMessage={t('No repositories found')}
+                            onChange={option => {
+                              field.pushValue({
+                                repoId: option.value,
+                                branch: '',
+                              });
+                            }}
+                            options={repositoryOptions.data ?? []}
+                            search
+                            value=""
+                            virtualizeThreshold={50}
+                          />
+                        )}
+                        <field.Meta.Status />
                       </Flex>
                     </Fragment>
                   )}

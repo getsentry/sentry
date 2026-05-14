@@ -518,10 +518,15 @@ class OrganizationEventsOccurrencesArrayQueryTest(
     callsite_name = "api.events.endpoints"
 
     def request_with_feature_flag(self, payload: dict) -> Response:
+        # Array attributes are behind `organizations:trace-item-details-array-fields`.
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:trace-item-details-array-fields": True,
+        }
         with self.options(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
         ):
-            response = self.do_request({**payload, "dataset": "occurrences"})
+            response = self.do_request({**payload, "dataset": "occurrences"}, features=features)
         assert response.status_code == 200, response.content
         return response
 
@@ -770,3 +775,30 @@ class OrganizationEventsOccurrencesArrayQueryTest(
                     f"{description}: query={query!r} matched row with {field}={row[field]!r}; "
                     f"value {value!r} present={is_present}, expected present={must_contain}"
                 )
+
+    def test_array_fields_dropped_when_feature_flag_off(self) -> None:
+        _, expected = self._create_occurrence_with_arrays(occurrence_count=1)
+        event_id = expected[0]["event_id"]
+        expected_http_url = expected[0]["http_url"]
+
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self.do_request(
+                {
+                    "field": ["id", "stack.filename", "http.url", "stack.colno"],
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                    "dataset": "occurrences",
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        data = response.data.get("data", [])
+        assert len(data) == 1
+        assert data[0]["id"] == event_id
+        # Scalar field is still returned.
+        assert data[0].get("http.url") == expected_http_url
+        # Array-typed fields are silently dropped when the flag is off.
+        assert "stack.filename" not in data[0]
+        assert "stack.colno" not in data[0]

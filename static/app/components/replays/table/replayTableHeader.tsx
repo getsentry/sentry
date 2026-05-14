@@ -45,7 +45,8 @@ export function ReplayTableHeader({
   const queryOptions = queryKeyRef.current
     ? parseQueryKey(queryKeyRef.current).options
     : undefined;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const rawQuery = queryOptions?.query?.query;
+  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
     ? {position: 'sticky', top: 0}

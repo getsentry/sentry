@@ -7,5 +7,5 @@ export interface MetricSelectorOption extends SelectOption<string> {
   metricType: TraceMetricTypeValue;
   count?: number;
   lastSeen?: number;
-  metricUnit?: string;
+  metricUnit?: string | null;
 }

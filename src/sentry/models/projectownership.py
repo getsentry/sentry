@@ -16,6 +16,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
 from sentry.issues.ownership.grammar import (
+    CODEOWNERS,
     Matcher,
     OwnershipSchema,
     Rule,
@@ -135,6 +136,12 @@ class ProjectOwnership(Model):
 
         rules = cls._matching_ownership_rules(ownership, data)
 
+        # CODEOWNERS exclusion: if the last matching codeowners rule has no owners,
+        # it means "no ownership" — remove all codeowners rules from the match set
+        codeowners_matches = [r for r in rules if r.matcher.type == CODEOWNERS]
+        if codeowners_matches and not codeowners_matches[-1].owners:
+            rules = [r for r in rules if r.matcher.type != CODEOWNERS]
+
         if not rules:
             return [], None
 
@@ -217,6 +224,9 @@ class ProjectOwnership(Model):
 
         with metrics.timer("projectownership.get_issue_owners_codeowners_rules"):
             codeowners_rules = list(reversed(cls._matching_ownership_rules(codeowners, data)))
+            # CODEOWNERS exclusion: last matching rule (first after reversal) has no owners
+            if codeowners_rules and not codeowners_rules[0].owners:
+                return rules_with_owners
             hydrated_codeowners_rules = cls._hydrate_rules(
                 project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
             )

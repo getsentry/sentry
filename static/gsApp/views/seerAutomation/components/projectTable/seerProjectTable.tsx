@@ -32,6 +32,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -145,7 +146,7 @@ export function SeerProjectTable() {
             ProjectsStore.onUpdateSuccess({
               id: projectId,
               autofixAutomationTuning: updates.autofixAutomationTuning ?? undefined,
-            });
+            } as Partial<DetailedProject>);
           }
         }
       },

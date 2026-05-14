@@ -14,7 +14,7 @@ import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
   getProjectAgentMutationOptions,
@@ -36,7 +36,7 @@ const NIGHT_SHIFT_OPTIONS = [
   {value: 'default' as const, label: t('Default (On)')},
 ];
 
-function getNightShiftValue(project: Project): NightShiftValue {
+function getNightShiftValue(project: DetailedProject): NightShiftValue {
   const enabled = project.seerNightshiftTweaks?.enabled;
   if (enabled === true) {
     return 'on';
@@ -50,7 +50,7 @@ function getNightShiftValue(project: Project): NightShiftValue {
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
-  project: Project;
+  project: DetailedProject;
 }
 
 export function AutofixAgent({canWrite, preference, project}: Props) {

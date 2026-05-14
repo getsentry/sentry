@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Transition, Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
+import {Container} from '@sentry/scraps/layout';
 import {Prose} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -200,7 +201,13 @@ export function PageOverlay({
   };
 
   return (
-    <MaskedContent {...props}>
+    <Container
+      flexGrow={1}
+      flexBasis="0"
+      overflow="hidden"
+      position="relative"
+      {...props}
+    >
       {children}
       <ContentWrapper
         initial="initial"
@@ -218,7 +225,7 @@ export function PageOverlay({
           <PageOverlayProse>{text({Body, Header})}</PageOverlayProse>
         </Wrapper>
       </ContentWrapper>
-    </MaskedContent>
+    </Container>
   );
 }
 
@@ -248,13 +255,6 @@ const Background = styled('div')`
     min-height: 600px;
     height: 100%;
   }
-`;
-
-const MaskedContent = styled('div')`
-  position: relative;
-  overflow: hidden;
-  flex-grow: 1;
-  flex-basis: 0;
 `;
 
 const PageOverlayProse = styled(Prose)`
