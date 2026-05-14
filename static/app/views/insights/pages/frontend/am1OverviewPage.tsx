@@ -241,13 +241,13 @@ export function Am1FrontendOverviewPage({
               {showOnboarding ? (
                 <LegacyOnboarding
                   project={onboardingProject}
-                organization={organization}
-              />
-            ) : (
-              <PerformanceDisplayContext
-                value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
-              >
-                <DoubleChartRow
+                  organization={organization}
+                />
+              ) : (
+                <PerformanceDisplayContext
+                  value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
+                >
+                  <DoubleChartRow
                     allowedCharts={doubleChartRowCharts}
                     {...sharedProps}
                     eventView={doubleChartRowEventView}
@@ -264,12 +264,12 @@ export function Am1FrontendOverviewPage({
                       projects={projects}
                       columnTitles={FRONTEND_COLUMN_TITLES}
                       setError={setPageDanger}
-                    {...sharedProps}
-                  />
-                </TeamKeyTransactionManager.Provider>
-              </PerformanceDisplayContext>
-            )}
-          </ModuleLayout.Full>
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
+                </PerformanceDisplayContext>
+              )}
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

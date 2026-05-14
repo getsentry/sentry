@@ -41,9 +41,9 @@ function WrappedComponent({data, ...rest}: any) {
             ]}
             rowChartSettings={[]}
             forceDefaultChartSetting
-          {...data}
-          {...rest}
-        />
+            {...data}
+            {...rest}
+          />
         </PerformanceDisplayContext>
       </MEPSettingProvider>
     </OrganizationContext>

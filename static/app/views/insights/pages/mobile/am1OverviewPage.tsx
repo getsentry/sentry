@@ -230,13 +230,13 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
               {showOnboarding ? (
                 <LegacyOnboarding
                   project={onboardingProject}
-                organization={organization}
-              />
-            ) : (
-              <PerformanceDisplayContext
-                value={{performanceType: ProjectPerformanceType.MOBILE}}
-              >
-                <TeamKeyTransactionManager.Provider
+                  organization={organization}
+                />
+              ) : (
+                <PerformanceDisplayContext
+                  value={{performanceType: ProjectPerformanceType.MOBILE}}
+                >
+                  <TeamKeyTransactionManager.Provider
                     organization={organization}
                     teams={teams}
                     selectedTeams={['myteams']}
@@ -256,12 +256,12 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
                       columnTitles={columnTitles}
                       setError={setPageDanger}
                       theme={theme}
-                    {...sharedProps}
-                  />
-                </TeamKeyTransactionManager.Provider>
-              </PerformanceDisplayContext>
-            )}
-          </ModuleLayout.Full>
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
+                </PerformanceDisplayContext>
+              )}
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

@@ -44,21 +44,21 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
         location={data.router.location}
         organization={data.organization}
       >
-      <MEPSettingProvider forceTransactions>
-        <PerformanceDisplayContext
-          value={{performanceType: ProjectPerformanceType.ANY}}
-        >
-          <WidgetContainer
+        <MEPSettingProvider forceTransactions>
+          <PerformanceDisplayContext
+            value={{performanceType: ProjectPerformanceType.ANY}}
+          >
+            <WidgetContainer
               chartHeight={100}
               allowedCharts={allowedCharts}
               rowChartSettings={[]}
               withStaticFilters={withStaticFilters}
               forceDefaultChartSetting
-          {...data}
-          {...rest}
-        />
-        </PerformanceDisplayContext>
-      </MEPSettingProvider>
+              {...data}
+              {...rest}
+            />
+          </PerformanceDisplayContext>
+        </MEPSettingProvider>
       </MetricsCardinalityProvider>
     </OrganizationContext>
   );

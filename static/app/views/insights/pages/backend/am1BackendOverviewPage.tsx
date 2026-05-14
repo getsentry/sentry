@@ -262,13 +262,13 @@ export function Am1BackendOverviewPage({
               {showOnboarding ? (
                 <LegacyOnboarding
                   project={onboardingProject}
-                organization={organization}
-              />
-            ) : (
-              <PerformanceDisplayContext
-                value={{performanceType: ProjectPerformanceType.BACKEND}}
-              >
-                <TeamKeyTransactionManager.Provider
+                  organization={organization}
+                />
+              ) : (
+                <PerformanceDisplayContext
+                  value={{performanceType: ProjectPerformanceType.BACKEND}}
+                >
+                  <TeamKeyTransactionManager.Provider
                     organization={organization}
                     teams={teams}
                     selectedTeams={['myteams']}
@@ -288,12 +288,12 @@ export function Am1BackendOverviewPage({
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageDanger}
-                    {...sharedProps}
-                  />
-                </TeamKeyTransactionManager.Provider>
-              </PerformanceDisplayContext>
-            )}
-          </ModuleLayout.Full>
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
+                </PerformanceDisplayContext>
+              )}
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
