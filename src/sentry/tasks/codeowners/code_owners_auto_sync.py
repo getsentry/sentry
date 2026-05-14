@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
@@ -35,12 +36,20 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
 
     commit = Commit.objects.get(id=commit_id)
 
-    code_mappings = list(
-        RepositoryProjectPathConfig.objects.filter(
+    org = Organization.objects.get(id=commit.organization_id)
+    use_fk = features.has("organizations:project-repository-fk-reads", org)
+    if use_fk:
+        base_qs = RepositoryProjectPathConfig.objects.filter(
+            project_repository__repository_id=commit.repository_id,
+            project_repository__project__organization_id=commit.organization_id,
+        ).select_related("project", "project_repository__project")
+    else:
+        base_qs = RepositoryProjectPathConfig.objects.filter(
             repository_id=commit.repository_id,
             project__organization_id=commit.organization_id,
-        )
-        .annotate(
+        ).select_related("project", "project_repository__project")
+    code_mappings = list(
+        base_qs.annotate(
             # By default, we don't create a ProjectOwnership record (bc we treat as a negative cache) when we create ProjectCodeOwners records.
             ownership_exists=Exists(
                 ProjectOwnership.objects.filter(
@@ -75,7 +84,9 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
 
     for code_mapping in code_mappings:
         try:
-            codeowner_contents = get_codeowner_contents(code_mapping)
+            codeowner_contents = get_codeowner_contents(
+                code_mapping, use_project_repository_fk=use_fk
+            )
         except (NotImplementedError, NotFound):
             logger.warning(
                 "code_owners_auto_sync.fetch_error",
@@ -89,7 +100,11 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
                 "code_owners_auto_sync.fetch_failed",
                 extra={"commit_id": commit_id, "code_mapping_id": code_mapping.id},
             )
-            AutoSyncNotification(code_mapping.project).send()
+            if use_fk:
+                project = code_mapping.project_repository.project
+            else:
+                project = code_mapping.project
+            AutoSyncNotification(project).send()
             return
 
         try:
