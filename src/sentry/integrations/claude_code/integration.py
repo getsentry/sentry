@@ -33,7 +33,9 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.locks import locks
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
@@ -46,6 +48,7 @@ PROVIDER_KEY = "claude_code"
 PROVIDER_NAME = "Claude Agent"
 DESCRIPTION = "Connect your Sentry organization with Claude Agent."
 DEFAULT_ENVIRONMENT_NAME = "sentry-autofix-agents"
+VAULT_METADATA_LOCK_DURATION_S = 10
 
 
 def _get_client_class() -> type[Any]:
@@ -82,6 +85,8 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     agent_id: str | None = None
     agent_version: int | None = None
     model: str | None = None
+    # One vault per github installation so concurrent launches don't clobber each other's credentials.
+    installation_vault_ids: dict[str, str] = {}
 
     @validator("agent_version", pre=True)
     def coerce_agent_version(cls, v: object) -> int | None:
@@ -302,6 +307,40 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         """Parse and return the integration metadata."""
         return ClaudeCodeIntegrationMetadata.parse_obj(self.model.metadata or {})
 
+    def _vault_metadata_lock(self):
+        return locks.get(
+            f"claude_code:vault:{self.model.id}",
+            duration=VAULT_METADATA_LOCK_DURATION_S,
+            name="claude_code_vault_metadata",
+        )
+
+    def _read_fresh_metadata(self) -> ClaudeCodeIntegrationMetadata | None:
+        fresh = integration_service.get_integration(integration_id=self.model.id)
+        if fresh is None:
+            return None
+        return ClaudeCodeIntegrationMetadata.parse_obj(fresh.metadata or {})
+
+    def get_vault_id_for_installation(self, installation_id: int) -> str | None:
+        return self._get_metadata().installation_vault_ids.get(str(installation_id))
+
+    def set_vault_id_for_installation(self, installation_id: int, vault_id: str) -> None:
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return
+            metadata.installation_vault_ids[str(installation_id)] = vault_id
+            self._persist_metadata(metadata)
+
+    def pop_vault_id_for_installation(self, installation_id: int) -> str | None:
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return None
+            vault_id = metadata.installation_vault_ids.pop(str(installation_id), None)
+            if vault_id is not None:
+                self._persist_metadata(metadata)
+            return vault_id
+
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         metadata = self._get_metadata()
 
@@ -331,7 +370,31 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
             model=metadata.model,
+            installation_vault_lookup=self.get_vault_id_for_installation,
+            installation_vault_writer=self.set_vault_id_for_installation,
         )
+
+    def uninstall(self) -> None:
+        metadata = self._get_metadata()
+        if not metadata.installation_vault_ids:
+            return
+
+        client = self.get_client()
+        for vault_id in list(metadata.installation_vault_ids.values()):
+            try:
+                client.archive_vault(vault_id)
+            except Exception:
+                logger.exception(
+                    "claude_code.uninstall.archive_vault_failed",
+                    extra={"vault_id": vault_id, "integration_id": self.model.id},
+                )
+
+        with self._vault_metadata_lock().acquire():
+            fresh = self._read_fresh_metadata()
+            if fresh is None:
+                return
+            fresh.installation_vault_ids = {}
+            self._persist_metadata(fresh)
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent and persist resolved environment/agent IDs."""
