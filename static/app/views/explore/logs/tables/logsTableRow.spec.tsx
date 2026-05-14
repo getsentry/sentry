@@ -246,6 +246,8 @@ describe('logsTableRow', () => {
       // Prefetching is triggered after the hover timeout
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
+    // Flush the .then() callback that reads cached data after prefetch
+    await act(async () => {});
     jest.useRealTimers();
   });
 
@@ -682,20 +684,18 @@ describe('logsTableRow', () => {
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
 
+    const passwordCell = screen.getByTestId('log-table-cell-password');
+    const customRuleCell = screen.getByTestId('log-table-cell-not_zzz_not_exact_match');
+
+    expect(passwordCell).toHaveTextContent('[Filtered]');
+    expect(customRuleCell).toHaveTextContent('redacted2');
+
     expect(traceItemMock).toHaveBeenCalledTimes(0);
     await userEvent.hover(logTableRow);
 
     await waitFor(() => {
       expect(traceItemMock).toHaveBeenCalledTimes(1);
     });
-
-    const passwordCell = screen.getByTestId('log-table-cell-password');
-    const customRuleCell = screen.getByTestId('log-table-cell-not_zzz_not_exact_match');
-
-    expect(passwordCell).toBeInTheDocument();
-    expect(passwordCell).toHaveTextContent('[Filtered]');
-    expect(customRuleCell).toBeInTheDocument();
-    expect(customRuleCell).toHaveTextContent('redacted2');
 
     const filteredText = screen.getByText(/Filtered/);
     await userEvent.hover(filteredText);

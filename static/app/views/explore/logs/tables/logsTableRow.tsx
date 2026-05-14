@@ -48,7 +48,7 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {usePrefetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
@@ -310,7 +310,7 @@ export const LogRowContent = memo(function LogRowContent({
   const prefetchTimeout = autorefreshEnabled
     ? DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH
     : DEFAULT_TRACE_ITEM_HOVER_TIMEOUT;
-  const {hoverProps, traceItemsResult} = useFetchTraceItemDetailsOnHover({
+  const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
     traceItemId: String(dataRow[OurLogKnownFieldKey.ID]),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
@@ -334,7 +334,7 @@ export const LogRowContent = memo(function LogRowContent({
     projectSlug,
     meta,
     project,
-    traceItemMeta: traceItemsResult?.data?.meta,
+    traceItemMeta,
     timestampRelativeTo: embeddedOptions?.replay?.timestampRelativeTo,
     onReplayTimeClick: embeddedOptions?.replay?.onReplayTimeClick,
     logStart,
