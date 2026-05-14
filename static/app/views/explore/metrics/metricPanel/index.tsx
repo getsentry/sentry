@@ -1,15 +1,23 @@
 import {Activity, Fragment, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
+import {useQuery} from '@tanstack/react-query';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -19,26 +27,45 @@ import {
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
-import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
+import {
+  MetricsGraph,
+  getMetricsChartTypeOptions,
+} from 'sentry/views/explore/metrics/metricGraph';
 import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
+import {MetricsHeatMap} from 'sentry/views/explore/metrics/metricsHeatMap';
+import {
+  useMetricVisualize,
+  useMetricVisualizes,
+  useSetMetricVisualizes,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
+
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'scatter'> = {
+  [ChartType.LINE]: 'line',
+  [ChartType.AREA]: 'area',
+  [ChartType.BAR]: 'bar',
+  [ChartType.HEATMAP]: 'scatter',
+};
 
 interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   queryIndex: number;
@@ -69,6 +96,9 @@ export function MetricPanel({
   onEquationLabelsChange,
   ...rest
 }: MetricPanelProps) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const userQuery = useQueryParamsQuery();
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
 
   const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
@@ -76,9 +106,11 @@ export function MetricPanel({
   const mode = useQueryParamsMode();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const [interval] = useChartInterval();
+  const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
+  const visualizes = useMetricVisualizes();
+  const setVisualizes = useSetMetricVisualizes();
 
   const [title, setTitle] = useState<string | undefined>(() => {
     if (isVisualizeEquation(visualize)) {
@@ -109,12 +141,32 @@ export function MetricPanel({
     staleTime: Infinity,
   });
 
+  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+  const hasHeatMap = canUseMetricsHeatMap(organization);
+
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled:
-      !isMetricOptionsEmpty ||
-      (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
+      !isHeatmap &&
+      (!isMetricOptionsEmpty ||
+        (isVisualizeEquation(visualize) && Boolean(visualize.expression.text))),
   });
+
+  const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
+  const intervalInMs = intervalToMilliseconds(interval);
+  const yBuckets = intervalInMs > 0 ? Math.round(timeRangeInMs / intervalInMs) : 0;
+
+  const heatmapResult = useQuery(
+    metricHeatmapApiOptions({
+      traceMetric,
+      enabled: hasHeatMap && isHeatmap && !isMetricOptionsEmpty,
+      organization,
+      selection,
+      query: userQuery,
+      interval,
+      yBuckets,
+    })
+  );
 
   useMetricsPanelAnalytics({
     interval,
@@ -128,6 +180,51 @@ export function MetricPanel({
     aggregateSortBys,
     panelIndex: queryIndex,
   });
+
+  function handleChartTypeChange(newChartType: ChartType) {
+    setVisualizes(visualizes.map(v => v.replace({chartType: newChartType})));
+  }
+
+  const actions = (
+    <Fragment>
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            tooltipProps={{
+              title: t('Type of chart displayed in this visualization (ex. line)'),
+            }}
+            icon={<IconGraph type={CHART_TYPE_TO_ICON[visualize.chartType]} />}
+            variant="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        value={visualize.chartType}
+        menuTitle="Type"
+        options={getMetricsChartTypeOptions(organization)}
+        onChange={option => handleChartTypeChange(option.value)}
+      />
+      <CompactSelect
+        value={interval}
+        onChange={({value}) => setInterval(value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            tooltipProps={{
+              title: t('Time interval displayed in this visualization (ex. 5m)'),
+            }}
+            {...triggerProps}
+            icon={<IconClock />}
+            variant="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        menuTitle="Interval"
+        options={intervalOptions}
+      />
+    </Fragment>
+  );
 
   const contentHeightRef = useRef<number | null>(null);
 
@@ -165,11 +262,20 @@ export function MetricPanel({
                 >
                   <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
                     <Container minWidth="0">
-                      <MetricsGraph
-                        timeseriesResult={timeseriesResult}
-                        isMetricOptionsEmpty={isMetricOptionsEmpty}
-                        title={title}
-                      />
+                      {hasHeatMap && isHeatmap ? (
+                        <MetricsHeatMap
+                          heatmapResult={heatmapResult}
+                          actions={actions}
+                          title={title}
+                        />
+                      ) : (
+                        <MetricsGraph
+                          timeseriesResult={timeseriesResult}
+                          actions={actions}
+                          isMetricOptionsEmpty={isMetricOptionsEmpty}
+                          title={title}
+                        />
+                      )}
                     </Container>
                     <Container minWidth="0">
                       <MetricInfoTabs

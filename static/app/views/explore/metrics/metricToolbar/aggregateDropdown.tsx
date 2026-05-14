@@ -7,6 +7,7 @@ import {
   TriggerLabel,
 } from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {
@@ -27,13 +28,16 @@ const MULTI_SELECT_GROUP_KEYS = new Set(['percentiles', 'stats']);
 export function AggregateDropdown({
   traceMetric,
   singleSelect = false,
+  disabledReason,
 }: {
   traceMetric: TraceMetric;
+  disabledReason?: string;
   singleSelect?: boolean;
 }) {
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
+  const isDisabled = disabledReason !== undefined;
 
   const groups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
   const selectedNames = new Set(
@@ -65,68 +69,70 @@ export function AggregateDropdown({
     selectedList.length === 1 && selectedList[0] === defaultValue;
 
   return (
-    <CompositeSelect
-      disabled={groups.length === 0}
-      menuHeaderTrailingItems={
-        isDefaultSelection
-          ? undefined
-          : () => <CompositeSelect.ClearButton onClick={() => handleChange([])} />
-      }
-      style={{width: '100%'}}
-      trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          prefix={t('Agg')}
-          style={{width: '100%'}}
-        >
-          {selectedList.length === 0 ? (
-            <TriggerLabel>{t('None')}</TriggerLabel>
-          ) : (
-            <Fragment>
-              <TriggerLabel>{selectedList[0]}</TriggerLabel>
-              {selectedList.length > 1 && (
-                <Badge
-                  variant="muted"
-                  style={{marginLeft: 4, flexShrink: 0, top: 'auto'}}
-                >
-                  {`+${selectedList.length - 1}`}
-                </Badge>
-              )}
-            </Fragment>
-          )}
-        </OverlayTrigger.Button>
-      )}
-    >
-      {groups.map(group => {
-        const groupKey = String(group.key);
-        const isMulti = !singleSelect && MULTI_SELECT_GROUP_KEYS.has(groupKey);
-        const activeValues = group.options
-          .map(opt => String(opt.value))
-          .filter(v => selectedNames.has(v));
+    <Tooltip title={disabledReason} disabled={!isDisabled}>
+      <CompositeSelect
+        disabled={isDisabled || groups.length === 0}
+        menuHeaderTrailingItems={
+          isDefaultSelection
+            ? undefined
+            : () => <CompositeSelect.ClearButton onClick={() => handleChange([])} />
+        }
+        style={{width: '100%'}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Agg')}
+            style={{width: '100%'}}
+          >
+            {selectedList.length === 0 ? (
+              <TriggerLabel>{t('None')}</TriggerLabel>
+            ) : (
+              <Fragment>
+                <TriggerLabel>{selectedList[0]}</TriggerLabel>
+                {selectedList.length > 1 && (
+                  <Badge
+                    variant="muted"
+                    style={{marginLeft: 4, flexShrink: 0, top: 'auto'}}
+                  >
+                    {`+${selectedList.length - 1}`}
+                  </Badge>
+                )}
+              </Fragment>
+            )}
+          </OverlayTrigger.Button>
+        )}
+      >
+        {groups.map(group => {
+          const groupKey = String(group.key);
+          const isMulti = !singleSelect && MULTI_SELECT_GROUP_KEYS.has(groupKey);
+          const activeValues = group.options
+            .map(opt => String(opt.value))
+            .filter(v => selectedNames.has(v));
 
-        if (isMulti) {
+          if (isMulti) {
+            return (
+              <CompositeSelect.Region
+                key={groupKey}
+                label={group.label}
+                multiple
+                options={group.options}
+                value={activeValues}
+                onChange={handleChange}
+              />
+            );
+          }
+
           return (
             <CompositeSelect.Region
               key={groupKey}
               label={group.label}
-              multiple
               options={group.options}
-              value={activeValues}
-              onChange={handleChange}
+              value={activeValues[0]}
+              onChange={opt => handleChange([opt])}
             />
           );
-        }
-
-        return (
-          <CompositeSelect.Region
-            key={groupKey}
-            label={group.label}
-            options={group.options}
-            value={activeValues[0]}
-            onChange={opt => handleChange([opt])}
-          />
-        );
-      })}
-    </CompositeSelect>
+        })}
+      </CompositeSelect>
+    </Tooltip>
   );
 }

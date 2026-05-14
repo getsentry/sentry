@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -29,6 +30,10 @@ interface GroupBySelectorProps {
    */
   traceMetric: TraceMetric;
   /**
+   * If set, disables the selector and shows this string as a tooltip.
+   */
+  disabledReason?: string;
+  /**
    * Whether to skip the trace metric filter.
    *
    * For equations, because at the moment there isn't an easy way to filter
@@ -45,11 +50,13 @@ interface GroupBySelectorProps {
 export function GroupBySelector({
   traceMetric,
   skipTraceMetricFilter,
+  disabledReason,
 }: GroupBySelectorProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const isDisabled = disabledReason !== undefined;
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -113,23 +120,25 @@ export function GroupBySelector({
   );
 
   return (
-    <CompactSelect
-      multiple
-      search
-      clearable
-      trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          prefix={t('Group by')}
-          style={{width: '100%'}}
-        />
-      )}
-      options={enabledOptions}
-      value={[...groupBys]}
-      loading={isLoading}
-      disabled={!skipTraceMetricFilter && !traceMetricFilter}
-      onChange={handleChange}
-      style={{width: '100%'}}
-    />
+    <Tooltip title={disabledReason} disabled={!isDisabled}>
+      <CompactSelect
+        multiple
+        search
+        clearable
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Group by')}
+            style={{width: '100%'}}
+          />
+        )}
+        options={enabledOptions}
+        value={[...groupBys]}
+        loading={isLoading}
+        disabled={isDisabled || (!skipTraceMetricFilter && !traceMetricFilter)}
+        onChange={handleChange}
+        style={{width: '100%'}}
+      />
+    </Tooltip>
   );
 }
