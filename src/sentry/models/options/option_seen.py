@@ -3,10 +3,10 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model
+from sentry.db.models import Model, cell_silo_model
 
 
-@region_silo_model
+@cell_silo_model
 class OptionSeen(Model):
     """
     Tripwire: a row exists iff options.get() has been called for this key
