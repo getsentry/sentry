@@ -263,18 +263,20 @@ function useSessionMenuItems({
   const {isPending, isError, refetch} = query;
 
   const sessionMenuItems = useMemo(() => {
-    return conversations.map(session => ({
-      key: 'session-' + session.run_id.toString(),
-      label: session.title,
-      details: (
-        <TimeSince
-          tooltipPrefix="Last updated"
-          date={moment.utc(session.last_triggered_at).toDate()}
-          suffix="ago"
-        />
-      ),
-      onAction: () => onChangeSession(session.run_id),
-    }));
+    return conversations
+      .filter(session => session.title)
+      .map(session => ({
+        key: 'session-' + session.run_id.toString(),
+        label: session.title,
+        details: (
+          <TimeSince
+            tooltipPrefix="Last updated"
+            date={moment.utc(session.last_triggered_at).toDate()}
+            suffix="ago"
+          />
+        ),
+        onAction: () => onChangeSession(session.run_id),
+      }));
   }, [conversations, onChangeSession]);
 
   return {
