@@ -109,7 +109,7 @@ export function ProjectSessionsAnrRequest({
           acc +
           group.series['count_unique(user)']!.slice(
             shouldFetchWithPrevious ? dataMiddleIndex : 0
-          ).reduce((value: number, groupAcc) => (groupAcc ?? 0) + (value ?? 0), 0),
+          ).reduce((value, groupAcc) => groupAcc + value, 0),
         0
       );
 
@@ -121,7 +121,7 @@ export function ProjectSessionsAnrRequest({
             (acc, group) =>
               acc +
               group.series['count_unique(user)']!.slice(0, dataMiddleIndex).reduce(
-                (value: number, groupAcc) => (groupAcc ?? 0) + (value ?? 0),
+                (value, groupAcc) => groupAcc + value,
                 0
               ),
             0

@@ -261,28 +261,37 @@ class ProjectSessionsChartRequest extends Component<
                   ? null
                   : getCrashFreePercent(rawValue * 100),
             };
-          }),
+          })
+          .filter(
+            (point): point is {name: string; value: number} => point.value !== null
+          ),
       },
-    ] as Series[]; // TODO(project-detail): Change SeriesDataUnit value to support null
+    ] as Series[];
 
     const previousTimeseriesData = fetchedWithPrevious
       ? ({
           seriesName: t('Previous Period'),
-          data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
-            const rawValue = responseData.groups[0]?.series[field]?.slice(
-              0,
-              dataMiddleIndex
-            )[i];
+          data: responseData.intervals
+            .slice(0, dataMiddleIndex)
+            .map((_interval, i) => {
+              const rawValue = responseData.groups[0]?.series[field]?.slice(
+                0,
+                dataMiddleIndex
+              )[i];
 
-            return {
-              name: responseData.intervals[i + dataMiddleIndex],
-              value:
-                rawValue === null || rawValue === undefined
-                  ? null
-                  : getCrashFreePercent(rawValue * 100),
-            };
-          }),
-        } as Series) // TODO(project-detail): Change SeriesDataUnit value to support null
+              return {
+                name: responseData.intervals[i + dataMiddleIndex],
+                value:
+                  rawValue === null || rawValue === undefined
+                    ? null
+                    : getCrashFreePercent(rawValue * 100),
+              };
+            })
+            .filter(
+              (point): point is {name: string | undefined; value: number} =>
+                point.value !== null
+            ),
+        } as Series)
       : null;
 
     const totalCount =

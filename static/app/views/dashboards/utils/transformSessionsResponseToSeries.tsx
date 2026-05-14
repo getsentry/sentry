@@ -41,9 +41,7 @@ export function transformSessionsResponseToSeries(
       useSessionAPI
     );
 
-  const results: Array<
-    Omit<Series, 'data'> & {data: Array<{name: string | number; value: number | null}>}
-  > = [];
+  const results: Series[] = [];
 
   if (!data.groups.length) {
     return [
@@ -67,10 +65,14 @@ export function transformSessionsResponseToSeries(
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
-          data: data.intervals.map((interval, index) => ({
-            name: interval,
-            value: group.series[field]?.[index] ?? null,
-          })),
+          data: data.intervals
+            .map((interval, index) => ({
+              name: interval,
+              value: group.series[field]?.[index] ?? null,
+            }))
+            .filter(
+              (point): point is {name: string; value: number} => point.value !== null
+            ),
         });
       }
     });
@@ -91,15 +93,19 @@ export function transformSessionsResponseToSeries(
           }
           results.push({
             seriesName: getSeriesName(status, group, queryAlias),
-            data: data.intervals.map((interval, index) => ({
-              name: interval,
-              value: metricField ? (group.series[metricField]?.[index] ?? null) : 0,
-            })),
+            data: data.intervals
+              .map((interval, index) => ({
+                name: interval,
+                value: metricField ? (group.series[metricField]?.[index] ?? null) : 0,
+              }))
+              .filter(
+                (point): point is {name: string; value: number} => point.value !== null
+              ),
           });
         }
       });
     }
   });
 
-  return results as unknown as Series[];
+  return results;
 }

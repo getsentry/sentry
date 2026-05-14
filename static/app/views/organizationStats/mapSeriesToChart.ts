@@ -114,8 +114,7 @@ export function mapSeriesToChart({
         return;
       }
 
-      group.series['sum(quantity)']!.forEach((rawStat, i) => {
-        const stat = rawStat ?? 0;
+      group.series['sum(quantity)']!.forEach((stat, i) => {
         const dataObject = {name: orgStats.intervals[i]!, value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');

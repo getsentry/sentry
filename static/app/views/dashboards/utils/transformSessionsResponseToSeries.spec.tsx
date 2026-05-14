@@ -1143,12 +1143,15 @@ describe('transformSessionsResponseToSeries', () => {
     ]);
   });
 
-  it('preserves null values from API response', () => {
+  it('filters out null values from API response', () => {
     const widgetQuery = WidgetQueryFixture({
       aggregates: [],
       orderby: '',
     });
 
+    // The Sessions API returns null for time buckets with no data (e.g. out
+    // of retention). The type doesn't reflect this, so we cast to simulate
+    // the real API response.
     const response = {
       start: '2022-01-15T00:00:00Z',
       end: '2022-01-18T00:00:00Z',
@@ -1158,18 +1161,17 @@ describe('transformSessionsResponseToSeries', () => {
         {
           by: {},
           series: {
-            'crash_free_rate(session)': [null, 0.99, 0.98],
+            'crash_free_rate(session)': [null, 0.99, 0.98] as Array<number | null>,
           },
           totals: {
             'crash_free_rate(session)': 0.985,
           },
         },
       ],
-    };
+    } as any;
 
     const result = transformSessionsResponseToSeries(response, widgetQuery);
     expect(result[0]!.data).toEqual([
-      {name: '2022-01-15T00:00:00Z', value: null},
       {name: '2022-01-16T00:00:00Z', value: 0.99},
       {name: '2022-01-17T00:00:00Z', value: 0.98},
     ]);

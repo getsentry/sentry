@@ -388,7 +388,7 @@ export type EventsStatsSeries<F extends string> = {
 export interface SeriesApi {
   groups: Array<{
     by: Record<string, string | number>;
-    series: Record<string, Array<number | null>>;
+    series: Record<string, number[]>;
     totals: Record<string, number>;
   }>;
   intervals: string[];
