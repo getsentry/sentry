@@ -75,7 +75,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const location = useLocation();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
-  const {setRunId} = useAiQueryContext();
+  const {setRunId: setRunId} = useAiQueryContext();
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();

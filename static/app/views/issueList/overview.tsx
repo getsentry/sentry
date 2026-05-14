@@ -168,8 +168,7 @@ function IssueListOverviewInner({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-  const lastAiQueryRunIdRef = useRef<number | null>(null);
-  const {runId: aiQueryRunId} = useAiQueryContext();
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -464,10 +463,11 @@ function IssueListOverviewInner({
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
         // AI query analytics
-        if (aiQueryRunId !== null && aiQueryRunId !== lastAiQueryRunIdRef.current) {
-          lastAiQueryRunIdRef.current = aiQueryRunId;
+        const aiQueryRunId = getRunIdForAnalytics();
+        if (aiQueryRunId !== null) {
           trackAiQueryOutcome({
             dataset: 'issues',
+            mode: 'samples', // TODO:
             referrer: 'issues',
             resultCount: newQueryCount,
             orgSlug: organization.slug,
@@ -517,7 +517,7 @@ function IssueListOverviewInner({
     location.query,
     query,
     resumePolling,
-    aiQueryRunId,
+    getRunIdForAnalytics,
   ]);
 
   useDisableRouteAnalytics(issuesLoading);

@@ -14,7 +14,6 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useAiQueryAnalytics} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAiQueryAnalytics';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -226,8 +225,6 @@ function SpanTabContentSectionInner({
   const limit = 50;
 
   const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
-
-  useAiQueryAnalytics({dataset: 'spans', referrer: 'spans', rawCounts: rawSpanCounts});
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,

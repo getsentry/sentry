@@ -14,7 +14,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useAiQueryAnalytics} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAiQueryAnalytics';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -296,8 +295,6 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
   }, [autorefreshEnabled]);
 
   const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
-
-  useAiQueryAnalytics({dataset: 'logs', referrer: 'logs', rawCounts: rawLogCounts});
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));

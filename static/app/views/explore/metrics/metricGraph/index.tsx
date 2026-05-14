@@ -4,7 +4,6 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {useAiQueryAnalytics} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAiQueryAnalytics';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -125,12 +124,6 @@ function Graph({
       ? getEquationMetricsTotalFilter(visualize.expression.text)
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
-  });
-
-  useAiQueryAnalytics({
-    dataset: 'tracemetrics',
-    referrer: 'tracemetrics',
-    rawCounts: rawMetricCounts,
   });
 
   const chartInfo = useMemo(() => {

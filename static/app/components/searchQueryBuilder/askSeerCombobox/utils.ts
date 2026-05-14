@@ -6,15 +6,18 @@ import type {
   NoneOfTheseItem,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 export function trackAiQueryOutcome({
   dataset,
+  mode,
+  orgSlug,
   referrer,
   resultCount,
-  orgSlug,
   runId,
 }: {
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
+  mode: Mode | 'samples' | 'aggregates';
   orgSlug: string;
   referrer: string;
   resultCount: number;
@@ -22,10 +25,11 @@ export function trackAiQueryOutcome({
 }) {
   const attributes = {
     dataset,
-    outcome: resultCount > 0 ? 'has_results' : 'empty_results',
-    referrer,
+    mode: mode.toString(),
     org_slug: orgSlug,
+    referrer,
     run_id: runId,
+    outcome: resultCount > 0 ? 'has_results' : 'empty_results',
   };
   Sentry.logger.info('assisted_query.outcome', {
     ...attributes,

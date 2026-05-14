@@ -3,6 +3,8 @@ import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -111,6 +113,9 @@ function useTrackAnalytics({
     enabled: !organization.hideAiFeatures,
   });
 
+  // runId of the last AI query applied by AskSeerPollingComboBox
+  const {getRunIdForAnalytics} = useAiQueryContext();
+
   useEffect(() => {
     if (
       queryType !== 'aggregate' ||
@@ -130,6 +135,8 @@ function useTrackAnalytics({
 
     const dataScanned = aggregatesTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const aiQueryRunId = getRunIdForAnalytics();
+    const resultLength = aggregatesTableResult.result.data?.length || 0;
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -139,7 +146,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: aggregatesTableResult.result.data?.length || 0,
+      result_length: resultLength,
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -157,7 +164,19 @@ function useTrackAnalytics({
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
       cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'spans',
+        mode: Mode.AGGREGATE,
+        orgSlug: organization.slug,
+        referrer: 'spans',
+        resultCount: resultLength,
+        runId: aiQueryRunId,
+      });
+    }
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
@@ -192,6 +211,7 @@ function useTrackAnalytics({
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
+    getRunIdForAnalytics,
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSeerSetup,
@@ -226,6 +246,8 @@ function useTrackAnalytics({
 
     const dataScanned = spansTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const aiQueryRunId = getRunIdForAnalytics();
+    const resultLength = spansTableResult.result.data?.length || 0;
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -235,7 +257,7 @@ function useTrackAnalytics({
       columns: fields,
       columns_count: fields.length,
       query_status,
-      result_length: spansTableResult.result.data?.length || 0,
+      result_length: resultLength,
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -254,6 +276,7 @@ function useTrackAnalytics({
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
       cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -276,6 +299,17 @@ function useTrackAnalytics({
       cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'spans',
+        mode: Mode.SAMPLES,
+        orgSlug: organization.slug,
+        referrer: 'spans',
+        resultCount: resultLength,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
@@ -283,6 +317,7 @@ function useTrackAnalytics({
     crossEventQueries?.spanQuery,
     dataset,
     fields,
+    getRunIdForAnalytics,
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSeerSetup,
@@ -421,6 +456,8 @@ function useTrackAnalytics({
       : 'given';
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const aiQueryRunId = getRunIdForAnalytics();
+    const resultLength = tracesTableResult.result.data?.json?.data?.length || 0;
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -430,7 +467,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: tracesTableResult.result.data?.json?.data?.length || 0,
+      result_length: resultLength,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -448,12 +485,25 @@ function useTrackAnalytics({
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
       cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'spans',
+        mode: Mode.SAMPLES,
+        orgSlug: organization.slug,
+        referrer: 'spans',
+        resultCount: resultLength,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     crossEventQueries?.logQuery,
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
+    getRunIdForAnalytics,
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSeerSetup,
@@ -620,6 +670,9 @@ export function useLogAnalytics({
   const sortBysBox = useBox(sortBys.map(formatSort)); // Boxed to avoid useEffect firing analytics on change
   const aggregateSortBysBox = useBox(aggregateSortBys.map(formatSort)); // Boxed to avoid useEffect firing analytics on change
 
+  // runId of the last AI query applied by AskSeerPollingComboBox
+  const {getRunIdForAnalytics} = useAiQueryContext();
+
   const timeseriesData = useBox(logsTimeseriesResult.data);
 
   const isDisablingAutorefresh = useRef(false);
@@ -650,6 +703,9 @@ export function useLogAnalytics({
       return;
     }
 
+    // Only track AI query analytics if the runId has changed since the last pageload.
+    const aiQueryRunId = getRunIdForAnalytics();
+
     trackAnalytics('logs.explorer.metadata', {
       organization,
       dataset,
@@ -676,6 +732,7 @@ export function useLogAnalytics({
       user_queries_count: search.tokens.length,
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
 
     info(
@@ -694,6 +751,17 @@ export function useLogAnalytics({
     `,
       {isAnalytics: true}
     );
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'logs',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'logs',
+        resultCount: resultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     organization,
     dataset,
@@ -715,6 +783,7 @@ export function useLogAnalytics({
     resultLengthBox,
     sortBysBox,
     yAxesBox,
+    getRunIdForAnalytics,
   ]);
 
   useEffect(() => {
@@ -731,6 +800,8 @@ export function useLogAnalytics({
       // Auto-refresh causes constant metadata events, so we don't want to track them.
       return;
     }
+
+    const aiQueryRunId = getRunIdForAnalytics();
 
     trackAnalytics('logs.explorer.metadata', {
       organization,
@@ -751,6 +822,7 @@ export function useLogAnalytics({
       user_queries_count: search.tokens.length,
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
 
     info(
@@ -769,6 +841,17 @@ export function useLogAnalytics({
     `,
       {isAnalytics: true}
     );
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'logs',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'logs',
+        resultCount: aggregatesResultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     aggregateSortBysBox,
     aggregatesResultLengthBox,
@@ -790,6 +873,7 @@ export function useLogAnalytics({
     query_status,
     search,
     yAxes,
+    getRunIdForAnalytics,
   ]);
 }
 
@@ -893,6 +977,9 @@ export function useMetricsPanelAnalytics({
   const queryStatusBox = useBox(query_status);
   const isTopNBox = useBox(isTopN);
 
+  // runId of the last AI query applied by AskSeerPollingComboBox
+  const {getRunIdForAnalytics} = useAiQueryContext();
+
   const getAttributes = useEffectEvent((resultMode: 'metric samples' | 'aggregates') => {
     return {
       dataset,
@@ -932,10 +1019,26 @@ export function useMetricsPanelAnalytics({
     ) {
       return;
     }
+    const aiQueryRunId = getRunIdForAnalytics();
     const attributes = getAttributes('metric samples');
 
-    trackAnalytics('metrics.explorer.panel.metadata', {...attributes, organization});
+    trackAnalytics('metrics.explorer.panel.metadata', {
+      ...attributes,
+      organization,
+      ai_query_run_id: aiQueryRunId ?? undefined,
+    });
     info('metric.explorer.panel.metadata', {...attributes, isAnalytics: true});
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'tracemetrics',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'tracemetrics',
+        resultCount: resultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     organization,
     dataset,
@@ -958,6 +1061,7 @@ export function useMetricsPanelAnalytics({
     aggregateFunctionBox,
     groupBysBox,
     metricTypeBox,
+    getRunIdForAnalytics,
   ]);
 
   useEffect(() => {
@@ -971,9 +1075,25 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
+    const aiQueryRunId = getRunIdForAnalytics();
     const attributes = getAttributes('aggregates');
-    trackAnalytics('metrics.explorer.panel.metadata', {...attributes, organization});
+    trackAnalytics('metrics.explorer.panel.metadata', {
+      ...attributes,
+      organization,
+      ai_query_run_id: aiQueryRunId ?? undefined,
+    });
     info('metric.explorer.panel.metadata', {...attributes, isAnalytics: true});
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'tracemetrics',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'tracemetrics',
+        resultCount: aggregatesResultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     organization,
     dataset,
@@ -993,6 +1113,7 @@ export function useMetricsPanelAnalytics({
     metricNameBox,
     query,
     query_status,
+    getRunIdForAnalytics,
   ]);
 }
 

@@ -120,7 +120,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
-  aiQueryRunId?: number | null;
+  getAiQueryRunId?: () => number | null;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -285,8 +285,6 @@ export class Results extends Component<Props, State> {
 
   tagsApi: Client = new Client();
 
-  lastAiQueryRunId: number | null = null;
-
   hasChartParametersChanged(
     prevEventView: EventView,
     eventView: EventView,
@@ -366,7 +364,7 @@ export class Results extends Component<Props, State> {
   };
 
   async fetchTotalCount() {
-    const {api, organization, location, aiQueryRunId} = this.props;
+    const {api, organization, location, getAiQueryRunId} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
     if (!confirmedQuery || !eventView.isValid()) {
@@ -381,14 +379,11 @@ export class Results extends Component<Props, State> {
       );
       this.setState({totalValues: totals});
 
-      if (
-        aiQueryRunId !== undefined &&
-        aiQueryRunId !== null &&
-        aiQueryRunId !== this.lastAiQueryRunId
-      ) {
-        this.lastAiQueryRunId = aiQueryRunId;
+      const aiQueryRunId = getAiQueryRunId?.() ?? null;
+      if (aiQueryRunId !== null) {
         trackAiQueryOutcome({
           dataset: 'errors',
+          mode: 'samples', // TODO:
           referrer: 'errors',
           resultCount: totals,
           orgSlug: organization.slug,
@@ -1445,7 +1440,7 @@ const TipContainer = styled(MarkedText)`
 function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
   const queryClient = useQueryClient();
   const {organization, location} = props;
-  const {runId: aiQueryRunId} = useAiQueryContext();
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
@@ -1485,7 +1480,7 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   return (
     <Results
       {...props}
-      aiQueryRunId={aiQueryRunId}
+      getAiQueryRunId={getRunIdForAnalytics}
       savedQuery={
         hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
       }
