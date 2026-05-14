@@ -103,42 +103,17 @@ export function SeerExplorerSessionsProvider({children}: {children: React.ReactN
     [dispatch]
   );
 
+  // Runs can only be activated via the session menu or openSeerExplorerDrawer,
+  // both of which source from the query results. If a persisted runId is not
+  // found in the session list (e.g. stale sessionStorage), it is treated as
+  // invalid — runId will resolve to null and the user starts fresh.
   const conversations = useMemo<Conversation[]>(() => {
-    const activeEntry = Object.entries(state).find(([, v]) => v.status === 'active');
-    const activeId = activeEntry ? Number(activeEntry[0]) : null;
+    if (!query.data?.data?.length) return [];
 
-    if (!query.data?.data?.length) {
-      if (activeId === null) return [];
-      // Query hasn't loaded or returned empty — still surface the active run
-      // so runId resolves immediately from sessionStorage.
-      return [
-        {
-          run_id: activeId,
-          title: '',
-          created_at: '',
-          last_triggered_at: '',
-          status: 'active',
-        },
-      ];
-    }
-
-    const merged = query.data.data.map(session => ({
+    return query.data.data.map(session => ({
       ...session,
       status: state[session.run_id]?.status ?? ('idle' as const),
     }));
-
-    // Active run may not be in the top N results — inject it so runId resolves.
-    if (activeId !== null && !merged.some(c => c.run_id === activeId)) {
-      merged.unshift({
-        run_id: activeId,
-        title: '',
-        created_at: '',
-        last_triggered_at: '',
-        status: 'active',
-      });
-    }
-
-    return merged;
   }, [query.data?.data, state]);
 
   const contextValue = useMemo(() => ({query, conversations}), [query, conversations]);
