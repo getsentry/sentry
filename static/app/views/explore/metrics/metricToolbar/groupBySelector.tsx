@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -120,25 +119,24 @@ export function GroupBySelector({
   );
 
   return (
-    <Tooltip title={disabledReason} disabled={!isDisabled}>
-      <CompactSelect
-        multiple
-        search
-        clearable
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            prefix={t('Group by')}
-            style={{width: '100%'}}
-          />
-        )}
-        options={enabledOptions}
-        value={[...groupBys]}
-        loading={isLoading}
-        disabled={isDisabled || (!skipTraceMetricFilter && !traceMetricFilter)}
-        onChange={handleChange}
-        style={{width: '100%'}}
-      />
-    </Tooltip>
+    <CompactSelect
+      multiple
+      search
+      clearable
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          tooltipProps={{title: disabledReason}}
+          prefix={t('Group by')}
+          style={{width: '100%'}}
+        />
+      )}
+      options={enabledOptions}
+      value={[...groupBys]}
+      loading={isLoading}
+      disabled={isDisabled || (!skipTraceMetricFilter && !traceMetricFilter)}
+      onChange={handleChange}
+      style={{width: '100%'}}
+    />
   );
 }
