@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo, useReducer} from 'react';
+import {createContext, useCallback, useContext, useMemo, useReducer} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -88,17 +88,20 @@ export function SeerExplorerSessionsProvider({children}: {children: React.ReactN
     return {};
   });
 
-  function wrappedDispatch(action: SeerExplorerConversationsAction) {
-    switch (action.type) {
-      case 'set active run':
-        persistRunId(action.payload);
-        break;
-      case 'clear active run':
-        persistRunId(null);
-        break;
-    }
-    dispatch(action);
-  }
+  const wrappedDispatch = useCallback(
+    (action: SeerExplorerConversationsAction) => {
+      switch (action.type) {
+        case 'set active run':
+          persistRunId(action.payload);
+          break;
+        case 'clear active run':
+          persistRunId(null);
+          break;
+      }
+      dispatch(action);
+    },
+    [dispatch]
+  );
 
   const conversations = useMemo<Conversation[]>(() => {
     if (!query.data?.data?.length) return [];
