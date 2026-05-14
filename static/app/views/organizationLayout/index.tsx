@@ -32,6 +32,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import {SeerExplorerStateProvider} from 'sentry/views/seerExplorer/seerExplorerStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
@@ -53,11 +54,13 @@ export function OrganizationLayout() {
       <GlobalAnalytics />
       <OrganizationContainer>
         <SeerExplorerSessionsProvider>
-          <GlobalDrawer>
-            <SeerExplorerContextProvider>
-              <AppLayout organization={organization} />
-            </SeerExplorerContextProvider>
-          </GlobalDrawer>
+          <SeerExplorerStateProvider>
+            <GlobalDrawer>
+              <SeerExplorerContextProvider>
+                <AppLayout organization={organization} />
+              </SeerExplorerContextProvider>
+            </GlobalDrawer>
+          </SeerExplorerStateProvider>
         </SeerExplorerSessionsProvider>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />

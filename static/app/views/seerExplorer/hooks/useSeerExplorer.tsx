@@ -13,7 +13,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {
+  useSeerExplorerConversations,
+  useSeerExplorerDispatch,
+} from 'sentry/views/seerExplorer/seerExplorerStateContext';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
@@ -142,7 +145,9 @@ export const useSeerExplorer = () => {
       }
     );
 
-  const [runId, setRunId] = useSeerExplorerRunId();
+  const conversations = useSeerExplorerConversations();
+  const dispatch = useSeerExplorerDispatch();
+  const runId = conversations.find(c => c.status === 'active')?.run_id ?? null;
   const [lastSentMessage, setLastSentMessage] = useState<{
     insertIndex: number;
     loadingPlaceholderContent: string;
@@ -203,7 +208,7 @@ export const useSeerExplorer = () => {
     onSuccess: (response, params) => {
       if (params.runId === null) {
         // set run ID if this is a new session
-        setRunId(response.run_id);
+        dispatch({type: 'set active run', payload: response.run_id});
       } else {
         // invalidate the query so fresh data is fetched
         queryClient.invalidateQueries({
@@ -397,7 +402,11 @@ export const useSeerExplorer = () => {
       }
 
       // Set the new run ID and clear previous request states
-      setRunId(newRunId);
+      if (newRunId === null) {
+        dispatch({type: 'clear active run'});
+      } else {
+        dispatch({type: 'set active run', payload: newRunId});
+      }
       setLastSentMessage(null);
       setHasSentInterrupt(false);
 
@@ -410,7 +419,7 @@ export const useSeerExplorer = () => {
 
       onSuccess?.();
     },
-    [orgSlug, queryClient, runId, setRunId]
+    [orgSlug, queryClient, runId, dispatch]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */

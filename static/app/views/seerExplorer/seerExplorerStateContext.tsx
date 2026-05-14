@@ -4,7 +4,9 @@ import {useSeerExplorerSessions} from 'sentry/views/seerExplorer/seerExplorerSes
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 
 type SeerExplorerConversationsState = Record<number, {status: 'active' | 'idle'}>;
-type SeerExplorerConversationsAction = {payload: number; type: 'set active run'};
+type SeerExplorerConversationsAction =
+  | {payload: number; type: 'set active run'}
+  | {type: 'clear active run'};
 
 function seerExplorerConversationsReducer(
   state: SeerExplorerConversationsState,
@@ -14,6 +16,14 @@ function seerExplorerConversationsReducer(
     case 'set active run': {
       persistRunId(action.payload);
       return {...state, [action.payload]: {status: 'active'}};
+    }
+    case 'clear active run': {
+      persistRunId(null);
+      const next: SeerExplorerConversationsState = {};
+      for (const key in state) {
+        next[key] = {status: 'idle'};
+      }
+      return next;
     }
     default:
       return state;
