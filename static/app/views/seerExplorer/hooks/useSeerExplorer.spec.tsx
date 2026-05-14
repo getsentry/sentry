@@ -2,43 +2,47 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
+import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
+import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import * as utilsModule from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
 
-jest.mock('sentry/views/seerExplorer/utils', () => ({
-  ...jest.requireActual('sentry/views/seerExplorer/utils'),
-  usePageReferrer: jest.fn(),
-}));
-
-jest.mock('sentry/views/seerExplorer/contexts/llmContext', () => ({
-  ...jest.requireActual('sentry/views/seerExplorer/contexts/llmContext'),
-  useLLMContext: jest.fn(),
-}));
-
 describe('useSeerExplorer', () => {
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
-    sessionStorage.clear();
-    (usePageReferrer as jest.Mock).mockReturnValue({
-      getPageReferrer: () => '/issues/',
-    });
-    (useLLMContext as jest.Mock).mockReturnValue({
-      getLLMContext: () => ({version: 0, nodes: []}),
-    });
-  });
-
   const organization = OrganizationFixture({
     features: ['seer-explorer', 'gen-ai-features'],
     hideAiFeatures: false,
     openMembership: true,
   });
 
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    sessionStorage.clear();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/explorer-runs/`,
+      method: 'GET',
+      body: {
+        data: [123, 456, 777, 999].map(id => ({
+          run_id: id,
+          title: `Session ${id}`,
+          created_at: '2025-01-01T00:00:00Z',
+          last_triggered_at: '2025-01-01T00:00:00Z',
+        })),
+      },
+    });
+    jest.spyOn(utilsModule, 'usePageReferrer').mockReturnValue({
+      getPageReferrer: () => '/issues/',
+    });
+    jest.spyOn(llmContextModule, 'useLLMContext').mockReturnValue({
+      getLLMContext: () => ({version: 0, nodes: []}),
+    });
+  });
+
   describe('Initial State', () => {
     it('returns initial state with no session data', () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       expect(result.current.sessionData).toBeNull();
@@ -98,6 +102,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -122,11 +127,16 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends structured JSON on dashboard page with feature flag', async () => {
-      jest.mocked(usePageReferrer).mockReturnValue({
+      jest.spyOn(utilsModule, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
         features: ['seer-explorer', 'seer-explorer-context-engine'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-runs/`,
+        method: 'GET',
+        body: {data: []},
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -146,6 +156,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization: org,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
       act(() => {
         result.current.sendMessage('q');
@@ -158,11 +169,16 @@ describe('useSeerExplorer', () => {
     });
 
     it('falls back to ASCII screenshot on non-structured-context page', async () => {
-      jest.mocked(usePageReferrer).mockReturnValue({
+      jest.spyOn(utilsModule, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => '/monitors/mobile-builds/',
       });
       const org = OrganizationFixture({
         features: ['seer-explorer', 'seer-explorer-context-engine'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-runs/`,
+        method: 'GET',
+        body: {data: []},
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -182,6 +198,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization: org,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
       act(() => {
         result.current.sendMessage('q');
@@ -210,6 +227,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       // Should handle error without throwing
@@ -257,6 +275,12 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
+      });
+
+      // Wait for runId to resolve from the async sessions query
+      await waitFor(() => {
+        expect(result.current.runId).toBe(123);
       });
 
       act(() => {
@@ -282,6 +306,12 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
+      });
+
+      // Wait for runId to resolve from the async sessions query
+      await waitFor(() => {
+        expect(result.current.runId).toBe(123);
       });
 
       act(() => {
@@ -312,6 +342,7 @@ describe('useSeerExplorer', () => {
     it('returns false for polling when no session exists', () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       expect(result.current.isPolling).toBe(false);
@@ -326,6 +357,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -344,6 +376,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -359,12 +392,18 @@ describe('useSeerExplorer', () => {
         method: 'GET',
         body: {
           runId,
-          session: {repo_pr_states: {repo1: {pr_creation_status: 'creating'}}},
+          session: {
+            blocks: [],
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            repo_pr_states: {repo1: {pr_creation_status: 'creating'}},
+          },
         },
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -390,6 +429,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -421,6 +461,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -472,6 +513,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -530,6 +572,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -577,6 +620,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -636,6 +680,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -683,6 +728,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -715,6 +761,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -747,6 +794,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -778,6 +826,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       act(() => {
@@ -812,7 +861,10 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
+      });
 
       act(() => {
         result.current.switchToRun(runId);
@@ -859,7 +911,10 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
+      });
 
       act(() => {
         result.current.switchToRun(runId);
@@ -898,9 +953,14 @@ describe('useSeerExplorer', () => {
     it('clears after new message is sent', async () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       expect(result.current.hasSentInterrupt).toBe(false);
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(123);
+      });
 
       act(() => {
         result.current.interruptRun();
@@ -922,9 +982,14 @@ describe('useSeerExplorer', () => {
     it('clears after respondToUserInput is called', async () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       expect(result.current.hasSentInterrupt).toBe(false);
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(123);
+      });
 
       act(() => {
         result.current.interruptRun();
@@ -946,9 +1011,14 @@ describe('useSeerExplorer', () => {
     it('clears after createPR is called', async () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerSessionsProvider,
       });
 
       expect(result.current.hasSentInterrupt).toBe(false);
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(123);
+      });
 
       act(() => {
         result.current.interruptRun();
