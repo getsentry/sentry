@@ -404,7 +404,11 @@ def assemble_download(
                 sentry_sdk.metrics.distribution(
                     "dataexport.rows",
                     offset,
-                    attributes=_sentry_metric_attrs(data_export, export_limit),
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={"success": "false", "error_type": type(error).__name__},
+                    ),
                 )
                 logger.exception("assemble_download: ExportError", extra=extra)
                 return data_export.email_failure(message=str(error))
@@ -440,7 +444,11 @@ def assemble_download(
                 sentry_sdk.metrics.distribution(
                     "dataexport.rows",
                     offset,
-                    attributes=_sentry_metric_attrs(data_export, export_limit),
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={"success": "false", "error_type": type(error).__name__},
+                    ),
                 )
                 return data_export.email_failure(message="Internal processing failure")
         else:
@@ -476,13 +484,15 @@ def export_data_to_stored_blobs_sync(
             tags={**_export_metric_tags(data_export), "success": True},
             sample_rate=1.0,
         )
+        actual_rows: int | None = None
         try:
             chunk = export_chunk_to_stored_blobs(
                 data_export=data_export,
                 export_limit=export_limit,
                 environment_id=environment_id,
             )
-            metrics.distribution("dataexport.row_count", chunk.next_offset, sample_rate=1.0)
+            actual_rows = chunk.next_offset
+            metrics.distribution("dataexport.row_count", actual_rows, sample_rate=1.0)
             metrics.distribution(
                 "dataexport.file_size",
                 chunk.bytes_written_after_chunk,
@@ -493,7 +503,7 @@ def export_data_to_stored_blobs_sync(
                 data_export_id=data_export.id,
                 email_notif=False,
                 export_limit=export_limit,
-                actual_rows=chunk.next_offset,
+                actual_rows=actual_rows,
             )
             sentry_sdk.metrics.count(
                 "dataexport.completed",
@@ -506,8 +516,12 @@ def export_data_to_stored_blobs_sync(
             )
             sentry_sdk.metrics.distribution(
                 "dataexport.rows",
-                chunk.next_offset,
-                attributes=_sentry_metric_attrs(data_export, export_limit),
+                actual_rows,
+                attributes=_sentry_metric_attrs(
+                    data_export,
+                    export_limit,
+                    extra={"success": "true", "download_type": "sync"},
+                ),
             )
 
         except Exception as error:
@@ -522,6 +536,7 @@ def export_data_to_stored_blobs_sync(
                 },
                 sample_rate=1.0,
             )
+            extra["actual_rows"] = actual_rows
             sentry_sdk.metrics.count(
                 "dataexport.completed",
                 1,
@@ -535,6 +550,20 @@ def export_data_to_stored_blobs_sync(
                     },
                 ),
             )
+            if actual_rows is not None:
+                sentry_sdk.metrics.distribution(
+                    "dataexport.rows",
+                    actual_rows,
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={
+                            "success": "false",
+                            "error_type": error_type,
+                            "download_type": "sync",
+                        },
+                    ),
+                )
             logger.exception("export_data_sync", extra=extra)
             raise
 
@@ -772,7 +801,9 @@ def merge_export_blobs(
                         sentry_sdk.metrics.distribution(
                             "dataexport.rows",
                             actual_rows,
-                            attributes=_sentry_metric_attrs(data_export, export_limit),
+                            attributes=_sentry_metric_attrs(
+                                data_export, export_limit, extra={"success": "true"}
+                            ),
                         )
         except Exception as error:
             metrics.incr(
@@ -799,7 +830,11 @@ def merge_export_blobs(
                     sentry_sdk.metrics.distribution(
                         "dataexport.rows",
                         actual_rows,
-                        attributes=_sentry_metric_attrs(data_export, export_limit),
+                        attributes=_sentry_metric_attrs(
+                            data_export,
+                            export_limit,
+                            extra={"success": "false", "error_type": type(error).__name__},
+                        ),
                     )
             logger.exception("merge_export_blobs: Exception", extra=extra)
             if isinstance(error, IntegrityError):
