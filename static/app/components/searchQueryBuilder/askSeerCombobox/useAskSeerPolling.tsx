@@ -46,7 +46,7 @@ const isPolling = <T extends QueryTokensProps>(
   }
 
   // Poll while status is processing or there's a current step in progress
-  return sessionData.status === 'processing' || sessionData.current_step !== null;
+  return sessionData.status === 'processing' || !!sessionData.current_step;
 };
 
 const makeInitialAskSeerData = <
@@ -158,7 +158,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   useEffect(() => {
     if (waitingForResponse && sessionData) {
       const isStillProcessing =
-        sessionData.status === 'processing' || sessionData.current_step !== null;
+        sessionData.status === 'processing' || !!sessionData.current_step;
       if (!isStillProcessing) {
         setWaitingForResponse(false);
         if (sessionData.status === 'completed' && sessionData.final_response) {
