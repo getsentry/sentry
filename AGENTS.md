@@ -123,9 +123,6 @@ sentry django makemigrations
 make reset-db
 ```
 
-For full guidance on writing migrations (naming convention, `CheckedMigration`,
-`is_post_deployment`, lockfile, common operations): **[docs/MIGRATIONS.md](docs/MIGRATIONS.md)**
-
 ### Frontend Development Commands
 
 #### Development Setup
