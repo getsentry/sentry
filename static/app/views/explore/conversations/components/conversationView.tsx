@@ -1,4 +1,5 @@
-import {memo, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -84,6 +85,14 @@ function ConversationView({
 }) {
   const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
+
+  useEffect(() => {
+    if (!isLoading && !error && nodes.length === 0) {
+      Sentry.captureMessage('User landed on empty conversation detail page', {
+        level: 'warning',
+      });
+    }
+  }, [isLoading, error, nodes.length]);
 
   const handleTabChange = (newTab: ConversationTab) => {
     if (activeTab !== newTab) {

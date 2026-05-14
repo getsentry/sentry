@@ -102,7 +102,7 @@ class TableRequest:
     sort_column_aliases: set[str] = field(default_factory=set)
 
 
-def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
+def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
     for row in timeseries:
         for axis in y_axes:
             if row[axis] and row[axis] != 0:
@@ -428,7 +428,7 @@ class RPCBase:
 
     @classmethod
     @sentry_sdk.trace
-    def run_bulk_table_queries(cls, queries: list[TableQuery]):
+    def run_bulk_table_queries(cls, queries: list[TableQuery]) -> dict[str, EAPResponse]:
         """Validate the bulk queries"""
         names: set[str] = set()
         for query in queries:
@@ -473,7 +473,9 @@ class RPCBase:
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     @classmethod
-    def process_column_confidence(cls, column_value, final_confidence, attribute) -> None:
+    def process_column_confidence(
+        cls, column_value: Any, final_confidence: ConfidenceData, attribute: str
+    ) -> None:
         for index, result in enumerate(column_value.results):
             final_confidence[index][attribute] = CONFIDENCES.get(
                 column_value.reliabilities[index], None

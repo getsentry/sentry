@@ -28,11 +28,13 @@ from sentry.seer.models import (
     SeerRepoDefinition,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.utils import get_github_username_for_user
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import json as sentry_json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -1180,6 +1182,73 @@ class TestCallAutofix(TestCase):
             == "https://github.com/getsentry/sentry/pull/123"
         )
         assert body["options"]["disable_coding_step"] is False
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_creates_run_and_returns_run_id(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with self.feature("organizations:seer-run-mirror-autofix"):
+            run_id = _call_autofix(
+                user=self.user,
+                group=group,
+                preference=preference,
+                serialized_event={"event_id": "test-event"},
+                profile=None,
+                trace_tree=None,
+                logs=None,
+                tags_overview=None,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            )
+
+        assert run_id == 42
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.type == SeerRunType.AUTOFIX
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.seer_run_state_id == 42
+        assert run.user_id == self.user.id
+
+        sent_body = mock_request.call_args[0][0]
+        body = sentry_json.loads(sent_body)
+        assert body["organization_id"] == group.organization.id
+        assert body["project_id"] == group.project.id
+        assert "external_idempotency_key" in body
+        assert body["external_idempotency_key"] == str(run.uuid)
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_flush_error_marks_failed_and_raises(self, mock_request: Mock) -> None:
+        mock_request.side_effect = Exception("Seer exploded")
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with pytest.raises(Exception, match="Outbox flush failed"):
+            with self.feature("organizations:seer-run-mirror-autofix"):
+                _call_autofix(
+                    user=self.user,
+                    group=group,
+                    preference=preference,
+                    serialized_event={"event_id": "test-event"},
+                    profile=None,
+                    trace_tree=None,
+                    logs=None,
+                    tags_overview=None,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                )
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
 
 
 class TestGetGithubUsernameForUser(TestCase):

@@ -19,6 +19,14 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SharedEventContent} from './sharedEventContent';
 import {SharedGroupHeader} from './sharedGroupHeader';
 
+// TODO(shared-issues): Give this endpoint its own response type instead of
+// treating the shared issue payload as a full Group.
+type SharedGroupDetailsResponse = Group & {
+  project: Group['project'] & {
+    organization: SharedViewOrganization;
+  };
+};
+
 function SharedGroupDetails() {
   const {shareId, orgId} = useParams<{orgId: string | undefined; shareId: string}>();
   useLayoutEffect(() => {
@@ -44,7 +52,7 @@ function SharedGroupDetails() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<Group>(
+  } = useApiQuery<SharedGroupDetailsResponse>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/shared/issues/$shareId/', {
         path: {organizationIdOrSlug: orgSlug!, shareId},
@@ -68,8 +76,6 @@ function SharedGroupDetails() {
     return <NotFound />;
   }
 
-  // Backend only provides {slug, name} for the organization.
-  // Add features: [] for OrganizationContext compatibility.
   const org: SharedViewOrganization = {
     ...group.project.organization,
     features: [],

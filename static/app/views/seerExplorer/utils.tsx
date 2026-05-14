@@ -406,7 +406,7 @@ export function getToolsStringFromBlock(block: Block): string[] {
   });
 
   for (const tool of toolCalls) {
-    const toolLink = toolLinkByCallId.get(tool.id) ?? null;
+    const toolLink = (tool.id ? toolLinkByCallId.get(tool.id) : undefined) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
@@ -962,7 +962,9 @@ export function getValidToolLinks(
 
       // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
       const toolCallId = tool_results[idx]?.tool_call_id;
-      const toolCallIndex = tool_calls.findIndex(call => call.id === toolCallId);
+      const toolCallIndex = toolCallId
+        ? tool_calls.findIndex(call => call.id === toolCallId)
+        : -1;
       const canBuildUrl = buildToolLinkUrl(link, organization, projects) !== null;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
@@ -1097,7 +1099,7 @@ function formatSessionData(
         const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
 
         lines.push(
-          `${item.tool_call.function} (${status}) (${item.tool_call.id}):`,
+          `${item.tool_call.function} (${status})${item.tool_call.id ? ` (${item.tool_call.id})` : ''}:`,
           `args: ${item.tool_call.args}`
         );
         if (item.url) {

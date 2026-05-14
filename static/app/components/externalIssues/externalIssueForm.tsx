@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
@@ -364,14 +364,14 @@ export function ExternalIssueForm({
       <Header closeButton>
         <Heading as="h4">{title}</Heading>
       </Header>
-      <TabsContainer>
+      <Container marginBottom="xl">
         <Tabs value={action} onChange={handleClick}>
           <TabList>
             <TabList.Item key="create">{t('Create')}</TabList.Item>
             <TabList.Item key="link">{t('Link')}</TabList.Item>
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
       <Body>
         <BackendJsonSubmitForm
           key={formKey}
@@ -395,7 +395,3 @@ export function ExternalIssueForm({
     </Fragment>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

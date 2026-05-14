@@ -1,0 +1,197 @@
+---
+title: Markdown
+description: Renders markdown content as React elements with streaming decode animations and a component registry for customizing rendered elements.
+category: typography
+source: '@sentry/scraps/markdown'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/markdown/markdown.tsx
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+    WCAG 2.3.3: https://www.w3.org/TR/WCAG22/#animation-from-interactions
+---
+
+import {Markdown} from '@sentry/scraps/markdown';
+
+import * as Storybook from 'sentry/stories';
+
+import {CustomComponentsDemo, StreamingDemo} from './__stories__/components';
+
+export const documentation = import('!!type-loader!@sentry/scraps/markdown/markdown');
+
+The `<Markdown>` component renders markdown strings as native React elements using a token-based pipeline. Instead of `dangerouslySetInnerHTML`, it lexes the input with [marked](https://marked.js.org/) and renders each token as a React component. This enables:
+
+- **Component overrides** via the `components` prop (replace any element with a custom React component)
+- **Streaming variant** with a glyph-shuffle decode animation for real-time AI/LLM output
+
+```jsx
+<Markdown raw="**Hello**, world!" />
+```
+
+## Basic Usage
+
+Pass a markdown string to the `raw` prop.
+
+<Storybook.Demo minHeight="max-content">
+  <Markdown raw={`# Issue Grouping
+
+Sentry uses **fingerprints** to group similar events into issues. Each issue tracks _frequency_, ~~error count~~ impact, and affected users. Use \`sentry.set_fingerprint()\` to customize grouping.
+
+Visit the [Sentry docs](https://docs.sentry.io/product/issues/) for more on issue triage.
+
+\`\`\`python
+import sentry_sdk
+
+sentry_sdk.set_tag("region", "us-east")
+sentry_sdk.capture_exception(err)
+\`\`\`
+
+Custom fingerprints are useful when:
+
+- The default stack trace grouping is too broad or too narrow
+- You want to group errors by business logic rather than code path
+
+See the [grouping best practices](https://docs.sentry.io/product/issues/grouping-and-fingerprints/) guide for advanced configuration.
+
+> Events are grouped by stack trace similarity by default. Custom fingerprints override this behavior.
+
+## Resolution Strategies
+
+1. Resolve immediately
+2. Resolve in the next release
+3. Resolve in a specific commit
+
+| Status     | Description                     |
+| ---------- | ------------------------------- |
+| Unresolved | Active and needs triage         |
+| Resolved   | Fixed in a release              |
+| Regressed  | Reappeared after being resolved |
+
+## Triage Checklist
+
+- [x] Assign an owner via ownership rules
+- [ ] Review suspect commits
+- [ ] Set up alert rules
+
+---
+
+Hard line break:\\
+New line here.
+
+<mark>Note:</mark> Reprocessing events requires uploading new debug files.
+`} />
+
+</Storybook.Demo>
+
+```jsx
+<Markdown raw={markdownString} />
+```
+
+## Component Overrides
+
+The `components` prop lets you replace any rendered element with a custom React component. Keys are named after design system primitives: `Heading`, `Paragraph`, `Link`, `InlineCode`, `CodeBlock`, `Text`, etc.
+
+### Custom Links and Text Transforms
+
+Use `components.Link` to control how links render (e.g., client-side navigation). Use `components.Text` to intercept plain text and inject patterns like issue linkification.
+
+<Storybook.Demo>
+  <CustomComponentsDemo />
+</Storybook.Demo>
+
+```jsx
+<Markdown
+  raw="The issue SENTRY-1234 was caused by a race condition..."
+  components={{
+    Link: ({href, children}) => <RouterLink to={href}>{children}</RouterLink>,
+    Text: ({children}) => linkifyIssueShortIds(children),
+  }}
+/>
+```
+
+### Suppress Headings
+
+Override `Heading` to render headings as bold text instead of `<h1>`-`<h6>`.
+
+<Storybook.Demo>
+  <Markdown
+    raw={`# Heading becomes bold\n\nParagraph stays normal.`}
+    components={{
+      Heading: ({children}) => <strong>{children}</strong>,
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+<Markdown
+  raw={content}
+  components={{
+    Heading: ({children}) => <strong>{children}</strong>,
+  }}
+/>
+```
+
+## Streaming
+
+Set `variant="streaming"` to enable animation for new content. As the `raw` string grows, new text appears to be decoded progressively. The consumer accumulates chunks into a string and passes it as `raw`—the component handles the animation imperatively.
+
+- New block-level elements animate with a staggered character reveal
+- Growing blocks re-animate only the new tail (already-visible text is preserved)
+- When a newer block arrives, any in-progress animation on the previous block settles immediately
+- Long blocks are capped at a max duration, with remaining text fading in gracefully
+- Respects `prefers-reduced-motion` (animation is skipped entirely)
+
+<Storybook.Demo minHeight="520px" align="flex-start">
+  <StreamingDemo />
+</Storybook.Demo>
+
+```jsx
+function StreamingExample() {
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    // Accumulate chunks into a string
+    let buffer = '';
+    const reader = getStreamReader();
+    reader.onChunk = chunk => {
+      buffer += chunk;
+      setText(buffer);
+    };
+  }, []);
+
+  return <Markdown raw={text} variant="streaming" />;
+}
+```
+
+## Security
+
+The component applies the same security model as the existing `MarkedText`:
+
+- **Links** are validated against a safe protocol allowlist (`https:`, `mailto:` only). Unsafe protocols like `javascript:` render as plain text.
+- **Images** are stripped by default. Provide a custom `Image` component to opt in.
+- **Raw HTML** in markdown is sanitized with DOMPurify using a strict allowlist of tags and attributes.
+- **React escaping** handles all other content — no `dangerouslySetInnerHTML` for markdown tokens.
+
+## Available Component Keys
+
+| Key              | Default                        | Props                        |
+| ---------------- | ------------------------------ | ---------------------------- |
+| `Paragraph`      | `<Text as="p">`                | `children`                   |
+| `Heading`        | `<Heading as="h1-h6">`         | `children`, `level` (1-6)    |
+| `CodeBlock`      | `<CodeBlock>`                  | `children` (string), `lang`  |
+| `InlineCode`     | `<InlineCode>`                 | `children` (string)          |
+| `Link`           | `<Link>` / `<ExternalLink>`    | `children`, `href`, `title`  |
+| `Blockquote`     | `<Quote>`                      | `children`                   |
+| `Strong`         | `<strong>`                     | `children`                   |
+| `Emphasis`       | `<em>`                         | `children`                   |
+| `Strikethrough`  | `<Text strikethrough>`         | `children`                   |
+| `Image`          | stripped                       | `src`, `alt`, `title`        |
+| `Text`           | passthrough                    | `children` (string)          |
+| `OrderedList`    | `<Stack as="ol">`              | `children`                   |
+| `UnorderedList`  | `<Stack as="ul">`              | `children`                   |
+| `ListItem`       | `<Container as="li">`          | `children`                   |
+| `TaskList`       | `<Stack as="ul">` (no bullets) | `children`                   |
+| `TaskListItem`   | `<Container as="li">`          | `children`, `checked` (bool) |
+| `Table`          | styled `<table>`               | `children`                   |
+| `HorizontalRule` | `<Separator>`                  | -                            |
+| `LineBreak`      | `<br>`                         | -                            |
+| `Html`           | DOMPurify sanitized            | `html` (string)              |

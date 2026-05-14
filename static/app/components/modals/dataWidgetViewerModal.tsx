@@ -11,7 +11,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -648,7 +648,7 @@ function DataWidgetViewerModal(props: Props) {
       <Fragment>
         {hasSessionDuration && SESSION_DURATION_ALERT}
         {shouldRenderChartVisualization && (
-          <Container
+          <ChartContainer
             height={
               widget.displayType === DisplayType.BIG_NUMBER
                 ? BIG_NUMBER_HEIGHT
@@ -693,7 +693,7 @@ function DataWidgetViewerModal(props: Props) {
                 widgetInterval={widgetInterval}
               />
             )}
-          </Container>
+          </ChartContainer>
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
@@ -705,7 +705,7 @@ function DataWidgetViewerModal(props: Props) {
           </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
-          <QueryContainer>
+          <Container marginBottom="xl" position="relative">
             <Select
               value={selectedQueryIndex}
               options={queryOptions}
@@ -791,7 +791,7 @@ function DataWidgetViewerModal(props: Props) {
                 size="sm"
               />
             )}
-          </QueryContainer>
+          </Container>
         )}
         {shouldRenderTable && renderWidgetViewerTable()}
       </Fragment>
@@ -1237,17 +1237,12 @@ export const modalCss = css`
   max-width: 1200px;
 `;
 
-const Container = styled('div')<{height?: number | null}>`
+const ChartContainer = styled('div')<{height?: number | null}>`
   display: flex;
   flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const QueryContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  position: relative;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`

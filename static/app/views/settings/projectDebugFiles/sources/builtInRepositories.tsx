@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -80,8 +80,8 @@ export function BuiltInRepositories({
         schema={schema}
         initialValue={validBuiltInSymbolSources}
         mutationOptions={{
-          mutationFn: (data: Partial<Project>) =>
-            fetchMutation<Project>({
+          mutationFn: (data: Partial<DetailedProject>) =>
+            fetchMutation<DetailedProject>({
               url: `/projects/${organization.slug}/${project.slug}/`,
               method: 'PUT',
               data,

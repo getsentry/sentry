@@ -19,7 +19,7 @@ import {
 export interface TraceMetric {
   name: string;
   type: string;
-  unit?: string;
+  unit?: string | null;
 }
 
 function isTraceMetric(value: unknown): value is TraceMetric {
@@ -27,11 +27,14 @@ function isTraceMetric(value: unknown): value is TraceMetric {
     return false;
   }
 
+  const unit = 'unit' in value ? value.unit : undefined;
+
   return (
     'name' in value &&
     typeof value.name === 'string' &&
     'type' in value &&
-    typeof value.type === 'string'
+    typeof value.type === 'string' &&
+    (unit === undefined || unit === null || typeof unit === 'string')
   );
 }
 
@@ -119,7 +122,7 @@ export function defaultMetricQuery({
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: type === 'equation' ? Mode.AGGREGATE : Mode.SAMPLES,
-      query: defaultQuery(),
+      query: '',
 
       cursor: '',
       fields: defaultFields(),
@@ -130,10 +133,6 @@ export function defaultMetricQuery({
       aggregateSortBys: defaultAggregateSortBys(newFields),
     }),
   };
-}
-
-export function defaultQuery(): string {
-  return '';
 }
 
 export function defaultFields(): string[] {
@@ -198,7 +197,7 @@ export function stripMetricParamsFromLocation(location: Location): Location {
 }
 
 function parseQuery(value: unknown): string {
-  return typeof value === 'string' ? value : defaultQuery();
+  return typeof value === 'string' ? value : '';
 }
 
 function parseVisualizes(value: unknown): Visualize[] {

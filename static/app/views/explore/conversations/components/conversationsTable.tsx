@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
@@ -35,14 +36,26 @@ import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/u
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
-function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+function getConversationDetailUrl(
+  orgSlug: string,
+  conversation: Conversation,
+  projects: number[]
+): string {
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
   if (conversation.startTimestamp) {
-    params.set('start', new Date(conversation.startTimestamp).toISOString());
+    params.set(
+      'start',
+      new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString()
+    );
   }
   if (conversation.endTimestamp) {
-    params.set('end', new Date(conversation.endTimestamp).toISOString());
+    params.set('end', new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString());
+  }
+  for (const project of projects) {
+    params.append('project', String(project));
   }
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
@@ -205,15 +218,18 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const {selection} = usePageFilters();
 
   const navigateToDetail = useCallback(() => {
-    navigate(getConversationDetailUrl(organization.slug, dataRow));
-  }, [navigate, organization.slug, dataRow]);
+    navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+  }, [navigate, organization.slug, dataRow, selection.projects]);
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdLink to={getConversationDetailUrl(organization.slug, dataRow)}>
+        <ConversationIdLink
+          to={getConversationDetailUrl(organization.slug, dataRow, selection.projects)}
+        >
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
           ) : (

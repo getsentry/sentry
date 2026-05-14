@@ -1,7 +1,7 @@
 import React, {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {
@@ -241,7 +241,7 @@ function ChangePlanAction({
 
   const header = partnerPlanId ? null : (
     <React.Fragment>
-      <TabsContainer>
+      <Container marginBottom="xl">
         <Tabs
           value={activeTier}
           onChange={tab => {
@@ -259,7 +259,7 @@ function ChangePlanAction({
             ))}
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
       <ul className="nav nav-pills">
         <li
           className={classNames({
@@ -328,7 +328,3 @@ type Options = {
 
 export const triggerChangePlanAction = (opts: Options) =>
   openModal(deps => <ChangePlanAction {...deps} {...opts} />);
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

@@ -2,10 +2,12 @@ import {createContext, useContext, useLayoutEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TransactionResult} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useApi} from 'sentry/utils/useApi';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -147,9 +149,10 @@ export function TransactionProfileProvider({
         setProfile({type: 'resolved', data: p});
       })
       .catch(err => {
-        const message = String(err);
-
-        setProfile({type: 'errored', error: message});
+        setProfile({
+          type: 'errored',
+          error: getRequestErrorUserMessage(err, t('Failed to load profile')),
+        });
         Sentry.captureException(err);
       });
 
@@ -217,7 +220,10 @@ export function ContinuousProfileProvider({
         setProfile({type: 'resolved', data: p});
       })
       .catch(err => {
-        setProfile({type: 'errored', error: 'Failed to fetch profiles'});
+        setProfile({
+          type: 'errored',
+          error: getRequestErrorUserMessage(err, t('Failed to fetch profiles')),
+        });
         Sentry.captureException(err);
       });
 
