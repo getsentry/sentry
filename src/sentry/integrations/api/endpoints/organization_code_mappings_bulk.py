@@ -267,6 +267,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         )
 
         defaults = {
+            "repository": repo,
             "organization_integration_id": org_integration.id,
             "organization_id": organization.id,
             "integration_id": repo.integration_id,
