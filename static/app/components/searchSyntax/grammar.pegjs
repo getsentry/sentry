@@ -56,17 +56,17 @@ aggregate_key_start
   = [a-zA-Z0-9_.-]+ "("
 
 filter
-  = date_filter
-  / specific_date_filter
-  / rel_date_filter
+  = has_filter
+  / is_filter
   / duration_filter
   / size_filter
   / boolean_filter
   / numeric_in_filter
   / numeric_filter
+  / date_filter
+  / specific_date_filter
+  / rel_date_filter
   / aggregate_filter
-  / has_filter
-  / is_filter
   / text_in_filter
   / text_filter
 
