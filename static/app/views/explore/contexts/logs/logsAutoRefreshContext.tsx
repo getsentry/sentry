@@ -41,7 +41,7 @@ const LogsAutoRefreshContext = createContext<LogsAutoRefreshContextValue | undef
 );
 LogsAutoRefreshContext.displayName = 'LogsAutoRefreshContext';
 
-function useLogsAutoRefresh(): LogsAutoRefreshContextValue {
+export function useLogsAutoRefresh(): LogsAutoRefreshContextValue {
   const context = useContext(LogsAutoRefreshContext);
   if (context === undefined) {
     throw new Error(
@@ -50,8 +50,6 @@ function useLogsAutoRefresh(): LogsAutoRefreshContextValue {
   }
   return context;
 }
-
-export {useLogsAutoRefresh};
 
 interface LogsAutoRefreshProviderProps {
   children: React.ReactNode;

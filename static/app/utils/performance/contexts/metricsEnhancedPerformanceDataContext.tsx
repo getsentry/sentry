@@ -22,7 +22,7 @@ const MEPDataContext = createContext<MetricsEnhancedPerformanceDataContext | und
 );
 MEPDataContext.displayName = 'MetricsEnhancedPerformanceDataContext';
 
-function useMEPDataContext(): MetricsEnhancedPerformanceDataContext {
+export function useMEPDataContext(): MetricsEnhancedPerformanceDataContext {
   const context = useContext(MEPDataContext);
   if (context === undefined) {
     throw new Error(
@@ -69,8 +69,6 @@ export function MEPDataProvider({
     </MEPDataContext.Provider>
   );
 }
-
-export {useMEPDataContext};
 
 // A provider for handling all metas on the page, should be used if your queries and components aren't
 // co-located since a local provider doesn't work in that case.

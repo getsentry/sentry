@@ -24,7 +24,7 @@ const MEPSettingContext = createContext<MetricsEnhancedSettingContext | undefine
 );
 MEPSettingContext.displayName = 'MetricsEnhancedSettingContext';
 
-function useMEPSettingContext(): MetricsEnhancedSettingContext {
+export function useMEPSettingContext(): MetricsEnhancedSettingContext {
   const context = useContext(MEPSettingContext);
   if (context === undefined) {
     throw new Error(
@@ -163,5 +163,3 @@ export function MEPSettingProvider({
     </MEPSettingContext.Provider>
   );
 }
-
-export {useMEPSettingContext};

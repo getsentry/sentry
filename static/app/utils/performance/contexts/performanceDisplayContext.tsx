@@ -11,9 +11,7 @@ const PerformanceDisplayContext = createContext<UseCurrentPerformanceView | unde
 );
 PerformanceDisplayContext.displayName = 'CurrentPerformanceViewContext';
 
-const PerformanceDisplayProvider = PerformanceDisplayContext.Provider;
-
-export {PerformanceDisplayProvider};
+export const PerformanceDisplayProvider = PerformanceDisplayContext.Provider;
 
 export function usePerformanceDisplayType(): ProjectPerformanceType {
   const context = useContext(PerformanceDisplayContext);
