@@ -88,10 +88,10 @@ class BaseDataForwarder(ABC):
             return
 
         event_payload = self.get_event_payload(event=event, config=config)
-        task_payload = self.get_task_payload(event=event, config=config)
         if random.random() < options.get("data-forwarding.task-rollout-rate"):
             from sentry.integrations.data_forwarding.tasks import forward_event
 
+            task_payload = self.get_task_payload(event=event, config=config)
             forward_event.delay(
                 data_forwarder_project_id=data_forwarder_project.id,
                 event_payload=event_payload,
