@@ -64,8 +64,8 @@ export function ExplorerDrawerContent({
     errorStatusCode,
     isTimedOut,
     sendMessage,
-    startNewSession,
-    switchToRun,
+    startNewSession: startNewSessionBase,
+    switchToRun: switchToRunBase,
     respondToUserInput,
     createPR,
     interruptRun,
@@ -74,6 +74,11 @@ export function ExplorerDrawerContent({
     setOverrideCtxEngEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
+
+  const clearInput = () => setInputValue('');
+  const startNewSession = () => startNewSessionBase({onSuccess: clearInput});
+  const switchToRun = (newRunId: number | null) =>
+    switchToRunBase(newRunId, {onSuccess: clearInput});
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -202,7 +207,7 @@ export function ExplorerDrawerContent({
 
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
-    clearInput: () => setInputValue(''),
+    clearInput,
     inputValue,
     focusInput,
     textAreaRef: textareaRef,
@@ -318,6 +323,15 @@ export function ExplorerDrawerContent({
 
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
+
+  // Track when a session times out
+  const prevIsTimedOutRef = useRef(false);
+  useEffect(() => {
+    if (isTimedOut && !prevIsTimedOutRef.current) {
+      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
+    }
+    prevIsTimedOutRef.current = isTimedOut;
+  }, [isTimedOut, organization, runId]);
 
   // Interrupt button and placeholder state
   const interruptState =

@@ -128,7 +128,7 @@ class SentryAppActionHandler(DefaultActionHandler):
         return "sentry_app"
 
 
-def format_duration(minutes):
+def format_duration(minutes: int | float) -> str:
     """
     Format minutes into a duration string
     """

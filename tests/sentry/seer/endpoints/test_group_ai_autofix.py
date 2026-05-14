@@ -7,7 +7,6 @@ from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
 from sentry.seer.models import SeerPermissionError, SeerRepoDefinition
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -337,7 +336,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             external_id="123",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -496,7 +495,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             external_id="123",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -584,7 +583,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             external_id="123",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(

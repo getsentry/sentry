@@ -119,11 +119,13 @@ def schedule_night_shift(
     seer_org_ids: set[int] = set()
     for spr in RangeQuerySetWrapper[SeerProjectRepository](
         SeerProjectRepository.objects.filter(project__status=ObjectStatus.ACTIVE).select_related(
-            "project"
+            "project", "project_repository__project"
         ),
         step=1000,
     ):
-        seer_org_ids.add(spr.project.organization_id)
+        pr = spr.project_repository
+        project = pr.project if pr is not None else spr.project
+        seer_org_ids.add(project.organization_id)
 
     logger.info(
         "night_shift.schedule_org_ids_collected",

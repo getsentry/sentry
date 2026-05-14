@@ -66,6 +66,7 @@ from sentry.seer.agent.index_data import (
 )
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
+    execute_replays_query,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -928,6 +929,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,
     "execute_trace_table_query": execute_trace_table_query,
+    "execute_replays_query": execute_replays_query,
     "execute_issues_query": execute_issues_query,
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,

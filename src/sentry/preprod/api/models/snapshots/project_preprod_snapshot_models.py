@@ -41,6 +41,34 @@ class SnapshotDiffPair(BaseModel):
     diff: float | None = None
 
 
+class SnapshotImageDetailImageInfo(BaseModel):
+    content_hash: str
+    display_name: str | None = None
+    group: str | None = None
+    image_file_name: str
+    width: int
+    height: int
+    diff_threshold: float | None = None
+    description: str | None = None
+    tags: list[str] | None = None
+    image_url: str
+
+    class Config:
+        extra = "allow"
+
+
+class SnapshotImageDetailResponse(BaseModel):
+    image_file_name: str
+    comparison_status: (
+        Literal["added", "removed", "changed", "unchanged", "renamed", "errored", "skipped"] | None
+    ) = None
+    head_image: SnapshotImageDetailImageInfo | None = None
+    base_image: SnapshotImageDetailImageInfo | None = None
+    diff_image_url: str | None = None
+    diff_percentage: float | None = None
+    previous_image_file_name: str | None = None
+
+
 class SnapshotComparisonRunInfo(BaseModel):
     state: str | None = None
     completed_at: str | None = None

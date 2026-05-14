@@ -28,6 +28,7 @@ from sentry.integrations.source_code_management.repository import RepositoryInte
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -259,6 +260,12 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         has_errors = False
         last_saved_config = None
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+
         defaults = {
             "repository": repo,
             "organization_integration_id": org_integration.id,
@@ -266,6 +273,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             "integration_id": repo.integration_id,
             "default_branch": default_branch,
             "automatically_generated": False,
+            "project_repository": project_repo,
         }
 
         for mapping in mappings:

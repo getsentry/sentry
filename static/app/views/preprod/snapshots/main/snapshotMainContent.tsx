@@ -54,7 +54,7 @@ export interface NavButtonRefs {
 interface SnapshotMainContentProps {
   canNavigateNext: boolean;
   canNavigatePrev: boolean;
-  comparisonType: 'diff' | 'solo' | undefined;
+  comparisonType: 'diff' | 'solo' | 'waiting_for_base' | undefined;
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   hasDiffComparison: boolean;
@@ -192,6 +192,16 @@ export function SnapshotMainContent({
     );
   } else if (comparisonType === 'solo') {
     soloDiffToggle = <Tag variant="promotion">{t('Base')}</Tag>;
+  } else if (comparisonType === 'waiting_for_base') {
+    soloDiffToggle = (
+      <Tooltip
+        title={t(
+          "Base snapshots haven't been uploaded yet. This will resolve automatically within ~10 minutes or fail."
+        )}
+      >
+        <Tag variant="muted">{t('Waiting for base')}</Tag>
+      </Tooltip>
+    );
   }
 
   if (viewMode === 'list') {

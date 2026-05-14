@@ -25,7 +25,6 @@ export const MOBILE_BUILDS_ALLOWED_KEYS = [
   'images_unchanged',
   'install_size',
   'installable',
-  'is_approved',
   'platform_name',
 ];
 
@@ -43,5 +42,5 @@ export const SNAPSHOT_ALLOWED_KEYS = [
   'images_renamed',
   'images_skipped',
   'images_unchanged',
-  'is_approved',
+  'approval_status',
 ];

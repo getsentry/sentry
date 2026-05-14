@@ -19,7 +19,7 @@ import {getReplayDiffOffsetsFromEvent} from 'sentry/utils/replays/getDiffTimesta
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface Props {
   event: Event;
@@ -37,7 +37,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
   });
 
   const sectionProps = {
-    type: SectionKey.HYDRATION_DIFF,
+    sectionKey: SectionKey.HYDRATION_DIFF,
     title: t('Hydration Error Diff'),
   };
 
@@ -45,33 +45,33 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
     <ReplayLoadingState
       readerResult={readerResult}
       renderArchived={() => (
-        <InterimSection {...sectionProps}>
+        <FoldSection {...sectionProps}>
           <ArchivedReplayAlert
             message={t('The replay for this event has been deleted.')}
           />
-        </InterimSection>
+        </FoldSection>
       )}
       renderLoading={() => (
-        <InterimSection {...sectionProps}>
+        <FoldSection {...sectionProps}>
           <StyledNegativeSpaceContainer data-test-id="replay-diff-loading-placeholder">
             <LoadingIndicator />
           </StyledNegativeSpaceContainer>
-        </InterimSection>
+        </FoldSection>
       )}
       renderError={() => (
-        <InterimSection {...sectionProps}>
+        <FoldSection {...sectionProps}>
           <MissingReplayAlert orgSlug={orgSlug} />
-        </InterimSection>
+        </FoldSection>
       )}
       renderThrottled={() => (
-        <InterimSection {...sectionProps}>
+        <FoldSection {...sectionProps}>
           <ReplayRequestsThrottledAlert />
-        </InterimSection>
+        </FoldSection>
       )}
       renderMissing={() => (
-        <InterimSection {...sectionProps}>
+        <FoldSection {...sectionProps}>
           <MissingReplayAlert orgSlug={orgSlug} />
-        </InterimSection>
+        </FoldSection>
       )}
     >
       {({replay}) => {
@@ -80,7 +80,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
           event
         );
         return (
-          <InterimSection
+          <FoldSection
             {...sectionProps}
             actions={
               <OpenReplayComparisonButton
@@ -108,7 +108,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
                 </DiffCompareContextProvider>
               </ReplayGroupContextProvider>
             </ErrorBoundary>
-          </InterimSection>
+          </FoldSection>
         );
       }}
     </ReplayLoadingState>

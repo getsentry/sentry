@@ -38,37 +38,44 @@ def update_code_owners_schema(
         org = load_model_from_db(Organization, organization)
     except Organization.DoesNotExist:
         logger.warning(
-            "Skipping update_code_owners_schema: organization does not exist",
+            "update_code_owners_schema.org_not_found",
             extra={"organization_id": organization, "integration_id": integration},
         )
         return
     if org.status == OrganizationStatus.DELETION_IN_PROGRESS:
         logger.warning(
-            "Skipping update_code_owners_schema: organization deletion in progress",
+            "update_code_owners_schema.org_deletion_in_progress",
             extra={"organization_id": organization, "integration_id": integration},
         )
         return
 
     if not features.has("organizations:integrations-codeowners", org):
         return
+
+    code_owners: Iterable[ProjectCodeOwners] = []
+    if projects:
+        code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
+
+    if integration is not None:
+        code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
+            organization_id=org.id,
+            integration_id=integration,
+        ).values_list("id", flat=True)
+
+        code_owners = ProjectCodeOwners.objects.filter(
+            repository_project_path_config__in=code_mapping_ids
+        )
+
     try:
-        code_owners: Iterable[ProjectCodeOwners] = []
-        if projects:
-            code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
-
-        if integration is not None:
-            code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
-                organization_id=org.id,
-                integration_id=integration,
-            ).values_list("id", flat=True)
-
-            code_owners = ProjectCodeOwners.objects.filter(
-                repository_project_path_config__in=code_mapping_ids
-            )
-
         for code_owner in code_owners:
             code_owner.update_schema(organization=org)
-
-    # TODO(nisanthan): May need to add logging  for the cases where we might want to have more information if something fails
-    except (RepositoryProjectPathConfig.DoesNotExist, ProjectCodeOwners.DoesNotExist):
-        return
+    except Exception:
+        logger.exception(
+            "update_code_owners_schema.unexpected_error",
+            extra={
+                "organization_id": organization,
+                "integration_id": integration,
+                "project_ids": projects,
+            },
+        )
+        raise
