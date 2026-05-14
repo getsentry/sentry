@@ -42,4 +42,5 @@ export const SNAPSHOT_ALLOWED_KEYS = [
   'images_renamed',
   'images_skipped',
   'images_unchanged',
+  'snapshot_status',
 ];
