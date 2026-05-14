@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -104,7 +104,7 @@ export function ProjectCard({
 
   return (
     <CardPanel data-test-id={slug}>
-      <CardHeader>
+      <Container height="32px">
         <HeaderRow>
           <AlignedIdBadge
             project={simpleProject}
@@ -153,7 +153,7 @@ export function ProjectCard({
             <SummaryLinkPlaceholder />
           )}
         </SummaryLinks>
-      </CardHeader>
+      </Container>
       <ChartContainer data-test-id="chart-container">
         {stats ? (
           <ProjectChart
@@ -212,10 +212,6 @@ const CardPanel = styled(Panel)`
   height: 100%;
   padding: ${p => p.theme.space.xl};
   margin: 0;
-`;
-
-const CardHeader = styled('div')`
-  height: 32px;
 `;
 
 const CardFooter = styled('div')`

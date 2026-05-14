@@ -6,6 +6,7 @@ from typing import Any
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
@@ -17,7 +18,9 @@ from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.code_review_event import CodeReviewEvent
 from sentry.models.commit import Commit
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -241,10 +244,17 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
 
                 # Delete Seer preferences for this repository
-                SeerProjectRepository.objects.filter(
-                    repository_id__in=repo_ids,
-                    project__organization_id=organization_id,
-                ).delete()
+                org = Organization.objects.get(id=organization_id)
+                if features.has("organizations:project-repository-fk-reads", org):
+                    SeerProjectRepository.objects.filter(
+                        project_repository__repository_id__in=repo_ids,
+                        project_repository__project__organization_id=organization_id,
+                    ).delete()
+                else:
+                    SeerProjectRepository.objects.filter(
+                        repository_id__in=repo_ids,
+                        project__organization_id=organization_id,
+                    ).delete()
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
             ProjectCodeOwners.objects.filter(
@@ -257,6 +267,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
+            # Delete project-repo links for the disconnected repos
+            if repo_ids:
+                ProjectRepository.objects.filter(
+                    repository_id__in=repo_ids,
+                    project__organization_id=organization_id,
+                ).delete()
 
             # Clear automation_handoff project options that reference this integration.
             affected_project_ids = ProjectOption.objects.filter(

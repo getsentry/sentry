@@ -1,17 +1,28 @@
 import dompurify from 'dompurify';
-import type {Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
-import {Marked, marked} from 'marked'; // eslint-disable-line no-restricted-imports
+import type {MarkedToken, Token, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
+import {Lexer as MarkedLexer, Marked, marked} from 'marked'; // eslint-disable-line no-restricted-imports
 import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
-// Only https and mailto, (e.g. no javascript, vbscript, data protocols)
-const safeLinkPattern = /^(https?:|mailto:)/i;
+export {MarkedLexer};
+export type {MarkedToken, Token};
 
-function isSafeHref(href: string, pattern: RegExp) {
+const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
+const INTERNAL_PATH_PATTERN = /^\/[^/]/;
+
+export function isSafeHref(href: string): boolean {
   try {
-    return pattern.test(decodeURIComponent(unescape(href)));
+    return SAFE_LINK_PATTERN.test(decodeURIComponent(unescape(href)));
+  } catch {
+    return false;
+  }
+}
+
+export function isInternalHref(href: string): boolean {
+  try {
+    return INTERNAL_PATH_PATTERN.test(decodeURIComponent(unescape(href)));
   } catch {
     return false;
   }
@@ -23,15 +34,12 @@ function isSafeHref(href: string, pattern: RegExp) {
 class SafeRenderer extends marked.Renderer {
   link(tokens: Tokens.Link) {
     // For a bad link, just return the plain text href
-    if (!isSafeHref(tokens.href, safeLinkPattern)) {
+    if (!isSafeHref(tokens.href)) {
       return tokens.href;
     }
 
     const out = super.link(tokens);
-    return dompurify.sanitize(out, {
-      ALLOWED_TAGS,
-      ALLOWED_ATTR,
-    });
+    return sanitizeHtml(out);
   }
 }
 
@@ -91,11 +99,15 @@ const ALLOWED_TAGS = [
 
 const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'id', 'align'];
 
-function postprocess(html: string) {
+export function sanitizeHtml(html: string) {
   return dompurify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
   });
+}
+
+function postprocess(html: string) {
+  return sanitizeHtml(html);
 }
 
 const noHighlightingMarked = new Marked({

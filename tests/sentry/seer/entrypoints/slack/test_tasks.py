@@ -1,22 +1,27 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
+    SlackSeerAgentFeedback,
     SlackSeerAgentResponded,
 )
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
+    ProcessReactionFailureReason,
+    ProcessReactionHaltReason,
 )
 from sentry.seer.entrypoints.slack.tasks import (
     _build_inaccessible_links_renderable,
     process_mention_for_slack,
+    process_reaction_for_slack,
 )
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
     assert_last_analytics_event,
     assert_not_analytics_event,
 )
@@ -30,6 +35,15 @@ TASK_KWARGS = {
     "slack_user_id": "U1234567890",
     "bot_user_id": "U0BOT",
     "conversation_type": SlackSeerAgentConversation.APP_MENTION,
+}
+
+
+_SEER_SLACK_FEATURES = {
+    "organizations:gen-ai-features": True,
+    "organizations:seer-explorer": True,
+    "organizations:autofix-on-explorer": True,
+    "organizations:seer-slack-explorer": True,
+    "organizations:seer-slack-workflows": True,
 }
 
 
@@ -780,3 +794,172 @@ class BuildInaccessibleLinksRenderableTest(TestCase):
         assert "<#C0AAA>" in renderable["text"]
         assert "private channels" in renderable["text"]
         assert "<#C0PRIV>" in renderable["text"]
+
+
+REACTION_TASK_KWARGS = {
+    "channel_id": "C1234567890",
+    "message_ts": "1234567890.654321",
+    "reaction": "+1",
+    "reactor_slack_user_id": "U1234567890",
+}
+
+
+class ProcessReactionForSlackTest(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="TXXXXXXX1",
+            provider="slack",
+            metadata={"access_token": "xoxb-fake-token"},
+        )
+        self.idp = self.create_identity_provider(integration=self.integration)
+        self.identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.idp,
+            external_id=REACTION_TASK_KWARGS["reactor_slack_user_id"],
+        )
+        self.defaults = {
+            **REACTION_TASK_KWARGS,
+            "integration_id": self.integration.id,
+            "organization_id": self.organization.id,
+        }
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.seer.entrypoints.slack.tasks.SlackSeerAgentMessageCache.get",
+        return_value={"thread_ts": "1234567890.000001", "run_id": 123},
+    )
+    def test_happy_path(
+        self,
+        mock_cache_get,
+        mock_record,
+        mock_chat_ephemeral,
+    ):
+        with self.feature(_SEER_SLACK_FEATURES):
+            process_reaction_for_slack(**self.defaults)
+
+        assert_any_analytics_event(
+            mock_record,
+            SlackSeerAgentFeedback(
+                organization_id=self.organization.id,
+                org_slug=self.organization.slug,
+                user_id=self.user.id,
+                username=self.user.username,
+                feedback_type="positive",
+                thread_ts="1234567890.000001",
+                run_id=123,
+                integration_id=self.integration.id,
+            ),
+        )
+
+        mock_chat_ephemeral.assert_called_once_with(
+            channel="C1234567890",
+            blocks=ANY,
+            attachments=None,
+            text="Feedback received...",
+            thread_ts="1234567890.000001",
+            user="U1234567890",
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.seer.entrypoints.slack.tasks.SlackSeerAgentMessageCache.get",
+        return_value={"thread_ts": "1234567890.000001", "run_id": 123},
+    )
+    def test_thumbs_down_records_negative(
+        self,
+        mock_cache_get,
+        mock_record,
+        mock_chat_ephemeral,
+    ):
+        with self.feature(_SEER_SLACK_FEATURES):
+            process_reaction_for_slack(**{**self.defaults, "reaction": "-1::skin-tone-5"})
+
+        assert_any_analytics_event(
+            mock_record,
+            SlackSeerAgentFeedback(
+                organization_id=self.organization.id,
+                org_slug=self.organization.slug,
+                user_id=self.user.id,
+                username=self.user.username,
+                feedback_type="negative",
+                thread_ts="1234567890.000001",
+                run_id=123,
+                integration_id=self.integration.id,
+            ),
+        )
+
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackSeerAgentMessageCache.get", return_value=None)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.analytics.record")
+    def test_thread_not_found_records_halt(
+        self,
+        mock_record,
+        mock_lifecycle_record,
+        mock_cache_get,
+    ):
+        with self.feature(_SEER_SLACK_FEATURES):
+            process_reaction_for_slack(**self.defaults)
+
+        assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
+        assert_halt_metric(mock_lifecycle_record, ProcessReactionHaltReason.THREAD_NOT_FOUND)
+
+    @patch(
+        "sentry.seer.entrypoints.slack.tasks.SlackSeerAgentMessageCache.get",
+        return_value={"thread_ts": "1234567890.000001", "run_id": 123},
+    )
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.analytics.record")
+    def test_unlinked_identity_records_halt(
+        self,
+        mock_record,
+        mock_lifecycle_record,
+        mock_cache_get,
+    ):
+        with self.feature(_SEER_SLACK_FEATURES):
+            process_reaction_for_slack(**{**self.defaults, "reactor_slack_user_id": "UXXXXXXX2"})
+
+        mock_cache_get.assert_called()
+        assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
+        assert_halt_metric(mock_lifecycle_record, ProcessReactionHaltReason.IDENTITY_NOT_LINKED)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.analytics.record")
+    def test_no_agent_access_records_halt(
+        self,
+        mock_record,
+        mock_lifecycle_record,
+    ):
+        with self.feature({"organizations:gen-ai-features": False}):
+            process_reaction_for_slack(**self.defaults)
+
+        assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
+        assert_halt_metric(mock_lifecycle_record, ProcessReactionHaltReason.NO_AGENT_ACCESS)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.analytics.record")
+    def test_unsupported_reaction_records_halt(
+        self,
+        mock_record,
+        mock_lifecycle_record,
+    ):
+        process_reaction_for_slack(**{**self.defaults, "reaction": "heart"})
+
+        assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
+        assert_halt_metric(mock_lifecycle_record, ProcessReactionHaltReason.UNSUPPORTED_REACTION)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.analytics.record")
+    def test_org_not_found_records_failure(
+        self,
+        mock_record,
+        mock_lifecycle_record,
+    ):
+        process_reaction_for_slack(**{**self.defaults, "organization_id": -1})
+
+        assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
+        assert_failure_metric(mock_lifecycle_record, ProcessReactionFailureReason.ORG_NOT_FOUND)

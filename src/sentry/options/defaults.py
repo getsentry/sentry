@@ -1515,6 +1515,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "release-health.monitor-release-adoption-jitter-seconds",
+    type=Int,
+    default=45 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -4213,13 +4220,6 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "integrations.jira.multi-cell-enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

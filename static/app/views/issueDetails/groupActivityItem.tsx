@@ -620,6 +620,29 @@ export function GroupActivityItem({
       }
       case GroupActivityType.DELETED_ATTACHMENT:
         return tct('[author] deleted an attachment', {author});
+      case GroupActivityType.SEER_RCA_STARTED:
+        return t('Seer started analyzing the root cause');
+      case GroupActivityType.SEER_RCA_COMPLETED:
+        return t('Seer completed root cause analysis');
+      case GroupActivityType.SEER_SOLUTION_STARTED:
+        return t('Seer started developing a solution');
+      case GroupActivityType.SEER_SOLUTION_COMPLETED:
+        return t('Seer completed developing a solution');
+      case GroupActivityType.SEER_CODING_STARTED:
+        return t('Seer started implementing a fix');
+      case GroupActivityType.SEER_CODING_COMPLETED:
+        return t('Seer completed implementing a fix');
+      case GroupActivityType.SEER_PR_CREATED: {
+        const {data: prData} = activity;
+        const pr = prData.pull_requests?.[0];
+        if (pr) {
+          return tct('Seer created a [link:pull request] in [repo]', {
+            link: <ExternalLink href={pr.pull_request.pr_url} />,
+            repo: pr.repo_name,
+          });
+        }
+        return t('Seer created a pull request');
+      }
       default:
         return ''; // should never hit (?)
     }

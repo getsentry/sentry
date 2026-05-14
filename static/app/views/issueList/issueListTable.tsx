@@ -11,6 +11,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
@@ -102,42 +103,46 @@ export function IssueListTable({
                 onActionTaken={onActionTaken}
               />
               {(groupIds.length > 0 || issuesLoading) && (
-                <IssueListActions
-                  selection={selection}
-                  query={query}
-                  queryCount={queryCount}
-                  onSelectStatsPeriod={onSelectStatsPeriod}
-                  onActionTaken={onActionTaken}
-                  onDelete={onDelete}
-                  statsPeriod={statsPeriod}
-                  groupIds={groupIds}
-                  allResultsVisible={allResultsVisible}
-                  displayReprocessingActions={displayReprocessingActions}
-                />
-              )}
-              <PanelBody>
-                <VisuallyCompleteWithData
-                  hasData={groupIds.length > 0}
-                  id="IssueList-Body"
-                  isLoading={issuesLoading}
-                >
-                  <GroupListBody
-                    memberList={memberList}
-                    groupStatsPeriod={statsPeriod}
-                    groupIds={groupIds}
-                    displayReprocessingLayout={displayReprocessingActions}
+                <HoverOverlayGroupProvider>
+                  <IssueListActions
+                    selection={selection}
                     query={query}
-                    selectedProjectIds={selection.projects}
-                    // we need the stats loading and group id check because group ids do not update immediately
-                    loading={issuesLoading || (statsLoading && !groupIds.length)}
-                    error={error}
-                    pageSize={pageSize}
-                    refetchGroups={refetchGroups}
+                    queryCount={queryCount}
+                    onSelectStatsPeriod={onSelectStatsPeriod}
                     onActionTaken={onActionTaken}
-                    supergroupLookup={supergroupLookup}
+                    onDelete={onDelete}
+                    statsPeriod={statsPeriod}
+                    groupIds={groupIds}
+                    allResultsVisible={allResultsVisible}
+                    displayReprocessingActions={displayReprocessingActions}
                   />
-                </VisuallyCompleteWithData>
-              </PanelBody>
+                </HoverOverlayGroupProvider>
+              )}
+              <HoverOverlayGroupProvider>
+                <PanelBody>
+                  <VisuallyCompleteWithData
+                    hasData={groupIds.length > 0}
+                    id="IssueList-Body"
+                    isLoading={issuesLoading}
+                  >
+                    <GroupListBody
+                      memberList={memberList}
+                      groupStatsPeriod={statsPeriod}
+                      groupIds={groupIds}
+                      displayReprocessingLayout={displayReprocessingActions}
+                      query={query}
+                      selectedProjectIds={selection.projects}
+                      // we need the stats loading and group id check because group ids do not update immediately
+                      loading={issuesLoading || (statsLoading && !groupIds.length)}
+                      error={error}
+                      pageSize={pageSize}
+                      refetchGroups={refetchGroups}
+                      onActionTaken={onActionTaken}
+                      supergroupLookup={supergroupLookup}
+                    />
+                  </VisuallyCompleteWithData>
+                </PanelBody>
+              </HoverOverlayGroupProvider>
             </ContainerPanel>
           </div>
         )}

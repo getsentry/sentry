@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any, Literal
 
+from django.utils import timezone
 from pydantic import BaseModel, Field
 
 from sentry.preprod.build_distribution_utils import (
@@ -15,7 +16,9 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodComparisonApproval,
 )
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
@@ -92,7 +95,8 @@ class PostedStatusChecks(BaseModel):
 class SnapshotComparisonInfo(BaseModel):
     image_count: int
     comparison_state: (
-        Literal["pending", "processing", "success", "failed", "waiting_for_base"] | None
+        Literal["pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"]
+        | None
     ) = None
     comparison_error_message: str | None = None
     images_added: int = 0
@@ -304,7 +308,26 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
     if not comparison:
         cc = head_artifact.commit_comparison
         if cc and cc.base_sha:
-            comparison_state = "waiting_for_base"
+            grace_period_expired = (
+                timezone.now() - head_artifact.date_added
+            ).total_seconds() > MISSING_BASE_GRACE_PERIOD_SECONDS
+
+            if (
+                grace_period_expired
+                and find_base_snapshot_artifact(
+                    organization_id=cc.organization_id,
+                    base_sha=cc.base_sha,
+                    base_repo_name=cc.base_repo_name or cc.head_repo_name,
+                    project_id=head_artifact.project_id,
+                    app_id=head_artifact.app_id,
+                    artifact_type=head_artifact.artifact_type,
+                    build_configuration=head_artifact.build_configuration,
+                )
+                is None
+            ):
+                comparison_state = "no_base_build"
+            else:
+                comparison_state = "waiting_for_base"
     elif comparison:
         comparison_state = PreprodSnapshotComparison.State(comparison.state).name.lower()
         if comparison.state == PreprodSnapshotComparison.State.SUCCESS:

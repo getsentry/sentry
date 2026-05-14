@@ -29,9 +29,19 @@ class RepositoryLinkOutcome(TypedDict):
 
 
 def get_link(
-    config: RepositoryProjectPathConfig, src_path: str, version: str | None = None
+    config: RepositoryProjectPathConfig,
+    src_path: str,
+    version: str | None = None,
+    use_project_repository_fk: bool = False,
 ) -> RepositoryLinkOutcome:
     result: RepositoryLinkOutcome = {}
+
+    if use_project_repository_fk:
+        project = config.project_repository.project
+        repository = config.project_repository.repository
+    else:
+        project = config.project
+        repository = config.repository
 
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id, status=ObjectStatus.ACTIVE
@@ -40,13 +50,13 @@ def get_link(
         result["error"] = "integration_not_found"
         return result
 
-    install = integration.get_installation(organization_id=config.project.organization_id)
+    install = integration.get_installation(organization_id=project.organization_id)
 
     link = None
     try:
         if isinstance(install, RepositoryIntegration):
             link = install.get_stacktrace_link(
-                config.repository, src_path, str(config.default_branch or ""), version
+                repository, src_path, str(config.default_branch or ""), version
             )
     except ApiError as e:
         if e.code != 403:
@@ -60,7 +70,7 @@ def get_link(
         result["error"] = result.get("error") or "file_not_found"
         assert isinstance(install, RepositoryIntegration)
         result["attemptedUrl"] = install.format_source_url(
-            config.repository, src_path, str(config.default_branch or "")
+            repository, src_path, str(config.default_branch or "")
         )
     result["sourcePath"] = src_path
 
@@ -82,7 +92,9 @@ class StacktraceLinkOutcome(TypedDict):
 
 
 def get_stacktrace_config(
-    configs: Sequence[RepositoryProjectPathConfig], ctx: StacktraceLinkContext
+    configs: Sequence[RepositoryProjectPathConfig],
+    ctx: StacktraceLinkContext,
+    use_project_repository_fk: bool = False,
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {
         "source_url": None,
@@ -103,13 +115,21 @@ def get_stacktrace_config(
             result["error"] = "stack_root_mismatch"
             continue
 
-        outcome = get_link(config, src_path, ctx["commit_id"])
+        outcome = get_link(
+            config,
+            src_path,
+            ctx["commit_id"],
+            use_project_repository_fk=use_project_repository_fk,
+        )
         result["iteration_count"] += 1
 
+        repository = (
+            config.project_repository.repository if use_project_repository_fk else config.repository
+        )
         result["current_config"] = {
             "config": config,
             "outcome": outcome,
-            "repository": config.repository,
+            "repository": repository,
         }
 
         # Stop processing if a match is found

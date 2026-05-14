@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import click
+from django.conf import settings
 
 from sentry.runner.decorators import configuration
 
@@ -56,6 +57,7 @@ def createorg(
 
     try:
         rpc_org = organization_provisioning_service.provision_organization_in_cell(
+            cell_name=settings.SENTRY_MONOLITH_REGION,
             provisioning_options=provision_args,
         )
     except OrganizationProvisioningException as e:

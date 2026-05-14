@@ -266,7 +266,7 @@ function OnboardingContent({
     replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   const radioButtons = (
-    <Header>
+    <Container padding="md 0">
       {showRadioButtons ? (
         <Container padding="md 0">
           <RadioGroup<'npm' | 'jsLoader'>
@@ -326,7 +326,7 @@ function OnboardingContent({
           </Flex>
         )
       )}
-    </Header>
+    </Container>
   );
 
   if (isProjKeysLoading) {
@@ -416,10 +416,6 @@ function OnboardingContent({
     </Fragment>
   );
 }
-
-const Header = styled('div')`
-  padding: ${p => p.theme.space.md} 0;
-`;
 
 const TopRightBackgroundImage = styled('img')`
   position: absolute;

@@ -49,7 +49,7 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      # Setup custom TypeScript matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
         run: |
           echo "::remove-matcher owner=masters::"
@@ -57,7 +57,7 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: pnpm exec tsc -p tsconfig.json
+        run: pnpm run typecheck
 
       - name: tsc (mdx)
         id: tsc-mdx

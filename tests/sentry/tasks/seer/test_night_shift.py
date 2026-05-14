@@ -9,7 +9,6 @@ from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, Seer
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
     run_night_shift_for_org,
@@ -61,7 +60,7 @@ class TestScheduleNightShift(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
         repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
-        SeerProjectRepository.objects.create(project=project, repository=repo)
+        self.create_seer_project_repository(project=project, repository=repo)
         return org
 
     def test_disabled_by_option(self) -> None:
@@ -184,13 +183,13 @@ class TestGetEligibleProjects(TestCase):
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
         repo = self.create_repo(project=eligible, provider="github", name="owner/eligible-repo")
-        SeerProjectRepository.objects.create(project=eligible, repository=repo)
+        self.create_seer_project_repository(project=eligible, repository=repo)
 
         # Automation off (even with repo)
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
         repo2 = self.create_repo(project=off, provider="github", name="owner/off-repo")
-        SeerProjectRepository.objects.create(project=off, repository=repo2)
+        self.create_seer_project_repository(project=off, repository=repo2)
 
         # No connected repo
         self.create_project(organization=org)
@@ -210,14 +209,14 @@ class TestGetEligibleProjects(TestCase):
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
         target_repo = self.create_repo(project=target, provider="github", name="owner/target")
-        SeerProjectRepository.objects.create(project=target, repository=target_repo)
+        self.create_seer_project_repository(project=target, repository=target_repo)
 
         other = self.create_project(organization=org)
         other.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
         other_repo = self.create_repo(project=other, provider="github", name="owner/other")
-        SeerProjectRepository.objects.create(project=other, repository=other_repo)
+        self.create_seer_project_repository(project=other, repository=other_repo)
 
         result = _get_eligible_projects(org, "manual", project_ids=[target.id])
 
@@ -232,7 +231,7 @@ class TestGetEligibleProjects(TestCase):
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
             repo = self.create_repo(project=project, provider="github", name=f"owner/{slug}")
-            SeerProjectRepository.objects.create(project=project, repository=repo)
+            self.create_seer_project_repository(project=project, repository=repo)
             project.update_option("sentry:seer_nightshift_tweaks", {"enabled": enabled})
 
         cron_result = _get_eligible_projects(org, "cron")
@@ -251,7 +250,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
         repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
-        SeerProjectRepository.objects.create(project=project, repository=repo)
+        self.create_seer_project_repository(project=project, repository=repo)
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
 
     def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
@@ -750,7 +749,7 @@ class TestRunNightShiftForOrgManualPath(TestCase):
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
         repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
-        SeerProjectRepository.objects.create(project=project, repository=repo)
+        self.create_seer_project_repository(project=project, repository=repo)
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": False})
 
         with (

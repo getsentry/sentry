@@ -930,7 +930,7 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
         assert app_ids == {"com.approved.app"}
 
-    def test_query_approval_status(self) -> None:
+    def test_query_snapshot_status(self) -> None:
         manual_artifact = self.create_preprod_artifact(app_id="com.manual.app")
         self.create_preprod_snapshot_metrics(preprod_artifact=manual_artifact)
         self.create_preprod_comparison_approval(
@@ -956,27 +956,27 @@ class BuildsEndpointTest(APITestCase):
             approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
         )
 
-        response = self._request({"display": "snapshot", "query": "approval_status:approved"})
+        response = self._request({"display": "snapshot", "query": "snapshot_status:approved"})
         self._assert_is_successful(response)
         app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
         assert app_ids == {"com.manual.app"}
 
-        response = self._request({"display": "snapshot", "query": "approval_status:auto_approved"})
+        response = self._request({"display": "snapshot", "query": "snapshot_status:auto_approved"})
         self._assert_is_successful(response)
         app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
         assert app_ids == {"com.auto.app"}
 
         response = self._request(
-            {"display": "snapshot", "query": "approval_status:requires_approval"}
+            {"display": "snapshot", "query": "snapshot_status:requires_approval"}
         )
         self._assert_is_successful(response)
         app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
         assert app_ids == {"com.pending.app"}
 
-    def test_query_approval_status_invalid_value(self) -> None:
+    def test_query_snapshot_status_invalid_value(self) -> None:
         self.create_preprod_artifact(app_id="com.test.app")
 
-        response = self._request({"display": "snapshot", "query": "approval_status:bogus"})
+        response = self._request({"display": "snapshot", "query": "snapshot_status:bogus"})
         assert response.status_code == 400
 
     def test_snapshot_comparison_info_auto_approved(self) -> None:
