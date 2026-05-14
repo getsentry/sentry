@@ -18,7 +18,7 @@ import {getConfigName} from 'sentry/components/externalIssues/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {Choices, SelectValue} from 'sentry/types/core';
+import type {Choice, Choices, SelectValue} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -155,16 +155,13 @@ export function ExternalIssueForm({
 
   const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
   const handleAsyncOptionsFetched = useCallback(
-    (fieldName: string, options: Array<SelectValue<string | number>>) => {
+    (fieldName: string, options: Array<SelectValue<string>>) => {
       setAsyncOptionsCache(prev => ({
         ...prev,
-        [fieldName]: options.map(
-          o =>
-            [o.value, typeof o.label === 'string' ? o.label : String(o.value)] as [
-              string | number,
-              string,
-            ]
-        ),
+        [fieldName]: options.map((o): Choice => {
+          const label = typeof o.label === 'string' ? o.label : String(o.value);
+          return [o.value, label];
+        }),
       }));
     },
     []
