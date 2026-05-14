@@ -421,9 +421,5 @@ const SidebarActivityLayout = styled('div')`
 `;
 
 const ActivityInputFrame = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
-  overflow: hidden;
 `;

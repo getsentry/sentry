@@ -52,12 +52,12 @@ describe('FeedbackActivitySection', () => {
     expect(
       screen.getByPlaceholderText(/Add details or updates to this feedback/)
     ).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Write'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Preview'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Post Comment'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Write'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Preview'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Comment'})).toBeInTheDocument();
     expect(screen.getByText('Existing feedback note')).toBeInTheDocument();
     expect(screen.getByTestId('activity-timeline')).not.toContainElement(
-      screen.getByTestId('note-input-form')
+      screen.getByTestId('activity-input-frame')
     );
   });
 
@@ -88,7 +88,7 @@ describe('FeedbackActivitySection', () => {
     );
 
     await userEvent.type(screen.getByRole('textbox'), comment);
-    await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(postMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1337/comments/',

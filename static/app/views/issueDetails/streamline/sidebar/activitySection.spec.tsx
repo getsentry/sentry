@@ -74,7 +74,7 @@ describe('StreamlinedActivitySection', () => {
     const commentInput = screen.getByPlaceholderText('Add a comment…');
     expect(commentInput).toBeInTheDocument();
 
-    const submitButton = screen.getByRole('button', {name: 'Post Comment'});
+    const submitButton = screen.getByRole('button', {name: 'Comment'});
     expect(submitButton).toBeInTheDocument();
 
     expect(submitButton).toBeDisabled();
@@ -129,7 +129,7 @@ describe('StreamlinedActivitySection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Add a comment…'), '@jane');
     await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(postMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1337/comments/',
@@ -210,7 +210,7 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
     await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
-    await userEvent.click(screen.getByRole('button', {name: 'Save Comment'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(editMock).toHaveBeenCalledTimes(1);
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');

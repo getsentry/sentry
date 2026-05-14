@@ -60,7 +60,7 @@ describe('NoteInput', () => {
     it('has a disabled submit button when no text is entered', async () => {
       render(<NoteInput />);
 
-      expect(screen.getByRole('button', {name: 'Post Comment'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Comment'})).toBeDisabled();
       await waitFor(() => expect(membersRequest).toHaveBeenCalled());
     });
 
@@ -68,7 +68,7 @@ describe('NoteInput', () => {
       render(<NoteInput />);
       await userEvent.type(screen.getByRole('textbox'), 'something');
 
-      expect(screen.getByRole('button', {name: 'Post Comment'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Comment'})).toBeEnabled();
     });
 
     it('can mention a team', async () => {
@@ -78,7 +78,7 @@ describe('NoteInput', () => {
       await userEvent.type(screen.getByRole('textbox'), '#team');
       await userEvent.click(screen.getByRole('option', {name: '# team -slug'}));
       expect(screen.getByRole('textbox')).toHaveTextContent('#team-slug');
-      await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
       expect(onCreate).toHaveBeenCalledWith({
         text: '**#team-slug** ',
         mentions: ['team:1'],
@@ -91,7 +91,7 @@ describe('NoteInput', () => {
       await userEvent.type(screen.getByRole('textbox'), '@foo');
       await userEvent.click(screen.getByRole('option', {name: 'Foo Bar'}));
       expect(screen.getByRole('textbox')).toHaveTextContent('@Foo Bar');
-      await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
       expect(onCreate).toHaveBeenCalledWith({
         text: '**@Foo Bar** ',
         mentions: ['user:1'],
@@ -110,12 +110,12 @@ describe('NoteInput', () => {
       render(<NoteInput {...props} onUpdate={onUpdate} />);
 
       // Switch to preview
-      await userEvent.click(screen.getByRole('tab', {name: 'Preview'}));
+      await userEvent.click(screen.getByRole('radio', {name: 'Preview'}));
 
       expect(screen.getByText('an existing item')).toBeInTheDocument();
 
       // Switch to edit
-      await userEvent.click(screen.getByRole('tab', {name: 'Edit'}));
+      await userEvent.click(screen.getByRole('radio', {name: 'Edit'}));
 
       expect(screen.getByRole('textbox')).toHaveTextContent('an existing item');
 
