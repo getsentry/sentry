@@ -1,3 +1,6 @@
+# NOTE: not migrated to sentry_scm. scm.types has no SearchIssuesProtocol or
+# SearchRepositoriesProtocol; search query syntax is provider-specific. Revisit
+# once sentry_scm adds generic search protocols.
 from typing import TypeVar
 
 from rest_framework.response import Response

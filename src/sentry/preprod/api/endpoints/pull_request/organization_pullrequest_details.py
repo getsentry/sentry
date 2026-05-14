@@ -15,6 +15,8 @@ from sentry.preprod.analytics import PreprodApiPrPageDetailsEvent
 from sentry.preprod.integration_utils import get_github_client
 from sentry.preprod.pull_request.adapters import PullRequestDataAdapter
 from sentry.preprod.pull_request.types import PullRequestWithFiles
+from sentry.scm.cases import preprod as preprod_case
+from sentry.scm.cases._common import use_scm_for_org
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,35 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
 
         if not features.has("organizations:pr-page", organization, actor=request.user):
             return Response({"error": "Feature not enabled"}, status=403)
+
+        if use_scm_for_org(organization):
+            try:
+                pr_details = preprod_case.get_pull_request(organization, repo_name, pr_number)
+                pr_files = preprod_case.get_pull_request_files(organization, repo_name, pr_number)
+            except ApiError:
+                logger.exception(
+                    "GitHub API error when fetching PR data",
+                    extra={"organization_id": organization.id, "pr_number": pr_number},
+                )
+                error_data = PullRequestDataAdapter.create_error_response(
+                    error="api_error",
+                    message="Failed to fetch pull request data from GitHub",
+                    details="A problem occurred when communicating with GitHub. Please try again later.",
+                )
+                return Response(error_data.dict(), status=502)
+
+            if pr_details is None or pr_files is None:
+                error_data = PullRequestDataAdapter.create_error_response(
+                    error="integration_not_found",
+                    message="No GitHub integration found for this repository",
+                    details="Unable to find a GitHub integration for the specified repository",
+                )
+                return Response(error_data.dict(), status=404)
+
+            normalized_data = PullRequestDataAdapter.from_github_pr_data(
+                pr_details, list(pr_files), organization.id
+            )
+            return Response(normalized_data.dict(), status=200)
 
         client = get_github_client(organization, repo_name)
         if not client:

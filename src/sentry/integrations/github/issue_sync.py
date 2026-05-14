@@ -5,11 +5,15 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
+from sentry.models.repository import Repository
+from sentry.scm.cases import issue_sync as issue_sync_case
+from sentry.scm.cases._common import use_scm_for_org_id
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -66,6 +70,8 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         Propagate a sentry issue's assignee to a linked GitHub issue's assignee.
         If assign=True, we're assigning the issue. Otherwise, deassign.
         """
+        # NOTE: scm.types has no UpdateIssueProtocol covering assignees, so this
+        # path stays on the GitHub client. Revisit once sentry_scm adds one.
         client = self.get_client()
 
         repo_id, issue_num = self.split_external_issue_key(external_issue.key)
@@ -126,6 +132,8 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         Propagate a sentry issue's status to a linked GitHub issue's status.
         For GitHub, we only support open/closed states.
         """
+        # NOTE: scm.types has no UpdateIssueProtocol covering issue state, so this
+        # path stays on the GitHub client. Revisit once sentry_scm adds one.
         client = self.get_client()
 
         repo_id, issue_num = self.split_external_issue_key(external_issue.key)
@@ -222,6 +230,8 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         return f"{attribution}{quoted_text}"
 
     def update_comment(self, issue_id, user_id, group_note):
+        # NOTE: scm.types has no UpdateIssueCommentProtocol, so this path stays on
+        # the GitHub client. Revisit once sentry_scm adds one.
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
 
         repo, issue_number = issue_id.rsplit("#", 1)
@@ -236,5 +246,15 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         quoted_comment = self.create_comment_attribution(user_id, comment)
 
         repo, issue_number = issue_id.rsplit("#", 1)
+
+        if use_scm_for_org_id(self.organization_id):
+            repo_model = Repository.objects.filter(
+                name=repo,
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+                status=ObjectStatus.ACTIVE,
+            ).first()
+            if repo_model is not None:
+                return issue_sync_case.create_comment(repo_model, issue_number, quoted_comment)
 
         return self.get_client().create_comment(repo, issue_number, {"body": quoted_comment})

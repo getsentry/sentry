@@ -61,7 +61,7 @@ class OrganizationRepositoryPlatformsEndpoint(OrganizationRepositoryEndpoint):
         client = GitHubApiClient(integration=integration, org_integration_id=org_integration.id)
 
         try:
-            platforms = detect_platforms(client=client, repo=repo.name)
+            platforms = detect_platforms(client=client, repo=repo.name, repository=repo)
         except (ApiError, ValueError):
             logger.exception(
                 "integrations.github.platform_detection_failed",

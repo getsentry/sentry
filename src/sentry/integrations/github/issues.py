@@ -16,6 +16,8 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.service import organization_service
+from sentry.scm.cases import issues as issues_case
+from sentry.scm.cases._common import use_scm_for_org_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -124,7 +126,6 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     def after_link_issue(self, external_issue: ExternalIssue, **kwargs: Any) -> None:
         data = kwargs["data"]
-        client = self.get_client()
 
         repo, issue_num = external_issue.key.split("#")
         if not repo:
@@ -134,11 +135,31 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"externalIssue": "Issue number is required"})
 
         comment = data.get("comment")
-        if comment:
+        if not comment:
+            return
+
+        if use_scm_for_org_id(self.organization_id):
+            repo_model = Repository.objects.filter(
+                name=repo,
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+                status=ObjectStatus.ACTIVE,
+            ).first()
+            if repo_model is None:
+                raise IntegrationFormError(
+                    {"repo": f"Given repository, {repo} does not belong to this installation"}
+                )
             try:
-                client.create_comment(repo=repo, issue_id=issue_num, data={"body": comment})
+                issues_case.create_issue_comment(repo_model, issue_num, comment)
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
+            return
+
+        client = self.get_client()
+        try:
+            client.create_comment(repo=repo, issue_id=issue_num, data={"body": comment})
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["repo"]
@@ -220,18 +241,17 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
-        client = self.get_client()
         repo = data.get("repo")
         if not repo:
             raise IntegrationFormError({"repo": "Repository is required"})
 
-        # Check the repository belongs to the integration
-        if not Repository.objects.filter(
+        repo_model = Repository.objects.filter(
             name=repo,
             integration_id=self.model.id,
             organization_id=self.organization_id,
             status=ObjectStatus.ACTIVE,
-        ).exists():
+        ).first()
+        if repo_model is None:
             raise IntegrationFormError(
                 {"repo": f"Given repository, {repo} does not belong to this installation"}
             )
@@ -242,6 +262,18 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         if not data.get("description"):
             raise IntegrationFormError({"description": "Description is required"})
+
+        if use_scm_for_org_id(self.organization_id):
+            try:
+                return issues_case.create_issue(
+                    repo_model,
+                    title=data["title"],
+                    body=data["description"],
+                    assignee=data.get("assignee"),
+                    labels=data.get("labels"),
+                )
+            except ApiError as e:
+                self.raise_error(e)
 
         issue_data = {
             "title": data["title"],
@@ -254,6 +286,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if data.get("labels"):
             issue_data["labels"] = data["labels"]
 
+        client = self.get_client()
         try:
             issue = client.create_issue(repo=repo, data=issue_data)
         except ApiError as e:
@@ -324,17 +357,17 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         data = kwargs["data"]
         repo = data.get("repo")
         issue_num = data.get("externalIssue")
-        client = self.get_client()
 
         if not repo:
             raise IntegrationFormError({"repo": "Repository is required"})
 
-        if not Repository.objects.filter(
+        repo_model = Repository.objects.filter(
             name=repo,
             integration_id=self.model.id,
             organization_id=self.organization_id,
             status=ObjectStatus.ACTIVE,
-        ).exists():
+        ).first()
+        if repo_model is None:
             raise IntegrationFormError(
                 {"repo": f"Given repository, {repo} does not belong to this installation"}
             )
@@ -342,6 +375,13 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if not issue_num:
             raise IntegrationFormError({"externalIssue": "Issue number is required"})
 
+        if use_scm_for_org_id(self.organization_id):
+            try:
+                return issues_case.get_issue(repo_model, issue_num)
+            except ApiError as e:
+                raise IntegrationError(self.message_from_error(e))
+
+        client = self.get_client()
         try:
             issue = client.get_issue(repo, issue_num)
         except ApiError as e:
@@ -356,6 +396,19 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         }
 
     def get_allowed_assignees(self, repo: str) -> Sequence[tuple[str, str]]:
+        if use_scm_for_org_id(self.organization_id):
+            repo_model = Repository.objects.filter(
+                name=repo,
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+                status=ObjectStatus.ACTIVE,
+            ).first()
+            if repo_model is not None:
+                try:
+                    return issues_case.get_repository_assignees(repo_model)
+                except Exception as e:
+                    self.raise_error(e)
+
         client = self.get_client()
         try:
             response = client.get_assignees(repo)
@@ -367,6 +420,19 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         return (("", "Unassigned"),) + users
 
     def get_repo_labels(self, owner: str, repo: str) -> Sequence[tuple[str, str]]:
+        if use_scm_for_org_id(self.organization_id):
+            repo_model = Repository.objects.filter(
+                name=f"{owner}/{repo}",
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+                status=ObjectStatus.ACTIVE,
+            ).first()
+            if repo_model is not None:
+                try:
+                    return issues_case.get_repository_labels(repo_model)
+                except Exception as e:
+                    self.raise_error(e)
+
         client = self.get_client()
         try:
             response = client.get_labels(owner, repo)

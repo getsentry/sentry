@@ -9,6 +9,9 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from yaml import YAMLError
 
+from sentry.models.repository import Repository
+from sentry.scm.cases import platform_detection as platform_detection_case
+from sentry.scm.cases._common import use_scm_for_org_id
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.yaml import safe_load
@@ -932,9 +935,16 @@ def _ref_params(ref: str | None) -> dict[str, str]:
 
 
 def _get_repo_file_content(
-    client: GitHubBaseClient, repo: str, path: str, ref: str | None = None
+    client: GitHubBaseClient,
+    repo: str,
+    path: str,
+    ref: str | None = None,
+    repository: Repository | None = None,
 ) -> str | None:
     """Fetch a file's content from a GitHub repo. Returns None if not found."""
+    if repository is not None and use_scm_for_org_id(repository.organization_id):
+        return platform_detection_case.read_file(repository, path, ref)
+
     try:
         response = client.get(
             f"/repos/{repo}/contents/{path}",
@@ -946,13 +956,19 @@ def _get_repo_file_content(
 
 
 def _get_root_entries(
-    client: GitHubBaseClient, repo: str, ref: str | None = None
+    client: GitHubBaseClient,
+    repo: str,
+    ref: str | None = None,
+    repository: Repository | None = None,
 ) -> tuple[set[str] | None, set[str] | None]:
     """Fetch the root-level file and directory names in a single API call.
 
     Returns (None, None) on API failure so callers can fall back to
     fetching files individually rather than assuming the repo root is empty.
     """
+    if repository is not None and use_scm_for_org_id(repository.organization_id):
+        return platform_detection_case.list_root_entries(repository, ref)
+
     try:
         response = client.get(f"/repos/{repo}/contents", params=_ref_params(ref))
         files = {item["name"] for item in response if item.get("type") == "file" and "name" in item}
@@ -1122,6 +1138,7 @@ def detect_platforms(
     client: GitHubBaseClient,
     repo: str,
     ref: str | None = None,
+    repository: Repository | None = None,
 ) -> list[DetectedPlatform]:
     """
     Detect Sentry platforms for a GitHub repository.
@@ -1136,8 +1153,10 @@ def detect_platforms(
     Results are ranked by bytes (descending), then priority (descending).
     Superseded frameworks (e.g. React when Next.js is present) are removed.
     """
+    # NOTE: get_languages stays on the GitHub client. scm.types has no protocol
+    # for repository languages (GitHub Linguist is provider-specific).
     languages = client.get_languages(repo)
-    root_files, root_dirs = _get_root_entries(client, repo, ref)
+    root_files, root_dirs = _get_root_entries(client, repo, ref, repository=repository)
 
     # Find the top language and only process its base platform to limit
     # API calls — only one suggestion is shown to the user anyway.
@@ -1181,7 +1200,7 @@ def detect_platforms(
     # Fetch file contents in one pass
     file_contents: dict[str, str] = {}
     for path in needed_paths:
-        content = _get_repo_file_content(client, repo, path, ref)
+        content = _get_repo_file_content(client, repo, path, ref, repository=repository)
         if content is not None:
             file_contents[path] = content
 

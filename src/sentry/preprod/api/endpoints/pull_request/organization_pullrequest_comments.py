@@ -26,6 +26,8 @@ from sentry.preprod.pull_request.comment_types import (
     PullRequestCommentsErrorResponse,
     ReviewComment,
 )
+from sentry.scm.cases import preprod as preprod_case
+from sentry.scm.cases._common import use_scm_for_org
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -67,26 +69,41 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:pr-page", organization, actor=request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 
-        client = get_github_client(organization, repo_name)
-        if not client:
-            logger.warning(
-                "No GitHub client found for organization",
-                extra={"organization_id": organization.id},
-            )
-            error_data = PullRequestCommentsErrorResponse(
-                error="integration_not_found",
-                message="No GitHub integration found for this repository",
-                details="Unable to find a GitHub integration for the specified repository",
-            )
-            return Response(error_data.dict(), status=404)
-
         try:
-            general_comments_raw = self._fetch_pr_general_comments(
-                organization.id, client, repo_name, pr_number
-            )
-            review_comments_raw = self._fetch_pr_review_comments(
-                organization.id, client, repo_name, pr_number
-            )
+            if use_scm_for_org(organization):
+                general_comments_raw = preprod_case.get_issue_comments(
+                    organization, repo_name, pr_number
+                )
+                review_comments_raw = preprod_case.get_pull_request_comments(
+                    organization, repo_name, pr_number
+                )
+                if general_comments_raw is None or review_comments_raw is None:
+                    error_data = PullRequestCommentsErrorResponse(
+                        error="integration_not_found",
+                        message="No GitHub integration found for this repository",
+                        details="Unable to find a GitHub integration for the specified repository",
+                    )
+                    return Response(error_data.dict(), status=404)
+            else:
+                client = get_github_client(organization, repo_name)
+                if not client:
+                    logger.warning(
+                        "No GitHub client found for organization",
+                        extra={"organization_id": organization.id},
+                    )
+                    error_data = PullRequestCommentsErrorResponse(
+                        error="integration_not_found",
+                        message="No GitHub integration found for this repository",
+                        details="Unable to find a GitHub integration for the specified repository",
+                    )
+                    return Response(error_data.dict(), status=404)
+
+                general_comments_raw = self._fetch_pr_general_comments(
+                    organization.id, client, repo_name, pr_number
+                )
+                review_comments_raw = self._fetch_pr_review_comments(
+                    organization.id, client, repo_name, pr_number
+                )
 
             # Parse general comments
             general_comments = [IssueComment.parse_obj(c) for c in general_comments_raw]
