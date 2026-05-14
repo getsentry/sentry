@@ -276,6 +276,82 @@ class ArtifactMatchesQuerySnapshotFiltersTest(TestCase):
         assert artifact_matches_query(no_comparison, "images_changed:!=3", self.organization)
 
 
+class ArtifactMatchesQueryApprovalStatusFilterTest(TestCase):
+    def _create_artifact_with_approval(
+        self,
+        feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+        status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        with_approval_row: bool = True,
+    ) -> PreprodArtifact:
+        artifact = self.create_preprod_artifact(project=self.project)
+        if with_approval_row:
+            self.create_preprod_comparison_approval(
+                preprod_artifact=artifact,
+                preprod_feature_type=feature_type,
+                approval_status=status,
+            )
+        return artifact
+
+    def test_approval_status_approved(self) -> None:
+        approved = self._create_artifact_with_approval()
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+        no_row = self._create_artifact_with_approval(with_approval_row=False)
+
+        assert artifact_matches_query(approved, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(pending, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(no_row, "approval_status:approved", self.organization)
+
+    def test_approval_status_needs_approval(self) -> None:
+        approved = self._create_artifact_with_approval()
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+        no_row = self._create_artifact_with_approval(with_approval_row=False)
+
+        assert not artifact_matches_query(
+            approved, "approval_status:needs_approval", self.organization
+        )
+        assert artifact_matches_query(pending, "approval_status:needs_approval", self.organization)
+        assert not artifact_matches_query(
+            no_row, "approval_status:needs_approval", self.organization
+        )
+
+    def test_approval_status_rejected(self) -> None:
+        rejected = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.REJECTED
+        )
+        approved = self._create_artifact_with_approval()
+
+        assert artifact_matches_query(rejected, "approval_status:rejected", self.organization)
+        assert not artifact_matches_query(approved, "approval_status:rejected", self.organization)
+
+    def test_approval_status_negation(self) -> None:
+        approved = self._create_artifact_with_approval()
+        pending = self._create_artifact_with_approval(
+            status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
+        )
+
+        assert not artifact_matches_query(approved, "!approval_status:approved", self.organization)
+        assert artifact_matches_query(pending, "!approval_status:approved", self.organization)
+
+    def test_approval_status_scoped_to_snapshots(self) -> None:
+        artifact = self._create_artifact_with_approval(
+            feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+        )
+        assert not artifact_matches_query(artifact, "approval_status:approved", self.organization)
+
+    def test_approval_status_no_row_never_matches(self) -> None:
+        no_row = self._create_artifact_with_approval(with_approval_row=False)
+
+        assert not artifact_matches_query(no_row, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(
+            no_row, "approval_status:needs_approval", self.organization
+        )
+        assert not artifact_matches_query(no_row, "approval_status:rejected", self.organization)
+
+
 class ArtifactMatchesQueryIsApprovedFilterTest(TestCase):
     def _create_artifact_with_approval(
         self,
