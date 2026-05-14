@@ -506,7 +506,11 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         mock_trigger_handoff.return_value = {"successes": [], "failures": []}
 
         state = run_state(
-            blocks=[root_cause_memory_block()],
+            blocks=[
+                root_cause_memory_block(
+                    referrer=AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value
+                )
+            ],
             metadata={
                 "group_id": self.group.id,
                 "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
@@ -516,6 +520,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_trigger_handoff.assert_called_once()
+        assert (
+            mock_trigger_handoff.call_args.kwargs["referrer"]
+            == AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY
+        )
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_clears_preference_on_not_found(self, mock_trigger):
@@ -551,12 +559,14 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             run_id=123,
             group=self.group,
             handoff_config=handoff_config,
+            referrer=AutofixReferrer.NIGHT_SHIFT,
         )
 
         mock_trigger.assert_called_once()
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
+        assert call_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
 
 
 class AutofixOnCompletionHookTest(TestCase):

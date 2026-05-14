@@ -497,7 +497,6 @@ def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
     referrer: AutofixReferrer,
-    initiator: Literal["automation.explorer", "user"],
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
@@ -585,7 +584,6 @@ def trigger_coding_agent_handoff(
             group_id=group.id,
             referrer=referrer.value,
             coding_agent=coding_agent_name,
-            initiator=initiator,
         )
     )
 
