@@ -5,17 +5,25 @@ type PeggyLoaderOptions = {
   allowedStartRules?: string[];
 };
 
-function getAllowedStartRules(
-  source: string,
-  options: PeggyLoaderOptions
-): string[] | undefined {
-  if (options.allowedStartRules) {
+const ALLOWED_START_RULES_DIRECTIVE = /@peggy-loader\s+allowedStartRules:\s*([^\n]+)/;
+
+function getAllowedStartRules(source: string, options: PeggyLoaderOptions): string[] {
+  if (options.allowedStartRules?.length) {
     return options.allowedStartRules;
   }
 
-  const match = source.match(/@peggy-loader\s+allowedStartRules:\s*([^\n]+)/);
-  return match?.[1]
-    ?.split(',')
+  const match = source.match(ALLOWED_START_RULES_DIRECTIVE);
+  if (!match) {
+    return [];
+  }
+
+  const directiveValue = match[1];
+  if (!directiveValue) {
+    return [];
+  }
+
+  return directiveValue
+    .split(',')
     .map(rule => rule.trim())
     .filter(Boolean);
 }
@@ -25,6 +33,8 @@ const peggyLoader: LoaderDefinitionFunction<PeggyLoaderOptions> = function (sour
 
   // https://peggyjs.org/documentation.html#generating-a-parser-javascript-api
   const peggyOptions: peggy.OutputFormatAmdCommonjsEs = {
+    // Grammars with multiple public entry points can keep that contract next to
+    // the grammar source via `@peggy-loader allowedStartRules: rule_a, rule_b`.
     allowedStartRules: getAllowedStartRules(source, options),
     cache: false,
     dependencies: {},

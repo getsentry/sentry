@@ -5,17 +5,22 @@ import {createHash} from 'node:crypto';
 import peggy from 'peggy';
 
 const TRANSFORM_VERSION = 'peggy-allowed-start-rules-v1';
+const ALLOWED_START_RULES_DIRECTIVE = /@peggy-loader\s+allowedStartRules:\s*([^\n]+)/;
 
 /**
  * @param {string} sourceText
- * @returns {string[] | undefined}
+ * @returns {string[]}
  */
 function getAllowedStartRules(sourceText) {
-  const match = sourceText.match(/@peggy-loader\s+allowedStartRules:\s*([^\n]+)/);
-  return match?.[1]
-    ?.split(',')
-    .map(rule => rule.trim())
-    .filter(Boolean);
+  const match = sourceText.match(ALLOWED_START_RULES_DIRECTIVE);
+  const directiveValue = match?.[1];
+  if (directiveValue) {
+    return directiveValue
+      .split(',')
+      .map(rule => rule.trim())
+      .filter(Boolean);
+  }
+  return [];
 }
 
 /**
