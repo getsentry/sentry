@@ -52,13 +52,13 @@ export function OrganizationLayout() {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <GlobalAnalytics />
       <OrganizationContainer>
-        <GlobalDrawer>
-          <SeerExplorerContextProvider>
-            <SeerExplorerSessionsProvider>
+        <SeerExplorerSessionsProvider>
+          <GlobalDrawer>
+            <SeerExplorerContextProvider>
               <AppLayout organization={organization} />
-            </SeerExplorerSessionsProvider>
-          </SeerExplorerContextProvider>
-        </GlobalDrawer>
+            </SeerExplorerContextProvider>
+          </GlobalDrawer>
+        </SeerExplorerSessionsProvider>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
