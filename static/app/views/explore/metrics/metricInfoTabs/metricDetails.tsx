@@ -92,16 +92,20 @@ export function MetricDetails({
   const timestamp = getTimeStampFromTableDateField(
     dataRow[TraceMetricKnownFieldKey.TIMESTAMP]
   );
-  const {data: traceMeta, isLoading: isTraceMetaLoading} = useTraceMeta(
-    enableQueries && showTelemetry ? [{traceSlug, timestamp}] : []
-  );
+  const {
+    data: traceMeta,
+    isLoading: isTraceMetaLoading,
+    errors: traceMetaErrors,
+  } = useTraceMeta(enableQueries && showTelemetry ? [{traceSlug, timestamp}] : []);
 
   if (isError) {
     return (
       <MetricsDetailsWrapper ref={ref}>
-        <EmptyStreamWrapper>
-          <IconWarning variant="muted" size="lg" />
-        </EmptyStreamWrapper>
+        <LogDetailTableBodyCell colSpan={0}>
+          <EmptyStreamWrapper>
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
+          </EmptyStreamWrapper>
+        </LogDetailTableBodyCell>
       </MetricsDetailsWrapper>
     );
   }
@@ -131,7 +135,12 @@ export function MetricDetails({
     <MetricsDetailsWrapper ref={ref}>
       <LogDetailTableBodyCell colSpan={0}>
         <DetailsContent>
-          {showTelemetry ? <MetricDetailsTraceSummary traceMeta={traceMeta} /> : null}
+          {showTelemetry ? (
+            <MetricDetailsTraceSummary
+              traceMeta={traceMeta}
+              traceMetaErrors={traceMetaErrors}
+            />
+          ) : null}
           <LogAttributeTreeWrapper>
             <Stack gap="md">
               <Text bold>Attributes</Text>
@@ -169,33 +178,58 @@ export function MetricDetails({
 
 function MetricDetailsTraceSummary({
   traceMeta,
+  traceMetaErrors,
 }: {
   traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMetaErrors: Error[];
 }) {
-  if (traceMeta) {
-    const errors = getTraceMetaErrorCount(traceMeta) ?? 0;
-    const logs = getTraceMetaLogsCount(traceMeta) ?? 0;
-    const spans = getTraceMetaSpanCount(traceMeta) ?? 0;
-    const metrics = getTraceMetaMetricsCount(traceMeta) ?? 0;
+  return (
+    <Fragment>
+      <Stack paddingLeft="md" paddingRight="md" paddingTop="sm">
+        <Text bold>Trace Summary</Text>
+        <Flex radius="md" paddingRight="lg" paddingTop="sm" gap="lg">
+          <MetricDetailsTraceSummaryContent
+            traceMeta={traceMeta}
+            traceMetaErrors={traceMetaErrors}
+          />
+        </Flex>
+      </Stack>
+      <Separator padding="sm" orientation="horizontal" />
+    </Fragment>
+  );
+}
 
+function MetricDetailsTraceSummaryContent({
+  traceMeta,
+  traceMetaErrors,
+}: {
+  traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMetaErrors: Error[];
+}) {
+  if (traceMetaErrors.length > 0) {
     return (
-      <Fragment>
-        <Stack paddingLeft="md" paddingRight="md" paddingTop="sm">
-          <Text bold>Trace Summary</Text>
-          <Flex radius="md" paddingRight="lg" paddingTop="sm" gap="lg">
-            <Text size="sm" monospace variant="secondary">
-              Errors: {errors}, Logs: {logs}, Spans: {spans}, Metrics: {metrics}
-            </Text>
-          </Flex>
-        </Stack>
-        <Separator padding="sm" orientation="horizontal" />
-      </Fragment>
+      <Text size="sm" monospace variant="danger">
+        {t('Failed to fetch trace summary')}
+      </Text>
     );
   }
 
+  if (!traceMeta) {
+    return (
+      <Text size="sm" monospace variant="muted">
+        {t('No trace summary found for this sample')}
+      </Text>
+    );
+  }
+
+  const errors = getTraceMetaErrorCount(traceMeta) ?? 0;
+  const logs = getTraceMetaLogsCount(traceMeta) ?? 0;
+  const spans = getTraceMetaSpanCount(traceMeta) ?? 0;
+  const metrics = getTraceMetaMetricsCount(traceMeta) ?? 0;
+
   return (
-    <MetricDetailsEmptyState>
-      {t('No trace summary found for this sample')}
-    </MetricDetailsEmptyState>
+    <Text size="sm" monospace variant="secondary">
+      Errors: {errors}, Logs: {logs}, Spans: {spans}, Metrics: {metrics}
+    </Text>
   );
 }
