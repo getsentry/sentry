@@ -392,7 +392,7 @@ class SeerAgentClient:
                         )
                     SeerAgentRun.objects.create(
                         run=run,
-                        title=prompt[:253] + "..." if len(prompt) > 256 else prompt,
+                        title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
                         source=source,
                         project=self.project,
                         extras=(
