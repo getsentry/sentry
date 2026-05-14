@@ -7,7 +7,9 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Any as TAny
 
+from django.apps import apps as django_apps
 from django.conf import settings
+from django.db import DatabaseError
 
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
@@ -181,6 +183,8 @@ class OptionsManager:
     def __init__(self, store: OptionsStore):
         self.store = store
         self.registry: dict[str, Key] = {}
+        self._seen: set[str] = set()
+        self._seen_loaded: bool = False
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -281,6 +285,30 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
+    def _record_seen(self, key: str) -> None:
+        """
+        Flip the sentry_option_seen tripwire for key.  Called at most once per
+        key per process lifetime — existence of a row means the option has been
+        read at least once since tracking was enabled.
+
+        Uses apps.get_model so this module does not import the model at load
+        time (options is initialised before Django's app registry is ready).
+        """
+        OptionSeen = django_apps.get_model("sentry", "OptionSeen")
+        if not self._seen_loaded:
+            try:
+                self._seen.update(OptionSeen.objects.values_list("key", flat=True))
+            except DatabaseError:
+                pass
+            self._seen_loaded = True
+            if key in self._seen:
+                return
+        self._seen.add(key)
+        try:
+            OptionSeen.objects.get_or_create(key=key)
+        except DatabaseError:
+            pass  # never let tracking errors surface through options.get()
+
     def get(self, key: str, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
@@ -293,6 +321,12 @@ class OptionsManager:
         # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
         # values change. This case is unlikely, but good to cover our bases.
         opt = self.lookup_key(key)
+        if key not in self._seen:
+            try:
+                self._record_seen(key)
+            except Exception:
+                # Tracking is best-effort. Never let it affect option reads.
+                pass
 
         # First check if the option should exist on disk, and if it actually
         # has a value set, let's use that one instead without even attempting
