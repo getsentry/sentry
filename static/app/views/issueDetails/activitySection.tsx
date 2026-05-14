@@ -29,6 +29,10 @@ export function ActivitySection(props: Props) {
 
   const [inputId, setInputId] = useState(uniqueId());
 
+  const visibleActivities = organization.features.includes('seer-activity-timeline')
+    ? group.activity
+    : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
+
   const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
@@ -59,69 +63,63 @@ export function ActivitySection(props: Props) {
         />
       </ActivityItem>
 
-      {group.activity
-        .filter(
-          item =>
-            !SEER_ACTIVITY_TYPES.has(item.type) ||
-            organization.features.includes('seer-activity-timeline')
-        )
-        .map(item => {
-          const authorName = item.user ? item.user.name : 'Sentry';
+      {visibleActivities.map(item => {
+        const authorName = item.user ? item.user.name : 'Sentry';
 
-          if (item.type === GroupActivityType.NOTE) {
-            return (
-              <ErrorBoundary mini key={`note-${item.id}`}>
-                <Note
-                  showTime={false}
-                  text={item.data.text}
-                  noteId={item.id}
-                  user={item.user!}
-                  dateCreated={item.dateCreated}
-                  authorName={authorName}
-                  onDelete={() => {
-                    onDelete(item);
-                    trackAnalytics('issue_details.comment_deleted', {
-                      organization,
-                      streamline: false,
-                      org_streamline_only: organization.streamlineOnly ?? undefined,
-                    });
-                  }}
-                  onUpdate={n => {
-                    item.data.text = n.text;
-                    onUpdate(item, n);
-                    trackAnalytics('issue_details.comment_updated', {
-                      organization,
-                      streamline: false,
-                      org_streamline_only: organization.streamlineOnly ?? undefined,
-                    });
-                  }}
-                  {...noteProps}
-                />
-              </ErrorBoundary>
-            );
-          }
-
+        if (item.type === GroupActivityType.NOTE) {
           return (
-            <ErrorBoundary mini key={`item-${item.id}`}>
-              <ActivityItem
-                author={{
-                  type: item.user ? 'user' : 'system',
-                  user: item.user ?? undefined,
+            <ErrorBoundary mini key={`note-${item.id}`}>
+              <Note
+                showTime={false}
+                text={item.data.text}
+                noteId={item.id}
+                user={item.user!}
+                dateCreated={item.dateCreated}
+                authorName={authorName}
+                onDelete={() => {
+                  onDelete(item);
+                  trackAnalytics('issue_details.comment_deleted', {
+                    organization,
+                    streamline: false,
+                    org_streamline_only: organization.streamlineOnly ?? undefined,
+                  });
                 }}
-                date={item.dateCreated}
-                header={
-                  <GroupActivityItem
-                    author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                    activity={item}
-                    organization={organization}
-                    projectId={group.project.id}
-                    group={group}
-                  />
-                }
+                onUpdate={n => {
+                  item.data.text = n.text;
+                  onUpdate(item, n);
+                  trackAnalytics('issue_details.comment_updated', {
+                    organization,
+                    streamline: false,
+                    org_streamline_only: organization.streamlineOnly ?? undefined,
+                  });
+                }}
+                {...noteProps}
               />
             </ErrorBoundary>
           );
-        })}
+        }
+
+        return (
+          <ErrorBoundary mini key={`item-${item.id}`}>
+            <ActivityItem
+              author={{
+                type: item.user ? 'user' : 'system',
+                user: item.user ?? undefined,
+              }}
+              date={item.dateCreated}
+              header={
+                <GroupActivityItem
+                  author={<ActivityAuthor>{authorName}</ActivityAuthor>}
+                  activity={item}
+                  organization={organization}
+                  projectId={group.project.id}
+                  group={group}
+                />
+              }
+            />
+          </ErrorBoundary>
+        );
+      })}
     </Fragment>
   );
 }
