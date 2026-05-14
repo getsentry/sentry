@@ -424,6 +424,57 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["base_image"] is not None
 
     @patch(MOCK_TARGET)
+    def test_skipped_image(self, mock_get_session):
+        head_images: dict = {}
+        base_images = {
+            "skipped_screen.png": {
+                "content_hash": "base_hash",
+                "display_name": "Skipped Screen",
+                "width": 375,
+                "height": 812,
+            },
+        }
+        comparison_images = {
+            "skipped_screen.png": {
+                "status": "skipped",
+                "base_hash": "base_hash",
+                "reason": "image_too_large",
+            },
+        }
+        head_artifact, _, key_to_data = self._create_comparison(
+            head_images,
+            base_images,
+            comparison_images,
+            summary={
+                "total": 1,
+                "changed": 0,
+                "unchanged": 0,
+                "added": 0,
+                "removed": 0,
+                "errored": 0,
+                "renamed": 0,
+                "skipped": 1,
+            },
+        )
+        mock_get_session.return_value = self._create_mock_session(key_to_data)
+
+        url = self._get_url(head_artifact.id, "skipped_screen.png")
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        data = response.data
+        assert data["comparison_status"] == "skipped"
+        assert data["head_image"] is not None
+        assert data["head_image"]["content_hash"] == "base_hash"
+        assert data["head_image"]["display_name"] == "Skipped Screen"
+        assert "/files/images/base_hash/" in data["head_image"]["image_url"]
+        assert data["base_image"] is not None
+        assert data["base_image"]["content_hash"] == "base_hash"
+        assert data["diff_image_url"] is None
+        assert data["diff_percentage"] is None
+
+    @patch(MOCK_TARGET)
     def test_lookup_by_content_hash(self, mock_get_session):
         images = {
             "components/alert.png": {

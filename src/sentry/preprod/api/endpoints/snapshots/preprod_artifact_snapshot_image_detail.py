@@ -204,20 +204,29 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
                 comp_file_name, comp_result = _find_image_in_comparison_manifest(
                     comparison_manifest, image_identifier
                 )
-                if (
-                    comp_result is not None
-                    and comp_file_name is not None
-                    and comp_result.status == "removed"
-                ):
-                    resp = SnapshotImageDetailResponse(
-                        image_file_name=comp_file_name,
-                        comparison_status="removed",
-                        head_image=None,
-                        base_image=_resolve_base_image_info(
+                if comp_result is not None and comp_file_name is not None:
+                    if comp_result.status == "removed":
+                        resp = SnapshotImageDetailResponse(
+                            image_file_name=comp_file_name,
+                            comparison_status="removed",
+                            head_image=None,
+                            base_image=_resolve_base_image_info(
+                                comp_file_name, base_manifest, org_slug, project_slug
+                            ),
+                        )
+                        return Response(resp.dict())
+
+                    if comp_result.status == "skipped":
+                        base_image = _resolve_base_image_info(
                             comp_file_name, base_manifest, org_slug, project_slug
-                        ),
-                    )
-                    return Response(resp.dict())
+                        )
+                        resp = SnapshotImageDetailResponse(
+                            image_file_name=comp_file_name,
+                            comparison_status="skipped",
+                            head_image=base_image,
+                            base_image=base_image,
+                        )
+                        return Response(resp.dict())
 
             return Response({"detail": "Image not found in snapshot"}, status=404)
 
