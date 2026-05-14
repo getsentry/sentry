@@ -334,6 +334,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         base_artifact_exists: bool | None = None
         if latest_comparison is None and has_base_sha and commit_comparison is not None:
             if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
+                assert commit_comparison.base_sha is not None
                 base_artifact_exists = (
                     find_base_snapshot_artifact(
                         organization_id=commit_comparison.organization_id,
@@ -477,14 +478,34 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
 
         sorted_approvals = sorted(all_approvals, key=lambda a: a.id, reverse=True)
-        derived_status = derive_snapshot_status(
-            SnapshotStatusInput(
-                latest_comparison=latest_comparison,
-                latest_approval=sorted_approvals[0] if sorted_approvals else None,
-                has_base_sha=has_base_sha,
-                artifact_age_seconds=artifact_age_seconds,
-                base_artifact_exists=base_artifact_exists,
-            )
+        status_input = SnapshotStatusInput(
+            latest_comparison=latest_comparison,
+            latest_approval=sorted_approvals[0] if sorted_approvals else None,
+            has_base_sha=has_base_sha,
+            artifact_age_seconds=artifact_age_seconds,
+            base_artifact_exists=base_artifact_exists,
+        )
+        derived_status = derive_snapshot_status(status_input)
+        logger.info(
+            "snapshot_detail.derived_status",
+            extra={
+                "snapshot_id": snapshot_id,
+                "status_input": {
+                    "latest_comparison_id": latest_comparison.id if latest_comparison else None,
+                    "latest_comparison_state": latest_comparison.state
+                    if latest_comparison
+                    else None,
+                    "latest_approval_id": sorted_approvals[0].id if sorted_approvals else None,
+                    "has_base_sha": has_base_sha,
+                    "artifact_age_seconds": artifact_age_seconds,
+                    "base_artifact_exists": base_artifact_exists,
+                },
+                "derived": {
+                    "comparison_state": derived_status.comparison_state,
+                    "approval_status": derived_status.approval_status,
+                    "comparison_error_message": derived_status.comparison_error_message,
+                },
+            },
         )
 
         response_data = SnapshotDetailsApiResponse(

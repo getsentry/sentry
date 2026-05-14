@@ -309,6 +309,7 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
     base_artifact_exists: bool | None = None
     if comparison is None and has_base_sha and cc is not None:
         if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
+            assert cc.base_sha is not None
             base_artifact_exists = (
                 find_base_snapshot_artifact(
                     organization_id=cc.organization_id,
