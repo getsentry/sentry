@@ -383,6 +383,7 @@ export function ExplorerDrawerContent({
                   }}
                   block={block}
                   blockIndex={index}
+                  blocksLength={blocks.length}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
                   interactionPending={isFileApprovalPending || isQuestionPending}

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {createContext, Fragment, useContext, useMemo} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -37,11 +37,33 @@ import {
   getValidToolLinks,
 } from 'sentry/views/seerExplorer/utils';
 
+// ─── Context ────────────────────────────────────────────────
+
+interface BlockContextValue {
+  block: Block;
+  blockIndex: number;
+  blocksLength: number;
+  getPageReferrer?: () => string;
+  interactionPending?: boolean;
+  runId?: number;
+}
+
+const BlockContext = createContext<BlockContextValue | null>(null);
+
+function useBlockContext(): BlockContextValue {
+  const ctx = useContext(BlockContext);
+  if (!ctx) {
+    throw new Error('useBlockContext must be used within a BlockComponent');
+  }
+  return ctx;
+}
+
 // ─── Export ──────────────────────────────────────────────────
 
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  blocksLength: number;
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   onClick?: () => void;
@@ -52,49 +74,41 @@ interface BlockProps {
 export function BlockComponent({
   block,
   blockIndex,
+  blocksLength,
   runId,
   getPageReferrer,
   interactionPending,
   onClick,
   ref,
 }: BlockProps) {
-  const variant = useBlockVariant(block);
-  const actionsEnabled = variant === 'agent' && !block.loading && !interactionPending;
+  const contextValue = useMemo(
+    () => ({block, blockIndex, blocksLength, getPageReferrer, interactionPending, runId}),
+    [block, blockIndex, blocksLength, getPageReferrer, interactionPending, runId]
+  );
 
   return (
-    <BlockWrapper ref={ref} onClick={onClick}>
-      <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
-        <BlockVariantContent
-          variant={variant}
-          block={block}
-          getPageReferrer={getPageReferrer}
-        />
-        {actionsEnabled && (
-          <BlockActionBar block={block} blockIndex={blockIndex} runId={runId} />
-        )}
-      </motion.div>
-    </BlockWrapper>
+    <BlockContext.Provider value={contextValue}>
+      <BlockWrapper ref={ref} onClick={onClick}>
+        <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
+          <BlockVariant />
+        </motion.div>
+      </BlockWrapper>
+    </BlockContext.Provider>
   );
 }
 
 BlockComponent.displayName = 'BlockComponent';
 
-function BlockVariantContent({
-  variant,
-  block,
-  getPageReferrer,
-}: {
-  block: Block;
-  variant: BlockVariant;
-  getPageReferrer?: () => string;
-}) {
+function BlockVariant() {
+  const variant = useBlockVariant();
+
   switch (variant) {
     case 'user':
-      return <UserBlock block={block} />;
+      return <UserBlock />;
     case 'thinking':
-      return <ThinkingBlock block={block} />;
+      return <ThinkingBlock />;
     case 'agent':
-      return <AssistantBlock block={block} getPageReferrer={getPageReferrer} />;
+      return <AgentBlock />;
     default:
       return unreachable(variant);
   }
@@ -102,29 +116,16 @@ function BlockVariantContent({
 
 // ─── Variants ────────────────────────────────────────────────
 
-function AssistantBlock({
-  block,
-  getPageReferrer,
-}: {
-  block: Block;
-  getPageReferrer?: () => string;
-}) {
-  const content = block.message.content ?? '';
-  const thinkingContent = block.message.thinking_content ?? '';
-  const hasContent = hasValidContent(content);
-  const hasThinkingContent = hasValidContent(thinkingContent);
+function AgentBlock() {
+  const {block, blockIndex, blocksLength, interactionPending} = useBlockContext();
+  const isStreaming = blockIndex === blocksLength - 1;
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
 
   return (
     <Flex align="start" width="100%">
-      <Container
-        padding={!hasContent && !hasThinkingContent && hasTools ? 'md xl' : 'xl'}
-        flex={1}
-        minWidth={0}
-        overflow="hidden"
-      >
-        {hasThinkingContent && (
+      <Container padding="xl" flex={1} minWidth={0} overflow="hidden">
+        {hasValidContent(block.message.thinking_content) && (
           <Disclosure>
             <Disclosure.Title>
               <Text size="xs" variant="muted" monospace>
@@ -132,20 +133,25 @@ function AssistantBlock({
               </Text>
             </Disclosure.Title>
             <Disclosure.Content>
-              <SeerMarkdown raw={thinkingContent} />
+              <SeerMarkdown raw={block.message.thinking_content} />
             </Disclosure.Content>
           </Disclosure>
         )}
-        {hasContent && (
-          <SeerMarkdown raw={content} variant={block.loading ? 'streaming' : 'static'} />
+        {hasTools && <ToolCallList />}
+        {hasValidContent(block.message.content) && (
+          <SeerMarkdown
+            raw={block.message.content}
+            variant={isStreaming ? 'streaming' : 'static'}
+          />
         )}
-        {hasTools && <ToolCallList block={block} getPageReferrer={getPageReferrer} />}
       </Container>
+      {!block.loading && !interactionPending && <BlockActionBar />}
     </Flex>
   );
 }
 
-function UserBlock({block}: {block: Block}) {
+function UserBlock() {
+  const {block} = useBlockContext();
   return (
     <Flex align="start" justify="end" width="100%" padding="xl">
       <UserBubble>{block.message.content ?? ''}</UserBubble>
@@ -153,7 +159,8 @@ function UserBlock({block}: {block: Block}) {
   );
 }
 
-function ThinkingBlock({block}: {block: Block}) {
+function ThinkingBlock() {
+  const {block} = useBlockContext();
   return (
     <Flex align="center" gap="md" padding="xl" width="100%">
       <Flex
@@ -179,7 +186,8 @@ type ToolCallStatus = 'pending' | 'success' | 'failure';
 
 // ─── Hooks ───────────────────────────────────────────────────
 
-function useBlockVariant(block: Block): BlockVariant {
+function useBlockVariant(): BlockVariant {
+  const {block} = useBlockContext();
   if (block.message.role === 'user') {
     return 'user';
   }
@@ -190,9 +198,10 @@ function useBlockVariant(block: Block): BlockVariant {
   return 'agent';
 }
 
-function useToolLinks(block: Block) {
+function useToolLinks() {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {block} = useBlockContext();
 
   const {sortedToolLinks, toolCallToLinkIndexMap} = useMemo(() => {
     return getValidToolLinks(
@@ -257,20 +266,15 @@ function useBlockFeedback(block: Block, blockIndex: number, runId: number | unde
 
 // ─── Mid-level Components ────────────────────────────────────
 
-function ToolCallList({
-  block,
-  getPageReferrer,
-}: {
-  block: Block;
-  getPageReferrer?: () => string;
-}) {
+function ToolCallList() {
+  const {block, getPageReferrer} = useBlockContext();
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
     organization,
     projects,
-  } = useToolLinks(block);
+  } = useToolLinks();
   const toolsUsed = getToolsStringFromBlock(block);
 
   return (
@@ -390,15 +394,8 @@ function ToolCallRow({
   );
 }
 
-function BlockActionBar({
-  block,
-  blockIndex,
-  runId,
-}: {
-  block: Block;
-  blockIndex: number;
-  runId?: number;
-}) {
+function BlockActionBar() {
+  const {block, blockIndex, runId} = useBlockContext();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
   const {copy} = useCopyToClipboard();
   const showCopy = !!block.message.content?.trim();
@@ -573,7 +570,7 @@ function getToolCallStatus(
   return 'success';
 }
 
-function hasValidContent(content: string): boolean {
+function hasValidContent(content: string | null | undefined): content is string {
   if (!content) {
     return false;
   }
