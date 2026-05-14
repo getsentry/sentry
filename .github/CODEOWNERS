@@ -249,9 +249,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/snuba/incidents/                                   @getsentry/alerts-monitors
 /src/sentry/rules/                                        @getsentry/alerts-monitors
 /tests/sentry/rules/                                      @getsentry/alerts-monitors
-/tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/data-browsing
-/tests/sentry/snuba/test_subscriptions.py                 @getsentry/data-browsing
-/tests/sentry/snuba/test_tasks.py                         @getsentry/data-browsing
+/tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-monitors
+/tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-monitors
+/tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-monitors
 /src/sentry/notifications/api/endpoints/                  @getsentry/notifications
 ## Endof Alerts & Notifications
 
@@ -534,8 +534,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/foundations
 /src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/foundations
 /src/sentry/api/endpoints/organization_stats*.py                        @getsentry/foundations
-/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/foundations
-/src/sentry/api/endpoints/user_social_identity*                         @getsentry/replay-backend
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/replay-backend
+/src/sentry/api/endpoints/user_social_identity*                         @getsentry/foundations
 /src/sentry/auth/staff.py                                               @getsentry/foundations @getsentry/owners-auth
 /src/sentry/auth/superuser.py                                           @getsentry/foundations @getsentry/owners-auth
 /src/sentry/middleware/staff.py                                         @getsentry/foundations
