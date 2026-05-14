@@ -19,10 +19,6 @@ interface LogsFrozenContextValue {
 const LogsFrozenContext = createContext<LogsFrozenContextValue | undefined>(undefined);
 LogsFrozenContext.displayName = 'LogsFrozenContext';
 
-function useLogsFrozenContextValue(): LogsFrozenContextValue | undefined {
-  return useContext(LogsFrozenContext);
-}
-
 interface LogsFrozenForTracesProviderProps {
   traceIds: string[];
 }
@@ -155,9 +151,9 @@ export function LogsFrozenContextProvider(
   return <LogsFrozenContext value={value}>{props.children}</LogsFrozenContext>;
 }
 
-function useLogsFrozenContext(): Partial<LogsFrozenContextValue> {
+export function useLogsFrozenContext(): Partial<LogsFrozenContextValue> {
   // default to `LogsNotFrozen`
-  return useLogsFrozenContextValue() ?? {};
+  return useContext(LogsFrozenContext) ?? {};
 }
 
 export function useLogsFrozenIsFrozen() {
