@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Now
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -23,6 +24,10 @@ class IssueActionLog(Model):
     Used as input to derive computed Group attributes via the aggregator pipeline.
     Each entry records who did what, when, with optional structured payload.
 
+    Entries are ordered by (group, date_added, id) for processing. The standard
+    path gets date_added from the DB default (now()); backfill code can set it
+    explicitly to insert entries at the correct chronological position.
+
     Actor is currently just user_id (nullable for system-initiated actions).
     """
 
@@ -35,10 +40,12 @@ class IssueActionLog(Model):
     # The user who performed the action, or NULL for a system action.
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="DO_NOTHING")
 
-    # JSON representation of the Action subclass for this type.
+    # JSON representation of the IssueAction subclass for this type.
     data = models.JSONField(default=dict)
 
-    date_added = models.DateTimeField(auto_now_add=True)
+    # When the action occurred. DB-defaulted to now(); not set by record().
+    # Backfill code can pass an explicit value to place entries chronologically.
+    date_added = models.DateTimeField(db_default=Now())
 
     # Optional idempotency key for deduplicating events from external sources
     # (e.g., a webhook delivery ID, a PR merge event ID). When set, the partial
@@ -51,7 +58,7 @@ class IssueActionLog(Model):
         app_label = "sentry"
         db_table = "sentry_issueactionlog"
         indexes = [
-            models.Index(fields=["group", "id"]),
+            models.Index(fields=["group", "date_added", "id"]),
         ]
         constraints = [
             models.UniqueConstraint(

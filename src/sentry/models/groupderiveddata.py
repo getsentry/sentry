@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -11,6 +13,10 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+
+# Sentinel for "no entries processed yet". Used as the initial cursor_date
+# so that any real date_added compares greater.
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 @cell_silo_model
@@ -33,15 +39,16 @@ class GroupDerivedData(DefaultFieldsModel):
     for new groups. At most one row per group should be primary. Readers
     filter on `primary=True` and don't need to reason about versions.
 
-    The `cursor` field tracks the latest IssueActionLog.id that has been
-    processed under this version.
+    The cursor (cursor_date, cursor_id) tracks the last IssueActionLog entry
+    processed under this version. Entries are ordered by (date_added, id).
     """
 
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group")
     version = BoundedPositiveIntegerField(default=1)
-    cursor = BoundedBigIntegerField(default=0)
+    cursor_date = models.DateTimeField(default=EPOCH)
+    cursor_id = BoundedBigIntegerField(default=0)
     data = models.JSONField(default=dict)
     primary = models.BooleanField(default=False)
 
@@ -54,4 +61,4 @@ class GroupDerivedData(DefaultFieldsModel):
             models.Index(fields=["group", "primary"]),
         ]
 
-    __repr__ = sane_repr("group_id", "version", "cursor", "primary")
+    __repr__ = sane_repr("group_id", "version", "cursor_date", "cursor_id", "primary")

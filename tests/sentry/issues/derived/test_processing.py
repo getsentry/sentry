@@ -41,7 +41,7 @@ class ProcessGroupLogTest(TestCase):
         assert entries[0].user_id == user.id
 
         derived = process_group_log(group.id)
-        assert derived.cursor == entries[-1].id
+        assert derived.cursor_id == entries[-1].id
         assert isinstance(derived.data, dict)
 
     def test_incremental_processing(self) -> None:
@@ -50,11 +50,11 @@ class ProcessGroupLogTest(TestCase):
 
         record(group_id=group.id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
-        first_cursor = derived.cursor
+        first_cursor = derived.cursor_id
 
         record(group_id=group.id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
-        assert derived.cursor > first_cursor
+        assert derived.cursor_id > first_cursor
 
     def test_noop_when_no_new_entries(self) -> None:
         group = self.create_group()
@@ -77,14 +77,14 @@ class ProcessGroupLogTest(TestCase):
         record(group_id=group_a.id, action=ViewAction(), user_id=user.id)
         record(group_id=group_b.id, action=ViewAction(), user_id=user.id)
 
-        cursor_b = GroupDerivedData.objects.get(group_id=group_b.id).cursor
+        cursor_b = GroupDerivedData.objects.get(group_id=group_b.id).cursor_id
 
         # New entry only for group_a, processed via explicit call.
         IssueActionLog.objects.create(group_id=group_a.id, type=0, data={})
         process_group_log(group_a.id)
 
         # group_b's cursor should be unchanged.
-        assert GroupDerivedData.objects.get(group_id=group_b.id).cursor == cursor_b
+        assert GroupDerivedData.objects.get(group_id=group_b.id).cursor_id == cursor_b
 
     def test_last_seen_tracks_most_recent_view(self) -> None:
         group = self.create_group()
@@ -92,13 +92,11 @@ class ProcessGroupLogTest(TestCase):
         now = timezone.now()
 
         # Insert an old entry directly to avoid inline processing at the wrong time.
-        old_entry = IssueActionLog.objects.create(
+        IssueActionLog.objects.create(
             group_id=group.id,
             type=0,
             user_id=user.id,
             data={},
-        )
-        IssueActionLog.objects.filter(id=old_entry.id).update(
             date_added=now - timedelta(hours=1),
         )
         record(group_id=group.id, action=ViewAction(), user_id=user.id)
@@ -142,7 +140,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id, batch_size=2)
 
         entries = list(IssueActionLog.objects.filter(group_id=group.id).order_by("id"))
-        assert derived.cursor == entries[-1].id
+        assert derived.cursor_id == entries[-1].id
         assert len(entries) == 5
 
     def test_system_action_no_user(self) -> None:
@@ -243,13 +241,11 @@ class ProcessGroupLogTest(TestCase):
         now = timezone.now()
 
         # Insert the old entry directly to avoid inline processing at the wrong timestamp.
-        old_entry = IssueActionLog.objects.create(
+        IssueActionLog.objects.create(
             group_id=group.id,
             type=0,
             user_id=user_old.id,
             data={},
-        )
-        IssueActionLog.objects.filter(id=old_entry.id).update(
             date_added=now - timedelta(days=60),
         )
         record(group_id=group.id, action=ViewAction(), user_id=user_new.id)
@@ -286,13 +282,11 @@ class ProcessGroupLogTest(TestCase):
         user_new = self.create_user()
         now = timezone.now()
 
-        old_entry = IssueActionLog.objects.create(
+        IssueActionLog.objects.create(
             group_id=group.id,
             type=3,
             user_id=user_old.id,
             data={"tool": "curl"},
-        )
-        IssueActionLog.objects.filter(id=old_entry.id).update(
             date_added=now - timedelta(days=60),
         )
         record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user_new.id)

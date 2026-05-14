@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from django.db.models import Q
+
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.lib import Pipeline
-from sentry.models.groupderiveddata import GroupDerivedData
+from sentry.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.issueactionlog import IssueActionLog
 
 logger = logging.getLogger(__name__)
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Multi-version lifecycle (not yet automated):
 #   1. Old pipeline (version N) is primary and continues processing.
 #   2. New pipeline (version N+1) is deployed. It creates fresh rows
-#      from cursor=0 with primary=False.
+#      with primary=False.
 #   3. A backfill job reprocesses all groups at version N+1.
 #   4. Once a group's N+1 row is caught up, promote_primary() flips
 #      primary to the new row.
@@ -43,7 +45,7 @@ def _ensure_derived(group_id: int, version: int) -> tuple[GroupDerivedData, bool
     derived, created = GroupDerivedData.objects.get_or_create(
         group_id=group_id,
         version=version,
-        defaults={"cursor": 0, "data": {}, "primary": True},
+        defaults={"cursor_date": EPOCH, "cursor_id": 0, "data": {}, "primary": True},
     )
     if created:
         GroupDerivedData.objects.filter(
@@ -51,6 +53,23 @@ def _ensure_derived(group_id: int, version: int) -> tuple[GroupDerivedData, bool
             primary=True,
         ).exclude(id=derived.id).update(primary=False)
     return derived, created
+
+
+def _entries_after_cursor(
+    group_id: int, cursor_date: object, cursor_id: int, batch_size: int
+) -> list[IssueActionLog]:
+    """Fetch the next batch of entries after the given cursor position."""
+    return list(
+        IssueActionLog.objects.filter(
+            Q(group_id=group_id)
+            & (Q(date_added__gt=cursor_date) | Q(date_added=cursor_date, id__gt=cursor_id))
+        ).order_by("date_added", "id")[:batch_size]
+    )
+
+
+def _cursor_lte(cursor_date: object, cursor_id: int) -> Q:
+    """Q expression for (cursor_date, cursor_id) <= (given date, given id)."""
+    return Q(cursor_date__lt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__lte=cursor_id)
 
 
 def _process_batch(
@@ -65,12 +84,7 @@ def _process_batch(
     """
     version = p.version
 
-    entries = list(
-        IssueActionLog.objects.filter(
-            group_id=group_id,
-            id__gt=derived.cursor,
-        ).order_by("id")[:batch_size]
-    )
+    entries = _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, batch_size)
 
     if not entries:
         return False
@@ -79,23 +93,26 @@ def _process_batch(
     for entry in entries:
         state = p.step(state, entry)
 
-    last_id = entries[-1].id
+    last = entries[-1]
+    last_date = last.date_added
+    last_id = last.id
     new_data = p.dump_state(state)
+
     updated = GroupDerivedData.objects.filter(
-        group_id=group_id,
-        version=version,
-        cursor__lte=last_id,
-    ).update(cursor=last_id, data=new_data)
+        Q(group_id=group_id, version=version) & _cursor_lte(last_date, last_id)
+    ).update(cursor_date=last_date, cursor_id=last_id, data=new_data)
 
     if updated:
-        derived.cursor = last_id
+        derived.cursor_date = last_date
+        derived.cursor_id = last_id
         derived.data = new_data
         logger.info(
             "issues.derived.processed",
             extra={
                 "group_id": group_id,
                 "version": version,
-                "cursor": last_id,
+                "cursor_date": str(last_date),
+                "cursor_id": last_id,
                 "batch_size": len(entries),
             },
         )
@@ -107,8 +124,8 @@ def _process_batch(
             extra={
                 "group_id": group_id,
                 "version": version,
-                "our_cursor": last_id,
-                "db_cursor": derived.cursor,
+                "our_cursor_id": last_id,
+                "db_cursor_id": derived.cursor_id,
             },
         )
         return False
