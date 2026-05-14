@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DateString} from 'sentry/types/core';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
@@ -21,11 +20,14 @@ interface MetricsFrozenContextValue {
   tracePeriod?: TracePeriod;
 }
 
-const [_MetricsFrozenContextProvider, _useMetricsFrozenContext, MetricsFrozenContext] =
-  createDefinedContext<MetricsFrozenContextValue>({
-    name: 'MetricsFrozenContext',
-    strict: false,
-  });
+const MetricsFrozenContext = createContext<MetricsFrozenContextValue | undefined>(
+  undefined
+);
+MetricsFrozenContext.displayName = 'MetricsFrozenContext';
+
+function useMetricsFrozenContextValue(): MetricsFrozenContextValue | undefined {
+  return useContext(MetricsFrozenContext);
+}
 
 export interface MetricsFrozenForTracesProviderProps {
   traceIds: string[];
@@ -53,8 +55,8 @@ export function MetricsFrozenContextProvider(props: MetricsFrozenForTracesProvid
 
   return <MetricsFrozenContext value={value}>{props.children}</MetricsFrozenContext>;
 }
-function useMetricsFrozenContext() {
-  return _useMetricsFrozenContext() ?? {};
+function useMetricsFrozenContext(): Partial<MetricsFrozenContextValue> {
+  return useMetricsFrozenContextValue() ?? {};
 }
 
 export function useMetricsFrozenSearch() {

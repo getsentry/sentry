@@ -1,6 +1,5 @@
-import {useMemo} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
@@ -13,11 +12,18 @@ interface LogsPageData {
   infiniteLogsQueryResult: UseInfiniteLogsQueryResult;
 }
 
-const [_LogsPageDataProvider, _useLogsPageData, _ctx] =
-  createDefinedContext<LogsPageData>({
-    name: 'LogsPageDataContext',
-  });
-export const useLogsPageData = _useLogsPageData;
+const LogsPageDataContext = createContext<LogsPageData | undefined>(undefined);
+LogsPageDataContext.displayName = 'LogsPageDataContext';
+
+export function useLogsPageData(): LogsPageData {
+  const context = useContext(LogsPageDataContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "LogsPageDataContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 export function LogsPageDataProvider({
   children,
@@ -43,7 +49,9 @@ export function LogsPageDataProvider({
       infiniteLogsQueryResult,
     };
   }, [infiniteLogsQueryResult]);
-  return <_LogsPageDataProvider value={value}>{children}</_LogsPageDataProvider>;
+  return (
+    <LogsPageDataContext.Provider value={value}>{children}</LogsPageDataContext.Provider>
+  );
 }
 
 export function useLogsPageDataQueryResult() {
