@@ -1,9 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import type {Location} from 'history';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -18,22 +20,26 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {
+  LOGS_AGGREGATE_SORT_BYS_KEY,
+  LOGS_SORT_BYS_KEY,
+} from 'sentry/views/explore/contexts/logs/sortBys';
+import {
+  defaultVisualizes,
+  LOGS_AGGREGATE_FIELD_KEY,
+} from 'sentry/views/explore/logs/logsQueryParams';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {ChartType, isChartType} from 'sentry/views/insights/common/components/chart';
 
-interface AskSeerSearchQuery {
-  end: string | null;
-  groupBys: string[];
-  mode: string;
-  query: string;
-  sort: string;
-  start: string | null;
-  statsPeriod: string;
-}
+export type {AskSeerSearchQuery};
+
+type Visualization = AskSeerSearchQuery['visualizations'][number];
 
 interface LogsAskSeerTranslateResponse {
   responses: Array<{
@@ -44,8 +50,157 @@ interface LogsAskSeerTranslateResponse {
     sort: string;
     start: string | null;
     stats_period: string;
+    visualization?: Array<{
+      chart_type?: number;
+      y_axes?: string[];
+    }>;
   }>;
   unsupported_reason: string | null;
+}
+
+interface LogsSeerLocationQueryResult {
+  groupBys: string[];
+  mode: Mode;
+  query: Location['query'];
+  selection: {
+    datetime: {
+      end: DateString;
+      period: string | null;
+      start: DateString;
+      utc: boolean | null;
+    };
+  };
+  sort: string;
+  visualizes: WritableAggregateField[];
+}
+
+function transformLogsSeerVisualizations(
+  visualization?: LogsAskSeerTranslateResponse['responses'][number]['visualization']
+): Visualization[] {
+  return (
+    visualization
+      ?.map(v => ({
+        chartType: isChartType(v?.chart_type) ? v.chart_type : ChartType.LINE,
+        yAxes: v?.y_axes ?? [],
+      }))
+      .filter(v => v.yAxes.length > 0) ?? []
+  );
+}
+
+function getLogsSeerMode(result: AskSeerSearchQuery): Mode {
+  if ((result.groupBys?.length ?? 0) > 0 || result.mode === 'aggregates') {
+    return Mode.AGGREGATE;
+  }
+  return Mode.SAMPLES;
+}
+
+function getLogsSeerAggregateFields({
+  currentAggregateFields,
+  groupBys,
+  visualizations,
+}: {
+  currentAggregateFields: readonly AggregateField[];
+  groupBys: string[];
+  visualizations: Visualization[];
+}): WritableAggregateField[] {
+  const existingVisualizes = currentAggregateFields
+    .filter(isVisualize)
+    .map(visualize => visualize.serialize());
+  const seerVisualizes = visualizations.map(({chartType, yAxes}) => ({
+    chartType,
+    yAxes,
+  }));
+  const visualizes = seerVisualizes.length
+    ? seerVisualizes
+    : existingVisualizes.length
+      ? existingVisualizes
+      : defaultVisualizes(true).map(visualize => visualize.serialize());
+
+  return [...groupBys.map(groupBy => ({groupBy})), ...visualizes];
+}
+
+export function getLogsSeerLocationQuery({
+  currentAggregateFields,
+  currentLocationQuery,
+  pageDatetime,
+  result,
+}: {
+  currentAggregateFields: readonly AggregateField[];
+  currentLocationQuery: Location['query'];
+  pageDatetime: {
+    end: DateString;
+    period: string | null;
+    start: DateString;
+    utc: boolean | null;
+  };
+  result: AskSeerSearchQuery;
+}): LogsSeerLocationQueryResult {
+  const {
+    query: queryToUse,
+    groupBys,
+    sort,
+    statsPeriod,
+    start: resultStart,
+    end: resultEnd,
+    visualizations,
+  } = result;
+
+  let start: DateString = null;
+  let end: DateString = null;
+
+  if (resultStart && resultEnd) {
+    // Strip 'Z' suffix to treat UTC dates as local time
+    const startLocal = resultStart.endsWith('Z') ? resultStart.slice(0, -1) : resultStart;
+    const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
+    start = new Date(startLocal).toISOString();
+    end = new Date(endLocal).toISOString();
+  } else {
+    start = pageDatetime.start;
+    end = pageDatetime.end;
+  }
+
+  const mode = getLogsSeerMode(result);
+  const selection = {
+    datetime: {
+      start,
+      end,
+      utc: pageDatetime.utc,
+      period: resultStart && resultEnd ? null : statsPeriod || pageDatetime.period,
+    },
+  };
+  const newQuery: Location['query'] = {
+    ...currentLocationQuery,
+    [LOGS_QUERY_KEY]: queryToUse,
+    mode,
+    start: selection.datetime.start?.toString() ?? null,
+    end: selection.datetime.end?.toString() ?? null,
+    statsPeriod: selection.datetime.period,
+    utc: selection.datetime.utc?.toString() ?? null,
+  };
+
+  let visualizes: WritableAggregateField[] = [];
+  if (mode === Mode.AGGREGATE) {
+    visualizes = getLogsSeerAggregateFields({
+      currentAggregateFields,
+      groupBys,
+      visualizations,
+    });
+    newQuery[LOGS_AGGREGATE_FIELD_KEY] = visualizes.map(field => JSON.stringify(field));
+    if (sort) {
+      newQuery[LOGS_AGGREGATE_SORT_BYS_KEY] = [sort];
+    }
+  } else if (sort) {
+    newQuery[LOGS_SORT_BYS_KEY] = [sort];
+  }
+
+  return {
+    query: newQuery,
+    selection,
+    mode,
+    groupBys,
+    visualizes,
+    sort,
+  };
 }
 
 export function LogsTabSeerComboBox() {
@@ -121,6 +276,7 @@ export function LogsTabSeerComboBox() {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
         queries: data.responses.map(r => ({
+          visualizations: transformLogsSeerVisualizations(r?.visualization),
           query: r?.query ?? '',
           sort: r?.sort ?? '',
           groupBys: r?.group_by ?? [],
@@ -136,121 +292,46 @@ export function LogsTabSeerComboBox() {
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery) => {
       if (!result) return;
-      const {
-        query: queryToUse,
-        groupBys,
-        statsPeriod,
-        start: resultStart,
-        end: resultEnd,
-      } = result;
+      const locationQuery = getLogsSeerLocationQuery({
+        result,
+        currentLocationQuery: location.query,
+        currentAggregateFields: queryParams.aggregateFields,
+        pageDatetime: {
+          start: pageFilters.selection.datetime.start,
+          end: pageFilters.selection.datetime.end,
+          period: pageFilters.selection.datetime.period,
+          utc: pageFilters.selection.datetime.utc,
+        },
+      });
 
-      let start: DateString = null;
-      let end: DateString = null;
-
-      if (resultStart && resultEnd) {
-        // Strip 'Z' suffix to treat UTC dates as local time
-        const startLocal = resultStart.endsWith('Z')
-          ? resultStart.slice(0, -1)
-          : resultStart;
-        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
-        start = new Date(startLocal).toISOString();
-        end = new Date(endLocal).toISOString();
-      } else {
-        start = pageFilters.selection.datetime.start;
-        end = pageFilters.selection.datetime.end;
-      }
-
-      // Update mode based on groupBys or response mode (matches Trace Explorer logic)
-      const mode =
-        groupBys.length > 0
-          ? Mode.AGGREGATE
-          : result.mode === 'aggregates'
-            ? Mode.AGGREGATE
-            : Mode.SAMPLES;
-
-      // Build aggregateFields array (similar to useSetQueryParamsGroupBys logic)
-      // This combines groupBys with existing visualizations
-      let seenVisualizes = false;
-      let groupByAfterVisualizes = false;
-
-      for (const aggregateField of queryParams.aggregateFields) {
-        if (isGroupBy(aggregateField) && seenVisualizes) {
-          groupByAfterVisualizes = true;
-          break;
-        } else if (isVisualize(aggregateField)) {
-          seenVisualizes = true;
-        }
-      }
-
-      const aggregateFields: WritableAggregateField[] = [];
-      const iter = groupBys[Symbol.iterator]();
-
-      for (const aggregateField of queryParams.aggregateFields) {
-        if (isVisualize(aggregateField)) {
-          if (!groupByAfterVisualizes) {
-            // Insert group bys before visualizes
-            for (const groupBy of iter) {
-              aggregateFields.push({groupBy});
-            }
-          }
-          aggregateFields.push(aggregateField.serialize());
-        } else if (isGroupBy(aggregateField)) {
-          const {value: groupBy, done} = iter.next();
-          if (!done) {
-            aggregateFields.push({groupBy});
-          }
-        }
-      }
-
-      // Add any remaining group bys
-      for (const groupBy of iter) {
-        aggregateFields.push({groupBy});
-      }
-
-      // Build datetime selection similar to Trace Explorer
       const selection = {
         ...pageFilters.selection,
-        datetime: {
-          start,
-          end,
-          utc: pageFilters.selection.datetime.utc,
-          period:
-            resultStart && resultEnd
-              ? null
-              : statsPeriod || pageFilters.selection.datetime.period,
-        },
-      };
-
-      // Build complete URL with all params (query, mode, aggregateFields, datetime)
-      // This matches the Trace Explorer pattern of single navigation
-      const newQuery = {
-        ...location.query,
-        [LOGS_QUERY_KEY]: queryToUse,
-        mode,
-        [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
-        // Datetime params from selection
-        start: selection.datetime.start,
-        end: selection.datetime.end,
-        statsPeriod: selection.datetime.period,
-        utc: selection.datetime.utc,
+        datetime: locationQuery.selection.datetime,
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
-        query: queryToUse,
-        groupBys,
-        mode,
+        query: result.query,
+        visualize: locationQuery.visualizes,
+        groupBys: locationQuery.groupBys,
+        sort: locationQuery.sort,
+        mode: locationQuery.mode,
       });
+      const visualizeCount = result.visualizations?.length ?? 0;
 
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
-        query: queryToUse,
-        group_by_count: groupBys.length,
+        query: result.query,
+        group_by_count: locationQuery.groupBys.length,
+        visualize_count: visualizeCount,
       });
 
       // Single navigation with all params (matches Trace Explorer pattern)
-      navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
+      navigate(
+        {...location, query: locationQuery.query},
+        {replace: true, preventScrollReset: true}
+      );
     },
     [
       analyticsArea,
@@ -286,11 +367,16 @@ export function LogsTabSeerComboBox() {
           sort: string;
           start: string | null;
           stats_period: string;
+          visualization?: Array<{
+            chart_type?: number;
+            y_axes?: string[];
+          }>;
         }>;
       };
 
       if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
         return seerResponse.responses.map(r => ({
+          visualizations: transformLogsSeerVisualizations(r?.visualization),
           query: r?.query ?? '',
           sort: r?.sort ?? '',
           groupBys: r?.group_by ?? [],
