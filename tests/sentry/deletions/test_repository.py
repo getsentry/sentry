@@ -126,6 +126,8 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         path_config = RepositoryProjectPathConfig.objects.create(
+            project=project,
+            repository=repo,
             stack_root="",
             source_root="src/packages/store",
             default_branch="main",

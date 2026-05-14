@@ -106,6 +106,8 @@ class BaseDeriveCodeMappings(TestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            repository=repository,
             stack_root=stack_root,
             source_root=source_root,
             default_branch=default_branch,

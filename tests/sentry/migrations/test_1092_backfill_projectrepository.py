@@ -59,6 +59,8 @@ class BackfillProjectRepositoryTest(TestMigrations):
             source=ProjectRepositorySource.AUTO_EVENT,
         )
         RepositoryProjectPathConfig.objects.create(
+            project=self.proj,
+            repository=self.repo_a,
             organization_integration_id=self.oi.id,
             organization_id=self.org.id,
             integration_id=self.integration.id,
@@ -75,6 +77,8 @@ class BackfillProjectRepositoryTest(TestMigrations):
             source=ProjectRepositorySource.MANUAL,
         )
         RepositoryProjectPathConfig.objects.create(
+            project=self.proj,
+            repository=self.repo_b,
             organization_integration_id=self.oi.id,
             organization_id=self.org.id,
             integration_id=self.integration.id,
@@ -90,7 +94,12 @@ class BackfillProjectRepositoryTest(TestMigrations):
             repository=self.repo_c,
             source=ProjectRepositorySource.SEER_PREFERENCE,
         )
-        SeerProjectRepository.objects.create(project_repository=pr_c, branch_name="main")
+        SeerProjectRepository.objects.create(
+            project=self.proj,
+            repository=self.repo_c,
+            project_repository=pr_c,
+            branch_name="main",
+        )
 
         # Case 4: Both manual code mapping AND Seer preference for same
         # (project, repo) → SEER_PREFERENCE wins (higher priority).
@@ -100,6 +109,8 @@ class BackfillProjectRepositoryTest(TestMigrations):
             source=ProjectRepositorySource.SEER_PREFERENCE,
         )
         RepositoryProjectPathConfig.objects.create(
+            project=self.proj,
+            repository=self.repo_d,
             organization_integration_id=self.oi.id,
             organization_id=self.org.id,
             integration_id=self.integration.id,
@@ -108,7 +119,12 @@ class BackfillProjectRepositoryTest(TestMigrations):
             automatically_generated=False,
             project_repository=pr_d,
         )
-        SeerProjectRepository.objects.create(project_repository=pr_d, branch_name="develop")
+        SeerProjectRepository.objects.create(
+            project=self.proj,
+            repository=self.repo_d,
+            project_repository=pr_d,
+            branch_name="develop",
+        )
 
         # Case 5: Dual-write already created a ProjectRepository row.
         # The migration should not duplicate it, and should still backfill
@@ -119,6 +135,8 @@ class BackfillProjectRepositoryTest(TestMigrations):
             source=ProjectRepositorySource.MANUAL,
         )
         RepositoryProjectPathConfig.objects.create(
+            project=self.proj,
+            repository=self.repo_e,
             organization_integration_id=self.oi.id,
             organization_id=self.org.id,
             integration_id=self.integration.id,

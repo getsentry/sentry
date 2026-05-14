@@ -39,6 +39,8 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         self.code_mapping = RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            repository=self.repo,
             organization_id=self.organization.id,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
@@ -153,6 +155,8 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            repository=myproject_repo,
             organization_id=self.organization.id,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
@@ -216,6 +220,8 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping_web = RepositoryProjectPathConfig.objects.create(
+            project=project_web,
+            repository=repo_web,
             organization_id=self.organization.id,
             organization_integration_id=org_integration.id,
             integration_id=integration_with_web.id,
@@ -290,6 +296,8 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         other_mapping = RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            repository=other_repo,
             organization_id=self.organization.id,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
@@ -339,6 +347,8 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
+            project=project2,
+            repository=myproject_repo,
             organization_id=self.organization.id,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
@@ -418,6 +428,8 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            repository=repo,
             organization_id=self.organization.id,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
@@ -462,6 +474,8 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            repository=repo,
             organization_id=self.organization.id,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
@@ -507,6 +521,8 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            repository=repo,
             organization_id=self.organization.id,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
