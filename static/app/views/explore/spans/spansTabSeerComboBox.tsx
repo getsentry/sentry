@@ -77,7 +77,7 @@ export function SpansTabSeerComboBox() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
-  const {setRunId: setRunId} = useAiQueryContext();
+  const {setRunId} = useAiQueryContext();
   const {
     currentInputValueRef,
     query,

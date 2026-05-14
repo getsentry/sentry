@@ -134,7 +134,6 @@ function useTrackAnalytics({
     const dataScanned = aggregatesTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
     const aiQueryRunId = getRunIdForAnalytics();
-    const resultLength = aggregatesTableResult.result.data?.length || 0;
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -144,7 +143,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: resultLength,
+      result_length: aggregatesTableResult.result.data?.length ?? 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -171,7 +170,7 @@ function useTrackAnalytics({
         mode: Mode.AGGREGATE,
         orgSlug: organization.slug,
         referrer: 'spans',
-        resultCount: resultLength,
+        resultCount: aggregatesTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
       });
     }
@@ -245,7 +244,6 @@ function useTrackAnalytics({
     const dataScanned = spansTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
     const aiQueryRunId = getRunIdForAnalytics();
-    const resultLength = spansTableResult.result.data?.length || 0;
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -255,7 +253,7 @@ function useTrackAnalytics({
       columns: fields,
       columns_count: fields.length,
       query_status,
-      result_length: resultLength,
+      result_length: spansTableResult.result.data?.length ?? 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -304,7 +302,7 @@ function useTrackAnalytics({
         mode: Mode.SAMPLES,
         orgSlug: organization.slug,
         referrer: 'spans',
-        resultCount: resultLength,
+        resultCount: spansTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
       });
     }
@@ -455,7 +453,6 @@ function useTrackAnalytics({
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
     const aiQueryRunId = getRunIdForAnalytics();
-    const resultLength = tracesTableResult.result.data?.json?.data?.length || 0;
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -465,7 +462,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: resultLength,
+      result_length: tracesTableResult.result.data?.json?.data?.length ?? 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -488,11 +485,11 @@ function useTrackAnalytics({
 
     if (aiQueryRunId !== null) {
       trackAiQueryOutcome({
-        dataset: 'spans', // TODO;
+        dataset: 'spans',
         mode: Mode.SAMPLES,
         orgSlug: organization.slug,
-        referrer: 'spans',
-        resultCount: resultLength,
+        referrer: 'traces',
+        resultCount: tracesTableResult.result.data?.json?.data?.length ?? 0,
         runId: aiQueryRunId,
       });
     }
@@ -699,7 +696,6 @@ export function useLogAnalytics({
       return;
     }
 
-    // Only track AI query analytics if the runId has changed since the last pageload.
     const aiQueryRunId = getRunIdForAnalytics();
 
     trackAnalytics('logs.explorer.metadata', {

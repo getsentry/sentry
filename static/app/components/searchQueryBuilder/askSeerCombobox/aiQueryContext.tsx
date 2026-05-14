@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {createContext, useContext, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
 
 interface AiQueryContextValue {
   /**
@@ -33,14 +33,12 @@ export function AiQueryProvider({children}: {children: ReactNode}) {
     return runId;
   };
 
-  // Stable callback using useRef.
-  const getRunIdForAnalytics = () => getRunIdForAnalyticsBox.current();
+  // Stable callback that dispatches to the latest closure via ref.
+  const getRunIdForAnalytics = useCallback(() => getRunIdForAnalyticsBox.current(), []);
 
-  return (
-    <AiQueryContext.Provider value={{getRunIdForAnalytics, setRunId}}>
-      {children}
-    </AiQueryContext.Provider>
-  );
+  const value = useMemo(() => ({getRunIdForAnalytics, setRunId}), [getRunIdForAnalytics]);
+
+  return <AiQueryContext.Provider value={value}>{children}</AiQueryContext.Provider>;
 }
 
 export function useAiQueryContext() {

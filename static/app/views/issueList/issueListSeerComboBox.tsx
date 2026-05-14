@@ -48,7 +48,7 @@ export function IssueListSeerComboBox() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const {setRunId: setRunId} = useAiQueryContext();
+  const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
