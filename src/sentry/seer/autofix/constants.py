@@ -50,7 +50,6 @@ class AutofixStatus(str, enum.Enum):
 class AutofixReferrer(enum.StrEnum):
     GROUP_AUTOFIX_ENDPOINT = "api.group_ai_autofix"
     ISSUE_SUMMARY_FIXABILITY = "issue_summary.fixability"
-    ISSUE_SUMMARY_ALERT_FIXABILITY = "issue_summary.alert_fixability"
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
@@ -64,6 +63,5 @@ class AutofixReferrer(enum.StrEnum):
 
 class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
-    ALERT = "alert"
     POST_PROCESS = "post_process"
     NIGHT_SHIFT = "night_shift"
