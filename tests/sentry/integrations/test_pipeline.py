@@ -4,7 +4,6 @@ from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
-from django.db import router
 from django.http.response import HttpResponse
 
 from sentry.constants import ObjectStatus
@@ -14,7 +13,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.repository import Repository
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -23,17 +21,13 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.pipeline.types import PipelineStepAction
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
-from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
-from sentry.silo.safety import unguarded_write
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.cell import Cell, RegionCategory
 from sentry.users.models.identity import Identity
 from sentry.workflow_engine.models.action import Action
 
@@ -53,10 +47,6 @@ def naive_build_integration(data):
 )
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
-    cells = (
-        Cell("na", 0, "North America", RegionCategory.MULTI_TENANT),
-        Cell("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
-    )
     external_id = "dummy_id-123"
 
     @pytest.fixture(autouse=True)
@@ -70,28 +60,8 @@ class FinishPipelineTestCase(IntegrationTestCase):
         with patch.multiple(
             self.provider,
             needs_default_identity=False,
-            is_cell_restricted=False,
         ):
             yield
-
-    def _setup_cell_restriction(self):
-        setattr(self.provider, "is_cell_restricted", True)
-        na_orgs = [
-            self.create_organization(name="na_org"),
-            self.create_organization(name="na_org_2"),
-        ]
-        integration = self.create_provider_integration(
-            name="test", external_id=self.external_id, provider=self.provider.key
-        )
-        with (
-            receivers_raise_on_send(),
-            outbox_runner(),
-            unguarded_write(using=router.db_for_write(OrganizationMapping)),
-        ):
-            for org in na_orgs:
-                integration.add_organization(org)
-                mapping = OrganizationMapping.objects.get(organization_id=org.id)
-                mapping.update(cell_name="na")
 
     def test_with_data(self, *args) -> None:
         data = {
@@ -140,47 +110,6 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert OrganizationIntegration.objects.filter(
                 organization_id=self.organization.id, integration_id=integration.id
             ).exists()
-
-    @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_cell_restriction_success(self, *args) -> None:
-        """Ensures pipeline can complete if all integration organizations reside in one cell."""
-        self._setup_cell_restriction()
-
-        # Installing organization is from the same cell
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(cell_name="na")
-
-        self.pipeline.state.data = {"external_id": self.external_id}
-        with (
-            override_cells(self.cells),
-            patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
-        ):
-            self.pipeline.finish_pipeline()
-            _data, success = resp.call_args[0]
-            assert success
-
-    @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_cell_restriction_failure(self, *args) -> None:
-        """Ensures pipeline can produces an error if all integration organizations do not reside in one cell."""
-        self._setup_cell_restriction()
-
-        # Installing organization is from a different cell
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(cell_name="eu")
-
-        self.pipeline.state.data = {"external_id": self.external_id}
-        with override_cells(self.cells):
-            response = self.pipeline.finish_pipeline()
-            assert isinstance(response, HttpResponse)
-            error_message = "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
-            if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                assert error_message not in response.content.decode()
-            else:
-                assert error_message in response.content.decode()
 
     def test_aliased_integration_key(self, *args) -> None:
         self.provider = AliasedIntegrationProvider
@@ -682,10 +611,6 @@ class FinishPipelineTestCase(IntegrationTestCase):
 )
 class ApiFinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
-    cells = (
-        Cell("na", 0, "North America", RegionCategory.MULTI_TENANT),
-        Cell("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
-    )
     external_id = "dummy_id-123"
 
     @pytest.fixture(autouse=True)
@@ -699,28 +624,8 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
         with patch.multiple(
             self.provider,
             needs_default_identity=False,
-            is_cell_restricted=False,
         ):
             yield
-
-    def _setup_cell_restriction(self):
-        setattr(self.provider, "is_cell_restricted", True)
-        na_orgs = [
-            self.create_organization(name="na_org"),
-            self.create_organization(name="na_org_2"),
-        ]
-        integration = self.create_provider_integration(
-            name="test", external_id=self.external_id, provider=self.provider.key
-        )
-        with (
-            receivers_raise_on_send(),
-            outbox_runner(),
-            unguarded_write(using=router.db_for_write(OrganizationMapping)),
-        ):
-            for org in na_orgs:
-                integration.add_organization(org)
-                mapping = OrganizationMapping.objects.get(organization_id=org.id)
-                mapping.update(cell_name="na")
 
     def test_api_finish_pipeline_success(self, *args) -> None:
         data = {
@@ -827,36 +732,6 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
             result.data["detail"]
             == "You must be an organization owner, manager or admin to install this integration."
         )
-
-    @patch("sentry.signals.integration_added.send_robust")
-    def test_api_finish_pipeline_cell_restriction_failure(self, *args) -> None:
-        self._setup_cell_restriction()
-
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(cell_name="eu")
-
-        self.pipeline.state.data = {"external_id": self.external_id}
-        with override_cells(self.cells):
-            result = self.pipeline.api_finish_pipeline()
-            assert result.action == PipelineStepAction.ERROR
-            assert (
-                result.data["detail"]
-                == "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
-            )
-
-    @patch("sentry.signals.integration_added.send_robust")
-    def test_api_finish_pipeline_cell_restriction_success(self, *args) -> None:
-        self._setup_cell_restriction()
-
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(cell_name="na")
-
-        self.pipeline.state.data = {"external_id": self.external_id}
-        with override_cells(self.cells):
-            result = self.pipeline.api_finish_pipeline()
-            assert result.action == PipelineStepAction.COMPLETE
 
     def test_api_finish_pipeline_identity_conflict(self, *args) -> None:
         self.provider.needs_default_identity = True

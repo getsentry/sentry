@@ -213,6 +213,9 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
   const needle = query[key];
   const collection = decodeList(needle);
   return collection.reduce((acc: string[], item: string) => {
+    if (typeof item !== 'string') {
+      return acc;
+    }
     item = item.trim();
 
     if (item.length > 0) {

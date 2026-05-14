@@ -10,7 +10,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   formatStoreCrashReports,
@@ -66,8 +66,8 @@ export function StoreCrashReportsConfig({
       schema={schema}
       initialValue={project.storeCrashReports}
       mutationOptions={{
-        mutationFn: (data: Partial<Project>) =>
-          fetchMutation<Project>({
+        mutationFn: (data: Partial<DetailedProject>) =>
+          fetchMutation<DetailedProject>({
             method: 'PUT',
             url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
               path: {

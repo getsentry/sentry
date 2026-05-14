@@ -274,6 +274,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     groupBys: groupBys.filter(g => g !== ''),
     visualizes: visualizes.map(v => v.yAxis),
+    currentSelectedDateRange: pageFilters.selection.datetime,
   });
 
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(

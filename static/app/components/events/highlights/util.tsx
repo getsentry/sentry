@@ -14,11 +14,11 @@ import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
-export type HighlightTags = Required<Project>['highlightTags'];
-export type HighlightContext = Required<Project>['highlightContext'];
+export type HighlightTags = Required<DetailedProject>['highlightTags'];
+export type HighlightContext = Required<DetailedProject>['highlightContext'];
 
 interface ContextData extends ContextItem {
   data: KeyValueListData;

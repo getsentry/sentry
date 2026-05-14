@@ -1200,13 +1200,6 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    @property
-    def is_cell_restricted(self) -> bool:
-        # TODO(cells): Remove this option and property once multi-cell rollout is complete.
-        from sentry import options
-
-        return not options.get("integrations.jira.multi-cell-enabled")
-
     features = frozenset(
         [
             IntegrationFeatures.ISSUE_BASIC,

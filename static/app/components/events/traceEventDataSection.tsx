@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -543,17 +543,15 @@ function InlineThreadSection({
   title: React.ReactNode;
 }) {
   return (
-    <Wrapper>
+    <Container>
       <Flex justify="between" align="center" marginBottom="md">
         <ThreadHeading>{title}</ThreadHeading>
         {actions}
       </Flex>
       {children}
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};

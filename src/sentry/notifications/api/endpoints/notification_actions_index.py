@@ -39,7 +39,7 @@ class NotificationActionsPermission(OrganizationPermission):
 
 
 @cell_silo_endpoint
-@extend_schema(tags=["Alerts"])
+@extend_schema(tags=["Spike Protection"])
 class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {

@@ -324,7 +324,7 @@ def _errors_query(
 def _run_errors_query(
     errors_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-):
+) -> list[dict[str, Any]]:
     result = errors_query.run_query(referrer)
     error_data = errors_query.process_results(result)["data"]
     for event in error_data:
@@ -551,7 +551,7 @@ def _serialize_columnar_uptime_item(
     region_config = get_region_config(row_dict["region"].val_str)
     region_name = region_config.name if region_config else "Unknown"
 
-    def get_value(attr_name: str, attr_value: AttributeValue):
+    def get_value(attr_name: str, attr_value: AttributeValue) -> int | str | float | bool | None:
         if attr_value.is_null:
             return None
         resolved_column = columns_by_name[attr_name]

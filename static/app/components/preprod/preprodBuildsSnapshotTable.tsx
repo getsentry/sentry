@@ -31,36 +31,11 @@ interface PreprodBuildsSnapshotTableProps {
 function ApprovalBadge({
   comparisonState,
   approvalStatus,
+  errorMessage,
 }: {
   approvalStatus: SnapshotApprovalStatus | null | undefined;
   comparisonState: SnapshotComparisonState | null | undefined;
-}) {
-  if (!comparisonState || comparisonState !== 'success') {
-    return <Text variant="muted">{'–'}</Text>;
-  }
-  if (approvalStatus === 'approved') {
-    return <Tag variant="success">{t('Approved')}</Tag>;
-  }
-  if (approvalStatus === 'requires_approval') {
-    return <Tag variant="warning">{t('Needs Approval')}</Tag>;
-  }
-  return <Text variant="muted">{'–'}</Text>;
-}
-
-function ChangeCounts({
-  added,
-  removed,
-  changed,
-  unchanged,
-  comparisonState,
-  errorMessage,
-}: {
-  added: number;
-  changed: number;
-  comparisonState: SnapshotComparisonState | null | undefined;
   errorMessage: string | null | undefined;
-  removed: number;
-  unchanged: number;
 }) {
   if (!comparisonState) {
     return <Tag variant="info">{t('Base')}</Tag>;
@@ -96,6 +71,34 @@ function ChangeCounts({
         <Tag variant="danger">{t('Failed')}</Tag>
       </Tooltip>
     );
+  }
+  if (approvalStatus === 'approved') {
+    return <Tag variant="success">{t('Approved')}</Tag>;
+  }
+  if (approvalStatus === 'auto_approved') {
+    return <Tag variant="success">{t('Auto Approved')}</Tag>;
+  }
+  if (approvalStatus === 'requires_approval') {
+    return <Tag variant="warning">{t('Needs Approval')}</Tag>;
+  }
+  return <Text variant="muted">{'–'}</Text>;
+}
+
+function ChangeCounts({
+  added,
+  removed,
+  changed,
+  unchanged,
+  comparisonState,
+}: {
+  added: number;
+  changed: number;
+  comparisonState: SnapshotComparisonState | null | undefined;
+  removed: number;
+  unchanged: number;
+}) {
+  if (comparisonState !== 'success') {
+    return <Text variant="muted">{'–'}</Text>;
   }
   if (added === 0 && removed === 0 && changed === 0) {
     return (
@@ -156,13 +159,19 @@ export function PreprodBuildsSnapshotTable({
             </SimpleTable.RowCell>
           )}
           <SimpleTable.RowCell>
+            <ApprovalBadge
+              comparisonState={info?.comparison_state}
+              approvalStatus={info?.approval_status}
+              errorMessage={info?.comparison_error_message}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
             <ChangeCounts
               added={info?.images_added ?? 0}
               removed={info?.images_removed ?? 0}
               changed={info?.images_changed ?? 0}
               unchanged={info?.images_unchanged ?? 0}
               comparisonState={info?.comparison_state}
-              errorMessage={info?.comparison_error_message}
             />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="start">
@@ -188,12 +197,6 @@ export function PreprodBuildsSnapshotTable({
             </Flex>
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
-            <ApprovalBadge
-              comparisonState={info?.comparison_state}
-              approvalStatus={info?.approval_status}
-            />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell>
             {build.app_info?.date_added ? (
               <TimeSince date={build.app_info.date_added} unitStyle="short" />
             ) : (
@@ -212,9 +215,9 @@ export function PreprodBuildsSnapshotTable({
         {showProjectColumn && (
           <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
         )}
+        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Changes')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Branch')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Approval')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {content ?? rows}
@@ -223,10 +226,10 @@ export function PreprodBuildsSnapshotTable({
 }
 
 const snapshotTableColumns = {
-  withProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(100px, 1fr) minmax(80px, 120px)`,
-  withoutProject: `minmax(200px, 2fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(100px, 1fr) minmax(80px, 120px)`,
+  withProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 140px)
+    minmax(180px, 2fr) minmax(80px, 120px)`,
+  withoutProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
+    minmax(180px, 2fr) minmax(80px, 120px)`,
 };
 
 const BuildsSnapshotTable = styled(SimpleTable)<{showProjectColumn?: boolean}>`
