@@ -20,7 +20,6 @@ export interface MetricsEnhancedPerformanceDataContext {
 const MEPDataContext = createContext<MetricsEnhancedPerformanceDataContext | undefined>(
   undefined
 );
-MEPDataContext.displayName = 'MetricsEnhancedPerformanceDataContext';
 
 export function useMEPDataContext(): MetricsEnhancedPerformanceDataContext {
   const context = useContext(MEPDataContext);
@@ -80,7 +79,6 @@ interface PerformanceDataMultipleMetaContext {
 const MetricsResultsMetaContext = createContext<
   PerformanceDataMultipleMetaContext | undefined
 >(undefined);
-MetricsResultsMetaContext.displayName = 'PerformanceDataMultipleMetaContext';
 
 export function useMetricsResultsMeta(): PerformanceDataMultipleMetaContext | undefined {
   return useContext(MetricsResultsMetaContext);

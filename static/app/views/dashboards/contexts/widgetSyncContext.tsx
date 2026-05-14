@@ -14,7 +14,6 @@ interface WidgetSyncContext {
 }
 
 const WidgetSyncCtx = createContext<WidgetSyncContext | undefined>(undefined);
-WidgetSyncCtx.displayName = 'WidgetSyncContext';
 
 interface WidgetSyncContextProviderProps {
   children: ReactNode;

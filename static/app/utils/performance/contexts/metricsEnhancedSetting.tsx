@@ -22,7 +22,6 @@ export interface MetricsEnhancedSettingContext {
 const MEPSettingContext = createContext<MetricsEnhancedSettingContext | undefined>(
   undefined
 );
-MEPSettingContext.displayName = 'MetricsEnhancedSettingContext';
 
 export function useMEPSettingContext(): MetricsEnhancedSettingContext {
   const context = useContext(MEPSettingContext);

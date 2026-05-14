@@ -24,7 +24,6 @@ export interface OnDemandControlContext {
 const OnDemandControlContext = createContext<OnDemandControlContext | undefined>(
   undefined
 );
-OnDemandControlContext.displayName = 'OnDemandControlContext';
 
 export function useOnDemandControl(): OnDemandControlContext | undefined {
   return useContext(OnDemandControlContext);

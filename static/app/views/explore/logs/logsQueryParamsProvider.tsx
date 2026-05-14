@@ -14,7 +14,6 @@ import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readabl
 const LogsAnalyticsPageSourceContext = createContext<LogsAnalyticsPageSource | undefined>(
   undefined
 );
-LogsAnalyticsPageSourceContext.displayName = 'LogsAnalyticsPageSourceContext';
 
 export function useLogsAnalyticsPageSource(): LogsAnalyticsPageSource {
   const context = useContext(LogsAnalyticsPageSourceContext);

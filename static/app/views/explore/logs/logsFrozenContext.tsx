@@ -17,7 +17,6 @@ interface LogsFrozenContextValue {
 }
 
 const LogsFrozenContext = createContext<LogsFrozenContextValue | undefined>(undefined);
-LogsFrozenContext.displayName = 'LogsFrozenContext';
 
 interface LogsFrozenForTracesProviderProps {
   traceIds: string[];

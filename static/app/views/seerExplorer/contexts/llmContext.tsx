@@ -19,7 +19,6 @@ import type {
 // Internal context — holds the registry operations (registerNode, etc.)
 
 const LLMInternalContext = createContext<LLMContextInternalValue | undefined>(undefined);
-LLMInternalContext.displayName = 'LLMContext';
 
 /**
  * Hook for internal use by registerLLMContext and useLLMContext to access

@@ -39,7 +39,6 @@ interface QueryParamsContextValue {
 }
 
 const QueryParamsContext = createContext<QueryParamsContextValue | undefined>(undefined);
-QueryParamsContext.displayName = 'QueryParamsContext';
 
 function useQueryParamsContext(): QueryParamsContextValue {
   const context = useContext(QueryParamsContext);

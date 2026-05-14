@@ -13,7 +13,6 @@ interface LogsPageData {
 }
 
 const LogsPageDataContext = createContext<LogsPageData | undefined>(undefined);
-LogsPageDataContext.displayName = 'LogsPageDataContext';
 
 export function useLogsPageData(): LogsPageData {
   const context = useContext(LogsPageDataContext);

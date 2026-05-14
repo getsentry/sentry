@@ -32,7 +32,6 @@ type MergedMetricsData = MetricsCompatibilityData & MetricsCompatibilitySumData;
 const MetricsCardinalityCtx = createContext<MetricsCardinalityContext | undefined>(
   undefined
 );
-MetricsCardinalityCtx.displayName = 'MetricsCardinalityContext';
 
 /**
  * This provider determines whether the metrics data is storing performance information correctly before we

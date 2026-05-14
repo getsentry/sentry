@@ -33,7 +33,6 @@ interface TraceMetricContextValue {
 }
 
 const TraceMetricContext = createContext<TraceMetricContextValue | undefined>(undefined);
-TraceMetricContext.displayName = 'TraceMetricContext';
 
 function useTraceMetricContext(): TraceMetricContextValue {
   const context = useContext(TraceMetricContext);

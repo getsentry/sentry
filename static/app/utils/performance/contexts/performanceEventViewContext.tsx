@@ -9,6 +9,5 @@ type UsePerformanceEventViewContext = {
 export const PerformanceEventViewContext = createContext<
   UsePerformanceEventViewContext | undefined
 >(undefined);
-PerformanceEventViewContext.displayName = 'PerformanceEventViewContext';
 
 export const PerformanceEventViewProvider = PerformanceEventViewContext.Provider;

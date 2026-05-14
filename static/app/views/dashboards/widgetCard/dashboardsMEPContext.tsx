@@ -9,7 +9,6 @@ interface DashboardsMEPContextInterface {
 const DashboardsMEPContext = createContext<DashboardsMEPContextInterface | undefined>(
   undefined
 );
-DashboardsMEPContext.displayName = 'DashboardsMEPContext';
 
 function useDashboardsMEPContext(): DashboardsMEPContextInterface {
   const context = useContext(DashboardsMEPContext);

@@ -35,7 +35,6 @@ function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
 const MultiMetricsQueryParamsContext = createContext<
   MetricQueriesControllerValue | undefined
 >(undefined);
-MultiMetricsQueryParamsContext.displayName = 'QueryParamsContext';
 
 function useMultiMetricsQueryParamsContext(): MetricQueriesControllerValue {
   const context = useContext(MultiMetricsQueryParamsContext);

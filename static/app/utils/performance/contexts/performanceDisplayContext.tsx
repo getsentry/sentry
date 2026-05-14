@@ -9,7 +9,6 @@ type UseCurrentPerformanceView = {
 const PerformanceDisplayContext = createContext<UseCurrentPerformanceView | undefined>(
   undefined
 );
-PerformanceDisplayContext.displayName = 'CurrentPerformanceViewContext';
 
 export const PerformanceDisplayProvider = PerformanceDisplayContext.Provider;
 

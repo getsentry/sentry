@@ -39,7 +39,6 @@ interface LogsAutoRefreshContextValue {
 const LogsAutoRefreshContext = createContext<LogsAutoRefreshContextValue | undefined>(
   undefined
 );
-LogsAutoRefreshContext.displayName = 'LogsAutoRefreshContext';
 
 export function useLogsAutoRefresh(): LogsAutoRefreshContextValue {
   const context = useContext(LogsAutoRefreshContext);

@@ -23,7 +23,6 @@ interface MetricsFrozenContextValue {
 const MetricsFrozenContext = createContext<MetricsFrozenContextValue | undefined>(
   undefined
 );
-MetricsFrozenContext.displayName = 'MetricsFrozenContext';
 
 export interface MetricsFrozenForTracesProviderProps {
   traceIds: string[];
