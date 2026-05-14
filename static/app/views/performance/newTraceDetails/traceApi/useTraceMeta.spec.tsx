@@ -219,6 +219,57 @@ describe('useTraceMeta', () => {
     });
   });
 
+  it('EAP - accepts trace meta without transactionsCount', async () => {
+    const org = OrganizationFixture({
+      features: ['trace-spans-format'],
+    });
+    const trace = {traceSlug: 'slug-without-transactions-count', timestamp: 1};
+
+    jest.mocked(useSyncedLocalStorageState).mockReturnValue(['eap', jest.fn()]);
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug-without-transactions-count/',
+      body: {
+        errorsCount: 0,
+        logsCount: 5,
+        metricsCount: 1,
+        performanceIssuesCount: 0,
+        spansCount: 529,
+        transactionChildCountMap: [
+          {'transaction.event_id': '2b6107aa9d5f49c7a100babc02e903a0', 'count()': 62},
+          {'transaction.event_id': null, 'count()': 1},
+        ],
+        spansCountMap: {
+          processor: 113,
+        },
+        uptimeCount: 0,
+      },
+    });
+
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization: org,
+      initialProps: [trace],
+    });
+
+    await waitFor(() => expect(result.current.status === 'success').toBe(true));
+
+    expect(result.current.data).toEqual({
+      errorsCount: 0,
+      logsCount: 5,
+      metricsCount: 1,
+      performanceIssuesCount: 0,
+      spansCount: 529,
+      spansCountMap: {
+        processor: 113,
+      },
+      transactionChildCountMap: {
+        '2b6107aa9d5f49c7a100babc02e903a0': 62,
+      },
+      uptimeCount: 0,
+    });
+  });
+
   it('Collects errors from rejected api calls', async () => {
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
