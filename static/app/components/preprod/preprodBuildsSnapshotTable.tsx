@@ -53,11 +53,7 @@ function ApprovalBadge({
   }
   if (comparisonState === 'no_base_build') {
     return (
-      <Tooltip
-        title={t(
-          'No base snapshot was found for comparison. Ensure a build exists for the base commit.'
-        )}
-      >
+      <Tooltip title={t('No base snapshot was found for comparison.')}>
         <Tag variant="danger">{t('No base build')}</Tag>
       </Tooltip>
     );
