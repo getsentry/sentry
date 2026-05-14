@@ -74,7 +74,13 @@ describe('StreamlinedActivitySection', () => {
     const commentInput = screen.getByPlaceholderText('Add a comment…');
     expect(commentInput).toBeInTheDocument();
 
-    const submitButton = screen.getByRole('button', {name: 'Comment'});
+    expect(
+      screen.queryByRole('button', {name: 'Submit comment'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(commentInput);
+
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
     expect(submitButton).toBeInTheDocument();
 
     expect(submitButton).toBeDisabled();
@@ -210,7 +216,7 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
     await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     expect(editMock).toHaveBeenCalledTimes(1);
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');

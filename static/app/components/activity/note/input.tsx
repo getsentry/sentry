@@ -283,7 +283,7 @@ const EditorSurface = styled('div')`
 const NoteInputModeHeader = styled('div')`
   display: flex;
   align-items: flex-end;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space['2xs']};
 `;
 
 const NoteInputPanel = styled('div')`

@@ -53,6 +53,7 @@ function TimelineItem({
   group,
   teams,
   isDrawer,
+  useSimpleInput,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
@@ -60,6 +61,7 @@ function TimelineItem({
   item: GroupActivity;
   teams: Team[];
   isDrawer?: boolean;
+  useSimpleInput?: boolean;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -112,6 +114,8 @@ function TimelineItem({
         <ActivityNoteInput
           itemKey={item.id}
           storageKey={`groupinput:${item.id}`}
+          minHeight={96}
+          source={useSimpleInput ? 'issue-details' : undefined}
           text={item.data.text}
           noteId={item.id}
           onUpdate={n => {
@@ -291,6 +295,7 @@ export function StreamlinedActivitySection({
   const filteredActivities = visibleActivities.filter(
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
+  const useSimpleInput = !isDrawer && !isInline;
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem
@@ -301,6 +306,7 @@ export function StreamlinedActivitySection({
       teams={teams}
       key={item.id}
       isDrawer={isDrawer}
+      useSimpleInput={useSimpleInput}
     />
   );
 
@@ -313,6 +319,7 @@ export function StreamlinedActivitySection({
         handleCreate(n, activeUser);
         setInputId(uniqueId());
       }}
+      source={useSimpleInput ? 'issue-details' : undefined}
       {...noteProps}
     />
   );
