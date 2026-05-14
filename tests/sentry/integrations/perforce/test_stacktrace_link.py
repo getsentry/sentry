@@ -39,9 +39,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         self.code_mapping = RepositoryProjectPathConfig.objects.create(
-            project=self.project,
             organization_id=self.organization.id,
-            repository=self.repo,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -155,9 +153,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
-            project=self.project,
             organization_id=self.organization.id,
-            repository=myproject_repo,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
             stack_root="myproject/",
@@ -220,9 +216,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping_web = RepositoryProjectPathConfig.objects.create(
-            project=project_web,
             organization_id=self.organization.id,
-            repository=repo_web,
             organization_integration_id=org_integration.id,
             integration_id=integration_with_web.id,
             stack_root="depot/",
@@ -296,9 +290,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         other_mapping = RepositoryProjectPathConfig.objects.create(
-            project=self.project,
             organization_id=self.organization.id,
-            repository=other_repo,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
             stack_root="other/",
@@ -347,9 +339,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
-            project=project2,
             organization_id=self.organization.id,
-            repository=myproject_repo,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
             stack_root="depot/",  # Same stack_root as depot mapping (but different project)
@@ -428,9 +418,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
-            project=self.project,
             organization_id=self.organization.id,
-            repository=repo,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
             stack_root="",
@@ -474,9 +462,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
-            project=self.project,
             organization_id=self.organization.id,
-            repository=repo,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -521,9 +507,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
-            project=self.project,
             organization_id=self.organization.id,
-            repository=repo,
             organization_integration_id=self.integration.organizationintegration_set.first().id,
             integration_id=self.integration.id,
             stack_root="depot/",

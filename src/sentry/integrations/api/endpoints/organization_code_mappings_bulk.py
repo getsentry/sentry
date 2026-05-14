@@ -267,7 +267,6 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         )
 
         defaults = {
-            "repository": repo,
             "organization_integration_id": org_integration.id,
             "organization_id": organization.id,
             "integration_id": repo.integration_id,
@@ -281,7 +280,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
                     try:
                         config = RepositoryProjectPathConfig.objects.select_for_update().get(
-                            project=project,
+                            project_repository__project=project,
                             stack_root=mapping["stack_root"],
                             source_root=mapping["source_root"],
                         )
@@ -291,6 +290,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     except RepositoryProjectPathConfig.DoesNotExist:
                         config = RepositoryProjectPathConfig(
                             project=project,
+                            repository=repo,
                             stack_root=mapping["stack_root"],
                             source_root=mapping["source_root"],
                             **defaults,

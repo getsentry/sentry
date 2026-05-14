@@ -32,16 +32,11 @@ def get_link(
     config: RepositoryProjectPathConfig,
     src_path: str,
     version: str | None = None,
-    use_project_repository_fk: bool = False,
 ) -> RepositoryLinkOutcome:
     result: RepositoryLinkOutcome = {}
 
-    if use_project_repository_fk:
-        project = config.project_repository.project
-        repository = config.project_repository.repository
-    else:
-        project = config.project
-        repository = config.repository
+    project = config.project_repository.project
+    repository = config.project_repository.repository
 
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id, status=ObjectStatus.ACTIVE
@@ -94,7 +89,6 @@ class StacktraceLinkOutcome(TypedDict):
 def get_stacktrace_config(
     configs: Sequence[RepositoryProjectPathConfig],
     ctx: StacktraceLinkContext,
-    use_project_repository_fk: bool = False,
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {
         "source_url": None,
@@ -119,13 +113,10 @@ def get_stacktrace_config(
             config,
             src_path,
             ctx["commit_id"],
-            use_project_repository_fk=use_project_repository_fk,
         )
         result["iteration_count"] += 1
 
-        repository = (
-            config.project_repository.repository if use_project_repository_fk else config.repository
-        )
+        repository = config.project_repository.repository
         result["current_config"] = {
             "config": config,
             "outcome": outcome,
