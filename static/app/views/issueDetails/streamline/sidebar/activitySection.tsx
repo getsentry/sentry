@@ -109,10 +109,9 @@ function TimelineItem({
       }
     >
       {item.type === GroupActivityType.NOTE && editing ? (
-        <NoteInputWithStorage
+        <ActivityNoteInput
           itemKey={item.id}
           storageKey={`groupinput:${item.id}`}
-          source="issue-details"
           text={item.data.text}
           noteId={item.id}
           onUpdate={n => {
@@ -120,6 +119,7 @@ function TimelineItem({
             setEditing(false);
           }}
           onCancel={() => setEditing(false)}
+          onEditFinish={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
         <NoteWrapper isDrawer={isDrawer}>
@@ -132,23 +132,41 @@ function TimelineItem({
   );
 }
 
+function ActivityNoteInput(props: React.ComponentProps<typeof NoteInputWithStorage>) {
+  return (
+    <ActivityInputFrame data-test-id="activity-input-frame">
+      <NoteInputWithStorage dangerCancel={false} {...props} />
+    </ActivityInputFrame>
+  );
+}
+
 interface StreamlinedActivitySectionProps {
   group: Group;
   /**
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
+  handleCreate?: (n: NoteType, me: User) => void;
+  handleDelete?: (item: GroupActivity) => void;
+  handleUpdate?: (item: GroupActivity, n: NoteType) => void;
   /**
    * Whether the activity section is being rendered in the activity drawer.
    * Disables collapse feature, and hides headers
    */
   isDrawer?: boolean;
+  isInline?: boolean;
+  placeholder?: string;
 }
 
 export function StreamlinedActivitySection({
   group,
   isDrawer,
   filterComments,
+  handleCreate: handleCreateProp,
+  handleDelete: handleDeleteProp,
+  handleUpdate: handleUpdateProp,
+  isInline,
+  placeholder = t('Add a comment\u2026'),
 }: StreamlinedActivitySectionProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -160,10 +178,10 @@ export function StreamlinedActivitySection({
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
-    minHeight: 140,
+    minHeight: 96,
     group,
     projectSlugs,
-    placeholder: t('Add a comment\u2026'),
+    placeholder,
   };
 
   const mutators = useMutateActivity({
@@ -173,6 +191,11 @@ export function StreamlinedActivitySection({
 
   const handleDelete = useCallback(
     (item: GroupActivity) => {
+      if (handleDeleteProp) {
+        handleDeleteProp(item);
+        return;
+      }
+
       const restore = group.activity.find(activity => activity.id === item.id);
       const index = GroupStore.removeActivity(group.id, item.id);
 
@@ -198,11 +221,16 @@ export function StreamlinedActivitySection({
         }
       );
     },
-    [group.activity, mutators, group.id, organization]
+    [handleDeleteProp, group.activity, mutators, group.id, organization]
   );
 
   const handleUpdate = useCallback(
     (item: GroupActivity, n: NoteType) => {
+      if (handleUpdateProp) {
+        handleUpdateProp(item, n);
+        return;
+      }
+
       mutators.handleUpdate(n, item.id, group.activity, {
         onError: () => {
           addErrorMessage(t('Unable to update comment'));
@@ -219,10 +247,15 @@ export function StreamlinedActivitySection({
         },
       });
     },
-    [group.activity, mutators, group.id, organization]
+    [handleUpdateProp, group.activity, mutators, group.id, organization]
   );
 
-  const handleCreate = (n: NoteType, _me: User) => {
+  const handleCreate = (n: NoteType, me: User) => {
+    if (handleCreateProp) {
+      handleCreateProp(n, me);
+      return;
+    }
+
     mutators.handleCreate(n, group.activity, {
       onError: err => {
         const errMessage = err.responseJSON?.detail
@@ -255,36 +288,51 @@ export function StreamlinedActivitySection({
     ? group.activity
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
-  return isDrawer ? (
-    <Timeline.Container>
-      <NoteInputWithStorage
-        key={inputId}
-        storageKey="groupinput:latest"
-        itemKey={group.id}
-        onCreate={n => {
-          handleCreate(n, activeUser);
-          setInputId(uniqueId());
-        }}
-        source="issue-details"
-        {...noteProps}
-      />
-      {visibleActivities
-        .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
-        .map(item => {
-          return (
-            <TimelineItem
-              item={item}
-              handleDelete={handleDelete}
-              handleUpdate={handleUpdate}
-              group={group}
-              teams={teams}
-              key={item.id}
-              isDrawer={isDrawer}
-            />
-          );
-        })}
+  const filteredActivities = visibleActivities.filter(
+    item => !filterComments || item.type === GroupActivityType.NOTE
+  );
+
+  const renderActivityItem = (item: GroupActivity) => (
+    <TimelineItem
+      item={item}
+      handleDelete={handleDelete}
+      handleUpdate={handleUpdate}
+      group={group}
+      teams={teams}
+      key={item.id}
+      isDrawer={isDrawer}
+    />
+  );
+
+  const noteInput = (
+    <ActivityNoteInput
+      key={inputId}
+      storageKey="groupinput:latest"
+      itemKey={group.id}
+      onCreate={n => {
+        handleCreate(n, activeUser);
+        setInputId(uniqueId());
+      }}
+      {...noteProps}
+    />
+  );
+
+  const timeline = (
+    <Timeline.Container data-test-id="activity-timeline">
+      {filteredActivities.map(renderActivityItem)}
     </Timeline.Container>
-  ) : (
+  );
+
+  if (isDrawer || isInline) {
+    return (
+      <InlineActivityLayout>
+        {noteInput}
+        {timeline}
+      </InlineActivityLayout>
+    );
+  }
+
+  return (
     <SidebarFoldSection
       title={
         <SidebarSectionTitle style={{gap: theme.space.sm, margin: 0}}>
@@ -293,71 +341,37 @@ export function StreamlinedActivitySection({
       }
       sectionKey={SectionKey.ACTIVITY}
     >
-      <Timeline.Container>
-        <NoteInputWithStorage
-          key={inputId}
-          storageKey="groupinput:latest"
-          itemKey={group.id}
-          onCreate={n => {
-            handleCreate(n, activeUser);
-            setInputId(uniqueId());
-          }}
-          source="issue-details"
-          {...noteProps}
-        />
-        {visibleActivities.length < 5 ? (
-          visibleActivities
-            .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
-            .map(item => {
-              return (
-                <TimelineItem
-                  item={item}
-                  handleDelete={handleDelete}
-                  handleUpdate={handleUpdate}
-                  group={group}
-                  teams={teams}
-                  key={item.id}
-                  isDrawer={isDrawer}
-                />
-              );
-            })
-        ) : (
-          <Fragment>
-            {visibleActivities.slice(0, 3).map(item => {
-              return (
-                <TimelineItem
-                  item={item}
-                  handleDelete={handleDelete}
-                  handleUpdate={handleUpdate}
-                  group={group}
-                  teams={teams}
-                  key={item.id}
-                  isDrawer={isDrawer}
-                />
-              );
-            })}
-            <ActivityTimelineItem
-              title={
-                <LinkButton
-                  aria-label={t('View all activity')}
-                  to={activityLink}
-                  size="xs"
-                  replace
-                  preventScrollReset
-                  analyticsEventKey="issue_details.activity_expanded"
-                  analyticsEventName="Issue Details: Activity Expanded"
-                  analyticsParams={{
-                    num_activities_hidden: visibleActivities.length - 3,
-                  }}
-                >
-                  {t('View %s more', visibleActivities.length - 3)}
-                </LinkButton>
-              }
-              icon={<RotatedEllipsisIcon direction="up" />}
-            />
-          </Fragment>
-        )}
-      </Timeline.Container>
+      <SidebarActivityLayout>
+        {noteInput}
+        <Timeline.Container data-test-id="activity-timeline">
+          {filteredActivities.length < 5 ? (
+            filteredActivities.map(renderActivityItem)
+          ) : (
+            <Fragment>
+              {filteredActivities.slice(0, 3).map(renderActivityItem)}
+              <ActivityTimelineItem
+                title={
+                  <LinkButton
+                    aria-label={t('View all activity')}
+                    to={activityLink}
+                    size="xs"
+                    replace
+                    preventScrollReset
+                    analyticsEventKey="issue_details.activity_expanded"
+                    analyticsEventName="Issue Details: Activity Expanded"
+                    analyticsParams={{
+                      num_activities_hidden: filteredActivities.length - 3,
+                    }}
+                  >
+                    {t('View %s more', filteredActivities.length - 3)}
+                  </LinkButton>
+                }
+                icon={<RotatedEllipsisIcon direction="up" />}
+              />
+            </Fragment>
+          )}
+        </Timeline.Container>
+      </SidebarActivityLayout>
     </SidebarFoldSection>
   );
 }
@@ -394,4 +408,22 @@ const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
 
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
   font-size: ${p => (p.isDrawer ? p.theme.font.size.md : p.theme.font.size.sm)};
+`;
+
+const InlineActivityLayout = styled('div')`
+  display: grid;
+  gap: ${p => p.theme.space.xl};
+`;
+
+const SidebarActivityLayout = styled('div')`
+  display: grid;
+  gap: ${p => p.theme.space.lg};
+`;
+
+const ActivityInputFrame = styled('div')`
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
+  overflow: hidden;
 `;

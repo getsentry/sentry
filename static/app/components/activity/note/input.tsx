@@ -6,7 +6,6 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,6 +23,10 @@ type Props = {
    * Is the note saving?
    */
   busy?: boolean;
+  /**
+   * Use danger styling for the cancel button when editing an existing note.
+   */
+  dangerCancel?: boolean;
   /**
    * Display an error message
    */
@@ -49,6 +52,8 @@ type Props = {
   text?: string;
 };
 
+type EditorMode = 'write' | 'preview';
+
 function NoteInput({
   text,
   onCreate,
@@ -58,6 +63,7 @@ function NoteInput({
   noteId,
   errorJSON,
   busy = false,
+  dangerCancel = true,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
   minHeight = 140,
 }: Props) {
@@ -80,6 +86,7 @@ function NoteInput({
 
   const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
   const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
+  const [editorMode, setEditorMode] = useState<EditorMode>('write');
 
   const canSubmit = value.trim() !== '';
 
@@ -158,46 +165,61 @@ function NoteInput({
 
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
-      <Tabs>
-        <TabList variant="floating">
-          <TabList.Item key="edit">{existingItem ? t('Edit') : t('Write')}</TabList.Item>
-          <TabList.Item key="preview">{t('Preview')}</TabList.Item>
-        </TabList>
-        <NoteInputPanel>
-          <TabPanels.Item key="edit">
-            <MentionsInput
-              aria-errormessage={errorMessage ? errorId : undefined}
-              style={mentionStyle({theme, minHeight})}
-              placeholder={placeholder}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              value={value}
-              required
-              autoFocus
-            >
-              <Mention
-                trigger="@"
-                data={suggestMembers}
-                onAdd={handleAddMember}
-                displayTransform={(_id, display) => `@${display}`}
-                markup="**[sentry.strip:member]__display__**"
-                appendSpaceOnAdd
-              />
-              <Mention
-                trigger="#"
-                data={suggestTeams}
-                onAdd={handleAddTeam}
-                markup="**[sentry.strip:team]__display__**"
-                displayTransform={(_id, display) => display}
-                appendSpaceOnAdd
-              />
-            </MentionsInput>
-          </TabPanels.Item>
-          <TabPanels.Item key="preview">
-            <NotePreview minHeight={minHeight} text={cleanMarkdown} />
-          </TabPanels.Item>
-        </NoteInputPanel>
-      </Tabs>
+      <NoteInputModeHeader>
+        <ModeTabs role="tablist" aria-label={t('Comment editor mode')}>
+          <ModeTab
+            type="button"
+            role="tab"
+            aria-selected={editorMode === 'write'}
+            isActive={editorMode === 'write'}
+            onClick={() => setEditorMode('write')}
+          >
+            {existingItem ? t('Edit') : t('Write')}
+          </ModeTab>
+          <ModeTab
+            type="button"
+            role="tab"
+            aria-selected={editorMode === 'preview'}
+            isActive={editorMode === 'preview'}
+            onClick={() => setEditorMode('preview')}
+          >
+            {t('Preview')}
+          </ModeTab>
+        </ModeTabs>
+      </NoteInputModeHeader>
+      <NoteInputPanel>
+        {editorMode === 'write' ? (
+          <MentionsInput
+            aria-errormessage={errorMessage ? errorId : undefined}
+            style={mentionStyle({theme, minHeight})}
+            placeholder={placeholder}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            value={value}
+            required
+            autoFocus
+          >
+            <Mention
+              trigger="@"
+              data={suggestMembers}
+              onAdd={handleAddMember}
+              displayTransform={(_id, display) => `@${display}`}
+              markup="**[sentry.strip:member]__display__**"
+              appendSpaceOnAdd
+            />
+            <Mention
+              trigger="#"
+              data={suggestTeams}
+              onAdd={handleAddTeam}
+              markup="**[sentry.strip:team]__display__**"
+              displayTransform={(_id, display) => display}
+              appendSpaceOnAdd
+            />
+          </MentionsInput>
+        ) : (
+          <NotePreview minHeight={minHeight} text={cleanMarkdown} />
+        )}
+      </NoteInputPanel>
       <Footer>
         {errorMessage ? (
           <div id={errorId}>
@@ -210,7 +232,10 @@ function NoteInput({
         )}
         <div>
           {existingItem && (
-            <FooterButton variant="danger" onClick={handleCancel}>
+            <FooterButton
+              variant={dangerCancel ? 'danger' : undefined}
+              onClick={handleCancel}
+            >
               {t('Cancel')}
             </FooterButton>
           )}
@@ -293,10 +318,46 @@ const NoteInputForm = styled('form')<{error?: string}>`
   ${p => getNoteInputErrorStyles(p)};
 `;
 
-const NoteInputPanel = styled(TabPanels)`
+const NoteInputModeHeader = styled('div')`
+  display: flex;
+  align-items: flex-end;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.sm};
+  background: ${p => p.theme.tokens.background.primary};
+`;
+
+const ModeTabs = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space['2xs']};
+  background: ${p => p.theme.tokens.background.secondary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const ModeTab = styled('button')<{isActive: boolean}>`
+  border: 0;
+  border-radius: ${p => p.theme.radius.sm};
+  background: ${p => (p.isActive ? p.theme.tokens.background.primary : 'transparent')};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+  cursor: pointer;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: 1.4;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  position: relative;
+  box-shadow: ${p => (p.isActive ? p.theme.dropShadowLight : 'none')};
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+  }
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()};
+  }
+`;
+
+const NoteInputPanel = styled('div')`
   ${textStyles}
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
 
 const Footer = styled('div')`

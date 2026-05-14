@@ -14,7 +14,7 @@ import {
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 type Props = {
   feedbackItem: Group;
@@ -107,12 +107,13 @@ export function FeedbackActivitySection(props: Props) {
   );
 
   return (
-    <ActivitySection
+    <StreamlinedActivitySection
       group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
-      onDelete={handleDelete}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
-      placeholderText={t(
+      handleDelete={handleDelete}
+      handleCreate={handleCreate}
+      handleUpdate={handleUpdate}
+      isInline
+      placeholder={t(
         'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'
       )}
     />
