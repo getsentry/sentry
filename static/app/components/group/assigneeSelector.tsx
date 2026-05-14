@@ -119,9 +119,7 @@ export function AssigneeSelector({
     [currentMemberList]
   );
   const assignedUser =
-    group.assignedTo?.type === 'user'
-      ? memberById.get(group.assignedTo.id)
-      : undefined;
+    group.assignedTo?.type === 'user' ? memberById.get(group.assignedTo.id) : undefined;
 
   return (
     <AssigneeSelectorDropdown
