@@ -39,15 +39,10 @@ item = s1:spaces c:comma s2:spaces value:(!comma text_in_value)? {
 }
 
 text_in_value
-  = quoted_value / in_value / empty_value
+  = quoted_value / unquoted_value
 
-empty_value
-  = spaces {
-    return tc.tokenValueText(text(), false);
-  }
-
-in_value
-  = (in_value_char)+ {
+unquoted_value
+  = in_value_char* {
     return tc.tokenValueText(text(), false);
   }
 
