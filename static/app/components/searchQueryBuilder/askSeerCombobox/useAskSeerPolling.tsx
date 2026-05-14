@@ -170,6 +170,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   // Reset function
   const reset = useCallback(() => {
+    inFlightQueryRef.current = null;
     setRunId(null);
     setWaitingForResponse(false);
     setStartFailed(false);
