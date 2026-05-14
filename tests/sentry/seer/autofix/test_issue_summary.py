@@ -926,6 +926,34 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
 
+    @patch(
+        "sentry.seer.autofix.issue_summary.get_automation_stopping_point",
+        return_value=AutofixStoppingPoint.CODE_CHANGES,
+    )
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
+    def test_without_seat_based_tier_with_explorer_uses_stopping_point(
+        self,
+        mock_state,
+        mock_triggering,
+        mock_rate,
+        mock_trigger,
+        mock_get_stopping_point,
+        mock_seat_based_tier,
+    ):
+        mock_seat_based_tier.return_value = False
+        with self.feature("organizations:autofix-on-explorer"):
+            run_automation(self.group, self.user, self.event, SeerAutomationSource.POST_PROCESS)
+
+        mock_get_stopping_point.assert_called_once_with(self.group)
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
+
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
