@@ -42,7 +42,7 @@ function Homepage() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {runId: aiQueryRunId} = useAiQueryContext();
+  const {getRunIdForAnalytics} = useAiQueryContext();
   const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
     makeDiscoverHomepageQueryKey(organization),
     {
@@ -121,7 +121,7 @@ function Homepage() {
 
   return (
     <Results
-      aiQueryRunId={aiQueryRunId}
+      getAiQueryRunId={getRunIdForAnalytics}
       api={api}
       loading={isLoading}
       location={location}
