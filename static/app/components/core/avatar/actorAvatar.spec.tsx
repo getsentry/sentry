@@ -111,6 +111,42 @@ describe('ActorAvatar', () => {
     expect(mockRequest).toHaveBeenCalled();
   });
 
+  it('should resolve a named actor to the full user avatar', async () => {
+    const organization = OrganizationFixture();
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    const user = UserFixture({
+      id: '1',
+      name: 'Jane Bloggs',
+      avatar: {
+        avatarType: 'upload',
+        avatarUuid: 'abc123',
+        avatarUrl: 'https://example.com/avatar.png',
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [{user}],
+    });
+
+    render(
+      <ActorAvatar
+        actor={{
+          id: '1',
+          name: 'Jane Bloggs',
+          type: 'user',
+        }}
+      />
+    );
+
+    expect(await screen.findByRole('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('avatar.png')
+    );
+  });
+
   it('should fetch a user not in the store', async () => {
     const organization = OrganizationFixture();
 

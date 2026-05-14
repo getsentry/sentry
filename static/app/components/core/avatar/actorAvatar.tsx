@@ -78,15 +78,8 @@ interface AsyncMemberAvatarProps extends Omit<UserAvatarProps, 'user' | 'round'>
 }
 
 function AsyncMemberAvatar({actor, ...props}: AsyncMemberAvatarProps) {
-  const canRenderActor = Boolean(actor.name || actor.email);
-  const ids = useMemo(
-    () => (canRenderActor ? [] : [actor.id]),
-    [actor.id, canRenderActor]
-  );
-  const {data: members = [], isLoading} = useMembers({
-    enabled: !canRenderActor,
-    ids,
-  });
+  const ids = useMemo(() => [actor.id], [actor.id]);
+  const {data: members = [], isLoading} = useMembers({ids});
   const member = members.find(u => u.id === actor.id);
 
   if (isLoading) {
