@@ -91,7 +91,8 @@ export function getInitialTab({
   if (
     isLoading &&
     (tabSlugFromUrl === TraceLayoutTabKeys.LOGS ||
-      tabSlugFromUrl === TraceLayoutTabKeys.METRICS)
+      tabSlugFromUrl === TraceLayoutTabKeys.METRICS ||
+      tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS)
   ) {
     return TAB_DEFINITIONS[tabSlugFromUrl];
   }

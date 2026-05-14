@@ -16,6 +16,7 @@ describe('getInitialTab', () => {
   it.each([
     [TraceLayoutTabKeys.LOGS, TraceLayoutTabKeys.LOGS],
     [TraceLayoutTabKeys.METRICS, TraceLayoutTabKeys.METRICS],
+    [TraceLayoutTabKeys.AI_SPANS, TraceLayoutTabKeys.AI_SPANS],
   ])(
     'keeps %s selected from the URL while tab data is loading',
     (tabSlugFromUrl, expectedTab) => {
