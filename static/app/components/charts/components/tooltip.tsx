@@ -245,10 +245,14 @@ export function getFormatter({
 
         if (serie.seriesType === 'heatmap') {
           const zAxisCountValue = getSeriesValue(serie, 2).toString();
-          const marker = markerFormatter(serie.marker ?? '', serie.seriesName);
+          const yAxisValue = valueFormatter(
+            getSeriesValue(serie, 1),
+            serie.seriesName,
+            serie
+          );
 
           acc.series.push(
-            `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${zAxisCountValue}</div>`
+            `<div><span class="tooltip-label"><strong>${yAxisValue}</strong></span> ${zAxisCountValue}</div>`
           );
 
           return acc;

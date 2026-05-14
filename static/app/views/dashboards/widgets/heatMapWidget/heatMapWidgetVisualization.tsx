@@ -88,15 +88,25 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       // TODO(nikki): this is only needed of we need to display the y-axis value in the tooltip. I think we may need to
       // display it so i'm leaving it here for now but we should remove it if we don't need it.
       valueFormatter: function (value, _field, _valueFormatterParams) {
+        const bucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
         const fieldType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
-        return escape(
+        const yAxisMinValueFormatted = escape(
           formatTooltipValue(
             value,
             fieldType,
             heatMapPlottable.yAxisValueUnit ?? undefined
           )
         );
+        const yAxisMaxValueFormatted = escape(
+          formatTooltipValue(
+            value + bucketSize,
+            fieldType,
+            heatMapPlottable.yAxisValueUnit ?? undefined
+          )
+        );
+
+        return `${yAxisMinValueFormatted} – ${yAxisMaxValueFormatted}`;
       },
       truncate: false,
       utc: utc ?? false,
