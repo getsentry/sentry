@@ -2,8 +2,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillMcpDashboardWidgetFiltersTest(TestMigrations):
-    migrate_from = "1094_delete_incidenttrigger"
-    migrate_to = "1095_backfill_mcp_dashboard_widget_filters"
+    migrate_from = "1095_make_project_repository_fk_notnull"
+    migrate_to = "1096_backfill_mcp_dashboard_widget_filters"
 
     def setup_before_migration(self, apps):
         Dashboard = apps.get_model("sentry", "Dashboard")

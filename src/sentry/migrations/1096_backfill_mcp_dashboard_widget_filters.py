@@ -7,7 +7,6 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +29,14 @@ def backfill_mcp_dashboard_widget_filters(
     DashboardWidgetQuery = apps.get_model("sentry", "DashboardWidgetQuery")
 
     updated = 0
-    queryset = DashboardWidgetQuery.objects.filter(conditions__contains=_OLD_FILTER).only(
+    rows = DashboardWidgetQuery.objects.filter(conditions__contains=_OLD_FILTER).values_list(
         "id", "conditions"
     )
-    for row in RangeQuerySetWrapperWithProgressBarApprox(queryset):
-        new_conditions = row.conditions.replace(_OLD_FILTER, _NEW_FILTER)
-        if new_conditions == row.conditions:
+    for row_id, conditions in rows:
+        new_conditions = conditions.replace(_OLD_FILTER, _NEW_FILTER)
+        if new_conditions == conditions:
             continue
-        DashboardWidgetQuery.objects.filter(id=row.id).update(conditions=new_conditions)
+        DashboardWidgetQuery.objects.filter(id=row_id).update(conditions=new_conditions)
         updated += 1
 
     logger.info("backfill_mcp_dashboard_widget_filters: complete, updated=%d", updated)
@@ -47,7 +46,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1094_delete_incidenttrigger"),
+        ("sentry", "1095_make_project_repository_fk_notnull"),
     ]
 
     operations = [
