@@ -243,6 +243,17 @@ export function getFormatter({
           serie
         );
 
+        if (serie.seriesType === 'heatmap') {
+          const zAxisCountValue = getSeriesValue(serie, 2).toString();
+          const marker = markerFormatter(serie.marker ?? '', serie.seriesName);
+
+          acc.series.push(
+            `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${zAxisCountValue}</div>`
+          );
+
+          return acc;
+        }
+
         const value = valueFormatter(getSeriesValue(serie, 1), serie.seriesName, serie);
 
         const marker = markerFormatter(serie.marker ?? '', serie.seriesName);
