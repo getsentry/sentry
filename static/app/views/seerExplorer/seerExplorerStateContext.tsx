@@ -24,14 +24,9 @@ export type Conversation = ExplorerSession & {
   status: 'active' | 'idle';
 };
 
-type SeerExplorerStateContextValue = [
-  Conversation[],
-  React.Dispatch<SeerExplorerConversationsAction>,
-];
-
-const SeerExplorerStateContext = createContext<SeerExplorerStateContextValue | null>(
-  null
-);
+const SeerExplorerConversationsContext = createContext<Conversation[] | null>(null);
+const SeerExplorerDispatchContext =
+  createContext<React.Dispatch<SeerExplorerConversationsAction> | null>(null);
 
 export function SeerExplorerStateProvider({children}: {children: React.ReactNode}) {
   const sessionsQuery = useSeerExplorerSessions();
@@ -54,16 +49,30 @@ export function SeerExplorerStateProvider({children}: {children: React.ReactNode
   }, [sessionsQuery.data?.data, state]);
 
   return (
-    <SeerExplorerStateContext.Provider value={[conversations, dispatch]}>
-      {children}
-    </SeerExplorerStateContext.Provider>
+    <SeerExplorerDispatchContext.Provider value={dispatch}>
+      <SeerExplorerConversationsContext.Provider value={conversations}>
+        {children}
+      </SeerExplorerConversationsContext.Provider>
+    </SeerExplorerDispatchContext.Provider>
   );
 }
 
-export function useSeerExplorerState(): SeerExplorerStateContextValue {
-  const ctx = useContext(SeerExplorerStateContext);
+export function useSeerExplorerConversations(): Conversation[] {
+  const ctx = useContext(SeerExplorerConversationsContext);
   if (!ctx) {
-    throw new Error('useSeerExplorerState must be used within SeerExplorerStateProvider');
+    throw new Error(
+      'useSeerExplorerConversations must be used within SeerExplorerStateProvider'
+    );
+  }
+  return ctx;
+}
+
+export function useSeerExplorerDispatch(): React.Dispatch<SeerExplorerConversationsAction> {
+  const ctx = useContext(SeerExplorerDispatchContext);
+  if (!ctx) {
+    throw new Error(
+      'useSeerExplorerDispatch must be used within SeerExplorerStateProvider'
+    );
   }
   return ctx;
 }
