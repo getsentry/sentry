@@ -914,7 +914,6 @@ export function GlobalCommandPaletteActions() {
               data.json.map(project => ({
                 display: {
                   label: project.slug,
-                  details: project.name === project.slug ? undefined : project.name,
                   icon: <ProjectAvatar project={project} size={16} />,
                 },
                 keywords: [project.name, project.slug],
