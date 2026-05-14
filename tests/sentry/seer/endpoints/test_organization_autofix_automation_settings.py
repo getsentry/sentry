@@ -110,7 +110,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="12345",
         )
-        SeerProjectRepository.objects.create(project=project1, repository=repo)
+        self.create_seer_project_repository(project=project1, repository=repo)
 
         response = self.client.get(self.url)
         assert response.status_code == 200
@@ -385,7 +385,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="old-111",
         )
-        SeerProjectRepository.objects.create(project=project, repository=existing_repo)
+        self.create_seer_project_repository(project=project, repository=existing_repo)
 
         response = self.client.post(
             self.url,
@@ -408,7 +408,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="111",
         )
-        SeerProjectRepository.objects.create(project=project, repository=existing_repo)
+        self.create_seer_project_repository(project=project, repository=existing_repo)
 
         new_repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -449,7 +449,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="existing-id",
         )
-        SeerProjectRepository.objects.create(project=project2, repository=existing_repo)
+        self.create_seer_project_repository(project=project2, repository=existing_repo)
 
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -491,7 +491,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="111",
         )
-        SeerProjectRepository.objects.create(project=project, repository=existing_repo)
+        self.create_seer_project_repository(project=project, repository=existing_repo)
         new_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="new-owner/new-repo",
@@ -530,7 +530,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="111",
         )
-        SeerProjectRepository.objects.create(project=project, repository=existing_repo)
+        self.create_seer_project_repository(project=project, repository=existing_repo)
         new_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="new-owner/new-repo",

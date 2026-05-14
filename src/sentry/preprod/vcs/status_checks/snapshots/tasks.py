@@ -13,6 +13,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodComparisonApproval,
 )
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
@@ -47,7 +48,6 @@ FAIL_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_added"
 FAIL_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_removed"
 FAIL_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_changed"
 FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_renamed"
-MISSING_BASE_GRACE_PERIOD_SECONDS = 600
 
 
 @instrumented_task(

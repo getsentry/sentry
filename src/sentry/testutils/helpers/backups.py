@@ -94,6 +94,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
@@ -624,7 +625,14 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
         )
-        seer_project_repo = SeerProjectRepository.objects.create(project=project, repository=repo)
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        seer_project_repo = SeerProjectRepository.objects.create(
+            project=project, repository=repo, project_repository=project_repo
+        )
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=seer_project_repo,
             tag_name="environment",

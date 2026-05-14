@@ -69,12 +69,19 @@ function supportsStructuredContext(
   referrer: string,
   organization: {features: string[]} | null | undefined
 ): boolean {
-  return (
-    (STRUCTURED_CONTEXT_ROUTES.has(referrer) &&
-      organization?.features.includes('seer-explorer-context-engine') === true) ||
-    (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer) &&
-      organization?.features.includes('context-engine-structured-page-context') === true)
-  );
+  if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
+    return (
+      organization?.features.includes('seat-based-seer-enabled') === true ||
+      organization?.features.includes('seer-added') === true ||
+      organization?.features.includes('seer-explorer-context-engine') === true
+    );
+  }
+  if (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
+    return (
+      organization?.features.includes('context-engine-structured-page-context') === true
+    );
+  }
+  return false;
 }
 
 const getOptimisticAssistantTexts = () => [

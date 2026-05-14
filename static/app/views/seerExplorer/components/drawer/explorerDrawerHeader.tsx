@@ -14,9 +14,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconAdd, IconClock, IconCopy, IconEllipsis, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+import {useSeerExplorerSessions} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
 interface ExplorerDrawerHeaderProps {
   onChangeSession: (runId: number) => void;
@@ -252,7 +250,6 @@ export function ExplorerDrawerHeader({
 
 function useSessionMenuItems({
   onChangeSession,
-  enabled = true,
 }: {
   onChangeSession: (runId: number) => void;
   enabled?: boolean;
@@ -262,12 +259,7 @@ function useSessionMenuItems({
   refetch: () => void;
   sessionMenuItems: MenuItemProps[];
 } {
-  const organization = useOrganization({allowNull: true});
-
-  const {data, isPending, isError, refetch} = useExplorerSessions({
-    limit: 20,
-    enabled: enabled && isSeerExplorerEnabled(organization),
-  });
+  const {data, isPending, isError, refetch} = useSeerExplorerSessions();
 
   const sessionMenuItems = useMemo(() => {
     return (

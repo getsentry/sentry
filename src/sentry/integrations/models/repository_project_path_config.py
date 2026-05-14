@@ -17,9 +17,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    project_repository = FlexibleForeignKey(
-        "sentry.ProjectRepository", null=True, on_delete=models.CASCADE
-    )
+    project_repository = FlexibleForeignKey("sentry.ProjectRepository", on_delete=models.CASCADE)
 
     organization_integration_id = HybridCloudForeignKey(
         "sentry.OrganizationIntegration", on_delete="CASCADE"

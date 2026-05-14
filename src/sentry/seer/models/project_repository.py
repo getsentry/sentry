@@ -19,9 +19,7 @@ class SeerProjectRepository(DefaultFieldsModel):
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     repository = FlexibleForeignKey("sentry.Repository", on_delete=models.CASCADE)
-    project_repository = FlexibleForeignKey(
-        "sentry.ProjectRepository", null=True, on_delete=models.CASCADE
-    )
+    project_repository = FlexibleForeignKey("sentry.ProjectRepository", on_delete=models.CASCADE)
     branch_name = models.TextField(null=True, blank=True)
     instructions = models.TextField(null=True, blank=True)
 

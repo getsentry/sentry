@@ -112,7 +112,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       <BaseChart
         autoHeightResize
         // will be grouped by date as we only support time as the x-axis right now.
-        // this will change later and we'll pass in what kind of x-axis we have
+        // TODO(nikki): eventually this will change later and we'll pass in what kind of x-axis we have
         isGroupedByDate
         showTimeInTooltip
         ref={chartRef}
