@@ -36,6 +36,7 @@ const isTimestampStale = (updatedAt: string | undefined) => {
 const getPollingState = (
   runId: number | null,
   sessionData: SeerExplorerResponse['session'] | undefined,
+  isError: boolean,
   errorStatusCode: number | null,
   isStale: boolean,
   override: boolean | undefined
@@ -46,8 +47,8 @@ const getPollingState = (
   if (runId === null) {
     return 'not-polling';
   }
-  if (errorStatusCode !== null) {
-    if (errorStatusCode >= 500 && errorStatusCode < 600) {
+  if (isError) {
+    if (errorStatusCode !== null && errorStatusCode >= 500 && errorStatusCode < 600) {
       return 'polling-with-backoff';
     }
     return 'not-polling';
@@ -95,6 +96,7 @@ export const useSeerExplorerPolling = ({
       const state = getPollingState(
         runId,
         query.state.data?.json?.session,
+        query.state.status === 'error',
         query.state.error?.status ?? null,
         isTimestampStale(query.state.data?.json?.session?.updated_at),
         shouldPollOverride
@@ -140,6 +142,7 @@ export const useSeerExplorerPolling = ({
   const pollingState = getPollingState(
     runId,
     apiData?.session,
+    isError,
     errorStatusCode,
     isStale,
     shouldPollOverride
