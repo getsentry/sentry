@@ -4,12 +4,11 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown, type MarkdownComponents} from '@sentry/scraps/markdown';
-import {Text} from '@sentry/scraps/text';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -132,18 +131,12 @@ function AssistantBlock({
               </Text>
             </Disclosure.Title>
             <Disclosure.Content>
-              <Markdown raw={thinkingContent} components={SEER_MARKDOWN_COMPONENTS} />
+              <SeerMarkdown raw={thinkingContent} />
             </Disclosure.Content>
           </Disclosure>
         )}
         {hasContent && (
-          <MarkdownContent>
-            <Markdown
-              raw={content}
-              variant={block.loading ? 'streaming' : 'static'}
-              components={SEER_MARKDOWN_COMPONENTS}
-            />
-          </MarkdownContent>
+          <SeerMarkdown raw={content} variant={block.loading ? 'streaming' : 'static'} />
         )}
         {hasTools && <ToolCallList block={block} getPageReferrer={getPageReferrer} />}
       </Container>
@@ -172,9 +165,7 @@ function ThinkingBlock({block}: {block: Block}) {
       >
         <Spinner />
       </Flex>
-      <MarkdownContent>
-        <Markdown raw={block.message.content ?? ''} />
-      </MarkdownContent>
+      <SeerMarkdown raw={block.message.content ?? ''} />
     </Flex>
   );
 }
@@ -394,9 +385,9 @@ function ToolCallRow({
         )}
       </Flex>
       {todos && (
-        <TodoListContent>
+        <Text as="div" size="xs" monospace variant="muted">
           <Markdown raw={todosToMarkdown(todos)} />
-        </TodoListContent>
+        </Text>
       )}
     </Stack>
   );
@@ -471,7 +462,18 @@ function IssueIdText({children}: {children: string}) {
   );
 }
 
-const SEER_MARKDOWN_COMPONENTS: MarkdownComponents = {Text: IssueIdText};
+const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Text: IssueIdText,
+  Heading: ({children, level}) => (
+    <Heading as={`h${level}`} size="lg">
+      {children}
+    </Heading>
+  ),
+};
+
+function SeerMarkdown(props: Omit<MarkdownProps, 'components'>) {
+  return <Markdown {...props} components={SEER_MARKDOWN_COMPONENTS} />;
+}
 
 function BlockStatusIndicator({status}: {status: ToolCallStatus}) {
   switch (status) {
@@ -685,56 +687,6 @@ const ActionBarWrapper = styled(Flex)`
   }
 `;
 
-const MarkdownContent = styled('div')`
-  width: 100%;
-  color: ${p => p.theme.tokens.content.primary};
-  word-wrap: break-word;
-  padding-bottom: 0;
-
-  code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme, {variant: 'neutral'})};
-  }
-
-  p,
-  li,
-  ul,
-  ol {
-    margin: ${p => p.theme.space.md} 0;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    margin: ${p => p.theme.space.md} 0;
-    font-size: ${p => p.theme.font.size.lg};
-  }
-
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: ${p => p.theme.space.md} 0;
-  }
-
-  th,
-  td {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-    text-align: left;
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  th {
-    background: ${p => p.theme.tokens.background.secondary};
-    font-weight: ${p => p.theme.font.weight.sans.medium};
-  }
-
-  hr {
-    margin: ${p => p.theme.space.md} 0;
-  }
-`;
-
 const UserBubble = styled('div')`
   max-width: 80%;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
@@ -746,12 +698,4 @@ const UserBubble = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
-`;
-
-const TodoListContent = styled('div')`
-  margin-top: ${p => p.theme.space.xs};
-  margin-bottom: -${p => p.theme.space.xl};
-  font-size: ${p => p.theme.font.size.xs};
-  font-family: ${p => p.theme.font.family.mono};
-  color: ${p => p.theme.tokens.content.secondary};
 `;
