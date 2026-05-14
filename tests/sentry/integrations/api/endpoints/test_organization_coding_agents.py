@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from requests import HTTPError
 
+from sentry.analytics.events.autofix_events import AiAutofixAgentHandoffReferrer
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import (
@@ -659,6 +660,28 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
 
 class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
     """Test class for POST endpoint launch functionality."""
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.launch_coding_agents_for_run"
+    )
+    def test_passes_organization_coding_agents_referrer(self, mock_launch):
+        mock_launch.return_value = {
+            "successes": [{"repo_name": "owner/repo"}],
+            "failures": [],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="post",
+            integration_id=str(self.integration.id),
+            run_id=123,
+        )
+
+        assert response.data["success"] is True
+        assert (
+            mock_launch.call_args.kwargs["referrer"]
+            == AiAutofixAgentHandoffReferrer.ORGANIZATION_CODING_AGENTS.value
+        )
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")

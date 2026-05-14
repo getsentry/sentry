@@ -1,4 +1,11 @@
+from enum import StrEnum
+
 from sentry import analytics
+
+
+class AiAutofixAgentHandoffReferrer(StrEnum):
+    ORGANIZATION_CODING_AGENTS = "api.organization_coding_agents"
+    SEER_RPC_TRIGGER_CODING_AGENT_LAUNCH = "seer_rpc.trigger_coding_agent_launch"
 
 
 @analytics.eventclass()

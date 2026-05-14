@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.analytics.events.autofix_events import AiAutofixAgentHandoffReferrer
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -153,7 +154,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             trigger_source=trigger_source,
             instruction=instruction,
             user_id=request.user.id,
-            referrer="api.organization_coding_agents",
+            referrer=AiAutofixAgentHandoffReferrer.ORGANIZATION_CODING_AGENTS.value,
         )
 
         successes = results["successes"]

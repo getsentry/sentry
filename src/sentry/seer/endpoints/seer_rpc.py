@@ -36,6 +36,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry.analytics.events.autofix_events import AiAutofixAgentHandoffReferrer
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -604,7 +605,7 @@ def trigger_coding_agent_launch(
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=AutofixTriggerSource(trigger_source),
-            referrer="seer_rpc.trigger_coding_agent_launch",
+            referrer=AiAutofixAgentHandoffReferrer.SEER_RPC_TRIGGER_CODING_AGENT_LAUNCH.value,
         )
         return {"success": True}
     except IntegrationNotFound:

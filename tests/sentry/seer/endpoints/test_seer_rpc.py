@@ -11,6 +11,7 @@ from django.test import override_settings
 from django.urls import reverse
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
+from sentry.analytics.events.autofix_events import AiAutofixAgentHandoffReferrer
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -1619,6 +1620,21 @@ class TestSeerRpcMethods(APITestCase):
 
 
 class TestTriggerCodingAgentLaunch:
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_uses_seer_rpc_referrer(self, mock_launch):
+        result = trigger_coding_agent_launch(
+            organization_id=1,
+            project_id=4,
+            integration_id=2,
+            run_id=3,
+        )
+
+        assert result == {"success": True}
+        assert (
+            mock_launch.call_args.kwargs["referrer"]
+            == AiAutofixAgentHandoffReferrer.SEER_RPC_TRIGGER_CODING_AGENT_LAUNCH.value
+        )
+
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_not_found_returns_integration_not_found_error_code(self, mock_launch):
         from sentry.seer.autofix.coding_agent import IntegrationNotFound
