@@ -118,7 +118,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 self.integration_id = 42
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo(), default_branch="main"),
+            Mock(project_repository=Mock(repository=TestRepo()), default_branch="main"),
         ]
 
         self.login_as(user=self.user)
@@ -182,8 +182,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         repo2 = TestRepo("id456", "repo2", "gitlab", "example.com/repo2", 43)
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=repo1, default_branch="main"),
-            Mock(repository=repo2, default_branch="master"),
+            Mock(project_repository=Mock(repository=repo1), default_branch="main"),
+            Mock(project_repository=Mock(repository=repo2), default_branch="master"),
         ]
 
         self.login_as(user=self.user)
@@ -257,7 +257,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         # Create a repo with a different external_id than what's in the codebase
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo("different_id"), default_branch="main"),
+            Mock(
+                project_repository=Mock(repository=TestRepo("different_id")), default_branch="main"
+            ),
         ]
 
         self.login_as(user=self.user)
@@ -300,7 +302,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 self.integration_id = 42
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo(), default_branch="main"),
+            Mock(project_repository=Mock(repository=TestRepo()), default_branch="main"),
         ]
 
         self.login_as(user=self.user)

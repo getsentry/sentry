@@ -527,6 +527,8 @@ class TestHasProjectConnectedRepos(TestCase):
         )
         pr = ProjectRepository.objects.create(project=self.project, repository=repo)
         SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=repo,
             project_repository=pr,
         )
 
@@ -1160,6 +1162,8 @@ class TestReadPreferenceFromSentryDb(TestCase):
     def test_reads_via_project_repository_fk(self):
         pr = ProjectRepository.objects.create(project=self.project, repository=self.repo)
         SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=self.repo,
             project_repository=pr,
             branch_name="main",
         )
