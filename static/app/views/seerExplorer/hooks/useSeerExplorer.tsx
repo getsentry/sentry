@@ -13,11 +13,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import {makeSeerExplorerSessionsQueryOptions} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {
-  useSeerExplorerConversations,
+  makeSeerExplorerSessionsQueryOptions,
   useSeerExplorerDispatch,
-} from 'sentry/views/seerExplorer/seerExplorerStateContext';
+  useSeerExplorerSessions,
+} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {Block, ExplorerSession, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
@@ -146,7 +146,7 @@ export const useSeerExplorer = () => {
       }
     );
 
-  const conversations = useSeerExplorerConversations();
+  const {conversations} = useSeerExplorerSessions();
   const dispatch = useSeerExplorerDispatch();
   const runId = conversations.find(c => c.status === 'active')?.run_id ?? null;
   const [lastSentMessage, setLastSentMessage] = useState<{

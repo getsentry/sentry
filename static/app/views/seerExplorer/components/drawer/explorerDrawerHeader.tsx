@@ -259,30 +259,23 @@ function useSessionMenuItems({
   refetch: () => void;
   sessionMenuItems: MenuItemProps[];
 } {
-  const {data, isPending, isError, refetch} = useSeerExplorerSessions();
+  const {query, conversations} = useSeerExplorerSessions();
+  const {isPending, isError, refetch} = query;
 
   const sessionMenuItems = useMemo(() => {
-    return (
-      data?.data.map(
-        (session: {
-          last_triggered_at: moment.MomentInput;
-          run_id: number;
-          title: any;
-        }) => ({
-          key: 'session-' + session.run_id.toString(),
-          label: session.title,
-          details: (
-            <TimeSince
-              tooltipPrefix="Last updated"
-              date={moment.utc(session.last_triggered_at).toDate()}
-              suffix="ago"
-            />
-          ),
-          onAction: () => onChangeSession(session.run_id),
-        })
-      ) ?? []
-    );
-  }, [data, onChangeSession]);
+    return conversations.map(session => ({
+      key: 'session-' + session.run_id.toString(),
+      label: session.title,
+      details: (
+        <TimeSince
+          tooltipPrefix="Last updated"
+          date={moment.utc(session.last_triggered_at).toDate()}
+          suffix="ago"
+        />
+      ),
+      onAction: () => onChangeSession(session.run_id),
+    }));
+  }, [conversations, onChangeSession]);
 
   return {
     sessionMenuItems,

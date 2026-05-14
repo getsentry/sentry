@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
-import {useSeerExplorerDispatch} from 'sentry/views/seerExplorer/seerExplorerStateContext';
+import {useSeerExplorerDispatch} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type OpenSeerExplorerDrawerOptions = {
