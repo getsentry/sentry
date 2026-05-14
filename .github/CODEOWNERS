@@ -883,7 +883,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/scm/                                                        @getsentry/scm
 /src/sentry/integrations/source_code_management/                        @getsentry/coding-workflows-sentry-backend @getsentry/scm
 /src/sentry/integrations/repository/                                    @getsentry/scm
-/src/sentry/integrations/github_foundations/                             @getsentry/scm
+/src/sentry/integrations/github_enterprise/                             @getsentry/scm
 /src/sentry/integrations/gitlab/                                        @getsentry/scm
 /src/sentry/integrations/bitbucket/                                     @getsentry/scm
 /src/sentry/integrations/bitbucket_server/                              @getsentry/scm
@@ -926,17 +926,17 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of Foundational Storage
 
 # Messaging Integrations
-/src/sentry/integrations/slack/*                        @getsentry/messaging-integrations
-/src/sentry/integrations/msteams/*                      @getsentry/messaging-integrations
-/src/sentry/integrations/discord/*                      @getsentry/messaging-integrations
-/tests/sentry/integrations/slack/*                      @getsentry/messaging-integrations
-/tests/sentry/integrations/msteams/*                    @getsentry/messaging-integrations
-/tests/sentry/integrations/discord/*                    @getsentry/messaging-integrations
+/src/sentry/integrations/slack/                        @getsentry/messaging-integrations
+/src/sentry/integrations/msteams/                      @getsentry/messaging-integrations
+/src/sentry/integrations/discord/                      @getsentry/messaging-integrations
+/tests/sentry/integrations/slack/                      @getsentry/messaging-integrations
+/tests/sentry/integrations/msteams/                    @getsentry/messaging-integrations
+/tests/sentry/integrations/discord/                    @getsentry/messaging-integrations
 # End of Messaging Integrations
 
 # Project Management Integrations
-/src/sentry/integrations/jira/*                          @getsentry/project-management-integrations
-/src/sentry/integrations/jira_server/*                   @getsentry/project-management-integrations
-/tests/sentry/integrations/jira/*                        @getsentry/project-management-integrations
-/tests/sentry/integrations/jira_server/*                 @getsentry/project-management-integrations
+/src/sentry/integrations/jira/                          @getsentry/project-management-integrations
+/src/sentry/integrations/jira_server/                   @getsentry/project-management-integrations
+/tests/sentry/integrations/jira/                        @getsentry/project-management-integrations
+/tests/sentry/integrations/jira_server/                 @getsentry/project-management-integrations
 # End of Project Management Integrations
