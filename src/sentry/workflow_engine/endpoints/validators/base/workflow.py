@@ -35,6 +35,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, Condition
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -107,10 +108,24 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
+    def validate_triggers(self, value: InputData) -> InputData:
+        for condition in value.get("conditions", []):
+            if Condition(condition["type"]) not in TRIGGER_CONDITIONS:
+                raise serializers.ValidationError(
+                    f"Condition type '{condition['type']}' is not a valid trigger condition."
+                )
+        return value
+
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         for action_filter in value:
             actions, condition_group = self._split_action_and_condition_group(action_filter)
             BaseDataConditionGroupValidator(data=condition_group).is_valid(raise_exception=True)
+
+            for condition in condition_group.get("conditions", []):
+                if Condition(condition["type"]) in TRIGGER_CONDITIONS:
+                    raise serializers.ValidationError(
+                        f"Condition type '{condition['type']}' is not a valid action filter condition."
+                    )
 
             validated_actions = []
             for action in actions:

@@ -755,12 +755,12 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             **self.valid_workflow,
             "actionFilters": [
                 {
-                    "logicType": "any-short",
+                    "logicType": "any",
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,
-                            "type": "first_seen_event",
-                            "comparison": True,
+                            "type": Condition.EQUAL.value,
+                            "comparison": 1,
                             "conditionResult": True,
                         }
                     ],
