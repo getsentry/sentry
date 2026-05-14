@@ -6,7 +6,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -14,6 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {makeSeerExplorerSessionsQueryOptions} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {
   useSeerExplorerConversations,
   useSeerExplorerDispatch,
@@ -209,13 +209,9 @@ export const useSeerExplorer = () => {
     onSuccess: (response, params) => {
       if (params.runId === null) {
         dispatch({type: 'set active run', payload: response.run_id});
-        const sessionsQueryKey = [
-          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-runs/', {
-            path: {organizationIdOrSlug: params.orgSlug},
-          }),
-        ] as const;
-        // Optimistically add the new session so conversations picks it up
-        // immediately, then invalidate to get the real server state.
+        const {queryKey: sessionsQueryKey} = makeSeerExplorerSessionsQueryOptions(
+          params.orgSlug
+        );
         const now = new Date().toISOString();
         setApiQueryData<{data: ExplorerSession[]}>(
           queryClient,
@@ -232,7 +228,6 @@ export const useSeerExplorer = () => {
             ],
           })
         );
-        queryClient.invalidateQueries({queryKey: sessionsQueryKey});
       } else {
         // invalidate the query so fresh data is fetched
         queryClient.invalidateQueries({
