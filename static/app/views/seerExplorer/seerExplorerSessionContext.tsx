@@ -59,7 +59,7 @@ function seerExplorerConversationsReducer(
   }
 }
 
-export interface Conversation extends ExplorerSession {
+interface Conversation extends ExplorerSession {
   status: 'active' | 'idle';
 }
 
