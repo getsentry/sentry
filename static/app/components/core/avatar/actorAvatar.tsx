@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -78,8 +77,7 @@ interface AsyncMemberAvatarProps extends Omit<UserAvatarProps, 'user' | 'round'>
 }
 
 function AsyncMemberAvatar({actor, ...props}: AsyncMemberAvatarProps) {
-  const ids = useMemo(() => [actor.id], [actor.id]);
-  const {data: members = [], isLoading} = useMembers({ids});
+  const {data: members = [], isLoading} = useMembers({ids: [actor.id]});
   const member = members.find(u => u.id === actor.id);
 
   if (isLoading) {
