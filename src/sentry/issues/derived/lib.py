@@ -8,16 +8,11 @@ aggregators with topological ordering and batched stepping).
 No Django dependencies — pure Python, fully testable in isolation.
 """
 
-from __future__ import annotations
-
 import copy
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
-
-T = TypeVar("T")
-M = TypeVar("M")
+from typing import Any, Protocol, runtime_checkable
 
 _MISSING = object()
 
@@ -27,7 +22,7 @@ _MISSING = object()
 # ---------------------------------------------------------------------------
 
 
-class Codec(Generic[T]):
+class Codec[T]:
     """Handles serialization of a Feature value to/from JSON-compatible form."""
 
     def dump(self, value: T) -> Any:
@@ -43,7 +38,7 @@ IDENTITY_CODEC: Codec[Any] = Codec()
 class PydanticDictCodec(Codec[dict[str, Any]]):
     """Codec for dict[str, PydanticModel] — the common pattern for per-user maps."""
 
-    def __init__(self, model: type[Any]):
+    def __init__(self, model: type[Any]) -> None:
         self._model = model
 
     def dump(self, value: dict[str, Any]) -> dict[str, Any]:
@@ -70,7 +65,7 @@ class FrozenSetCodec(Codec[frozenset[str]]):
 FeatureEntry = tuple["Feature[Any]", Any]
 
 
-class Feature(Generic[T]):
+class Feature[T]:
     """A named, typed slot in derived state with a default value.
 
     The `codec` handles conversion to/from JSON-compatible representations.
@@ -84,7 +79,7 @@ class Feature(Generic[T]):
         default: Any = _MISSING,
         default_factory: Callable[[], Any] | None = None,
         codec: Codec[T] | None = None,
-    ):
+    ) -> None:
         if default is _MISSING and default_factory is None:
             raise ValueError("Must provide default or default_factory")
         self.name = name
@@ -127,13 +122,13 @@ class Feature(Generic[T]):
 class _FieldStore:
     __slots__ = ("_data",)
 
-    def __init__(self, data: dict[Feature[Any], Any] | None = None):
+    def __init__(self, data: dict[Feature[Any], Any] | None = None) -> None:
         self._data: dict[Feature[Any], Any] = data if data is not None else {}
 
-    def __getitem__(self, key: Feature[T]) -> T:
+    def __getitem__[T](self, key: Feature[T]) -> T:
         return self._data[key]
 
-    def __setitem__(self, key: Feature[T], value: T) -> None:
+    def __setitem__[T](self, key: Feature[T], value: T) -> None:
         self._data[key] = value
 
     def __contains__(self, key: object) -> bool:
@@ -153,7 +148,7 @@ class StateUpdate(_FieldStore):
 class State(_FieldStore):
     """Complete pipeline state."""
 
-    def view(self, allowed: frozenset[Feature[Any]]) -> StateView:
+    def view(self, allowed: frozenset[Feature[Any]]) -> "StateView":
         return StateView(self._data, allowed)
 
     def merge(self, update: StateUpdate) -> None:
@@ -174,11 +169,11 @@ class StateView:
 
     __slots__ = ("_data", "_allowed")
 
-    def __init__(self, data: dict[Feature[Any], Any], allowed: frozenset[Feature[Any]]):
+    def __init__(self, data: dict[Feature[Any], Any], allowed: frozenset[Feature[Any]]) -> None:
         self._data = data
         self._allowed = allowed
 
-    def __getitem__(self, key: Feature[T]) -> T:
+    def __getitem__[T](self, key: Feature[T]) -> T:
         if key not in self._allowed:
             raise KeyError(f"Feature {key.name!r} is not accessible in this view")
         return self._data[key]
@@ -252,7 +247,7 @@ class Pipeline:
         *,
         version: int,
         check_mutations: bool = False,
-    ):
+    ) -> None:
         self._version = version
         self._check_mutations = check_mutations
         aggregators = tuple(aggregators)
