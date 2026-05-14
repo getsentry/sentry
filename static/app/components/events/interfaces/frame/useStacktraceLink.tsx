@@ -13,7 +13,7 @@ interface UseStacktraceLinkProps {
   projectSlug: string | undefined;
 }
 
-interface StacktraceLinkQuery {
+type StacktraceLinkQuery = {
   file: string;
   lineNo: number;
   platform: string;
@@ -23,7 +23,7 @@ interface StacktraceLinkQuery {
   module?: string;
   package?: string;
   sdkName?: string;
-}
+};
 
 export function buildStacktraceLinkQuery(
   event: UseStacktraceLinkProps['event'],

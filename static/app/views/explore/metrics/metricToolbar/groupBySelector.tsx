@@ -18,6 +18,7 @@ import {
   useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {
   selectTraceItemTagCollection,
   traceItemAttributeKeysOptions,
@@ -115,7 +116,15 @@ export function GroupBySelector({
   return (
     <CompactSelect
       multiple
-      search
+      search={{
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.TRACEMETRICS,
+            option,
+            searchText,
+          });
+        },
+      }}
       clearable
       trigger={triggerProps => (
         <OverlayTrigger.Button

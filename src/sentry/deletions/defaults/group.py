@@ -26,9 +26,8 @@ from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
-from sentry.seer.models.night_shift import SeerNightShiftRunIssue
+from sentry.seer.models.night_shift import SeerNightShiftRunResult
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.seer.delete_seer_grouping_records import (
@@ -80,7 +79,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupSubscription,
     models.GroupReaction,
     models.Activity,
-    RuleFireHistory,
 )
 
 # Additional group-related models that require special handling during reprocessing.
@@ -96,7 +94,7 @@ ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
-    SeerNightShiftRunIssue,
+    SeerNightShiftRunResult,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 

@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ConfigureReplayCard} from 'sentry/components/replays/header/configureReplayCard';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
@@ -10,89 +8,48 @@ import {t} from 'sentry/locale';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayItemDropdown} from 'sentry/views/explore/replays/detail/header/replayItemDropdown';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
 export function ReplayDetailsHeaderActions({readerResult}: Props) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <ReplayLoadingState
       readerResult={readerResult}
       renderArchived={() => null}
       renderError={() => null}
       renderThrottled={() => null}
-      renderLoading={() =>
-        hasPageFrameFeature ? (
-          <TopBar.Slot name="actions">
-            <Placeholder height="32px" width="352px" />
-          </TopBar.Slot>
-        ) : (
+      renderLoading={() => (
+        <TopBar.Slot name="actions">
           <Placeholder height="32px" width="352px" />
-        )
-      }
+        </TopBar.Slot>
+      )}
       renderMissing={() => null}
-      renderProcessingError={({replayRecord, projectSlug}) =>
-        hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="actions">
-              <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
-              <ReplayItemDropdown
-                projectSlug={projectSlug}
-                replay={undefined}
-                replayRecord={replayRecord}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          </Fragment>
-        ) : (
-          <ButtonActionsWrapper>
-            <FeedbackButton size="xs" />
+      renderProcessingError={({replayRecord, projectSlug}) => (
+        <Fragment>
+          <TopBar.Slot name="actions">
             <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
             <ReplayItemDropdown
               projectSlug={projectSlug}
               replay={undefined}
               replayRecord={replayRecord}
             />
-          </ButtonActionsWrapper>
-        )
-      }
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      )}
     >
-      {({replay}) =>
-        hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="actions">
-              <ConfigureReplayCard
-                isMobile={replay.isVideoReplay()}
-                replayRecord={replay.getReplay()}
-              />
-              <ReplayItemDropdown
-                projectSlug={readerResult.projectSlug}
-                replay={replay}
-                replayRecord={replay.getReplay()}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          </Fragment>
-        ) : (
-          <ButtonActionsWrapper>
-            <FeedbackButton size="xs" />
+      {({replay}) => (
+        <Fragment>
+          <TopBar.Slot name="actions">
             <ConfigureReplayCard
               isMobile={replay.isVideoReplay()}
               replayRecord={replay.getReplay()}
@@ -102,19 +59,17 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
               replay={replay}
               replayRecord={replay.getReplay()}
             />
-          </ButtonActionsWrapper>
-        )
-      }
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      )}
     </ReplayLoadingState>
   );
 }
-
-// TODO(replay); This could make a lot of sense to put inside HeaderActions by default
-const ButtonActionsWrapper = styled(Layout.HeaderActions)`
-  flex-direction: row;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.md};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin-bottom: 0;
-  }
-`;

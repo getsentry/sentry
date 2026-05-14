@@ -22,7 +22,7 @@ export function ReleaseArchivedNotice({onRestore, multi}: Props) {
         {!multi && onRestore && (
           <Fragment>
             {' '}
-            <UnarchiveButton size="zero" priority="link" onClick={onRestore}>
+            <UnarchiveButton size="zero" variant="link" onClick={onRestore}>
               {t('Restore this release')}
             </UnarchiveButton>
           </Fragment>

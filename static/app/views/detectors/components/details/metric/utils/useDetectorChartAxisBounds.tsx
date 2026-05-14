@@ -54,8 +54,8 @@ export function useDetectorChartAxisBounds({
 
     // Cap percentage metrics at 100% (1.0 in 0-1 scale)
     const isPercentage = aggregate && aggregateOutputType(aggregate) === 'percentage';
-    if (isPercentage && maxValue > 1.0) {
-      maxValue = 1.0;
+    if (isPercentage && maxValue > 1) {
+      maxValue = 1;
     }
 
     // Add padding to min value

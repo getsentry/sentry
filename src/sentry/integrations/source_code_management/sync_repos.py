@@ -16,9 +16,7 @@ from datetime import timedelta
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -28,17 +26,26 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    HaltReason,
+    RepositoryIntegration,
+)
+from sentry.integrations.utils.metrics import IntegrationEventLifecycle
+from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import (
+    ApiPaginationTruncated,
+    IntegrationError,
+)
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.utils import metrics
 from sentry.utils.cursored_scheduler import CursoredScheduler
 from sentry.utils.iterators import chunked
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +63,11 @@ SCM_SYNC_PROVIDERS = [
 ]
 
 SYNC_BATCH_SIZE = 100
+
+# Final safety guard before auto-disabling a repo: if it has any commit, PR,
+# or code review event row in the last DISABLE_ACTIVITY_CUTOFF_DAYS days, we
+# skip the disable even if the provider isn't returning the repo right now.
+DISABLE_ACTIVITY_CUTOFF_DAYS = 30
 
 
 def bump_org_integration_last_sync(
@@ -77,22 +89,46 @@ def bump_org_integration_last_sync(
     oi.save(update_fields=["config"])
 
 
-def _has_feature(flag: str, org: object) -> bool:
-    """Check a feature flag, returning False if the flag isn't registered."""
-    try:
-        return features.has(flag, org)
-    except FeatureNotRegistered:
-        return False
+def _halt_broken_integration(
+    lifecycle: IntegrationEventLifecycle,
+    exc: BaseException,
+    integration_id: int,
+    organization_id: int,
+    provider_key: str,
+    reason: HaltReason,
+) -> None:
+    """Record a known broken-integration failure without retrying or paging.
+
+    These are expected terminal states (expired OAuth token, suspended app
+    install, etc.) that the periodic sync can't recover from. We halt the
+    lifecycle so no Sentry issue is created, bump a counter that can be
+    dashboarded to watch the broken-integration population, and let the task
+    return cleanly (no retry).
+    """
+    lifecycle.record_halt(exc, create_issue=False)
+    metrics.incr(
+        "scm.repo_sync.get_repositories_failed",
+        tags={"provider": provider_key, "reason": reason},
+        sample_rate=1.0,
+    )
+    logger.info(
+        "sync_repos_for_org.broken_integration",
+        extra={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "provider": provider_key,
+            "reason": reason,
+        },
+    )
 
 
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.sync_repos_for_org",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def sync_repos_for_org(organization_integration_id: int) -> None:
     """
     Sync repositories for a single OrganizationIntegration.
@@ -100,37 +136,78 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
     Fetches all repos from the SCM provider, diffs against Sentry's
     Repository table, then dispatches batched apply tasks.
     """
+    lock = locks.get(
+        f"repo-sync:{organization_integration_id}",
+        duration=300,
+        name="sync_repos_for_org",
+    )
+    try:
+        lock.acquire()
+    except UnableToAcquireLock:
+        return
+
+    try:
+        _sync_repos_for_org(organization_integration_id)
+    finally:
+        lock.release()
+
+
+def _sync_repos_for_org(organization_integration_id: int) -> None:
     ctx = _get_sync_context(organization_integration_id)
     if ctx is None:
         return
     integration, rpc_org, provider_key = ctx
 
-    if not _has_feature(f"organizations:{provider_key}-repo-auto-sync", rpc_org):
-        return
-
     provider = f"integrations:{provider_key}"
-    dry_run = not _has_feature(f"organizations:{provider_key}-repo-auto-sync-apply", rpc_org)
 
     with SCMIntegrationInteractionEvent(
         interaction_type=SCMIntegrationInteractionType.SYNC_REPOS,
         integration_id=integration.id,
         organization_id=rpc_org.id,
         provider_key=provider_key,
-    ).capture():
+    ).capture() as lifecycle:
         installation = integration.get_installation(organization_id=rpc_org.id)
         assert isinstance(installation, RepositoryIntegration)
 
+        fetch_truncated = False
         try:
-            provider_repos = installation.get_repositories()
-        except ApiError as e:
-            if installation.is_rate_limited_error(e):
-                logger.info(
-                    "sync_repos_for_org.rate_limited",
-                    extra={
-                        "integration_id": integration.id,
-                        "organization_id": rpc_org.id,
-                    },
+            provider_repos = installation.get_repositories(raise_on_page_limit=True)
+        except ApiPaginationTruncated as e:
+            # Provider fetch hit a pagination cap with more data still
+            # available. We keep the partial result for create/restore — those
+            # are additive and safe — but skip the disable path so repos that
+            # fell off the tail of the cap aren't wrongly removed.
+            provider_repos = e.partial_data
+            fetch_truncated = True
+            logger.warning(
+                "sync_repos_for_org.pagination_cap_hit",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": rpc_org.id,
+                    "provider": provider_key,
+                    "count": len(provider_repos),
+                },
+            )
+            metrics.incr(
+                "scm.repo_sync.pagination_cap_hit",
+                tags={"provider": provider_key},
+                sample_rate=1.0,
+            )
+        except IntegrationError as e:
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
                 )
+                return
+            raise
+        except Exception as e:
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
+                )
+                return
             raise
 
         provider_external_ids = {repo["external_id"] for repo in provider_repos}
@@ -149,12 +226,13 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         sentry_disabled_ids = {r.external_id for r in disabled_repos}
 
         new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
-        removed_ids = sentry_active_ids - provider_external_ids
+        # Skip removals entirely if we didn't manage to fetch all repos for this integration.
+        # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
+        removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
         metric_tags = {
             "provider": provider_key,
-            "dry_run": str(dry_run),
         }
         metrics.distribution(
             "scm.repo_sync.new_repos", len(new_ids), tags=metric_tags, sample_rate=1.0
@@ -188,7 +266,6 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                     "provider": provider_key,
                     "integration_id": integration.id,
                     "organization_id": rpc_org.id,
-                    "dry_run": dry_run,
                     "provider_total": len(provider_external_ids),
                     "sentry_active": len(sentry_active_ids),
                     "sentry_disabled": len(sentry_disabled_ids),
@@ -201,16 +278,45 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 },
             )
 
-        if dry_run:
-            return
+        # Filter out any repo with recent activity (commits, PRs, code review
+        # events) before disable.
+        removed_id_list = list(removed_ids)
+        active_skipped: set[str] = set()
+        if removed_id_list:
+            active_skipped = set(
+                repository_service.find_recently_active_repo_external_ids(
+                    organization_id=rpc_org.id,
+                    integration_id=integration.id,
+                    provider=provider,
+                    external_ids=removed_id_list,
+                    cutoff_days=DISABLE_ACTIVITY_CUTOFF_DAYS,
+                )
+            )
+            if active_skipped:
+                logger.info(
+                    "scm.repo_sync.disable_skipped_due_to_activity",
+                    extra={
+                        "provider": provider_key,
+                        "integration_id": integration.id,
+                        "organization_id": rpc_org.id,
+                        "candidate_count": len(removed_id_list),
+                        "skipped_count": len(active_skipped),
+                        "skipped_ids": list(active_skipped),
+                        "cutoff_days": DISABLE_ACTIVITY_CUTOFF_DAYS,
+                    },
+                )
+                metrics.distribution(
+                    "scm.repo_sync.disable_skipped_due_to_activity",
+                    len(active_skipped),
+                    tags={"provider": provider_key},
+                    sample_rate=1.0,
+                )
 
-        removals_enabled = _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org)
+        safe_to_disable = [eid for eid in removed_id_list if eid not in active_skipped]
         bump_org_integration_last_sync(
             organization_integration_id,
-            repos_changed=bool(new_ids or restored_ids or (removed_ids and removals_enabled)),
+            repos_changed=bool(new_ids or restored_ids or safe_to_disable),
         )
-
-        # Build repo configs for new repos
         new_repo_configs = [
             {
                 **repo,
@@ -221,7 +327,6 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             for repo in provider_repos
             if repo["external_id"] in new_ids
         ]
-        removed_id_list = list(removed_ids)
         restored_id_list = list(restored_ids)
 
         for config_batch in chunked(new_repo_configs, SYNC_BATCH_SIZE):
@@ -232,14 +337,13 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 }
             )
 
-        if removals_enabled:
-            for removed_batch in chunked(removed_id_list, SYNC_BATCH_SIZE):
-                disable_repos_batch.apply_async(
-                    kwargs={
-                        "organization_integration_id": organization_integration_id,
-                        "external_ids": removed_batch,
-                    }
-                )
+        for removed_batch in chunked(safe_to_disable, SYNC_BATCH_SIZE):
+            disable_repos_batch.apply_async(
+                kwargs={
+                    "organization_integration_id": organization_integration_id,
+                    "external_ids": removed_batch,
+                }
+            )
 
         for restored_batch in chunked(restored_id_list, SYNC_BATCH_SIZE):
             restore_repos_batch.apply_async(
@@ -292,11 +396,10 @@ def _get_sync_context(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.create_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def create_repos_batch(
     organization_integration_id: int,
     repo_configs: list[dict[str, object]],
@@ -333,11 +436,10 @@ def create_repos_batch(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.disable_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def disable_repos_batch(
     organization_integration_id: int,
     external_ids: list[str],
@@ -347,9 +449,6 @@ def disable_repos_batch(
         return
     integration, rpc_org, provider_key = ctx
     provider = f"integrations:{provider_key}"
-
-    if not _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org):
-        return
 
     repository_service.disable_repositories_by_external_ids(
         organization_id=rpc_org.id,
@@ -380,11 +479,10 @@ def disable_repos_batch(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.restore_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def restore_repos_batch(
     organization_integration_id: int,
     external_ids: list[str],

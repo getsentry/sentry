@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -48,7 +48,8 @@ function SegmentedIssueViewSaveButton({
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
-  const buttonPriority = hasPageFrameFeature || hasUnsavedChanges ? 'primary' : 'default';
+  const buttonPriority =
+    hasPageFrameFeature || hasUnsavedChanges ? 'primary' : 'secondary';
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -98,7 +99,7 @@ function SegmentedIssueViewSaveButton({
       {({hasFeature}) => (
         <ButtonBar>
           <PrimarySaveButton
-            priority={buttonPriority}
+            variant={buttonPriority}
             data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
             onClick={() => {
               if (canEdit) {
@@ -141,7 +142,7 @@ function SegmentedIssueViewSaveButton({
                   />
                 }
                 aria-label={t('More save options')}
-                priority={buttonPriority}
+                variant={buttonPriority}
               />
             )}
             position="bottom-end"
@@ -153,6 +154,8 @@ function SegmentedIssueViewSaveButton({
 }
 
 export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
+  const {openModal} = useModal();
+
   const {viewId} = useParams();
   const {selection} = usePageFilters();
   const {data: view} = useSelectedGroupSearchView();
@@ -197,7 +200,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
       >
         {({hasFeature}) => (
           <Button
-            priority="primary"
+            variant="primary"
             onClick={openCreateIssueViewModal}
             disabled={!hasFeature}
           >

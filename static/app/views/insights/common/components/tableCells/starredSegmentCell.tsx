@@ -100,7 +100,7 @@ export function StarredSegmentCell({
       <Button
         onClick={toggleStarredTransaction}
         disabled={disabled}
-        priority="transparent"
+        variant="transparent"
         size="zero"
         icon={
           <IconStar

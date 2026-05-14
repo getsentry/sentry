@@ -57,7 +57,6 @@ export function useMailboxCounts({
   const queryViewWithStatsPeriod = useMemo(
     () =>
       coaleseIssueStatsPeriodQuery({
-        defaultStatsPeriod: '0d',
         listHeadTime,
         prefetch: false,
         queryView,

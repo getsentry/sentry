@@ -8,29 +8,28 @@ import type {SliderProps} from 'sentry/components/slider';
 import type {SelectValue} from 'sentry/types/core';
 import type {AvatarProject, Project} from 'sentry/types/project';
 
-export const FieldType = [
-  'array',
-  'blank',
-  'bool',
-  'boolean',
-  'choice_mapper',
-  'datetime',
-  'email',
-  'file',
-  'hidden',
-  'multichoice',
-  'number',
-  'radio',
-  'secret',
-  'separator',
-  'string',
-  'text',
-  'url',
-  'table',
-  'project_mapper',
-  'sentry_project_selector',
-  'select_async',
-] as const;
+type FieldType =
+  | 'array'
+  | 'blank'
+  | 'bool'
+  | 'boolean'
+  | 'choice_mapper'
+  | 'datetime'
+  | 'email'
+  | 'file'
+  | 'hidden'
+  | 'multichoice'
+  | 'number'
+  | 'radio'
+  | 'secret'
+  | 'separator'
+  | 'string'
+  | 'text'
+  | 'url'
+  | 'table'
+  | 'project_mapper'
+  | 'sentry_project_selector'
+  | 'select_async';
 
 export type FieldValue = any;
 
@@ -225,7 +224,7 @@ export type Field = (
   | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType
-  | {type: (typeof FieldType)[number]}
+  | {type: FieldType}
   | FileType
   | DateTimeType
 ) &

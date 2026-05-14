@@ -24,7 +24,7 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -45,13 +45,14 @@ class RetryTask(Exception):
     namespace=deletion_tasks,
     processing_deadline_duration=60 * 20,
     retry=Retry(
-        on=(RetryTask,),
+        on=(Exception,),
         times=MAX_RETRIES,
         delay=60 * 5,
+        ignore=(DeleteAborted,),
     ),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(DeleteAborted,),
 )
-@retry(exclude=(DeleteAborted,))
 @track_group_async_operation
 def delete_events_for_groups_from_nodestore_and_eventstore(
     organization_id: int,

@@ -7,11 +7,14 @@ from sentry.auth.access import NoAccess
 from sentry.incidents.logic import get_filtered_actions
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
+from sentry.models.organization import Organization
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.alert_rule_action import raise_alert_rule_action_result_errors
 
 
-def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[str, Any]) -> None:
+def trigger_sentry_app_action_creators_for_incidents(
+    alert_rule_data: Mapping[str, Any], organization: Organization
+) -> None:
     sentry_app_actions = get_filtered_actions(
         alert_rule_data=alert_rule_data,
         action_type=AlertRuleTriggerAction.Type.SENTRY_APP,
@@ -23,7 +26,13 @@ def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[st
 
     for action in sentry_app_actions_with_components:
         action_serializer = AlertRuleTriggerActionSerializer(
-            context={"access": NoAccess()},
+            context={
+                "access": NoAccess(),
+                "installations": app_service.installations_for_organization(
+                    organization_id=organization.id
+                ),
+                "organization": organization,
+            },
             data=action,
         )
         if not action_serializer.is_valid():

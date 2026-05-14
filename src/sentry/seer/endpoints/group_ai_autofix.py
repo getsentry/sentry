@@ -32,12 +32,13 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.autofix.autofix import trigger_autofix
+from sentry.seer.autofix.autofix import trigger_legacy_autofix
 from sentry.seer.autofix.autofix_agent import (
+    UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
     NoSeerQuotaException,
-    get_autofix_explorer_state,
-    trigger_autofix_explorer,
+    get_autofix_agent_state,
+    trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
@@ -59,6 +60,22 @@ from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+
+def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
+    return getattr(error, "message", None) == UNKNOWN_RUN_ID_FOR_GROUP
+
+
+def _parse_autofix_referrer(raw: str | None) -> AutofixReferrer:
+    if raw is None:
+        return AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
+    try:
+        return AutofixReferrer(raw)
+    except ValueError:
+        logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
+        return AutofixReferrer.UNKNOWN
+
 
 class AutofixRequestSerializer(CamelSnakeSerializer):
     event_id = serializers.CharField(
@@ -78,10 +95,14 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
         choices=["root_cause", "solution", "code_changes", "open_pr"],
         help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        help_text="Referrer identifying where the issue fix was triggered from.",
+    )
 
 
 class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
-    """Serializer for Explorer-based autofix requests."""
+    """Serializer for the agent-based autofix requests."""
 
     step = serializers.ChoiceField(
         required=False,
@@ -90,8 +111,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "solution",
             "code_changes",
             "open_pr",
-            "impact_assessment",
-            "triage",
             "coding_agent_handoff",
         ],
         default="root_cause",
@@ -134,6 +153,10 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Block index to insert at. When provided, truncates blocks after this point for retry-from-step.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        help_text="Referrer identifying where the issue fix was triggered from.",
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -167,15 +190,15 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         }
     )
 
-    def _should_use_explorer(self, request: Request, organization: Organization) -> bool:
+    def _should_use_agent(self, request: Request, organization: Organization) -> bool:
         """Check if explorer mode should be used based on query params and feature flags."""
         if request.GET.get("mode") != "explorer":
             return False
 
         feature_names = [
-            # Access to seer explorer
+            # Access to seer agent
             "organizations:seer-explorer",
-            # Access to seer explorer powered autofix
+            # Access to seer agent powered autofix
             "organizations:autofix-on-explorer",
         ]
 
@@ -225,12 +248,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
-        if self._should_use_explorer(request, group.organization):
-            return self._post_explorer(request, group)
+        if self._should_use_agent(request, group.organization):
+            return self._post_agent(request, group)
         return self._post_legacy(request, group)
 
-    def _post_explorer(self, request: Request, group: Group) -> Response:
-        """Handle POST for Explorer-based autofix."""
+    def _post_agent(self, request: Request, group: Group) -> Response:
+        """Handle POST for the agent-based autofix."""
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -257,14 +280,19 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            result = trigger_coding_agent_handoff(
-                group=group,
-                run_id=run_id,
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-                integration_id=integration_id,
-                provider=provider,
-                user_id=request.user.id if request.user else None,
-            )
+            try:
+                result = trigger_coding_agent_handoff(
+                    group=group,
+                    run_id=run_id,
+                    referrer=_parse_autofix_referrer(data.get("referrer")),
+                    integration_id=integration_id,
+                    provider=provider,
+                    user_id=request.user.id if request.user else None,
+                )
+            except SeerPermissionError as e:
+                if _is_unknown_run_id_error(e):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+                raise PermissionDenied(SEER_PERMISSION_DENIED)
             return Response(result, status=status.HTTP_202_ACCEPTED)
 
         if step == "open_pr":
@@ -277,7 +305,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 trigger_push_changes(
                     group,
                     run_id,
-                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    referrer=_parse_autofix_referrer(data.get("referrer")),
                     repo_name=repo_name,
                 )
             except SeerPermissionError:
@@ -286,10 +314,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         # Handle all built-in Seer steps
         try:
-            run_id = trigger_autofix_explorer(
+            run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
                 intelligence_level=data["intelligence_level"],
@@ -300,7 +328,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
         except SeerPermissionError as e:
-            raise PermissionDenied(str(e))
+            if _is_unknown_run_id_error(e):
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            raise PermissionDenied(SEER_PERMISSION_DENIED)
 
     def _post_legacy(self, request: Request, group: Group) -> Response:
         """Handle POST for legacy autofix."""
@@ -313,12 +343,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         stopping_point = data.get("stopping_point")
         stopping_point = AutofixStoppingPoint(stopping_point) if stopping_point else None
 
-        return trigger_autofix(
+        return trigger_legacy_autofix(
             group=group,
             # This event_id is the event that the user is looking at when they click the "Fix" button
             event_id=data.get("event_id"),
             user=request.user,
-            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            referrer=_parse_autofix_referrer(data.get("referrer")),
             instruction=data.get("instruction"),
             pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
             stopping_point=stopping_point,
@@ -353,14 +383,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         This endpoint although documented is still experimental and the payload may change in the future.
         """
-        if self._should_use_explorer(request, group.organization):
-            return self._get_explorer(request, group)
+        if self._should_use_agent(request, group.organization):
+            return self._get_agent(request, group)
         return self._get_legacy(request, group)
 
-    def _get_explorer(self, request: Request, group: Group) -> Response:
-        """Handle GET for Explorer-based autofix."""
+    def _get_agent(self, request: Request, group: Group) -> Response:
+        """Handle GET for the agent-based autofix."""
         try:
-            state = get_autofix_explorer_state(group.organization, group.id)
+            state = get_autofix_agent_state(group.organization, group.id)
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
 
@@ -379,7 +409,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     organization_id=group.organization.id,
                 )
 
-        # Return the Explorer state directly - frontend will handle the format
+        # Return the agent state directly - frontend will handle the format
         return Response(
             {
                 "autofix": {

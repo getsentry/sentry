@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Pagination} from 'sentry/components/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';

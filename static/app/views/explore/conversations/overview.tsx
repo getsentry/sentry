@@ -14,7 +14,6 @@ import {
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,13 +24,12 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
-import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 
@@ -43,7 +41,6 @@ function ConversationsOverviewPage() {
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
   });
-  useDefaultToAllProjects();
   const {
     showOnboarding,
     isLoading: isOnboardingLoading,
@@ -62,12 +59,18 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
-  const {attributes: numberTags = [], isLoading: numberTagsLoading} =
-    useSpanItemAttributes({}, 'number');
-  const {attributes: stringTags = [], isLoading: stringTagsLoading} =
-    useSpanItemAttributes({}, 'string');
-  const {attributes: booleanTags = [], isLoading: booleanTagsLoading} =
-    useSpanItemAttributes({}, 'boolean');
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
+    {},
+    'number'
+  );
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
+    {},
+    'string'
+  );
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
+    {},
+    'boolean'
+  );
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -122,9 +125,9 @@ function ConversationsOverviewPage() {
             {!showOnboarding && !isOnboardingLoading && (
               <SchemaHintsList
                 supportedAggregates={DISABLE_AGGREGATES}
-                booleanTags={booleanTags as TagCollection}
-                numberTags={numberTags as TagCollection}
-                stringTags={stringTags as TagCollection}
+                booleanTags={booleanTags}
+                numberTags={numberTags}
+                stringTags={stringTags}
                 isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
                 exploreQuery={searchQuery ?? ''}
                 source={SchemaHintsSources.CONVERSATIONS}

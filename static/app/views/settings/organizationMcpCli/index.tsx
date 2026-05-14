@@ -43,7 +43,7 @@ export default function OrganizationMcpCli() {
               https://mcp.sentry.dev/mcp/your-org/your-project
             </TextCopyInput>
             <div>
-              <LinkButton href="https://mcp.sentry.dev" external priority="default">
+              <LinkButton href="https://mcp.sentry.dev" external variant="secondary">
                 {t('MCP Documentation')}
               </LinkButton>
             </div>
@@ -61,7 +61,7 @@ export default function OrganizationMcpCli() {
             <TextCopyInput>curl https://cli.sentry.dev/install -fsS | bash</TextCopyInput>
             <TextCopyInput>sentry auth login</TextCopyInput>
             <div>
-              <LinkButton href="https://cli.sentry.dev" external priority="default">
+              <LinkButton href="https://cli.sentry.dev" external variant="secondary">
                 {t('CLI Documentation')}
               </LinkButton>
             </div>

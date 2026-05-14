@@ -63,10 +63,12 @@ class TestUsageService:
         mock_metrics.incr.assert_any_call(
             "billing.service.method.called",
             tags={"service": "UsageService", "method": "get_usage"},
+            sample_rate=1.0,
         )
         mock_metrics.incr.assert_any_call(
             "billing.service.method.success",
             tags={"service": "UsageService", "method": "get_usage"},
+            sample_rate=1.0,
         )
         mock_metrics.timing.assert_called()
 

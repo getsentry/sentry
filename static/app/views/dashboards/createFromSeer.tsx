@@ -17,11 +17,9 @@ import {statusIsTerminal, validateDashboardAndRecordMetrics} from './createFromS
 import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
-import type {DashboardDetails, Widget} from './types';
+import type {Widget} from './types';
 import {DashboardState} from './types';
 import {useSeerDashboardSession} from './useSeerDashboardSession';
-
-const EMPTY_DASHBOARDS: never[] = [];
 
 export default function CreateFromSeer() {
   const organization = useOrganization();
@@ -32,7 +30,7 @@ export default function CreateFromSeer() {
     organization.features.includes('dashboards-edit') &&
     organization.features.includes('dashboards-ai-generate');
 
-  const [dashboard, setDashboard] = useState<DashboardDetails>(EMPTY_DASHBOARD);
+  const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
 
   // Additional guards to prevent duplicate metrics recording and on reload
   const hasValidatedRef = useRef(false);
@@ -174,7 +172,6 @@ export default function CreateFromSeer() {
         <MemoizedDashboardDetail
           initialState={DashboardState.PREVIEW}
           dashboard={dashboard}
-          dashboards={EMPTY_DASHBOARDS} // This prop is unused for the create from seer flow
         />
         <DashboardChatPanel
           blocks={session?.blocks ?? []}

@@ -29,7 +29,7 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Error(
+  static ErrorState(
     metadata: TraceTree.Metadata,
     organization: Organization
   ): IssuesTraceTree {

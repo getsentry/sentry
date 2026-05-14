@@ -130,13 +130,13 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
               <Button
                 aria-label={t('Remove file')}
                 icon={<IconDelete />}
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 onClick={() => setFile(undefined)}
               />
             </Flex>
             <Button
-              priority="primary"
+              variant="primary"
               onClick={handleStartRelocation}
               icon={<IconUpload className="upload-icon" size="xs" />}
             >

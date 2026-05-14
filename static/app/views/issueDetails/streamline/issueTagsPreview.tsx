@@ -243,11 +243,10 @@ export function IssueTagsPreview({
   });
 
   const highlightTagKeys = useMemo(() => {
-    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
-    const highlightDefaults =
-      detailedProject?.highlightPreset?.tags ?? project?.highlightPreset?.tags ?? [];
+    const tagKeys = detailedProject?.highlightTags ?? [];
+    const highlightDefaults = detailedProject?.highlightPreset?.tags ?? [];
     return tagKeys.filter(tag => !highlightDefaults.includes(tag));
-  }, [detailedProject, project]);
+  }, [detailedProject]);
 
   const {
     isError,

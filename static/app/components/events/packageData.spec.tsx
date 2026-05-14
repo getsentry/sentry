@@ -53,7 +53,7 @@ describe('EventPackageData', () => {
     // Displays when open
     await userEvent.click(screen.getByText('Packages'));
     expect(screen.getByText(/python/)).toBeInTheDocument();
-    expect(screen.getByText(event?.packages?.python as string)).toBeInTheDocument();
+    expect(screen.getByText(event?.packages?.python!)).toBeInTheDocument();
     // Respects _meta annotations
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
     await userEvent.hover(screen.getByText(/redacted/));

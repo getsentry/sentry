@@ -113,7 +113,7 @@ def handle_preprod_check_run_event(
     except PreprodArtifact.DoesNotExist:
         logger.warning(
             Log.ARTIFACT_NOT_FOUND,
-            extra={**extra, "artifact_id": artifact_id},
+            extra={**extra, "preprod_artifact_id": artifact_id},
         )
         metrics.incr(Log.ARTIFACT_NOT_FOUND)
         return
@@ -195,7 +195,7 @@ def handle_preprod_check_run_event(
         Log.APPROVALS_CREATED,
         extra={
             **extra,
-            "artifact_id": artifact_id,
+            "preprod_artifact_id": artifact_id,
             "sibling_count": len(sibling_artifacts),
             "approvals_created": approvals_created,
         },

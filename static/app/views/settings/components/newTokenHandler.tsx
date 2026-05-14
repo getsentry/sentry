@@ -20,7 +20,7 @@ export function displayNewToken(token: string, onClose: () => void) {
           <TextCopyInput aria-label={t('Generated token')}>{token}</TextCopyInput>
         </Body>
         <Footer>
-          <Button onClick={closeModal} priority="primary">
+          <Button onClick={closeModal} variant="primary">
             {t("I've saved it")}
           </Button>
         </Footer>

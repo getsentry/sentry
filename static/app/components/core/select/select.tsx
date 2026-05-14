@@ -283,7 +283,7 @@ function ClearIndicator(
   return (
     <selectComponents.ClearIndicator {...props}>
       <Button
-        priority="transparent"
+        variant="transparent"
         icon={<IconClose legacySize="10px" />}
         size="zero"
         aria-label={t('Clear choices')}
@@ -347,7 +347,7 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
   if (!maybe || maybe.length === 0) {
     return false;
   }
-  return (maybe as GroupedOptionsType<OptionType>)[0]!.options !== undefined;
+  return (maybe as GroupedOptionsType<OptionType>)[0]?.options !== undefined;
 }
 
 function MultiValueRemove(

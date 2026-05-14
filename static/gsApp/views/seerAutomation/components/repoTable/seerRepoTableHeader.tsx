@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -12,7 +13,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
@@ -20,7 +20,10 @@ import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -43,12 +46,11 @@ const COLUMNS = [
     title: (
       <Flex gap="sm" align="center">
         {t('Trigger')}
-        <QuestionTooltip
+        <InfoTip
           title={tct(
             'Code review can always be triggered manaully by mentioning [code:@sentry review].',
             {code: <code />}
           )}
-          size="xs"
         />
       </Flex>
     ),
@@ -80,7 +82,8 @@ export function SeerRepoTableHeader({
   const queryOptions = queryKeyRef.current
     ? parseQueryKey(queryKeyRef.current).options
     : undefined;
-  const queryString = queryOptions?.query?.query;
+  const rawQuery = queryOptions?.query?.query;
+  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const selectedRepos = useMemo(() => {
     if (selectedIds === 'all') {
@@ -95,7 +98,7 @@ export function SeerRepoTableHeader({
       repo => repo?.settings?.enabledCodeReview === false
     );
     if (someEnabled && someDisabled) {
-      return undefined;
+      return;
     }
     if (someEnabled) {
       return 'enabled_code_review:enabled';
@@ -103,7 +106,7 @@ export function SeerRepoTableHeader({
     if (someDisabled) {
       return 'enabled_code_review:disabled';
     }
-    return undefined;
+    return;
   }, [selectedRepos]);
 
   const currentTriggersValue = useMemo((): CodeReviewTrigger[] => {
@@ -391,7 +394,7 @@ function SelectAllCheckbox({
 }: {
   disabled: boolean;
   knownIds: string[];
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
 }) {
   return (
     <Checkbox

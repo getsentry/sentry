@@ -6,11 +6,14 @@ from pydantic import BaseModel, Field
 
 
 class ImageMetadata(BaseModel):
-    content_hash: str | None = None
+    content_hash: str
     display_name: str | None = None
     group: str | None = None
     width: int = Field(ge=0)
     height: int = Field(ge=0)
+    diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
+    description: str | None = None
+    tags: list[str] | None = None
 
     class Config:
         extra = "allow"

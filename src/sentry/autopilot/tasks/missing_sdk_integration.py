@@ -9,7 +9,7 @@ from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
 from sentry.tasks.base import instrumented_task
@@ -129,7 +129,7 @@ def run_missing_sdk_integration_detector_for_project_task(
     organization_id: int, project_id: int, repo_name: str
 ) -> list[str] | None:
     """
-    Detect missing SDK integrations for a project using Seer Explorer.
+    Detect missing SDK integrations for a project using Seer Agent.
 
     Returns:
         List of missing integration names, or None if detection failed.
@@ -160,7 +160,7 @@ def run_missing_sdk_integration_detector_for_project_task(
         return None
 
     try:
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user=None,
             category_key=AutopilotDetectorName.MISSING_SDK_INTEGRATION,

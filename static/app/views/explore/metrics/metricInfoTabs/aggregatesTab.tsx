@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -51,6 +52,14 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+
+// TODO: add back filter actions or just revert this commit
+// once the metrics search bar supports filters on aggregates
+const METRICS_AGGREGATES_CELL_ACTIONS: Actions[] = [
+  Actions.COPY_TO_CLIPBOARD,
+  Actions.OPEN_EXTERNAL_LINK,
+  Actions.OPEN_INTERNAL_LINK,
+];
 
 const RESULT_LIMIT = 50;
 
@@ -168,6 +177,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     return false;
   };
 
+  const topResultsCount = topEvents ? Math.min(result.data?.length ?? 0, topEvents) : 0;
+
   const isPending = result.isPending && !isMetricOptionsEmpty;
 
   return (
@@ -184,7 +195,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
             null;
           const func = parseFunction(field);
           if (field === TraceMetricKnownFieldKey.METRIC_NAME) {
-            label = t('Metric');
+            label = t('Application Metric');
           } else if (func) {
             label = `${func.name}(…)`;
           } else if (tag) {
@@ -237,7 +248,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
             return (
               <SimpleTable.Row key={i} style={{minHeight: '33px'}}>
                 {topEvents && i < topEvents && (
-                  <StyledTopResultsIndicator count={topEvents} index={i} />
+                  <StyledTopResultsIndicator count={topResultsCount} index={i} />
                 )}
                 {displayFields.map((field, j) => (
                   <AggregatesStyledRowCell
@@ -250,6 +261,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                       data={displayRow}
                       unit={getMetricsUnit(meta, field)}
                       meta={meta}
+                      allowActions={METRICS_AGGREGATES_CELL_ACTIONS}
                       usePortalOnDropdown
                     />
                   </AggregatesStyledRowCell>

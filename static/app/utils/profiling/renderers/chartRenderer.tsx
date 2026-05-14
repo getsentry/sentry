@@ -216,7 +216,7 @@ export class FlamegraphChartRenderer {
     // Draw interval ticks
     this.context.strokeStyle = this.theme.COLORS.CHART_LABEL_COLOR;
     this.context.fillStyle = this.theme.COLORS.CHART_LABEL_COLOR;
-    let lastIntervalTxt: string | undefined = undefined;
+    let lastIntervalTxt: string | undefined;
     for (let i = 0; i < intervals.length; i++) {
       const interval = vec3.fromValues(configView.left, intervals[i]!, 1);
       const text = this.chart.formatter(intervals[i]!);

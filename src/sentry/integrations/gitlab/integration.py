@@ -5,6 +5,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 from urllib.parse import urlparse
 
+from django.db import router, transaction
 from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -34,6 +35,7 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -163,6 +165,21 @@ class GitlabIntegration(
         if "error" in data:
             return data["error"]
 
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        # GitLab's get_repositories does not wrap errors in IntegrationError,
+        # so plain ApiError bubbles up directly. 403/404 indicate a terminally
+        # broken integration (blocked account, revoked access, deleted group).
+        if isinstance(exc, ApiError):
+            if exc.code == 404:
+                return "configuration_error"
+            if exc.code == 403:
+                return "unauthorized"
+        # Self-hosted GitLab instances sometimes return HTML login/captcha
+        # pages instead of JSON. The response parser raises ValueError.
+        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
+            return "unsupported_response"
+        return super().is_broken_integration_error(exc)
+
     # RepositoryIntegration methods
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
@@ -179,11 +196,20 @@ class GitlabIntegration(
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         try:
             # Note: gitlab projects are the same things as repos everywhere else
             group = self.get_group_id()
             resp = self.get_client().search_projects(group, query)
+            # GitLab returns {"status": "error", ...} when the group is
+            # inaccessible. The pagination layer turns that dict into a list
+            # of its keys (e.g. ["status", "error"]), which would crash the
+            # list comprehension below with TypeError on str["id"].
+            if resp and not isinstance(resp[0], dict):
+                raise IntegrationError(
+                    "Expected list of projects from GitLab, got unexpected response"
+                )
             instance = self.model.metadata["instance"]
             return [
                 {
@@ -350,6 +376,20 @@ class GitlabIntegration(
                     "Your organization does not have access to this feature"
                 )
 
+        # PR-comment toggle is self-serveable regardless of issue-sync
+        # entitlement, so it is appended after the gating loop.
+        config.append(
+            {
+                "name": "pr_comments",
+                "type": "boolean",
+                "label": _("Enable Comments on Suspect Pull Requests"),
+                "help": _(
+                    "Allow Sentry to comment on recent pull requests suspected of causing issues."
+                ),
+                "default": False,
+            }
+        )
+
         return config
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
@@ -371,29 +411,33 @@ class GitlabIntegration(
 
             data["sync_status_forward"] = bool(project_mappings)
 
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=self.org_integration.id
-            ).delete()
+            with transaction.atomic(router.db_for_write(IntegrationExternalProject)):
+                IntegrationExternalProject.objects.filter(
+                    organization_integration_id=self.org_integration.id
+                ).delete()
 
-            for project_path, statuses in project_mappings.items():
-                # Validate status values
-                valid_statuses = {GitLabIssueStatus.OPENED.value, GitLabIssueStatus.CLOSED.value}
-                if statuses["on_resolve"] not in valid_statuses:
-                    raise IntegrationError(
-                        f"Invalid resolve status: {statuses['on_resolve']}. Must be 'opened' or 'closed'."
-                    )
-                if statuses["on_unresolve"] not in valid_statuses:
-                    raise IntegrationError(
-                        f"Invalid unresolve status: {statuses['on_unresolve']}. Must be 'opened' or 'closed'."
-                    )
+                for project_path, statuses in project_mappings.items():
+                    # Validate status values
+                    valid_statuses = {
+                        GitLabIssueStatus.OPENED.value,
+                        GitLabIssueStatus.CLOSED.value,
+                    }
+                    if statuses["on_resolve"] not in valid_statuses:
+                        raise IntegrationError(
+                            f"Invalid resolve status: {statuses['on_resolve']}. Must be 'opened' or 'closed'."
+                        )
+                    if statuses["on_unresolve"] not in valid_statuses:
+                        raise IntegrationError(
+                            f"Invalid unresolve status: {statuses['on_unresolve']}. Must be 'opened' or 'closed'."
+                        )
 
-                IntegrationExternalProject.objects.create(
-                    organization_integration_id=self.org_integration.id,
-                    external_id=project_path,
-                    name=project_path,
-                    resolved_status=statuses["on_resolve"],
-                    unresolved_status=statuses["on_unresolve"],
-                )
+                    IntegrationExternalProject.objects.create(
+                        organization_integration_id=self.org_integration.id,
+                        external_id=project_path,
+                        name=project_path,
+                        resolved_status=statuses["on_resolve"],
+                        unresolved_status=statuses["on_unresolve"],
+                    )
 
         # Check webhook version BEFORE updating config to determine if migration is needed
         current_webhook_version = config.get(GITLAB_WEBHOOK_VERSION_KEY, 0)
@@ -460,7 +504,6 @@ The following issues were detected after merging:
 
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
-    organization_option_key = "sentry:gitlab_pr_bot"
     referrer = Referrer.GITLAB_PR_COMMENT_BOT
     referrer_id = GITLAB_PR_BOT_REFERRER
 

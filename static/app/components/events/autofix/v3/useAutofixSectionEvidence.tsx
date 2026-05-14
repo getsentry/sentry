@@ -1,10 +1,17 @@
 import {useMemo} from 'react';
 
 import type {AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  AUTOFIX_EVIDENCE_PROPS_RESOLVER,
+  type EvidenceButtonProps,
+} from 'sentry/components/events/autofix/v3/autofixEvidence';
 import {defined} from 'sentry/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {ToolCall, ToolLink, ToolResult} from 'sentry/views/seerExplorer/types';
 
 interface Evidence {
+  evidenceButtonProps: EvidenceButtonProps;
   toolCall: ToolCall;
   toolLink?: ToolLink;
   toolResult?: ToolResult;
@@ -15,6 +22,9 @@ interface UseAutofixSectionEvidence {
 }
 
 export function useAutofixSectionEvidence({section}: UseAutofixSectionEvidence) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
   return useMemo(() => {
     return section.blocks.flatMap(block => {
       const evidence: Evidence[] = [];
@@ -28,7 +38,17 @@ export function useAutofixSectionEvidence({section}: UseAutofixSectionEvidence) 
         }
         const toolLink = block.tool_links?.[index] ?? undefined;
         const toolResult = block.tool_results?.[index] ?? undefined;
+
+        const resolver = AUTOFIX_EVIDENCE_PROPS_RESOLVER[toolCall.function];
+        const evidenceButtonProps =
+          resolver?.({organization, projects, toolCall, toolLink}) ?? null;
+
+        if (!defined(evidenceButtonProps)) {
+          continue;
+        }
+
         evidence.push({
+          evidenceButtonProps,
           toolCall,
           toolLink,
           toolResult,
@@ -37,5 +57,5 @@ export function useAutofixSectionEvidence({section}: UseAutofixSectionEvidence) 
 
       return evidence;
     });
-  }, [section.blocks]);
+  }, [organization, projects, section.blocks]);
 }

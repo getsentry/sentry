@@ -8,7 +8,6 @@ from typing import Any
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import features
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.preprod.artifact_search import get_sequential_base_artifact
@@ -59,7 +58,7 @@ def compare_preprod_artifact_size_analysis(
 ) -> None:
     logger.info(
         "preprod.size_analysis.compare.start",
-        extra={"artifact_id": artifact_id},
+        extra={"preprod_artifact_id": artifact_id},
     )
 
     try:
@@ -72,7 +71,7 @@ def compare_preprod_artifact_size_analysis(
         logger.exception(
             "preprod.size_analysis.compare.artifact_not_found",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
             },
         )
         return
@@ -282,7 +281,7 @@ def compare_preprod_artifact_size_analysis(
         else:
             logger.info(
                 "preprod.size_analysis.compare.artifact_no_commit_comparison",
-                extra={"artifact_id": artifact_id},
+                extra={"preprod_artifact_id": artifact_id},
             )
     finally:
         send_size_analysis_webhook(artifact=artifact, organization_id=org_id)
@@ -581,16 +580,6 @@ def _maybe_emit_issues_from_diff_size_results(
     project = artifact.project
     project_id = project.id
 
-    if not features.has("organizations:preprod-issues", project.organization):
-        logger.info(
-            "preprod.size_analysis.diff_results.issues.disabled",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-            },
-        )
-        return
-
     detectors = list(
         Detector.objects.filter(
             project_id=project_id,
@@ -623,7 +612,7 @@ def _maybe_emit_issues_from_diff_size_results(
     if not head_metrics:
         logger.info(
             "preprod.size_analysis.diff_results.no_head_metrics",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return
 
@@ -683,7 +672,7 @@ def _maybe_emit_issues_from_diff_size_results(
         if base_artifact is None:
             logger.info(
                 "preprod.size_analysis.diff_results.no_base",
-                extra={"detector_id": detector.id, "artifact_id": artifact.id},
+                extra={"detector_id": detector.id, "preprod_artifact_id": artifact.id},
             )
             continue
 
@@ -718,7 +707,7 @@ def _maybe_emit_issues_from_diff_size_results(
             "preprod.size_analysis.diff_results.evaluating",
             extra={
                 "detector_id": detector.id,
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "base_artifact_id": base_artifact.id,
             },
         )
@@ -739,17 +728,6 @@ def _maybe_emit_issues_from_absolute_size_results(
 ) -> None:
     project = head_metric.preprod_artifact.project
     project_id = project.id
-    organization_id = project.organization.id
-
-    if not features.has("organizations:preprod-issues", project.organization):
-        logger.info(
-            "preprod.size_analysis.size_results.issues.disabled",
-            extra={
-                "project_id": project_id,
-                "organization_id": organization_id,
-            },
-        )
-        return
 
     detectors = list(
         Detector.objects.filter(

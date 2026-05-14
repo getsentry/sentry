@@ -56,7 +56,7 @@ export function OtherTeamsTable({
         <Flex gap="sm">
           {t("You're a member of all teams.")}
           {canCreateTeams && (
-            <Button priority="link" onClick={() => openCreateTeamModal({organization})}>
+            <Button variant="link" onClick={() => openCreateTeamModal({organization})}>
               {t('Create another team')}
             </Button>
           )}

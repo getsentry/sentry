@@ -78,7 +78,7 @@ class ResultsHeader extends Component<Props, State> {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
         this.setState({
-          savedQuery: getSavedQueryWithDataset(savedQuery) as SavedQuery,
+          savedQuery: getSavedQueryWithDataset(savedQuery)!,
           loading: false,
         });
       });
@@ -90,7 +90,7 @@ class ResultsHeader extends Component<Props, State> {
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
       this.setState({
-        homepageQuery: getSavedQueryWithDataset(homepageQuery) as SavedQuery,
+        homepageQuery: getSavedQueryWithDataset(homepageQuery)!,
         loading: false,
       });
     });
@@ -146,7 +146,7 @@ class ResultsHeader extends Component<Props, State> {
         hasPageFrameFeature={hasPageFrameFeature}
         setHomepageQuery={updatedHomepageQuery => {
           this.setState({
-            homepageQuery: getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery,
+            homepageQuery: getSavedQueryWithDataset(updatedHomepageQuery)!,
           });
           if (isHomepage) {
             setSavedQuery(updatedHomepageQuery);

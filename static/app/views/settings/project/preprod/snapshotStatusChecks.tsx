@@ -1,90 +1,125 @@
 import {Fragment} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import {useSnapshotStatusChecks} from './useSnapshotStatusChecks';
+import {getSnapshotStatusChecks} from './getSnapshotStatusChecks';
+
+const schema = z.object({
+  preprodSnapshotStatusChecksEnabled: z.boolean(),
+  preprodSnapshotStatusChecksFailOnAdded: z.boolean(),
+  preprodSnapshotStatusChecksFailOnRemoved: z.boolean(),
+  preprodSnapshotStatusChecksFailOnChanged: z.boolean(),
+  preprodSnapshotStatusChecksFailOnRenamed: z.boolean(),
+});
+
+type Schema = z.infer<typeof schema>;
+type SnapshotStatusCheckField = {
+  hintText: string;
+  initialValue: boolean;
+  label: string;
+  name: keyof Schema;
+};
 
 export function SnapshotStatusChecks() {
-  const {project} = useProjectSettingsOutlet();
-  const {
-    enabled,
-    failOnAdded,
-    failOnRemoved,
-    setEnabled,
-    setFailOnAdded,
-    setFailOnRemoved,
-  } = useSnapshotStatusChecks(project);
+  const organization = useOrganization();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const {data: project = outletProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: outletProject.slug,
+  });
+  const {mutateAsync: updateProject} = useUpdateProject(outletProject);
+  const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
+    getSnapshotStatusChecks(project);
+
+  const projectMutationOptions = mutationOptions({
+    mutationFn: (data: Partial<Schema>) => updateProject(data),
+  });
+
+  const failureConditionFields = [
+    {
+      name: 'preprodSnapshotStatusChecksFailOnChanged',
+      initialValue: failOnChanged,
+      label: t('Fail on Changed Snapshots'),
+      hintText: t('Status check will fail if snapshot pixel content changes in a build.'),
+    },
+    {
+      name: 'preprodSnapshotStatusChecksFailOnRemoved',
+      initialValue: failOnRemoved,
+      label: t('Fail on Removed Snapshots'),
+      hintText: t('Status check will fail if snapshots are removed from a build.'),
+    },
+    {
+      name: 'preprodSnapshotStatusChecksFailOnAdded',
+      initialValue: failOnAdded,
+      label: t('Fail on Added Snapshots'),
+      hintText: t('Status check will fail if new snapshots are added in a build.'),
+    },
+    {
+      name: 'preprodSnapshotStatusChecksFailOnRenamed',
+      initialValue: failOnRenamed,
+      label: t('Fail on Renamed Snapshots'),
+      hintText: t('Status check will fail if snapshots are renamed in a build.'),
+    },
+  ] satisfies SnapshotStatusCheckField[];
 
   return (
-    <Panel>
-      <PanelHeader>{t('Snapshots - Status Checks')}</PanelHeader>
-      <PanelBody>
-        <Fragment>
-          <Flex align="center" justify="between" padding="xl" borderBottom="primary">
-            <Stack gap="xs">
-              <Text size="lg" bold>
-                {t('Snapshot Status Checks Enabled')}
-              </Text>
-              <Text size="sm" variant="muted">
-                {t(
-                  'Sentry will post status checks based on snapshot changes in your builds.'
-                )}
-              </Text>
-            </Stack>
-            <Switch
-              size="lg"
-              checked={enabled}
-              onChange={() => setEnabled(!enabled)}
-              aria-label={t('Toggle snapshot status checks')}
-            />
-          </Flex>
+    <FieldGroup title={t('Snapshots - Status Checks')}>
+      <AutoSaveForm
+        name="preprodSnapshotStatusChecksEnabled"
+        schema={schema}
+        initialValue={enabled}
+        mutationOptions={projectMutationOptions}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Enable Snapshot Status Checks')}
+            hintText={t(
+              'Sentry will post status checks based on snapshot changes in your builds.'
+            )}
+          >
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
 
-          {enabled ? (
-            <Stack padding="xl" gap="lg">
-              <Flex align="center" justify="between">
-                <Stack gap="xs">
-                  <Text bold>{t('Fail on Added Snapshots')}</Text>
-                  <Text size="sm" variant="muted">
-                    {t('Status check will fail if new snapshots are added in a build.')}
-                  </Text>
-                </Stack>
-                <Switch
-                  checked={failOnAdded}
-                  onChange={() => setFailOnAdded(!failOnAdded)}
-                  aria-label={t('Toggle fail on added snapshots')}
-                />
-              </Flex>
-              <Flex align="center" justify="between">
-                <Stack gap="xs">
-                  <Text bold>{t('Fail on Removed Snapshots')}</Text>
-                  <Text size="sm" variant="muted">
-                    {t('Status check will fail if snapshots are removed from a build.')}
-                  </Text>
-                </Stack>
-                <Switch
-                  checked={failOnRemoved}
-                  onChange={() => setFailOnRemoved(!failOnRemoved)}
-                  aria-label={t('Toggle fail on removed snapshots')}
-                />
-              </Flex>
-            </Stack>
-          ) : (
-            <Container padding="md">
-              <Text align="center" variant="muted" italic>
-                {t('Enable snapshot status checks above to configure.')}
-              </Text>
-            </Container>
-          )}
+      {enabled ? (
+        <Fragment>
+          {failureConditionFields.map(({name, initialValue, label, hintText}) => (
+            <AutoSaveForm
+              key={name}
+              name={name}
+              schema={schema}
+              initialValue={initialValue}
+              mutationOptions={projectMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row label={label} hintText={hintText}>
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          ))}
         </Fragment>
-      </PanelBody>
-    </Panel>
+      ) : (
+        <Container padding="md">
+          <Text align="center" variant="muted" italic>
+            {t('Enable status checks to configure failure conditions')}
+          </Text>
+        </Container>
+      )}
+    </FieldGroup>
   );
 }

@@ -1,7 +1,10 @@
 import {useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {
+  ALL_ACCESS_PROJECTS,
+  getDefaultPageFilterSelection,
+} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -183,27 +186,32 @@ export function useConversation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  // Use conversation timestamps when available (with 1-hour padding), falling back to page filters
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const hasConversationTimestamps =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
-  // When conversation timestamps are provided (e.g. from a shared link),
-  // search across all projects and environments so the conversation is found
-  // regardless of which project/environment the page filter is currently set to.
-  const queryParams = hasConversationTimestamps
+  const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
+  const hasExplicitDatetime =
+    selection.datetime.start !== null ||
+    (selection.datetime.period !== null && selection.datetime.period !== defaultPeriod);
+
+  const datetimeParams = hasConversationTimestamps
     ? {
-        project: [ALL_ACCESS_PROJECTS],
         start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
         end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
-        per_page: 1000,
       }
-    : {
-        project: selection.projects,
-        environment: selection.environments,
-        ...normalizeDateTimeParams(selection.datetime),
-        per_page: 1000,
-      };
+    : hasExplicitDatetime
+      ? normalizeDateTimeParams(selection.datetime)
+      : {statsPeriod: '30d'};
+
+  const project =
+    selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];
+
+  const queryParams = {
+    project,
+    per_page: 1000,
+    ...datetimeParams,
+  };
 
   const {
     data,
@@ -267,7 +275,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage,
+    isLoading: isLoading || isFetchingNextPage || hasNextPage,
     error: isError,
   };
 }

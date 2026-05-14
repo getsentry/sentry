@@ -36,7 +36,7 @@ export function Accordion({
                 aria-label={collapsible && isExpanded ? t('Collapse') : t('Expand')}
                 aria-expanded={isExpanded}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 onClick={() => setExpandedIndex(collapsible && isExpanded ? -1 : index)}
               />
               <LineItemWrapper

@@ -10,7 +10,8 @@ import type {SentryRouteObject} from 'sentry/router/types';
 import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
+import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
   useDefaultMaxPickableDays,
@@ -18,6 +19,7 @@ import type {
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
+import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -109,10 +111,6 @@ type ProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
-type ContinuousProfilingBetaAlertBannerProps = {
-  organization: Organization;
-};
-
 type ContinuousProfilingBillingRequirementBannerProps = {
   project: Project;
 };
@@ -199,8 +197,6 @@ type ComponentHooks = {
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
-  'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
-  'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
@@ -230,6 +226,7 @@ type ComponentHooks = {
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
+  'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
@@ -299,6 +296,7 @@ export type FeatureDisabledHooks = {
  * Interface chrome hooks.
  */
 type InterfaceChromeHooks = {
+  'cmdk:global-settings-actions': GenericComponentHook;
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
   'sidebar:billing-status': GenericOrganizationComponentHook;
@@ -362,6 +360,10 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
+  'react-hook:use-replay-for-critical-flow': (
+    options: UseReplayForCriticalFlowOptions
+  ) => void;
+  'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
 };
 
 /**
@@ -394,7 +396,7 @@ type GenericOrganizationComponentHook = (opts: {
 /**
  * Receives a project object and should return a React node.
  */
-type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
+type GenericProjectComponentHook = (opts: {project: DetailedProject}) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.

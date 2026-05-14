@@ -23,7 +23,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
-import {IssueTitle, IssueType} from 'sentry/types/group';
+import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -1115,7 +1115,7 @@ export function ProjectPerformance() {
             visible: hasAIIssueDetection,
           },
         ],
-        initiallyCollapsed: issueType !== IssueType.AI_DETECTED_GENERAL,
+        initiallyCollapsed: !AI_DETECTED_ISSUE_TYPES.has(issueType as IssueType),
       },
     ];
 

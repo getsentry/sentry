@@ -178,9 +178,11 @@ class ReleasesRequest extends Component<Props, State> {
     ];
 
     if (healthStatsPeriod === HealthStatsPeriodOption.AUTO) {
-      promises.push(this.fetchStatusCountByProjectInPeriod());
-      promises.push(this.fetchTotalCountByReleaseInPeriod());
-      promises.push(this.fetchTotalCountByProjectInPeriod());
+      promises.push(
+        this.fetchStatusCountByProjectInPeriod(),
+        this.fetchTotalCountByReleaseInPeriod(),
+        this.fetchTotalCountByProjectInPeriod()
+      );
     }
 
     try {

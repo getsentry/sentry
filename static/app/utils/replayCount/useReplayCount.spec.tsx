@@ -164,4 +164,63 @@ describe('useReplayCount', () => {
       });
     });
   });
+
+  describe('query construction', () => {
+    it('should quote ids when fieldName is "transaction"', async () => {
+      const mockRequest = getMockRequest({
+        'txn-a': 5,
+        'txn-b': 7,
+      });
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        initialProps: {
+          ...initialProps,
+          dataSource: 'transactions' as const,
+          fieldName: 'transaction',
+        },
+      });
+
+      result.current.getMany(['txn-a', 'txn-b']);
+
+      await waitFor(() => {
+        expect(mockRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/replay-count/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              data_source: 'transactions',
+              query: 'transaction:["txn-a","txn-b"]',
+            }),
+          })
+        );
+      });
+    });
+
+    it('should send start/end and omit statsPeriod when both are provided', async () => {
+      const mockRequest = getMockRequest({'1111': 5});
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        initialProps: {
+          ...initialProps,
+          start: '2026-01-01T00:00:00',
+          end: '2026-01-02T00:00:00',
+        },
+      });
+
+      result.current.getOne('1111');
+
+      await waitFor(() => {
+        expect(mockRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/replay-count/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              start: '2026-01-01T00:00:00',
+              end: '2026-01-02T00:00:00',
+            }),
+          })
+        );
+      });
+      const callQuery = mockRequest.mock.calls[0]![1].query;
+      expect(callQuery).not.toHaveProperty('statsPeriod');
+    });
+  });
 });

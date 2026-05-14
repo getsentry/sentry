@@ -4,7 +4,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 describe('useNavigate', () => {
   it('returns the navigate function', () => {
-    let navigate: ReturnType<typeof useNavigate> | undefined = undefined;
+    let navigate: ReturnType<typeof useNavigate> | undefined;
 
     function HomePage() {
       navigate = useNavigate();

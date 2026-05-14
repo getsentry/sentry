@@ -1,22 +1,22 @@
-import {useMemo, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
+
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-
-import type {TraceTree} from './traceModels/traceTree';
 
 const TEN_MINUTES_IN_MS = 10 * 60 * 1000;
 
-function TraceLoading({
-  trace,
-}: {
-  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
-}) {
+interface TraceWaterfallStateProps {
+  trace: TraceQueryResult;
+}
+
+function TraceLoading({trace}: TraceWaterfallStateProps) {
   return (
     // Dont flash the animation on load because it's annoying
     <LoadingContainer animate={false}>
@@ -31,48 +31,42 @@ function TraceLoading({
   );
 }
 
-function TraceError({trace}: {trace: UseApiQueryResult<TraceTree.Trace, RequestError>}) {
-  const message = useMemo(() => {
-    const status = trace.error?.status;
-
-    if (status === 404) {
-      return tct(
-        "Couldn't find this trace. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]",
-        {
-          feedbackLink: <FeedbackLink />,
-        }
-      );
-    }
-
-    if (status === 404) {
-      return tct(
-        'The request was invalid. Think could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
-        {
-          feedbackLink: <FeedbackLink />,
-        }
-      );
-    }
-
-    if (status === 504) {
-      return tct(
-        "Query timed out. This might be a really large trace - we're working on handling these too. Seeing this often? [feedbackLink]",
-        {
-          feedbackLink: <FeedbackLink />,
-        }
-      );
-    }
-
-    return tct('Seeing this often? [feedbackLink]', {
-      feedbackLink: <FeedbackLink />,
-    });
-  }, [trace.error?.status]);
-
+function TraceError({trace}: TraceWaterfallStateProps) {
   return (
     <LoadingContainer animate error>
       <ErrorTitle>{t('Woof, we failed to load your trace')}</ErrorTitle>
-      <div>{message}</div>
+      <div>{getTraceErrorMessage(trace.error?.status)}</div>
     </LoadingContainer>
   );
+}
+
+const helpComponents = {feedbackLink: <FeedbackLink />};
+
+function getTraceErrorMessage(status: number | undefined) {
+  switch (status) {
+    case 400:
+    case 500:
+      return tct(
+        'The request was invalid. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
+        helpComponents
+      );
+
+    case 404:
+      return tct(
+        "Couldn't find this trace. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]",
+        helpComponents
+      );
+
+    case 429:
+    case 504:
+      return tct(
+        "Query timed out. This might be a really large trace - we're working on handling these too. Seeing this often? [feedbackLink]",
+        helpComponents
+      );
+
+    default:
+      return tct('Seeing this often? [feedbackLink]', helpComponents);
+  }
 }
 
 function TraceEmpty() {
@@ -83,18 +77,33 @@ function TraceEmpty() {
   // and be navigated to a trace that doesn't contain any data yet. We add a 10
   // minute buffer to account for this.
   const message =
-    timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS)
-      ? t("We're still processing this trace. Please try refreshing after a minute")
-      : tct(
-          'We were unable to find any spans for this trace. Seeing this often? [feedbackLink: Send us feedback]',
-          {
-            feedbackLink: <FeedbackLink />,
-          }
-        );
+    timestamp &&
+    new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS) ? (
+      t("We're still processing this trace. Please try refreshing after a minute")
+    ) : (
+      <div>
+        <Text as="p">
+          {t(
+            'We were unable to find any spans for this trace. If you came here from Logs or Application Metrics, traces may use different sampling rules.'
+          )}
+        </Text>
+        <br />
+        <Text as="p">
+          {tct(
+            'Find similar traces in Explore using [crossEventQueryingLink: Cross Event Querying].',
+            {
+              crossEventQueryingLink: (
+                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#cross-event-querying-beta" />
+              ),
+            }
+          )}
+        </Text>
+      </div>
+    );
 
   return (
     <LoadingContainer animate>
-      <div>{message}</div>
+      <Text as="div">{message}</Text>
     </LoadingContainer>
   );
 }
@@ -130,7 +139,7 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   top: 50%;
   position: absolute;
   gap: 10px;
-  max-width: 300px;
+  max-width: 450px;
   max-height: 150px;
   text-align: center;
   height: auto;

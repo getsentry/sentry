@@ -319,6 +319,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
+    def test_bare_duration_treated_as_tag(self) -> None:
+        """Bare `duration:>3s` is not a duration key — it should parse as a text
+        filter so that column resolution sends it to `tags[duration]` instead of
+        the internal ClickHouse `duration` column (which would cause a
+        type-mismatch 500)."""
+        assert parse_search_query("duration:>3s") == [
+            SearchFilter(
+                key=SearchKey(name="duration"),
+                operator="=",
+                value=SearchValue(">3s"),
+            ),
+        ]
+
     def test_paren_expression(self) -> None:
         assert parse_search_query("(x:1 OR y:1) AND z:1") == [
             ParenExpression(
@@ -1527,3 +1540,125 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
     assert isinstance(filters[0], SearchFilter)
     actual = filters[0].to_query_string()
     assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        pytest.param(
+            "frame_filenames[*]:foo",
+            [
+                SearchFilter(
+                    key=SearchKey(name="frame_filenames"),
+                    operator="=",
+                    value=SearchValue("foo"),
+                )
+            ],
+            id="bare_first_class_key",
+        ),
+        pytest.param(
+            '"frame_filenames"[*]:foo',
+            [
+                SearchFilter(
+                    key=SearchKey(name="frame_filenames"),
+                    operator="=",
+                    value=SearchValue("foo"),
+                )
+            ],
+            id="quoted_first_class_key_normalizes",
+        ),
+        pytest.param(
+            "tags[my_tag, array][*]:foo",
+            [
+                SearchFilter(
+                    key=SearchKey(name="tags[my_tag,array]"),
+                    operator="=",
+                    value=SearchValue("foo"),
+                )
+            ],
+            id="tag_form",
+        ),
+        pytest.param(
+            "!frame_filenames[*]:foo",
+            [
+                SearchFilter(
+                    key=SearchKey(name="frame_filenames"),
+                    operator="!=",
+                    value=SearchValue("foo"),
+                )
+            ],
+            id="negation_inverts_to_not_equals",
+        ),
+        pytest.param(
+            'frame_filenames[*]:"foo bar"',
+            [
+                SearchFilter(
+                    key=SearchKey(name="frame_filenames"),
+                    operator="=",
+                    value=SearchValue("foo bar"),
+                )
+            ],
+            id="quoted_value_with_spaces",
+        ),
+        pytest.param(
+            "frame_filenames[*]:foo level:error",
+            [
+                SearchFilter(
+                    key=SearchKey(name="frame_filenames"),
+                    operator="=",
+                    value=SearchValue("foo"),
+                ),
+                SearchFilter(
+                    key=SearchKey(name="level"),
+                    operator="=",
+                    value=SearchValue("error"),
+                ),
+            ],
+            id="composes_with_other_filters",
+        ),
+    ],
+)
+def test_array_includes_filter(query, expected) -> None:
+    assert parse_search_query(query) == expected
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("frame_filenames[*]:", id="rejects_empty_value"),
+    ],
+)
+def test_array_includes_filter_rejects_invalid_input(query) -> None:
+    with pytest.raises(InvalidSearchQuery):
+        parse_search_query(query)
+
+
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        pytest.param(
+            "stack.colno[*]:>5",
+            [
+                SearchFilter(
+                    key=SearchKey(name="stack.colno"),
+                    operator=">",
+                    value=SearchValue("5"),
+                )
+            ],
+            id="greater_than",
+        ),
+        pytest.param(
+            "stack.colno[*]:<=0",
+            [
+                SearchFilter(
+                    key=SearchKey(name="stack.colno"),
+                    operator="<=",
+                    value=SearchValue("0"),
+                )
+            ],
+            id="less_than_or_equal",
+        ),
+    ],
+)
+def test_array_includes_filter_passes_through_comparison_operators(query, expected) -> None:
+    assert parse_search_query(query) == expected

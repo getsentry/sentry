@@ -17,13 +17,13 @@ export interface SnapshotDiffPair {
   head_image: SnapshotImage;
 }
 
-export interface SnapshotComparisonRunInfo {
+interface SnapshotComparisonRunInfo {
   completed_at?: string;
   duration_ms?: number;
   state?: ComparisonState;
 }
 
-export interface SnapshotApprover {
+interface SnapshotApprover {
   source: 'sentry' | 'github';
   approved_at?: string | null;
   avatar_url?: string | null;
@@ -33,20 +33,22 @@ export interface SnapshotApprover {
   username?: string | null;
 }
 
-export interface SnapshotApprovalInfo {
+interface SnapshotApprovalInfo {
   approvers: SnapshotApprover[];
   status: 'approved' | 'requires_approval';
   is_auto_approved?: boolean;
 }
 
 export interface SnapshotDetailsApiResponse {
-  comparison_type: 'solo' | 'diff';
+  comparison_type: 'solo' | 'diff' | 'waiting_for_base';
   head_artifact_id: string;
   image_count: number;
   images: SnapshotImage[];
   project_id: string;
   state: string;
   vcs_info: BuildDetailsVcsInfo;
+
+  app_id?: string | null;
 
   comparison_run_info?: SnapshotComparisonRunInfo | null;
 
@@ -87,12 +89,8 @@ export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
 }
 
-export function getImageGroup(image: SnapshotImage): string {
-  return image.group ?? image.image_file_name;
-}
-
 interface SidebarItemBase {
-  badge: string | null;
+  displayName: string;
   key: string;
   name: string;
 }

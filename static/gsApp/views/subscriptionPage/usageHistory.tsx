@@ -8,11 +8,11 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconDownload} from 'sentry/icons';
@@ -132,7 +132,7 @@ type RowProps = {
 
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(history.isCurrent);
+  const [expanded, setExpanded] = useState(history.isCurrent);
   const {projects, onSearch: onProjectSearch} = useProjects();
 
   function renderOnDemandUsage({

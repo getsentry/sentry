@@ -103,7 +103,7 @@ export function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
             external
             icon={<IconMail variant="muted" />}
             aria-label={t('Email %s', user)}
-            priority="transparent"
+            variant="transparent"
             size="zero"
           />
         </Tooltip>

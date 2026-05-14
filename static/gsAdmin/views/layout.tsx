@@ -4,9 +4,10 @@ import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {GlobalModal} from '@sentry/scraps/modal';
 
-import {GlobalModal} from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
@@ -14,7 +15,7 @@ import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-import SystemAlerts from 'sentry/views/app/systemAlerts';
+import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
 import {GlobalStyles} from 'admin/globalStyles';
 
@@ -84,7 +85,7 @@ export function Layout() {
             </Navigation>
             <div>
               <ThemeToggle
-                priority="transparent"
+                variant="transparent"
                 size="zero"
                 onClick={toggleTheme}
                 icon={
@@ -98,9 +99,14 @@ export function Layout() {
               </ThemeToggle>
             </div>
           </Sidebar>
-          <Content>
+          <Container
+            as="main"
+            padding="0 2xl"
+            width="100%"
+            maxWidth="var(--contentWidth)"
+          >
             <Outlet />
-          </Content>
+          </Container>
         </AppContainer>
       </ScrapsProviders>
     </ThemeProvider>
@@ -115,12 +121,6 @@ const AppContainer = styled('div')`
 
   display: flow-root;
   padding-left: var(--sidebarWidth);
-`;
-
-const Content = styled('main')`
-  width: 100%;
-  max-width: var(--contentWidth);
-  padding: 0 ${p => p.theme.space['2xl']};
 `;
 
 const Sidebar = styled('section')`

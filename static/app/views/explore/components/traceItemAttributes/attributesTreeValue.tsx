@@ -19,13 +19,13 @@ import type {
 
 function tryParseJson(value: unknown) {
   if (typeof value !== 'string') {
-    return undefined;
+    return;
   }
 
   try {
     return JSON.parse(value) as unknown;
   } catch {
-    return undefined;
+    return;
   }
 }
 

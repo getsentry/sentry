@@ -8,6 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,13 +17,11 @@ import {useChartSelection} from 'sentry/views/explore/components/attributeBreakd
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
-import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
@@ -38,6 +37,7 @@ import {
   useQueryParamsTitle,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
@@ -69,7 +69,7 @@ interface UseTrackAnalyticsProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
   attributeBreakdownsMode?: 'breakdowns' | 'cohort_comparison';
-  crossEventQueries?: ReturnType<typeof useCrossEventQueries>;
+  crossEventQueries?: CrossEventQueryExtras;
   title?: string;
   tracesTableResult?: TracesTableResult;
 }
@@ -481,6 +481,7 @@ export function useAnalytics({
   tracesTableResult,
   timeseriesResult,
   interval,
+  crossEventQueries,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -489,6 +490,7 @@ export function useAnalytics({
   | 'tracesTableResult'
   | 'timeseriesResult'
   | 'interval'
+  | 'crossEventQueries'
 >) {
   const dataset = useSpansDataset();
   const title = useQueryParamsTitle();
@@ -498,7 +500,6 @@ export function useAnalytics({
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
   const {chartSelection} = useChartSelection();
-  const crossEventQueries = useCrossEventQueries();
 
   const attributeBreakdownsMode =
     queryType === 'attribute_breakdowns'
@@ -585,7 +586,7 @@ export function useLogAnalytics({
   aggregateSortBys: readonly Sort[];
   interval: string;
   isTopN: boolean;
-  logsAggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
+  logsAggregatesTableResult: LogsAggregatesTableResult;
   logsTableResult: UseInfiniteLogsQueryResult;
   logsTimeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   mode: Mode;
@@ -1009,7 +1010,7 @@ export function useMetricsAnalytics({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const title = getTitleFromLocation(location);
+  const title = decodeScalar(location.query.title);
 
   const {
     data: {hasExceededPerformanceUsageLimit},

@@ -8,25 +8,23 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {IconStar} from 'sentry/icons/iconStar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {
   getSavedQueryTraceItemDataset,
   useGetSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function StarSavedQueryButton() {
   const organization = useOrganization();
   const location = useLocation();
-  const locationId = getIdFromLocation(location);
+  const locationId = decodeScalar(location.query.id);
   const {starQuery} = useStarQuery();
   const {data, isLoading, isFetched} = useGetSavedQuery(locationId);
   const [isStarred, setIsStarred] = useState(data?.starred);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   useEffect(() => {
     if (isFetched) {
@@ -79,7 +77,7 @@ export function StarSavedQueryButton() {
 
   return (
     <Button
-      tooltipProps={hasPageFrameFeature ? {title: label} : undefined}
+      tooltipProps={{title: label}}
       aria-label={label}
       icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"

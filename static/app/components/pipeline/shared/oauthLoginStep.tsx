@@ -76,7 +76,7 @@ export function OAuthLoginStep({
           {t('Reopen authorization window')}
         </Button>
       ) : (
-        <Button size="sm" priority="primary" onClick={openPopup} disabled={!oauthUrl}>
+        <Button size="sm" variant="primary" onClick={openPopup} disabled={!oauthUrl}>
           {tct('Authorize [service]', {service: serviceName})}
         </Button>
       )}

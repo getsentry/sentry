@@ -16,10 +16,12 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
-from sentry import features
+from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.locks import locks
 from sentry.models.files.file import File
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -46,7 +48,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, UptimeMonitorMode
 from sentry.uptime.utils import (
     build_backlog_key,
     build_backlog_schedule_lock_key,
@@ -58,6 +60,7 @@ from sentry.uptime.utils import (
 )
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.caches.detector import get_detectors_by_data_source
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -78,6 +81,28 @@ TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 # The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
 MAX_SYNTHETIC_MISSED_CHECKS = 100
+
+
+def _get_detector_for_subscription(subscription: UptimeSubscription) -> Detector:
+    """
+    Fetch a detector for an uptime subscription.
+
+    Raises Detector.DoesNotExist if no detector is found.
+    """
+    if not options.get("uptime.use-detectors-by-data-source-cache"):
+        return get_detector(subscription, prefetch_workflow_data=True)
+
+    detectors = get_detectors_by_data_source(str(subscription.id), DATA_SOURCE_UPTIME_SUBSCRIPTION)
+    if not detectors:
+        raise Detector.DoesNotExist
+
+    detector = detectors[0]
+    project = Project.objects.get_from_cache(id=detector.project_id)
+    project.set_cached_field_value(
+        "organization", Organization.objects.get_from_cache(id=project.organization_id)
+    )
+    detector.project = project
+    return detector
 
 
 def format_response_for_storage(
@@ -593,7 +618,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         if result["status"] == CHECKSTATUS_DISALLOWED_BY_ROBOTS:
             try:
-                detector = get_detector(subscription)
+                detector = _get_detector_for_subscription(subscription)
                 logger.info("disallowed_by_robots", extra=result)
                 metrics.incr(
                     "uptime.result_processor.disallowed_by_robots",
@@ -615,7 +640,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             return
 
         try:
-            detector = get_detector(subscription, prefetch_workflow_data=True)
+            detector = _get_detector_for_subscription(subscription)
         except Detector.DoesNotExist:
             # Nothing to do if there's an orphaned uptime subscription
             delete_uptime_subscription(subscription)

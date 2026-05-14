@@ -33,7 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -53,12 +53,12 @@ export function BreadcrumbsDataSection({
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
-  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
   // Use the local storage preferences, but allow the drawer to do updates
-  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, _setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
@@ -164,11 +164,9 @@ export function BreadcrumbsDataSection({
   const numHiddenCrumbs = enhancedCrumbs.length - summaryCrumbs.length;
 
   return (
-    <InterimSection
-      key="breadcrumbs"
-      type={SectionKey.BREADCRUMBS}
+    <FoldSection
+      sectionKey={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
-      data-test-id="breadcrumbs-data-section"
       actions={actions}
       initialCollapse={initialCollapse}
     >
@@ -201,7 +199,7 @@ export function BreadcrumbsDataSection({
           </ViewAllContainer>
         )}
       </ErrorBoundary>
-    </InterimSection>
+    </FoldSection>
   );
 }
 
