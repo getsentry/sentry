@@ -32,6 +32,10 @@ install-py-dev :
 devenv-sync:
 	devenv sync
 
+.PHONY: devservices-evals-reset-taskworker-offset
+devservices-evals-reset-taskworker-offset:
+	@./scripts/devservices/reset-evals-taskworker-offset.sh
+
 build-js-po:
 	mkdir -p build
 	pnpm run build-js-po
