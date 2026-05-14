@@ -145,9 +145,9 @@ OPENAPI_TAGS = [
         },
     },
     {
-        "name": "Alerts",
-        "x-sidebar-name": "Alerts & Notifications",
-        "description": "Endpoints for Alerts and Notifications",
+        "name": "Spike Protection",
+        "x-sidebar-name": "Spike Protection Notifications",
+        "description": "Endpoints for Spike Protection Notifications",
         "x-display-description": False,
         "externalDocs": {
             "description": "Found an error? Let us know.",
