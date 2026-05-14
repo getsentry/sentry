@@ -899,6 +899,8 @@ class Factories:
             )
             kwargs["project_repository"] = project_repo
         return RepositoryProjectPathConfig.objects.create(
+            project=project,
+            repository=repo,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
@@ -917,6 +919,8 @@ class Factories:
             defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
         )
         return SeerProjectRepository.objects.create(
+            project=project,
+            repository=repository,
             project_repository=project_repo,
             **kwargs,
         )

@@ -528,6 +528,8 @@ def _write_preferences_to_sentry_db(
                     repository_id=repository_id,
                     defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
                 )
+                spr.project = project
+                spr.repository_id = repository_id
                 spr.project_repository = project_repo
 
             created_project_repos = SeerProjectRepository.objects.bulk_create(

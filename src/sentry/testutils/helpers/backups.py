@@ -630,7 +630,9 @@ class ExhaustiveFixtures(Fixtures):
             repository=repo,
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
-        seer_project_repo = SeerProjectRepository.objects.create(project_repository=project_repo)
+        seer_project_repo = SeerProjectRepository.objects.create(
+            project=project, repository=repo, project_repository=project_repo
+        )
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=seer_project_repo,
             tag_name="environment",
