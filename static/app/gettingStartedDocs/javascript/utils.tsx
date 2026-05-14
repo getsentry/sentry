@@ -92,6 +92,12 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Enable logs to be sent to Sentry
+      enableLogs: true`);
+  }
+
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profileSessionSampleRate to 1.0 to profile during every session.
@@ -146,13 +152,21 @@ export const installSnippetBlock: ContentBlock = {
 };
 
 const getVerifyJSSnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `  // Send a log before calling undefined function
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_button_click',
+  });
+`
+    : '';
+
   const metricsCode = params.isMetricsSelected
     ? `  // Send a test metric before calling undefined function
   Sentry.metrics.count('test_counter', 1);
 `
     : '';
 
-  return `${metricsCode}myUndefinedFunction();`;
+  return `${logsCode}${metricsCode}myUndefinedFunction();`;
 };
 
 const getVerifySnippetBlock = (params: Params): ContentBlock[] => [
@@ -325,6 +339,17 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       },
     ];
 
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logs'),
+        description: t(
+          'Learn how to send structured logs to Sentry and correlate them with your errors.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/logs/',
+      });
+    }
+
     if (params.isMetricsSelected) {
       steps.push({
         id: 'metrics',
@@ -444,6 +469,17 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
     const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logs'),
+        description: t(
+          'Learn how to send structured logs to Sentry and correlate them with your errors.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/logs/',
+      });
+    }
 
     if (params.isMetricsSelected) {
       steps.push({

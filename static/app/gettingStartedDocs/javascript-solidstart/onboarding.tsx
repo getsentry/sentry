@@ -26,6 +26,12 @@ Sentry.init({
         tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
       : ''
   }${
+    params.isLogsSelected
+      ? `
+        // Enable logs to be sent to Sentry
+        enableLogs: true,`
+      : ''
+  }${
     params.isProfilingSelected
       ? `
         // Set profileSessionSampleRate to 1.0 to profile during every session.
@@ -331,6 +337,17 @@ export const onboarding: OnboardingConfig = {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/solidstart/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Application Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/solidstart/metrics/',
       });
     }
 
