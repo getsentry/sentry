@@ -29,7 +29,7 @@ jest.mock('@sentry/scraps/image', () => {
           minWidth: 220,
         }}
       >
-        PLACEHOLDER IMAGE
+        HAHAHAHICHANGEDTHISNAME IMAGE
       </div>
     );
   }
