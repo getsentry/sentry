@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -13,6 +13,7 @@ import {
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 const ERROR_POLL_INTERVAL = 2500; // Poll every 2500ms on 5xx errors
+const MAX_ERROR_POLL_COUNT = Math.ceil(60_000 / ERROR_POLL_INTERVAL);
 const STALE_TIME_MS = 90_000;
 
 /** Checks if session is in a terminal state where the agent is done processing. */
@@ -38,6 +39,7 @@ const getPollingState = (
   sessionData: SeerExplorerResponse['session'] | undefined,
   isError: boolean,
   errorStatusCode: number | undefined,
+  errorPollCount: number,
   isStale: boolean,
   override: boolean | undefined
 ): 'polling' | 'polling-with-backoff' | 'not-polling' | 'timed-out' => {
@@ -51,7 +53,8 @@ const getPollingState = (
     if (
       errorStatusCode !== undefined &&
       errorStatusCode >= 500 &&
-      errorStatusCode < 600
+      errorStatusCode < 600 &&
+      errorPollCount < MAX_ERROR_POLL_COUNT
     ) {
       return 'polling-with-backoff';
     }
@@ -87,6 +90,7 @@ export const useSeerExplorerPolling = ({
 }) => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
+  const errorPollCountRef = useRef(0);
 
   const {
     data: apiData,
@@ -102,14 +106,17 @@ export const useSeerExplorerPolling = ({
         query.state.data?.json?.session,
         query.state.status === 'error',
         query.state.error?.status,
+        errorPollCountRef.current,
         isTimestampStale(query.state.data?.json?.session?.updated_at),
         shouldPollOverride
       );
+      if (state === 'polling-with-backoff') {
+        errorPollCountRef.current++;
+        return ERROR_POLL_INTERVAL;
+      }
+      errorPollCountRef.current = 0;
       if (state === 'polling') {
         return POLL_INTERVAL;
-      }
-      if (state === 'polling-with-backoff') {
-        return ERROR_POLL_INTERVAL;
       }
       return false;
     },
@@ -147,6 +154,7 @@ export const useSeerExplorerPolling = ({
     apiData?.session,
     isError,
     error?.status,
+    errorPollCountRef.current,
     isStale,
     shouldPollOverride
   );
