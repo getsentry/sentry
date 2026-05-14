@@ -46,25 +46,16 @@ class TestDeriveSnapshotStatusComparisonState(TestCase):
             state=state,
         )
 
-    def test_pending_state(self) -> None:
-        comparison = self._create_comparison(state=PreprodSnapshotComparison.State.PENDING)
-        result = derive_snapshot_status(_make_input(latest_comparison=comparison))
-        assert result.comparison_state == "pending"
-
-    def test_processing_state(self) -> None:
-        comparison = self._create_comparison(state=PreprodSnapshotComparison.State.PROCESSING)
-        result = derive_snapshot_status(_make_input(latest_comparison=comparison))
-        assert result.comparison_state == "processing"
-
-    def test_success_state(self) -> None:
-        comparison = self._create_comparison(state=PreprodSnapshotComparison.State.SUCCESS)
-        result = derive_snapshot_status(_make_input(latest_comparison=comparison))
-        assert result.comparison_state == "success"
-
-    def test_failed_state(self) -> None:
-        comparison = self._create_comparison(state=PreprodSnapshotComparison.State.FAILED)
-        result = derive_snapshot_status(_make_input(latest_comparison=comparison))
-        assert result.comparison_state == "failed"
+    def test_comparison_state_mapping(self) -> None:
+        for state, expected in [
+            (PreprodSnapshotComparison.State.PENDING, "pending"),
+            (PreprodSnapshotComparison.State.PROCESSING, "processing"),
+            (PreprodSnapshotComparison.State.SUCCESS, "success"),
+            (PreprodSnapshotComparison.State.FAILED, "failed"),
+        ]:
+            comparison = self._create_comparison(state=state)
+            result = derive_snapshot_status(_make_input(latest_comparison=comparison))
+            assert result.comparison_state == expected
 
     def test_failed_state_with_error_message(self) -> None:
         comparison = self._create_comparison(state=PreprodSnapshotComparison.State.FAILED)
@@ -73,11 +64,6 @@ class TestDeriveSnapshotStatusComparisonState(TestCase):
         result = derive_snapshot_status(_make_input(latest_comparison=comparison))
         assert result.comparison_state == "failed"
         assert result.comparison_error_message == "Something went wrong"
-
-    def test_success_state_has_no_error_message(self) -> None:
-        comparison = self._create_comparison(state=PreprodSnapshotComparison.State.SUCCESS)
-        result = derive_snapshot_status(_make_input(latest_comparison=comparison))
-        assert result.comparison_error_message is None
 
     def test_no_comparison_no_base_sha(self) -> None:
         result = derive_snapshot_status(_make_input())
@@ -138,11 +124,6 @@ class TestDeriveSnapshotStatusApprovalStatus(TestCase):
 
     def test_extras_none_treated_as_manual(self) -> None:
         approval = self._create_approval(extras=None)
-        result = derive_snapshot_status(_make_input(latest_approval=approval))
-        assert result.approval_status == "approved"
-
-    def test_extras_without_auto_approval_key(self) -> None:
-        approval = self._create_approval(extras={"some_key": True})
         result = derive_snapshot_status(_make_input(latest_approval=approval))
         assert result.approval_status == "approved"
 

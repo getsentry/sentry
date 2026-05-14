@@ -7,6 +7,8 @@ from django.utils import timezone
 from pydantic import BaseModel, Field
 
 from sentry.preprod.api.models.snapshots.snapshot_status import (
+    ApprovalStatusLiteral,
+    ComparisonStateLiteral,
     SnapshotStatusInput,
     derive_snapshot_status,
 )
@@ -98,16 +100,13 @@ class PostedStatusChecks(BaseModel):
 
 class SnapshotComparisonInfo(BaseModel):
     image_count: int
-    comparison_state: (
-        Literal["pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"]
-        | None
-    ) = None
+    comparison_state: ComparisonStateLiteral | None = None
     comparison_error_message: str | None = None
     images_added: int = 0
     images_removed: int = 0
     images_changed: int = 0
     images_unchanged: int = 0
-    approval_status: Literal["approved", "auto_approved", "requires_approval"] | None = None
+    approval_status: ApprovalStatusLiteral | None = None
 
 
 class SizeInfoSizeMetric(BaseModel):

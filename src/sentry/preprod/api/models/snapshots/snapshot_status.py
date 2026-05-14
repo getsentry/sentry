@@ -9,6 +9,11 @@ from sentry.preprod.models import PreprodComparisonApproval
 from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 
+ComparisonStateLiteral = Literal[
+    "pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"
+]
+ApprovalStatusLiteral = Literal["approved", "auto_approved", "requires_approval"]
+
 
 @dataclass(frozen=True)
 class SnapshotStatusInput:
@@ -20,11 +25,8 @@ class SnapshotStatusInput:
 
 
 class SnapshotDerivedStatus(BaseModel):
-    comparison_state: (
-        Literal["pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"]
-        | None
-    ) = None
-    approval_status: Literal["approved", "auto_approved", "requires_approval"] | None = None
+    comparison_state: ComparisonStateLiteral | None = None
+    approval_status: ApprovalStatusLiteral | None = None
     comparison_error_message: str | None = None
 
 

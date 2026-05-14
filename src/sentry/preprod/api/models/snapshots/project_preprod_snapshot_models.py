@@ -6,6 +6,10 @@ from typing import Literal
 from pydantic import BaseModel
 
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
+from sentry.preprod.api.models.snapshots.snapshot_status import (
+    ApprovalStatusLiteral,
+    ComparisonStateLiteral,
+)
 from sentry.preprod.models import PreprodArtifact
 
 
@@ -132,11 +136,8 @@ class SnapshotDetailsApiResponse(BaseModel):
 
     diff_threshold: float | None = None
 
-    comparison_state: (
-        Literal["pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"]
-        | None
-    ) = None
-    approval_status: Literal["approved", "auto_approved", "requires_approval"] | None = None
+    comparison_state: ComparisonStateLiteral | None = None
+    approval_status: ApprovalStatusLiteral | None = None
     comparison_error_message: str | None = None
     approvers: list[SnapshotApprover] = []
 

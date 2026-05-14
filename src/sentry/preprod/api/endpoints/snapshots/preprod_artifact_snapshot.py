@@ -279,16 +279,15 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         comparison_manifest: ComparisonManifest | None = None
         base_manifest: SnapshotManifest | None = None
-        comparison = (
-            PreprodSnapshotComparison.objects.select_related(
-                "base_snapshot_metrics",
-            )
-            .filter(
-                head_snapshot_metrics=snapshot_metrics,
-                state=PreprodSnapshotComparison.State.SUCCESS,
-            )
+        all_comparisons = list(
+            PreprodSnapshotComparison.objects.select_related("base_snapshot_metrics")
+            .filter(head_snapshot_metrics=snapshot_metrics)
             .order_by("-id")
-            .first()
+        )
+        latest_comparison = all_comparisons[0] if all_comparisons else None
+        comparison = next(
+            (c for c in all_comparisons if c.state == PreprodSnapshotComparison.State.SUCCESS),
+            None,
         )
         if comparison:
             comparison_key = (comparison.extras or {}).get("comparison_key")
@@ -330,18 +329,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        latest_comparison_for_status = (
-            PreprodSnapshotComparison.objects.filter(
-                head_snapshot_metrics=snapshot_metrics,
-            )
-            .order_by("-id")
-            .first()
-        )
-
         has_base_sha = bool(commit_comparison and commit_comparison.base_sha)
         artifact_age_seconds = (timezone.now() - artifact.date_added).total_seconds()
         base_artifact_exists: bool | None = None
-        if latest_comparison_for_status is None and has_base_sha and commit_comparison is not None:
+        if latest_comparison is None and has_base_sha and commit_comparison is not None:
             if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
                 base_artifact_exists = (
                     find_base_snapshot_artifact(
@@ -378,18 +369,18 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             if comparison is not None:
                 base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
             categorized = CategorizedComparison()
-            pending_or_failed_state = (
-                PreprodSnapshotComparison.objects.filter(
-                    head_snapshot_metrics=snapshot_metrics,
-                    state__in=[
+            pending_or_failed_state = next(
+                (
+                    c.state
+                    for c in all_comparisons
+                    if c.state
+                    in (
                         PreprodSnapshotComparison.State.PENDING,
                         PreprodSnapshotComparison.State.PROCESSING,
                         PreprodSnapshotComparison.State.FAILED,
-                    ],
-                )
-                .values_list("state", flat=True)
-                .order_by("-id")
-                .first()
+                    )
+                ),
+                None,
             )
             if pending_or_failed_state is not None:
                 comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
@@ -488,7 +479,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         sorted_approvals = sorted(all_approvals, key=lambda a: a.id, reverse=True)
         derived_status = derive_snapshot_status(
             SnapshotStatusInput(
-                latest_comparison=latest_comparison_for_status,
+                latest_comparison=latest_comparison,
                 latest_approval=sorted_approvals[0] if sorted_approvals else None,
                 has_base_sha=has_base_sha,
                 artifact_age_seconds=artifact_age_seconds,
