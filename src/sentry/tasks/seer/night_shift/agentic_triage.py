@@ -181,15 +181,14 @@ def _triage_candidates(
     for v in triage_response.verdicts:
         if v.group_id not in fixability_by_group_id:
             continue
+        fixability = fixability_by_group_id[v.group_id]
+        attributes: dict[str, str] = {"action": v.action}
+        if fixability is not None:
+            attributes["threshold_action"] = TriageAction.from_fixability_score(fixability)
         sentry_sdk.metrics.count(
             "night_shift.triage_action",
             1,
-            attributes={
-                "action": v.action,
-                "threshold_action": TriageAction.from_fixability_score(
-                    fixability_by_group_id[v.group_id]
-                ),
-            },
+            attributes=attributes,
         )
 
     for v in triage_response.verdicts:
@@ -274,7 +273,7 @@ def _build_triage_prompt(
     candidates_block = "\n".join(
         f"- group_id={c.group.id} | title={c.group.title or 'Unknown error'!r} "
         f"| culprit={c.group.culprit or 'unknown'!r} "
-        f"| fixability={c.fixability:.2f} | times_seen={c.times_seen} "
+        f"| fixability={f'{c.fixability:.2f}' if c.fixability is not None else 'not scored'} | times_seen={c.times_seen} "
         f"| first_seen={c.group.first_seen.isoformat()} "
         f"| priority={priority_label(c.group.priority) or 'unknown'}"
         for c in candidates
@@ -332,8 +331,10 @@ def _build_triage_prompt(
           config not provisioned, data corruption)
 
         The "fixability" score in the candidate data is a prior estimate of how likely
-        the issue is to be fixable (0.0 = not fixable, 1.0 = very fixable). Use it as
-        a signal but verify with your own investigation.
+        the issue is to be fixable (0.0 = not fixable, 1.0 = very fixable). Issues
+        marked "not scored" have not been evaluated yet — treat them neutrally rather
+        than assuming they are unfixable. Use the score as a signal but verify with
+        your own investigation.
 
         For each verdict, fill the `reason` field. For `autofix` and `root_cause_only`
         verdicts, the `reason` is handed off as context to the downstream autofix agent

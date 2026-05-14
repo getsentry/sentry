@@ -225,6 +225,7 @@ export function List<Value extends SelectKey>({
       disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const selectedOption = getSelectedOptions(items, selection)[0]!;
         onChange?.(selectedOption);
 

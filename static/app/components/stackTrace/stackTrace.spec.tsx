@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -276,8 +276,8 @@ describe('Core StackTrace', () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
-    const projectDetails = ProjectFixture({
+    const project = DetailedProjectFixture({id: event.projectID});
+    const projectDetails = DetailedProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
@@ -403,7 +403,7 @@ describe('Core StackTrace', () => {
   it('renders stacktrace code mapping links when project data is available', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
+    const project = DetailedProjectFixture({id: event.projectID});
 
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -477,7 +477,7 @@ describe('Core StackTrace', () => {
       sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
     });
     const organization = OrganizationFixture({slug: 'org-slug'});
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       id: javascriptEvent.projectID,
       slug: 'project-slug',
       platform: 'javascript',
@@ -616,7 +616,7 @@ describe('Core StackTrace', () => {
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
+    const project = DetailedProjectFixture({id: event.projectID});
     const integration = GitHubIntegrationFixture();
 
     ProjectsStore.loadInitialData([project]);

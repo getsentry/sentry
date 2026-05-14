@@ -1,5 +1,6 @@
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
@@ -440,5 +441,87 @@ describe('StreamlinedActivitySection', () => {
     render(<StreamlinedActivitySection group={referencedGroup} />);
     expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
+  });
+
+  it('renders Seer activity when feature flag is enabled', async () => {
+    const seerGroup = GroupFixture({
+      id: '1342',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerGroup} />, {organization: org});
+    expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
+  });
+
+  it('hides Seer activity when feature flag is disabled', () => {
+    const seerGroup = GroupFixture({
+      id: '1343',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={seerGroup} />);
+    expect(screen.queryByText('Root Cause Analysis')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer completed root cause analysis')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders Seer PR created activity with link', async () => {
+    const seerPrGroup = GroupFixture({
+      id: '1344',
+      activity: [
+        {
+          type: GroupActivityType.SEER_PR_CREATED,
+          id: 'seer-pr-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            run_id: 456,
+            pull_requests: [
+              {
+                provider: 'github',
+                pull_request: {
+                  pr_number: 42,
+                  pr_url: 'https://github.com/org/repo/pull/42',
+                },
+                repo_name: 'org/repo',
+              },
+            ],
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerPrGroup} />, {organization: org});
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repo/pull/42'
+    );
+    expect(screen.getByText(/org\/repo/)).toBeInTheDocument();
   });
 });

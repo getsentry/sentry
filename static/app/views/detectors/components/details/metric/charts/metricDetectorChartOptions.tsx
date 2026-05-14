@@ -13,7 +13,6 @@ import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
@@ -180,10 +179,7 @@ export function getMetricDetectorChartOption(
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj.snubaQuery;
 
-  const series: AreaChartSeries[] = timeseriesData.map(s => ({
-    ...s,
-    seriesName: stripEquationPrefix(s.seriesName),
-  }));
+  const series: AreaChartSeries[] = timeseriesData.map(s => s);
   const areaSeries: AreaChartSeries[] = [];
   const colors = theme.chart.getColorPalette(0);
   // Ensure series data appears below incident/mark lines
@@ -282,7 +278,7 @@ export function getMetricDetectorChartOption(
             incidentColor,
             incidentStartDate,
             incidentStartValue,
-            seriesName ? stripEquationPrefix(seriesName) : series[0]!.seriesName,
+            seriesName ?? series[0]!.seriesName,
             snubaQuery.aggregate
           )
         );
@@ -404,11 +400,7 @@ export function getMetricDetectorChartOption(
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
-        alertAxisFormatter(
-          value,
-          stripEquationPrefix(timeseriesData[0]!.seriesName),
-          snubaQuery.aggregate
-        ),
+        alertAxisFormatter(value, timeseriesData[0]!.seriesName, snubaQuery.aggregate),
     },
     max: isCrashFreeAlert(snubaQuery.dataset)
       ? 100

@@ -7,6 +7,7 @@ import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import {
   AssigneeSelectorDropdown,
   type AssignableEntity,
+  type AssigneeGroup,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
@@ -27,7 +28,7 @@ type HandleAssignOptions = {
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
-  group: Group;
+  group: AssigneeGroup;
   handleAssigneeChange: (
     assignedActor: AssignableEntity | null,
     options?: HandleAssignOptions
@@ -51,7 +52,7 @@ export function useHandleAssigneeChange({
   onSuccess,
   onError,
 }: {
-  group: Group;
+  group: AssigneeGroup;
   organization: Organization;
   onAssign?: OnAssignCallback;
   onError?: (error: Error) => void;

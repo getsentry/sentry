@@ -12,6 +12,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -90,7 +91,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             created_at=timezone.now(),
             updated_at=timezone.now(),
         )
-        seer_project_repo = SeerProjectRepository.objects.create(
+        seer_project_repo = self.create_seer_project_repository(
             project=project,
             repository=repo,
         )
@@ -119,6 +120,11 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             name="example/example",
             status=ObjectStatus.PENDING_DELETION,
         )
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         path_config = RepositoryProjectPathConfig.objects.create(
             project=project,
             repository=repo,
@@ -128,6 +134,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             organization_integration_id=org_integration.id,
             integration_id=org_integration.integration_id,
             organization_id=org_integration.organization_id,
+            project_repository=project_repo,
         )
         code_owner = ProjectCodeOwners.objects.create(
             project=project,

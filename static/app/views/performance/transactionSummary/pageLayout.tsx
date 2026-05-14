@@ -29,7 +29,7 @@ import {
   MetricsCardinalityProvider,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
-import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -272,7 +272,7 @@ export function PageLayout(props: Props) {
         renderDisabled={NoAccess}
       >
         <MetricsCardinalityProvider location={location} organization={organization}>
-          <PerformanceEventViewProvider value={{eventView}}>
+          <PerformanceEventViewContext value={{eventView}}>
             <PageFiltersContainer
               shouldForceProject={defined(project)}
               forceProject={project}
@@ -329,7 +329,7 @@ export function PageLayout(props: Props) {
                 </Stack>
               </Tabs>
             </PageFiltersContainer>
-          </PerformanceEventViewProvider>
+          </PerformanceEventViewContext>
         </MetricsCardinalityProvider>
       </Feature>
     </SentryDocumentTitle>

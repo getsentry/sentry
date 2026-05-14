@@ -8,10 +8,11 @@ import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {CopyFrameLink} from 'sentry/components/events/interfaces/frame/copyFrameLink';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopy, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
@@ -21,7 +22,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -118,6 +118,11 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
       : {}
   );
 
+  const copyFrameLinkAnalyticsParams = {
+    group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+    ...getAnalyticsDataForEvent(event),
+  };
+
   const onOpenLink = (e: React.MouseEvent, sourceLink: Frame['sourceLink'] = null) => {
     e.stopPropagation();
     const provider = match?.config?.provider;
@@ -162,7 +167,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
       <StacktraceLinkWrapper>
-        <CopyFrameLink event={event} frame={frame} />
+        <CopyFrameLink frame={frame} analyticsParams={copyFrameLinkAnalyticsParams} />
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <ProviderLink
             onClick={e => onOpenLink(e, frame.sourceLink)}
@@ -184,7 +189,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     const label = t('Open this line in %s', match.config.provider.name);
     return (
       <StacktraceLinkWrapper>
-        <CopyFrameLink event={event} frame={frame} />
+        <CopyFrameLink frame={frame} analyticsParams={copyFrameLinkAnalyticsParams} />
         <Tooltip title={label} skipWrapper>
           <ProviderLink
             onClick={onOpenLink}
@@ -226,7 +231,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   ) {
     return (
       <StacktraceLinkWrapper>
-        <CopyFrameLink event={event} frame={frame} />
+        <CopyFrameLink frame={frame} analyticsParams={copyFrameLinkAnalyticsParams} />
         <Tooltip title={t('GitHub')} skipWrapper>
           <ProviderLink
             onClick={onOpenLink}
@@ -261,7 +266,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     );
     return (
       <StacktraceLinkWrapper data-has-setup="true">
-        <CopyFrameLink event={event} frame={frame} />
+        <CopyFrameLink frame={frame} analyticsParams={copyFrameLinkAnalyticsParams} />
         <Button
           size={DEFAULT_BUTTON_SIZE}
           variant="transparent"
@@ -378,55 +383,6 @@ function CodecovLink({
     </Tooltip>
   );
 }
-interface CopyFrameLinkProps {
-  event: Event;
-  frame: Frame;
-}
-
-function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
-  const filePath =
-    frame.filename && frame.lineNo !== null
-      ? `${frame.filename}:${frame.lineNo}`
-      : frame.filename || '';
-
-  const {copy} = useCopyToClipboard();
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    // Strip away relative path segments to make it easier for editors to actually find the file (like VSCode cmd+p)
-    const cleanedFilepath = filePath.replace(/^(\.\/)?(\.\.\/)*/g, '');
-
-    copy(cleanedFilepath, {
-      successMessage: t('File path copied to clipboard'),
-      errorMessage: t('Failed to copy file path'),
-    });
-  };
-
-  // Don't render if there's no valid file path to copy
-  if (!filePath) {
-    return null;
-  }
-
-  return (
-    <Tooltip title={t('Copy file path')} skipWrapper>
-      <Button
-        size={DEFAULT_BUTTON_SIZE}
-        variant="transparent"
-        aria-label={t('Copy file path')}
-        icon={<IconCopy />}
-        onClick={handleClick}
-        analyticsEventKey="stacktrace_link_copy_file_path"
-        analyticsEventName="Stacktrace Link Copy File Path"
-        analyticsParams={{
-          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
-          ...getAnalyticsDataForEvent(event),
-        }}
-      />
-    </Tooltip>
-  );
-}
-
 const fadeIn = keyframes`
 from { opacity: 0; }
 to { opacity: 1; }

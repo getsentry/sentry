@@ -6,7 +6,6 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import (
     is_autofix_enabled,
     is_code_review_enabled,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -184,13 +183,13 @@ class TestIsAutofixEnabled(TestCase):
 
     def test_with_repository(self) -> None:
         repo = self.create_repo(project=self.project)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         assert is_autofix_enabled(self.organization)
 
     def test_inactive_repository(self) -> None:
         repo = self.create_repo(project=self.project)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
         repo.status = ObjectStatus.DISABLED
         repo.save()
 
@@ -198,7 +197,7 @@ class TestIsAutofixEnabled(TestCase):
 
     def test_no_projects(self) -> None:
         repo = self.create_repo(project=self.project)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         org_without_projects = self.create_organization()
 
@@ -209,7 +208,7 @@ class TestIsAutofixEnabled(TestCase):
             organization=self.organization, status=ObjectStatus.DISABLED
         )
         repo = self.create_repo(project=inactive_project)
-        SeerProjectRepository.objects.create(project=inactive_project, repository=repo)
+        self.create_seer_project_repository(project=inactive_project, repository=repo)
 
         assert not is_autofix_enabled(self.organization)
 
@@ -218,7 +217,7 @@ class TestIsAutofixEnabled(TestCase):
         self.create_project(organization=self.organization)
 
         repo = self.create_repo(project=project1)
-        SeerProjectRepository.objects.create(project=project1, repository=repo)
+        self.create_seer_project_repository(project=project1, repository=repo)
 
         assert is_autofix_enabled(self.organization)
 
@@ -229,7 +228,7 @@ class TestIsAutofixEnabled(TestCase):
         self.create_project(organization=org2)
 
         repo = self.create_repo(project=project1)
-        SeerProjectRepository.objects.create(project=project1, repository=repo)
+        self.create_seer_project_repository(project=project1, repository=repo)
 
         assert is_autofix_enabled(self.organization)
         assert not is_autofix_enabled(org2)
@@ -263,7 +262,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
     def test_all_configured(self) -> None:
         autofix_repo = self.create_repo(project=self.project)
-        SeerProjectRepository.objects.create(project=self.project, repository=autofix_repo)
+        self.create_seer_project_repository(project=self.project, repository=autofix_repo)
 
         self.create_integration(
             organization=self.organization,
@@ -328,7 +327,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
     def test_autofix_enabled_only(self) -> None:
         repo = self.create_repo(project=self.project)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         response = self.get_response(self.organization.slug)
 
@@ -368,7 +367,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
     def test_github_and_autofix_enabled(self) -> None:
         repo = self.create_repo(project=self.project)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         self.create_integration(
             organization=self.organization,
@@ -390,7 +389,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
     def test_code_review_and_autofix_enabled(self) -> None:
         autofix_repo = self.create_repo(project=self.project)
-        SeerProjectRepository.objects.create(project=self.project, repository=autofix_repo)
+        self.create_seer_project_repository(project=self.project, repository=autofix_repo)
 
         code_review_repo = self.create_repo(project=self.project)
         self.create_repository_settings(

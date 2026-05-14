@@ -1,11 +1,11 @@
 import {useCallback, useMemo} from 'react';
 
 import {decodeScalar} from 'sentry/utils/queryString';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 
 const SPANS_TABLE_KEY = 'table';

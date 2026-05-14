@@ -1,84 +1,67 @@
+import {z} from 'zod';
+
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
+
+/**
+ * z.enum but forward-compatible: accepts any string at runtime while preserving
+ * autocomplete for the known values via the `(string & {})` trick.
+ */
+function zLooseEnum<T extends string>(values: readonly [T, ...T[]]) {
+  return z.enum(values).or(z.custom<string & {}>(val => typeof val === 'string'));
+}
+
+// Schemas used by runtime type guards
+
+const explorerFilePatchSchema = z.object({
+  diff: z.string(),
+  patch: z.custom<FilePatch>(isFilePatch),
+  repo_name: z.string(),
+});
+
+const repoPRStateSchema = z.object({
+  branch_name: z.string().nullable(),
+  commit_sha: z.string().nullable(),
+  pr_creation_error: z.string().nullable(),
+  pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
+  pr_id: z.number().nullable(),
+  pr_number: z.number().nullable(),
+  pr_url: z.string().nullable(),
+  repo_name: z.string(),
+  title: z.string().nullable(),
+});
+
+const artifactSchema = z.object({
+  data: z.record(z.string(), z.unknown()).nullable(),
+  key: z.string(),
+  reason: z.string(),
+});
+
+const codingAgentResultSchema = z.object({
+  description: z.string(),
+  repo_full_name: z.string(),
+  repo_provider: z.string(),
+  pr_url: z.string().nullable().optional(),
+});
+
+const explorerCodingAgentStateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  provider: z.string(),
+  started_at: z.string(),
+  status: zLooseEnum(['pending', 'running', 'completed', 'failed']),
+  agent_url: z.string().nullable().optional(),
+  results: z.array(codingAgentResultSchema).optional(),
+});
+
+// Types
+
+export type ExplorerFilePatch = z.infer<typeof explorerFilePatchSchema>;
+export type RepoPRState = z.infer<typeof repoPRStateSchema>;
+export type ExplorerCodingAgentState = z.infer<typeof explorerCodingAgentStateSchema>;
 
 export interface TodoItem {
   content: string;
   status: 'pending' | 'in_progress' | 'completed';
-}
-
-export interface ExplorerFilePatch {
-  diff: string;
-  patch: FilePatch;
-  repo_name: string;
-}
-
-export function isExplorerFilePatch(value: unknown): value is ExplorerFilePatch {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  const obj = value as Record<string, unknown>;
-  return (
-    isFilePatch(obj.patch) &&
-    typeof obj.repo_name === 'string' &&
-    typeof obj.diff === 'string'
-  );
-}
-
-export interface RepoPRState {
-  branch_name: string | null;
-  commit_sha: string | null;
-  pr_creation_error: string | null;
-  pr_creation_status: 'creating' | 'completed' | 'error' | null;
-  pr_id: number | null;
-  pr_number: number | null;
-  pr_url: string | null;
-  repo_name: string;
-  title: string | null;
-}
-
-export function isRepoPRState(value: unknown): value is RepoPRState {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.repo_name === 'string' &&
-    (obj.branch_name === null || typeof obj.branch_name === 'string') &&
-    (obj.commit_sha === null || typeof obj.commit_sha === 'string') &&
-    (obj.pr_creation_error === null || typeof obj.pr_creation_error === 'string') &&
-    (obj.pr_creation_status === null || typeof obj.pr_creation_status === 'string') &&
-    (obj.pr_id === null || typeof obj.pr_id === 'number') &&
-    (obj.pr_number === null || typeof obj.pr_number === 'number') &&
-    (obj.pr_url === null || typeof obj.pr_url === 'string') &&
-    (obj.title === null || typeof obj.title === 'string')
-  );
-}
-
-export interface Artifact<T = Record<string, unknown>> {
-  data: T | null;
-  key: string;
-  reason: string;
-}
-
-export function isArtifact(value: unknown): value is Artifact {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  const obj = value as Record<string, unknown>;
-  return 'data' in obj && typeof obj.key === 'string' && typeof obj.reason === 'string';
-}
-
-export interface Block {
-  id: string;
-  message: Message;
-  timestamp: string;
-  artifacts?: Artifact[];
-  file_patches?: ExplorerFilePatch[]; // Incremental patches (for approval)
-  loading?: boolean;
-  merged_file_patches?: ExplorerFilePatch[]; // Merged patches (original → current) for files touched in this block
-  pr_commit_shas?: Record<string, string>;
-  todos?: TodoItem[];
-  tool_links?: Array<ToolLink | null>;
-  tool_results?: Array<ToolResult | null>;
 }
 
 export interface ToolLink {
@@ -95,60 +78,60 @@ export interface ToolResult {
 export interface ToolCall {
   args: string;
   function: string;
-  id: string;
+  id?: string | null;
 }
 
 interface Message {
-  content: string;
+  content: string | null;
   role: 'user' | 'assistant' | 'tool_use';
   metadata?: Record<string, string> | null;
-  thinking_content?: string;
-  tool_calls?: ToolCall[];
+  thinking_content?: string | null;
+  tool_calls?: ToolCall[] | null;
+}
+
+export interface Block {
+  id: string;
+  message: Message;
+  timestamp: string;
+  artifacts?: Artifact[];
+  file_patches?: ExplorerFilePatch[] | null;
+  loading?: boolean;
+  merged_file_patches?: ExplorerFilePatch[] | null;
+  pr_commit_shas?: Record<string, string> | null;
+  todos?: TodoItem[] | null;
+  tool_links?: Array<ToolLink | null> | null;
+  tool_results?: Array<ToolResult | null> | null;
 }
 
 export interface ExplorerSession {
-  created_at: string; // ISO date string
+  created_at: string;
   last_triggered_at: string;
   run_id: number;
-  title: string; // ISO date string
+  title: string;
 }
 
-/**
- * Result from a coding agent (e.g., Cursor).
- */
-interface CodingAgentResult {
-  description: string;
-  repo_full_name: string;
-  repo_provider: string;
-  branch_name?: string;
-  pr_url?: string;
+export interface Artifact<T = Record<string, unknown>> {
+  data: T | null;
+  key: string;
+  reason: string;
 }
 
-/**
- * State of a coding agent launched from an Explorer run.
- */
-export interface ExplorerCodingAgentState {
-  id: string;
-  name: string;
-  provider: string;
-  started_at: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  agent_url?: string;
-  results?: CodingAgentResult[];
+// Runtime type guards
+
+export function isExplorerFilePatch(value: unknown): value is ExplorerFilePatch {
+  return explorerFilePatchSchema.safeParse(value).success;
+}
+
+export function isRepoPRState(value: unknown): value is RepoPRState {
+  return repoPRStateSchema.safeParse(value).success;
+}
+
+export function isArtifact(value: unknown): value is Artifact {
+  return artifactSchema.safeParse(value).success;
 }
 
 export function isExplorerCodingAgentState(
   value: unknown
 ): value is ExplorerCodingAgentState {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    typeof obj.provider === 'string' &&
-    typeof obj.started_at === 'string' &&
-    typeof obj.status === 'string'
-  );
+  return explorerCodingAgentStateSchema.safeParse(value).success;
 }

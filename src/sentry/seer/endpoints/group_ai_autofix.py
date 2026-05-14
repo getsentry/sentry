@@ -67,6 +67,16 @@ def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
     return getattr(error, "message", None) == UNKNOWN_RUN_ID_FOR_GROUP
 
 
+def _parse_autofix_referrer(raw: str | None) -> AutofixReferrer:
+    if raw is None:
+        return AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
+    try:
+        return AutofixReferrer(raw)
+    except ValueError:
+        logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
+        return AutofixReferrer.UNKNOWN
+
+
 class AutofixRequestSerializer(CamelSnakeSerializer):
     event_id = serializers.CharField(
         required=False,
@@ -84,6 +94,10 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         choices=["root_cause", "solution", "code_changes", "open_pr"],
         help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        help_text="Referrer identifying where the issue fix was triggered from.",
     )
 
 
@@ -138,6 +152,10 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     insert_index = serializers.IntegerField(
         required=False,
         help_text="Block index to insert at. When provided, truncates blocks after this point for retry-from-step.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        help_text="Referrer identifying where the issue fix was triggered from.",
     )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -266,7 +284,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 result = trigger_coding_agent_handoff(
                     group=group,
                     run_id=run_id,
-                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    referrer=_parse_autofix_referrer(data.get("referrer")),
                     integration_id=integration_id,
                     provider=provider,
                     user_id=request.user.id if request.user else None,
@@ -287,7 +305,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 trigger_push_changes(
                     group,
                     run_id,
-                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    referrer=_parse_autofix_referrer(data.get("referrer")),
                     repo_name=repo_name,
                 )
             except SeerPermissionError:
@@ -299,7 +317,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
                 intelligence_level=data["intelligence_level"],
@@ -330,7 +348,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # This event_id is the event that the user is looking at when they click the "Fix" button
             event_id=data.get("event_id"),
             user=request.user,
-            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            referrer=_parse_autofix_referrer(data.get("referrer")),
             instruction=data.get("instruction"),
             pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
             stopping_point=stopping_point,

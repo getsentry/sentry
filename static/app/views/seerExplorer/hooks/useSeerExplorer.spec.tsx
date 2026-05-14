@@ -793,6 +793,88 @@ describe('useSeerExplorer', () => {
     });
   });
 
+  describe('Timeout Detection', () => {
+    const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+    const runId = 777;
+    const staleUpdatedAt = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+    it('returns isTimedOut=true and isPolling=false and does not re-poll', async () => {
+      const getMock = MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: runId,
+            status: 'processing',
+            updated_at: staleUpdatedAt,
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isTimedOut).toBe(true);
+      });
+
+      expect(result.current.isPolling).toBe(false);
+      expect(getMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('filters out loading blocks from sessionData when timed out', async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              {
+                id: 'msg-1',
+                message: {role: 'user', content: 'Hello'},
+                timestamp: staleUpdatedAt,
+                loading: false,
+              },
+              {
+                id: 'msg-2',
+                message: {role: 'assistant', content: 'Partial...'},
+                timestamp: staleUpdatedAt,
+                loading: true,
+              },
+              {
+                id: 'msg-3',
+                message: {role: 'tool_use', content: 'Running tool...'},
+                timestamp: staleUpdatedAt,
+                loading: true,
+              },
+            ],
+            run_id: runId,
+            status: 'processing',
+            updated_at: staleUpdatedAt,
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isTimedOut).toBe(true);
+      });
+
+      expect(result.current.isPolling).toBe(false);
+      expect(result.current.sessionData?.blocks).toHaveLength(1);
+      expect(result.current.sessionData?.blocks[0]?.id).toBe('msg-1');
+    });
+  });
+
   describe('hasSentInterrupt', () => {
     beforeEach(() => {
       sessionStorage.setItem('seer-explorer-run-id', JSON.stringify(123));
@@ -885,4 +967,6 @@ describe('useSeerExplorer', () => {
       });
     });
   });
+
+  describe('timeout logic', () => {});
 });

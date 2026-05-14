@@ -44,12 +44,12 @@ from sentry.tasks.seer.night_shift.tweaks import (
     get_night_shift_tweaks,
 )
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.utils.hashlib import md5_text
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_DISPATCH_STEP_SECONDS = 37
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
 
 BATCH_FEATURE_NAMES = [
@@ -119,11 +119,13 @@ def schedule_night_shift(
     seer_org_ids: set[int] = set()
     for spr in RangeQuerySetWrapper[SeerProjectRepository](
         SeerProjectRepository.objects.filter(project__status=ObjectStatus.ACTIVE).select_related(
-            "project"
+            "project", "project_repository__project"
         ),
         step=1000,
     ):
-        seer_org_ids.add(spr.project.organization_id)
+        pr = spr.project_repository
+        project = pr.project if pr is not None else spr.project
+        seer_org_ids.add(project.organization_id)
 
     logger.info(
         "night_shift.schedule_org_ids_collected",
@@ -146,7 +148,7 @@ def schedule_night_shift(
         )
         eligible = _get_eligible_orgs_from_batch(org_batch)
         for org in eligible:
-            delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
+            delay = int(md5_text(str(org.id)).hexdigest(), 16) % spread_seconds
             run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
 

@@ -8,6 +8,7 @@ from rest_framework import status
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -366,6 +367,11 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         return_value=[{"name": "name", "identifier": "name", "external_id": "88888"}],
     )
     def test_post_existing_code_mapping(self, mock_get_repos: MagicMock) -> None:
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=self.repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
             stack_root="/stack/root",
@@ -375,6 +381,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             organization_integration_id=self.organization_integration.id,
             organization_id=self.organization_integration.organization_id,
             integration_id=self.organization_integration.integration_id,
+            project_repository=project_repo,
         )
 
         config_data = {

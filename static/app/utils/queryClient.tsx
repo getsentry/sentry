@@ -13,11 +13,7 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
-import type {
-  ApiQueryKey,
-  InfiniteApiQueryKey,
-  QueryKeyEndpointOptions,
-} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type {
@@ -25,10 +21,6 @@ export type {
    * @deprecated Use `import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';` directly instead.
    */
   ApiQueryKey,
-  /**
-   * @deprecated Use `import type {InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';` directlyinstead.
-   */
-  InfiniteApiQueryKey,
   /**
    * @deprecated Use `import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';` directly instead.
    */

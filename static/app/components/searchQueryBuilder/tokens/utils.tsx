@@ -136,7 +136,7 @@ export function getInitialFilterText(
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING: {
-      return areWildcardOperatorsAllowed(fieldDefinition)
+      return areWildcardOperatorsAllowed(fieldDefinition, valueType)
         ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
         : `${keyText}:${defaultValue}`;
     }
