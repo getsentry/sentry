@@ -21,7 +21,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -230,13 +230,13 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
               {showOnboarding ? (
                 <LegacyOnboarding
                   project={onboardingProject}
-                  organization={organization}
-                />
-              ) : (
-                <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.MOBILE}}
-                >
-                  <TeamKeyTransactionManager.Provider
+                organization={organization}
+              />
+            ) : (
+              <PerformanceDisplayContext
+                value={{performanceType: ProjectPerformanceType.MOBILE}}
+              >
+                <TeamKeyTransactionManager.Provider
                     organization={organization}
                     teams={teams}
                     selectedTeams={['myteams']}
@@ -256,12 +256,12 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
                       columnTitles={columnTitles}
                       setError={setPageDanger}
                       theme={theme}
-                      {...sharedProps}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                </PerformanceDisplayProvider>
-              )}
-            </ModuleLayout.Full>
+                    {...sharedProps}
+                  />
+                </TeamKeyTransactionManager.Provider>
+              </PerformanceDisplayContext>
+            )}
+          </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

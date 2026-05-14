@@ -20,7 +20,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -284,22 +284,22 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
               {showOnboarding ? (
                 <LegacyOnboarding
                   project={onboardingProject}
-                  organization={organization}
-                />
-              ) : (
-                <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.MOBILE}}
-                >
-                  <DoubleChartRow
+                organization={organization}
+              />
+            ) : (
+              <PerformanceDisplayContext
+                value={{performanceType: ProjectPerformanceType.MOBILE}}
+              >
+                <DoubleChartRow
                     allowedCharts={doubleChartRowCharts}
                     {...sharedProps}
                     eventView={doubleChartRowEventView}
-                  />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <MobileOverviewTable response={response} sort={sorts[1]} />
-                </PerformanceDisplayProvider>
-              )}
-            </ModuleLayout.Full>
+                />
+                <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                <MobileOverviewTable response={response} sort={sorts[1]} />
+              </PerformanceDisplayContext>
+            )}
+          </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

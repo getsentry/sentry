@@ -6,11 +6,9 @@ type UseCurrentPerformanceView = {
   performanceType: ProjectPerformanceType;
 };
 
-const PerformanceDisplayContext = createContext<UseCurrentPerformanceView | undefined>(
-  undefined
-);
-
-export const PerformanceDisplayProvider = PerformanceDisplayContext;
+export const PerformanceDisplayContext = createContext<
+  UseCurrentPerformanceView | undefined
+>(undefined);
 
 export function usePerformanceDisplayType(): ProjectPerformanceType {
   const context = useContext(PerformanceDisplayContext);

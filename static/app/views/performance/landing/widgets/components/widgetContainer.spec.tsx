@@ -6,7 +6,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
@@ -44,21 +44,21 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
         location={data.router.location}
         organization={data.organization}
       >
-        <MEPSettingProvider forceTransactions>
-          <PerformanceDisplayProvider
-            value={{performanceType: ProjectPerformanceType.ANY}}
-          >
-            <WidgetContainer
+      <MEPSettingProvider forceTransactions>
+        <PerformanceDisplayContext
+          value={{performanceType: ProjectPerformanceType.ANY}}
+        >
+          <WidgetContainer
               chartHeight={100}
               allowedCharts={allowedCharts}
               rowChartSettings={[]}
               withStaticFilters={withStaticFilters}
               forceDefaultChartSetting
-              {...data}
-              {...rest}
-            />
-          </PerformanceDisplayProvider>
-        </MEPSettingProvider>
+          {...data}
+          {...rest}
+        />
+        </PerformanceDisplayContext>
+      </MEPSettingProvider>
       </MetricsCardinalityProvider>
     </OrganizationContext>
   );

@@ -25,7 +25,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -241,13 +241,13 @@ export function Am1FrontendOverviewPage({
               {showOnboarding ? (
                 <LegacyOnboarding
                   project={onboardingProject}
-                  organization={organization}
-                />
-              ) : (
-                <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
-                >
-                  <DoubleChartRow
+                organization={organization}
+              />
+            ) : (
+              <PerformanceDisplayContext
+                value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
+              >
+                <DoubleChartRow
                     allowedCharts={doubleChartRowCharts}
                     {...sharedProps}
                     eventView={doubleChartRowEventView}
@@ -264,12 +264,12 @@ export function Am1FrontendOverviewPage({
                       projects={projects}
                       columnTitles={FRONTEND_COLUMN_TITLES}
                       setError={setPageDanger}
-                      {...sharedProps}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                </PerformanceDisplayProvider>
-              )}
-            </ModuleLayout.Full>
+                    {...sharedProps}
+                  />
+                </TeamKeyTransactionManager.Provider>
+              </PerformanceDisplayContext>
+            )}
+          </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
