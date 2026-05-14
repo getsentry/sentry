@@ -56,14 +56,8 @@ quoted_value
     return tc.tokenValueText(value.join(''), true);
   }
 
-in_value_termination
-  = in_value_char (!in_value_end in_value_char)* in_value_end
-
 in_value_char
   = [^,]
-
-in_value_end
-  = (spaces comma)
 
 comma = ","
 spaces = " "*
