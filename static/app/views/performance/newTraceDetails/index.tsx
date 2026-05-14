@@ -35,6 +35,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {useTrace} from './traceApi/useTrace';
 import {
   getTraceMetaErrorCount,
+  getTraceMetaMetricsCount,
   getTraceMetaPerformanceIssueCount,
   getTraceMetaSpanCount,
   useTraceMeta,
@@ -115,14 +116,17 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsData = useInitialLogsData();
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
+  const metaMetricsCount = getTraceMetaMetricsCount(meta.data);
   const {metricsData} = useInitialTraceMetricData({
     traceId: traceSlug,
     queryParams,
-    enabled: true,
+    enabled: meta.status !== 'pending' && metaMetricsCount === undefined,
   });
+  const traceMetricsData =
+    metaMetricsCount === undefined ? metricsData : {count: metaMetricsCount};
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -151,7 +155,8 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
     logs: logsData,
-    metrics: metricsData,
+    meta: meta.data,
+    metrics: traceMetricsData,
   });
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
@@ -193,7 +198,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             traceSlug={traceSlug}
             traceEventView={traceEventView}
             logs={logsData}
-            metrics={metricsData}
+            metrics={traceMetricsData}
           />
           <TraceInnerLayout>
             <ErrorsOnlyWarnings

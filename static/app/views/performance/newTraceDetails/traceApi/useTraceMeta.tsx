@@ -95,9 +95,33 @@ export function getTraceMetaSpanCount(meta: MetaArg) {
   return isEAPTraceMeta(meta) ? meta.spansCount : meta.span_count;
 }
 
+export function getTraceMetaMetricsCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? meta.metricsCount : undefined;
+}
+
 export function getTraceMetaLogsCount(meta: MetaArg) {
   if (!meta) return;
   return isEAPTraceMeta(meta) ? meta.logsCount : undefined;
+}
+
+export function getTraceMetaTransactionCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? undefined : meta.transactions;
+}
+
+export function getTraceMetaUptimeCount(meta: MetaArg) {
+  if (!meta) return;
+  return isEAPTraceMeta(meta) ? meta.uptimeCount : undefined;
+}
+
+export function getTraceMetaAiSpanCount(meta: MetaArg) {
+  if (!meta) return;
+  const spansCountMap = isEAPTraceMeta(meta) ? meta.spansCountMap : meta.span_count_map;
+
+  return Object.entries(spansCountMap).reduce((count, [op, opCount]) => {
+    return op.startsWith('gen_ai') ? count + opCount : count;
+  }, 0);
 }
 
 export function getTraceMetaTransactionChildCountMap(meta: MetaArg) {
