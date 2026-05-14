@@ -13,6 +13,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import (
     NotificationService,
@@ -298,7 +299,6 @@ def send_halt_message(
     thread_ts: str | None,
     halt_reason: SeerSlackHaltReason,
 ) -> None:
-    from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.message_builder.types import SlackAction
     from sentry.integrations.slack.views.link_identity import build_linking_url
 
@@ -365,7 +365,7 @@ def send_halt_message(
         text=message,
     )
     try:
-        SlackIntegration.send_threaded_ephemeral_message_static(
+        send_threaded_ephemeral_message(
             integration_id=integration.id,
             channel_id=channel_id,
             thread_ts=thread_ts,
