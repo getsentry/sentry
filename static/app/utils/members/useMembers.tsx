@@ -30,8 +30,10 @@ function findMembersInCache(
   ];
 
   const cached = queryClient.getQueriesData<ApiResponse<Member[]>>({
-    predicate: query =>
-      prefixes.some(prefix => (query.queryKey[0] as string)?.startsWith(prefix)),
+    predicate: query => {
+      const url = query.queryKey[0];
+      return typeof url === 'string' && prefixes.some(prefix => url.startsWith(prefix));
+    },
   });
 
   for (const [, data] of cached) {
