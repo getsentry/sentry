@@ -39,11 +39,9 @@ function TimestampTooltipBody({
   const timestampToUse = preciseTimestampMs ? new Date(preciseTimestampMs) : timestamp;
 
   const observedTimeNanos = attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE];
-  const observedTimeMs =
-    observedTimeNanos && typeof observedTimeNanos === 'string'
-      ? Math.floor(Number(observedTimeNanos) / 1_000_000)
-      : null;
-  const observedTime = observedTimeMs ? new Date(observedTimeMs) : null;
+  const observedTime = observedTimeNanos
+    ? new Date(Math.floor(Number(observedTimeNanos) / 1_000_000))
+    : null;
 
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
@@ -95,19 +93,19 @@ function TimestampTooltipBody({
         </Fragment>
       )}
 
-      {observedTime && (
-        <Fragment>
-          <HorizontalRule />
-          <dt>{t('Received')}</dt>
-          <dd>
+      <Fragment>
+        <HorizontalRule />
+        <dt>{t('Received')}</dt>
+        <dd>
+          {observedTime && (
             <TimestampValues>
               <AutoSelectText>
                 <DateTime date={observedTime} seconds timeZone />
               </AutoSelectText>
             </TimestampValues>
-          </dd>
-        </Fragment>
-      )}
+          )}
+        </dd>
+      </Fragment>
     </DescriptionList>
   );
 }
