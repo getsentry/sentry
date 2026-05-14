@@ -7,7 +7,7 @@ import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 function useSeerExplorerSessionsQuery({
-  limit = 10,
+  limit = 20,
   enabled = true,
 }: {
   enabled?: boolean;
