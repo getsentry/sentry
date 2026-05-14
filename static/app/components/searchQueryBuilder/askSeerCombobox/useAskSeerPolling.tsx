@@ -107,6 +107,9 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   // Start a new search
   const submitQuery = useCallback(
     async (query: string) => {
+      if (waitingForResponse) {
+        return;
+      }
       setWaitingForResponse(true);
 
       try {
@@ -139,7 +142,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         options.onError?.(error as Error);
       }
     },
-    [api, orgSlug, options, queryClient]
+    [api, orgSlug, options, queryClient, waitingForResponse]
   );
 
   // Handle completion callback
