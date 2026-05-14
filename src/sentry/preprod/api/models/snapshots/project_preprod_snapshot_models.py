@@ -132,5 +132,13 @@ class SnapshotDetailsApiResponse(BaseModel):
 
     diff_threshold: float | None = None
 
+    comparison_state: (
+        Literal["pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"]
+        | None
+    ) = None
+    approval_status: Literal["approved", "auto_approved", "requires_approval"] | None = None
+    comparison_error_message: str | None = None
+    approvers: list[SnapshotApprover] = []
+
 
 # TODO: POST request in the future when we migrate away from current schemas

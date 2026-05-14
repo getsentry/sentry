@@ -7,6 +7,7 @@ import jsonschema
 import orjson
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -38,6 +39,10 @@ from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import 
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
 )
+from sentry.preprod.api.models.snapshots.snapshot_status import (
+    SnapshotStatusInput,
+    derive_snapshot_status,
+)
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
@@ -45,6 +50,7 @@ from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
 )
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
@@ -324,6 +330,33 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
+        latest_comparison_for_status = (
+            PreprodSnapshotComparison.objects.filter(
+                head_snapshot_metrics=snapshot_metrics,
+            )
+            .order_by("-id")
+            .first()
+        )
+
+        has_base_sha = bool(commit_comparison and commit_comparison.base_sha)
+        artifact_age_seconds = (timezone.now() - artifact.date_added).total_seconds()
+        base_artifact_exists: bool | None = None
+        if latest_comparison_for_status is None and has_base_sha and commit_comparison is not None:
+            if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
+                base_artifact_exists = (
+                    find_base_snapshot_artifact(
+                        organization_id=commit_comparison.organization_id,
+                        base_sha=commit_comparison.base_sha,
+                        base_repo_name=commit_comparison.base_repo_name
+                        or commit_comparison.head_repo_name,
+                        project_id=artifact.project_id,
+                        app_id=artifact.app_id,
+                        artifact_type=artifact.artifact_type,
+                        build_configuration=artifact.build_configuration,
+                    )
+                    is not None
+                )
+
         image_list = [
             build_snapshot_image_response(key, metadata, manifest.diff_threshold)
             for key, metadata in sorted(manifest.images.items())
@@ -452,6 +485,17 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 approvers=[],
             )
 
+        sorted_approvals = sorted(all_approvals, key=lambda a: a.id, reverse=True)
+        derived_status = derive_snapshot_status(
+            SnapshotStatusInput(
+                latest_comparison=latest_comparison_for_status,
+                latest_approval=sorted_approvals[0] if sorted_approvals else None,
+                has_base_sha=has_base_sha,
+                artifact_age_seconds=artifact_age_seconds,
+                base_artifact_exists=base_artifact_exists,
+            )
+        )
+
         response_data = SnapshotDetailsApiResponse(
             head_artifact_id=str(artifact.id),
             base_artifact_id=base_artifact_id,
@@ -479,6 +523,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             comparison_run_info=run_info,
             approval_info=approval_info,
             diff_threshold=manifest.diff_threshold,
+            comparison_state=derived_status.comparison_state,
+            approval_status=derived_status.approval_status,
+            comparison_error_message=derived_status.comparison_error_message,
+            approvers=approver_list if approved else [],
         ).dict()
 
         if compact:
