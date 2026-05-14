@@ -12,6 +12,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
+const ERROR_POLL_INTERVAL = 2500; // Poll every 2500ms on 5xx errors
 const STALE_TIME_MS = 90_000;
 
 /** Checks if session is in a terminal state where the agent is done processing. */
@@ -35,17 +36,20 @@ const isTimestampStale = (updatedAt: string | undefined) => {
 const getPollingState = (
   runId: number | null,
   sessionData: SeerExplorerResponse['session'] | undefined,
-  isError: boolean,
+  errorStatusCode: number | null,
   isStale: boolean,
   override: boolean | undefined
-): 'polling' | 'not-polling' | 'timed-out' => {
+): 'polling' | 'polling-with-backoff' | 'not-polling' | 'timed-out' => {
   if (override !== undefined) {
     return override ? 'polling' : 'not-polling';
   }
   if (runId === null) {
     return 'not-polling';
   }
-  if (isError) {
+  if (errorStatusCode !== null) {
+    if (errorStatusCode >= 500 && errorStatusCode < 600) {
+      return 'polling-with-backoff';
+    }
     return 'not-polling';
   }
   if (isResponseComplete(sessionData)) {
@@ -88,16 +92,18 @@ export const useSeerExplorerPolling = ({
     retry: false,
     enabled: !!runId && isSeerExplorerEnabled(organization),
     refetchInterval: query => {
-      if (
-        getPollingState(
-          runId,
-          query.state.data?.json?.session,
-          query.state.status === 'error',
-          isTimestampStale(query.state.data?.json?.session?.updated_at),
-          shouldPollOverride
-        ) === 'polling'
-      ) {
+      const state = getPollingState(
+        runId,
+        query.state.data?.json?.session,
+        query.state.error?.status ?? null,
+        isTimestampStale(query.state.data?.json?.session?.updated_at),
+        shouldPollOverride
+      );
+      if (state === 'polling') {
         return POLL_INTERVAL;
+      }
+      if (state === 'polling-with-backoff') {
+        return ERROR_POLL_INTERVAL;
       }
       return false;
     },
@@ -130,10 +136,11 @@ export const useSeerExplorerPolling = ({
     }
   }, [runId, apiData?.session?.updated_at, startStaleTimeout, cancelStaleTimeout]);
 
+  const errorStatusCode = error?.status ?? null;
   const pollingState = getPollingState(
     runId,
     apiData?.session,
-    isError,
+    errorStatusCode,
     isStale,
     shouldPollOverride
   );
@@ -141,8 +148,8 @@ export const useSeerExplorerPolling = ({
   return {
     apiData,
     isError,
-    errorStatusCode: error?.status ?? null,
-    isPolling: pollingState === 'polling',
+    errorStatusCode,
+    isPolling: pollingState === 'polling' || pollingState === 'polling-with-backoff',
     isTimedOut: pollingState === 'timed-out',
   };
 };
