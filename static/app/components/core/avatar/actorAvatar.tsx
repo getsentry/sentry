@@ -77,10 +77,14 @@ interface AsyncMemberAvatarProps extends Omit<UserAvatarProps, 'user' | 'round'>
 }
 
 function AsyncMemberAvatar({actor, ...props}: AsyncMemberAvatarProps) {
-  const {data: members = [], isLoading} = useMembers({ids: [actor.id]});
+  const canRenderActor = Boolean(actor.name || actor.email);
+  const {data: members = [], isLoading} = useMembers({
+    ids: [actor.id],
+    enabled: !canRenderActor,
+  });
   const member = members.find(u => u.id === actor.id);
 
-  if (isLoading) {
+  if (isLoading && !canRenderActor) {
     const size = `${props.size}px`;
     return <Placeholder shape="circle" width={size} height={size} />;
   }
