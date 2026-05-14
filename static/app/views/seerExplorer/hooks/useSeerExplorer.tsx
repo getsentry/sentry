@@ -6,6 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -17,7 +18,7 @@ import {
   useSeerExplorerConversations,
   useSeerExplorerDispatch,
 } from 'sentry/views/seerExplorer/seerExplorerStateContext';
-import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {Block, ExplorerSession, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
@@ -207,8 +208,31 @@ export const useSeerExplorer = () => {
     },
     onSuccess: (response, params) => {
       if (params.runId === null) {
-        // set run ID if this is a new session
         dispatch({type: 'set active run', payload: response.run_id});
+        const sessionsQueryKey = [
+          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-runs/', {
+            path: {organizationIdOrSlug: params.orgSlug},
+          }),
+        ] as const;
+        // Optimistically add the new session so conversations picks it up
+        // immediately, then invalidate to get the real server state.
+        const now = new Date().toISOString();
+        setApiQueryData<{data: ExplorerSession[]}>(
+          queryClient,
+          sessionsQueryKey,
+          prev => ({
+            data: [
+              {
+                run_id: response.run_id,
+                title: params.query,
+                created_at: now,
+                last_triggered_at: now,
+              },
+              ...(prev?.data ?? []),
+            ],
+          })
+        );
+        queryClient.invalidateQueries({queryKey: sessionsQueryKey});
       } else {
         // invalidate the query so fresh data is fetched
         queryClient.invalidateQueries({

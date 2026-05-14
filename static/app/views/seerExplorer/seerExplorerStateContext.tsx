@@ -15,13 +15,20 @@ function seerExplorerConversationsReducer(
   switch (action.type) {
     case 'set active run': {
       persistRunId(action.payload);
-      return {...state, [action.payload]: {status: 'active'}};
-    }
-    case 'clear active run': {
-      persistRunId(null);
       const next: SeerExplorerConversationsState = {};
       for (const key in state) {
-        next[key] = {status: 'idle'};
+        next[key] = {...state[key], status: 'idle'};
+      }
+      if (next[action.payload]) {
+        next[action.payload] = {...next[action.payload], status: 'active'};
+      }
+      next[action.payload] = {...state[action.payload], status: 'active'};
+      return next;
+    }
+    case 'clear active run': {
+      const next: SeerExplorerConversationsState = {};
+      for (const key in state) {
+        next[key] = {...state[key], status: 'idle'};
       }
       return next;
     }
@@ -49,6 +56,20 @@ export function SeerExplorerStateProvider({children}: {children: React.ReactNode
     return {};
   });
 
+  // We wrap the dispatch in a function that persists the run ID to session storage. This keeps the
+  // reducer free from any side effects and remain idempotent.
+  function wrappedDispatch(action: SeerExplorerConversationsAction) {
+    switch (action.type) {
+      case 'set active run':
+        persistRunId(action.payload);
+        break;
+      case 'clear active run':
+        persistRunId(null);
+        break;
+    }
+    dispatch(action);
+  }
+
   const conversations = useMemo<Conversation[]>(() => {
     if (!sessionsQuery.data?.data?.length) return [];
 
@@ -59,7 +80,7 @@ export function SeerExplorerStateProvider({children}: {children: React.ReactNode
   }, [sessionsQuery.data?.data, state]);
 
   return (
-    <SeerExplorerDispatchContext.Provider value={dispatch}>
+    <SeerExplorerDispatchContext.Provider value={wrappedDispatch}>
       <SeerExplorerConversationsContext.Provider value={conversations}>
         {children}
       </SeerExplorerConversationsContext.Provider>
