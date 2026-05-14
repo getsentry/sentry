@@ -463,19 +463,17 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         assert result is None
         mock_read_pref.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
-    def test_get_handoff_config_returns_none_when_stopping_at_root_cause(
-        self, mock_read_pref
-    ) -> None:
-        """Returns None without reading preferences when stopping point is ROOT_CAUSE."""
+    def test_get_handoff_config_returns_config_when_stopping_at_root_cause(self) -> None:
+        """Returns handoff config even when root cause is the stopping point."""
+        expected_handoff_config = self._make_handoff_config()
+
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             current_step=AutofixStep.ROOT_CAUSE,
             group=self.group,
         )
 
-        assert result is None
-        mock_read_pref.assert_not_called()
+        assert result == expected_handoff_config
 
     def test_get_handoff_config_returns_none_when_no_handoff_configured(self) -> None:
         """Returns None when project has no automation handoff configured."""
@@ -499,8 +497,11 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 
         assert result == expected_handoff_config
 
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
-    def test_maybe_continue_pipeline_triggers_handoff_when_configured(self, mock_trigger_handoff):
+    def test_maybe_continue_pipeline_triggers_handoff_when_configured(
+        self, mock_trigger_handoff, mock_trigger_autofix
+    ):
         """Triggers handoff instead of continuing pipeline when handoff is configured."""
         self._make_handoff_config()
         mock_trigger_handoff.return_value = {"successes": [], "failures": []}
@@ -520,10 +521,81 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_trigger_handoff.assert_called_once()
+        call_kwargs = mock_trigger_handoff.call_args.kwargs
+        assert call_kwargs["group"] == self.group
+        assert call_kwargs["run_id"] == 123
+        assert call_kwargs["integration_id"] == 123
         assert (
-            mock_trigger_handoff.call_args.kwargs["referrer"]
-            == AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY
+            call_kwargs["referrer"] == AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY
         )
+        mock_trigger_autofix.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_maybe_continue_pipeline_triggers_handoff_when_stopping_at_root_cause(
+        self, mock_trigger_handoff, mock_trigger_autofix
+    ):
+        """Triggers configured root-cause handoff before treating root cause as terminal."""
+        self._make_handoff_config()
+        mock_trigger_handoff.return_value = {"successes": [], "failures": []}
+
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_trigger_handoff.assert_called_once()
+        call_kwargs = mock_trigger_handoff.call_args.kwargs
+        assert call_kwargs["group"] == self.group
+        assert call_kwargs["run_id"] == 123
+        assert call_kwargs["integration_id"] == 123
+        assert call_kwargs["referrer"] == AutofixReferrer.ON_COMPLETION_HOOK
+        mock_trigger_autofix.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_maybe_continue_pipeline_continues_when_handoff_not_configured(
+        self, mock_trigger_handoff, mock_trigger_autofix
+    ):
+        """Continues to solution when no automation handoff is configured."""
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_trigger_handoff.assert_not_called()
+        mock_trigger_autofix.assert_called_once()
+        call_kwargs = mock_trigger_autofix.call_args.kwargs
+        assert call_kwargs["group"] == self.group
+        assert call_kwargs["step"] == AutofixStep.SOLUTION
+        assert call_kwargs["run_id"] == 123
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_maybe_continue_pipeline_missing_stopping_point_skips_configured_handoff(
+        self, mock_trigger_handoff, mock_trigger_autofix
+    ):
+        """Does not trigger handoff without stopping_point metadata, even when configured."""
+        self._make_handoff_config()
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={"group_id": self.group.id},
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_trigger_handoff.assert_not_called()
+        mock_trigger_autofix.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_clears_preference_on_not_found(self, mock_trigger):
