@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from sentry.issues.derived.types import Action, IssueActionType  # noqa: F401 — re-exported
+from sentry.issues.derived.types import IssueAction, IssueActionType  # noqa: F401 — re-exported
 from sentry.models.issueactionlog import IssueActionLog
 
 
 def record(
     *,
     group_id: int,
-    action: Action,
+    action: IssueAction,
     user_id: int | None = None,
 ) -> bool:
     """
     Record an action to IssueActionLog and process derived data inline.
 
     The action's pydantic fields are the sole source of the data payload.
-    All data must be expressed as fields on the Action subclass so it is
+    All data must be expressed as fields on the IssueAction subclass so it is
     validated at construction time.
 
     Processes a small batch of pending entries synchronously. If there's

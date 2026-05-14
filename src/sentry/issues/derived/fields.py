@@ -9,7 +9,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
-from sentry.issues.derived.lib import Field, PydanticDictCodec
+from sentry.issues.derived.lib import Feature, PydanticDictCodec
 
 
 class IssueStatus(StrEnum):
@@ -33,30 +33,30 @@ class WorkingOnEntry(BaseModel):
         frozen = True
 
 
-LAST_SEEN = Field[float | None]("last_seen", default=None)
-VIEW_COUNT = Field[int]("view_count", default=0)
-STATUS = Field[str]("status", default=IssueStatus.OPEN)
-LAST_OPENED = Field[float | None]("last_opened", default=None)
+LAST_SEEN = Feature[float | None]("last_seen", default=None)
+VIEW_COUNT = Feature[int]("view_count", default=0)
+STATUS = Feature[str]("status", default=IssueStatus.OPEN)
+LAST_OPENED = Feature[float | None]("last_opened", default=None)
 
 # dict of user_id (str) -> last view epoch. Keyed by str because JSON keys must be strings.
-RECENT_VIEWERS = Field[dict[str, float]]("recent_viewers", default_factory=dict)
+RECENT_VIEWERS = Feature[dict[str, float]]("recent_viewers", default_factory=dict)
 
-RECENT_FETCHED = Field[dict[str, FetchInfo]](
+RECENT_FETCHED = Feature[dict[str, FetchInfo]](
     "recent_fetched",
     default_factory=dict,
     codec=PydanticDictCodec(FetchInfo),
 )
 
-WORKING_ON = Field[dict[str, WorkingOnEntry]](
+WORKING_ON = Feature[dict[str, WorkingOnEntry]](
     "working_on",
     default_factory=dict,
     codec=PydanticDictCodec(WorkingOnEntry),
 )
 
 # PR IDs created by autofix.
-AUTOFIX_PRS = Field[list[str]]("autofix_prs", default_factory=list)
+AUTOFIX_PRS = Feature[list[str]]("autofix_prs", default_factory=list)
 
 # PRs that have resulted in this issue being closed. Cleared on reopen.
-CLOSING_PRS = Field[list[str]]("closing_prs", default_factory=list)
+CLOSING_PRS = Feature[list[str]]("closing_prs", default_factory=list)
 
-WAS_AUTOFIXED = Field[bool]("was_autofixed", default=False)
+WAS_AUTOFIXED = Feature[bool]("was_autofixed", default=False)

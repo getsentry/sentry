@@ -28,7 +28,7 @@ class IssueActionLog(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
+    group = FlexibleForeignKey("sentry.Group")
     type = BoundedPositiveIntegerField(
         choices=[(t.value, t.name) for t in IssueActionType],
     )

@@ -39,7 +39,7 @@ class GroupDerivedData(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
+    group = FlexibleForeignKey("sentry.Group")
     version = BoundedPositiveIntegerField(default=1)
     cursor = BoundedBigIntegerField(default=0)
     data = models.JSONField(default=dict)

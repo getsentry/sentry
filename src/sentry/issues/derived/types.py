@@ -1,5 +1,5 @@
 """
-Action type enum and Action model hierarchy for IssueActionLog.
+IssueAction type enum and IssueAction model hierarchy for IssueActionLog.
 
 This module has no Django model dependencies so it can be imported by both
 the IssueActionLog model (for choices) and recording.py (for record()).
@@ -19,7 +19,7 @@ class IssueActionType(Enum):
 
     Each value is an integer stored in IssueActionLog.type. This enum is
     the source of truth for what kinds of actions exist. Adding a new kind
-    starts here, then requires a corresponding Action subclass below.
+    starts here, then requires a corresponding IssueAction subclass below.
 
     Values are not contiguous — gaps are fine, and values must never be
     reused once assigned.
@@ -36,7 +36,7 @@ class IssueActionType(Enum):
     RESOLVED_IN_PULL_REQUEST = 9
 
 
-class Action(BaseModel, abc.ABC):
+class IssueAction(BaseModel, abc.ABC):
     """
     Base class for action payloads recorded to IssueActionLog.
 
@@ -45,7 +45,7 @@ class Action(BaseModel, abc.ABC):
 
     Actions are frozen Pydantic models — immutable after construction.
     Their fields are serialized to the IssueActionLog.data JSON column
-    via record(). The Action is the sole source of the data schema;
+    via record(). The IssueAction is the sole source of the data schema;
     there is no way to inject unvalidated data into the log.
     """
 
@@ -57,13 +57,13 @@ class Action(BaseModel, abc.ABC):
     def get_type(cls) -> IssueActionType: ...
 
 
-class ViewAction(Action):
+class ViewAction(IssueAction):
     @classmethod
     def get_type(cls) -> IssueActionType:
         return IssueActionType.VIEW
 
 
-class FetchAction(Action):
+class FetchAction(IssueAction):
     """An agent or automated tool fetching issue data."""
 
     tool: str | None = None
@@ -73,7 +73,7 @@ class FetchAction(Action):
         return IssueActionType.FETCH
 
 
-class CommentAction(Action):
+class CommentAction(IssueAction):
     message: str
 
     @classmethod
@@ -81,7 +81,7 @@ class CommentAction(Action):
         return IssueActionType.COMMENT
 
 
-class SetResolvedAction(Action):
+class SetResolvedAction(IssueAction):
     resolution_type: str | None = None
 
     @classmethod
@@ -89,13 +89,13 @@ class SetResolvedAction(Action):
         return IssueActionType.SET_RESOLVED
 
 
-class SetUnresolvedAction(Action):
+class SetUnresolvedAction(IssueAction):
     @classmethod
     def get_type(cls) -> IssueActionType:
         return IssueActionType.SET_UNRESOLVED
 
 
-class SetAssignedAction(Action):
+class SetAssignedAction(IssueAction):
     """Mirrors GroupAssignee: assignee_id + assignee_type ('User' or 'Team')."""
 
     assignee_id: int
@@ -106,13 +106,13 @@ class SetAssignedAction(Action):
         return IssueActionType.SET_ASSIGNED
 
 
-class SetUnassignedAction(Action):
+class SetUnassignedAction(IssueAction):
     @classmethod
     def get_type(cls) -> IssueActionType:
         return IssueActionType.SET_UNASSIGNED
 
 
-class AutofixPrCreatedAction(Action):
+class AutofixPrCreatedAction(IssueAction):
     pr_id: str
     agent: str
 
@@ -121,7 +121,7 @@ class AutofixPrCreatedAction(Action):
         return IssueActionType.AUTOFIX_PR_CREATED
 
 
-class ResolvedInPullRequestAction(Action):
+class ResolvedInPullRequestAction(IssueAction):
     pr_id: str
 
     @classmethod

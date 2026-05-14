@@ -24,10 +24,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.issues.derived.recording import record
 from sentry.issues.derived.types import (
-    Action,
     AutofixPrCreatedAction,
     CommentAction,
     FetchAction,
+    IssueAction,
     ResolvedInPullRequestAction,
     SetAssignedAction,
     SetResolvedAction,
@@ -38,7 +38,7 @@ from sentry.issues.derived.types import (
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 
-ACTION_CLASSES: dict[str, type[Action]] = {
+ACTION_CLASSES: dict[str, type[IssueAction]] = {
     "view": ViewAction,
     "comment": CommentAction,
     "fetch": FetchAction,
@@ -76,7 +76,7 @@ class OrganizationIssueActionLogDebugEndpoint(OrganizationEndpoint):
         events = serializer.validated_data["events"]
 
         # Validate all events before recording any.
-        parsed: list[tuple[int, Action, int | None]] = []
+        parsed: list[tuple[int, IssueAction, int | None]] = []
         errors: list[dict[str, Any]] = []
 
         # Collect and validate group IDs belong to this org.

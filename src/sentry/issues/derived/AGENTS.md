@@ -12,9 +12,9 @@ The log is a general-purpose foundation. Anything with read access can maintain 
 
 We have a mechanism for deriving a current state from the log:
 
-- **Fields** are typed state data — named slots with defaults that hold the derived values (e.g., `last_seen`, `status`, `working_on`).
-- **Aggregators** are hierarchical folds over the log. Each aggregator declares which fields it reads (deps) and writes (outputs), processes one entry at a time, and produces state updates. The framework enforces isolation: an aggregator can only access its declared fields.
-- A **Pipeline** (naming to be reconsidered) is a versioned set of fields and aggregators. It validates the dependency graph at construction time, topologically sorts, and processes entries in the correct order.
+- **Features** are typed state data — named slots with defaults that hold the derived values (e.g., `last_seen`, `status`, `working_on`).
+- **Aggregators** are hierarchical folds over the log. Each aggregator declares which features it reads (deps) and writes (outputs), processes one entry at a time, and produces state updates. The framework enforces isolation: an aggregator can only access its declared features.
+- A **Pipeline** (naming to be reconsidered) is a versioned set of features and aggregators. It validates the dependency graph at construction time, topologically sorts, and processes entries in the correct order.
 
 ### Storage
 
@@ -24,7 +24,7 @@ It is not the only possible backend. The pipeline's output is a plain dict that 
 
 ## Status of current actions and aggregators
 
-The existing Action types, Fields, and Aggregators in this codebase are **examples for demonstration and experimentation**. They exercise the system's capabilities (scope filtering, dependency chains, Pydantic codecs, cross-field logic like `was_autofixed`) but are not expected to be the canonical set that ships. The framework and infrastructure are the point; the specific derived attributes will be driven by product requirements.
+The existing IssueAction types, Features, and Aggregators in this codebase are **examples for demonstration and experimentation**. They exercise the system's capabilities (scope filtering, dependency chains, Pydantic codecs, cross-field logic like `was_autofixed`) but are not expected to be the canonical set that ships. The framework and infrastructure are the point; the specific derived attributes will be driven by product requirements.
 
 ## Architecture
 
@@ -48,23 +48,23 @@ record() → IssueActionLog (append-only)
 
 - **No DB constraint on type values** — avoids migration churn when adding types. The constraint is at the `record()` boundary: it only accepts `Action` subclasses, each mapping to exactly one `IssueActionType`.
 - **Enum values must never be reused** — gaps are fine, but a value once assigned to an action kind is permanent.
-- **The Action is the sole source of the data schema** — `record()` has no backdoor for injecting unvalidated data. Everything in `IssueActionLog.data` comes from the Action's pydantic fields.
+- **IssueAction is the sole source of the data schema** — `record()` has no backdoor for injecting unvalidated data. Everything in `IssueActionLog.data` comes from the IssueAction's features.
 - **`record()` processes inline** — writes the log entry, then runs a small batch of derived-data processing synchronously. Falls back to a background task if there's a backlog.
 - **Actor attribution** uses `user_id` (nullable for system-initiated actions). Future: likely `actor_type` enum + `actor_id` for richer attribution (Sentry system actions, Seer on behalf of a user, external integrations).
 
 There is a debug-only batch POST endpoint at `/api/0/organizations/{org}/issue-action-log-debug/` for development testing. In production, events are recorded by internal code paths calling `record()` directly.
 
-### Fields
+### Features
 
-A `Field` is a named, typed slot in the derived state with a default value. Fields are the atoms of state that aggregators compose.
+A `Feature` is a named, typed slot in the derived state with a default value. Fields are the atoms of state that aggregators compose.
 
 ```python
-LAST_SEEN = Field[float | None]("last_seen", default=None)
-STATUS = Field[str]("status", default=IssueStatus.OPEN)
-WORKING_ON = Field[dict[str, WorkingOnEntry]]("working_on", default_factory=dict, codec=PydanticDictCodec(WorkingOnEntry))
+LAST_SEEN = Feature[float | None]("last_seen", default=None)
+STATUS = Feature[str]("status", default=IssueStatus.OPEN)
+WORKING_ON = Feature[dict[str, WorkingOnEntry]]("working_on", default_factory=dict, codec=PydanticDictCodec(WorkingOnEntry))
 ```
 
-Fields with JSON-native values (str, int, float, bool, list, dict) need no codec. Fields with rich types (e.g., `dict[str, PydanticModel]`) use a `Codec` for serialization. `PydanticDictCodec(Model)` handles the common `dict[str, SomeModel]` pattern.
+Features with JSON-native values (str, int, float, bool, list, dict) need no codec. Features with rich types (e.g., `dict[str, PydanticModel]`) use a `Codec` for serialization. `PydanticDictCodec(Model)` handles the common `dict[str, SomeModel]` pattern.
 
 ### Aggregators
 
@@ -84,7 +84,7 @@ def track_views(state: StateView, entry: IssueActionLog) -> AggregatorResult:
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 ```
 
-Aggregators receive a `StateView` restricted to their declared deps and outputs — accessing undeclared fields raises `KeyError`. Return `emit(FIELD.value(x), ...)` to update fields, or `None` to make no change.
+Aggregators receive a `StateView` restricted to their declared deps and outputs — accessing undeclared features raises `KeyError`. Return `emit(FEATURE.value(x), ...)` to update fields, or `None` to make no change.
 
 Aggregators must be **pure folds**: the state at cursor N must fully capture everything needed from entries 1..N. This is the contract that makes truncation, snapshotting, and reprocessing safe.
 
@@ -146,13 +146,13 @@ Readers always filter `primary=True` — no need to know the current version. Th
 ### Add a new action type
 
 1. Add the enum value to `IssueActionType` in `recording.py`
-2. Add a frozen Pydantic `Action` subclass with `get_type()` and payload fields
+2. Add a frozen Pydantic `IssueAction` subclass with `get_type()` and payload fields
 3. Add the action name → class mapping in `ACTION_CLASSES` in `organization_issue_action_log_debug.py`
 
-### Add a new derived field
+### Add a new derived feature
 
-1. Declare the `Field` in `fields.py` with a default and optional `Codec`
-2. Write an aggregator in `aggregators.py` with `@aggregator(outputs=(YOUR_FIELD,), ...)`
+1. Declare the `Feature` in `fields.py` with a default and optional `Codec`
+2. Write an aggregator in `aggregators.py` with `@aggregator(outputs=(YOUR_FEATURE,), ...)`
 3. Add the aggregator to the `AGGREGATORS` list
 4. Add tests
 
@@ -161,10 +161,10 @@ Readers always filter `primary=True` — no need to know the current version. Th
 Use `deps=` to declare fields your aggregator reads from other aggregators:
 
 ```python
-@aggregator(deps=(STATUS, LAST_OPENED), outputs=(MY_FIELD,))
+@aggregator(deps=(STATUS, LAST_OPENED), outputs=(MY_FEATURE,))
 def compute_my_field(state: StateView, entry: IssueActionLog) -> AggregatorResult:
     if state[STATUS] == IssueStatus.OPEN:
-        return emit(MY_FIELD.value(...))
+        return emit(MY_FEATURE.value(...))
     return None
 ```
 
@@ -188,7 +188,7 @@ The pipeline topologically sorts so dependencies run first. Cycles are detected 
 - **Concurrent-safe**: Conditional update (`cursor <= new_cursor`, scoped to version) prevents regression. Duplicate processing is harmless.
 - **Aggregator isolation**: Each aggregator can only access its declared deps/outputs via `StateView`. Undeclared access raises `KeyError`, undeclared writes raise `ValueError`.
 - **Backend-agnostic derivation**: The pipeline outputs a plain dict. `GroupDerivedData` in Postgres is the current backend, chosen for its ability to integrate with existing Group query patterns.
-- **Pure Python core**: `lib.py` has no Django dependencies. Fields, State, and Pipeline are fully testable in isolation.
+- **Pure Python core**: `lib.py` has no Django dependencies. Features, State, and Pipeline are fully testable in isolation.
 
 ## Planned: Log Truncation & Snapshots
 
@@ -216,7 +216,7 @@ One snapshot per (group, pipeline_version). The snapshot is on the **log side**,
 
 - **`truncate_group_log(group_id, before_cursor, force=False)`** — deletes IssueActionLog entries with `id < before_cursor`. Safety check: refuses unless a snapshot exists at or past `before_cursor` for all active pipeline versions (determined from code config, not per-row state). `force=True` skips the check.
 
-- **Update to `process_group_log`** — when starting from cursor=0, check for a snapshot and load it as initial state instead of field defaults. Entries before the snapshot's cursor are skipped (they may not exist).
+- **Update to `process_group_log`** — when starting from cursor=0, check for a snapshot and load it as initial state instead of feature defaults. Entries before the snapshot's cursor are skipped (they may not exist).
 
 ### Truncation workflow (operational)
 

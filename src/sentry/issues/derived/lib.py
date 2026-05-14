@@ -1,7 +1,7 @@
 """
 Core framework for the derived-data pipeline.
 
-Provides Field (typed state slots), State (field→value store with view isolation),
+Provides Feature (typed state slots), State (feature→value store with view isolation),
 Aggregator (declared-deps processing functions), and Pipeline (validated DAG of
 aggregators with topological ordering and batched stepping).
 
@@ -27,7 +27,7 @@ _MISSING = object()
 
 
 class Codec(Generic[T]):
-    """Handles serialization of a Field value to/from JSON-compatible form."""
+    """Handles serialization of a Feature value to/from JSON-compatible form."""
 
     def dump(self, value: T) -> Any:
         return value
@@ -36,7 +36,7 @@ class Codec(Generic[T]):
         return raw
 
 
-IDENTITY_CODEC = Codec()
+IDENTITY_CODEC: Codec[Any] = Codec()
 
 
 class PydanticDictCodec(Codec[dict[str, Any]]):
@@ -53,13 +53,13 @@ class PydanticDictCodec(Codec[dict[str, Any]]):
 
 
 # ---------------------------------------------------------------------------
-# Field
+# Feature
 # ---------------------------------------------------------------------------
 
-FieldEntry = tuple["Field[Any]", Any]
+FeatureEntry = tuple["Feature[Any]", Any]
 
 
-class Field(Generic[T]):
+class Feature(Generic[T]):
     """A named, typed slot in derived state with a default value.
 
     The `codec` handles conversion to/from JSON-compatible representations.
@@ -93,17 +93,17 @@ class Field(Generic[T]):
     def load(self, raw: Any) -> T:
         return self._codec.load(raw)
 
-    def value(self, val: T) -> FieldEntry:
+    def value(self, val: T) -> FeatureEntry:
         return (self, val)
 
     def __repr__(self) -> str:
-        return f"Field({self.name!r})"
+        return f"Feature({self.name!r})"
 
     def __hash__(self) -> int:
         return self._hash
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, Field):
+        if isinstance(other, Feature):
             return self.name == other.name
         return NotImplemented
 
@@ -116,19 +116,19 @@ class Field(Generic[T]):
 class _FieldStore:
     __slots__ = ("_data",)
 
-    def __init__(self, data: dict[Field[Any], Any] | None = None):
-        self._data: dict[Field[Any], Any] = data if data is not None else {}
+    def __init__(self, data: dict[Feature[Any], Any] | None = None):
+        self._data: dict[Feature[Any], Any] = data if data is not None else {}
 
-    def __getitem__(self, key: Field[T]) -> T:
+    def __getitem__(self, key: Feature[T]) -> T:
         return self._data[key]
 
-    def __setitem__(self, key: Field[T], value: T) -> None:
+    def __setitem__(self, key: Feature[T], value: T) -> None:
         self._data[key] = value
 
-    def __contains__(self, key: Field[Any]) -> bool:
+    def __contains__(self, key: Feature[Any]) -> bool:
         return key in self._data
 
-    def _undeclared(self, declared: frozenset[Field[Any]]) -> set[Field[Any]]:
+    def _undeclared(self, declared: frozenset[Feature[Any]]) -> set[Feature[Any]]:
         return {f for f in self._data if f not in declared}
 
 
@@ -142,7 +142,7 @@ class StateUpdate(_FieldStore):
 class State(_FieldStore):
     """Complete pipeline state."""
 
-    def view(self, allowed: frozenset[Field[Any]]) -> StateView:
+    def view(self, allowed: frozenset[Feature[Any]]) -> StateView:
         return StateView(self._data, allowed)
 
     def merge(self, update: StateUpdate) -> None:
@@ -160,16 +160,16 @@ class StateView:
 
     __slots__ = ("_data", "_allowed")
 
-    def __init__(self, data: dict[Field[Any], Any], allowed: frozenset[Field[Any]]):
+    def __init__(self, data: dict[Feature[Any], Any], allowed: frozenset[Feature[Any]]):
         self._data = data
         self._allowed = allowed
 
-    def __getitem__(self, key: Field[T]) -> T:
+    def __getitem__(self, key: Feature[T]) -> T:
         if key not in self._allowed:
-            raise KeyError(f"Field {key.name!r} is not accessible in this view")
+            raise KeyError(f"Feature {key.name!r} is not accessible in this view")
         return self._data[key]
 
-    def __contains__(self, key: Field[Any]) -> bool:
+    def __contains__(self, key: Feature[Any]) -> bool:
         return key in self._allowed and key in self._data
 
     def __repr__(self) -> str:
@@ -197,7 +197,7 @@ AggregatorResult = StateUpdate | None
 AggregatorFn = Callable[[StateView, Any], AggregatorResult]
 
 
-def emit(*entries: FieldEntry) -> AggregatorResult:
+def emit(*entries: FeatureEntry) -> AggregatorResult:
     return StateUpdate(dict(entries))
 
 
@@ -206,15 +206,15 @@ class Aggregator:
     """A named function that reads from dep fields and writes to output fields."""
 
     name: str
-    deps: tuple[Field[Any], ...]
-    outputs: tuple[Field[Any], ...]
+    deps: tuple[Feature[Any], ...]
+    outputs: tuple[Feature[Any], ...]
     fn: AggregatorFn
     scope: tuple[int, ...] | None = None
 
 
 def aggregator(
-    deps: tuple[Field[Any], ...] = (),
-    outputs: tuple[Field[Any], ...] = (),
+    deps: tuple[Feature[Any], ...] = (),
+    outputs: tuple[Feature[Any], ...] = (),
     scope: tuple[Enum, ...] | None = None,
 ) -> Callable[[AggregatorFn], Aggregator]:
     """Decorator to create an Aggregator. `scope` accepts enum members directly."""
@@ -250,7 +250,7 @@ class Pipeline:
         return self._aggregators
 
     @property
-    def fields(self) -> tuple[Field[Any], ...]:
+    def fields(self) -> tuple[Feature[Any], ...]:
         return self._fields
 
     def initial_state(self) -> State:
@@ -282,7 +282,7 @@ class Pipeline:
 
     def load_state(self, data: dict[str, Any]) -> State:
         """Deserialize a JSON dict into a State, using field defaults for missing keys."""
-        result: dict[Field[Any], Any] = {}
+        result: dict[Feature[Any], Any] = {}
         for f in self._fields:
             if f.name in data:
                 result[f] = f.load(data[f.name])
@@ -297,11 +297,11 @@ class Pipeline:
 
 
 def resolve(
-    targets: Iterable[Field[Any]],
+    targets: Iterable[Feature[Any]],
     registry: Iterable[Aggregator],
 ) -> list[Aggregator]:
     """Given desired output fields, return the minimal set of aggregators needed."""
-    by_output: dict[Field[Any], Aggregator] = {}
+    by_output: dict[Feature[Any], Aggregator] = {}
     all_aggs = list(registry)
     for agg in all_aggs:
         for field in agg.outputs:
@@ -323,14 +323,14 @@ def resolve(
 
 def _validate_and_sort(
     aggregators: tuple[Aggregator, ...],
-) -> tuple[tuple[Aggregator, ...], tuple[Field[Any], ...]]:
+) -> tuple[tuple[Aggregator, ...], tuple[Feature[Any], ...]]:
     output_owners: dict[str, Aggregator] = {}
     for agg in aggregators:
         for field in agg.outputs:
             if field.name in output_owners:
                 other = output_owners[field.name]
                 raise ValueError(
-                    f"Field {field.name!r} is output by both {other.name!r} and {agg.name!r}"
+                    f"Feature {field.name!r} is output by both {other.name!r} and {agg.name!r}"
                 )
             output_owners[field.name] = agg
 
@@ -369,7 +369,7 @@ def _validate_and_sort(
         remaining = {a.name for a in aggregators} - {a.name for a in order}
         raise ValueError(f"Cycle detected among aggregators: {remaining}")
 
-    all_fields: dict[str, Field[Any]] = {}
+    all_fields: dict[str, Feature[Any]] = {}
     for agg in aggregators:
         for f in (*agg.deps, *agg.outputs):
             all_fields[f.name] = f
