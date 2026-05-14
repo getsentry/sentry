@@ -49,10 +49,9 @@ def forward_event(
     task_payload: dict[str, Any],
 ) -> None:
     from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
-    from sentry.integrations.data_forwarding.base import BaseDataForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
-    logging_ctx = {"data_forwarder_project_id": data_forwarder_project_id}
+    logging_ctx: dict[str, Any] = {"data_forwarder_project_id": data_forwarder_project_id}
     try:
         data_forwarder_project = DataForwarderProject.objects.select_related("data_forwarder").get(
             id=data_forwarder_project_id
@@ -65,7 +64,7 @@ def forward_event(
     logging_ctx["provider"] = provider
     logging_ctx["project_id"] = data_forwarder_project.project_id
 
-    forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY.get(provider)
+    forwarder = FORWARDER_REGISTRY.get(provider)
     if not forwarder:
         logger.warning("data_forwarding.missing_provider", extra=logging_ctx)
         return
