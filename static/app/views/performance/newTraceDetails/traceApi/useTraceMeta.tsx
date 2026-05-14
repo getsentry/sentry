@@ -14,7 +14,12 @@ import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
-import type {EAPTraceMeta, TraceMeta} from './types';
+import type {
+  EAPTraceMeta,
+  ResponseEAPTraceMeta,
+  ResponseTraceMeta,
+  TraceMeta,
+} from './types';
 
 export type TraceMetaTrace = {
   timestamp: number | undefined;
@@ -63,10 +68,16 @@ function getMetaQueryParams(
 }
 
 type MetaArg = TraceMeta | EAPTraceMeta | null | undefined;
+type ResponseMetaArg = ResponseTraceMeta | ResponseEAPTraceMeta | null | undefined;
 
 function isEAPTraceMeta(meta: MetaArg): meta is EAPTraceMeta {
   if (!meta) return false;
   return 'uptimeCount' in meta && !('transactions' in meta);
+}
+
+function isResponseEAPTraceMeta(meta: ResponseMetaArg): meta is ResponseEAPTraceMeta {
+  if (!meta) return false;
+  return 'transactionsCount' in meta;
 }
 
 export function getTraceMetaErrorCount(meta: MetaArg) {
@@ -104,14 +115,19 @@ function mergeCountMap(acc: Record<string, number>, value: Record<string, number
 
 type TransactionChildCountMap =
   | Record<string, number>
-  | Array<{count: number; 'transaction.id': string}>;
+  | ResponseTraceMeta['transaction_child_count_map']
+  | ResponseEAPTraceMeta['transactionChildCountMap'];
 
 function mergeTransactionChildCountMap(
   acc: Record<string, number>,
   value: TransactionChildCountMap
 ): void {
   if (Array.isArray(value)) {
-    value.forEach(({'transaction.id': id, count}) => {
+    value.forEach(row => {
+      const id =
+        'transaction.id' in row ? row['transaction.id'] : row['transaction.event_id'];
+      const count = 'count' in row ? row.count : row['count()'];
+
       acc[id] = (acc[id] ?? 0) + count;
     });
     return;
@@ -157,7 +173,7 @@ async function fetchTraceMetaInBatches(
 
   while (pendingTraces.length > 0) {
     const batch = pendingTraces.splice(0, 3);
-    const results = await Promise.allSettled<TraceMeta | EAPTraceMeta>(
+    const results = await Promise.allSettled<ResponseTraceMeta | ResponseEAPTraceMeta>(
       batch.map(trace => {
         let url = getApiUrl(
           '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/',
@@ -170,7 +186,7 @@ async function fetchTraceMetaInBatches(
           });
         }
 
-        return apiFetch<TraceMeta | EAPTraceMeta>({
+        return apiFetch<ResponseTraceMeta | ResponseEAPTraceMeta>({
           ...fetchContext,
           queryKey: [
             url,
@@ -192,7 +208,7 @@ async function fetchTraceMetaInBatches(
     results.reduce((acc, result) => {
       if (result.status === 'fulfilled') {
         if (isEAPTraceMeta(acc)) {
-          if (!isEAPTraceMeta(result.value)) {
+          if (!isResponseEAPTraceMeta(result.value)) {
             return acc;
           }
 
@@ -212,7 +228,7 @@ async function fetchTraceMetaInBatches(
           return acc;
         }
 
-        if (isEAPTraceMeta(result.value)) {
+        if (isResponseEAPTraceMeta(result.value)) {
           return acc;
         }
 
