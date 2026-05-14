@@ -383,7 +383,7 @@ export class Results extends Component<Props, State> {
       if (aiQueryRunId !== null) {
         trackAiQueryOutcome({
           dataset: 'errors',
-          mode: 'samples', // TODO:
+          mode: eventView.hasAggregateField() ? 'aggregates' : 'samples',
           referrer: 'errors',
           resultCount: totals,
           orgSlug: organization.slug,
