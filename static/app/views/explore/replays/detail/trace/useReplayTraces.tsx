@@ -63,7 +63,7 @@ export function useReplayTraces({
       id: undefined,
       name: `Traces in replay ${replayId}`,
       fields: ['trace', 'min(precise.start_ts)'],
-      orderby: 'min(precise.start_ts)',
+      orderby: 'min_precise_start_ts',
       query: `replayId:${replayId}`,
       projects: [Number(projectId)],
       version: 2,
