@@ -100,55 +100,23 @@ export function BlockComponent({
 BlockComponent.displayName = 'BlockComponent';
 
 function BlockVariant() {
-  const variant = useBlockVariant();
+  const {block} = useBlockContext();
 
-  switch (variant) {
+  switch (block.message.role) {
     case 'user':
       return <UserBlock />;
-    case 'thinking':
-      return <ThinkingBlock />;
-    case 'agent':
-      return <AgentBlock />;
-    default:
-      return unreachable(variant);
+    case 'tool_use':
+      return <ToolUseBlock />;
+    case 'assistant':
+      return <AssistantBlock />;
+    default: {
+      unreachable(block.message.role);
+      return null;
+    }
   }
 }
 
 // ─── Variants ────────────────────────────────────────────────
-
-function AgentBlock() {
-  const {block, blockIndex, blocksLength, interactionPending} = useBlockContext();
-  const isStreaming = blockIndex === blocksLength - 1;
-  const toolsUsed = getToolsStringFromBlock(block);
-  const hasTools = toolsUsed.length > 0;
-
-  return (
-    <Flex align="start" width="100%">
-      <Container padding="xl" flex={1} minWidth={0} overflow="hidden">
-        {hasValidContent(block.message.thinking_content) && (
-          <Disclosure>
-            <Disclosure.Title>
-              <Text size="xs" variant="muted" monospace>
-                {t('Thinking')}
-              </Text>
-            </Disclosure.Title>
-            <Disclosure.Content>
-              <SeerMarkdown raw={block.message.thinking_content} />
-            </Disclosure.Content>
-          </Disclosure>
-        )}
-        {hasTools && <ToolCallList />}
-        {hasValidContent(block.message.content) && (
-          <SeerMarkdown
-            raw={block.message.content}
-            variant={isStreaming ? 'streaming' : 'static'}
-          />
-        )}
-      </Container>
-      {!block.loading && !interactionPending && <BlockActionBar />}
-    </Flex>
-  );
-}
 
 function UserBlock() {
   const {block} = useBlockContext();
@@ -159,8 +127,48 @@ function UserBlock() {
   );
 }
 
-function ThinkingBlock() {
+function ToolUseBlock() {
   const {block} = useBlockContext();
+  return (
+    <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
+      {hasValidContent(block.message.thinking_content) && (
+        <Disclosure size="sm">
+          <Disclosure.Title>
+            <Text size="sm" variant="muted" monospace>
+              {t('Thinking')}
+            </Text>
+          </Disclosure.Title>
+          <Disclosure.Content>
+            <SeerMarkdown raw={block.message.thinking_content} variant="streaming" />
+          </Disclosure.Content>
+        </Disclosure>
+      )}
+      <ToolCallList />
+    </Stack>
+  );
+}
+
+function AssistantBlock() {
+  const {block} = useBlockContext();
+  const content = block.message.content ?? '';
+
+  if (block.loading) {
+    return <AssistantPlaceholder content={content} />;
+  }
+
+  return (
+    <Fragment>
+      {hasValidContent(content) && (
+        <Container padding="xl" minWidth={0} overflow="hidden">
+          <SeerMarkdown raw={content} variant="streaming" />
+        </Container>
+      )}
+      <BlockActionBar />
+    </Fragment>
+  );
+}
+
+function AssistantPlaceholder({content}: {content: string}) {
   return (
     <Flex align="center" gap="md" padding="xl" width="100%">
       <Flex
@@ -173,30 +181,14 @@ function ThinkingBlock() {
       >
         <Spinner />
       </Flex>
-      <SeerMarkdown raw={block.message.content ?? ''} />
+      {hasValidContent(content) && <SeerMarkdown raw={content} variant="streaming" />}
     </Flex>
   );
 }
 
 // ─── Types ───────────────────────────────────────────────────
 
-type BlockVariant = 'user' | 'agent' | 'thinking';
-
 type ToolCallStatus = 'pending' | 'success' | 'failure';
-
-// ─── Hooks ───────────────────────────────────────────────────
-
-function useBlockVariant(): BlockVariant {
-  const {block} = useBlockContext();
-  if (block.message.role === 'user') {
-    return 'user';
-  }
-  const hasTools = (block.message.tool_calls ?? []).length > 0;
-  if (block.loading && !hasTools) {
-    return 'thinking';
-  }
-  return 'agent';
-}
 
 function useToolLinks() {
   const organization = useOrganization();
@@ -395,10 +387,14 @@ function ToolCallRow({
 }
 
 function BlockActionBar() {
-  const {block, blockIndex, runId} = useBlockContext();
+  const {block, blockIndex, runId, interactionPending} = useBlockContext();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
   const {copy} = useCopyToClipboard();
   const showCopy = !!block.message.content?.trim();
+
+  if (interactionPending) {
+    return null;
+  }
 
   return (
     <ActionBarWrapper gap="xs">
