@@ -474,5 +474,9 @@ def post_snapshot_status_check_task(
             "preprod_artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
             "check_id": check_id,
+            "status": status,
+            "subtitle": subtitle,
+            "repo": commit_comparison.head_repo_name,
+            "sha": commit_comparison.head_sha,
         },
     )
