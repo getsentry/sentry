@@ -77,7 +77,35 @@ function getTabOptions({
   return tabOptions;
 }
 
+export function getInitialTab({
+  isLoading,
+  sections,
+  tabOptions,
+  tabSlugFromUrl,
+}: {
+  isLoading: boolean;
+  sections: ReturnType<typeof useTraceContextSections>;
+  tabOptions: Tab[];
+  tabSlugFromUrl: unknown;
+}): Tab {
+  if (
+    isLoading &&
+    (tabSlugFromUrl === TraceLayoutTabKeys.LOGS ||
+      tabSlugFromUrl === TraceLayoutTabKeys.METRICS)
+  ) {
+    return TAB_DEFINITIONS[tabSlugFromUrl];
+  }
+
+  return (
+    tabOptions.find(tab => tab.slug === tabSlugFromUrl) ??
+    (sections.hasTraceEvents
+      ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
+      : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS])
+  );
+}
+
 interface UseTraceLayoutTabsProps {
+  isLoading: boolean;
   logs: OurLogsResponseItem[] | undefined;
   metrics: {count: number} | undefined;
   tree: TraceTree;
@@ -85,6 +113,7 @@ interface UseTraceLayoutTabsProps {
 }
 
 export function useTraceLayoutTabs({
+  isLoading,
   tree,
   logs,
   meta,
@@ -101,11 +130,12 @@ export function useTraceLayoutTabs({
 
   const queryParams = qs.parse(window.location.search);
   const tabSlugFromUrl = queryParams.tab;
-  const initialTab =
-    tabOptions.find(tab => tab.slug === tabSlugFromUrl) ??
-    (sections.hasTraceEvents
-      ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
-      : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
+  const initialTab = getInitialTab({
+    isLoading,
+    sections,
+    tabOptions,
+    tabSlugFromUrl,
+  });
 
   const [currentTab, setCurrentTab] = useState(initialTab.slug);
 

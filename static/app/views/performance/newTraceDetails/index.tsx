@@ -153,6 +153,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   });
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
+    isLoading: meta.status === 'pending' || tree.type === 'loading',
     tree,
     logs: logsData,
     meta: meta.data,
