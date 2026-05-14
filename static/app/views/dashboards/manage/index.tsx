@@ -347,6 +347,7 @@ function ManageDashboards() {
     return (
       <StyledActions>
         <SearchBar
+          autoFocus
           defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}

@@ -178,8 +178,10 @@ describe('Dashboards > Detail', () => {
       organization: org,
     });
 
-    await userEvent.click(await screen.findByPlaceholderText('Search Dashboards'));
-    await userEvent.keyboard('dash');
+    const searchInput = await screen.findByPlaceholderText('Search Dashboards');
+    expect(searchInput).toHaveFocus();
+
+    await userEvent.type(searchInput, 'dash');
     await userEvent.keyboard('[Enter]');
 
     expect(mockNavigate).toHaveBeenCalledWith(

@@ -62,6 +62,7 @@ export function DetectorListHeader({
       </PageFilterBar>
       <Flex flex={1} gap="md" align="center">
         <DetectorSearch
+          autoFocus
           initialQuery={query}
           onSearch={onSearch}
           excludeKeys={excludeKeys}

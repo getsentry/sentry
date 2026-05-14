@@ -75,6 +75,32 @@ describe('MetricSelector', () => {
       expect(screen.getByRole('button', {name: 'bar'})).toBeInTheDocument();
     });
 
+    it('focuses the trigger when autoFocus is enabled', async () => {
+      const focusSpy = jest.spyOn(HTMLElement.prototype, 'focus');
+      const existingFocusTarget = document.createElement('button');
+      document.body.appendChild(existingFocusTarget);
+      existingFocusTarget.focus();
+
+      render(
+        <MetricSelector
+          autoFocus
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'bar'})).toHaveFocus();
+      });
+      expect(focusSpy).toHaveBeenCalledWith({
+        focusVisible: true,
+        preventScroll: true,
+      });
+
+      existingFocusTarget.remove();
+    });
+
     it('renders trigger button with None when traceMetric has no name', () => {
       render(<MetricSelector traceMetric={{name: '', type: ''}} onChange={jest.fn()} />, {
         organization,

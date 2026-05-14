@@ -90,6 +90,7 @@ interface ErrorsSearchBarProps {
   placeholderText: string;
   recentSearches: SavedSearchType;
   searchSource: string;
+  autoFocus?: boolean;
   disabled?: boolean;
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
@@ -97,6 +98,7 @@ interface ErrorsSearchBarProps {
 }
 
 function ErrorsSearchBar({
+  autoFocus,
   disabled,
   filterKeys,
   filterKeySections,
@@ -117,6 +119,7 @@ function ErrorsSearchBar({
 
   return (
     <SearchQueryBuilder
+      autoFocus={autoFocus}
       placeholder={placeholderText}
       disabled={disabled}
       filterKeys={filterKeys}
@@ -167,8 +170,11 @@ export function ResultsSearchQueryBuilder(props: Props) {
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const shouldAutoFocus =
+    dataset === DiscoverDatasets.ERRORS || dataset === DiscoverDatasets.TRANSACTIONS;
 
   const searchBarProps = {
+    autoFocus: shouldAutoFocus,
     placeholderText,
     disabled,
     filterKeys: getFilterKeys(),
@@ -209,6 +215,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
   // For non-Errors datasets, use the regular SearchQueryBuilder
   return (
     <SearchQueryBuilder
+      autoFocus={shouldAutoFocus}
       placeholder={placeholderText}
       disabled={disabled}
       filterKeys={getFilterKeys()}

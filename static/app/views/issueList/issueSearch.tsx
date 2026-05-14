@@ -13,10 +13,11 @@ import {IssueListSearchBar, useIssueListSearchBarDataProvider} from './searchBar
 type IssueSearchProps = {
   onSearch: (query: string) => void;
   query: string;
+  autoFocus?: boolean;
   className?: string;
 };
 
-function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
+function IssueSearchBar({autoFocus, query, onSearch, className}: IssueSearchProps) {
   const organization = useOrganization();
   const {displayAskSeer} = useSearchQueryBuilder();
 
@@ -26,6 +27,7 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
 
   return (
     <IssueListSearchBar
+      autoFocus={autoFocus}
       className={className}
       searchSource="main_search"
       organization={organization}
@@ -36,7 +38,7 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   );
 }
 
-export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
+export function IssueSearch({autoFocus, query, onSearch, className}: IssueSearchProps) {
   const {selection: pageFilters} = usePageFilters();
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useIssueListSearchBarDataProvider({pageFilters});
@@ -59,7 +61,12 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators
     >
-      <IssueSearchBar query={query} onSearch={onSearch} className={className} />
+      <IssueSearchBar
+        autoFocus={autoFocus}
+        query={query}
+        onSearch={onSearch}
+        className={className}
+      />
     </SearchQueryBuilderProvider>
   );
 }

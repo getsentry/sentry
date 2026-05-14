@@ -211,6 +211,7 @@ describe('ReplayList', () => {
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
+    expect(screen.getByRole('combobox')).toHaveFocus();
 
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });

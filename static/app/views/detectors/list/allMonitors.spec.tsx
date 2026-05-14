@@ -50,6 +50,14 @@ describe('DetectorsList', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
+  it('autofocuses the search bar', async () => {
+    render(<AllMonitors />, {organization});
+
+    expect(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    ).toHaveFocus();
+  });
+
   it('displays all detector info correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',

@@ -31,6 +31,7 @@ import {
 interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
+  autoFocusMetricSelector?: boolean;
   dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
@@ -42,6 +43,7 @@ interface MetricToolbarProps {
 export function MetricToolbar({
   traceMetric,
   queryLabel,
+  autoFocusMetricSelector,
   referenceMap,
   dragListeners,
   dragAttributes,
@@ -117,7 +119,11 @@ export function MetricToolbar({
         {isVisualizeFunction(visualize) ? (
           <Fragment>
             <Flex minWidth={0}>
-              <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+              <MetricSelector
+                autoFocus={autoFocusMetricSelector}
+                traceMetric={traceMetric}
+                onChange={setTraceMetric}
+              />
             </Flex>
             <Flex gap="md" minWidth={0}>
               <Flex flex="2 1 0" minWidth={0}>

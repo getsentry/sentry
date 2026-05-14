@@ -44,6 +44,7 @@ interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   queryIndex: number;
   queryLabel: string;
   traceMetric: TraceMetric;
+  autoFocusMetricSelector?: boolean;
   dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
@@ -58,6 +59,7 @@ export function MetricPanel({
   traceMetric,
   queryIndex,
   queryLabel,
+  autoFocusMetricSelector,
   referenceMap,
   dragListeners,
   isAnyDragging,
@@ -137,6 +139,7 @@ export function MetricPanel({
         <Stack gap="sm">
           <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
             <MetricToolbar
+              autoFocusMetricSelector={autoFocusMetricSelector}
               traceMetric={traceMetric}
               queryLabel={queryLabel}
               referenceMap={referenceMap}

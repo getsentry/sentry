@@ -10,6 +10,7 @@ import {
 
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {ResultsSearchQueryBuilder} from './resultsSearchQueryBuilder';
@@ -31,6 +32,26 @@ describe('ResultsSearchQueryBuilder', () => {
       url: '/organizations/org-slug/tags/',
       body: [{key: 'transaction', name: 'transaction', kind: FieldKind.FIELD}],
     });
+  });
+
+  it.each([
+    ['errors', DiscoverDatasets.ERRORS],
+    ['transactions', DiscoverDatasets.TRANSACTIONS],
+  ])('auto-focuses the %s dataset search builder', async (_name, dataset) => {
+    render(
+      <ResultsSearchQueryBuilder
+        dataset={dataset}
+        query=""
+        onSearch={jest.fn()}
+        onChange={jest.fn()}
+        projectIds={[]}
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByRole('combobox')).toHaveFocus();
   });
 
   it('does not show function tags in has: dropdown', async () => {

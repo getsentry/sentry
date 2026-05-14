@@ -576,6 +576,7 @@ function ReleasesListInnerPage() {
                   {shouldShowQuickstart ? null : (
                     <SortAndFilterWrapper>
                       <StyledSearchQueryBuilder
+                        autoFocus
                         onSearch={handleSearch}
                         initialQuery={activeQuery}
                         filterKeys={RELEASE_FILTER_KEYS}
