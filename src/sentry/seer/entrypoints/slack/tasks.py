@@ -486,7 +486,7 @@ def process_reaction_for_slack(
     Records an analytics event and sends an ephemeral acknowledgement.
     """
     from sentry.integrations.slack.integration import SlackIntegration
-    from sentry.integrations.slack.webhooks.event import _SEER_FEEDBACK_REACTION_PREFIXES
+    from sentry.integrations.slack.webhooks.event import SEER_FEEDBACK_REACTION_PREFIXES
     from sentry.seer.entrypoints.slack.analytics import SlackSeerAgentFeedback
 
     with SlackEntrypointEventLifecycleMetric(
@@ -503,7 +503,7 @@ def process_reaction_for_slack(
             },
         )
 
-        if not reaction.startswith(_SEER_FEEDBACK_REACTION_PREFIXES):
+        if not reaction.startswith(SEER_FEEDBACK_REACTION_PREFIXES):
             lifecycle.record_halt(ProcessReactionHaltReason.UNSUPPORTED_REACTION)
             return
 

@@ -74,7 +74,7 @@ _SEER_LOADING_MESSAGES = [
     "Hold on, I've seen this one before...",
     "It worked on my machine...",
 ]
-_SEER_FEEDBACK_REACTION_PREFIXES = ("+1", "-1")
+SEER_FEEDBACK_REACTION_PREFIXES = ("+1", "-1")
 
 
 @all_silo_endpoint  # Only challenge verification is handled at control
@@ -544,7 +544,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if item.get("type") != "message":
                 return self.respond()
 
-            if not reaction.startswith(_SEER_FEEDBACK_REACTION_PREFIXES):
+            if not reaction.startswith(SEER_FEEDBACK_REACTION_PREFIXES):
                 return self.respond()
 
             authorizations = slack_request.data.get("authorizations", [])
