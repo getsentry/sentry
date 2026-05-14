@@ -25,6 +25,7 @@
  *    - Examples: preventing sentry from importing getsentry, core isolation, test boundaries
  */
 import * as emotion from '@emotion/eslint-plugin';
+import eslintReact from '@eslint-react/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
 import prettier from 'eslint-config-prettier';
@@ -35,7 +36,6 @@ import jestDom from 'eslint-plugin-jest-dom';
 import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 import regexp from 'eslint-plugin-regexp';
 import testingLibrary from 'eslint-plugin-testing-library';
@@ -53,8 +53,6 @@ import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index';
 import * as sentryPlugin from './static/eslint/eslintPluginSentry/index';
 
 invariant(react.configs.flat, 'For typescript');
-invariant(react.configs.flat.recommended, 'For typescript');
-invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
 // Some rules can be enabled/disabled via env vars.
 // This is useful for CI, where we want to run the linter with the most strict
@@ -547,16 +545,26 @@ export default typescript.config([
   {
     name: 'plugin/react',
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
-    extends: [react.configs.flat.recommended, react.configs.flat['jsx-runtime']],
+    // Only rules without an @eslint-react equivalent are listed here.
+    // Overlapping rules (jsx-key, no-children-prop, no-danger-with-children,
+    // no-direct-mutation-state, no-find-dom-node, no-render-return-value,
+    // no-did-mount-set-state, no-did-update-set-state, jsx-no-comment-textnodes)
+    // are handled by @eslint-react.
+    plugins: {react},
     rules: {
       'react/function-component-definition': 'error',
       'react/jsx-boolean-value': ['error', 'never'],
       'react/jsx-fragments': ['error', 'element'],
       'react/jsx-handler-names': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'react/no-did-mount-set-state': 'error',
-      'react/no-did-update-set-state': 'error',
+      'react/jsx-no-duplicate-props': 'error',
+      'react/jsx-no-target-blank': 'error',
+      'react/no-deprecated': 'error',
+      'react/no-is-mounted': 'error',
       'react/no-redundant-should-component-update': 'error',
+      'react/no-string-refs': 'error',
       'react/no-typos': 'error',
+      'react/no-unknown-property': ['error', {ignore: ['css']}],
+      'react/require-render-return': 'error',
       'react/self-closing-comp': 'error',
       'react/sort-comp': 'error',
 
@@ -564,23 +572,51 @@ export default typescript.config([
         'error',
         {props: 'never', children: 'ignore', propElementValues: 'always'},
       ],
-      'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
-      'react/no-unescaped-entities': 'off',
-      'react/no-unknown-property': ['error', {ignore: ['css']}],
-      'react/prop-types': 'off', // TODO(ryan953): Fix violations and delete this line
     },
   },
   {
-    name: 'plugin/react-hooks',
-    // https://github.com/facebook/react/tree/main/packages/eslint-plugin-react-hooks
-    plugins: {'react-hooks': reactHooks},
+    name: 'plugin/eslint-react',
+    extends: [eslintReact.configs['strict-typescript']],
     rules: {
-      'react-hooks/exhaustive-deps': [
+      '@eslint-react/exhaustive-deps': [
         'error',
         {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
       ],
-      'react-hooks/rules-of-hooks': 'error',
+      // New rules in strict-typescript not in recommended — disabled until violations are fixed
+      '@eslint-react/dom-no-missing-button-type': 'off',
+      '@eslint-react/dom-no-missing-iframe-sandbox': 'off',
+      '@eslint-react/dom-no-unsafe-target-blank': 'off',
+      '@eslint-react/jsx-no-useless-fragment': 'off',
+      '@eslint-react/no-class-component': 'off',
+      '@eslint-react/no-misused-capture-owner-stack': 'off',
+      '@eslint-react/no-unstable-context-value': 'off',
+      '@eslint-react/no-unstable-default-props': 'off',
     },
+  },
+  {
+    name: 'plugin/eslint-react/type-checked',
+    ignores: [globMDX],
+    extends: enableTypeAwareLinting ? [eslintReact.configs['strict-type-checked']] : [],
+    rules: enableTypeAwareLinting
+      ? {
+          '@eslint-react/exhaustive-deps': [
+            'error',
+            {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+          ],
+          // Re-apply strict rule disables (strict-type-checked re-sets them via cascading)
+          '@eslint-react/dom-no-missing-button-type': 'off',
+          '@eslint-react/dom-no-missing-iframe-sandbox': 'off',
+          '@eslint-react/dom-no-unsafe-target-blank': 'off',
+          '@eslint-react/jsx-no-useless-fragment': 'off',
+          '@eslint-react/no-class-component': 'off',
+          '@eslint-react/no-misused-capture-owner-stack': 'off',
+          '@eslint-react/no-unstable-context-value': 'off',
+          '@eslint-react/no-unstable-default-props': 'off',
+          // Type-checked only strict rules — disabled until violations are fixed
+          '@eslint-react/no-leaked-conditional-rendering': 'off',
+          '@eslint-react/no-unused-props': 'off',
+        }
+      : {},
   },
   {
     extends: enableTypeAwareLinting
