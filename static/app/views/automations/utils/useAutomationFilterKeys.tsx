@@ -7,8 +7,8 @@ import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
-import {useMembers} from 'sentry/utils/useMembers';
 import {ActionType} from 'sentry/views/alerts/rules/metric/types';
 
 const ACTION_TYPE_VALUES = Object.values(ActionType).sort();
@@ -62,7 +62,7 @@ export function useAutomationFilterKeys(): {
   filterKeys: TagCollection;
   getFieldDefinition: FieldDefinitionGetter;
 } {
-  const {members} = useMembers();
+  const {data: members = []} = useMembers();
 
   const createdByValues: SearchGroup[] = useMemo(() => {
     const usernames = members.map(getUsername);

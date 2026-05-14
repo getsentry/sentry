@@ -1,28 +1,25 @@
 import {createContext, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {
   addProjectFeaturesHandler,
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-export const ProjectRouteContext = createContext<Project | null>(null);
+export const ProjectRouteContext = createContext<DetailedProject | null>(null);
 
 interface ProjectRouteProviderProps {
   children: React.ReactNode;
@@ -34,7 +31,6 @@ function isNotFoundError(error: Error | null) {
 }
 
 export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProviderProps) {
-  const api = useApi();
   const organization = useOrganization();
   const {
     initiallyLoaded: projectsInitiallyLoaded,
@@ -51,18 +47,12 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
     ? !summaryProject.hasAccess && !summaryProject.isMember
     : false;
 
-  const shouldFetchDetailedProject = projectsInitiallyLoaded && !missingProjectMembership;
-
   const {
     data: detailedProject,
     error: detailedProjectError,
-    isFetching: isFetchingDetailedProject,
     isPending: isDetailedProjectPending,
     refetch,
-  } = useDetailedProject(
-    {orgSlug: organization.slug, projectSlug},
-    {enabled: shouldFetchDetailedProject}
-  );
+  } = useDetailedProject({orgSlug: organization.slug, projectSlug});
 
   useEffect(() => {
     if (!detailedProject) {
@@ -80,25 +70,15 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
     });
   }, [detailedProject, projectSlug]);
 
-  useEffect(() => {
-    if (!summaryProject?.hasAccess) {
-      return;
-    }
-
-    fetchOrgMembers(api, organization.slug, [summaryProject.id]);
-  }, [api, organization.slug, summaryProject]);
-
   const title = detailedProject?.slug ?? summaryProject?.slug ?? 'Sentry';
 
   // Still loading project list or initial detailed project fetch
   const loading =
-    fetchingProjects ||
-    !projectsInitiallyLoaded ||
-    (shouldFetchDetailedProject && isDetailedProjectPending);
+    fetchingProjects || !projectsInitiallyLoaded || isDetailedProjectPending;
   // Project was renamed -- show loading while the useEffect redirect fires
   const projectRenamed = detailedProject && detailedProject.slug !== projectSlug;
 
-  if (loading || projectRenamed || isFetchingDetailedProject) {
+  if (loading || projectRenamed) {
     return (
       <SentryDocumentTitle noSuffix title={title}>
         <div className="loading-full-layout">
@@ -112,12 +92,12 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
   if (missingProjectMembership) {
     return (
       <SentryDocumentTitle noSuffix title={title}>
-        <ErrorWrapper>
+        <Container margin="xl 3xl" width="100%">
           <MissingProjectMembership
             organization={organization}
             project={summaryProject}
           />
-        </ErrorWrapper>
+        </Container>
       </SentryDocumentTitle>
     );
   }
@@ -153,8 +133,3 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
     </SentryDocumentTitle>
   );
 }
-
-const ErrorWrapper = styled('div')`
-  width: 100%;
-  margin: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-`;

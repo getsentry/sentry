@@ -146,6 +146,9 @@ export type SeerAnalyticsEventsParameters = {
     surface: 'global_panel';
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
+  'seer.explorer.timed_out': {
+    run_id: number | null;
+  };
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
@@ -178,4 +181,5 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.session_copied_to_clipboard':
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
+  'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
 };

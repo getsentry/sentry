@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,17 +16,22 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   IconCheckmark,
   IconDelete,
+  IconDownload,
   IconEllipsis,
   IconInfo,
   IconOpen,
   IconReceipt,
   IconRefresh,
+  IconSettings,
   IconThumb,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -51,7 +56,9 @@ export function SnapshotHeaderActions({
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
   const organization = useOrganization();
+  const breakpoints = useBreakpoints();
   const isSentryEmployee = useIsSentryEmployee();
+  const project = ProjectsStore.getById(data.project_id);
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -157,6 +164,34 @@ export function SnapshotHeaderActions({
     });
   }, [apiUrl, navigate]);
 
+  const handleDownloadImages = useCallback(async () => {
+    const downloadUrl = `/api/0/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/download/`;
+
+    try {
+      const response = await fetch(downloadUrl, {credentials: 'include'});
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          const detail = await response.json().catch(() => ({}));
+          handleStaffPermissionError(detail?.detail);
+        } else if (response.status === 404) {
+          addErrorMessage(t('Snapshot images not found.'));
+        } else {
+          addErrorMessage(t('Download failed (status: %s)', response.status));
+        }
+        return;
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      downloadFromHref(`snapshot_images_${data.head_artifact_id}.zip`, blobUrl);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      addSuccessMessage(t('Snapshot images download started'));
+    } catch (error) {
+      addErrorMessage(t('Download failed: %s', String(error)));
+    }
+  }, [organizationSlug, data.head_artifact_id]);
+
   return (
     <Flex align="center" gap="md">
       {data.approval_info &&
@@ -179,16 +214,20 @@ export function SnapshotHeaderActions({
               )}
             </Flex>
             {approvers.length > 0 && (
-              <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              <Container display={{'2xs': 'none', md: 'flex'}}>
+                <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              </Container>
             )}
           </Flex>
         ) : (
           <Flex align="center" gap="sm">
-            <Tag variant="warning" icon={<IconTimer />}>
-              {t('Requires approval')}
-            </Tag>
+            <Container display={{'2xs': 'none', lg: 'block'}}>
+              <Tag variant="warning" icon={<IconTimer />}>
+                {t('Needs approval')}
+              </Tag>
+            </Container>
             <Button
-              size="sm"
+              size={breakpoints.xs ? 'sm' : 'xs'}
               variant="primary"
               icon={<IconThumb />}
               onClick={handleApprove}
@@ -208,6 +247,18 @@ export function SnapshotHeaderActions({
       >
         {({open: openDeleteModal}) => {
           const menuItems: MenuItemProps[] = [];
+
+          menuItems.push({
+            key: 'build-debug-info',
+            label: (
+              <Flex align="center" gap="sm">
+                <IconReceipt size="sm" />
+                {t('Build Metadata')}
+              </Flex>
+            ),
+            onAction: () => openBuildDebugInfoModal(data),
+            textValue: t('Build Metadata'),
+          });
 
           if (data.base_artifact_id) {
             const baseBuildPath = getSnapshotPath({
@@ -229,6 +280,17 @@ export function SnapshotHeaderActions({
 
           menuItems.push(
             {
+              key: 'download-images',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconDownload size="sm" />
+                  {t('Download Images')}
+                </Flex>
+              ),
+              onAction: handleDownloadImages,
+              textValue: t('Download Images'),
+            },
+            {
               key: 'rerun-status-checks',
               label: (
                 <Flex align="center" gap="sm">
@@ -239,17 +301,24 @@ export function SnapshotHeaderActions({
               onAction: handleRerunStatusChecks,
               textValue: t('Rerun Status Checks'),
             },
-            {
-              key: 'build-debug-info',
-              label: (
-                <Flex align="center" gap="sm">
-                  <IconReceipt size="sm" />
-                  {t('Build Metadata')}
-                </Flex>
-              ),
-              onAction: () => openBuildDebugInfoModal(data),
-              textValue: t('Build Metadata'),
-            },
+            ...(project
+              ? [
+                  {
+                    key: 'snapshot-settings',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconSettings size="sm" />
+                        {t('Snapshot Settings')}
+                      </Flex>
+                    ),
+                    onAction: () =>
+                      navigate(
+                        `/settings/${organizationSlug}/projects/${project.slug}/snapshots/`
+                      ),
+                    textValue: t('Snapshot Settings'),
+                  },
+                ]
+              : []),
             {
               key: 'delete',
               label: (

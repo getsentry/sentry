@@ -86,7 +86,7 @@ class TestOverQuotaCondition:
 
 class TestBuildResponse:
     def test_build_response_empty(self):
-        response = _build_response([])
+        response = _build_response([], None)
 
         assert isinstance(response, GetUsageResponse)
         assert list(response.days) == []
@@ -97,7 +97,7 @@ class TestBuildResponse:
             _make_row(time="2025-03-15T00:00:00+00:00", accepted=100, total=100),
             _make_row(time="2025-03-16T00:00:00+00:00", accepted=75, total=75),
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         assert len(response.days) == 3
         assert response.days[0].date == Date(year=2025, month=3, day=15)
@@ -110,7 +110,7 @@ class TestBuildResponse:
             _make_row(time="2025-03-15T00:00:00+00:00", category=1, accepted=100, total=100),
             _make_row(time="2025-03-15T00:00:00+00:00", category=9, accepted=25, total=25),
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         assert len(response.days) == 1
         day = response.days[0]
@@ -136,7 +136,7 @@ class TestBuildResponse:
                 dynamic_sampling=0,
             )
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         data = response.days[0].usage[0].data
         assert data.dropped == 175
@@ -158,7 +158,7 @@ class TestBuildResponse:
                 dynamic_sampling=0,
             ),
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         assert len(response.days) == 1
         data = response.days[0].usage[0].data
@@ -287,6 +287,7 @@ class TestBuildQuery:
         assert aliases == [
             "category",
             "time",
+            "max_ts",
             "total",
             "accepted",
             "dropped",
@@ -342,6 +343,7 @@ class TestQueryOutcomesUsage:
                 {
                     "time": "2025-03-15T00:00:00+00:00",
                     "category": 1,
+                    "max_ts": "2025-03-15T11:00:00+00:00",
                     "total": 200,
                     "accepted": 200,
                     "dropped": 0,

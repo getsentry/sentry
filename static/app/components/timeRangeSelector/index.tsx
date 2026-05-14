@@ -7,7 +7,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
@@ -384,7 +384,7 @@ export function TimeRangeSelector({
               <Fragment>
                 {!showAbsoluteSelector && (menuBody as React.ReactNode)}
                 {showAbsoluteSelector && (
-                  <AbsoluteDateRangeWrap>
+                  <Container overflow="auto">
                     <StyledDateRangeHook
                       start={internalValue.start ?? null}
                       end={internalValue.end ?? null}
@@ -436,7 +436,7 @@ export function TimeRangeSelector({
                       maxPickableDays={maxPickableDays}
                       maxDateRange={maxDateRange}
                     />
-                  </AbsoluteDateRangeWrap>
+                  </Container>
                 )}
               </Fragment>
             )
@@ -482,17 +482,12 @@ export function TimeRangeSelector({
 export function TimeRangeSelectTrigger(props: TriggerProps) {
   return (
     <OverlayTrigger.Button {...props}>
-      <TriggerLabelWrap>
+      <Container as="span" minWidth="0" position="relative">
         <TriggerLabel>{props.children}</TriggerLabel>
-      </TriggerLabelWrap>
+      </Container>
     </OverlayTrigger.Button>
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;
@@ -515,10 +510,6 @@ const AbsoluteSummary = styled('span')`
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
-`;
-
-const AbsoluteDateRangeWrap = styled('div')`
-  overflow: auto;
 `;
 
 const StyledDateRangeHook = styled(DateRangeHook)`

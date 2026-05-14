@@ -67,11 +67,31 @@ class OrganizationAlertRuleDetectorIndexGetTest(OrganizationAlertRuleDetectorAPI
 
         assert response.data == serialize(self.alert_rule_detector_1, self.user)
 
-    def test_get_with_multiple_filters_with_invalid_filter(self) -> None:
+    def test_get_with_string_integer_ids(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, detector_id=str(self.detector_1.id)
+        )
+        assert response.data == serialize(self.alert_rule_detector_1, self.user)
+
+    def test_get_with_non_integer_detector_id(self) -> None:
         self.get_error_response(
             self.organization.slug,
-            detector_id=str(self.detector_1.id),
-            alert_rule_id="this is not a valid ID",
+            detector_id="not-an-integer",
+            status_code=400,
+        )
+
+    def test_get_with_non_integer_alert_rule_id(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            alert_rule_id="not-an-integer",
+            status_code=400,
+        )
+
+    def test_get_with_non_integer_rule_id(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            rule_id="not-an-integer",
+            status_code=400,
         )
 
     def test_get_with_nonexistent_detector_id(self) -> None:

@@ -294,8 +294,7 @@ export const getDefaultWidgets = (organization: Organization) => {
     SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
 
-  spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE);
-  spanWidgets.push(RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
+  spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE, RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
 
   const errorsWidgets: WidgetTemplate[] = [
     {

@@ -1,3 +1,4 @@
+import ast
 import json  # noqa: S003
 from typing import Any, TypedDict
 
@@ -113,7 +114,10 @@ def _parse_attribute(raw: Any) -> Any:
         return raw
     if not _looks_like_json(raw):
         return raw
-    return _parse_json_string(raw, fallback=_INVALID_JSON)
+    result = _parse_json_string(raw, fallback=_INVALID_JSON)
+    if result is not _INVALID_JSON:
+        return result
+    return _try_literal_eval(raw)
 
 
 def _raw_messages_from_value(value: Any, default_role: str) -> list[RawMessage]:
@@ -365,6 +369,16 @@ def _parse_json_string(value: str, *, fallback: Any) -> Any:
         return json.loads(value)
     except (json.JSONDecodeError, TypeError):
         return fallback
+
+
+def _try_literal_eval(value: str) -> Any:
+    try:
+        result = ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        return _INVALID_JSON
+    if isinstance(result, (list, dict)):
+        return result
+    return _INVALID_JSON
 
 
 def _looks_like_json(raw: str) -> bool:

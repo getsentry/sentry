@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {AutofixData} from './types';
@@ -9,15 +9,10 @@ interface AutofixProgressBarProps {
 }
 
 function AutofixProgressBar({autofixData}: AutofixProgressBarProps) {
-  const [progressDetails, setProgressDetails] = useState({
-    overallProgress: 0,
-  });
-
-  useEffect(() => {
-    setProgressDetails(getAutofixProgressDetails(autofixData));
-  }, [autofixData]);
-
-  const {overallProgress} = progressDetails;
+  const {overallProgress} = useMemo(
+    () => getAutofixProgressDetails(autofixData),
+    [autofixData]
+  );
 
   return (
     <ProgressBarContainer hasData={!!autofixData}>

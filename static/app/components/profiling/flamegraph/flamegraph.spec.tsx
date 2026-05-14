@@ -117,10 +117,11 @@ describe('Flamegraph', () => {
       },
     });
 
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Error loading flamegraph'
+    );
     expect(
-      await screen.findByText(
-        'RequestError: GET /projects/{orgSlug}/{projectSlug}/profiling/profiles/profile-id/'
-      )
+      await screen.findByText('The requested data could not be found.')
     ).toBeInTheDocument();
   });
 

@@ -58,7 +58,10 @@ export function ReplayIndexTable({
 
   const endpointOptions = safeParseQueryKey(queryKey)?.options;
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
-    search: endpointOptions?.query?.query as string | undefined,
+    search:
+      typeof endpointOptions?.query?.query === 'string'
+        ? endpointOptions?.query?.query
+        : undefined,
   });
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({

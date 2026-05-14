@@ -218,7 +218,7 @@ export function SidebarChartsContainer({
         gridIndex: 1,
         splitNumber: 4,
         interval: 0.5,
-        max: 1.0,
+        max: 1,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
           color: theme.tokens.content.secondary,

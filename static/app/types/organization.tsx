@@ -23,7 +23,6 @@ export interface OrganizationSummary {
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
-  features: string[];
   hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
@@ -69,6 +68,7 @@ export interface Organization extends OrganizationSummary {
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
+  features: string[];
   hasGranularReplayPermissions: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;

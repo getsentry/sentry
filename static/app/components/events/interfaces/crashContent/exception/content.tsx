@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
-import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebugQuery,
@@ -30,7 +29,6 @@ import {
 } from 'sentry/views/issueDetails/streamline/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
-import {LineCoverageLegend} from './lineCoverageLegend';
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
 import {StackTrace} from './stackTrace';
@@ -193,7 +191,6 @@ function InnerContent({
     ? exceptionIdx === values.length - 1
     : exceptionIdx === 0;
 
-  const {hasCoverageData} = useLineCoverageContext();
   return (
     <Fragment>
       <StyledPre>
@@ -212,11 +209,6 @@ function InnerContent({
       {exception.mechanism ? (
         <Container paddingTop="xl">
           <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
-        </Container>
-      ) : null}
-      {hasCoverageData ? (
-        <Container paddingTop="md">
-          <LineCoverageLegend />
         </Container>
       ) : null}
       <RelatedExceptions

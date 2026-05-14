@@ -555,3 +555,43 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["id"] == str(occurrence.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
+
+    def _store_platform_tag_collision_events(self) -> Any:
+        events = []
+        for i, ts in enumerate(
+            [before_now(seconds=10), before_now(seconds=8), before_now(seconds=6)]
+        ):
+            event = self.store_event(
+                data={
+                    "event_id": f"{i + 1}" * 32,
+                    "timestamp": ts.isoformat(),
+                    "fingerprint": ["platform-collision-group"],
+                    "tags": {"platform": "SJ1"},
+                },
+                project_id=self.project_1.id,
+            )
+            events.append(event)
+        return event.group, events
+
+    def test_platform_tag_collision_without_option(self) -> None:
+        group, _events = self._store_platform_tag_collision_events()
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
+        response = self.client.get(url, {"query": "platform:SJ1"}, format="json")
+        assert response.status_code == 404
+
+    def test_platform_tag_collision_with_option(self) -> None:
+        group, events = self._store_platform_tag_collision_events()
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
+        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
+            response = self.client.get(url, {"query": "platform:SJ1"}, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == events[-1].event_id
+
+    def test_explicit_tag_query_works_regardless_of_option(self) -> None:
+        group, events = self._store_platform_tag_collision_events()
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
+        for option_value in (False, True):
+            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
+                response = self.client.get(url, {"query": "tags[platform]:SJ1"}, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == events[-1].event_id

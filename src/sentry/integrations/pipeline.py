@@ -32,7 +32,6 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.models.organization import Organization
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -41,7 +40,6 @@ from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
-from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
@@ -125,42 +123,6 @@ def ensure_integration(key: str, data: IntegrationData) -> Integration:
         integration.update(**defaults)
 
     return integration
-
-
-def is_violating_cell_restriction(organization_id: int, integration_id: int):
-    """
-    Returns True if the organization_id provided does NOT reside within the same cell as other
-    organizations which have installed the provided integration.
-    """
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return False
-
-    ois = OrganizationIntegration.objects.filter(integration_id=integration_id)
-    if len(ois) == 0:
-        return False
-
-    logger_extra = {
-        "integration_id": integration_id,
-        "organization_id": organization_id,
-    }
-
-    organization_ids = {oi.organization_id for oi in ois}
-    cell_names = (
-        OrganizationMapping.objects.filter(organization_id__in=organization_ids)
-        .values_list("cell_name", flat=True)
-        .distinct()
-    )
-
-    if len(cell_names) > 1:
-        logger.warning("cell_violation", extra={"cells": cell_names, **logger_extra})
-
-    try:
-        mapping = OrganizationMapping.objects.get(organization_id=organization_id)
-    except OrganizationMapping.DoesNotExist:
-        logger.warning("mapping_missing", extra=logger_extra)
-        return True
-
-    return mapping.cell_name not in cell_names
 
 
 class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
@@ -369,20 +331,6 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             if not (identity and identity_model):
                 raise NotImplementedError("Integration requires an identity")
             default_auth_id = identity_model.id
-        if self.provider.is_cell_restricted and is_violating_cell_restriction(
-            organization_id=self.organization.id, integration_id=self.integration.id
-        ):
-            self.get_logger().info(
-                "finish_pipeline.multi_cell_install_error",
-                extra={
-                    "organization_id": self.organization.id if self.organization else None,
-                    "provider_key": self.provider.key,
-                    "integration_id": self.integration.id,
-                },
-            )
-            raise IntegrationError(
-                "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
-            )
 
         org_integration = self.integration.add_organization(
             self.organization, self.request.user, default_auth_id=default_auth_id

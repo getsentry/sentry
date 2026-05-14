@@ -25,7 +25,6 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
-    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
@@ -62,14 +61,12 @@ logger = logging.getLogger(__name__)
 
 auto_run_source_map = {
     SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
-    SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
     SeerAutomationSource.NIGHT_SHIFT: "night_shift",
 }
 
 referrer_map = {
     SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
-    SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
     SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
     SeerAutomationSource.NIGHT_SHIFT: AutofixReferrer.NIGHT_SHIFT,
 }
@@ -401,17 +398,6 @@ def run_automation(
 ) -> None:
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
-
-    # Check event count for ALERT source with seat-based tier
-    if is_seer_seat_based_tier_enabled(group.organization) and source == SeerAutomationSource.ALERT:
-        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-        times_seen = (
-            group.times_seen_with_pending
-            if hasattr(group, "_times_seen_pending")
-            else group.times_seen
-        )
-        if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-            return
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")

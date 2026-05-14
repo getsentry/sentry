@@ -83,8 +83,8 @@ export function OwnerInput({
           page,
           organization,
           net_change:
-            (text?.split('\n').filter(x => x).length ?? 0) -
-            initialText.split('\n').filter(x => x).length,
+            (text?.split('\n').filter(Boolean).length ?? 0) -
+            initialText.split('\n').filter(Boolean).length,
         });
       })
       .catch(caught => {

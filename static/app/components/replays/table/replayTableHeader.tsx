@@ -42,7 +42,8 @@ export function ReplayTableHeader({
     selectedIds,
   } = listItemCheckboxState;
   const endpointOptions = endpointOptionsRef.current;
-  const queryString = endpointOptions?.query?.query as string | undefined;
+  const rawQuery = endpointOptions?.query?.query;
+  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
     ? {position: 'sticky', top: 0}

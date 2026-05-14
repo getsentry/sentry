@@ -62,17 +62,23 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     errorStatusCode,
+    isTimedOut,
     sendMessage,
-    startNewSession,
-    switchToRun,
+    startNewSession: startNewSessionBase,
+    switchToRun: switchToRunBase,
     respondToUserInput,
     createPR,
     interruptRun,
-    waitingForInterrupt,
+    hasSentInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
+
+  const clearInput = () => setInputValue('');
+  const startNewSession = () => startNewSessionBase({onSuccess: clearInput});
+  const switchToRun = (newRunId: number | null) =>
+    switchToRunBase(newRunId, {onSuccess: clearInput});
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -95,8 +101,8 @@ export function ExplorerDrawerContent({
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
-    sendMessage(query);
-  }, [initialQuery, isEmptyState, sendMessage]);
+    sendMessage(query, blocks.length);
+  }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -201,7 +207,7 @@ export function ExplorerDrawerContent({
 
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
-    clearInput: () => setInputValue(''),
+    clearInput,
     inputValue,
     focusInput,
     textAreaRef: textareaRef,
@@ -226,23 +232,21 @@ export function ExplorerDrawerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
+  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
   const handleSend = useCallback(() => {
-    if (readOnly || isPolling || !inputValue.trim()) {
+    if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim());
+    sendMessage(inputValue.trim(), blocks.length);
     setInputValue('');
     userScrolledUpRef.current = false;
-  }, [readOnly, inputValue, isPolling, sendMessage]);
-
-  const canInterrupt = sessionData?.status === 'processing';
+  }, [canSendMessage, inputValue, sendMessage, blocks.length]);
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (readOnly || e.nativeEvent.isComposing) {
+      if (e.nativeEvent.isComposing) {
         return;
       }
-
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
@@ -251,7 +255,7 @@ export function ExplorerDrawerContent({
         closeDrawer();
       }
     },
-    [readOnly, handleSend, closeDrawer]
+    [handleSend, closeDrawer]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -312,15 +316,32 @@ export function ExplorerDrawerContent({
     return;
   }, []);
 
-  // - Keyboard listeners -----------------------------------------------------
-
   // Update block refs array when blocks change
   useEffect(() => {
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  // - Deep link effect -------------------------------------------------------
+  // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
+
+  // Track when a session times out
+  const prevIsTimedOutRef = useRef(false);
+  useEffect(() => {
+    if (isTimedOut && !prevIsTimedOutRef.current) {
+      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
+    }
+    prevIsTimedOutRef.current = isTimedOut;
+  }, [isTimedOut, organization, runId]);
+
+  // Interrupt button and placeholder state
+  const interruptState =
+    isPolling && hasSentInterrupt
+      ? 'requested'
+      : isPolling
+        ? 'can-interrupt'
+        : hasSentInterrupt
+          ? 'completed'
+          : 'disabled';
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
@@ -406,10 +427,9 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        canInterrupt={canInterrupt} // TODO: update when adding timeouts
-        waitingForInterrupt={waitingForInterrupt}
-        isMinimized={false} // Drawer doesn't have a minimized state
-        isVisible // Drawer content is always visible when rendered
+        canSendMessage={canSendMessage}
+        interruptState={interruptState}
+        isTimedOut={isTimedOut}
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
         onInputChange={handleInputChange}

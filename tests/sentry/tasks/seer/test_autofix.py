@@ -303,7 +303,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             external_id="ext123",
             name="existing-org/existing-repo",
         )
-        SeerProjectRepository.objects.create(project=project, repository=repo)
+        self.create_seer_project_repository(project=project, repository=repo)
         # Force the update path by using an invalid stopping point.
         project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
 

@@ -1,14 +1,14 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,6 +18,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -122,6 +123,7 @@ function getDefaultSort({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
 
 function ManageDashboards() {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const api = useApi();
@@ -175,6 +177,10 @@ function ManageDashboards() {
     enabled: hasProjectAccess || !projectsLoaded,
   });
   const dashboardsWithoutPrebuiltConfigs = dashboardsResponse?.json;
+
+  function invalidateDashboards() {
+    queryClient.invalidateQueries(dashboardsApiOptions(organization));
+  }
 
   const dashboards = useMemo(
     () =>
@@ -473,12 +479,38 @@ function ManageDashboards() {
   }
 
   function renderDashboards() {
+    if (
+      dashboardsTab === DashboardsTab.CUSTOM &&
+      hasPrebuiltDashboards &&
+      !isLoading &&
+      !dashboards?.length &&
+      !getQuery()
+    ) {
+      return (
+        <EmptyMessage
+          title={t("You haven't created any dashboards.")}
+          action={
+            <LinkButton
+              to={`${location.pathname}?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+              variant="primary"
+            >
+              {t('Check out Sentry Built dashboards')}
+            </LinkButton>
+          }
+        >
+          {t(
+            'Check out Sentry Built dashboards for common use cases and examples that you can clone to get started.'
+          )}
+        </EmptyMessage>
+      );
+    }
+
     return dashboardsLayout === GRID ? (
       <DashboardGrid
         api={api}
         dashboards={dashboards}
         organization={organization}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
@@ -489,7 +521,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
       />
     );

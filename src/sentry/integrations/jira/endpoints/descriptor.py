@@ -26,9 +26,12 @@ class JiraDescriptorEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     """
-    Provides the metadata needed by Jira to setup an instance of the Sentry integration within Jira.
-    Only used by on-prem orgs and devs setting up local instances of the integration. (Sentry SAAS
-    already has an established, official instance of the Sentry integration registered with Jira.)
+    Provides the Atlassian Connect descriptor metadata for the Sentry Jira app.
+
+    Used by both on-prem installs and Sentry SaaS — the Atlassian Marketplace listing
+    `sentry.io.jira` points its artifact at this endpoint, and Atlassian re-fetches it when
+    a new Marketplace version is published. Existing tenants get the descriptor snapshot
+    from their installed version, so changes here only reach them after a version bump.
     """
 
     authentication_classes = ()

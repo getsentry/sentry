@@ -118,6 +118,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-scm-multi-org": True,
         # Enable issue view endpoints and UI
         "organizations:issue-views": False,
+        # Display profile durations on the stats page
+        "organizations:continuous-profiling-stats": False,
     }
 
     permanent_project_features = {
@@ -135,6 +137,14 @@ def register_permanent_features(manager: FeatureManager) -> None:
     permanent_flagpole_organization_features = {
         # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
         "organizations:workflow-engine-log-evaluations": False,
+    }
+
+    # Flagpole cannot control system-scoped flags — keep these as INTERNAL.
+    permanent_system_features = {
+        # Enables user registration.
+        "auth:register": True,
+        # Enable support for multiple regions, and org slug subdomains (customer-domains).
+        "system:multi-region": False,
     }
 
     for org_feature, default in permanent_organization_features.items():
@@ -164,11 +174,10 @@ def register_permanent_features(manager: FeatureManager) -> None:
             api_expose=False,
         )
 
-    # Enable support for multiple regions, and org slug subdomains (customer-domains).
-    manager.add(
-        "system:multi-region",
-        SystemFeature,
-        FeatureHandlerStrategy.INTERNAL,
-        default=False,
-        api_expose=False,
-    )
+    for system_feature, default in permanent_system_features.items():
+        manager.add(
+            system_feature,
+            SystemFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
+        )

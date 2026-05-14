@@ -3,8 +3,12 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
+import {FieldKind} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {traceItemAttributeKeysOptions} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+import {
+  getTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 type Attribute = {
   attributeSource: {
@@ -20,6 +24,18 @@ type ScopedCase = {
   name: string;
   query: Record<string, unknown>;
 };
+
+function makeAttribute(
+  key: string,
+  attributeType: Attribute['attributeType'] = 'string'
+): Attribute {
+  return {
+    attributeSource: {source_type: 'custom'},
+    attributeType,
+    key,
+    name: key,
+  };
+}
 
 describe('traceItemAttributeKeysOptions', () => {
   const organization = OrganizationFixture();
@@ -39,18 +55,6 @@ describe('traceItemAttributeKeysOptions', () => {
     MockApiClient.clearMockResponses();
     queryClient.clear();
   });
-
-  function makeAttribute(
-    key: string,
-    attributeType: Attribute['attributeType'] = 'string'
-  ): Attribute {
-    return {
-      attributeSource: {source_type: 'custom'},
-      attributeType,
-      key,
-      name: key,
-    };
-  }
 
   function addAttributeKeysMock({
     body,
@@ -231,5 +235,33 @@ describe('traceItemAttributeKeysOptions', () => {
     expect(result.json).toEqual(currentBody);
     expect(cachedRequest).toHaveBeenCalledTimes(1);
     expect(currentRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('getTraceItemTagCollection', () => {
+  it('preserves plain tags with @ in the tag name', () => {
+    const key = 'custom.metric@primary';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.MEASUREMENT,
+        secondaryAliases: [],
+      },
+    });
+  });
+
+  it('preserves wrapped number tags with @ in the tag name', () => {
+    const key = 'tags[custom.metric@primary,number]';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.MEASUREMENT,
+        secondaryAliases: [],
+      },
+    });
   });
 });

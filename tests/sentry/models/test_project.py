@@ -14,6 +14,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -246,6 +247,11 @@ class ProjectTest(APITestCase, TestCase):
             integration_id=integration.id,
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         repository_project_path_config = RepositoryProjectPathConfig.objects.create(
             repository=repository,
             project=project,
@@ -255,6 +261,7 @@ class ProjectTest(APITestCase, TestCase):
             stack_root="/app",
             source_root="/src",
             default_branch="main",
+            project_repository=project_repo,
         )
 
         ProjectCodeOwners.objects.create(

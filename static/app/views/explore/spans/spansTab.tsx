@@ -182,7 +182,7 @@ function SpanTabContentSectionInner({
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
-  const {isReady} = usePageFilters();
+  const {isReady, selection} = usePageFilters();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -200,20 +200,15 @@ function SpanTabContentSectionInner({
   useLLMContext({
     contextHint:
       'Sentry traces explorer page. Users search spans/traces by attributes and view samples, aggregates, or breakdowns. ' +
-      'Tools: telemetry_live_search(dataset, question, project_slugs) to query spans/traces/errors/logs/metrics; ' +
-      'get_trace_waterfall(trace_id, span_id?) for full trace waterfall or specific span; ' +
-      'telemetry_index_list_nodes(keyword) to discover span/function types; ' +
-      'telemetry_index_dependencies(title) for upstream/downstream call graph.',
+      'You can search live telemetry for spans/traces/errors/logs/metrics, get a trace waterfall by trace ID, ' +
+      'list telemetry index nodes by keyword to discover span/function types, and query node dependencies for upstream/downstream call graphs.',
     searchQuery: query,
     activeTab: tab,
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    currentSelectedDateRange: selection.datetime,
   });
-
-  const hasCrossEventQueries = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
 
   const queryType =
     tab === Mode.AGGREGATE
@@ -234,7 +229,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const spansTableResult = useExploreSpansTable({
@@ -243,7 +238,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const tracesTableQuery = useQuery({
@@ -252,7 +247,7 @@ function SpanTabContentSectionInner({
       limit,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     }),
     select: selectJsonWithHeaders,
@@ -269,7 +264,7 @@ function SpanTabContentSectionInner({
       enabled: isReady,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     });
 
@@ -363,7 +358,6 @@ function SpanTabContentSectionInner({
               visualizes={visualizes}
               setVisualizes={setVisualizes}
               samplingMode={timeseriesSamplingMode}
-              setTab={setTab}
               rawSpanCounts={rawSpanCounts}
             />
             <ExploreTables

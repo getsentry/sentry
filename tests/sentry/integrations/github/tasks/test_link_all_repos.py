@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 import responses
 from django.db import IntegrityError
-from taskbroker_client.retry import RetryTaskError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
@@ -11,6 +10,7 @@ from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.source_code_management.metrics import LinkAllReposHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import IntegrationTestCase
@@ -206,7 +206,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             status=400,
         )
 
-        with pytest.raises(RetryTaskError):
+        with pytest.raises(ApiError):
             link_all_repos(
                 integration_key=self.key,
                 integration_id=self.integration.id,
