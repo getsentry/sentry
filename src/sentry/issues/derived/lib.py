@@ -10,6 +10,7 @@ No Django dependencies — pure Python, fully testable in isolation.
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from enum import Enum
@@ -50,6 +51,16 @@ class PydanticDictCodec(Codec[dict[str, Any]]):
 
     def load(self, raw: dict[str, Any]) -> dict[str, Any]:
         return {k: self._model(**v) for k, v in raw.items()}
+
+
+class FrozenSetCodec(Codec[frozenset[str]]):
+    """Codec for frozenset[str] — stored as a JSON list."""
+
+    def dump(self, value: frozenset[str]) -> list[str]:
+        return sorted(value)
+
+    def load(self, raw: list[str]) -> frozenset[str]:
+        return frozenset(raw)
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +136,7 @@ class _FieldStore:
     def __setitem__(self, key: Feature[T], value: T) -> None:
         self._data[key] = value
 
-    def __contains__(self, key: Feature[Any]) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self._data
 
     def _undeclared(self, declared: frozenset[Feature[Any]]) -> set[Feature[Any]]:
@@ -156,7 +167,10 @@ class State(_FieldStore):
 
 
 class StateView:
-    """Read-only view of a State restricted to a declared set of fields."""
+    """Read-only view of a State restricted to a declared set of features.
+
+    Retrieved values must never be mutated.
+    """
 
     __slots__ = ("_data", "_allowed")
 
@@ -169,7 +183,7 @@ class StateView:
             raise KeyError(f"Feature {key.name!r} is not accessible in this view")
         return self._data[key]
 
-    def __contains__(self, key: Feature[Any]) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self._allowed and key in self._data
 
     def __repr__(self) -> str:
@@ -203,7 +217,7 @@ def emit(*entries: FeatureEntry) -> AggregatorResult:
 
 @dataclass(frozen=True)
 class Aggregator:
-    """A named function that reads from dep fields and writes to output fields."""
+    """A named function that reads from dep features and writes to output features."""
 
     name: str
     deps: tuple[Feature[Any], ...]
@@ -232,8 +246,15 @@ def aggregator(
 
 
 class Pipeline:
-    def __init__(self, aggregators: Iterable[Aggregator], *, version: int):
+    def __init__(
+        self,
+        aggregators: Iterable[Aggregator],
+        *,
+        version: int,
+        check_mutations: bool = False,
+    ):
         self._version = version
+        self._check_mutations = check_mutations
         aggregators = tuple(aggregators)
         self._aggregators, self._fields = _validate_and_sort(aggregators)
         self._steps = tuple(
@@ -262,7 +283,14 @@ class Pipeline:
             if agg.scope is not None and entry_type not in agg.scope:
                 continue
             subset = state.view(view_fields)
+            snapshot = copy.deepcopy(subset._data) if self._check_mutations else None
             result = agg.fn(subset, entry)
+            if snapshot is not None:
+                for f, original in snapshot.items():
+                    if f in view_fields and subset._data[f] != original:
+                        raise RuntimeError(
+                            f"Aggregator {agg.name!r} mutated feature {f.name!r} in place"
+                        )
             if result is not None:
                 undeclared = result._undeclared(output_fields)
                 if undeclared:

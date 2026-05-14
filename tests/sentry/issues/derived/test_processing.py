@@ -1,8 +1,18 @@
 from datetime import timedelta
 from typing import Any
 
+import pytest
 from django.utils import timezone
 
+from sentry.issues.derived import processing
+from sentry.issues.derived.aggregators import AGGREGATORS
+from sentry.issues.derived.lib import (
+    AggregatorResult,
+    Feature,
+    Pipeline,
+    StateView,
+    aggregator,
+)
 from sentry.issues.derived.processing import process_group_log
 from sentry.issues.derived.recording import record
 from sentry.issues.derived.types import (
@@ -21,6 +31,18 @@ from sentry.testutils.cases import APITestCase, TestCase
 
 
 class ProcessGroupLogTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # Enable mutation checking so aggregators that modify state in place fail.
+        self._original_pipeline = processing.pipeline
+        processing.pipeline = Pipeline(
+            AGGREGATORS, version=processing.pipeline.version, check_mutations=True
+        )
+
+    def tearDown(self) -> None:
+        processing.pipeline = self._original_pipeline
+        super().tearDown()
+
     def test_records_and_processes(self) -> None:
         group = self.create_group()
         user = self.user
@@ -477,6 +499,24 @@ class ProcessGroupLogTest(TestCase):
         )
         derived = process_group_log(group.id)
         assert derived.data["was_autofixed"] is False
+
+    def test_mutation_checking_catches_in_place_mutation(self) -> None:
+        """Verify that check_mutations=True detects aggregators that mutate state."""
+        ITEMS = Feature[list[str]]("items", default_factory=list)
+
+        @aggregator(outputs=(ITEMS,))
+        def bad_mutator(state: StateView, entry: object) -> AggregatorResult:
+            state[ITEMS].append("oops")
+            return None
+
+        p = Pipeline([bad_mutator], version=1, check_mutations=True)
+        state = p.initial_state()
+
+        class FakeEntry:
+            type = 0
+
+        with pytest.raises(RuntimeError, match="mutated feature 'items' in place"):
+            p.step(state, FakeEntry())
 
 
 class IssueActionLogDebugEndpointTest(APITestCase):

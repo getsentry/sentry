@@ -48,13 +48,13 @@ def track_status(state: StateView, entry: IssueActionLog) -> AggregatorResult:
     current = state[STATUS]
     resolves = (IssueActionType.SET_RESOLVED.value, IssueActionType.RESOLVED_IN_PULL_REQUEST.value)
     if entry.type in resolves and current == IssueStatus.OPEN:
-        closing_prs: list[str] = list(state[CLOSING_PRS])
+        closing_prs = state[CLOSING_PRS]
         pr_id = entry.data.get("pr_id")
         if entry.type == IssueActionType.RESOLVED_IN_PULL_REQUEST.value and pr_id:
-            closing_prs.append(pr_id)
+            closing_prs = closing_prs | {pr_id}
         return emit(STATUS.value(IssueStatus.CLOSED), CLOSING_PRS.value(closing_prs))
     if entry.type == IssueActionType.SET_UNRESOLVED.value and current == IssueStatus.CLOSED:
-        return emit(STATUS.value(IssueStatus.OPEN), CLOSING_PRS.value([]))
+        return emit(STATUS.value(IssueStatus.OPEN), CLOSING_PRS.value(frozenset()))
     return None
 
 
@@ -146,10 +146,10 @@ def track_autofix_prs(state: StateView, entry: IssueActionLog) -> AggregatorResu
     pr_id = entry.data.get("pr_id")
     if not pr_id:
         return None
-    current: list[str] = state[AUTOFIX_PRS]
+    current = state[AUTOFIX_PRS]
     if pr_id in current:
         return None
-    return emit(AUTOFIX_PRS.value(current + [pr_id]))
+    return emit(AUTOFIX_PRS.value(current | {pr_id}))
 
 
 @aggregator(
@@ -159,9 +159,9 @@ def track_autofix_prs(state: StateView, entry: IssueActionLog) -> AggregatorResu
 def compute_was_autofixed(state: StateView, entry: IssueActionLog) -> AggregatorResult:
     if state[WAS_AUTOFIXED]:
         return None  # already true, stays true
-    autofix_prs: list[str] = state[AUTOFIX_PRS]
-    closing_prs: list[str] = state[CLOSING_PRS]
-    if autofix_prs and set(autofix_prs).intersection(closing_prs):
+    autofix_prs = state[AUTOFIX_PRS]
+    closing_prs = state[CLOSING_PRS]
+    if autofix_prs and autofix_prs & closing_prs:
         return emit(WAS_AUTOFIXED.value(True))
     return None
 

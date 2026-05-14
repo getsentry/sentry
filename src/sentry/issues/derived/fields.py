@@ -9,7 +9,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
-from sentry.issues.derived.lib import Feature, PydanticDictCodec
+from sentry.issues.derived.lib import Feature, FrozenSetCodec, PydanticDictCodec
 
 
 class IssueStatus(StrEnum):
@@ -54,9 +54,17 @@ WORKING_ON = Feature[dict[str, WorkingOnEntry]](
 )
 
 # PR IDs created by autofix.
-AUTOFIX_PRS = Feature[list[str]]("autofix_prs", default_factory=list)
+AUTOFIX_PRS = Feature[frozenset[str]](
+    "autofix_prs",
+    default_factory=frozenset,
+    codec=FrozenSetCodec(),
+)
 
 # PRs that have resulted in this issue being closed. Cleared on reopen.
-CLOSING_PRS = Feature[list[str]]("closing_prs", default_factory=list)
+CLOSING_PRS = Feature[frozenset[str]](
+    "closing_prs",
+    default_factory=frozenset,
+    codec=FrozenSetCodec(),
+)
 
 WAS_AUTOFIXED = Feature[bool]("was_autofixed", default=False)

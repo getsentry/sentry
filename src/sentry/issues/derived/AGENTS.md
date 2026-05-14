@@ -186,7 +186,7 @@ The pipeline topologically sorts so dependencies run first. Cycles are detected 
 - **Inline + async processing**: `record()` processes synchronously when possible (small batch), falls back to a background task for backlogs.
 - **Batched + checkpointed**: Processing runs in configurable batches with DB checkpoints between. Safe to interrupt.
 - **Concurrent-safe**: Conditional update (`cursor <= new_cursor`, scoped to version) prevents regression. Duplicate processing is harmless.
-- **Aggregator isolation**: Each aggregator can only access its declared deps/outputs via `StateView`. Undeclared access raises `KeyError`, undeclared writes raise `ValueError`.
+- **Aggregator isolation**: Each aggregator can only access its declared deps/outputs via `StateView`. Undeclared access raises `KeyError`, undeclared writes raise `ValueError`. Retrieved values must never be mutated.
 - **Backend-agnostic derivation**: The pipeline outputs a plain dict. `GroupDerivedData` in Postgres is the current backend, chosen for its ability to integrate with existing Group query patterns.
 - **Pure Python core**: `lib.py` has no Django dependencies. Features, State, and Pipeline are fully testable in isolation.
 
@@ -258,5 +258,7 @@ Which pipeline versions are "active" is determined by code config (the set of Pi
 - **Actions derived from existing Activity types** — dual-write from Activity to IssueActionLog for action types that map to existing ActivityType values, keeping existing consumers working during transition
 - **Richer actor model** — `actor_type` enum + `actor_id` to support Sentry system actions, Seer on behalf of a user, external integrations
 - **Consider retroactive events** — we may learn about events from 3rd parties slightly after the fact (e.g., a PR merge notification arrives after the merge happened). Currently entries are ordered by insertion (auto-increment id), not by when the action occurred. If retroactive events matter, aggregators may need to handle out-of-order `date_added` values, or we need a mechanism to insert at the correct logical position.
+- **Invalidated flag on GroupDerivedData** — when out-of-order entries are inserted (e.g., backfill, retroactive 3rd-party events), mark the derived data as invalidated so it can be reprocessed from scratch
+- **Storage translation layer** — extract load/save logic from `_process_batch` into a `DerivedDataStore` that knows how to translate between State and GroupDerivedData. The store handles the mapping of features to columns vs JSON keys, and the Pipeline stays storage-agnostic. This enables: column-backed features (e.g., `last_seen`, `view_count` as real columns for indexing), dirty tracking (only persist features that changed), and alternate/composite backends (Redis, Bigtable) behind the same interface.
 - **Multi-version pipeline transitions** — automate the lifecycle (backfill, promote, retire)
 - **Log truncation & snapshots** — implement the planned model above
