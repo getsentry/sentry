@@ -397,6 +397,8 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
+    is_seat_based_tier = is_seer_seat_based_tier_enabled(group.organization)
+
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
     referrer = referrer_map.get(source, AutofixReferrer.UNKNOWN)
@@ -424,7 +426,7 @@ def run_automation(
         return
 
     stopping_point = None
-    if is_seer_seat_based_tier_enabled(group.organization):
+    if is_seat_based_tier or features.has("organizations:autofix-on-explorer", group.organization):
         stopping_point = get_automation_stopping_point(group)
 
     _trigger_autofix_task.delay(
