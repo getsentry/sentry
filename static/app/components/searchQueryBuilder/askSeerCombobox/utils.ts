@@ -17,7 +17,7 @@ export function trackAiQueryOutcome({
   runId,
 }: {
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
-  mode: Mode | 'samples' | 'aggregates';
+  mode: Mode | 'samples' | 'aggregate';
   orgSlug: string;
   referrer: string;
   resultCount: number;
