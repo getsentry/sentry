@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
@@ -24,7 +25,6 @@ from sentry.integrations.api.bases.external_actor import (
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 logger = logging.getLogger(__name__)
 
