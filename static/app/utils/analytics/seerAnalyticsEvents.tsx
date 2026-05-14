@@ -85,6 +85,12 @@ export type SeerAnalyticsEventsParameters = {
     mode?: 'explorer' | 'legacy';
     referrer?: string;
   };
+  'autofix.start_fix_clicked': {
+    group_id: string;
+    organization: Organization;
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
+  };
   'coding_integration.install_clicked': {
     organization: Organization;
     project_slug: string;
@@ -168,6 +174,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',
   'autofix.solution.code': 'Autofix: Code It Up',
   'autofix.solution.re_run': 'Autofix: Solution Re-run',
+  'autofix.start_fix_clicked': 'Autofix: Start Fix Clicked',
   'coding_integration.install_clicked': 'Coding Integration: Install Clicked',
   'coding_integration.send_to_agent_clicked': 'Coding Integration: Send to Agent Clicked',
   'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
