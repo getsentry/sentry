@@ -142,8 +142,7 @@ describe('useTraceMeta', () => {
         spansCountMap: {
           op1: 1,
         },
-        transactionChildCountMap: {'1': 1},
-        transactionsCount: 1,
+        transactionChildCountMap: [{'transaction.event_id': '1', 'count()': 1}],
         uptimeCount: 0,
       },
     });
@@ -160,8 +159,7 @@ describe('useTraceMeta', () => {
           op1: 1,
           op2: 1,
         },
-        transactionChildCountMap: {'2': 2},
-        transactionsCount: 1,
+        transactionChildCountMap: [{'transaction.event_id': '2', 'count()': 2}],
         uptimeCount: 0,
       },
     });
@@ -177,8 +175,7 @@ describe('useTraceMeta', () => {
         spansCountMap: {
           op3: 1,
         },
-        transactionChildCountMap: {'3': 1},
-        transactionsCount: 1,
+        transactionChildCountMap: [{'transaction.event_id': '3', 'count()': 1}],
         uptimeCount: 1,
       },
     });
@@ -214,7 +211,6 @@ describe('useTraceMeta', () => {
           '2': 2,
           '3': 1,
         },
-        transactionsCount: 3,
         uptimeCount: 1,
       },
       errors: [],
@@ -288,8 +284,7 @@ describe('useTraceMeta', () => {
       performanceIssuesCount: 0,
       spansCount: 0,
       spansCountMap: {},
-      transactionChildCountMap: {},
-      transactionsCount: 0,
+      transactionChildCountMap: [],
       uptimeCount: 0,
     };
 
@@ -313,8 +308,7 @@ describe('useTraceMeta', () => {
       performanceIssuesCount: 1,
       spansCount: 1,
       spansCountMap: {op1: 1},
-      transactionChildCountMap: {tx1: 1},
-      transactionsCount: 1,
+      transactionChildCountMap: [{'transaction.event_id': 'tx1', 'count()': 1}],
       uptimeCount: 0,
     };
 
@@ -364,8 +358,7 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 1,
         spansCount: 1,
         spansCountMap: {op1: 1},
-        transactionChildCountMap: {},
-        transactionsCount: 1,
+        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -381,8 +374,7 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 2,
         spansCount: 2,
         spansCountMap: {},
-        transactionChildCountMap: {},
-        transactionsCount: 2,
+        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -413,8 +405,7 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 0,
         spansCount: 0,
         spansCountMap: {},
-        transactionChildCountMap: {},
-        transactionsCount: 0,
+        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -430,8 +421,7 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 1,
         spansCount: 1,
         spansCountMap: {},
-        transactionChildCountMap: {},
-        transactionsCount: 1,
+        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });

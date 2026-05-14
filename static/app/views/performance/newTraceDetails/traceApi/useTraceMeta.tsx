@@ -77,7 +77,7 @@ function isEAPTraceMeta(meta: MetaArg): meta is EAPTraceMeta {
 
 function isResponseEAPTraceMeta(meta: ResponseMetaArg): meta is ResponseEAPTraceMeta {
   if (!meta) return false;
-  return 'transactionsCount' in meta;
+  return 'spansCount' in meta;
 }
 
 export function getTraceMetaErrorCount(meta: MetaArg) {
@@ -128,6 +128,10 @@ function mergeTransactionChildCountMap(
         'transaction.id' in row ? row['transaction.id'] : row['transaction.event_id'];
       const count = 'count' in row ? row.count : row['count()'];
 
+      if (!id) {
+        return;
+      }
+
       acc[id] = (acc[id] ?? 0) + count;
     });
     return;
@@ -156,7 +160,6 @@ async function fetchTraceMetaInBatches(
           spansCount: 0,
           spansCountMap: {},
           transactionChildCountMap: {},
-          transactionsCount: 0,
           uptimeCount: 0,
         }
       : {
@@ -213,8 +216,7 @@ async function fetchTraceMetaInBatches(
           acc.metricsCount += result.value.metricsCount;
           acc.performanceIssuesCount += result.value.performanceIssuesCount;
           acc.spansCount += result.value.spansCount;
-          acc.transactionsCount += result.value.transactionsCount;
-          acc.uptimeCount += result.value.uptimeCount;
+          acc.uptimeCount += result.value.uptimeCount ?? 0;
           mergeCountMap(acc.spansCountMap, result.value.spansCountMap);
           mergeTransactionChildCountMap(
             acc.transactionChildCountMap,
@@ -335,7 +337,6 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
             spansCount: 0,
             spansCountMap: {},
             transactionChildCountMap: {},
-            transactionsCount: 0,
             uptimeCount: 0,
           }
         : {

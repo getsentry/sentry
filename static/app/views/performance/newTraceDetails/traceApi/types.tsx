@@ -119,13 +119,12 @@ export type EAPTraceMeta = {
   spansCount: number;
   spansCountMap: Record<string, number>;
   transactionChildCountMap: Record<string, number>;
-  transactionsCount: number;
   uptimeCount: number;
 };
 
 type ResponseEAPTraceMetaTransactionChildCount = {
   'count()': number;
-  'transaction.event_id': string;
+  'transaction.event_id': string | null;
 };
 
 export type ResponseEAPTraceMeta = {
@@ -136,6 +135,5 @@ export type ResponseEAPTraceMeta = {
   spansCount: number;
   spansCountMap: Record<string, number>;
   transactionChildCountMap: ResponseEAPTraceMetaTransactionChildCount[];
-  transactionsCount: number;
-  uptimeCount: number;
+  uptimeCount?: number;
 };
