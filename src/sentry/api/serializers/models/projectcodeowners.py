@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
@@ -23,6 +24,12 @@ class ProjectCodeOwnersSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         attrs = {}
+        use_fk = False
+        if item_list:
+            use_fk = features.has(
+                "organizations:project-repository-fk-reads",
+                item_list[0].project.organization,
+            )
         integrations = {
             i.id: i
             for i in integration_service.get_integrations(
@@ -31,6 +38,9 @@ class ProjectCodeOwnersSerializer(Serializer):
         }
         for item in item_list:
             code_mapping = item.repository_project_path_config
+            repository = (
+                code_mapping.project_repository.repository if use_fk else code_mapping.repository
+            )
 
             integration = integrations[item.repository_project_path_config.integration_id]
             install = integration.get_installation(
@@ -42,7 +52,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             ):
                 try:
                     codeowners_response = install.get_codeowner_file(
-                        code_mapping.repository, ref=code_mapping.default_branch
+                        repository, ref=code_mapping.default_branch
                     )
                     if codeowners_response is not None:
                         codeowners_url = codeowners_response["html_url"]

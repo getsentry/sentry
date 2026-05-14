@@ -416,7 +416,11 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
                 project_repository__project=project,
                 organization_integration_id__isnull=False,
             )
-            .select_related("repository", "project_repository", "project_repository__repository")
+            .select_related(
+                "project_repository",
+                "project_repository__project",
+                "project_repository__repository",
+            )
             .order_by("id")
         )
     else:
@@ -424,7 +428,7 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
             RepositoryProjectPathConfig.objects.filter(
                 project=project, organization_integration_id__isnull=False
             )
-            .select_related("repository", "project_repository", "project_repository__repository")
+            .select_related("repository")
             .order_by("id")
         )
 

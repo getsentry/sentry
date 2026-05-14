@@ -84,7 +84,9 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
 
     for code_mapping in code_mappings:
         try:
-            codeowner_contents = get_codeowner_contents(code_mapping)
+            codeowner_contents = get_codeowner_contents(
+                code_mapping, use_project_repository_fk=use_fk
+            )
         except (NotImplementedError, NotFound):
             logger.warning(
                 "code_owners_auto_sync.fetch_error",
