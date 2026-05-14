@@ -90,6 +90,14 @@ export const useSeerExplorerPolling = ({
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const errorPollCountRef = useRef(0);
+  const [, forceRender] = useState(false);
+
+  // Reset error poll count when runId changes
+  const prevRunIdRef = useRef(runId);
+  if (prevRunIdRef.current !== runId) {
+    prevRunIdRef.current = runId;
+    errorPollCountRef.current = 0;
+  }
 
   const {
     data: apiData,
@@ -111,19 +119,21 @@ export const useSeerExplorerPolling = ({
       );
       if (state === 'polling-with-backoff') {
         errorPollCountRef.current++;
+        if (errorPollCountRef.current >= MAX_ERROR_POLL_COUNT) {
+          forceRender(v => !v);
+        }
         return ERROR_POLL_INTERVAL;
       }
-      errorPollCountRef.current = 0;
       if (state === 'polling') {
+        // Successful poll — reset error count if we were previously in backoff
+        if (errorPollCountRef.current > 0) {
+          errorPollCountRef.current = 0;
+        }
         return POLL_INTERVAL;
       }
       return false;
     },
   });
-
-  // Schedule a timeout to force a re-render at the moment `updated_at` crosses STALE_TIME_MS,
-  // so the returned pollingState is consistent with `refetchInterval`.
-  const [, forceRender] = useState(false);
 
   const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
     timeMs: STALE_TIME_MS,
