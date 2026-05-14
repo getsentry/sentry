@@ -8,6 +8,7 @@ overrides:
   lodash: '>=4.17.23'
   form-data: '>=4.0.2'
   glob>minimatch: 5.1.9
+  picomatch: 2.3.2
 
 importers:
 
@@ -25,9 +26,6 @@ importers:
       openapi-examples-validator:
         specifier: ^6.0.2
         version: 6.0.3
-      picomatch:
-        specifier: 2.3.2
-        version: 2.3.2
       sane:
         specifier: ^5.0.1
         version: 5.0.1
