@@ -83,7 +83,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         head_images,
         base_images,
         comparison_images,
-        comparison_summary=None,
+        summary=None,
     ):
         head_artifact, head_metrics, head_manifest_key, head_manifest_json = (
             self._create_artifact_with_manifest(head_images)
@@ -99,7 +99,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
             extras={"comparison_key": comparison_key},
         )
         comparison_manifest_json = self._build_comparison_manifest(
-            head_artifact, base_artifact, comparison_images, comparison_summary
+            head_artifact, base_artifact, comparison_images, summary
         )
         key_to_data = {
             head_manifest_key: head_manifest_json,
