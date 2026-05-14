@@ -7,9 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Any as TAny
 
-from django.apps import apps as django_apps
 from django.conf import settings
-from django.db import DatabaseError
 
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
@@ -184,7 +182,6 @@ class OptionsManager:
         self.store = store
         self.registry: dict[str, Key] = {}
         self._seen: set[str] = set()
-        self._seen_loaded: bool = False
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -286,28 +283,11 @@ class OptionsManager:
         return key in settings.SENTRY_OPTIONS
 
     def _record_seen(self, key: str) -> None:
-        """
-        Flip the sentry_option_seen tripwire for key.  Called at most once per
-        key per process lifetime — existence of a row means the option has been
-        read at least once since tracking was enabled.
-
-        Uses apps.get_model so this module does not import the model at load
-        time (options is initialised before Django's app registry is ready).
-        """
-        OptionSeen = django_apps.get_model("sentry", "OptionSeen")
-        if not self._seen_loaded:
-            try:
-                self._seen.update(OptionSeen.objects.values_list("key", flat=True))
-            except DatabaseError:
-                pass
-            self._seen_loaded = True
-            if key in self._seen:
-                return
+        """Log that this option key was read. Called at most once per key per
+        process lifetime — self._seen deduplicates within the process so the
+        same pod never emits the same key twice."""
         self._seen.add(key)
-        try:
-            OptionSeen.objects.get_or_create(key=key)
-        except DatabaseError:
-            pass  # never let tracking errors surface through options.get()
+        logger.info("option.seen", extra={"option_key": key})
 
     def get(self, key: str, silent=False):
         """

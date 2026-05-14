@@ -1,7 +1,6 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from sentry.models.options.option_seen import OptionSeen
 from sentry.options import UnknownOption, default_manager, default_store
 from sentry.tasks.options import sync_options
 from sentry.testutils.cases import TestCase
@@ -22,24 +21,20 @@ class SyncOptionsTest(TestCase):
     def test_task_persistent_name(self) -> None:
         assert sync_options.name == "sentry.tasks.options.sync_options"
 
-    def test_option_seen_records_first_access_and_short_circuits(self) -> None:
+    def test_option_seen_logs_first_access_and_short_circuits(self) -> None:
         key = "test.option-seen"
         default_manager.register(key, default="x")
-
-        # Isolate this test from any prior state on the singleton.
         default_manager._seen.discard(key)
-        default_manager._seen_loaded = False
 
-        # First read: writes the row and caches the key on the manager.
-        default_manager.get(key)
-        assert OptionSeen.objects.filter(key=key).exists()
-        assert key in default_manager._seen
-
-        # Second read: short-circuits — no DB writes at all.
-        with self.assertNumQueries(0):
+        with self.assertLogs("sentry.options.manager", level="INFO") as cm:
             default_manager.get(key)
 
-        assert OptionSeen.objects.filter(key=key).count() == 1
+        assert any("option.seen" in line and key in line for line in cm.output)
+        assert key in default_manager._seen
+
+        # Second read must not log again — short-circuit fires.
+        with self.assertNoLogs("sentry.options.manager", level="INFO"):
+            default_manager.get(key)
 
     @patch.object(default_store, "set_cache")
     def test_simple(self, mock_set_cache: MagicMock) -> None:
