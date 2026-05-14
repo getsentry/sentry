@@ -469,7 +469,7 @@ function IssueListOverviewInner({
             dataset: 'issues',
             mode: 'samples', // TODO:
             referrer: 'issues',
-            resultCount: newQueryCount,
+            resultCount: data.length, // Can also use newQueryCount for total hits
             orgSlug: organization.slug,
             runId: aiQueryRunId,
           });

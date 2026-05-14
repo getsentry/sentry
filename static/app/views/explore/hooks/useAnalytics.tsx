@@ -94,6 +94,7 @@ function useTrackAnalytics({
   crossEventQueries,
 }: UseTrackAnalyticsProps) {
   const organization = useOrganization();
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const {
     data: {hasExceededPerformanceUsageLimit},
@@ -112,9 +113,6 @@ function useTrackAnalytics({
   const {isLoading: isLoadingSeerSetup} = useOrganizationSeerSetup({
     enabled: !organization.hideAiFeatures,
   });
-
-  // runId of the last AI query applied by AskSeerPollingComboBox
-  const {getRunIdForAnalytics} = useAiQueryContext();
 
   useEffect(() => {
     if (
@@ -490,7 +488,7 @@ function useTrackAnalytics({
 
     if (aiQueryRunId !== null) {
       trackAiQueryOutcome({
-        dataset: 'spans',
+        dataset: 'spans', // TODO;
         mode: Mode.SAMPLES,
         orgSlug: organization.slug,
         referrer: 'spans',
@@ -649,6 +647,7 @@ export function useLogAnalytics({
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails({traceItemDataset: 'logs'});
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const dataset = DiscoverDatasets.OURLOGS;
   const dataScanned = logsTableResult.meta?.dataScanned ?? '';
@@ -669,9 +668,6 @@ export function useLogAnalytics({
   const yAxesBox = useBox(yAxes); // Boxed to avoid useEffect firing analytics on change
   const sortBysBox = useBox(sortBys.map(formatSort)); // Boxed to avoid useEffect firing analytics on change
   const aggregateSortBysBox = useBox(aggregateSortBys.map(formatSort)); // Boxed to avoid useEffect firing analytics on change
-
-  // runId of the last AI query applied by AskSeerPollingComboBox
-  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const timeseriesData = useBox(logsTimeseriesResult.data);
 
@@ -931,6 +927,7 @@ export function useMetricsPanelAnalytics({
   panelIndex?: number;
 }) {
   const organization = useOrganization();
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const dataset = DiscoverDatasets.METRICS;
   const dataScanned =
@@ -976,9 +973,6 @@ export function useMetricsPanelAnalytics({
   const intervalBox = useBox(interval);
   const queryStatusBox = useBox(query_status);
   const isTopNBox = useBox(isTopN);
-
-  // runId of the last AI query applied by AskSeerPollingComboBox
-  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const getAttributes = useEffectEvent((resultMode: 'metric samples' | 'aggregates') => {
     return {
