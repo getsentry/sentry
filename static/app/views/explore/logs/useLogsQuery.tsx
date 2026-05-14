@@ -27,6 +27,7 @@ import {
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
   LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
   LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
+  LOGS_SESSION_REQUEST_ALERT_THRESHOLD,
   MAX_LOG_INGEST_DELAY,
   MAX_LOGS_INFINITE_QUERY_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED,
@@ -772,6 +773,8 @@ function useAutoFetchWindow({
   const [windowStartMs, setWindowStartMs] = useState<number | undefined>();
   const [resumeCount, setResumeCount] = useState(0);
   const timesFetched = useRef(0);
+  // Tracks whether we've already fired the high-count alert for this session to avoid duplicate emissions.
+  const hasEmittedHighSessionCountAlert = useRef(false);
   const deadlineMs = getAutoFetchWindowDeadlineMs(resumeCount, windowStartMs);
 
   const queryKeyHash = useMemo(() => {
@@ -783,6 +786,7 @@ function useAutoFetchWindow({
     setWindowStartMs(undefined);
     setResumeCount(0);
     timesFetched.current = 0;
+    hasEmittedHighSessionCountAlert.current = false;
   }, [queryKeyHash]);
 
   useEffect(() => {
@@ -811,6 +815,28 @@ function useAutoFetchWindow({
     );
 
     timesFetched.current += 1;
+
+    // Track cumulative requests per query session. A "session" is defined as
+    // repeated fetches for the same query + time range (same queryKeyHash).
+    // This resets automatically when the user changes their query or time range.
+    Sentry.metrics.distribution(
+      'explore.logs.session_request_count',
+      timesFetched.current,
+      {attributes: {resume_count: resumeCount}}
+    );
+
+    // Emit a separate counter the first time we exceed the alert threshold.
+    // This is the signal used by the Sentry alert targeting #feed-logs-and-metrics.
+    if (
+      timesFetched.current >= LOGS_SESSION_REQUEST_ALERT_THRESHOLD &&
+      !hasEmittedHighSessionCountAlert.current
+    ) {
+      hasEmittedHighSessionCountAlert.current = true;
+      Sentry.metrics.increment('explore.logs.session_request_count_exceeded_threshold', 1, {
+        attributes: {resume_count: resumeCount},
+      });
+    }
+
     fetchNextPage();
   }, [
     canAutoFetchNextPage,

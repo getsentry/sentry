@@ -26,6 +26,14 @@ export const MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED = 300;
 export const LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES = 500;
 
 /**
+ * Number of backend requests in a single query session (same query + time range)
+ * that triggers a high-session-request-count metric.
+ * A "session" is scoped by the query key hash and resets when the user changes
+ * their query or time range.
+ */
+export const LOGS_SESSION_REQUEST_ALERT_THRESHOLD = 100;
+
+/**
  * Initial duration to keep high-fidelity "needle in a haystack" auto-fetching.
  */
 export const LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS = 15_000;
