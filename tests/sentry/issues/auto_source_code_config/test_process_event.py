@@ -13,7 +13,7 @@ from sentry.issues.auto_source_code_config.constants import (
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
 from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
-from sentry.models.projectrepository import ProjectRepository
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
@@ -100,6 +100,11 @@ class BaseDeriveCodeMappings(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
         )
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         RepositoryProjectPathConfig.objects.create(
             project_id=self.project.id,
             stack_root=stack_root,
@@ -110,6 +115,7 @@ class BaseDeriveCodeMappings(TestCase):
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
             automatically_generated=automatically_generated,
+            project_repository=project_repo,
         )
 
     def _process_and_assert_configuration_changes(

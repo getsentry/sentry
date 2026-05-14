@@ -8,6 +8,7 @@ from sentry.integrations.perforce.integration import (
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
 )
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.utils.event_frames import EventFrame
@@ -48,6 +49,11 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -57,6 +63,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         # Test Python SDK path: depot/app/services/processor.py
@@ -84,6 +91,11 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -93,6 +105,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         # Test C++ path from Symbolic: depot/game/src/main.cpp@42
@@ -123,6 +136,11 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//myproject"},
         )
 
+        depot_project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=depot_repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         depot_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -132,8 +150,14 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=depot_project_repo,
         )
 
+        myproject_project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=myproject_repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -143,6 +167,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="myproject/",
             source_root="/",
             default_branch=None,
+            project_repository=myproject_project_repo,
         )
 
         # Test depot path
@@ -179,6 +204,11 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -188,6 +218,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         # Try to match a path from different depot
@@ -212,6 +243,11 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -221,6 +257,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         # Some platforms only provide basename in filename
@@ -242,6 +279,11 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot/game/project"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -251,6 +293,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="depot/game/project/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         frame = EventFrame(
@@ -279,6 +322,11 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -288,6 +336,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         # Windows-style path with backslashes
@@ -331,6 +380,11 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        self.project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=self.repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         self.code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -340,6 +394,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=self.project_repo,
         )
 
         # Mock the Perforce client's check_file to avoid actual P4 connection
@@ -424,6 +479,11 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         org_integration_web = integration_with_web.organizationintegration_set.first()
         assert org_integration_web is not None
 
+        project_repo_web, _ = ProjectRepository.objects.get_or_create(
+            project=project_web,
+            repository=repo_web,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping_web = RepositoryProjectPathConfig.objects.create(
             project=project_web,
             organization_id=self.organization.id,
@@ -433,6 +493,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo_web,
         )
 
         # Python SDK path with #revision from Symbolic

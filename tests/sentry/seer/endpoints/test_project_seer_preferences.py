@@ -46,7 +46,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
     )
     def test_get(self, mock_get_autofix_repos: MagicMock) -> None:
         """Test that the GET method reads the preference  and returns it alongside code-mapping repos."""
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repository)
+        self.create_seer_project_repository(project=self.project, repository=self.repository)
 
         response = self.client.get(self.url)
 
