@@ -125,6 +125,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
 
@@ -245,6 +246,18 @@ class SeerRpcServiceEndpoint(Endpoint):
         seer_referrer = request.headers.get("X-Seer-Referrer")
         if seer_referrer is not None:
             sentry_sdk.set_tag("rpc.referrer", seer_referrer)
+
+        # Observe whether the caller (seer) propagated X-Viewer-Context for this
+        # method. ViewerContextMiddleware has already decoded the header into the
+        # contextvar; we pass ctx=None explicitly when the header was absent so
+        # the missing-VC signal fires (the middleware always falls back to an
+        # empty-USER ctx, which would mask "header not sent").
+        has_vc_header = bool(request.META.get("HTTP_X_VIEWER_CONTEXT"))
+        observe_viewer_context_propagation(
+            "seer_rpc_in",
+            ctx=get_viewer_context() if has_vc_header else None,
+            extra_attributes={"method": method_name},
+        )
 
         if not self._is_authorized(request):
             raise PermissionDenied

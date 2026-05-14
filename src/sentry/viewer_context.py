@@ -7,7 +7,7 @@ import enum
 import hashlib
 import logging
 import time
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
@@ -111,11 +111,17 @@ def observe_viewer_context_propagation(
     *,
     ctx: ViewerContext | None | Any = _OBSERVE_USE_CONTEXTVAR,
     expected: bool = True,
+    extra_attributes: Mapping[str, str] | None = None,
 ) -> None:
     """Emit a ``viewer_context.observation`` counter for the current ViewerContext at *point*.
 
-    Tags: ``point``, ``actor_type``, ``has_user_id``, ``has_org_id``, ``expected``.
-    Cardinality stays bounded: never tag user/org ids themselves, only their presence.
+    Tags: ``point``, ``actor_type``, ``has_user_id``, ``has_org_id``, ``expected``,
+    plus any *extra_attributes* the caller provides (e.g. ``method`` for RPC dispatch
+    points where we want per-method breakdown). Callers are responsible for keeping
+    extra-attribute cardinality bounded — values must come from a closed set.
+
+    Cardinality stays bounded otherwise: never tag user/org ids themselves, only
+    their presence.
 
     By default reads the current ContextVar. Pass *ctx* explicitly when the value
     being observed is a just-resolved override that hasn't entered a scope yet
@@ -137,20 +143,25 @@ def observe_viewer_context_propagation(
         has_user = ctx.user_id is not None
         has_org = ctx.organization_id is not None
 
-    sentry_sdk.metrics.count(
-        "viewer_context.observation",
-        1,
-        attributes={
+    # Fixed tags layered on top of extras so callers can't accidentally swap
+    # `point` / `actor_type` / etc. and corrupt the metric's cardinality story.
+    attributes: dict[str, str] = dict(extra_attributes) if extra_attributes else {}
+    attributes.update(
+        {
             "point": point,
             "actor_type": actor_type,
             "has_user_id": str(has_user).lower(),
             "has_org_id": str(has_org).lower(),
             "expected": str(expected).lower(),
-        },
+        }
     )
 
+    sentry_sdk.metrics.count("viewer_context.observation", 1, attributes=attributes)
+
     if expected and ctx is None:
-        logger.warning("viewer_context.missing", extra={"point": point})
+        log_extra: dict[str, Any] = dict(extra_attributes) if extra_attributes else {}
+        log_extra["point"] = point
+        logger.warning("viewer_context.missing", extra=log_extra)
 
 
 def set_viewer_context_organization(organization_id: int) -> None:
