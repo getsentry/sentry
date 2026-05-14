@@ -25,10 +25,6 @@ const MetricsFrozenContext = createContext<MetricsFrozenContextValue | undefined
 );
 MetricsFrozenContext.displayName = 'MetricsFrozenContext';
 
-function useMetricsFrozenContextValue(): MetricsFrozenContextValue | undefined {
-  return useContext(MetricsFrozenContext);
-}
-
 export interface MetricsFrozenForTracesProviderProps {
   traceIds: string[];
   children?: ReactNode;
@@ -56,7 +52,7 @@ export function MetricsFrozenContextProvider(props: MetricsFrozenForTracesProvid
   return <MetricsFrozenContext value={value}>{props.children}</MetricsFrozenContext>;
 }
 function useMetricsFrozenContext(): Partial<MetricsFrozenContextValue> {
-  return useMetricsFrozenContextValue() ?? {};
+  return useContext(MetricsFrozenContext) ?? {};
 }
 
 export function useMetricsFrozenSearch() {
