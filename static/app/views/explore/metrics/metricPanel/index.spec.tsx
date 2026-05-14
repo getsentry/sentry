@@ -32,6 +32,8 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
+const TRACE_METRIC_FIXTURE_DATE = new Date('2025-04-03T15:50:10.000Z');
+
 function createWrapper({
   queryParams,
   traceMetric,
@@ -382,6 +384,71 @@ describe('MetricPanel', () => {
     expect(
       await screen.findByText('Errors: 1, Logs: 0, Spans: 2, Metrics: 0')
     ).toBeInTheDocument();
+  });
+
+  it('shows an error state when expanded sample trace meta fails to load', async () => {
+    const metricFixtures = createTraceMetricFixtures(
+      organization,
+      project,
+      TRACE_METRIC_FIXTURE_DATE
+    );
+    const row = metricFixtures.detailedFixtures[0]!;
+    const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const traceMetaMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      match: [MockApiClient.matchData({timestamp})],
+      statusCode: 500,
+      body: {detail: 'Internal Server Error'},
+    });
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Failed to fetch trace summary')).toBeInTheDocument();
+    expect(screen.getByText('Attributes')).toBeInTheDocument();
+  });
+
+  it('shows an error state when expanded sample details fail to load', () => {
+    const metricFixtures = createTraceMetricFixtures(
+      organization,
+      project,
+      TRACE_METRIC_FIXTURE_DATE
+    );
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: true,
+        isPending: false,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
   });
 
   it('shows an empty state when expanded sample details have no data', () => {
