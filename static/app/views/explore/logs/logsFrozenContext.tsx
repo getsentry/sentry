@@ -151,7 +151,7 @@ export function LogsFrozenContextProvider(
   return <LogsFrozenContext value={value}>{props.children}</LogsFrozenContext>;
 }
 
-export function useLogsFrozenContext(): Partial<LogsFrozenContextValue> {
+function useLogsFrozenContext(): Partial<LogsFrozenContextValue> {
   // default to `LogsNotFrozen`
   return useContext(LogsFrozenContext) ?? {};
 }
