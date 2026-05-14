@@ -175,16 +175,12 @@ async function fetchTraceMetaInBatches(
     const batch = pendingTraces.splice(0, 3);
     const results = await Promise.allSettled<ResponseTraceMeta | ResponseEAPTraceMeta>(
       batch.map(trace => {
-        let url = getApiUrl(
-          '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/',
+        const url = getApiUrl(
+          type === 'eap'
+            ? '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/'
+            : '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
           {path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug}}
         );
-
-        if (type === 'eap') {
-          url = getApiUrl('/organizations/$organizationIdOrSlug/trace-meta/$traceId/', {
-            path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug},
-          });
-        }
 
         return apiFetch<ResponseTraceMeta | ResponseEAPTraceMeta>({
           ...fetchContext,
