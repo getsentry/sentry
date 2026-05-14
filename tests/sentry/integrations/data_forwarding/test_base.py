@@ -10,18 +10,18 @@ from sentry.testutils.helpers.options import override_options
 
 class BaseDataForwarderTest(TestCase):
     def setUp(self) -> None:
-        self.forwarder = self.create_data_forwarder(
+        self.data_forwarder = self.create_data_forwarder(
             organization=self.organization,
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "secret-api-key"},
             is_enabled=True,
         )
-        self.forwarder_project = self.create_data_forwarder_project(
-            data_forwarder=self.forwarder,
+        self.data_forwarder_project = self.create_data_forwarder_project(
+            data_forwarder=self.data_forwarder,
             project=self.project,
             is_enabled=True,
         )
-        self.forwarder_cls = SegmentForwarder()
+        self.forwarder = SegmentForwarder()
         self.event = self.store_event(
             data={
                 "exception": {"type": "ValueError", "value": "foo bar"},
@@ -34,14 +34,13 @@ class BaseDataForwarderTest(TestCase):
     @responses.activate
     @override_options({"data-forwarding.task-rollout-rate": 1.0})
     @patch("sentry.integrations.data_forwarding.tasks.forward_event")
-    @patch("sentry.integrations.data_forwarding.base.random.random", return_value=0.5)
-    def test_post_process_rollout_dispatches_to_task(self, mock_random, mock_forward_event) -> None:
+    def test_post_process_rollout_dispatches_to_task(self, mock_forward_event) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
-        self.forwarder_cls.post_process(self.event, self.forwarder_project)
+        self.forwarder.post_process(self.event, self.data_forwarder_project)
         mock_forward_event.delay.assert_called_once()
 
     @responses.activate
     def test_post_process_rollout_forwards_directly(self) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
-        self.forwarder_cls.post_process(self.event, self.forwarder_project)
+        self.forwarder.post_process(self.event, self.data_forwarder_project)
         assert len(responses.calls) == 1

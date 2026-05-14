@@ -18,7 +18,6 @@ _DATA_FORWARDING_RETRY_ON = (RequestException,)
 _DATA_FORWARDING_RETRY_IGNORE = (
     ClientError,
     ParamValidationError,
-    ValueError,
 )
 _DATA_FORWARDING_SILENCED = (
     ChunkedEncodingError,
@@ -53,21 +52,27 @@ def forward_event(
     from sentry.integrations.data_forwarding.base import BaseDataForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
+    logging_ctx = {"data_forwarder_project_id": data_forwarder_project_id}
     try:
         data_forwarder_project = DataForwarderProject.objects.select_related("data_forwarder").get(
             id=data_forwarder_project_id
         )
     except DataForwarderProject.DoesNotExist:
+        logger.warning("data_forwarding.data_forwarder_project_not_found", extra=logging_ctx)
         return
 
     provider = data_forwarder_project.data_forwarder.provider
-    forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY[provider]
+    logging_ctx["provider"] = provider
+    logging_ctx["project_id"] = data_forwarder_project.project_id
+
+    forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY.get(provider)
+    if not forwarder:
+        logger.warning("data_forwarding.missing_provider", extra=logging_ctx)
+        return
+
     forwarder.forward_event_from_task(
         config=data_forwarder_project.get_config(),
         event_payload=event_payload,
         task_payload=task_payload,
     )
-    logger.info(
-        "data_forwarding.event_forwarded",
-        extra={"provider": provider, "project_id": data_forwarder_project.project_id},
-    )
+    logger.info("data_forwarding.event_forwarded_via_task", extra=logging_ctx)
