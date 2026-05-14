@@ -267,6 +267,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         )
 
         defaults = {
+            "project": project,
             "repository": repo,
             "organization_integration_id": org_integration.id,
             "organization_id": organization.id,
@@ -290,8 +291,6 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                         created = False
                     except RepositoryProjectPathConfig.DoesNotExist:
                         config = RepositoryProjectPathConfig(
-                            project=project,
-                            repository=repo,
                             stack_root=mapping["stack_root"],
                             source_root=mapping["source_root"],
                             **defaults,
