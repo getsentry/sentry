@@ -78,10 +78,11 @@ event types are limited in terms of frequency.
 
 - This limit is enforced in two places: while accumulating the segment in the
   buffer and when about to flush it to the segment consumer.
-  - As we add spans to subsegments in Redis we prune sets that become too large.
-    This is done by dropping spans until they stay in the max size. This, obviously
-    breaks the structure of the trace as the missing spans may be anywhere in
-    the tree.
+  - While accumulating in Redis, every subsegment is written to a salted payload
+    key and the Lua script tracks the segment's cumulative ingested bytes in
+    `span-buf:ibc:<segment_key>`. If merging a subsegment would push the segment
+    over the limit, the script detaches that subsegment into a new segment instead
+    of merging it into the parent, avoiding dropping data.
 
   - As we extract the subsegments and reassemble them, if the segment size exceeds
     the `max-segment-bytes` limit, we chunk it into multiple Kafka messages, each within
@@ -219,12 +220,14 @@ erDiagram
 **Payload keys**
 
 ```
-span-buf:s:{PROJECT_ID:TRACE_ID:SPAN_ID}:SPAN_ID
+span-buf:s:{PROJECT_ID:TRACE_ID:SALT}:SALT
 ```
 
-Each subsegment gets its own payload key (`{project_id:trace_id:span_id}:span_id`).
-This distributes payloads across Redis cluster nodes instead of concentrating
-all spans of a trace on a single node.
+Each subsegment gets its own payload key (`{project_id:trace_id:salt}:salt`).
+The salt identifies the subsegment and is determined by hashing all span IDs in
+the subsegment. This distributes payloads across Redis cluster nodes instead of
+concentrating all spans of a trace on a single node, and allows the Lua script to
+be able to detach a subsegment into its own segment when needed.
 
 **Member-keys index**
 
@@ -259,6 +262,9 @@ the span IDs of a `Subsegment` and:
    - **Parent span**: If the parent span ID redirects to a different root
      (i.e. it is not the segment root itself), its member-keys are also merged
      into the new root.
+4. Detaches the subsegment into its own salted segment instead of merging when
+   the target segment size would exceed `spans.buffer.max-segment-bytes`, or if
+   the target segment is currently being flushed.
 
 **Redirect set**
 
@@ -315,12 +321,26 @@ by at most one consumer, no two consumers can flush from the same queue.
 Flushing happens in two steps:
 
 1. `flush_segments`: reads segment keys from the queue via `ZRANGEBYSCORE`
-   (segments past their flush deadline), looks up the member-keys index to
-   discover payload keys, loads span payloads from each via `SSCAN`, and
-   produces them to the `buffered-segments` Kafka topic.
+   (segments past their flush deadline), acquires a per-segment Redis lock
+   (`span-buf:fl:<segment_key>`) with `SET NX EX`, looks up the member-keys index
+   to discover payload keys, loads span payloads from each via `SSCAN`, and produces
+   them to the `buffered-segments` Kafka topic.
 2. `done_flush_segments`: cleans up Redis keys (`DELETE` metadata,
    `UNLINK` payload keys, `DELETE` member-keys index, `HDEL` redirect
-   entries, `ZREM` the queue entry).
+   entries, `DELETE` the flush lock, `ZREM` the queue entry).
+
+The per-segment lock prevents duplicate production:
+
+- A segment key can appear in more than one shard queue when spans from
+  the same segment arrive from different Kafka partitions.
+- Each queue is still owned by at most one flusher, but different flushers will
+  have the same segment key in their own queues.
+- Only one flusher can acquire the lock and flush the segment, the other flushers will
+  skip that segment for the flush cycle.
+- After the segment is flushed, `done_flush_segments` deletes the segment metadata and
+  payload keys. It also deletes the lock so later flushers can acquire it and remove
+  stale queue entries instead of repeatedly finding the same locked segment at the front
+  of their queue.
 
 # GCP Log Analyzer Tool
 

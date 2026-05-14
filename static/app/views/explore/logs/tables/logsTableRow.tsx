@@ -461,9 +461,7 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           const shouldRenderActions =
-            (showCellActions ?? !embedded) &&
-            field !== OurLogKnownFieldKey.TIMESTAMP &&
-            shouldRenderHoverElements;
+            (showCellActions ?? !embedded) && shouldRenderHoverElements;
           const extraMenuItems =
             field === OurLogKnownFieldKey.MESSAGE
               ? getExploreSimilarSpansMenuItems({

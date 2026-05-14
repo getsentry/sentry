@@ -131,23 +131,3 @@ jobs:
           DEBUG_PRINT_LIMIT: 0
           MERGE_BASE: ${{ needs.files-changed.outputs.merge_base }}
         run: pnpm run test-ci --forceExit
-
-  typescript-native:
-    if: needs.files-changed.outputs.frontend_all == 'true'
-    needs: files-changed
-    name: '@typescript/native-preview'
-    runs-on: ubuntu-24.04
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: ./.github/actions/setup-node-pnpm
-
-      - name: setup matchers
-        run: |
-          echo "::remove-matcher owner=masters::"
-          echo "::add-matcher::.github/tsc.json"
-
-      - name: tsgo
-        id: tsgo
-        run: pnpm run typecheck

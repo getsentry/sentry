@@ -3,6 +3,7 @@ from rest_framework import status
 
 from sentry.api.serializers import serialize
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
@@ -37,6 +38,11 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         self.repo = Repository.objects.create(
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
+        self.project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=self.repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         self.config = RepositoryProjectPathConfig.objects.create(
             repository_id=self.repo.id,
             project_id=self.project.id,
@@ -46,6 +52,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             stack_root="/stack/root",
             source_root="/source/root",
             default_branch="master",
+            project_repository=self.project_repo,
         )
 
         self.url = reverse(

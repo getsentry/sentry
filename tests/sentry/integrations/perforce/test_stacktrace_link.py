@@ -4,6 +4,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.utils.stacktrace_link import get_stacktrace_config
 from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkContext
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.testutils.cases import IntegrationTestCase
 
@@ -32,6 +33,11 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        self.project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=self.repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         self.code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -41,6 +47,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=self.project_repo,
         )
 
         # Mock the Perforce client's check_file to avoid actual P4 connection
@@ -142,6 +149,11 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             config={"depot_path": "//myproject"},
         )
 
+        myproject_project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=myproject_repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -151,6 +163,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             stack_root="myproject/",
             source_root="/",
             default_branch=None,
+            project_repository=myproject_project_repo,
         )
 
         # Test with myproject path
@@ -201,6 +214,11 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
 
         org_integration = integration_with_web.organizationintegration_set.first()
         assert org_integration is not None
+        project_repo_web, _ = ProjectRepository.objects.get_or_create(
+            project=project_web,
+            repository=repo_web,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping_web = RepositoryProjectPathConfig.objects.create(
             project=project_web,
             organization_id=self.organization.id,
@@ -210,6 +228,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo_web,
         )
 
         ctx: StacktraceLinkContext = {
@@ -271,6 +290,11 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             config={"depot_path": "//other"},
         )
 
+        other_project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=other_repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         other_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -280,6 +304,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             stack_root="other/",
             source_root="/",
             default_branch=None,
+            project_repository=other_project_repo,
         )
 
         ctx: StacktraceLinkContext = {
@@ -316,6 +341,11 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             config={"depot_path": "//myproject"},
         )
 
+        myproject_project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project2,
+            repository=myproject_repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
             project=project2,
             organization_id=self.organization.id,
@@ -325,6 +355,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             stack_root="depot/",  # Same stack_root as depot mapping (but different project)
             source_root="/",
             default_branch=None,
+            project_repository=myproject_project_repo,
         )
 
         ctx: StacktraceLinkContext = {
@@ -391,6 +422,11 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -400,6 +436,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             stack_root="",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         ctx: StacktraceLinkContext = {
@@ -431,6 +468,11 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -440,6 +482,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         # Path with spaces and special chars
@@ -472,6 +515,11 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
             organization_id=self.organization.id,
@@ -481,6 +529,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             stack_root="depot/",
             source_root="/",
             default_branch=None,
+            project_repository=project_repo,
         )
 
         deep_path = "depot/" + "/".join([f"level{i}" for i in range(20)]) + "/file.py"

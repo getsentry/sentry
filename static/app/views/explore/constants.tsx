@@ -120,7 +120,7 @@ export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [
   ...PREPROD_IMAGE_FIELDS,
 ];
 
-export const SENTRY_PREPROD_BOOLEAN_TAGS: string[] = ['is_approved'];
+export const SENTRY_PREPROD_BOOLEAN_TAGS: string[] = [];
 
 export const HIDDEN_PREPROD_ATTRIBUTES = [
   'min_install_size',
@@ -144,7 +144,7 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
   ...PREPROD_IMAGE_FIELDS,
-  'is_approved',
+  'approval_status',
 ];
 
 export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [

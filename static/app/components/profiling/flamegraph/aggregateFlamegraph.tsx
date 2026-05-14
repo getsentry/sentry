@@ -9,6 +9,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {
   AggregateProfileSource,
@@ -34,8 +35,11 @@ import {
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
+
 interface AggregateFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   filter: 'application' | 'system' | 'all';
@@ -43,6 +47,7 @@ interface AggregateFlamegraphProps {
   profileType: ProfileSource | AggregateProfileSource;
   scheduler: CanvasScheduler;
   status: QueryStatus;
+  queryError?: RequestError | null;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
@@ -217,7 +222,13 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
           props.status === 'pending'
             ? {type: 'loading'}
             : props.status === 'error'
-              ? {type: 'errored', error: 'error'}
+              ? {
+                  type: 'errored',
+                  error: getRequestErrorUserMessage(
+                    props.queryError,
+                    t('Failed to load profile')
+                  ),
+                }
               : {type: 'resolved', data: null}
         }
         onResetFilter={props.onResetFilter}

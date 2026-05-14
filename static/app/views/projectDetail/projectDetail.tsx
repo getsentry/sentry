@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -256,7 +255,7 @@ export function ProjectDetail() {
 
             <Layout.Body noRowGap>
               <Layout.Main>
-                <ProjectFiltersWrapper>
+                <Container marginBottom="xl">
                   <ProjectFilters
                     query={query}
                     onSearch={handleSearch}
@@ -267,7 +266,7 @@ export function ProjectDetail() {
                     }
                     tagValueLoader={tagValueLoader}
                   />
-                </ProjectFiltersWrapper>
+                </Container>
 
                 <ProjectScoreCards
                   organization={organization}
@@ -333,7 +332,3 @@ export function ProjectDetail() {
     </SentryDocumentTitle>
   );
 }
-
-const ProjectFiltersWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

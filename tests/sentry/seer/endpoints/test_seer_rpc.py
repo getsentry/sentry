@@ -15,6 +15,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.seer.agent.tools import get_trace_item_attributes
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
@@ -30,7 +31,6 @@ from sentry.seer.endpoints.seer_rpc import (
     trigger_coding_agent_launch,
     validate_repo,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -1091,6 +1091,11 @@ class TestSeerRpcMethods(APITestCase):
             status=ObjectStatus.ACTIVE,
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         RepositoryProjectPathConfig.objects.create(
             repository=repo,
             project=project,
@@ -1099,6 +1104,7 @@ class TestSeerRpcMethods(APITestCase):
             organization_id=self.organization.id,
             stack_root="/",
             source_root="/",
+            project_repository=project_repo,
         )
 
         result = has_repo_code_mappings(
@@ -1541,7 +1547,7 @@ class TestSeerRpcMethods(APITestCase):
             external_id="123",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=project, repository=repo)
+        self.create_seer_project_repository(project=project, repository=repo)
 
         result = get_project_preferences(
             organization_id=self.organization.id,
@@ -1592,7 +1598,7 @@ class TestSeerRpcMethods(APITestCase):
             external_id="111",
             name="getsentry/p1",
         )
-        SeerProjectRepository.objects.create(project=project1, repository=repo1)
+        self.create_seer_project_repository(project=project1, repository=repo1)
 
         result = bulk_get_project_preferences(
             organization_id=self.organization.id,

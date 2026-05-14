@@ -257,6 +257,7 @@ export const useAiAutofix = (
             data: {
               event_id: event.id,
               instruction,
+              referrer: 'api.web',
               ...(stoppingPoint && {stopping_point: stoppingPoint}),
             },
           }

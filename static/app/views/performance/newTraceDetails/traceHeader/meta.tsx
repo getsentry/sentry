@@ -11,7 +11,11 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {
+  getTraceMetaLogsCount,
+  getTraceMetaSpanCount,
+  type TraceMetaQueryResults,
+} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -79,18 +83,15 @@ export function Meta(props: MetaProps) {
   let spansCount = 0;
   let loadedSpansCount = 0;
   let totalSpansCount = 0;
-  if (
-    traceNode &&
-    props.meta?.span_count &&
-    props.tree.eap_spans_count !== props.meta.span_count
-  ) {
+  const metaSpansCount = getTraceMetaSpanCount(props.meta);
+  if (traceNode && metaSpansCount && props.tree.eap_spans_count !== metaSpansCount) {
     loadedSpansCount = props.tree.eap_spans_count;
-    totalSpansCount = props.meta.span_count;
+    totalSpansCount = metaSpansCount;
     spansCount = totalSpansCount;
   } else if (traceNode) {
     spansCount = props.tree.eap_spans_count;
-  } else if (props.meta?.span_count) {
-    spansCount = props.meta.span_count;
+  } else if (metaSpansCount) {
+    spansCount = metaSpansCount;
   }
 
   const uniqueIssuesCount = traceNode ? traceNode.uniqueIssues.length : 0;
@@ -148,9 +149,7 @@ export function Meta(props: MetaProps) {
         </MetaSection>
       ) : hasLogs ? (
         <MetaSection rightAlignBody headingText={t('Logs')}>
-          {props.meta && 'logs' in props.meta
-            ? props.meta.logs
-            : (props.logs?.length ?? 0)}
+          {getTraceMetaLogsCount(props.meta) ?? props.logs?.length ?? 0}
         </MetaSection>
       ) : null}
     </MetaWrapper>

@@ -29,6 +29,10 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentMessageCachePayload,
+)
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.tasks.base import instrumented_task
@@ -80,11 +84,23 @@ def send_thread_update(
                     slack_user_id=ephemeral_user_id,
                 )
             else:
-                install.send_threaded_message(
+                response = install.send_threaded_message(
                     channel_id=thread["channel_id"],
                     thread_ts=thread["thread_ts"],
                     renderable=renderable,
                 )
+                message_ts = response.get("ts") if response else None
+                run_id = getattr(data, "run_id", None)
+                if message_ts and run_id is not None:
+                    SlackSeerAgentMessageCache.set(
+                        integration_id=install.model.id,
+                        channel_id=thread["channel_id"],
+                        message_ts=message_ts,
+                        payload=SlackSeerAgentMessageCachePayload(
+                            thread_ts=thread["thread_ts"],
+                            run_id=run_id,
+                        ),
+                    )
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
         except IntegrationError as e:

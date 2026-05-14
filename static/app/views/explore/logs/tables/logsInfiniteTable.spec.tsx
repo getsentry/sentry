@@ -264,11 +264,7 @@ describe('LogsInfiniteTable', () => {
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',
         });
-        if (field === 'timestamp') {
-          expect(actionsButton).toBeNull();
-        } else {
-          expect(actionsButton).toBeInTheDocument();
-        }
+        expect(actionsButton).toBeInTheDocument();
       }
     }
     for (const mock of traceItemMocks) {

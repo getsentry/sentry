@@ -199,8 +199,9 @@ export type SnapshotComparisonState =
   | 'processing'
   | 'success'
   | 'failed'
-  | 'waiting_for_base';
-export type SnapshotApprovalStatus = 'approved' | 'requires_approval';
+  | 'waiting_for_base'
+  | 'no_base_build';
+export type SnapshotApprovalStatus = 'approved' | 'auto_approved' | 'requires_approval';
 
 interface SnapshotComparisonInfo {
   image_count: number;

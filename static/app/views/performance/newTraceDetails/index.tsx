@@ -33,7 +33,12 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
+import {
+  getTraceMetaErrorCount,
+  getTraceMetaPerformanceIssueCount,
+  getTraceMetaSpanCount,
+  useTraceMeta,
+} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
 import {
@@ -117,7 +122,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   });
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -161,9 +166,9 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     durationMs: tree.root.children[0]?.space?.[1],
     nodeCount: tree.list.length,
     services: Array.from(tree.projects.values()).map(p => p.slug),
-    errors: meta.data?.errors,
-    performanceIssues: meta.data?.performance_issues,
-    spanCount: meta.data?.span_count,
+    errors: getTraceMetaErrorCount(meta.data),
+    performanceIssues: getTraceMetaPerformanceIssueCount(meta.data),
+    spanCount: getTraceMetaSpanCount(meta.data),
     webVitals: tree.indicators.map(i => ({
       type: i.type,
       label: i.label,
