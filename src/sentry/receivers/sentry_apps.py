@@ -11,7 +11,12 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
-from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.sentry_apps.tasks.sentry_apps import (
+    broadcast_webhooks_for_organization,
+    build_comment_webhook,
+    workflow_notification,
+)
+from sentry.sentry_apps.utils.webhooks import ProjectActionType
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -21,6 +26,7 @@ from sentry.signals import (
     issue_ignored,
     issue_resolved,
     issue_unresolved,
+    project_created,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -96,6 +102,26 @@ def send_issue_unresolved_webhook_helper(
         event="issue.unresolved",
         data=data,
     )
+
+
+@project_created.connect(weak=False)
+def send_project_created_webhook(project, user_id=None, **kwargs):
+    from django.db import router, transaction
+
+    from sentry.api.serializers import serialize
+    from sentry.utils import json
+
+    serialized = json.loads(json.dumps(serialize(project)))
+
+    def _send():
+        broadcast_webhooks_for_organization.delay(
+            resource_name="project",
+            event_name=ProjectActionType.CREATED.value,
+            organization_id=project.organization_id,
+            payload={"project": serialized},
+        )
+
+    transaction.on_commit(_send, using=router.db_for_write(Project))
 
 
 @comment_created.connect(weak=False)

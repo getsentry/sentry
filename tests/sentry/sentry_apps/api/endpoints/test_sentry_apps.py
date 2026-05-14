@@ -712,7 +712,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert "name" in response.data
 
     def test_invalid_events(self) -> None:
-        response = self.get_error_response(**self.get_data(events=["project"]), status_code=400)
+        response = self.get_error_response(**self.get_data(events=["invalid"]), status_code=400)
         assert "events" in response.data
 
     def test_invalid_scope(self) -> None:
