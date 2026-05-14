@@ -53,6 +53,79 @@ describe('useChartInterval', () => {
     });
     expect(chartInterval).toBe('5m');
   });
+
+  it('offers 7d interval when period is >= 30d', () => {
+    let intervalOptions!: ReturnType<typeof useChartInterval>[2];
+
+    function TestPage() {
+      [, , intervalOptions] = useChartInterval();
+      return null;
+    }
+
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: '30d',
+        start: null,
+        end: null,
+        utc: true,
+      })
+    );
+
+    render(<TestPage />);
+
+    expect(intervalOptions).toContainEqual({value: '7d', label: '7 days'});
+    expect(intervalOptions).toContainEqual({value: '1d', label: '1 day'});
+  });
+
+  it('does not offer 7d interval below the 30d threshold', () => {
+    let intervalOptions!: ReturnType<typeof useChartInterval>[2];
+
+    function TestPage() {
+      [, , intervalOptions] = useChartInterval();
+      return null;
+    }
+
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: '29d',
+        start: null,
+        end: null,
+        utc: true,
+      })
+    );
+
+    render(<TestPage />);
+
+    expect(intervalOptions).not.toContainEqual({value: '7d', label: '7 days'});
+    // 1d is still offered for periods >= 14d
+    expect(intervalOptions).toContainEqual({value: '1d', label: '1 day'});
+  });
+
+  it('falls back to default when URL interval is 7d but the period dropped below 30d', () => {
+    let chartInterval!: ReturnType<typeof useChartInterval>[0];
+    let intervalOptions!: ReturnType<typeof useChartInterval>[2];
+
+    function TestPage() {
+      [chartInterval, , intervalOptions] = useChartInterval();
+      return null;
+    }
+
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: '14d',
+        start: null,
+        end: null,
+        utc: true,
+      })
+    );
+
+    render(<TestPage />, {
+      initialRouterConfig: {location: {pathname: '/foo/', query: {interval: '7d'}}},
+    });
+
+    expect(intervalOptions).not.toContainEqual({value: '7d', label: '7 days'});
+    expect(chartInterval).not.toBe('7d');
+  });
 });
 
 describe('getIntervalOptionsForPageFilter', () => {
