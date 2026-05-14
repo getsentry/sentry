@@ -29,8 +29,6 @@ export function useOnDemandControl(): OnDemandControlContext | undefined {
   return useContext(OnDemandControlContext);
 }
 
-export const OnDemandControlConsumer = OnDemandControlContext.Consumer;
-
 export function OnDemandControlProvider({
   children,
   location,
