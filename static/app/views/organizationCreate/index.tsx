@@ -16,7 +16,11 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
+import {
+  getRegionUrl,
+  getRegionNameChoices,
+  shouldDisplayRegions,
+} from 'sentry/utils/regions';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -42,8 +46,9 @@ function OrganizationCreate() {
   const privacyUrl = ConfigStore.get('privacyUrl');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const relocationUrl = normalizeUrl('/relocation/');
-  const regionChoices = getRegionChoices();
+  const regionChoices = getRegionNameChoices();
   const client = useApi();
+  const useControl = ConfigStore.get('features').has('organizations:create-org-control');
 
   const hasDataConsent =
     HookStore.get('component:data-consent-org-creation-checkbox').length !== 0;
@@ -56,20 +61,30 @@ function OrganizationCreate() {
       if (!formModel.validateForm()) {
         return;
       }
-      const regionUrl = data.dataStorageLocation;
+
+      let host: string | undefined;
+      if (data.dataStorageLocation) {
+        if (useControl) {
+          host = ConfigStore.get('links').sentryUrl;
+        } else {
+          const storageLocation = data.dataStorageLocation;
+          host = getRegionUrl(storageLocation) ?? host;
+          data = removeDataStorageLocationFromFormData(data);
+        }
+      }
 
       addLoadingMessage(t('Creating Organization\u2026'));
       formModel.setFormSaving();
 
       client.request('/organizations/', {
         method: 'POST',
-        data: removeDataStorageLocationFromFormData(data),
-        host: regionUrl,
+        data,
+        host,
         success: onSubmitSuccess,
         error: onSubmitError,
       });
     },
-    [client]
+    [client, useControl]
   );
 
   return (
