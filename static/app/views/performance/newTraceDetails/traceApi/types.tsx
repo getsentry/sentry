@@ -96,7 +96,7 @@ export type TraceMeta = {
   transactions: number;
 };
 
-export type ResponseTraceMetaTransactionChildCount = {
+type ResponseTraceMetaTransactionChildCount = {
   count: number;
   'transaction.id': string;
 };
@@ -123,7 +123,7 @@ export type EAPTraceMeta = {
   uptimeCount: number;
 };
 
-export type ResponseEAPTraceMetaTransactionChildCount = {
+type ResponseEAPTraceMetaTransactionChildCount = {
   'count()': number;
   'transaction.event_id': string;
 };
