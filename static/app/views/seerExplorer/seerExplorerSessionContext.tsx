@@ -46,7 +46,7 @@ export function SeerExplorerSessionsProvider(props: SeerExplorerSessionsProvider
   const organization = useOrganization({allowNull: true});
 
   const query = useSeerExplorerSessionsQuery({
-    limit: 10,
+    limit: 20,
     enabled: isSeerExplorerEnabled(organization),
   });
 
