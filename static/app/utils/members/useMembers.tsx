@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {Member} from 'sentry/types/organization';
@@ -54,9 +54,9 @@ export function useMembers({enabled = true, ids, limit}: UseMembersOptions = {})
   const hasIdFilter = ids !== undefined;
   const hasIds = normalizedIds.length > 0;
 
-  const placeholderData = useCallback((): ApiResponse<Member[]> | undefined => {
+  const cachedData = useMemo(() => {
     if (!hasIdFilter || !hasIds) {
-      return undefined;
+      return;
     }
     return findMembersInCache(queryClient, organization.slug, normalizedIds);
   }, [queryClient, organization.slug, normalizedIds, hasIdFilter, hasIds]);
@@ -67,7 +67,7 @@ export function useMembers({enabled = true, ids, limit}: UseMembersOptions = {})
       ids: hasIdFilter ? normalizedIds : undefined,
       limit,
     }),
-    enabled: enabled && (!hasIdFilter || hasIds),
-    placeholderData: placeholderData(),
+    enabled: enabled && (!hasIdFilter || hasIds) && !cachedData,
+    initialData: cachedData,
   });
 }
