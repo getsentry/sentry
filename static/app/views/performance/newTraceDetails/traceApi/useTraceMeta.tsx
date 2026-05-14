@@ -176,7 +176,7 @@ async function fetchTraceMetaInBatches(
     const results = await Promise.allSettled<ResponseTraceMeta | ResponseEAPTraceMeta>(
       batch.map(trace => {
         const url = getApiUrl(
-          type === 'eap'
+          type === 'non-eap'
             ? '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/'
             : '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
           {path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug}}
