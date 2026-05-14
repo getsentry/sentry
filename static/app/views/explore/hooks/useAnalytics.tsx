@@ -350,6 +350,9 @@ function useTrackAnalytics({
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
 
+    // consume aiQueryRunId if there is one - we're not interested in tracking attribute breakdowns
+    getRunIdForAnalytics();
+
     trackAnalytics('trace.explorer.metadata', {
       organization,
       dataScanned: '',
@@ -419,6 +422,7 @@ function useTrackAnalytics({
     timeseriesResult.isPending,
     title,
     visualizes,
+    getRunIdForAnalytics,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
