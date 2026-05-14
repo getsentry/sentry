@@ -6,6 +6,7 @@ import type {
   TraceMeta,
 } from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 import {useTraceContextSections} from './useTraceContextSections';
 
@@ -13,7 +14,7 @@ function makeTree(overrides: Partial<TraceTree> = {}): TraceTree {
   return {
     type: 'empty',
     root: {
-      findChild: () => false,
+      findChild: () => null,
     },
     vitals: new Map(),
     profiled_events: new Set(),
@@ -62,8 +63,8 @@ describe('useTraceContextSections', () => {
       useTraceContextSections({
         tree: makeTree({
           root: {
-            findChild: () => true,
-          },
+            findChild: () => ({}) as BaseNode,
+          } as unknown as TraceTree['root'],
         }),
         logs: [{}] as unknown as OurLogsResponseItem[],
         metrics: {count: 1},
