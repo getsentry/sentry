@@ -104,12 +104,41 @@ export function SeerExplorerSessionsProvider({children}: {children: React.ReactN
   );
 
   const conversations = useMemo<Conversation[]>(() => {
-    if (!query.data?.data?.length) return [];
+    const activeEntry = Object.entries(state).find(([, v]) => v.status === 'active');
+    const activeId = activeEntry ? Number(activeEntry[0]) : null;
 
-    return query.data.data.map(session => ({
+    if (!query.data?.data?.length) {
+      if (activeId === null) return [];
+      // Query hasn't loaded or returned empty — still surface the active run
+      // so runId resolves immediately from sessionStorage.
+      return [
+        {
+          run_id: activeId,
+          title: '',
+          created_at: '',
+          last_triggered_at: '',
+          status: 'active',
+        },
+      ];
+    }
+
+    const merged = query.data.data.map(session => ({
       ...session,
-      status: state[session.run_id]?.status ?? 'idle',
+      status: state[session.run_id]?.status ?? ('idle' as const),
     }));
+
+    // Active run may not be in the top N results — inject it so runId resolves.
+    if (activeId !== null && !merged.some(c => c.run_id === activeId)) {
+      merged.unshift({
+        run_id: activeId,
+        title: '',
+        created_at: '',
+        last_triggered_at: '',
+        status: 'active',
+      });
+    }
+
+    return merged;
   }, [query.data?.data, state]);
 
   const contextValue = useMemo(() => ({query, conversations}), [query, conversations]);
