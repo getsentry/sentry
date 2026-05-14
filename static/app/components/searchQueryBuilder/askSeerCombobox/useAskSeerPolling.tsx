@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -82,6 +82,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const [runId, setRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
+  const inFlightQueryRef = useRef<string | null>(null);
 
   const queryKey = makeAskSeerQueryKey(orgSlug, runId ?? undefined);
 
@@ -107,9 +108,10 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   // Start a new search
   const submitQuery = useCallback(
     async (query: string) => {
-      if (waitingForResponse) {
+      if (inFlightQueryRef.current === query) {
         return;
       }
+      inFlightQueryRef.current = query;
       setWaitingForResponse(true);
 
       try {
@@ -136,14 +138,21 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
           });
         }
       } catch (error) {
+        inFlightQueryRef.current = null;
         setWaitingForResponse(false);
         setStartFailed(true);
         addErrorMessage((error as Error)?.message ?? 'Failed to start AI search');
         options.onError?.(error as Error);
       }
     },
-    [api, orgSlug, options, queryClient, waitingForResponse]
+    [api, orgSlug, options, queryClient]
   );
+
+  useEffect(() => {
+    if (!waitingForResponse) {
+      inFlightQueryRef.current = null;
+    }
+  }, [waitingForResponse]);
 
   // Handle completion callback
   useEffect(() => {
