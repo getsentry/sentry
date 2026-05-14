@@ -48,6 +48,7 @@ jobs:
       # and the Jest job will run the full test suite instead.
       - name: Get merge base for changedSince
         id: merge_base
+        if: github.event_name == 'pull_request'
         run: |
           MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
           if [ -n "$MERGE_BASE" ]; then
