@@ -499,6 +499,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 group=group,
                 run_id=run_id,
                 referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+                initiator="automation.explorer",
                 integration_id=handoff_config.integration_id,
             )
             logger.info(

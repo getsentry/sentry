@@ -598,6 +598,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         assert len(result["successes"]) == 1
@@ -648,6 +649,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         assert len(result["failures"]) == 1
@@ -668,6 +670,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 run_id=123,
                 referrer=AutofixReferrer.UNKNOWN,
                 integration_id=456,
+                initiator="automation.explorer",
             )
 
         mock_client.launch_coding_agents.assert_not_called()
@@ -706,6 +709,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         # Verify prompt was generated and passed to launch_coding_agents
@@ -739,6 +743,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
@@ -766,6 +771,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
@@ -793,6 +799,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
@@ -825,6 +832,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
@@ -853,6 +861,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
@@ -895,6 +904,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
@@ -919,6 +929,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 run_id=123,
                 referrer=AutofixReferrer.UNKNOWN,
                 integration_id=456,
+                initiator="automation.explorer",
             )
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
@@ -962,6 +973,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
@@ -984,6 +996,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             run_id=123,
             referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
+            initiator="automation.explorer",
         )
 
         mock_get_autofix_state.assert_not_called()
