@@ -897,7 +897,6 @@ export function GlobalCommandPaletteActions() {
 
       <CMDKAction
         display={{label: t('Projects'), icon: <IconAllProjects />}}
-        keywords={[t('project'), t('switch project'), t('go to project')]}
         prompt={t('Search for a project...')}
         limit={4}
         resource={query => {
