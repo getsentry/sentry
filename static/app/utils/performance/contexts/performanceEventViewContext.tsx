@@ -6,11 +6,9 @@ type UsePerformanceEventViewContext = {
   eventView: EventView;
 };
 
-const PerformanceEventViewContext = createContext<
+export const PerformanceEventViewContext = createContext<
   UsePerformanceEventViewContext | undefined
 >(undefined);
 PerformanceEventViewContext.displayName = 'PerformanceEventViewContext';
 
-const PerformanceEventViewProvider = PerformanceEventViewContext.Provider;
-
-export {PerformanceEventViewProvider, PerformanceEventViewContext};
+export const PerformanceEventViewProvider = PerformanceEventViewContext.Provider;
