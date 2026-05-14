@@ -86,14 +86,14 @@ export function WidgetSyncContextProvider({
   );
 
   return (
-    <WidgetSyncCtx.Provider
+    <WidgetSyncCtx
       value={{
         register,
         groupName: stableGroupName,
       }}
     >
       {children}
-    </WidgetSyncCtx.Provider>
+    </WidgetSyncCtx>
   );
 }
 

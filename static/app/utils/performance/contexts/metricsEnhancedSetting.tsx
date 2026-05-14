@@ -146,7 +146,7 @@ export function MEPSettingProvider({
   const memoizationKey = metricSettingState;
 
   return (
-    <MEPSettingContext.Provider
+    <MEPSettingContext
       value={{
         autoSampleState,
         metricSettingState,
@@ -159,6 +159,6 @@ export function MEPSettingProvider({
       }}
     >
       <MEPDataProvider>{children}</MEPDataProvider>
-    </MEPSettingContext.Provider>
+    </MEPSettingContext>
   );
 }

@@ -47,7 +47,7 @@ export function MetricsCardinalityProvider(props: {
 
   if (!isUsingMetrics) {
     return (
-      <MetricsCardinalityCtx.Provider
+      <MetricsCardinalityCtx
         value={{
           isLoading: false,
           outcome: {
@@ -56,7 +56,7 @@ export function MetricsCardinalityProvider(props: {
         }}
       >
         {props.children}
-      </MetricsCardinalityCtx.Provider>
+      </MetricsCardinalityCtx>
     );
   }
 
@@ -158,11 +158,7 @@ function Provider(props: {
     fallbackFromNull,
     props.sendOutcomeAnalytics,
   ]);
-  return (
-    <MetricsCardinalityCtx.Provider {...props}>
-      {props.children}
-    </MetricsCardinalityCtx.Provider>
-  );
+  return <MetricsCardinalityCtx {...props}>{props.children}</MetricsCardinalityCtx>;
 }
 
 export function useMetricsCardinalityContext(): MetricsCardinalityContext | undefined {

@@ -48,9 +48,7 @@ export function LogsPageDataProvider({
       infiniteLogsQueryResult,
     };
   }, [infiniteLogsQueryResult]);
-  return (
-    <LogsPageDataContext.Provider value={value}>{children}</LogsPageDataContext.Provider>
-  );
+  return <LogsPageDataContext value={value}>{children}</LogsPageDataContext>;
 }
 
 export function useLogsPageDataQueryResult() {

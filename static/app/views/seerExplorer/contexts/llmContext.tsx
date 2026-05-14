@@ -184,9 +184,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     [getSnapshot, registerNode, unregisterNode, updateNodeData]
   );
 
-  return (
-    <LLMInternalContext.Provider value={value}>{children}</LLMInternalContext.Provider>
-  );
+  return <LLMInternalContext value={value}>{children}</LLMInternalContext>;
 }
 
 /**

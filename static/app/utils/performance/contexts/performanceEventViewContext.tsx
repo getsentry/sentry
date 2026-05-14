@@ -10,4 +10,4 @@ export const PerformanceEventViewContext = createContext<
   UsePerformanceEventViewContext | undefined
 >(undefined);
 
-export const PerformanceEventViewProvider = PerformanceEventViewContext.Provider;
+export const PerformanceEventViewProvider = PerformanceEventViewContext;

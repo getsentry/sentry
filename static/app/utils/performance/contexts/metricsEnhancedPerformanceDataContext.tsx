@@ -58,14 +58,14 @@ export function MEPDataProvider({
   );
 
   return (
-    <MEPDataContext.Provider
+    <MEPDataContext
       value={{
         isMetricsData,
         setIsMetricsData,
       }}
     >
       {children}
-    </MEPDataContext.Provider>
+    </MEPDataContext>
   );
 }
 
@@ -97,11 +97,11 @@ export function MetricsResultsMetaProvider({children}: {children: ReactNode}) {
   );
 
   return (
-    <MetricsResultsMetaContext.Provider
+    <MetricsResultsMetaContext
       value={{setIsMetricsExtractedData, metricsExtractedDataMap}}
     >
       {children}
-    </MetricsResultsMetaContext.Provider>
+    </MetricsResultsMetaContext>
   );
 }
 

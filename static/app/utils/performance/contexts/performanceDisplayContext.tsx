@@ -10,7 +10,7 @@ const PerformanceDisplayContext = createContext<UseCurrentPerformanceView | unde
   undefined
 );
 
-export const PerformanceDisplayProvider = PerformanceDisplayContext.Provider;
+export const PerformanceDisplayProvider = PerformanceDisplayContext;
 
 export function usePerformanceDisplayType(): ProjectPerformanceType {
   const context = useContext(PerformanceDisplayContext);

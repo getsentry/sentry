@@ -24,14 +24,14 @@ function DashboardsMEPProvider({children}: {children: ReactNode}) {
   const [isMetricsData, setIsMetricsData] = useState<boolean | undefined>(undefined); // undefined means not initialized
 
   return (
-    <DashboardsMEPContext.Provider
+    <DashboardsMEPContext
       value={{
         isMetricsData,
         setIsMetricsData,
       }}
     >
       {children}
-    </DashboardsMEPContext.Provider>
+    </DashboardsMEPContext>
   );
 }
 

@@ -68,11 +68,9 @@ export function OnDemandControlProvider({
   );
 
   return (
-    <OnDemandControlContext.Provider
-      value={{setForceOnDemand, isControlEnabled, forceOnDemand}}
-    >
+    <OnDemandControlContext value={{setForceOnDemand, isControlEnabled, forceOnDemand}}>
       {children}
-    </OnDemandControlContext.Provider>
+    </OnDemandControlContext>
   );
 }
 /**
