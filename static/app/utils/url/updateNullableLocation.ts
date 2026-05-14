@@ -3,6 +3,8 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 
 /**
+ * @deprecated Use nuqs to manage query params instead.
+ *
  * Allows updating a location field, removing it if the value is null.
  *
  * Return true if the location field was updated, in case of side effects.

@@ -117,18 +117,13 @@ const LOGO_MAPPING = {
 /** @internal used in stories **/
 export const NAMES = Object.keys(LOGO_MAPPING);
 
-// The icons in this list will be inverted when the theme is set to dark mode
-const INVERT_IN_DARKMODE = [
-  'darwin',
-  'ios',
-  'macos',
-  'tvos',
-  'mac-os-x',
-  'mac',
-  'apple',
-  'watchos',
-  'vercel',
-];
+// The logos in this list will be inverted when the theme is set to dark mode
+const INVERT_IN_DARKMODE = new Set<string>([
+  logoApple,
+  logoVercel,
+  logoPlaystation,
+  logoAmd,
+]);
 
 const darkCss = css`
   filter: invert(100%);
@@ -170,8 +165,8 @@ export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps)
 
   // Apply darkmode CSS to icon when in darkmode
   const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
-  const extraCass = isDarkmode && INVERT_IN_DARKMODE.includes(name) ? darkCss : null;
   const imageName = getLogoImage(name);
+  const extraCass = isDarkmode && INVERT_IN_DARKMODE.has(imageName) ? darkCss : null;
 
   return <img height={size} width={size} css={extraCass} src={imageName} />;
 }

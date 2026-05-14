@@ -90,6 +90,7 @@ from .projectkeymapping import *  # NOQA
 from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
+from .projectrepository import *  # NOQA
 from .projectsdk import *  # NOQA
 from .projectteam import *  # NOQA
 from .promptsactivity import *  # NOQA
@@ -110,7 +111,6 @@ from .repositorysettings import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA
-from .rulefirehistory import *  # NOQA
 from .rulesnooze import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA

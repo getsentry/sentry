@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -17,7 +17,7 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -48,7 +48,7 @@ export default function ReplayInlineOnboardingPanel({
   }
 
   return (
-    <InterimSection type={SectionKey.REPLAY} title={t('Session Replay')}>
+    <FoldSection sectionKey={SectionKey.REPLAY} title={t('Session Replay')}>
       <BannerWrapper>
         <div>
           <BannerTitle>
@@ -56,9 +56,9 @@ export default function ReplayInlineOnboardingPanel({
               platform: <PurpleText>{platformName}</PurpleText>,
             })}
           </BannerTitle>
-          <BannerDescription>
+          <Container marginBottom="lg" maxWidth="340px">
             {t('Watch the errors and latency issues your users face')}
-          </BannerDescription>
+          </Container>
           <Flex gap="md">
             <Button
               type="button"
@@ -106,7 +106,7 @@ export default function ReplayInlineOnboardingPanel({
           ]}
         />
       </BannerWrapper>
-    </InterimSection>
+    </FoldSection>
   );
 }
 
@@ -133,11 +133,6 @@ const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 340px;
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`

@@ -12,12 +12,12 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
@@ -47,7 +47,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
-  const id = getIdFromLocation(location);
+  const id = decodeScalar(location.query.id);
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const metricQueries = useMultiMetricsQueryParams();

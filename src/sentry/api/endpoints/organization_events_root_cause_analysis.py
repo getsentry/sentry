@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from rest_framework import serializers
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Direction, Function, Op, Or, OrderBy
 
@@ -10,12 +11,13 @@ from sentry.api.endpoints.organization_events_spans_performance import EventID, 
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.search.utils import parse_datetime_string
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
 DEFAULT_LIMIT = 50
+MAX_LIMIT = 100
 BUFFER = timedelta(hours=6)
 BASE_REFERRER = "api.organization-events-root-cause-analysis"
 SPAN_ANALYSIS_SCORE_THRESHOLD = 0
@@ -29,6 +31,30 @@ RESPONSE_KEYS = [
     "p95_after",
     "score",
 ]
+
+
+class RootCauseAnalysisQuerySerializer(serializers.Serializer):
+    transaction = serializers.CharField(max_length=200)
+    project = serializers.IntegerField()
+    breakpoint = serializers.CharField()
+    per_page = serializers.IntegerField(min_value=1, max_value=MAX_LIMIT, default=DEFAULT_LIMIT)
+    span_score_threshold = serializers.IntegerField(
+        min_value=0, default=SPAN_ANALYSIS_SCORE_THRESHOLD
+    )
+
+    def validate_transaction(self, value):
+        # Restrict to characters that are safe for downstream query construction.
+        if '"' in value or "\\" in value:
+            raise serializers.ValidationError(
+                "Transaction name cannot contain quote or backslash characters."
+            )
+        return value
+
+    def validate_breakpoint(self, value):
+        try:
+            return parse_datetime_string(value)
+        except InvalidQuery:
+            raise serializers.ValidationError("Must be an ISO 8601 datetime or unix timestamp.")
 
 
 def init_query_builder(
@@ -177,20 +203,16 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
     }
 
     def get(self, request, organization):
-        # TODO: Extract this into a custom serializer to handle validation
-        transaction_name = request.GET.get("transaction")
-        project_id = request.GET.get("project")
-        regression_breakpoint = request.GET.get("breakpoint")
-        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
-        span_score_threshold = int(
-            request.GET.get("span_score_threshold", SPAN_ANALYSIS_SCORE_THRESHOLD)
-        )
-        if not transaction_name or not project_id or not regression_breakpoint:
-            # Project ID is required to ensure the events we query for are
-            # the same transaction
-            return Response(status=400)
+        serializer = RootCauseAnalysisQuerySerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        regression_breakpoint = parse_datetime_string(regression_breakpoint)
+        validated = serializer.validated_data
+        transaction_name = validated["transaction"]
+        project_id = validated["project"]
+        regression_breakpoint = validated["breakpoint"]
+        limit = validated["per_page"]
+        span_score_threshold = validated["span_score_threshold"]
 
         snuba_params = self.get_snuba_params(request, organization)
 

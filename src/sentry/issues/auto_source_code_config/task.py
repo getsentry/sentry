@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
+from django.db import router, transaction
 from google.api_core.exceptions import DeadlineExceeded
 from sentry_sdk import set_tag, set_user
 
@@ -19,6 +20,7 @@ from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, Code
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -237,18 +239,25 @@ def create_code_mapping(
 ) -> None:
     created = False
     if not tags["dry_run"] and repository is not None:
-        _, created = RepositoryProjectPathConfig.objects.get_or_create(
-            project=project,
-            stack_root=code_mapping.stacktrace_root,
-            source_root=code_mapping.source_path,
-            defaults={
-                "repository": repository,
-                "organization_integration_id": org_integration.id,
-                "integration_id": org_integration.integration_id,
-                "organization_id": org_integration.organization_id,
-                "default_branch": code_mapping.repo.branch,
-                "automatically_generated": True,
-            },
-        )
+        with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository=repository,
+                defaults={"source": ProjectRepositorySource.AUTO_EVENT},
+            )
+            _, created = RepositoryProjectPathConfig.objects.get_or_create(
+                project=project,
+                stack_root=code_mapping.stacktrace_root,
+                source_root=code_mapping.source_path,
+                defaults={
+                    "repository": repository,
+                    "organization_integration_id": org_integration.id,
+                    "integration_id": org_integration.integration_id,
+                    "organization_id": org_integration.organization_id,
+                    "default_branch": code_mapping.repo.branch,
+                    "automatically_generated": True,
+                    "project_repository": project_repo,
+                },
+            )
     if created or tags["dry_run"]:
         metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)

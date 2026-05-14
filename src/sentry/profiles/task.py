@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import io
 import logging
-import zlib
-from base64 import b64decode, b64encode
+from base64 import b64decode
 from collections.abc import Generator
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -120,15 +119,6 @@ eap_producer = SingletonProducer(
 )
 
 logger = logging.getLogger(__name__)
-
-
-def encode_payload(message: dict[str, Any]) -> str:
-    return b64encode(
-        zlib.compress(
-            msgpack.packb(message),
-            level=1,
-        )
-    ).decode("utf-8")
 
 
 @instrumented_task(

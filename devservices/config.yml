@@ -108,6 +108,14 @@ x-sentry-service-config:
     # Taskworker services
     taskworker:
       description: Workers that process tasks from the taskbroker
+    taskworker-evals-ingest-errors:
+      description: Dedicated taskworker for eval error ingest tasks
+    taskworker-evals-ingest-errors-postprocess:
+      description: Dedicated taskworker for eval error post-processing tasks
+    taskworker-evals-issues:
+      description: Dedicated taskworker for eval issue-side tasks
+    taskworker-evals-relay:
+      description: Dedicated taskworker for eval Relay project config tasks
     taskworker-scheduler:
       description: Task scheduler that can spawn tasks based on their schedules
     # Kafka consumer services for event ingestion
@@ -257,6 +265,21 @@ x-sentry-service-config:
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
       ]
+    evals:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        objectstore,
+        taskbroker,
+        taskworker-evals-relay,
+        taskworker-evals-ingest-errors,
+        taskworker-evals-ingest-errors-postprocess,
+        taskworker-evals-issues,
+        ingest-events,
+        post-process-forwarder-errors,
+      ]
     minimal: [postgres, snuba]
     # The minimal set of services Symbolicator needs to run
     # Sentry integration tests.
@@ -344,6 +367,14 @@ x-programs:
     command: sentry devserver
   taskworker:
     command: sentry run taskworker
+  taskworker-evals-ingest-errors:
+    command: sentry run taskworker --namespace ingest.errors --concurrency 2 --processing-pool-name eval-ingest-errors
+  taskworker-evals-ingest-errors-postprocess:
+    command: sentry run taskworker --namespace ingest.errors.postprocess --concurrency 1 --processing-pool-name eval-ingest-errors-postprocess
+  taskworker-evals-issues:
+    command: sentry run taskworker --namespace issues --concurrency 1 --processing-pool-name eval-issues
+  taskworker-evals-relay:
+    command: sentry run taskworker --namespace relay --concurrency 1 --processing-pool-name eval-relay
   taskworker-scheduler:
     command: sentry run taskworker-scheduler
   ingest-events:

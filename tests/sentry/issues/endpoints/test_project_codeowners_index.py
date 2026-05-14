@@ -194,7 +194,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_invalid_codeowners_text(self, get_codeowner_mock_file: MagicMock) -> None:
+    def test_codeowners_exclusion_rule(self, get_codeowner_mock_file: MagicMock) -> None:
         self.data["raw"] = "docs/*"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -202,7 +202,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.data["raw"] == "docs/*"
         assert response.data["codeMappingId"] == str(self.code_mapping.id)
         assert response.data["provider"] == "github"
-        assert response.data["ownershipSyntax"] == ""
+        assert response.data["ownershipSyntax"] == "codeowners:docs/*\n"
 
         errors = response.data["errors"]
         assert errors["missing_external_teams"] == []

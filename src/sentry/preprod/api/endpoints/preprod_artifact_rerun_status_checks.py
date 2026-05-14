@@ -110,7 +110,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 logger.exception(
                     "preprod_artifact.rerun_status_checks.task_error",
                     extra={
-                        "artifact_id": head_artifact.id,
+                        "preprod_artifact_id": head_artifact.id,
                         "user_id": request.user.id,
                         "organization_id": head_artifact.project.organization_id,
                         "project_id": head_artifact.project.id,
@@ -131,7 +131,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
         logger.info(
             "preprod_artifact.rerun_status_checks",
             extra={
-                "artifact_id": head_artifact.id,
+                "preprod_artifact_id": head_artifact.id,
                 "user_id": request.user.id,
                 "organization_id": head_artifact.project.organization_id,
                 "project_id": head_artifact.project.id,

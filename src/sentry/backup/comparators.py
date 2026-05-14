@@ -872,7 +872,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
-            "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
