@@ -433,8 +433,6 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
     await userEvent.type(input, 'test');
 
-    expect(
-      await screen.findByRole('option', {name: 'test-project'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'test-project'})).toBeInTheDocument();
   });
 });
