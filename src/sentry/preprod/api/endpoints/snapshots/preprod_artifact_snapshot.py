@@ -478,34 +478,14 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
 
         sorted_approvals = sorted(all_approvals, key=lambda a: a.id, reverse=True)
-        status_input = SnapshotStatusInput(
-            latest_comparison=latest_comparison,
-            latest_approval=sorted_approvals[0] if sorted_approvals else None,
-            has_base_sha=has_base_sha,
-            artifact_age_seconds=artifact_age_seconds,
-            base_artifact_exists=base_artifact_exists,
-        )
-        derived_status = derive_snapshot_status(status_input)
-        logger.info(
-            "snapshot_detail.derived_status",
-            extra={
-                "snapshot_id": snapshot_id,
-                "status_input": {
-                    "latest_comparison_id": latest_comparison.id if latest_comparison else None,
-                    "latest_comparison_state": latest_comparison.state
-                    if latest_comparison
-                    else None,
-                    "latest_approval_id": sorted_approvals[0].id if sorted_approvals else None,
-                    "has_base_sha": has_base_sha,
-                    "artifact_age_seconds": artifact_age_seconds,
-                    "base_artifact_exists": base_artifact_exists,
-                },
-                "derived": {
-                    "comparison_state": derived_status.comparison_state,
-                    "approval_status": derived_status.approval_status,
-                    "comparison_error_message": derived_status.comparison_error_message,
-                },
-            },
+        derived_status = derive_snapshot_status(
+            SnapshotStatusInput(
+                latest_comparison=latest_comparison,
+                latest_approval=sorted_approvals[0] if sorted_approvals else None,
+                has_base_sha=has_base_sha,
+                artifact_age_seconds=artifact_age_seconds,
+                base_artifact_exists=base_artifact_exists,
+            )
         )
 
         response_data = SnapshotDetailsApiResponse(
