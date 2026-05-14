@@ -32,7 +32,7 @@ free_text
   = free_text_quoted / free_text_unquoted
 
 free_text_unquoted
-  = (!filter !boolean_operator (free_parens / [^()\n ]+) spaces)+ {
+  = (!filter_start !boolean_operator (free_parens / [^()\n ]+) spaces)+ {
       return tc.tokenFreeText(text(), false);
     }
 
@@ -45,6 +45,9 @@ free_parens
   = open_paren free_text? closed_paren
 
 // All key:value filter types
+
+filter_start
+  = negation? (text_key / search_key) sep
 
 filter
   = date_filter
