@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -8,6 +8,7 @@ import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Markdown, type MarkdownComponents} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -21,10 +22,8 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -36,7 +35,6 @@ import {
   getLangfuseUrl,
   getToolsStringFromBlock,
   getValidToolLinks,
-  postProcessLLMMarkdown,
 } from 'sentry/views/seerExplorer/utils';
 
 // ─── Export ──────────────────────────────────────────────────
@@ -111,9 +109,10 @@ function AssistantBlock({
   block: Block;
   getPageReferrer?: () => string;
 }) {
-  const {processedContent, processedThinkingContent, hasContent, hasThinkingContent} =
-    useBlockContent(block);
-  const navigate = useNavigate();
+  const content = block.message.content ?? '';
+  const thinkingContent = block.message.thinking_content ?? '';
+  const hasContent = hasValidContent(content);
+  const hasThinkingContent = hasValidContent(thinkingContent);
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
 
@@ -133,30 +132,18 @@ function AssistantBlock({
               </Text>
             </Disclosure.Title>
             <Disclosure.Content>
-              <MarkedText text={processedThinkingContent} />
+              <Markdown raw={thinkingContent} components={SEER_MARKDOWN_COMPONENTS} />
             </Disclosure.Content>
           </Disclosure>
         )}
         {hasContent && (
-          <MarkdownContent
-            text={processedContent}
-            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-              const anchor = (e.target as HTMLElement).closest('a');
-              if (anchor) {
-                const href = anchor.getAttribute('href');
-                if (!href) {
-                  return;
-                }
-                e.preventDefault();
-                e.stopPropagation();
-                if (href.startsWith('/')) {
-                  navigate(href);
-                } else {
-                  window.open(href, '_blank', 'noopener,noreferrer');
-                }
-              }
-            }}
-          />
+          <MarkdownContent>
+            <Markdown
+              raw={content}
+              variant={block.loading ? 'streaming' : 'static'}
+              components={SEER_MARKDOWN_COMPONENTS}
+            />
+          </MarkdownContent>
         )}
         {hasTools && <ToolCallList block={block} getPageReferrer={getPageReferrer} />}
       </Container>
@@ -185,7 +172,9 @@ function ThinkingBlock({block}: {block: Block}) {
       >
         <Spinner />
       </Flex>
-      <MarkdownContent text={block.message.content ?? ''} />
+      <MarkdownContent>
+        <Markdown raw={block.message.content ?? ''} />
+      </MarkdownContent>
     </Flex>
   );
 }
@@ -207,25 +196,6 @@ function useBlockVariant(block: Block): BlockVariant {
     return 'thinking';
   }
   return 'agent';
-}
-
-function useBlockContent(block: Block) {
-  const hasContent = hasValidContent(block.message.content ?? '');
-  const hasThinkingContent = hasValidContent(block.message.thinking_content ?? '');
-
-  const processedContent = useMemo(
-    () => postProcessLLMMarkdown(block.message.content),
-    [block.message.content]
-  );
-  const processedThinkingContent = useMemo(
-    () =>
-      hasThinkingContent
-        ? postProcessLLMMarkdown(block.message.thinking_content ?? '')
-        : '',
-    [block.message.thinking_content, hasThinkingContent]
-  );
-
-  return {processedContent, processedThinkingContent, hasContent, hasThinkingContent};
 }
 
 function useToolLinks(block: Block) {
@@ -423,7 +393,11 @@ function ToolCallRow({
           </ToolCallPlainRow>
         )}
       </Flex>
-      {todos && <TodoListContent text={todosToMarkdown(todos)} />}
+      {todos && (
+        <TodoListContent>
+          <Markdown raw={todosToMarkdown(todos)} />
+        </TodoListContent>
+      )}
     </Stack>
   );
 }
@@ -473,6 +447,31 @@ function BlockActionBar({
 }
 
 // ─── Leaf Components ─────────────────────────────────────────
+
+const ISSUE_SHORT_ID_PATTERN =
+  /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
+
+function IssueIdText({children}: {children: string}) {
+  const parts = children.split(ISSUE_SHORT_ID_PATTERN);
+  if (parts.length === 1) {
+    return children;
+  }
+  return (
+    <Fragment>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <Link key={i} to={`/issues/${part}/`}>
+            {part}
+          </Link>
+        ) : (
+          part
+        )
+      )}
+    </Fragment>
+  );
+}
+
+const SEER_MARKDOWN_COMPONENTS: MarkdownComponents = {Text: IssueIdText};
 
 function BlockStatusIndicator({status}: {status: ToolCallStatus}) {
   switch (status) {
@@ -686,7 +685,7 @@ const ActionBarWrapper = styled(Flex)`
   }
 `;
 
-const MarkdownContent = styled(MarkedText)`
+const MarkdownContent = styled('div')`
   width: 100%;
   color: ${p => p.theme.tokens.content.primary};
   word-wrap: break-word;
@@ -749,7 +748,7 @@ const UserBubble = styled('div')`
   border-radius: 6px;
 `;
 
-const TodoListContent = styled(MarkedText)`
+const TodoListContent = styled('div')`
   margin-top: ${p => p.theme.space.xs};
   margin-bottom: -${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.xs};
