@@ -62,7 +62,7 @@ export function useReplayTraces({
     return EventView.fromSavedQuery({
       id: undefined,
       name: `Traces in replay ${replayId}`,
-      fields: ['trace', 'min(precise.start_ts)', 'max(precise.finish_ts)'],
+      fields: ['trace', 'min(precise.start_ts)'],
       orderby: 'min(precise.start_ts)',
       query: `replayId:${replayId}`,
       projects: [Number(projectId)],
@@ -111,8 +111,6 @@ export function useReplayTraces({
         const parsedData = data
           .filter(row => row.trace) // Filter out items where trace is not truthy
           .sort((a, b) => {
-            const aDuration = a['max(precise.finish_ts)'];
-            const bDuration = b['max(precise.finish_ts)'];
             const aMinTimestamp = getTimeStampFromTableDateField(
               a['min(precise.start_ts)']
             );
@@ -120,21 +118,11 @@ export function useReplayTraces({
               b['min(precise.start_ts)']
             );
 
-            if (
-              !aMinTimestamp ||
-              !bMinTimestamp ||
-              typeof aDuration !== 'number' ||
-              typeof bDuration !== 'number'
-            ) {
+            if (!aMinTimestamp || !bMinTimestamp) {
               return 0;
             }
 
-            // We don't have a way to get the min start time of a trace, so we'll use the min timestamp and subtract the max duration
-            // of a transaction in that trace, to make the best guess.
-            const aMinStart = aMinTimestamp - aDuration / 1000;
-            const bMinStart = bMinTimestamp - bDuration / 1000;
-
-            return aMinStart - bMinStart;
+            return aMinTimestamp - bMinTimestamp;
           })
           .map(row => ({
             traceSlug: row.trace!.toString(),

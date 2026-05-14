@@ -26,12 +26,10 @@ describe('useTraceMeta', () => {
           {
             trace: 'trace1',
             'min(precise.start_ts)': 1,
-            'max(precise.finish_ts)': 1.5,
           },
           {
             trace: 'trace2',
             'min(precise.start_ts)': 2,
-            'max(precise.finish_ts)': 2.5,
           },
         ],
       },
