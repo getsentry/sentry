@@ -244,7 +244,7 @@ export function getFormatter({
         );
 
         if (serie.seriesType === 'heatmap') {
-          const zAxisCountValue = getSeriesValue(serie, 2).toString();
+          const zAxisCountValue = (getSeriesValue(serie, 2) ?? 0).toString();
           const yAxisValue = valueFormatter(
             getSeriesValue(serie, 1),
             serie.seriesName,
