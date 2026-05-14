@@ -189,6 +189,7 @@ def _get_serialized_event(
 def _pre_resolve_stacktrace_frames(
     serialized_event: dict[str, Any],
     code_mappings: list[RepositoryProjectPathConfig],
+    use_project_repository_fk: bool = False,
 ) -> None:
     """
     Pre-resolve stacktrace frame repo_name and filename using Sentry's code mappings
@@ -203,7 +204,7 @@ def _pre_resolve_stacktrace_frames(
     # Build ordered list of (repo_full_name, code_mapping) preserving global priority
     ordered_mappings: list[tuple[str, RepositoryProjectPathConfig]] = []
     for cm in code_mappings:
-        repo = cm.repository
+        repo = cm.project_repository.repository if use_project_repository_fk else cm.repository
         repo_name_sections = repo.name.split("/")
         if len(repo_name_sections) > 1 and repo.provider:
             ordered_mappings.append((repo.name, cm))
@@ -729,7 +730,12 @@ def trigger_legacy_autofix(
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
     try:
-        _pre_resolve_stacktrace_frames(serialized_event, code_mappings)
+        use_fk = features.has(
+            "organizations:project-repository-fk-reads", group.project.organization
+        )
+        _pre_resolve_stacktrace_frames(
+            serialized_event, code_mappings, use_project_repository_fk=use_fk
+        )
     except Exception:
         logger.exception("Failed to pre-resolve stacktrace frames")
 

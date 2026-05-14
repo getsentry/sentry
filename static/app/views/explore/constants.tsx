@@ -96,7 +96,6 @@ export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NU
 export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'app_id',
   'app_name',
-  'approval_status',
   'artifact_type',
   'build_configuration_name',
   'build_number',
@@ -104,6 +103,7 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'git_base_ref',
   'git_head_ref',
   'platform_name',
+  'snapshot_status',
 ];
 
 const PREPROD_IMAGE_FIELDS = [
@@ -145,7 +145,7 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
   ...PREPROD_IMAGE_FIELDS,
-  'approval_status',
+  'snapshot_status',
 ];
 
 export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [

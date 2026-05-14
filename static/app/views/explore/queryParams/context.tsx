@@ -1,10 +1,16 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import type {
@@ -32,10 +38,17 @@ interface QueryParamsContextValue {
   setQueryParams: (queryParams: WritableQueryParams) => void;
 }
 
-const [_QueryParamsContextProvider, useQueryParamsContext, QueryParamsContext] =
-  createDefinedContext<QueryParamsContextValue>({
-    name: 'QueryParamsContext',
-  });
+const QueryParamsContext = createContext<QueryParamsContextValue | undefined>(undefined);
+
+function useQueryParamsContext(): QueryParamsContextValue {
+  const context = useContext(QueryParamsContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "QueryParamsContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 interface QueryParamsContextProps {
   children: ReactNode;

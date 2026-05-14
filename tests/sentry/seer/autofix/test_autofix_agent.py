@@ -610,6 +610,32 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].owner == "owner"
         assert repos[0].name == "repo"
 
+    @patch("sentry.seer.autofix.autofix_agent.analytics.record")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_records_referrer(
+        self, mock_client_class, mock_get_autofix_state, mock_record
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [{"repo_name": "owner/repo"}],
+            "failures": [],
+        }
+        self._make_repo_and_projectrepo()
+        mock_get_autofix_state.return_value = None
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.SLACK,
+            integration_id=456,
+        )
+
+        event = mock_record.call_args.args[0]
+        assert event.referrer == AutofixReferrer.SLACK.value
+
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_no_repos(self, mock_client_class):
         """Test handoff with no repositories in preferences returns failure."""

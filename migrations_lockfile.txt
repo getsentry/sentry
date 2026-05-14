@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0012_make_project_repository_fk_notnull
 
-sentry: 1095_make_project_repository_fk_notnull
+sentry: 1096_backfill_mcp_dashboard_widget_filters
 
 social_auth: 0003_social_auth_json_field
 

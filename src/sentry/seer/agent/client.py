@@ -45,7 +45,7 @@ from sentry.seer.agent.on_completion_hook import (
     extract_hook_definition,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
-from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
@@ -379,6 +379,25 @@ class SeerAgentClient:
                         user_id=user_id,
                         type=SeerRunType.EXPLORER,
                         last_triggered_at=now(),
+                    )
+                    source = self.category_key or ""
+                    if not source:
+                        logger.warning(
+                            "seer_agent_run.missing_source",
+                            extra={
+                                "organization_id": self.organization.id,
+                                "seer_run_id": run.id,
+                                "user_id": user_id,
+                            },
+                        )
+                    SeerAgentRun.objects.create(
+                        run=run,
+                        title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
+                        source=source,
+                        project=self.project,
+                        extras=(
+                            {"category_value": self.category_value} if self.category_value else {}
+                        ),
                     )
                     CellOutbox(
                         shard_scope=OutboxScope.SEER_SCOPE,
