@@ -525,9 +525,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         assert call_kwargs["group"] == self.group
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
-        assert (
-            call_kwargs["referrer"] == AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY
-        )
+        assert call_kwargs["referrer"] == AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY
         mock_trigger_autofix.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
