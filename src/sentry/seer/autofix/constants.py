@@ -49,7 +49,6 @@ class AutofixStatus(str, enum.Enum):
 
 class AutofixReferrer(enum.StrEnum):
     GROUP_AUTOFIX_ENDPOINT = "api.group_ai_autofix"
-    ISSUE_SUMMARY_FIXABILITY = "issue_summary.fixability"
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
