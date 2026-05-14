@@ -125,16 +125,15 @@ export const useSeerExplorerPolling = ({
         return ERROR_POLL_INTERVAL;
       }
       if (state === 'polling') {
-        // Successful poll — reset error count if we were previously in backoff
-        if (errorPollCountRef.current > 0) {
-          errorPollCountRef.current = 0;
-        }
+        errorPollCountRef.current = 0;
         return POLL_INTERVAL;
       }
       return false;
     },
   });
 
+  // Schedule a timeout to force a re-render at the moment `updated_at` crosses STALE_TIME_MS,
+  // so the returned pollingState is consistent with `refetchInterval`.
   const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
     timeMs: STALE_TIME_MS,
     onTimeout: () => forceRender(v => !v),
