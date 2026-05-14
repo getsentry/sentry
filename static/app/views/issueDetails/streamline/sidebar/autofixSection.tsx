@@ -324,6 +324,8 @@ function AutofixEmptyState({
           has_solution: false,
           has_coded_solution: false,
           has_pr: false,
+          mode: 'explorer',
+          referrer,
         }}
         disabled={startingRun}
       >
