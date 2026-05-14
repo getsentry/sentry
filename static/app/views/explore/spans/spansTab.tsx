@@ -210,10 +210,6 @@ function SpanTabContentSectionInner({
     currentSelectedDateRange: selection.datetime,
   });
 
-  const hasCrossEventQueries = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
-
   const queryType =
     tab === Mode.AGGREGATE
       ? 'aggregate'
@@ -233,7 +229,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const spansTableResult = useExploreSpansTable({
@@ -242,7 +238,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const tracesTableQuery = useQuery({
@@ -251,7 +247,7 @@ function SpanTabContentSectionInner({
       limit,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     }),
     select: selectJsonWithHeaders,
@@ -268,7 +264,7 @@ function SpanTabContentSectionInner({
       enabled: isReady,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     });
 

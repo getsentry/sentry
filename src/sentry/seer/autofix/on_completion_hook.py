@@ -329,7 +329,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # Check if we should trigger coding agent handoff instead of continuing
         handoff_config = cls._get_handoff_config_if_applicable(stopping_point, current_step, group)
         if handoff_config:
-            cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config)
+            cls._trigger_coding_agent_handoff(
+                organization,
+                run_id,
+                group,
+                handoff_config,
+                referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+            )
             return
 
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
@@ -481,6 +487,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         group: Group,
         handoff_config: SeerAutomationHandoffConfiguration,
+        referrer: AutofixReferrer = AutofixReferrer.ON_COMPLETION_HOOK,
     ) -> None:
         """Trigger coding agent handoff using the configured integration."""
         logger.info(
@@ -498,7 +505,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
-                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+                referrer=referrer,
                 integration_id=handoff_config.integration_id,
             )
             logger.info(

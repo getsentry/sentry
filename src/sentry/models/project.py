@@ -738,6 +738,10 @@ class Project(Model):
         ProjectCodeOwners.objects.filter(project_id=self.id).delete()
         RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
 
+        from sentry.models.projectrepository import ProjectRepository
+
+        ProjectRepository.objects.filter(project_id=self.id).delete()
+
         for external_issues in chunked(
             RangeQuerySetWrapper(
                 ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),

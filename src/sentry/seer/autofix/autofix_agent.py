@@ -584,7 +584,6 @@ def trigger_coding_agent_handoff(
             group_id=group.id,
             referrer=referrer.value,
             coding_agent=coding_agent_name,
-            initiator="automation.explorer",
         )
     )
 

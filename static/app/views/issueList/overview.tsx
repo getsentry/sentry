@@ -887,9 +887,8 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
-      'Tools: get_issue_details(issue_id) for issue aggregate stats; ' +
-      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+      'You can get issue details for aggregate stats, get event details for a specific error event, ' +
+      'and search live telemetry for related spans/errors/logs/metrics.',
     viewName: groupSearchView?.name,
     query,
     sort,

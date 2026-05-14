@@ -132,7 +132,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            seer_repo = SeerProjectRepository.objects.create(
+            seer_repo = self.create_seer_project_repository(
                 project=project, repository_id=repository.id
             )
 

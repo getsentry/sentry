@@ -51,6 +51,13 @@ function ApprovalBadge({
       </Tooltip>
     );
   }
+  if (comparisonState === 'no_base_build') {
+    return (
+      <Tooltip title={t('No base snapshot was found for comparison.')}>
+        <Tag variant="danger">{t('No base build')}</Tag>
+      </Tooltip>
+    );
+  }
   if (comparisonState === 'pending') {
     return (
       <Tooltip title={t('Waiting to start comparison')}>

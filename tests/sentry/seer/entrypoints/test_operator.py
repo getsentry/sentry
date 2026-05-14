@@ -15,7 +15,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
@@ -323,6 +323,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_called_once()
+        assert mock_trigger_handoff_helper.call_args.kwargs["referrer"] == AutofixReferrer.SLACK
         assert self.entrypoint.handoff_successes == [
             (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
         ]
@@ -473,6 +474,7 @@ class SeerOperatorTest(TestCase):
         with self.feature("organizations:autofix-on-explorer"):
             self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_called_once()
+        assert mock_trigger_handoff_helper.call_args.kwargs["referrer"] == AutofixReferrer.SLACK
         assert self.entrypoint.handoff_successes == [
             (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
         ]

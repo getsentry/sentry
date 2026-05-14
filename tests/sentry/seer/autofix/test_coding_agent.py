@@ -26,7 +26,6 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
 )
 from sentry.seer.models import SeerRepoDefinition
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
@@ -44,7 +43,7 @@ class TestLaunchAgentsForRepos(TestCase):
             external_id="123456",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repository)
+        self.create_seer_project_repository(project=self.project, repository=repository)
 
         # Create a basic autofix state with a solution that references a repo
         self.autofix_state = AutofixState(
