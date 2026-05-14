@@ -22,7 +22,6 @@ function seerExplorerConversationsReducer(
       if (next[action.payload]) {
         next[action.payload] = {...next[action.payload], status: 'active'};
       }
-      next[action.payload] = {...state[action.payload], status: 'active'};
       return next;
     }
     case 'clear active run': {
