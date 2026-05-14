@@ -24,6 +24,7 @@ from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import 
 )
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import (
+    ComparisonImageResult,
     ComparisonManifest,
     ImageMetadata,
     SnapshotManifest,
@@ -44,6 +45,17 @@ def _find_image_in_manifest(
     return None, None
 
 
+def _find_image_in_comparison_manifest(
+    manifest: ComparisonManifest, identifier: str
+) -> tuple[str | None, ComparisonImageResult | None]:
+    if identifier in manifest.images:
+        return identifier, manifest.images[identifier]
+    for fname, result in manifest.images.items():
+        if result.base_hash == identifier:
+            return fname, result
+    return None, None
+
+
 def _build_image_info(
     image_file_name: str,
     metadata: ImageMetadata,
@@ -51,7 +63,9 @@ def _build_image_info(
     org_slug: str,
     project_slug: str,
 ) -> SnapshotImageDetailImageInfo:
-    known_fields = set(ImageMetadata.__fields__.keys())
+    known_fields = set(ImageMetadata.__fields__.keys()) | set(
+        SnapshotImageDetailImageInfo.__fields__.keys()
+    )
     extra_fields = {k: v for k, v in metadata.dict().items() if k not in known_fields}
     return SnapshotImageDetailImageInfo(
         content_hash=metadata.content_hash,
@@ -67,6 +81,26 @@ def _build_image_info(
         tags=metadata.tags,
         image_url=f"/api/0/projects/{org_slug}/{project_slug}/files/images/{metadata.content_hash}/",
         **extra_fields,
+    )
+
+
+def _resolve_base_image_info(
+    image_file_name: str,
+    base_manifest: SnapshotManifest | None,
+    org_slug: str,
+    project_slug: str,
+) -> SnapshotImageDetailImageInfo | None:
+    if base_manifest is None:
+        return None
+    base_meta = base_manifest.images.get(image_file_name)
+    if base_meta is None:
+        return None
+    return _build_image_info(
+        image_file_name,
+        base_meta,
+        base_manifest.diff_threshold,
+        org_slug,
+        project_slug,
     )
 
 
@@ -147,7 +181,6 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
                         **orjson.loads(session.get(comparison_key).payload.read())
                     )
                 except Exception:
-                    comparison_manifest = None
                     logger.exception(
                         "Failed to fetch comparison manifest",
                         extra={"preprod_artifact_id": artifact.id},
@@ -168,41 +201,21 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         if metadata is None or image_file_name is None:
             if comparison_manifest is not None:
-                comp_file_name = None
-                comp_result = None
-                if image_identifier in comparison_manifest.images:
-                    comp_file_name = image_identifier
-                    comp_result = comparison_manifest.images[image_identifier]
-                else:
-                    for fname, cr in comparison_manifest.images.items():
-                        if cr.base_hash == image_identifier:
-                            comp_file_name = fname
-                            comp_result = cr
-                            break
-
+                comp_file_name, comp_result = _find_image_in_comparison_manifest(
+                    comparison_manifest, image_identifier
+                )
                 if (
                     comp_result is not None
                     and comp_file_name is not None
                     and comp_result.status == "removed"
                 ):
-                    base_image_info = None
-                    if base_manifest is not None:
-                        base_fname = comp_file_name
-                        base_meta = base_manifest.images.get(base_fname)
-                        if base_meta is not None:
-                            base_image_info = _build_image_info(
-                                base_fname,
-                                base_meta,
-                                base_manifest.diff_threshold,
-                                org_slug,
-                                project_slug,
-                            )
-
                     resp = SnapshotImageDetailResponse(
                         image_file_name=comp_file_name,
                         comparison_status="removed",
                         head_image=None,
-                        base_image=base_image_info,
+                        base_image=_resolve_base_image_info(
+                            comp_file_name, base_manifest, org_slug, project_slug
+                        ),
                     )
                     return Response(resp.dict())
 
@@ -212,14 +225,9 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             image_file_name, metadata, manifest.diff_threshold, org_slug, project_slug
         )
 
-        if comparison_manifest is None:
-            resp = SnapshotImageDetailResponse(
-                image_file_name=image_file_name,
-                head_image=head_image,
-            )
-            return Response(resp.dict())
-
-        comp_result = comparison_manifest.images.get(image_file_name)
+        comp_result = (
+            comparison_manifest.images.get(image_file_name) if comparison_manifest else None
+        )
         if comp_result is None:
             resp = SnapshotImageDetailResponse(
                 image_file_name=image_file_name,
@@ -229,23 +237,15 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         status = comp_result.status
 
+        base_fname = image_file_name
+        if status == "renamed" and comp_result.previous_image_file_name:
+            base_fname = comp_result.previous_image_file_name
+
         base_image_info = None
         if status in ("changed", "unchanged", "renamed", "errored"):
-            base_fname = (
-                comp_result.previous_image_file_name
-                if status == "renamed" and comp_result.previous_image_file_name
-                else image_file_name
+            base_image_info = _resolve_base_image_info(
+                base_fname, base_manifest, org_slug, project_slug
             )
-            if base_manifest is not None:
-                base_meta = base_manifest.images.get(base_fname)
-                if base_meta is not None:
-                    base_image_info = _build_image_info(
-                        base_fname,
-                        base_meta,
-                        base_manifest.diff_threshold,
-                        org_slug,
-                        project_slug,
-                    )
 
         diff_image_url = None
         diff_percentage = None
