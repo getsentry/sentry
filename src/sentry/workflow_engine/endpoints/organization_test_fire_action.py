@@ -19,6 +19,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowPermission,
 )
@@ -57,6 +59,15 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationWorkflowPermission,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=50, window=60),
+            }
+        }
+    )
 
     @extend_schema(
         operation_id="Test Fire Actions",
