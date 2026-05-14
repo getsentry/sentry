@@ -1093,6 +1093,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 404, f"Failed for {flag}: {response.data}"
             mock_handoff.assert_called_once()
+            assert mock_handoff.call_args.kwargs["initiator"] == "user"
 
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")

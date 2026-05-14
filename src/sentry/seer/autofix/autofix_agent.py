@@ -500,6 +500,7 @@ def trigger_coding_agent_handoff(
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
+    initiator: Literal["automation.explorer", "user"] = "automation.explorer",
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing agent-based autofix run.
@@ -584,7 +585,7 @@ def trigger_coding_agent_handoff(
             group_id=group.id,
             referrer=referrer.value,
             coding_agent=coding_agent_name,
-            initiator="automation.explorer",
+            initiator=initiator,
         )
     )
 

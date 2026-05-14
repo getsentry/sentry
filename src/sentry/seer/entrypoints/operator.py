@@ -397,6 +397,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         run_id=run_id,
                         referrer=AutofixReferrer.SLACK,
                         integration_id=handoff_config.integration_id,
+                        initiator="user",
                     )
             except UnableToAcquireLock as e:
                 lifecycle.record_halt(halt_reason=e)
