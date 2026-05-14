@@ -15,8 +15,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -45,6 +47,7 @@ import {
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
+import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
@@ -152,14 +155,14 @@ export function MetricPanel({
         (isVisualizeEquation(visualize) && Boolean(visualize.expression.text))),
   });
 
-  const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
-  const intervalInMs = intervalToMilliseconds(interval);
-  const yBuckets = intervalInMs > 0 ? Math.round(timeRangeInMs / intervalInMs) : 0;
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
+  const yBuckets = getHeatmapYBuckets(selection, interval, chartContainerWidth);
 
   const heatmapResult = useQuery(
     metricHeatmapApiOptions({
       traceMetric,
-      enabled: hasHeatMap && isHeatmap && !isMetricOptionsEmpty,
+      enabled: hasHeatMap && isHeatmap && !isMetricOptionsEmpty && yBuckets > 0,
       organization,
       selection,
       query: userQuery,
@@ -261,7 +264,7 @@ export function MetricPanel({
                   }}
                 >
                   <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
-                    <Container minWidth="0">
+                    <Container minWidth="0" ref={chartContainerRef}>
                       {hasHeatMap && isHeatmap ? (
                         <MetricsHeatMap
                           heatmapResult={heatmapResult}
@@ -327,4 +330,29 @@ function DnDPlaceholder({
       </Grid>
     </Container>
   );
+}
+
+/**
+ * Computes the number of Y-axis buckets for the heatmap API so that cells
+ * are roughly square. The X-axis bucket count comes from the time range
+ * divided by the selected interval. We derive Y buckets by scaling
+ * xBuckets by the container's height/width aspect ratio.
+ */
+function getHeatmapYBuckets(
+  selection: PageFilters,
+  interval: string,
+  chartContainerWidth: number
+): number {
+  const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
+  const intervalInMs = intervalToMilliseconds(interval);
+  if (intervalInMs <= 0 || chartContainerWidth <= 0) {
+    return 0;
+  }
+
+  const xBuckets = Math.round(timeRangeInMs / intervalInMs);
+  if (xBuckets <= 0) {
+    return 0;
+  }
+
+  return Math.max(1, Math.round(xBuckets * (STACKED_GRAPH_HEIGHT / chartContainerWidth)));
 }
