@@ -1,12 +1,14 @@
+from unittest.mock import patch
+
 import responses
 
 from sentry.integrations.data_forwarding.segment.forwarder import SegmentForwarder
-from sentry.integrations.data_forwarding.tasks import forward_event
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
-class ForwardEventTaskTest(TestCase):
+class BaseDataForwarderTest(TestCase):
     def setUp(self) -> None:
         self.forwarder = self.create_data_forwarder(
             organization=self.organization,
@@ -23,27 +25,23 @@ class ForwardEventTaskTest(TestCase):
         self.event = self.store_event(
             data={
                 "exception": {"type": "ValueError", "value": "foo bar"},
-                "user": {"id": "1", "email": "foo@example.com"},
+                "user": {"id": "1"},
                 "type": "error",
-                "metadata": {"type": "ValueError", "value": "foo bar"},
-                "level": "warning",
             },
             project_id=self.project.id,
         )
 
     @responses.activate
-    def test_forwards_event(self) -> None:
+    @override_options({"data-forwarding.task-rollout-rate": 1.0})
+    @patch("sentry.integrations.data_forwarding.tasks.forward_event")
+    @patch("sentry.integrations.data_forwarding.base.random.random", return_value=0.5)
+    def test_post_process_rollout_dispatches_to_task(self, mock_random, mock_forward_event) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
-        config = self.forwarder_project.get_config()
-        event_payload = self.forwarder_cls.get_event_payload(event=self.event, config=config)
-        task_payload = self.forwarder_cls.get_task_payload(event=self.event, config=config)
-        forward_event(
-            data_forwarder_project_id=self.forwarder_project.id,
-            event_payload=event_payload,
-            task_payload=task_payload,
-        )
-        assert len(responses.calls) == 1
+        self.forwarder_cls.post_process(self.event, self.forwarder_project)
+        mock_forward_event.delay.assert_called_once()
 
-    def test_missing_data_forwarder_project(self) -> None:
-        result = forward_event(data_forwarder_project_id=-1, event_payload={}, task_payload={})
-        assert result is None
+    @responses.activate
+    def test_post_process_rollout_forwards_directly(self) -> None:
+        responses.add(responses.POST, "https://api.segment.io/v1/track")
+        self.forwarder_cls.post_process(self.event, self.forwarder_project)
+        assert len(responses.calls) == 1
