@@ -43,7 +43,7 @@ taskbroker_was_running=0
 if docker ps --format '{{.Names}}' | grep -qx "$TASKBROKER_CONTAINER"; then
   taskbroker_was_running=1
   echo "Clearing $TASKBROKER_CONTAINER inflight task store..."
-  docker exec "$TASKBROKER_CONTAINER" rm -f "$TASKBROKER_INFLIGHT_DB" "$TASKBROKER_INFLIGHT_DB"-* >/dev/null
+  docker exec "$TASKBROKER_CONTAINER" sh -c 'rm -f "$1" "$1"-*' sh "$TASKBROKER_INFLIGHT_DB" >/dev/null
   echo "Stopping $TASKBROKER_CONTAINER so Kafka will allow a consumer-group reset..."
   docker stop --time 10 "$TASKBROKER_CONTAINER" >/dev/null
 fi
@@ -63,8 +63,10 @@ restart_eval_taskworkers() {
 }
 
 cleanup() {
-  restart_taskbroker
-  restart_eval_taskworkers
+  local status=0
+  restart_taskbroker || status=$?
+  restart_eval_taskworkers || status=$?
+  return "$status"
 }
 trap cleanup EXIT
 
@@ -77,7 +79,11 @@ docker exec "$KAFKA_CONTAINER" kafka-consumer-groups \
   --to-latest \
   --execute
 
-trap - EXIT
-restart_taskbroker
-restart_eval_taskworkers
+if cleanup; then
+  trap - EXIT
+else
+  cleanup_status=$?
+  trap - EXIT
+  exit "$cleanup_status"
+fi
 echo "Local eval taskworker offset is clean."
