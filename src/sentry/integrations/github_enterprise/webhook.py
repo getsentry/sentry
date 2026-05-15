@@ -391,7 +391,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
 
 @cell_silo_endpoint
 class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
