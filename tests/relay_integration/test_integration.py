@@ -11,7 +11,6 @@ from sentry_relay.auth import SecretKey, generate_key_pair
 from sentry.models.eventattachment import EventAttachment
 from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka
@@ -50,17 +49,14 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             [{"public_key": str(public_key), "name": "test-trusted-relay"}],
         )
 
-        # Feature flag is required so that the "sentry:ingest-through-trusted-relays-only" option
-        # is properly added to the project config.
-        with Feature({"organizations:ingest-through-trusted-relays-only": True}):
-            self.project.organization.update_option(
-                "sentry:ingest-through-trusted-relays-only", "enabled"
-            )
+        self.project.organization.update_option(
+            "sentry:ingest-through-trusted-relays-only", "enabled"
+        )
 
-            # Invalidate project config cache to ensure Relay gets updated configuration
-            invalidate_project_config(
-                public_key=self.projectkey.public_key, trigger="trusted_relay_test"
-            )
+        # Invalidate project config cache to ensure Relay gets updated configuration
+        invalidate_project_config(
+            public_key=self.projectkey.public_key, trigger="trusted_relay_test"
+        )
 
         return relay_id, secret_key
 
@@ -332,44 +328,41 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         secret_key, public_key = generate_key_pair()
         relay_id = str(uuid4())
 
-        with Feature({"organizations:ingest-through-trusted-relays-only": True}):
-            self.project.organization.update_option(
-                "sentry:ingest-through-trusted-relays-only", "enabled"
-            )
+        self.project.organization.update_option(
+            "sentry:ingest-through-trusted-relays-only", "enabled"
+        )
 
-            # Invalidate project config cache to ensure Relay gets updated configuration
-            invalidate_project_config(
-                public_key=self.projectkey.public_key, trigger="trusted_relay_test"
-            )
+        # Invalidate project config cache to ensure Relay gets updated configuration
+        invalidate_project_config(
+            public_key=self.projectkey.public_key, trigger="trusted_relay_test"
+        )
 
-            signature = create_trusted_relay_signature(secret_key)
+        signature = create_trusted_relay_signature(secret_key)
 
-            event_data = {
-                "message": "should be rejected because not trusted",
-                "timestamp": before_now(seconds=1).isoformat(),
-            }
+        event_data = {
+            "message": "should be rejected because not trusted",
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
 
-            headers = {
-                "x-sentry-auth": self.auth_header,
-                "x-sentry-relay-signature": signature,
-                "content-type": "application/json",
-                "x-sentry-relay-id": relay_id,
-            }
+        headers = {
+            "x-sentry-auth": self.auth_header,
+            "x-sentry-relay-signature": signature,
+            "content-type": "application/json",
+            "x-sentry-relay-id": relay_id,
+        }
 
-            event = self.post_and_try_retrieve_event(event_data, headers=headers)
-            assert event is None
+        event = self.post_and_try_retrieve_event(event_data, headers=headers)
+        assert event is None
 
-            url = self.get_relay_store_url(self.project.id)
-            resp = requests.post(
-                url,
-                headers=headers,
-                json=event_data,
-            )
-            # Once the project config is fetched it gets rejected in the hot path
-            assert resp.status_code == 403
-            assert resp.json() == {
-                "detail": "event submission rejected with_reason: InvalidSignature"
-            }
+        url = self.get_relay_store_url(self.project.id)
+        resp = requests.post(
+            url,
+            headers=headers,
+            json=event_data,
+        )
+        # Once the project config is fetched it gets rejected in the hot path
+        assert resp.status_code == 403
+        assert resp.json() == {"detail": "event submission rejected with_reason: InvalidSignature"}
 
     def test_expired_signature(self) -> None:
         """

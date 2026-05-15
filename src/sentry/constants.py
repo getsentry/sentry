@@ -731,8 +731,6 @@ ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT = 15
 
-INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
-
 # Repository owner for console SDK repositories. Helpful for testing: add your test org here
 CONSOLE_SDK_REPO_OWNER = "getsentry"
 

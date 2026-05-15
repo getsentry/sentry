@@ -45,7 +45,6 @@ from sentry.constants import (
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
-    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -640,7 +639,6 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     samplingMode: str
     planSampleRate: float
     desiredSampleRate: float
-    ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
     dashboardsAsyncQueueParallelLimit: int
@@ -906,12 +904,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
             )
 
-        if features.has("organizations:ingest-through-trusted-relays-only", obj):
-            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
-                "sentry:ingest-through-trusted-relays-only",
-                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
-            )
-
         context["enabledConsolePlatforms"] = obj.get_option(
             "sentry:enabled_console_platforms",
             ENABLED_CONSOLE_PLATFORMS_DEFAULT,
@@ -954,7 +946,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         "quota",
         "rollbackEnabled",
         "streamlineOnly",
-        "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
         "consoleSdkInviteQuota",
         "dashboardsAsyncQueueParallelLimit",
