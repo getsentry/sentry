@@ -1,3 +1,5 @@
+from typing import Any
+
 from emmett55 import abort, request, response
 
 from .. import app, db, json
@@ -21,7 +23,7 @@ proxy = app.module(__name__, "proxy")
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
     pipeline=[db.pipe_ctx],
 )
-async def proxy_cell_from_org(db_ctx, org: str, subp: str | None = None):
+async def proxy_cell_from_org(db_ctx: Any, org: str, subp: str | None = None) -> Any:
     try:
         async with db_ctx.acquire() as db:
             cell = await get_cell_for_organization(db, org)
@@ -32,12 +34,12 @@ async def proxy_cell_from_org(db_ctx, org: str, subp: str | None = None):
 
 
 @proxy.route(
-    "/api/0/_admin/cells/<str:cell>(/<any:subp>)?",
+    "/api/0/_admin/cells/<str:cell_name>(/<any:subp>)?",
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
 )
-async def proxy_cell_from_id(cell: str, subp: str | None = None):
+async def proxy_cell_from_id(cell_name: str, subp: str | None = None) -> Any:
     try:
-        cell = get_cell_by_name(cell)
+        cell = get_cell_by_name(cell_name)
     except CellResolutionError:
         response.content_type = "application/json"
         abort(404, json({"error": "apigateway", "detail": "Not found"}))
@@ -48,5 +50,5 @@ async def proxy_cell_from_id(cell: str, subp: str | None = None):
     "/<any:p>",
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
 )
-async def proxy_control(p: str):
+async def proxy_control(p: str) -> Any:
     return await proxy_control_request(request)

@@ -1,7 +1,8 @@
 import asyncio
+from typing import Any
 from urllib.parse import urljoin
 
-import httpxyz as httpx
+import httpx
 import prometheus_client
 from emmett55 import response
 
@@ -11,6 +12,7 @@ from .circuitbreaker import (
     CircuitBreakerOverflow,
     CircuitBreakerWindowOverflow,
 )
+from .dsl import Cell
 
 CHUNK_SIZE = 1024 * 256
 REQUEST_HEADERS_FILTERED = {"host"}
@@ -48,7 +50,7 @@ metric_cb_reject = prometheus_client.Counter(
 )
 
 
-def build_proxied_headers(request):
+def build_proxied_headers(request: Any) -> list[tuple[str, str]]:
     rv = []
     forwarded_added = False
     client_host = request._scope.client.rsplit(":", 1)[0]
@@ -68,20 +70,20 @@ def build_proxied_headers(request):
     return rv
 
 
-def build_proxied_cell_headers(request):
+def build_proxied_cell_headers(request: Any) -> list[tuple[str, str]]:
     rv = build_proxied_headers(request)
     rv.append(("x-apigateway", "true"))
     return rv
 
 
-def get_timeout(path):
+def get_timeout(path: str) -> float | None:
     for segments, timeout in TIMEOUT_OVERRIDES:
         if all(segment in path for segment in segments):
             return timeout
     return app.config.proxy.timeout
 
 
-def adapt_cell_response(presp, remote_url):
+def adapt_cell_response(presp: httpx.Response, remote_url: str) -> Any:
     response.status = presp.status_code
     for key, val in presp.headers.items():
         if key in RESPONSE_HEADERS_FILTERED:
@@ -91,14 +93,14 @@ def adapt_cell_response(presp, remote_url):
     return response.stream(presp.aiter_raw(CHUNK_SIZE))
 
 
-def adapt_control_response(presp):
+def adapt_control_response(presp: httpx.Response) -> Any:
     response.status = presp.status_code
     for key, val in presp.headers.items():
         response.headers[key] = val
     return response.stream(presp.aiter_raw(CHUNK_SIZE))
 
 
-async def proxy_cell_request(cell, request):
+async def proxy_cell_request(cell: Cell, request: Any) -> Any:
     target_url = urljoin(cell.address, request.path)
     headers = build_proxied_cell_headers(request)
     timeout = get_timeout(request.path)
@@ -151,7 +153,7 @@ async def proxy_cell_request(cell, request):
         return json({"error": "apigateway", "detail": "Downstream service unavailable"})
 
 
-async def proxy_control_request(request):
+async def proxy_control_request(request: Any) -> Any:
     target_url = urljoin(app.config.endpoints.control, request.path)
     headers = build_proxied_headers(request)
 

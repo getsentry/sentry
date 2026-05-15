@@ -1,9 +1,11 @@
 import os
 
+from emmett55 import App
+
 
 # NOTE: this is ugly, but necessary to use django settings and models
-def _patch_sentry_init():
-    def _initializer():
+def _patch_sentry_init() -> None:
+    def _initializer() -> None:
         import sentry.runner.settings as _ss
 
         setattr(_ss, "__installed", True)
@@ -29,7 +31,7 @@ def _patch_sentry_init():
     _initializer()
 
 
-def load_config(app):
+def load_config(app: App) -> None:
     _patch_sentry_init()
 
     app.config.internal_hostname = os.environ.get("APIGW_INTERNAL_HOSTNAME", "localhost")

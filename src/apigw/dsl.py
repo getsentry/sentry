@@ -1,9 +1,13 @@
-from sentry.types.cell import Cell, CellResolutionError, get_cell_by_name
+from typing import Any
+
+from sentry.types.cell import Cell as Cell
+from sentry.types.cell import CellResolutionError as CellResolutionError
+from sentry.types.cell import get_cell_by_name as get_cell_by_name
 
 from .db import pgq_from_djq
 
 
-async def get_cell_for_organization(db, org_id_or_slug: str) -> Cell:
+async def get_cell_for_organization(db: Any, org_id_or_slug: str) -> Cell:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if org_id_or_slug.isdecimal():

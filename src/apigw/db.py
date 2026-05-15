@@ -1,17 +1,19 @@
+from typing import Any
+
 import asyncpg
 from emmett55 import Pipe
 from emmett55.extensions import Extension, Signals, listen_signal
 
 
 class AsyncPG(Extension):
-    __slots__ = ["pool"]
+    __slots__ = ["pool", "pipe", "pipe_ctx"]
 
-    def on_load(self):
+    def on_load(self) -> None:
         self.pool = None
         self.pipe = AsyncPGPipe(self)
         self.pipe_ctx = AsyncPGCtxPipe(self)
 
-    async def build_pool(self):
+    async def build_pool(self) -> None:
         from django.conf import settings
 
         DB_CONF = settings.DATABASES["default"]
@@ -27,18 +29,18 @@ class AsyncPG(Extension):
         )
 
     @listen_signal(Signals.after_loop)
-    def _init_pool(self, loop):
+    def _init_pool(self, loop: Any) -> None:
         loop.run_until_complete(self.build_pool())
 
 
 class AsyncPGPipe(Pipe):
     __slots__ = ["ext"]
 
-    def __init__(self, ext):
+    def __init__(self, ext: AsyncPG) -> None:
         self.ext = ext
 
-    async def pipe(self, next_pipe, **kwargs):
-        async with self.ext.pool.acquire() as conn:
+    async def pipe(self, next_pipe: Any, **kwargs: Any) -> Any:
+        async with self.ext.pool.acquire() as conn:  # type: ignore[attr-defined]
             kwargs["db"] = conn
             return await next_pipe(**kwargs)
 
@@ -46,10 +48,10 @@ class AsyncPGPipe(Pipe):
 class AsyncPGCtxPipe(Pipe):
     __slots__ = ["ext"]
 
-    def __init__(self, ext):
+    def __init__(self, ext: AsyncPG) -> None:
         self.ext = ext
 
-    def pipe(self, next_pipe, **kwargs):
+    def pipe(self, next_pipe: Any, **kwargs: Any) -> Any:
         kwargs["db_ctx"] = self.ext.pool
         return next_pipe(**kwargs)
 
