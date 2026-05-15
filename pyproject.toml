@@ -50,6 +50,7 @@ dependencies = [
   # not directly used, but provides a speedup for redis
   "hiredis>=2.3.2",
   "httpx>=0.28.1",
+  "httpxyz>=0.31.2",
   "jsonschema>=4.20.0",
   "lxml>=6.1.0",
   "maxminddb>=2.3.0",

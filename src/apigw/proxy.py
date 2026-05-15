@@ -1,7 +1,7 @@
 import asyncio
 from urllib.parse import urljoin
 
-import httpx
+import httpxyz as httpx
 import prometheus_client
 from emmett55 import response
 
