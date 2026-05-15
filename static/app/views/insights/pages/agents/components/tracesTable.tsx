@@ -180,8 +180,8 @@ export function TracesTable({
       return new Map();
     }
     const map = new Map<string, string>();
-    for (const span of outputRequest.data) {
-      const traceId = span.trace;
+    for (const span of outputRequest.data as Array<Record<string, unknown>>) {
+      const traceId = String(span.trace);
       if (map.has(traceId)) {
         continue;
       }
