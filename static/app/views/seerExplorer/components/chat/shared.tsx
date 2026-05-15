@@ -15,6 +15,7 @@ interface BlockContextValue {
   blocks?: Block[];
   getPageReferrer?: () => string;
   interactionPending?: boolean;
+  readOnly?: boolean;
   runId?: number;
   showThinking?: boolean;
 }

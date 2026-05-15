@@ -69,12 +69,12 @@ function useBlockFeedback(block: Block, blockIndex: number, runId: number | unde
 }
 
 function BlockActionBar() {
-  const {block, blockIndex, runId, interactionPending} = useBlockContext();
+  const {block, blockIndex, runId, interactionPending, readOnly} = useBlockContext();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
   const {copy} = useCopyToClipboard();
   const showCopy = !!block.message.content?.trim();
 
-  if (interactionPending) {
+  if (readOnly || interactionPending) {
     return null;
   }
 

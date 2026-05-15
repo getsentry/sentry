@@ -387,6 +387,7 @@ export function ExplorerDrawerContent({
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
                   interactionPending={isFileApprovalPending || isQuestionPending}
+                  readOnly={readOnly}
                   showThinking={showThinking}
                 />
               );
