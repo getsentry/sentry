@@ -183,32 +183,35 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getAllByRole('option', {name: 'project-b'})).toHaveLength(1);
   });
 
-  it.isKnownFlake('places the project first when identified by a single ?project= query param', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: projectB.id},
+  it.isKnownFlake(
+    'places the project first when identified by a single ?project= query param',
+    async () => {
+      render(
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {project: projectB.id},
+            },
           },
-        },
-      }
-    );
+        }
+      );
 
-    await drillIntoGeneralSettings();
+      await drillIntoGeneralSettings();
 
-    const option = (await screen.findAllByRole('option')).find(
-      el => !el.hasAttribute('aria-disabled')
-    );
-    expect(option).toHaveAccessibleName('project-b');
-    expect(screen.getByText('Current')).toBeInTheDocument();
-  });
+      const option = (await screen.findAllByRole('option')).find(
+        el => !el.hasAttribute('aria-disabled')
+      );
+      expect(option).toHaveAccessibleName('project-b');
+      expect(screen.getByText('Current')).toBeInTheDocument();
+    }
+  );
 
   it.isKnownFlake(
     'highlights all projects when multiple ?project= params are set',

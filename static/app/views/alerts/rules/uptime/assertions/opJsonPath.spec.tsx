@@ -140,8 +140,8 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
-    const greaterThan = screen.getByRole('option', {name: 'greater than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
+    const greaterThan = await screen.findByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
     expect(greaterThan).toBeInTheDocument();
@@ -179,8 +179,8 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
-    const greaterThan = screen.getByRole('option', {name: 'greater than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
+    const greaterThan = await screen.findByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
     expect(greaterThan).toBeInTheDocument();
@@ -188,45 +188,51 @@ describe('AssertionOpJsonPath', () => {
     expect(greaterThan).not.toHaveAttribute('aria-disabled', 'true');
   });
 
-  it.isKnownFlake('shows string operand types as disabled when < or > comparison is selected', async () => {
-    await renderOp(
-      makeJsonPathOp({
-        operator: {cmp: UptimeComparisonType.LESS_THAN},
-        operand: {jsonpath_op: 'literal', value: '123'},
-      })
-    );
+  it.isKnownFlake(
+    'shows string operand types as disabled when < or > comparison is selected',
+    async () => {
+      await renderOp(
+        makeJsonPathOp({
+          operator: {cmp: UptimeComparisonType.LESS_THAN},
+          operand: {jsonpath_op: 'literal', value: '123'},
+        })
+      );
 
-    const comparisonButton = screen.getByTestId('json-path-operators-trigger');
-    await userEvent.click(comparisonButton);
+      const comparisonButton = screen.getByTestId('json-path-operators-trigger');
+      await userEvent.click(comparisonButton);
 
-    const globPattern = screen.getByRole('option', {name: 'Glob Pattern'});
-    const literal = screen.getByRole('option', {name: 'Literal'});
+      const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
+      const literal = await screen.findByRole('option', {name: 'Literal'});
 
-    expect(globPattern).toBeInTheDocument();
-    expect(literal).toBeInTheDocument();
-    expect(globPattern).toHaveAttribute('aria-disabled', 'true');
-    expect(literal).toHaveAttribute('aria-disabled', 'true');
-  });
+      expect(globPattern).toBeInTheDocument();
+      expect(literal).toBeInTheDocument();
+      expect(globPattern).toHaveAttribute('aria-disabled', 'true');
+      expect(literal).toHaveAttribute('aria-disabled', 'true');
+    }
+  );
 
-  it.isKnownFlake('shows string operand types as enabled when = or ≠ comparison is selected', async () => {
-    await renderOp(
-      makeJsonPathOp({
-        operator: defaultOperator,
-        operand: {jsonpath_op: 'literal', value: 'ok'},
-      })
-    );
+  it.isKnownFlake(
+    'shows string operand types as enabled when = or ≠ comparison is selected',
+    async () => {
+      await renderOp(
+        makeJsonPathOp({
+          operator: defaultOperator,
+          operand: {jsonpath_op: 'literal', value: 'ok'},
+        })
+      );
 
-    const comparisonButton = screen.getByTestId('json-path-operators-trigger');
-    await userEvent.click(comparisonButton);
+      const comparisonButton = screen.getByTestId('json-path-operators-trigger');
+      await userEvent.click(comparisonButton);
 
-    const globPattern = screen.getByRole('option', {name: 'Glob Pattern'});
-    const literal = screen.getByRole('option', {name: 'Literal'});
+      const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
+      const literal = await screen.findByRole('option', {name: 'Literal'});
 
-    expect(globPattern).toBeInTheDocument();
-    expect(literal).toBeInTheDocument();
-    expect(globPattern).not.toHaveAttribute('aria-disabled', 'true');
-    expect(literal).not.toHaveAttribute('aria-disabled', 'true');
-  });
+      expect(globPattern).toBeInTheDocument();
+      expect(literal).toBeInTheDocument();
+      expect(globPattern).not.toHaveAttribute('aria-disabled', 'true');
+      expect(literal).not.toHaveAttribute('aria-disabled', 'true');
+    }
+  );
 
   it('resets operator from < or > to equals when the operand is not numeric', async () => {
     await renderOp(
@@ -277,7 +283,7 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
     await userEvent.click(lessThan);
 
     await waitFor(() =>
