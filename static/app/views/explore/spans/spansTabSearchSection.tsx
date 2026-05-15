@@ -77,12 +77,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasCrossEventQueryingFlag = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
 
-  const hasCrossEvents =
-    hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useSpanItemAttributes({}, 'number');
@@ -184,7 +180,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 <SpansSearchBar
                   spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
                 />
-                {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
+                <CrossEventQueryingDropdown />
                 {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
               </Grid>
               {hasCrossEvents ? null : (

@@ -13,7 +13,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleStatus,
     AlertRuleThresholdType,
 )
-from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -172,11 +171,6 @@ class TestWorkflowEngineSerializer(TestCase):
 
     def add_incident_data(self) -> None:
         self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)
-        IncidentTrigger.objects.create(
-            incident=self.incident,
-            alert_rule_trigger=self.warning_trigger,
-            status=TriggerStatus.ACTIVE.value,
-        )
 
         self.group.priority = PriorityLevel.HIGH
         self.group.save()

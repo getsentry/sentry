@@ -33,9 +33,9 @@ logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
-@extend_schema(tags=["Alerts"])
+@extend_schema(tags=["Spike Protection"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.NOTIFICATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,

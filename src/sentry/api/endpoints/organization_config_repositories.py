@@ -11,7 +11,7 @@ from sentry.plugins.base import bindings
 
 @cell_silo_endpoint
 class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

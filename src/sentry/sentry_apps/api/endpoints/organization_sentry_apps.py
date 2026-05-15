@@ -24,7 +24,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 @extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

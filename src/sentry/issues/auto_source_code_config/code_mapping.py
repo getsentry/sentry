@@ -5,6 +5,9 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
+from django.db import router, transaction
+
+from sentry import features
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
@@ -13,6 +16,7 @@ from sentry.integrations.source_code_management.repo_trees import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
@@ -367,20 +371,26 @@ def create_code_mapping(
             "external_id": code_mapping.repo.external_id,
         },
     )
-    new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
-        project=project,
-        stack_root=code_mapping.stacktrace_root,
-        source_root=code_mapping.source_path,
-        defaults={
-            "repository": repository,
-            "organization_id": organization.id,
-            "integration_id": installation.model.id,
-            "organization_integration_id": installation.org_integration.id,
-            "default_branch": code_mapping.repo.branch,
-            # This function is called from the UI, thus, we know that the code mapping is user generated
-            "automatically_generated": False,
-        },
-    )
+    with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
+            project=project,
+            stack_root=code_mapping.stacktrace_root,
+            source_root=code_mapping.source_path,
+            defaults={
+                "repository": repository,
+                "organization_id": organization.id,
+                "integration_id": installation.model.id,
+                "organization_integration_id": installation.org_integration.id,
+                "default_branch": code_mapping.repo.branch,
+                "automatically_generated": False,
+                "project_repository": project_repo,
+            },
+        )
 
     return new_code_mapping
 
@@ -400,13 +410,27 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     # sure that we are still ordering by `id` because we want to make sure
     # the ordering is deterministic
     # codepath mappings must have an associated integration for stacktrace linking.
-    configs = (
-        RepositoryProjectPathConfig.objects.filter(
-            project=project, organization_integration_id__isnull=False
+    if features.has("organizations:project-repository-fk-reads", project.organization):
+        configs = (
+            RepositoryProjectPathConfig.objects.filter(
+                project_repository__project=project,
+                organization_integration_id__isnull=False,
+            )
+            .select_related(
+                "project_repository",
+                "project_repository__project",
+                "project_repository__repository",
+            )
+            .order_by("id")
         )
-        .select_related("repository")
-        .order_by("id")
-    )
+    else:
+        configs = (
+            RepositoryProjectPathConfig.objects.filter(
+                project=project, organization_integration_id__isnull=False
+            )
+            .select_related("repository")
+            .order_by("id")
+        )
 
     sorted_configs: list[RepositoryProjectPathConfig] = []
 

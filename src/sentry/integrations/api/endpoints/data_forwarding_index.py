@@ -34,7 +34,7 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
 @cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class DataForwardingIndexEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

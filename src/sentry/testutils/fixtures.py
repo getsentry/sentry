@@ -280,6 +280,11 @@ class Fixtures:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
+    def create_seer_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_seer_project_repository(project, **kwargs)
+
     def create_repository_settings(self, *args, **kwargs):
         return Factories.create_repository_settings(*args, **kwargs)
 
@@ -469,9 +474,6 @@ class Fixtures:
     def create_incident_activity(self, *args, **kwargs):
         return Factories.create_incident_activity(*args, **kwargs)
 
-    def create_incident_trigger(self, incident, alert_rule_trigger, status):
-        return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
@@ -488,7 +490,6 @@ class Fixtures:
         self,
         alert_rule_trigger=None,
         target_identifier=None,
-        triggered_for_incident=None,
         *args,
         **kwargs,
     ):
@@ -497,9 +498,6 @@ class Fixtures:
 
         if not target_identifier:
             target_identifier = str(self.user.id)
-
-        if triggered_for_incident is not None:
-            Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
 
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
@@ -1206,6 +1204,11 @@ class Fixtures:
         )
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
+
+    def create_seer_run(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_seer_run(organization=organization, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:

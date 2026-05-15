@@ -39,7 +39,11 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
     operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
 
     value: str | list[str] = ""
-    if operator_kind in {ConditionOperatorKind.IN, ConditionOperatorKind.NOT_IN}:
+    if operator_kind in {
+        ConditionOperatorKind.IN,
+        ConditionOperatorKind.NOT_IN,
+        ConditionOperatorKind.MATCHES,
+    }:
         value = []
     condition = {
         "property": property_name,

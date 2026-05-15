@@ -6,10 +6,12 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.constants import SeerSCMProvider
@@ -89,18 +91,31 @@ def get_repo_and_projects(
     repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
     if repo is None:
         raise Repository.DoesNotExist
-    repo_configs = list(
-        RepositoryProjectPathConfig.objects.filter(
-            organization_id=organization_id,
-            repository_id=repo.id,
+    org = Organization.objects.get(id=organization_id)
+    use_fk = features.has("organizations:project-repository-fk-reads", org)
+    if use_fk:
+        repo_configs = list(
+            RepositoryProjectPathConfig.objects.filter(
+                organization_id=organization_id,
+                project_repository__repository_id=repo.id,
+            ).select_related("project", "project_repository__project")
         )
-    )
+    else:
+        repo_configs = list(
+            RepositoryProjectPathConfig.objects.filter(
+                organization_id=organization_id,
+                repository_id=repo.id,
+            ).select_related("project", "project_repository__project")
+        )
 
     projects = []
     valid_configs = []
     for config in repo_configs:
         try:
-            project = config.project
+            if use_fk:
+                project = config.project_repository.project
+            else:
+                project = config.project
         except Project.DoesNotExist:
             continue
         else:

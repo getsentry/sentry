@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export function UptimeAssertionsSection({event}: {event: Event}) {
   const evidenceData = event.occurrence?.evidenceData;
@@ -13,8 +13,8 @@ export function UptimeAssertionsSection({event}: {event: Event}) {
   }
 
   return (
-    <InterimSection
-      type={SectionKey.ASSERTIONS}
+    <FoldSection
+      sectionKey={SectionKey.ASSERTIONS}
       title={t('Assertions')}
       disableCollapsePersistence
     >
@@ -31,6 +31,6 @@ export function UptimeAssertionsSection({event}: {event: Event}) {
           },
         ]}
       />
-    </InterimSection>
+    </FoldSection>
   );
 }

@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
+import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,7 +21,7 @@ const spikeProtectionSchema = z.object({
 });
 
 interface SpikeProtectionProjectToggleProps {
-  project: Project;
+  project: ProjectSummaryWithOptions;
   subscription: Subscription;
   analyticsView?: SpendVisibilityBaseParams['view'];
   disabled?: boolean;
@@ -31,7 +31,7 @@ interface SpikeProtectionProjectToggleProps {
 }
 
 // If the project option is True, the feature is disabled
-export const isSpikeProtectionEnabled = (p: Project) =>
+export const isSpikeProtectionEnabled = (p: ProjectSummaryWithOptions) =>
   !p?.options?.[SPIKE_PROTECTION_OPTION_DISABLED];
 
 function SpikeProtectionProjectToggle({
@@ -62,13 +62,14 @@ function SpikeProtectionProjectToggle({
             }),
           onSuccess: (_data, variables) => {
             const newValue = variables.enabled;
-            ProjectsStore.onUpdateSuccess({
+            const updatedProject: ProjectSummaryWithOptions = {
               ...project,
               options: {
                 ...project.options,
                 [SPIKE_PROTECTION_OPTION_DISABLED]: !newValue,
               },
-            });
+            };
+            ProjectsStore.onUpdateSuccess(updatedProject);
             trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_PROJECT_TOGGLED, {
               organization,
               subscription,

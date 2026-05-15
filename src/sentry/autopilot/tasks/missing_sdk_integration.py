@@ -3,7 +3,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from sentry import options
+from sentry import features, options
 from sentry.autopilot.tasks.common import AutopilotDetectorName, create_instrumentation_issue
 from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -88,16 +88,28 @@ def run_missing_sdk_integration_detector() -> None:
             continue
 
         # Get repo configs for this project
-        repo_names = (
-            RepositoryProjectPathConfig.objects.filter(
-                project=project,
-                repository__status=ObjectStatus.ACTIVE,
-                repository__provider="integrations:github",
+        if features.has("organizations:project-repository-fk-reads", project.organization):
+            repo_names = (
+                RepositoryProjectPathConfig.objects.filter(
+                    project_repository__project=project,
+                    project_repository__repository__status=ObjectStatus.ACTIVE,
+                    project_repository__repository__provider="integrations:github",
+                )
+                .order_by("project_repository__repository__name")
+                .distinct("project_repository__repository__name")
+                .values_list("project_repository__repository__name", flat=True)
             )
-            .order_by("repository__name")
-            .distinct("repository__name")
-            .values_list("repository__name", flat=True)
-        )
+        else:
+            repo_names = (
+                RepositoryProjectPathConfig.objects.filter(
+                    project=project,
+                    repository__status=ObjectStatus.ACTIVE,
+                    repository__provider="integrations:github",
+                )
+                .order_by("repository__name")
+                .distinct("repository__name")
+                .values_list("repository__name", flat=True)
+            )
         for repo_name in repo_names:
             run_missing_sdk_integration_detector_for_project_task.apply_async(
                 args=(

@@ -4,6 +4,7 @@ import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -47,6 +48,7 @@ export function IssueListSeerComboBox() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
@@ -165,7 +167,7 @@ export function IssueListSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: IssueAskSeerSearchQuery) => {
+    (result: IssueAskSeerSearchQuery, runId?: number) => {
       if (!result) {
         return;
       }
@@ -222,6 +224,10 @@ export function IssueListSeerComboBox() {
         ...timeParams,
       };
 
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
+
       navigate(
         {
           pathname: location.pathname,
@@ -237,6 +243,7 @@ export function IssueListSeerComboBox() {
       location.query,
       navigate,
       organization,
+      setRunId,
     ]
   );
 

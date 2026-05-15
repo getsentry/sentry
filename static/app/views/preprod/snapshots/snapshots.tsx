@@ -266,7 +266,7 @@ export default function SnapshotsPage() {
     viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
   const comparisonRunInfo = data?.comparison_run_info;
 
-  const isSoloView = comparisonType === 'solo';
+  const isSoloView = comparisonType === 'solo' || comparisonType === 'waiting_for_base';
   const handleToggleView = useCallback(() => {
     const {view: _view, ...restQuery} = location.query;
     if (isSoloView) {

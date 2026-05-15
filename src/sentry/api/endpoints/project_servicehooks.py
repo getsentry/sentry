@@ -19,7 +19,7 @@ from sentry.sentry_apps.services.hook import hook_service
 
 @cell_silo_endpoint
 class ProjectServiceHooksEndpoint(ProjectEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

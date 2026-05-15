@@ -8,7 +8,7 @@ from typing import Any
 
 from django.utils.datastructures import OrderedSet
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.analytics.events.integration_commit_context_all_frames import (
     IntegrationsFailedToFetchCommitContextAllFrames,
     IntegrationsSuccessfullyFetchedCommitContextAllFrames,
@@ -199,6 +199,7 @@ def _generate_integration_to_files_mapping(
     this function is used to separate files into each integration so that
     we can later call get_commit_context_all_frames on each integration.
     """
+    use_fk = features.has("organizations:project-repository-fk-reads", organization)
     integration_to_files_mapping: dict[int, list[SourceLineInfo]] = {}
     num_successfully_mapped_frames = 0
 
@@ -257,7 +258,11 @@ def _generate_integration_to_files_mapping(
                     lineno=frame.lineno,
                     path=src_path,
                     ref=code_mapping.default_branch or "master",
-                    repo=code_mapping.repository,
+                    repo=(
+                        code_mapping.project_repository.repository
+                        if use_fk
+                        else code_mapping.repository
+                    ),
                     code_mapping=code_mapping,
                 )
             )

@@ -55,7 +55,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationWorkflowPermission,)
 
     @extend_schema(

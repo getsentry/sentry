@@ -26,7 +26,7 @@ from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 @cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
