@@ -4,8 +4,8 @@ import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,

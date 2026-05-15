@@ -16,30 +16,16 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  RepoPRState,
+  SeerExplorerResponse,
+} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
   makeSeerExplorerQueryKey,
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
-
-export type PendingUserInput = {
-  data: Record<string, any>;
-  id: string;
-  input_type: 'file_change_approval' | 'ask_user_question';
-};
-
-export type SeerExplorerResponse = {
-  session: {
-    blocks: Block[];
-    status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
-    updated_at: string;
-    owner_user_id?: number | null;
-    pending_user_input?: PendingUserInput | null;
-    repo_pr_states?: Record<string, RepoPRState>;
-    run_id?: number;
-  } | null;
-};
 
 type SeerExplorerChatResponse = {
   message: Block;

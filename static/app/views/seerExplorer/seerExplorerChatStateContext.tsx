@@ -16,7 +16,7 @@ export type PollingState =
   | 'not-polling'
   | 'timed-out';
 
-export type ChatState = {
+type ChatState = {
   polling: PollingState;
 };
 
@@ -25,7 +25,7 @@ type SeerExplorerChatState = {
   runId: number | null;
 };
 
-export type ChatStateAction =
+type ChatStateAction =
   | {payload: {polling: PollingState; runId: number}; type: 'set polling'}
   | {payload: number | null; type: 'set run id'}
   | {payload: number; type: 'remove'};

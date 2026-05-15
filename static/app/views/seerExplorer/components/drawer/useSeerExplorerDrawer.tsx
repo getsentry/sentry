@@ -30,7 +30,7 @@ export type OpenSeerExplorerDrawerOptions = {
 export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
-  const chatDispatch = useSeerExplorerChatDispatch();
+  const dispatch = useSeerExplorerChatDispatch();
   const {getPageReferrer} = usePageReferrer();
 
   // Track drawer open state in a ref so callbacks don't go stale
@@ -65,13 +65,13 @@ export const useSeerExplorerDrawer = () => {
         // Always start a fresh session when a query is forwarded so it
         // auto-submits into an empty conversation, even if the drawer is
         // already open with an existing run.
-        chatDispatch({type: 'set run id', payload: null});
+        dispatch({type: 'set run id', payload: null});
       } else if (isDrawerOpenRef.current) {
         return;
       } else if (openRunId !== undefined) {
-        chatDispatch({type: 'set run id', payload: openRunId});
+        dispatch({type: 'set run id', payload: openRunId});
       } else if (startNewRun) {
-        chatDispatch({type: 'set run id', payload: null});
+        dispatch({type: 'set run id', payload: null});
       }
 
       openDrawer(
@@ -91,7 +91,7 @@ export const useSeerExplorerDrawer = () => {
         }
       );
     },
-    [openDrawer, onOpen, chatDispatch, getPageReferrer]
+    [openDrawer, onOpen, dispatch, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
