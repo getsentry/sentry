@@ -79,6 +79,8 @@ function getTabOptions({
 
 export function getInitialTab({
   isLoading,
+  logsEnabled = true,
+  metricsEnabled = true,
   sections,
   tabOptions,
   tabSlugFromUrl,
@@ -87,11 +89,13 @@ export function getInitialTab({
   sections: ReturnType<typeof useTraceContextSections>;
   tabOptions: Tab[];
   tabSlugFromUrl: unknown;
+  logsEnabled?: boolean;
+  metricsEnabled?: boolean;
 }): Tab {
   if (
     isLoading &&
-    (tabSlugFromUrl === TraceLayoutTabKeys.LOGS ||
-      tabSlugFromUrl === TraceLayoutTabKeys.METRICS ||
+    ((logsEnabled && tabSlugFromUrl === TraceLayoutTabKeys.LOGS) ||
+      (metricsEnabled && tabSlugFromUrl === TraceLayoutTabKeys.METRICS) ||
       tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS)
   ) {
     return TAB_DEFINITIONS[tabSlugFromUrl];
@@ -139,6 +143,8 @@ export function useTraceLayoutTabs({
   const tabSlugFromUrl = queryParams.tab;
   const initialTab = getInitialTab({
     isLoading,
+    logsEnabled,
+    metricsEnabled,
     sections,
     tabOptions,
     tabSlugFromUrl,

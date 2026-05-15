@@ -42,6 +42,24 @@ describe('getInitialTab', () => {
     ).toBe(TraceLayoutTabKeys.WATERFALL);
   });
 
+  it.each([
+    [TraceLayoutTabKeys.LOGS, {logsEnabled: false}],
+    [TraceLayoutTabKeys.METRICS, {metricsEnabled: false}],
+  ])(
+    'does not preserve %s while loading when the product feature is disabled',
+    (tabSlugFromUrl, featureOptions) => {
+      expect(
+        getInitialTab({
+          isLoading: true,
+          sections,
+          tabOptions: [],
+          tabSlugFromUrl,
+          ...featureOptions,
+        }).slug
+      ).toBe(TraceLayoutTabKeys.WATERFALL);
+    }
+  );
+
   it('does not preserve trace-dependent tabs while loading', () => {
     expect(
       getInitialTab({
