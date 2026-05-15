@@ -145,10 +145,6 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 user_id=assigned_to.id,
                 user_is_active=False,
             ).exists():
-                logger.info(
-                    "groupassignee.skip_deactivated_user",
-                    extra={"group_id": group.id, "user_id": assigned_to.id},
-                )
                 return {"new_assignment": False, "updated_assignment": False}
 
         GroupSubscription.objects.subscribe_actor(
