@@ -464,19 +464,23 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         assert result is None
         mock_read_pref.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
-    def test_get_handoff_config_returns_none_when_stopping_at_root_cause(
-        self, mock_read_pref
-    ) -> None:
-        """Returns None without reading preferences when stopping point is ROOT_CAUSE."""
+    def test_get_handoff_config_returns_config_when_stopping_at_root_cause(self) -> None:
+        """Returns handoff config when stopping_point is ROOT_CAUSE.
+
+        Mirrors the legacy seer-side gate, which does not look at
+        stopping_point when deciding to fire a handoff. The combination
+        "stop seer at root cause, then hand off to an external coding agent"
+        must trigger a handoff.
+        """
+        expected_handoff_config = self._make_handoff_config()
+
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             current_step=AutofixStep.ROOT_CAUSE,
             group=self.group,
         )
 
-        assert result is None
-        mock_read_pref.assert_not_called()
+        assert result == expected_handoff_config
 
     def test_get_handoff_config_returns_none_when_no_handoff_configured(self) -> None:
         """Returns None when project has no automation handoff configured."""
@@ -525,6 +529,38 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             mock_trigger_handoff.call_args.kwargs["referrer"]
             == AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY
         )
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_maybe_continue_pipeline_triggers_handoff_when_stopping_at_root_cause(
+        self, mock_trigger_handoff
+    ):
+        """Handoff fires even when stopping_point is ROOT_CAUSE.
+
+        Regression: the previous order of if-blocks let the stopping_point
+        early-return short-circuit before the handoff check, dropping handoffs
+        for the coherent "stop seer at root cause, then external coding agent
+        does the fix" configuration. The handoff check must take precedence,
+        matching the legacy seer-side ordering in
+        seer/automation/autofix/steps/root_cause_step.py.
+        """
+        self._make_handoff_config()
+        mock_trigger_handoff.return_value = {"successes": [], "failures": []}
+
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(
+                    referrer=AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value
+                )
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_trigger_handoff.assert_called_once()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_clears_preference_on_not_found(self, mock_trigger):
