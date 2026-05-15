@@ -1,1 +1,1 @@
-export {Markdown, type MarkdownComponents, type MarkdownProps} from './markdown';
+export {Markdown, type MarkdownProps} from './markdown';
