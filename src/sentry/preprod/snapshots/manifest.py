@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, validator
 
@@ -29,7 +29,7 @@ class ImageMetadata(BaseModel):
         extra = "allow"
 
         @staticmethod
-        def schema_extra(schema: dict, model: type) -> None:
+        def schema_extra(schema: dict[str, Any], model: type) -> None:
             tags = schema.get("properties", {}).get("tags")
             if tags:
                 schema["properties"]["tags"] = {
