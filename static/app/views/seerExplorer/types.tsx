@@ -135,3 +135,21 @@ export function isExplorerCodingAgentState(
 ): value is ExplorerCodingAgentState {
   return explorerCodingAgentStateSchema.safeParse(value).success;
 }
+
+export type PendingUserInput = {
+  data: Record<string, any>;
+  id: string;
+  input_type: 'file_change_approval' | 'ask_user_question';
+};
+
+export type SeerExplorerResponse = {
+  session: {
+    blocks: Block[];
+    status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
+    updated_at: string;
+    owner_user_id?: number | null;
+    pending_user_input?: PendingUserInput | null;
+    repo_pr_states?: Record<string, RepoPRState>;
+    run_id?: number;
+  } | null;
+};

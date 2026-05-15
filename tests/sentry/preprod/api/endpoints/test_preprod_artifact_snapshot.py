@@ -667,8 +667,6 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["approval_status"] == "approved"
         assert len(response.data["approvers"]) == 1
         assert response.data["approvers"][0]["source"] == "sentry"
-        assert response.data["approval_info"] is not None
-        assert response.data["approval_info"]["status"] == "approved"
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_flat_fields_auto_approved(self, mock_get_session):

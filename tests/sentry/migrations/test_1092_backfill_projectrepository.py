@@ -53,6 +53,11 @@ class BackfillProjectRepositoryTest(TestMigrations):
         )
 
         # Case 1: Auto-generated code mapping only → AUTO_EVENT
+        pr_a = ProjectRepository.objects.create(
+            project=self.proj,
+            repository=self.repo_a,
+            source=ProjectRepositorySource.AUTO_EVENT,
+        )
         RepositoryProjectPathConfig.objects.create(
             project=self.proj,
             repository=self.repo_a,
@@ -62,9 +67,15 @@ class BackfillProjectRepositoryTest(TestMigrations):
             stack_root="src/",
             source_root="src/",
             automatically_generated=True,
+            project_repository=pr_a,
         )
 
         # Case 2: Manual code mapping only → MANUAL
+        pr_b = ProjectRepository.objects.create(
+            project=self.proj,
+            repository=self.repo_b,
+            source=ProjectRepositorySource.MANUAL,
+        )
         RepositoryProjectPathConfig.objects.create(
             project=self.proj,
             repository=self.repo_b,
@@ -74,15 +85,29 @@ class BackfillProjectRepositoryTest(TestMigrations):
             stack_root="lib/",
             source_root="lib/",
             automatically_generated=False,
+            project_repository=pr_b,
         )
 
         # Case 3: Seer preference only → SEER_PREFERENCE
+        pr_c = ProjectRepository.objects.create(
+            project=self.proj,
+            repository=self.repo_c,
+            source=ProjectRepositorySource.SEER_PREFERENCE,
+        )
         SeerProjectRepository.objects.create(
-            project=self.proj, repository=self.repo_c, branch_name="main"
+            project=self.proj,
+            repository=self.repo_c,
+            project_repository=pr_c,
+            branch_name="main",
         )
 
         # Case 4: Both manual code mapping AND Seer preference for same
         # (project, repo) → SEER_PREFERENCE wins (higher priority).
+        pr_d = ProjectRepository.objects.create(
+            project=self.proj,
+            repository=self.repo_d,
+            source=ProjectRepositorySource.SEER_PREFERENCE,
+        )
         RepositoryProjectPathConfig.objects.create(
             project=self.proj,
             repository=self.repo_d,
@@ -92,9 +117,13 @@ class BackfillProjectRepositoryTest(TestMigrations):
             stack_root="app/",
             source_root="app/",
             automatically_generated=False,
+            project_repository=pr_d,
         )
         SeerProjectRepository.objects.create(
-            project=self.proj, repository=self.repo_d, branch_name="develop"
+            project=self.proj,
+            repository=self.repo_d,
+            project_repository=pr_d,
+            branch_name="develop",
         )
 
         # Case 5: Dual-write already created a ProjectRepository row.
@@ -114,6 +143,7 @@ class BackfillProjectRepositoryTest(TestMigrations):
             stack_root="pkg/",
             source_root="pkg/",
             automatically_generated=True,
+            project_repository=self.existing_pr,
         )
 
     def test(self) -> None:
@@ -143,7 +173,7 @@ class BackfillProjectRepositoryTest(TestMigrations):
         # All RepositoryProjectPathConfig rows have project_repository_id set
         assert (
             RepositoryProjectPathConfig.objects.filter(
-                project=self.proj, project_repository_id__isnull=True
+                project_repository__project=self.proj, project_repository_id__isnull=True
             ).count()
             == 0
         )
@@ -151,18 +181,20 @@ class BackfillProjectRepositoryTest(TestMigrations):
         # All SeerProjectRepository rows have project_repository_id set
         assert (
             SeerProjectRepository.objects.filter(
-                project=self.proj, project_repository_id__isnull=True
+                project_repository__project=self.proj, project_repository_id__isnull=True
             ).count()
             == 0
         )
 
         # FK consistency: each row's project_repository points to the right pair
-        for config in RepositoryProjectPathConfig.objects.filter(project=self.proj):
+        for config in RepositoryProjectPathConfig.objects.filter(
+            project_repository__project=self.proj
+        ):
             pr = ProjectRepository.objects.get(id=config.project_repository_id)
-            assert pr.project_id == config.project_id
-            assert pr.repository_id == config.repository_id
+            assert pr.project_id == config.project_repository.project_id
+            assert pr.repository_id == config.project_repository.repository_id
 
-        for spr in SeerProjectRepository.objects.filter(project=self.proj):
+        for spr in SeerProjectRepository.objects.filter(project_repository__project=self.proj):
             pr = ProjectRepository.objects.get(id=spr.project_repository_id)
-            assert pr.project_id == spr.project_id
-            assert pr.repository_id == spr.repository_id
+            assert pr.project_id == spr.project_repository.project_id
+            assert pr.repository_id == spr.project_repository.repository_id

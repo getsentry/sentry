@@ -54,7 +54,7 @@ class SnapshotImageDetailImageInfo(BaseModel):
     height: int
     diff_threshold: float | None = None
     description: str | None = None
-    tags: list[str] | None = None
+    tags: dict[str, str] | None = None
     image_url: str
 
     class Config:
@@ -73,12 +73,6 @@ class SnapshotImageDetailResponse(BaseModel):
     previous_image_file_name: str | None = None
 
 
-class SnapshotComparisonRunInfo(BaseModel):
-    state: str | None = None
-    completed_at: str | None = None
-    duration_ms: int | None = None
-
-
 class SnapshotApprover(BaseModel):
     id: str | None = None
     name: str | None = None
@@ -87,12 +81,6 @@ class SnapshotApprover(BaseModel):
     avatar_url: str | None = None
     approved_at: str | None = None
     source: Literal["sentry", "github"] = "sentry"
-
-
-class SnapshotApprovalInfo(BaseModel):
-    status: Literal["approved", "requires_approval"]
-    approvers: list[SnapshotApprover] = []
-    is_auto_approved: bool = False
 
 
 class SnapshotDetailsApiResponse(BaseModel):
@@ -129,10 +117,6 @@ class SnapshotDetailsApiResponse(BaseModel):
 
     skipped: list[SnapshotImageResponse] = []
     skipped_count: int = 0
-
-    comparison_run_info: SnapshotComparisonRunInfo | None = None
-
-    approval_info: SnapshotApprovalInfo | None = None
 
     diff_threshold: float | None = None
 

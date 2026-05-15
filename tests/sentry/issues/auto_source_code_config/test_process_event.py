@@ -106,11 +106,11 @@ class BaseDeriveCodeMappings(TestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         RepositoryProjectPathConfig.objects.create(
-            project_id=self.project.id,
+            project=self.project,
+            repository=repository,
             stack_root=stack_root,
             source_root=source_root,
             default_branch=default_branch,
-            repository=repository,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
@@ -184,17 +184,20 @@ class BaseDeriveCodeMappings(TestCase):
                     )
                     for expected_cm in expected_new_code_mappings:
                         code_mapping = current_code_mappings.get(
-                            project_id=self.project.id,
+                            project_repository__project_id=self.project.id,
                             stack_root=expected_cm["stack_root"],
                             source_root=expected_cm["source_root"],
                         )
                         assert code_mapping is not None
-                        assert code_mapping.repository.name == expected_cm["repo_name"]
+                        assert (
+                            code_mapping.project_repository.repository.name
+                            == expected_cm["repo_name"]
+                        )
                         assert code_mapping.project_repository is not None
                         assert code_mapping.project_repository.project_id == self.project.id
                         assert (
                             code_mapping.project_repository.repository_id
-                            == code_mapping.repository_id
+                            == code_mapping.project_repository.repository_id
                         )
                 else:
                     assert current_code_mappings.count() == starting_code_mappings_count
@@ -970,7 +973,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         )
         # Both mappings should coexist: the manual one and the auto-created one
         mappings = RepositoryProjectPathConfig.objects.filter(
-            project=self.project, stack_root="foo/bar/"
+            project_repository__project=self.project, stack_root="foo/bar/"
         )
         assert mappings.count() == 2
         assert set(mappings.values_list("source_root", flat=True)) == {

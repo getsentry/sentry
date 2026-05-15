@@ -374,10 +374,10 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         )
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
+            repository=self.repo,
             stack_root="/stack/root",
             source_root="/source/root/wrong",
             default_branch="master",
-            repository=self.repo,
             organization_integration_id=self.organization_integration.id,
             organization_id=self.organization_integration.organization_id,
             integration_id=self.organization_integration.integration_id,
@@ -396,7 +396,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
 
         # Both mappings should coexist: the original and the newly derived one
         mappings = RepositoryProjectPathConfig.objects.filter(
-            project=self.project, stack_root="/stack/root"
+            project_repository__project=self.project, stack_root="/stack/root"
         )
         assert mappings.count() == 2
         assert set(mappings.values_list("source_root", flat=True)) == {

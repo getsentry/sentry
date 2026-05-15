@@ -795,8 +795,6 @@ export type KnownSentryApiUrls =
   | '/sentry-apps/$sentryAppIdOrSlug/stats/'
   | '/sentry-apps/$sentryAppIdOrSlug/webhook-requests/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/'
-  | '/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered-index/'
-  | '/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/'
