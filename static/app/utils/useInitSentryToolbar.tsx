@@ -9,13 +9,11 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 export function useInitSentryToolbar(organization: null | Organization) {
   const isEnvEnabled = !!process.env.ENABLE_SENTRY_TOOLBAR;
-  const showDevToolbar =
-    !!organization && !!organization.features.includes('init-sentry-toolbar');
   const isEmployee = useIsSentryEmployee();
   const config = useLegacyStore(ConfigStore);
 
   useSentryToolbar({
-    enabled: showDevToolbar && isEmployee && isEnvEnabled,
+    enabled: !!organization && isEmployee && isEnvEnabled,
     version: '1.0.0-beta.23',
     initProps: {
       organizationSlug: organization?.slug ?? 'sentry',
