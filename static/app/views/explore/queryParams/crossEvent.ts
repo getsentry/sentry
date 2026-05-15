@@ -60,7 +60,9 @@ function isCrossEvent(value: any): value is CrossEvent {
       typeof value.metric === 'object' &&
       typeof value.metric.name === 'string' &&
       typeof value.metric.type === 'string' &&
-      (value.metric.unit === undefined || typeof value.metric.unit === 'string')
+      (value.metric.unit === undefined ||
+        value.metric.unit === null ||
+        typeof value.metric.unit === 'string')
     );
   }
 
