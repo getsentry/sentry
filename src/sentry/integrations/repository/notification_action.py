@@ -54,8 +54,8 @@ class ActionAndGroupActionValidationError(NotificationActionNotificationMessageV
 
 @dataclass
 class NewNotificationActionNotificationMessage(BaseNewNotificationMessage):
-    action_id: int | None = None
-    group_id: int | None = None
+    action_id: int
+    group_id: int
     open_period_start: datetime | None = None
 
     def get_validation_error(self) -> Exception | None:
