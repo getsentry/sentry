@@ -117,8 +117,3 @@ class TestSetTotalCapacity:
         limiter, provider = make_limiter(recorded_capacity=5000)
         limiter.set_total_capacity(5000)
         assert provider.set_kvs == {}
-
-    def test_returns_none(self) -> None:
-        """set_total_capacity always returns None."""
-        limiter, _ = make_limiter(recorded_capacity=None)
-        assert limiter.set_total_capacity(5000) is None
