@@ -55,7 +55,7 @@ class TestIsRateLimited:
     def test_allocated_referrer_exhausted_quota(self) -> None:
         """Referrer at quota limit is rate limited."""
         limiter, _ = make_limiter(
-            get_and_set_return=(10, 10),
+            get_and_set_return=(10, 11),
             referrer_allocation={"my_referrer": 1.0},
         )
         assert limiter.is_rate_limited("my_referrer") is True
@@ -67,7 +67,7 @@ class TestIsRateLimited:
 
     def test_shared_referrer_exhausted_quota(self) -> None:
         """Shared referrer at quota limit is rate limited."""
-        limiter, _ = make_limiter(get_and_set_return=(10, 10))
+        limiter, _ = make_limiter(get_and_set_return=(10, 11))
         assert limiter.is_rate_limited("shared") is True
 
     def test_unregistered_referrer_raises(self) -> None:
@@ -97,3 +97,28 @@ class TestIsRateLimited:
             referrer_allocation={"my_referrer": 1.0},
         )
         assert limiter.is_rate_limited("shared") is True
+
+
+class TestSetTotalCapacity:
+    def test_writes_capacity_when_no_prior_value(self) -> None:
+        """Capacity is written when recorded_capacity is None."""
+        limiter, provider = make_limiter(recorded_capacity=None)
+        limiter.set_total_capacity(5000)
+        assert provider.set_kvs == {"limit:scm:github:1": (5000, None)}
+
+    def test_writes_capacity_when_value_differs(self) -> None:
+        """Capacity is written when it differs from recorded_capacity."""
+        limiter, provider = make_limiter(recorded_capacity=1000)
+        limiter.set_total_capacity(5000)
+        assert provider.set_kvs == {"limit:scm:github:1": (5000, None)}
+
+    def test_skips_write_when_capacity_matches(self) -> None:
+        """No write occurs when capacity matches recorded_capacity."""
+        limiter, provider = make_limiter(recorded_capacity=5000)
+        limiter.set_total_capacity(5000)
+        assert provider.set_kvs == {}
+
+    def test_returns_none(self) -> None:
+        """set_total_capacity always returns None."""
+        limiter, _ = make_limiter(recorded_capacity=None)
+        assert limiter.set_total_capacity(5000) is None
