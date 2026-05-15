@@ -174,8 +174,8 @@ export function MetricPanel({
   const heatmapResult = useQuery({
     ...heatmapApiOptions,
     select: data => {
-      const series = heatmapApiOptions.select(data);
-      return mergeMetricUnit(series, traceMetric.unit);
+      const series = heatmapApiOptions.select!(data);
+      return mergeMetricUnit(series, traceMetric.unit ?? undefined);
     },
   });
 
