@@ -4,11 +4,6 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  OnboardingContextProvider,
-  type OnboardingSessionState,
-} from 'sentry/components/onboarding/onboardingContext';
-
 import {ScmRepoSelector} from './scmRepoSelector';
 
 // Mock the virtualizer so all items render in JSDOM (no layout engine).
@@ -25,16 +20,6 @@ jest.mock('@tanstack/react-virtual', () => ({
     measureElement: jest.fn(),
   })),
 }));
-
-function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
-  return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
-    return (
-      <OnboardingContextProvider initialValue={initialState}>
-        {children}
-      </OnboardingContextProvider>
-    );
-  };
-}
 
 describe('ScmRepoSelector', () => {
   const organization = OrganizationFixture();
@@ -56,7 +41,6 @@ describe('ScmRepoSelector', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    sessionStorage.clear();
   });
 
   it('renders search placeholder', () => {
@@ -65,10 +49,14 @@ describe('ScmRepoSelector', () => {
       body: {repos: []},
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper(),
-    });
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={undefined}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
 
     expect(screen.getByText('Search repositories')).toBeInTheDocument();
   });
@@ -79,10 +67,14 @@ describe('ScmRepoSelector', () => {
       body: {repos: []},
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper(),
-    });
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={undefined}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('textbox'));
 
@@ -100,10 +92,14 @@ describe('ScmRepoSelector', () => {
       body: {detail: 'Internal Error'},
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper(),
-    });
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={undefined}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('textbox'));
 
@@ -123,10 +119,14 @@ describe('ScmRepoSelector', () => {
       },
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper(),
-    });
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={undefined}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('textbox'));
 
@@ -136,7 +136,7 @@ describe('ScmRepoSelector', () => {
     expect(screen.getByRole('menuitemradio', {name: 'relay'})).toBeInTheDocument();
   });
 
-  it('shows selected repo value when one is in context', () => {
+  it('shows selected repo value when one is provided', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {repos: []},
@@ -147,10 +147,14 @@ describe('ScmRepoSelector', () => {
       externalSlug: 'getsentry/old-repo',
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper({selectedRepository: selectedRepo}),
-    });
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={selectedRepo}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
 
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
   });
@@ -180,15 +184,21 @@ describe('ScmRepoSelector', () => {
       ],
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper(),
-    });
+    const onRepositoryChange = jest.fn();
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={undefined}
+        onRepositoryChange={onRepositoryChange}
+      />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
     await waitFor(() => expect(reposLookup).toHaveBeenCalled());
+    expect(onRepositoryChange).toHaveBeenCalled();
   });
 
   it('clears the selected repo', async () => {
@@ -202,18 +212,21 @@ describe('ScmRepoSelector', () => {
       externalSlug: 'getsentry/old-repo',
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper({selectedRepository: selectedRepo}),
-    });
+    const onRepositoryChange = jest.fn();
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={selectedRepo}
+        onRepositoryChange={onRepositoryChange}
+      />,
+      {organization}
+    );
 
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
 
     await userEvent.click(await screen.findByTestId('icon-close'));
 
-    await waitFor(() => {
-      expect(screen.queryByText('getsentry/old-repo')).not.toBeInTheDocument();
-    });
+    await waitFor(() => expect(onRepositoryChange).toHaveBeenCalledWith(undefined));
   });
 
   it('does not duplicate selected repo when it appears in results', async () => {
@@ -232,10 +245,14 @@ describe('ScmRepoSelector', () => {
       },
     });
 
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper({selectedRepository: selectedRepo}),
-    });
+    render(
+      <ScmRepoSelector
+        integration={mockIntegration}
+        selectedRepository={selectedRepo}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('textbox'));
 

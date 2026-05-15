@@ -19,6 +19,7 @@ import {categoryList} from 'sentry/data/platformPickerCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -69,6 +70,99 @@ const legacyOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
+// Adapters bridge the SCM step components — which accept all flow state via
+// props — to the onboarding flow's OnboardingContext. They let the same step
+// components be reused by other flows (e.g. project creation) that source
+// state from somewhere other than session storage.
+
+function ScmConnectAdapter({onComplete, genBackButton}: StepProps) {
+  const {
+    selectedIntegration,
+    setSelectedIntegration,
+    selectedRepository,
+    setSelectedRepository,
+    clearDerivedState,
+  } = useOnboardingContext();
+
+  const handleRepositoryChange = useCallback(
+    (repo: Repository | undefined) => {
+      // Changing or clearing the repo invalidates downstream state (platform,
+      // features, created project) which are all derived from the repo.
+      clearDerivedState();
+      setSelectedRepository(repo);
+    },
+    [clearDerivedState, setSelectedRepository]
+  );
+
+  return (
+    <ScmConnect
+      selectedIntegration={selectedIntegration}
+      selectedRepository={selectedRepository}
+      onIntegrationChange={setSelectedIntegration}
+      onRepositoryChange={handleRepositoryChange}
+      onComplete={onComplete}
+      genBackButton={genBackButton}
+    />
+  );
+}
+
+function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
+  const {
+    selectedRepository,
+    selectedPlatform,
+    setSelectedPlatform,
+    selectedFeatures,
+    setSelectedFeatures,
+    setProjectDetailsForm,
+    createdProjectSlug,
+    setCreatedProjectSlug,
+  } = useOnboardingContext();
+
+  const handleClearProjectDetailsForm = useCallback(
+    () => setProjectDetailsForm(undefined),
+    [setProjectDetailsForm]
+  );
+
+  return (
+    <ScmPlatformFeatures
+      selectedRepository={selectedRepository}
+      selectedPlatform={selectedPlatform}
+      selectedFeatures={selectedFeatures}
+      createdProjectSlug={createdProjectSlug}
+      onPlatformChange={setSelectedPlatform}
+      onFeaturesChange={setSelectedFeatures}
+      onClearProjectDetailsForm={handleClearProjectDetailsForm}
+      onProjectCreated={setCreatedProjectSlug}
+      onComplete={onComplete}
+      genBackButton={genBackButton}
+    />
+  );
+}
+
+function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
+  const {
+    selectedPlatform,
+    selectedFeatures,
+    createdProjectSlug,
+    setCreatedProjectSlug,
+    projectDetailsForm,
+    setProjectDetailsForm,
+  } = useOnboardingContext();
+
+  return (
+    <ScmProjectDetails
+      selectedPlatform={selectedPlatform}
+      selectedFeatures={selectedFeatures}
+      createdProjectSlug={createdProjectSlug}
+      projectDetailsForm={projectDetailsForm}
+      onProjectCreated={setCreatedProjectSlug}
+      onProjectDetailsFormChange={setProjectDetailsForm}
+      onComplete={onComplete}
+      genBackButton={genBackButton}
+    />
+  );
+}
+
 const scmOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
@@ -79,19 +173,19 @@ const scmOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.SCM_CONNECT,
     title: t('Connect repository'),
-    Component: ScmConnect,
+    Component: ScmConnectAdapter,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Create your first project'),
-    Component: ScmPlatformFeatures,
+    Component: ScmPlatformFeaturesAdapter,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PROJECT_DETAILS,
     title: t('Project details'),
-    Component: ScmProjectDetails,
+    Component: ScmProjectDetailsAdapter,
     hasFooter: true,
     cornerVariant: 'top-left',
   },
