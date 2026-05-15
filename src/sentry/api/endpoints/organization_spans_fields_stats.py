@@ -8,7 +8,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -36,11 +35,6 @@ class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:performance-spans-fields-stats", organization, actor=request.user
-        ):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
