@@ -80,6 +80,21 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
         return;
       }
 
+      if (shouldCleanRef.current) {
+        const query = Object.fromEntries(newUrl.searchParams.entries());
+        const newLocation = {
+          pathname: newUrl.pathname,
+          search: newUrl.search,
+          hash: newUrl.hash,
+          state: null,
+          query,
+          key: '',
+        } as Location<Q>;
+        if (!shouldCleanRef.current(newLocation)) {
+          return;
+        }
+      }
+
       const fields = fieldsToCleanRef.current;
       if (!fields.some(f => newUrl.searchParams.has(f))) {
         return;
