@@ -135,6 +135,21 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
+        from sentry.models.organizationmember import OrganizationMember
+        from sentry.users.models.user import User as UserModel
+        from sentry.users.services.user import RpcUser
+
+        if isinstance(assigned_to, (UserModel, RpcUser)):
+            if OrganizationMember.objects.filter(
+                organization_id=group.project.organization_id,
+                user_id=assigned_to.id,
+                user_is_active=False,
+            ).exists():
+                logger.info(
+                    "groupassignee.skip_deactivated_user",
+                    extra={"group_id": group.id, "user_id": assigned_to.id},
+                )
+                return {"new_assignment": False, "updated_assignment": False}
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned

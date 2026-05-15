@@ -398,3 +398,17 @@ class GroupAssigneeTestCase(TestCase):
             assert not GroupAssignee.objects.filter(
                 project=group.project, group=group, user_id=self.user.id, team__isnull=True
             ).exists()
+
+    def test_assign_deactivated_user_is_noop(self) -> None:
+        from sentry.models.organizationmember import OrganizationMember
+
+        OrganizationMember.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        ).update(user_is_active=False)
+
+        result = GroupAssignee.objects.assign(self.group, self.user)
+        assert result == {"new_assignment": False, "updated_assignment": False}
+        assert not GroupAssignee.objects.filter(group=self.group).exists()
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.ASSIGNED.value
+        ).exists()
