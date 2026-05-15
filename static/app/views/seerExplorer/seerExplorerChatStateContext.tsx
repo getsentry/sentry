@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 
 export type PollingState =
   | 'polling'
@@ -112,10 +113,33 @@ export function SeerExplorerChatStateProvider({children}: {children: ReactNode})
   return (
     <SeerExplorerChatDispatchContext.Provider value={dispatch}>
       <SeerExplorerChatStateContext.Provider value={state}>
-        {children}
+        <SeerExplorerChatStatePolling runId={state.runId} dispatch={dispatch}>
+          {children}
+        </SeerExplorerChatStatePolling>
       </SeerExplorerChatStateContext.Provider>
     </SeerExplorerChatDispatchContext.Provider>
   );
+}
+
+function SeerExplorerChatStatePolling({
+  children,
+  runId,
+  dispatch,
+}: {
+  children: ReactNode;
+  dispatch: Dispatch<ChatStateAction>;
+  runId: number | null;
+}) {
+  const {pollingState} = useSeerExplorerPolling({runId});
+
+  useEffect(() => {
+    if (runId === null) {
+      return;
+    }
+    dispatch({type: 'set polling', payload: {runId, polling: pollingState}});
+  }, [dispatch, runId, pollingState]);
+
+  return children;
 }
 
 export function useSeerExplorerChatState(): SeerExplorerChatState {

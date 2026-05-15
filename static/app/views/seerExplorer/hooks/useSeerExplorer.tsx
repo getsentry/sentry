@@ -6,19 +6,22 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
+import {
+  isSeerExplorerEnabled,
+  makeSeerExplorerQueryKey,
+  usePageReferrer,
+} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -152,8 +155,8 @@ export const useSeerExplorer = () => {
       }
     );
 
-  const {runId} = useSeerExplorerChatState();
-  const chatDispatch = useSeerExplorerChatDispatch();
+  const {runId, chatStates} = useSeerExplorerChatState();
+  const dispatch = useSeerExplorerChatDispatch();
   const [lastSentMessage, setLastSentMessage] = useState<{
     insertIndex: number;
     loadingPlaceholderContent: string;
@@ -164,7 +167,7 @@ export const useSeerExplorer = () => {
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
-  const {mutate: sendMessageMutate, isPending: isPendingSendMessage} = useMutation<
+  const {mutate: sendMessageMutate} = useMutation<
     SeerExplorerChatResponse,
     RequestError,
     {
@@ -214,7 +217,7 @@ export const useSeerExplorer = () => {
     onSuccess: (response, params) => {
       if (params.runId === null) {
         // set run ID if this is a new session
-        chatDispatch({type: 'set run id', payload: response.run_id});
+        dispatch({type: 'set run id', payload: response.run_id});
       } else {
         // invalidate the query so fresh data is fetched
         queryClient.invalidateQueries({
@@ -241,7 +244,7 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {mutate: userInputMutate, isPending: isPendingUserInput} = useMutation<
+  const {mutate: userInputMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
     {
@@ -310,7 +313,7 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {mutate: createPRMutate, isPending: isPendingCreatePR} = useMutation<
+  const {mutate: createPRMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
     {orgSlug: string; runId: number | null; repoName?: string}
@@ -391,14 +394,21 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {apiData, isPolling, isError, errorStatusCode, isTimedOut} =
-    useSeerExplorerPolling({
-      runId,
-      shouldPollOverride:
-        isPendingSendMessage || isPendingUserInput || isPendingCreatePR
-          ? true
-          : undefined,
-    });
+  const pollingState = runId === null ? undefined : chatStates[runId]?.polling;
+  const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
+  const isTimedOut = pollingState === 'timed-out';
+
+  const {
+    data: apiData,
+    isError,
+    error: apiError,
+  } = useApiQuery<SeerExplorerResponse>(makeSeerExplorerQueryKey(orgSlug || '', runId), {
+    staleTime: 0,
+    retry: false,
+    refetchOnWindowFocus: true,
+    enabled: !!runId && isSeerExplorerEnabled(organization),
+  });
+  const errorStatusCode = apiError?.status;
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -408,7 +418,7 @@ export const useSeerExplorer = () => {
       }
 
       // Set the new run ID and clear previous request states
-      chatDispatch({type: 'set run id', payload: newRunId});
+      dispatch({type: 'set run id', payload: newRunId});
       setLastSentMessage(null);
       setHasSentInterrupt(false);
 
@@ -421,7 +431,7 @@ export const useSeerExplorer = () => {
 
       onSuccess?.();
     },
-    [orgSlug, queryClient, runId, chatDispatch]
+    [orgSlug, queryClient, runId, dispatch]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */

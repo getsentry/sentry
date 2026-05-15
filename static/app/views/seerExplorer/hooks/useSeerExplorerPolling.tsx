@@ -5,7 +5,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -40,12 +40,8 @@ const getPollingState = (
   sessionData: SeerExplorerResponse['session'] | undefined,
   isError: boolean,
   errorStatusCode: number | undefined,
-  errorPollCount: number,
-  override: boolean | undefined
-): 'polling' | 'polling-with-backoff' | 'not-polling' | 'timed-out' => {
-  if (override !== undefined) {
-    return override ? 'polling' : 'not-polling';
-  }
+  errorPollCount: number
+): PollingState => {
   if (runId === null) {
     return 'not-polling';
   }
@@ -70,27 +66,13 @@ const getPollingState = (
 };
 
 /**
- * Single source of truth for Seer session polling. Runs the shared `useApiQuery`
- * (deduped across observers by key) and derives `isPolling`. Called by both
- * `useSeerExplorer` (with mutation state) and `SeerExplorerContextProvider`
- * (without) so the session state is observable globally.
- *
- * @param runId - The run ID to poll.
- * @param shouldPollOverride - Useful for passing a state variable to always poll / not poll
- *  when some condition is true, e.g. a mutation is pending. Disables timeout detection.
- *
- * Callers can expect isPolling and isTimedOut to be disjoint - can never both be true.
+ * Drives Seer session polling via `useApiQuery` with a dynamic refetch interval.
+ * Called exclusively by `SeerExplorerChatStateProvider`, which dispatches the
+ * derived polling state into context for all consumers.
  */
-export const useSeerExplorerPolling = ({
-  runId,
-  shouldPollOverride,
-}: {
-  runId: number | null;
-  shouldPollOverride?: boolean;
-}) => {
+export const useSeerExplorerPolling = ({runId}: {runId: number | null}) => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
-  const dispatch = useSeerExplorerChatDispatch();
   const errorPollCountRef = useRef(0);
   const [, forceRender] = useState(false);
 
@@ -116,8 +98,7 @@ export const useSeerExplorerPolling = ({
         query.state.data?.json?.session,
         query.state.status === 'error',
         query.state.error?.status,
-        errorPollCountRef.current,
-        shouldPollOverride
+        errorPollCountRef.current
       );
       if (state === 'polling-with-backoff') {
         errorPollCountRef.current++;
@@ -163,18 +144,11 @@ export const useSeerExplorerPolling = ({
     apiData?.session,
     isError,
     error?.status,
-    errorPollCountRef.current,
-    shouldPollOverride
+    errorPollCountRef.current
   );
 
-  useEffect(() => {
-    if (runId === null) {
-      return;
-    }
-    dispatch({type: 'set polling', payload: {runId, polling: pollingState}});
-  }, [dispatch, runId, pollingState]);
-
   return {
+    pollingState,
     apiData,
     isError,
     errorStatusCode: error?.status,
