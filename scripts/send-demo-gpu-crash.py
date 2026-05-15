@@ -80,6 +80,29 @@ def parse_dsn(dsn: str) -> tuple[str, str, str]:
     return envelope_url, parsed.username, project_id
 
 
+def _attach_nvdbg_fixtures(nv_gpudmp_path: Path) -> list[tuple[str, bytes]]:
+    """Return [(uid_hex, bytes)] for every `.nvdbg` sibling of the dump.
+
+    The customer's SDK ships one `.nvdbg` per active shader involved in
+    the crash, each filename keyed by `shader_debug_info_uid` (32-hex).
+    For our demo we pick up every `*.nvdbg` next to the dump fixture so
+    the envelope mirrors what a real Aftermath integration produces.
+    Files named e.g. `shader-<hash>-<uid>.nvdbg` are accepted — we pull
+    the last 32-hex run from the filename as the uid.
+    """
+
+    import re
+
+    out: list[tuple[str, bytes]] = []
+    uid_re = re.compile(r"([0-9a-fA-F]{32})\.nvdbg$")
+    for p in sorted(nv_gpudmp_path.parent.glob("*.nvdbg")):
+        m = uid_re.search(p.name)
+        if m is None:
+            continue
+        out.append((m.group(1).lower(), p.read_bytes()))
+    return out
+
+
 def build_envelope(
     *,
     event_id: str,
@@ -88,6 +111,7 @@ def build_envelope(
     dsn: str,
     minidump_bytes: bytes | None,
     gpu_dump_bytes: bytes | None,
+    shader_debug_info: list[tuple[str, bytes]] | None = None,
 ) -> bytes:
     """Assemble a newline-delimited envelope body."""
 
@@ -160,6 +184,27 @@ def build_envelope(
             + b"\n"
         )
         chunks.append(gpu_dump_bytes + b"\n")
+
+    # Per-shader debug-info attachments. The customer's SDK produces one
+    # `.nvdbg` per active shader involved in the crash; we ship each as
+    # an `event.nv_shader_debug` envelope item, named by its
+    # `shader_debug_info_uid`. Sentry-side `find_all_shader_debug_attachments`
+    # picks them up by attachment_type + filename pattern and forwards to
+    # teapot.
+    for uid, nvdbg_bytes in shader_debug_info or []:
+        chunks.append(
+            orjson.dumps(
+                {
+                    "type": "attachment",
+                    "length": len(nvdbg_bytes),
+                    "attachment_type": "event.nv_shader_debug",
+                    "filename": f"{uid}.nvdbg",
+                    "content_type": "application/octet-stream",
+                }
+            )
+            + b"\n"
+        )
+        chunks.append(nvdbg_bytes + b"\n")
 
     # Canary attachment to test whether a known-accepted attachment_type makes
     # it through the same envelope — if this shows up but .nv-gpudmp doesn't,
@@ -242,6 +287,7 @@ def main() -> int:
         minidump_bytes = args.minidump.read_bytes()
 
     gpu_bytes: bytes | None = None
+    shader_debug_info: list[tuple[str, bytes]] = []
     if not args.skip_gpu:
         nv_path = args.nv_gpudmp or _default_gpu_fixture()
         if nv_path is None:
@@ -253,6 +299,11 @@ def main() -> int:
         if not nv_path.is_file():
             sys.exit(f"gpu dump fixture not found: {nv_path}")
         gpu_bytes = nv_path.read_bytes()
+        # Pick up any `.nvdbg` siblings next to the dump fixture; that's
+        # how a real Aftermath integration ships them (one per active
+        # shader). The customer SDK writes them via `OnShaderDebugInfo`
+        # at crash time, named by shader_debug_info_uid.
+        shader_debug_info = _attach_nvdbg_fixtures(nv_path)
 
     event_id = uuid.uuid4().hex
     trace_id = args.trace_id or uuid.uuid4().hex
@@ -265,6 +316,7 @@ def main() -> int:
         dsn=args.dsn,
         minidump_bytes=minidump_bytes,
         gpu_dump_bytes=gpu_bytes,
+        shader_debug_info=shader_debug_info,
     )
 
     def _say(line: str = "") -> None:
@@ -277,6 +329,7 @@ def main() -> int:
     _say(f"  envelope:   {len(body):,} bytes")
     _say(f"  minidump:   {'yes' if minidump_bytes else 'no'}")
     _say(f"  gpu dump:   {'yes' if gpu_bytes else 'no'}")
+    _say(f"  nvdbg:      {len(shader_debug_info)} shader debug info attachment(s)")
     _say(f"  POST {envelope_url}")
 
     resp = send_envelope(envelope_url, public_key, body)

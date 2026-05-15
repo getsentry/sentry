@@ -196,6 +196,71 @@ def has_gpu_crash_dump_attachment(data: Any) -> bool:
     return find_gpu_crash_dump_attachment(data) is not None
 
 
+# Shader debug info attachments accompany the `.nv-gpudmp`. Customer SDKs
+# (the Unreal Aftermath integration in particular) call this `.nvdbg` and
+# name each file by its `shader_debug_info_uid` — a 32-char hex
+# identifier Aftermath itself uses to look the bytes back up via
+# `shaderDebugInfoLookupCb` at decode time. We pass each one through to
+# teapot via the multipart field `nv_shader_debug.<uid>` or — when the
+# attachment is in objectstore — a per-entry storage_url/storage_token
+# pair inside the JSON body.
+SHADER_DEBUG_INFO_ATTACHMENT_TYPE = "event.nv_shader_debug"
+
+_NVDBG_FILENAME_RE = re.compile(
+    # Accept either:
+    #   - `<uid>.nvdbg`             (terse form some integrations use)
+    #   - `shader-<hash>-<uid>.nvdbg` (Aftermath sample / nv-tools form)
+    # We pull the LAST 32-hex run before the `.nvdbg` suffix. Anything
+    # that doesn't match either shape is logged + skipped — better to
+    # drop one shader than to feed teapot bytes with no valid uid key.
+    r"(?P<uid>[0-9a-fA-F]{32})\.nvdbg$"
+)
+
+
+def find_all_shader_debug_attachments(data: Any) -> list[tuple[str, CachedAttachment]]:
+    """Return every shader-debug-info attachment on the event, keyed by uid.
+
+    Each entry is `(shader_debug_info_uid, attachment)`. Uids are extracted
+    from the attachment filename — Aftermath fires `OnShaderDebugInfo`
+    once per shader involved in a crash and customer SDKs save each
+    `.nvdbg` to disk named by its uid. We accept either the canonical
+    `event.nv_shader_debug` attachment_type or a generic
+    `event.attachment` whose name matches `<uid>.nvdbg` (same fallback
+    pattern we use for `event.nv_gpudmp` until Relay grows native
+    support for the new type).
+
+    Skips attachments with no parseable uid; a one-off attachment lacking
+    a uid is useless to teapot (Aftermath's `shaderDebugInfoLookupCb`
+    keys on the uid, not on the bytes).
+    """
+    out: list[tuple[str, CachedAttachment]] = []
+    seen_uids: set[str] = set()
+    for attachment in get_attachments_for_event(data):
+        # Prefer the explicit attachment_type. Same dual-path fallback as
+        # find_gpu_crash_dump_attachment: until Relay knows the new type,
+        # SDKs can ship them as `event.attachment` and we still pick
+        # them up by filename.
+        ty = getattr(attachment, "type", "") or ""
+        name = getattr(attachment, "name", None) or ""
+        if ty != SHADER_DEBUG_INFO_ATTACHMENT_TYPE and not (
+            ty == "event.attachment" and name.endswith(".nvdbg")
+        ):
+            continue
+        m = _NVDBG_FILENAME_RE.search(name)
+        if m is None:
+            logger.info(
+                "gpu.shader_debug.unparseable_name",
+                extra={"filename": name, "type": ty},
+            )
+            continue
+        uid = m.group("uid").lower()
+        if uid in seen_uids:
+            continue
+        seen_uids.add(uid)
+        out.append((uid, attachment))
+    return out
+
+
 class Backoff:
     """
     Creates a new exponential backoff.

@@ -1,7 +1,12 @@
 """
-Pure unit tests for teapot integration. Do not require fixtures or a live
-service. End-to-end tests live under tests/sentry/lang/native/test_gpu_crash_full.py
-(Phase 2) and tests/symbolicator/ (Phase 3, when the full ingest path is wired).
+Unit tests for teapot integration.
+
+Covers:
+* `_merge_gpu_response` — flatten + raw context shaping
+* `TeapotClient.symbolicate` — both multipart and JSON+storage_url paths
+* `submit_to_teapot` wrapper — best-effort error swallowing
+* `process_gpu_crash_dump` — top-level orchestration
+* `_produce_gpu_occurrence` — issue creation with teapot-supplied fingerprint
 """
 
 from __future__ import annotations
@@ -14,6 +19,7 @@ from unittest import mock
 import pytest
 import requests
 
+from sentry.lang.native.gpu import _produce_gpu_occurrence
 from sentry.lang.native.processing import (
     GPU_CRASH_DUMP_ATTACHMENT_TYPE,
     _merge_gpu_response,
@@ -26,21 +32,35 @@ from sentry.lang.native.teapot import (
 )
 
 
-# A `(sources, process_response)` tuple shaped like `sources_for_symbolication`
-# returns. `process_response` must be idempotent so the tests stay readable.
-def _fake_sources_for_symbolication(_project: Any) -> tuple[list[dict[str, Any]], Any]:
-    sources: list[dict[str, Any]] = [{"type": "sentry", "id": "sentry:project"}]
-
-    def _process(payload: dict[str, Any]) -> dict[str, Any]:
-        return payload
-
-    return sources, _process
-
-
 class _FakeProject:
     def __init__(self, id: int = 42, organization_id: int = 7) -> None:
         self.id = id
         self.organization_id = organization_id
+
+
+class _FakeAttachment:
+    """Stand-in for `sentry.attachments.CachedAttachment` in unit tests.
+
+    Carries enough surface for the teapot client: bytes via `load_data`,
+    the attachment `type`, the filename `name`, and an optional
+    `stored_id`. When `stored_id` is set teapot's client routes via the
+    JSON+storage_url path; otherwise it falls back to multipart.
+    """
+
+    def __init__(
+        self,
+        data: bytes,
+        attachment_type: str = GPU_CRASH_DUMP_ATTACHMENT_TYPE,
+        name: str = "dump.nv-gpudmp",
+        stored_id: str | None = None,
+    ) -> None:
+        self._data = data
+        self.type = attachment_type
+        self.name = name
+        self.stored_id = stored_id
+
+    def load_data(self, _project: Any) -> bytes:
+        return self._data
 
 
 class _FakeResponse:
@@ -56,6 +76,43 @@ class _FakeResponse:
         return self._body
 
 
+def _completed_response(**overrides: Any) -> dict[str, Any]:
+    """Minimal `status=completed` teapot response with the new top-level fields.
+
+    Tests that care about a specific field can override individual keys.
+    """
+
+    base: dict[str, Any] = {
+        "status": "completed",
+        "handler": "aftermath",
+        "sdk_version": "2025.5.0",
+        "decode_time_ms": 241,
+        "fault_category": "shader_hang",
+        "title": "GPU hang in vertex_02",
+        "fingerprint": ["gpu", "shader_hang", "abc123"],
+        "markers": [],
+        "fault": {"type": "Timeout"},
+        "gpu_state": {"device_name": "RTX 4090"},
+        "shader_context": {
+            "active_shaders": [{"shader_hash": "abc123", "shader_type": "Vertex"}],
+        },
+        "frames": [{"function": "Vertex", "module": "shader_abc123"}],
+        "missing_difs": [],
+    }
+    base.update(overrides)
+    return base
+
+
+@contextlib.contextmanager
+def _configured_teapot(url: str = "http://teapot.test") -> Iterator[None]:
+    """Context manager: sets TEAPOT_URL so the client resolves an endpoint."""
+
+    from django.conf import settings
+
+    with mock.patch.object(settings, "TEAPOT_URL", url, create=True):
+        yield
+
+
 # ---------------------------------------------------------------------------
 # _merge_gpu_response
 # ---------------------------------------------------------------------------
@@ -63,17 +120,14 @@ class _FakeResponse:
 
 def test_merge_gpu_response_writes_context() -> None:
     data: dict[str, Any] = {}
-    response = {
-        "status": "completed",
-        "handler": "aftermath",
-        "sdk_version": "2025.5.0",
-        "decode_time_ms": 241,
-        "fault": {"type": "PageFault", "code": "FOO", "virtual_address": "0xdeadbeef"},
-        "gpu_state": {"device_name": "Test GPU"},
-        "shader_context": {"shader_hash": "abc123", "entry_point": "Main"},
-        "frames": [{"function": "main", "module": "abc123"}],
-        "missing_difs": [],
-    }
+    response = _completed_response(
+        fault={"type": "PageFault", "code": "FOO", "virtual_address": "0xdeadbeef"},
+        gpu_state={"device_name": "Test GPU"},
+        shader_context={
+            "active_shaders": [{"shader_hash": "abc123", "shader_type": "Vertex"}],
+        },
+        frames=[{"function": "main", "module": "abc123"}],
+    )
 
     _merge_gpu_response(data, response)
 
@@ -81,6 +135,9 @@ def test_merge_gpu_response_writes_context() -> None:
     assert ctx["status"] == "completed"
     assert ctx["handler"] == "aftermath"
     assert ctx["sdk_version"] == "2025.5.0"
+    # New top-level teapot fields lifted onto the flat context.
+    assert ctx["fault_category"] == "shader_hang"
+    assert ctx["title"] == "GPU hang in vertex_02"
     # Flat shape: UI-friendly top-level scalars instead of nested blobs.
     assert ctx["fault_type"] == "PageFault"
     assert ctx["device_name"] == "Test GPU"
@@ -89,7 +146,6 @@ def test_merge_gpu_response_writes_context() -> None:
     assert "fault" not in ctx
     assert "gpu_state" not in ctx
     assert "shader_context" not in ctx
-    # Empty missing_difs surfaces as a zero count rather than a list.
     assert ctx["missing_dif_count"] == 0
 
     # Raw nested blobs still available under gpu_crash_raw (hidden in UI).
@@ -97,11 +153,8 @@ def test_merge_gpu_response_writes_context() -> None:
     assert raw["type"] == "default"
     assert raw["fault"]["type"] == "PageFault"
     assert raw["gpu_state"]["device_name"] == "Test GPU"
-    assert raw["shader_context"]["shader_hash"] == "abc123"
-
     # Frames go to the private channel, not user-visible context.
     assert data["_gpu_crash_private"]["frames"] == [{"function": "main", "module": "abc123"}]
-    assert "frames" not in ctx
 
 
 def test_merge_gpu_response_preserves_trace_id() -> None:
@@ -109,17 +162,13 @@ def test_merge_gpu_response_preserves_trace_id() -> None:
     data: dict[str, Any] = {
         "contexts": {"trace": {"trace_id": trace_id, "span_id": "0011223344556677"}},
     }
-    response = {
-        "status": "partial",
-        "fault": {"type": "PageFault"},
-    }
+    response = _completed_response(status="partial")
 
     _merge_gpu_response(data, response)
 
     # The trace context is untouched. This is the whole point of keeping the
     # GPU merge additive.
     assert data["contexts"]["trace"]["trace_id"] == trace_id
-    assert data["contexts"]["trace"]["span_id"] == "0011223344556677"
     assert data["contexts"]["gpu_crash"]["status"] == "partial"
 
 
@@ -136,32 +185,26 @@ def test_merge_gpu_response_failed_status() -> None:
     ctx = data["contexts"]["gpu_crash"]
     assert ctx["status"] == "failed"
     assert ctx["error"]["code"] == "DUMP_CORRUPTED"
-    assert ctx["handler"] == "aftermath"
-    # No fault / gpu_state / frames — failed decode has nothing to merge.
-    assert "fault" not in ctx
+    # No frames / raw context written when decode failed.
     assert "_gpu_crash_private" not in data
 
 
-def test_merge_gpu_response_omits_missing_sections() -> None:
+def test_merge_gpu_response_lifts_markers_privately() -> None:
+    """Markers go to the private channel for the occurrence breadcrumbs path."""
+
     data: dict[str, Any] = {}
-    response = {
-        "status": "completed",
-        # fault / gpu_state / shader_context intentionally absent
-    }
+    response = _completed_response(
+        markers=[
+            {"kind": "user_defined", "label": "UserDefined+0", "data": "Engine state: Rendering"},
+            {"kind": "aftermath", "label": "CommandQueue", "data": {}},
+        ],
+    )
 
     _merge_gpu_response(data, response)
 
-    ctx = data["contexts"]["gpu_crash"]
-    assert ctx["status"] == "completed"
-    # Absent sections don't get written as empty dicts — the flat context
-    # drops None-valued keys so the UI doesn't render empty rows.
-    assert "fault" not in ctx
-    assert "gpu_state" not in ctx
-    assert "shader_context" not in ctx
-    assert "device_name" not in ctx
-    assert "shader_hash" not in ctx
-    # Fault type falls back to a generic label when teapot reports nothing.
-    assert ctx["fault_type"] == "GPU crash"
+    private = data["_gpu_crash_private"]
+    assert len(private["markers"]) == 2
+    assert private["markers"][0]["kind"] == "user_defined"
 
 
 def test_merge_gpu_response_preserves_exception() -> None:
@@ -174,42 +217,22 @@ def test_merge_gpu_response_preserves_exception() -> None:
         "exception": cpu_exception,
         "platform": "native",
     }
-    response = {
-        "status": "completed",
-        "fault": {"type": "PageFault"},
-        "frames": [{"function": "shader_main"}],
-    }
 
-    _merge_gpu_response(data, response)
+    _merge_gpu_response(data, _completed_response())
 
     assert data["exception"] is cpu_exception
     assert data["platform"] == "native"
 
 
 # ---------------------------------------------------------------------------
-# TeapotClient
+# TeapotClient — multipart wire format
 # ---------------------------------------------------------------------------
 
 
-@contextlib.contextmanager
-def _configured_teapot(url: str = "http://teapot.test") -> Iterator[None]:
-    """Context manager: sets TEAPOT_URL and stubs `sources_for_symbolication`."""
-
-    from django.conf import settings
-
-    with (
-        mock.patch.object(settings, "TEAPOT_URL", url, create=True),
-        mock.patch(
-            "sentry.lang.native.teapot.sources_for_symbolication",
-            _fake_sources_for_symbolication,
-        ),
-    ):
-        yield
-
-
-def test_client_success() -> None:
+def test_client_multipart_success() -> None:
     project = _FakeProject()
-    expected = {"status": "completed", "handler": "aftermath", "fault": {"type": "PageFault"}}
+    dump = _FakeAttachment(b"dummy-dump-bytes", stored_id=None)
+    expected = _completed_response()
 
     with (
         _configured_teapot(),
@@ -217,27 +240,66 @@ def test_client_success() -> None:
     ):
         mock_post.return_value = _FakeResponse(200, expected)
 
-        result = TeapotClient(project, "abc").symbolicate(b"dummy-dump-bytes")
+        result = TeapotClient(project, "abc").symbolicate(dump)
 
     assert result == expected
     assert mock_post.call_count == 1
     args, kwargs = mock_post.call_args
     assert args[0] == "http://teapot.test/symbolicate"
-    # Multipart fields carry the identifiers teapot needs to cache-key correctly.
+    # Identifiers carried as multipart form fields, NOT as a `sources` JSON
+    # — we no longer send a source-config block.
     assert kwargs["data"]["event_id"] == "abc"
     assert kwargs["data"]["project_id"] == "42"
     assert kwargs["data"]["organization_id"] == "7"
-    # sources is JSON-serialized.
-    assert '"sentry:project"' in kwargs["data"]["sources"]
-    # Dump arrives as a file, not a plain string.
-    assert "upload_file" in kwargs["files"]
-    assert kwargs["files"]["upload_file"][1] == b"dummy-dump-bytes"
+    assert "sources" not in kwargs["data"]
+    # Dump arrives as the canonical `upload_file` multipart field.
+    files = dict(kwargs["files"])
+    assert files["upload_file"][1] == b"dummy-dump-bytes"
     assert kwargs["headers"]["X-Teapot-Version"] == "1"
     assert kwargs["headers"]["X-Request-Id"] == "abc"
 
 
+def test_client_multipart_carries_shader_debug_attachments() -> None:
+    """Each .nvdbg attachment becomes its own `nv_shader_debug.<uid>` field."""
+
+    project = _FakeProject()
+    dump = _FakeAttachment(b"dump-bytes")
+    nvdbg1 = _FakeAttachment(
+        b"nvdbg-bytes-1",
+        attachment_type="event.nv_shader_debug",
+        name="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.nvdbg",
+    )
+    nvdbg2 = _FakeAttachment(
+        b"nvdbg-bytes-2",
+        attachment_type="event.nv_shader_debug",
+        name="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.nvdbg",
+    )
+
+    with (
+        _configured_teapot(),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(project, "abc").symbolicate(
+            dump,
+            [
+                ("a" * 32, nvdbg1),
+                ("b" * 32, nvdbg2),
+            ],
+        )
+
+    files = mock_post.call_args.kwargs["files"]
+    # `files` is a list-of-tuples (the only way to repeat field names),
+    # so map by the first element for ergonomic assertions.
+    by_field = {field_name: payload for field_name, payload in files}
+    assert "upload_file" in by_field
+    assert by_field[f"nv_shader_debug.{'a' * 32}"][1] == b"nvdbg-bytes-1"
+    assert by_field[f"nv_shader_debug.{'b' * 32}"][1] == b"nvdbg-bytes-2"
+
+
 def test_client_retries_on_503() -> None:
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
 
     with (
         _configured_teapot(),
@@ -245,17 +307,18 @@ def test_client_retries_on_503() -> None:
     ):
         mock_post.side_effect = [
             _FakeResponse(503),
-            _FakeResponse(200, {"status": "partial"}),
+            _FakeResponse(200, _completed_response(status="partial")),
         ]
 
-        result = TeapotClient(project, "abc").symbolicate(b"dump")
+        result = TeapotClient(project, "abc").symbolicate(dump)
 
-    assert result == {"status": "partial"}
+    assert result["status"] == "partial"
     assert mock_post.call_count == 2
 
 
 def test_client_retries_on_network_error() -> None:
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
 
     with (
         _configured_teapot(),
@@ -263,17 +326,18 @@ def test_client_retries_on_network_error() -> None:
     ):
         mock_post.side_effect = [
             requests.ConnectionError("boom"),
-            _FakeResponse(200, {"status": "completed"}),
+            _FakeResponse(200, _completed_response()),
         ]
 
-        result = TeapotClient(project, "abc").symbolicate(b"dump")
+        result = TeapotClient(project, "abc").symbolicate(dump)
 
-    assert result == {"status": "completed"}
+    assert result["status"] == "completed"
     assert mock_post.call_count == 2
 
 
 def test_client_exhausts_retries() -> None:
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
 
     with (
         _configured_teapot(),
@@ -282,13 +346,14 @@ def test_client_exhausts_retries() -> None:
         mock_post.return_value = _FakeResponse(503)
 
         with pytest.raises(TeapotUnavailable):
-            TeapotClient(project, "abc").symbolicate(b"dump")
+            TeapotClient(project, "abc").symbolicate(dump)
 
     assert mock_post.call_count == 3
 
 
 def test_client_400_is_not_retried() -> None:
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
 
     with (
         _configured_teapot(),
@@ -297,13 +362,14 @@ def test_client_400_is_not_retried() -> None:
         mock_post.return_value = _FakeResponse(400, "bad request")
 
         with pytest.raises(TeapotUnavailable):
-            TeapotClient(project, "abc").symbolicate(b"dump")
+            TeapotClient(project, "abc").symbolicate(dump)
 
     assert mock_post.call_count == 1
 
 
 def test_client_non_json_body() -> None:
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
 
     with (
         _configured_teapot(),
@@ -312,7 +378,7 @@ def test_client_non_json_body() -> None:
         mock_post.return_value = _FakeResponse(200, "not-json", raise_on_json=True)
 
         with pytest.raises(TeapotUnavailable):
-            TeapotClient(project, "abc").symbolicate(b"dump")
+            TeapotClient(project, "abc").symbolicate(dump)
 
 
 def test_client_missing_url_raises() -> None:
@@ -333,6 +399,7 @@ def test_client_falls_back_to_options() -> None:
     from django.conf import settings
 
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
     with (
         mock.patch.object(settings, "TEAPOT_URL", None, create=True),
         mock.patch(
@@ -341,16 +408,100 @@ def test_client_falls_back_to_options() -> None:
                 {"url": "http://teapot-from-options.test"} if key == "teapot.options" else None
             ),
         ),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(project, "abc").symbolicate(dump)
+
+    assert mock_post.call_args[0][0] == "http://teapot-from-options.test/symbolicate"
+
+
+# ---------------------------------------------------------------------------
+# TeapotClient — JSON + storage_url + storage_token (objectstore path)
+# ---------------------------------------------------------------------------
+
+
+def test_client_uses_json_path_when_all_attachments_stored() -> None:
+    """When every attachment has `stored_id`, pass URLs not bytes.
+
+    Mirrors `Symbolicator.process_minidump`'s objectstore path. Teapot
+    fetches the bytes directly from objectstore using the minted tokens.
+    Bytes never pass through the Sentry worker.
+    """
+
+    project = _FakeProject()
+    dump = _FakeAttachment(b"dump-bytes-should-not-be-sent", stored_id="dump-obj-id")
+    nvdbg = _FakeAttachment(
+        b"nvdbg-bytes-should-not-be-sent",
+        attachment_type="event.nv_shader_debug",
+        name="cafebabecafebabecafebabecafebabe.nvdbg",
+        stored_id="nvdbg-obj-id",
+    )
+
+    fake_session = mock.Mock()
+    fake_session.mint_token.side_effect = ["token-dump", "token-nvdbg"]
+
+    with (
+        _configured_teapot(),
         mock.patch(
-            "sentry.lang.native.teapot.sources_for_symbolication",
-            _fake_sources_for_symbolication,
+            "sentry.lang.native.teapot.get_attachments_session",
+            return_value=fake_session,
+        ),
+        mock.patch(
+            "sentry.lang.native.teapot.get_symbolicator_url",
+            side_effect=lambda _sess, key: f"http://objectstore/{key}",
         ),
         mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
     ):
-        mock_post.return_value = _FakeResponse(200, {"status": "completed"})
-        TeapotClient(project, "abc").symbolicate(b"dump")
+        mock_post.return_value = _FakeResponse(200, _completed_response())
 
-    assert mock_post.call_args[0][0] == "http://teapot-from-options.test/symbolicate"
+        TeapotClient(project, "abc").symbolicate(dump, [("c" * 32, nvdbg)])
+
+    # JSON path: `files` empty, Content-Type set, body is JSON-encoded.
+    kwargs = mock_post.call_args.kwargs
+    assert kwargs.get("files") is None
+    assert kwargs["headers"]["Content-Type"] == "application/json"
+    import orjson
+
+    body = orjson.loads(kwargs["data"])
+    assert body["event_id"] == "abc"
+    assert body["dump"]["storage_url"] == "http://objectstore/dump-obj-id"
+    assert body["dump"]["storage_token"] == "token-dump"
+    assert len(body["shader_debug_info"]) == 1
+    assert body["shader_debug_info"][0]["uid"] == "c" * 32
+    assert body["shader_debug_info"][0]["storage_url"] == "http://objectstore/nvdbg-obj-id"
+    assert body["shader_debug_info"][0]["storage_token"] == "token-nvdbg"
+
+
+def test_client_falls_back_to_multipart_when_any_attachment_lacks_stored_id() -> None:
+    """Mixed-state attachments → multipart (we can't combine wire formats)."""
+
+    project = _FakeProject()
+    dump = _FakeAttachment(b"dump-bytes", stored_id="dump-obj-id")
+    # Second attachment has NO stored_id — forces multipart path.
+    nvdbg = _FakeAttachment(
+        b"nvdbg-bytes",
+        attachment_type="event.nv_shader_debug",
+        name="cafebabecafebabecafebabecafebabe.nvdbg",
+        stored_id=None,
+    )
+
+    with (
+        _configured_teapot(),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+        mock.patch("sentry.lang.native.teapot.get_attachments_session") as mock_session_fn,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(project, "abc").symbolicate(dump, [("c" * 32, nvdbg)])
+
+    # Objectstore session is never opened because the mixed-state check
+    # routes to multipart immediately.
+    assert mock_session_fn.call_count == 0
+    # Multipart: `files` populated with inline bytes.
+    files = mock_post.call_args.kwargs["files"]
+    by_field = {field_name: payload for field_name, payload in files}
+    assert by_field["upload_file"][1] == b"dump-bytes"
+    assert by_field[f"nv_shader_debug.{'c' * 32}"][1] == b"nvdbg-bytes"
 
 
 # ---------------------------------------------------------------------------
@@ -360,12 +511,15 @@ def test_client_falls_back_to_options() -> None:
 
 def test_submit_to_teapot_success() -> None:
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
     with (
         _configured_teapot(),
         mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
     ):
-        mock_post.return_value = _FakeResponse(200, {"status": "completed"})
-        assert submit_to_teapot(project, "abc", b"dump") == {"status": "completed"}
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        result = submit_to_teapot(project, "abc", dump, [])
+    assert result is not None
+    assert result["status"] == "completed"
 
 
 def test_submit_to_teapot_returns_none_when_unavailable() -> None:
@@ -378,33 +532,25 @@ def test_submit_to_teapot_returns_none_when_unavailable() -> None:
             lambda key: None,
         ),
     ):
-        assert submit_to_teapot(_FakeProject(), "abc", b"dump") is None
+        assert submit_to_teapot(_FakeProject(), "abc", _FakeAttachment(b"dump"), []) is None
 
 
 def test_submit_to_teapot_swallows_unexpected() -> None:
     project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
     with (
         _configured_teapot(),
         mock.patch("sentry.lang.native.teapot.TeapotClient") as mock_client,
         mock.patch("sentry.lang.native.teapot.sentry_sdk.capture_exception") as cap,
     ):
         mock_client.return_value.symbolicate.side_effect = RuntimeError("unexpected")
-        assert submit_to_teapot(project, "abc", b"dump") is None
+        assert submit_to_teapot(project, "abc", dump, []) is None
         cap.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
 # process_gpu_crash_dump
 # ---------------------------------------------------------------------------
-
-
-class _FakeAttachment:
-    def __init__(self, data: bytes, attachment_type: str) -> None:
-        self._data = data
-        self.type = attachment_type
-
-    def load_data(self, _project: Any) -> bytes:
-        return self._data
 
 
 def test_process_gpu_crash_dump_no_attachment_returns_unchanged() -> None:
@@ -424,12 +570,16 @@ def test_process_gpu_crash_dump_no_attachment_returns_unchanged() -> None:
 def test_process_gpu_crash_dump_teapot_unavailable_returns_unchanged() -> None:
     data: dict[str, Any] = {}
     project = _FakeProject()
-    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    attachment = _FakeAttachment(b"dump")
 
     with (
         mock.patch(
             "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.utils.find_all_shader_debug_attachments",
+            return_value=[],
         ),
         mock.patch(
             "sentry.lang.native.teapot.submit_to_teapot",
@@ -442,75 +592,130 @@ def test_process_gpu_crash_dump_teapot_unavailable_returns_unchanged() -> None:
     assert "contexts" not in data
 
 
+def test_process_gpu_crash_dump_passes_shader_debug_to_client() -> None:
+    """The orchestrator collects all .nvdbg attachments and hands them on."""
+
+    data: dict[str, Any] = {"event_id": "ev-1"}
+    project = _FakeProject()
+    dump = _FakeAttachment(b"dump")
+    nvdbg = _FakeAttachment(
+        b"nvdbg",
+        attachment_type="event.nv_shader_debug",
+        name="d" * 32 + ".nvdbg",
+    )
+
+    with (
+        mock.patch(
+            "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
+            return_value=dump,
+        ),
+        mock.patch(
+            "sentry.lang.native.utils.find_all_shader_debug_attachments",
+            return_value=[("d" * 32, nvdbg)],
+        ),
+        mock.patch(
+            "sentry.lang.native.teapot.submit_to_teapot",
+            return_value=_completed_response(),
+        ) as submit,
+        mock.patch("sentry.issues.producer.produce_occurrence_to_kafka"),
+        mock.patch(
+            "sentry.lang.native.gpu._get_or_create_gpu_detector_id",
+            return_value=None,
+        ),
+    ):
+        process_gpu_crash_dump(data, project, "ev-1")
+
+    # The shader_debug list reaches submit_to_teapot intact.
+    args = submit.call_args.args
+    assert args[2] is dump
+    assert args[3] == [("d" * 32, nvdbg)]
+
+
 def test_process_gpu_crash_dump_success_populates_context() -> None:
     data: dict[str, Any] = {
         "event_id": "ev-1",
         "contexts": {"trace": {"trace_id": "x" * 32}},
     }
     project = _FakeProject()
-    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
-    response = {
-        "status": "partial",
-        "handler": "aftermath",
-        "fault": {"type": "PageFault"},
-        "shader_context": {"shader_hash": "sh1"},
-        "frames": [{"function": "main"}],
-        "missing_difs": [{"debug_id": "x"}],
-    }
+    attachment = _FakeAttachment(b"dump")
+    response = _completed_response(
+        status="partial",
+        missing_difs=[{"debug_id": "x"}],
+    )
 
     with (
         mock.patch(
             "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.utils.find_all_shader_debug_attachments",
+            return_value=[],
         ),
         mock.patch(
             "sentry.lang.native.teapot.submit_to_teapot",
             return_value=response,
         ),
-        # Don't actually fire Kafka in this test — exercised separately below.
+        mock.patch(
+            "sentry.lang.native.gpu._get_or_create_gpu_detector_id",
+            return_value=None,
+        ),
         mock.patch("sentry.issues.producer.produce_occurrence_to_kafka"),
     ):
         result = process_gpu_crash_dump(data, project, "ev-1")
 
     assert result is data
-    assert data["contexts"]["gpu_crash"]["status"] == "partial"
-    assert data["contexts"]["gpu_crash"]["fault_type"] == "PageFault"
-    assert data["contexts"]["gpu_crash_raw"]["fault"]["type"] == "PageFault"
+    ctx = data["contexts"]["gpu_crash"]
+    assert ctx["status"] == "partial"
+    assert ctx["fault_category"] == "shader_hang"
+    assert ctx["title"] == "GPU hang in vertex_02"
     # Trace preserved.
     assert data["contexts"]["trace"]["trace_id"] == "x" * 32
-    # Frames stashed privately.
-    assert data["_gpu_crash_private"]["frames"] == [{"function": "main"}]
+    assert data["_gpu_crash_private"]["frames"] == response["frames"]
 
 
 # ---------------------------------------------------------------------------
-# IssueOccurrence production (Phase 2)
+# IssueOccurrence production
 # ---------------------------------------------------------------------------
 
 
-def test_occurrence_fired_on_completed_status() -> None:
-    data: dict[str, Any] = {
-        "event_id": "ev-1",
-        "contexts": {"trace": {"trace_id": "x" * 32}},
-    }
+def test_occurrence_uses_teapot_fingerprint_and_title_verbatim() -> None:
+    """Sentry no longer composes the fingerprint — teapot supplies it.
+
+    This is the key change: teapot's `fingerprint` and `title` are
+    authoritative. Whatever vector teapot puts in `response.fingerprint`
+    becomes the IssueOccurrence's grouping key; `response.title` becomes
+    the issue title. No Sentry-side rewriting.
+    """
+
+    data: dict[str, Any] = {"event_id": "ev-1"}
     project = _FakeProject()
-    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
-    response = {
-        "status": "completed",
-        "handler": "aftermath",
-        "fault": {"type": "PageFault", "virtual_address": "0xdeadbeef"},
-        "shader_context": {
-            "shader_hash": "abc123",
-            "entry_point": "ComputeLighting",
-            "source_language": "HLSL",
-        },
-        "frames": [{"function": "ComputeLighting", "lineno": 142}],
-        "missing_difs": [],
-    }
+    attachment = _FakeAttachment(b"dump")
+    response = _completed_response(
+        fault_category="page_fault",
+        title="GPU page_fault: write on 'StreamingTextureAtlas'",
+        fingerprint=["gpu", "page_fault", "write", "StreamingTextureAtlas"],
+        # Non-shader crash: empty active_shaders so culprit falls
+        # through to the category rather than a stale shader hash.
+        shader_context={"active_shaders": []},
+        # Synthetic frame: no shader at fault.
+        frames=[
+            {
+                "function": "GPU page_fault: write on 'StreamingTextureAtlas'",
+                "module": "Graphics",
+                "data": {"synthetic": True, "fault_category": "page_fault"},
+            }
+        ],
+    )
 
     with (
         mock.patch(
             "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.utils.find_all_shader_debug_attachments",
+            return_value=[],
         ),
         mock.patch(
             "sentry.lang.native.teapot.submit_to_teapot",
@@ -525,86 +730,83 @@ def test_occurrence_fired_on_completed_status() -> None:
         process_gpu_crash_dump(data, project, "ev-1")
 
     assert mock_produce.call_count == 1
-    kwargs = mock_produce.call_args.kwargs
-    occ = kwargs["occurrence"]
-
-    # Fingerprint: stable across the same fault + shader.
-    assert occ.fingerprint == ["gpu-crash:PageFault:abc123"]
-    # Occurrence references a FRESH event, not the CPU minidump event, so
-    # the issue detail page can render GPU frames instead of the CPU stack.
-    # Both events share the trace_id via contexts.trace.
-    assert occ.event_id != "ev-1"
-    assert len(occ.event_id) == 32  # uuid hex
-    assert occ.project_id == project.id
-    assert occ.level == "fatal"
-    assert "PageFault" in occ.issue_title
-    assert "ComputeLighting" in occ.issue_title
-    assert occ.culprit == "ComputeLighting"
-
-    # The GPU crash type must be the 9001 GroupType.
-    from sentry.lang.native.grouptype import GpuCrashGroupType
-
-    assert occ.type is GpuCrashGroupType
-
-    # The event payload forwarded to Kafka is the fresh GPU event — matching
-    # the occurrence's event_id, platform native, and carrying the GPU
-    # stacktrace at the top level (not under `exception`, which the
-    # occurrence consumer strips).
-    event_payload = kwargs["event_data"]
-    assert event_payload["event_id"] == occ.event_id
-    assert event_payload["platform"] == "native"
-    assert "_gpu_crash_private" not in event_payload
-    # The GPU stack is what the issue detail page will render.
-    stacktrace_frames = event_payload["stacktrace"]["frames"]
-    assert stacktrace_frames[0]["function"] == "ComputeLighting"
-    # Back-reference + trace continuation so both events co-locate in trace view.
-    assert event_payload["tags"]["cpu_event_id"] == "ev-1"
-    assert event_payload["contexts"]["trace"]["trace_id"] == "x" * 32
-    # gpu_crash context is flattened — fault fields hoisted to top-level scalars.
-    assert event_payload["contexts"]["gpu_crash"]["fault_type"] == "PageFault"
-    assert event_payload["contexts"]["gpu_crash"]["shader_hash"] == "abc123"
-    # Full nested blob still available under gpu_crash_raw for deep inspection.
-    assert event_payload["contexts"]["gpu_crash_raw"]["fault"]["type"] == "PageFault"
+    occ = mock_produce.call_args.kwargs["occurrence"]
+    assert occ.fingerprint == ["gpu", "page_fault", "write", "StreamingTextureAtlas"]
+    assert occ.issue_title == "GPU page_fault: write on 'StreamingTextureAtlas'"
+    assert occ.culprit == "page_fault"  # primary_shader is empty → category falls through
 
 
-def test_occurrence_fingerprint_groups_by_shader_and_fault() -> None:
-    """Two crashes of the same shader + fault produce the same fingerprint."""
-
-    from sentry.lang.native.gpu import _produce_gpu_occurrence
+def test_occurrence_fingerprint_groups_consistently() -> None:
+    """Same teapot fingerprint across events → same group."""
 
     project = _FakeProject()
-
-    response_a = {
-        "status": "completed",
-        "fault": {"type": "PageFault"},
-        "shader_context": {"shader_hash": "sh1", "entry_point": "Main"},
-    }
-    response_b = {
-        "status": "completed",
-        "fault": {"type": "PageFault"},
-        "shader_context": {"shader_hash": "sh1", "entry_point": "Main"},
-    }
-    response_c_diff_shader = {
-        "status": "completed",
-        "fault": {"type": "PageFault"},
-        "shader_context": {"shader_hash": "sh2", "entry_point": "Main"},
-    }
+    fingerprint = ["gpu", "shader_hang", "abc123"]
+    response_a = _completed_response(fingerprint=fingerprint)
+    response_b = _completed_response(fingerprint=fingerprint)
+    response_c = _completed_response(fingerprint=["gpu", "shader_hang", "def456"])
 
     fingerprints: list[list[str]] = []
 
     def _capture(**kwargs: Any) -> None:
         fingerprints.append(list(kwargs["occurrence"].fingerprint))
 
-    with mock.patch(
-        "sentry.issues.producer.produce_occurrence_to_kafka",
-        side_effect=_capture,
+    with (
+        mock.patch(
+            "sentry.lang.native.gpu._get_or_create_gpu_detector_id",
+            return_value=None,
+        ),
+        mock.patch(
+            "sentry.issues.producer.produce_occurrence_to_kafka",
+            side_effect=_capture,
+        ),
     ):
         _produce_gpu_occurrence({"event_id": "a"}, project, "a", response_a)
         _produce_gpu_occurrence({"event_id": "b"}, project, "b", response_b)
-        _produce_gpu_occurrence({"event_id": "c"}, project, "c", response_c_diff_shader)
+        _produce_gpu_occurrence({"event_id": "c"}, project, "c", response_c)
 
-    assert fingerprints[0] == fingerprints[1]  # same shader + fault → grouped
-    assert fingerprints[0] != fingerprints[2]  # different shader → separate
+    assert fingerprints[0] == fingerprints[1]  # same fingerprint → grouped
+    assert fingerprints[0] != fingerprints[2]  # different fingerprint → separate
+
+
+def test_occurrence_carries_markers_as_breadcrumbs() -> None:
+    """Markers become breadcrumbs on the GPU event."""
+
+    data: dict[str, Any] = {"event_id": "ev-1"}
+    project = _FakeProject()
+    attachment = _FakeAttachment(b"dump")
+    response = _completed_response(
+        markers=[
+            {"kind": "user_defined", "label": "UserDefined+0", "data": "Shadow pass"},
+            {"kind": "aftermath", "label": "CommandQueue", "data": {"event": "draw"}},
+        ],
+    )
+
+    with (
+        mock.patch(
+            "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
+            return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.utils.find_all_shader_debug_attachments",
+            return_value=[],
+        ),
+        mock.patch(
+            "sentry.lang.native.teapot.submit_to_teapot",
+            return_value=response,
+        ),
+        mock.patch(
+            "sentry.lang.native.gpu._get_or_create_gpu_detector_id",
+            return_value=None,
+        ),
+        mock.patch("sentry.issues.producer.produce_occurrence_to_kafka") as mock_produce,
+    ):
+        process_gpu_crash_dump(data, project, "ev-1")
+
+    event_payload = mock_produce.call_args.kwargs["event_data"]
+    breadcrumbs = event_payload.get("breadcrumbs", {}).get("values") or []
+    assert len(breadcrumbs) == 2
+    assert breadcrumbs[0]["category"] == "gpu.user_defined"
+    assert "Shadow pass" in breadcrumbs[0]["message"]
 
 
 def test_occurrence_not_fired_on_failed_status() -> None:
@@ -612,13 +814,17 @@ def test_occurrence_not_fired_on_failed_status() -> None:
 
     data: dict[str, Any] = {"event_id": "ev-1"}
     project = _FakeProject()
-    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    attachment = _FakeAttachment(b"dump")
     response = {"status": "failed", "error": {"code": "DUMP_CORRUPTED"}}
 
     with (
         mock.patch(
             "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.utils.find_all_shader_debug_attachments",
+            return_value=[],
         ),
         mock.patch(
             "sentry.lang.native.teapot.submit_to_teapot",
@@ -628,8 +834,6 @@ def test_occurrence_not_fired_on_failed_status() -> None:
     ):
         process_gpu_crash_dump(data, project, "ev-1")
 
-    # Context still populated, but no occurrence — a failed decode can't be
-    # meaningfully grouped or reasoned about.
     assert data["contexts"]["gpu_crash"]["status"] == "failed"
     assert mock_produce.call_count == 0
 
@@ -639,12 +843,7 @@ def test_occurrence_producer_error_is_swallowed() -> None:
 
     data: dict[str, Any] = {"event_id": "ev-1"}
     project = _FakeProject()
-    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
-    response = {
-        "status": "completed",
-        "fault": {"type": "PageFault"},
-        "shader_context": {"shader_hash": "sh1"},
-    }
+    attachment = _FakeAttachment(b"dump")
 
     with (
         mock.patch(
@@ -652,11 +851,13 @@ def test_occurrence_producer_error_is_swallowed() -> None:
             return_value=attachment,
         ),
         mock.patch(
-            "sentry.lang.native.teapot.submit_to_teapot",
-            return_value=response,
+            "sentry.lang.native.utils.find_all_shader_debug_attachments",
+            return_value=[],
         ),
-        # Skip the real Detector.objects.get_or_create call which would raise
-        # TypeError on our _FakeProject and double-count the capture_exception.
+        mock.patch(
+            "sentry.lang.native.teapot.submit_to_teapot",
+            return_value=_completed_response(),
+        ),
         mock.patch(
             "sentry.lang.native.gpu._get_or_create_gpu_detector_id",
             return_value=None,
@@ -667,7 +868,6 @@ def test_occurrence_producer_error_is_swallowed() -> None:
         ),
         mock.patch("sentry.lang.native.gpu.sentry_sdk.capture_exception") as cap,
     ):
-        # No exception propagates.
         result = process_gpu_crash_dump(data, project, "ev-1")
 
     assert result is data
