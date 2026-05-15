@@ -75,7 +75,7 @@ class DynamicRateLimiter:
         self.rate_limit_provider = rate_limit_provider
         self.rate_limit_window_seconds = rate_limit_window_seconds
         self.referrer_allocation = referrer_allocation
-        self.recorded_capacity = None
+        self.recorded_capacity: int | None = None
 
     def is_rate_limited(self, referrer: str) -> bool:
         """
