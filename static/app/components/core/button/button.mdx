@@ -1,6 +1,6 @@
 ---
 title: Button
-description: Buttons are clickable elements that trigger an action that does not change the current URL.
+description: Buttons trigger actions or navigate to URLs. Pass `href` to render a link styled as a button.
 category: buttons
 source: '@sentry/scraps/button'
 resources:
@@ -243,6 +243,61 @@ In scenarios where high information density is critical, buttons may be displaye
 <Button icon={<IconAdd />} aria-label="Add" />
 ```
 
+## Navigation with `href`
+
+Pass an `href` prop to render a link styled as a button. The button automatically detects external URLs and adds `target="_blank"` with security attributes.
+
+### Internal Navigation
+
+Internal paths render as react-router `Link` components for client-side navigation.
+
+<Storybook.Demo>
+  <Button href="/settings" icon={<IconOpen />}>
+    Settings
+  </Button>
+  <Button href="/projects">View Projects</Button>
+</Storybook.Demo>
+```jsx
+<Button href="/settings" icon={<IconOpen />}>
+  Settings
+</Button>
+<Button href="/projects">View Projects</Button>
+```
+
+### External Navigation
+
+External URLs (`http://`, `https://`, `//`) are automatically detected. They open in a new tab with `rel="noreferrer noopener"` by default.
+
+<Storybook.Demo>
+  <Button href="https://docs.sentry.io" icon={<IconDocs />}>
+    Read Docs
+  </Button>
+  <Button href="https://github.com/getsentry/sentry">GitHub</Button>
+</Storybook.Demo>
+```jsx
+<Button href="https://docs.sentry.io" icon={<IconDocs />}>
+  Read Docs
+</Button>
+<Button href="https://github.com/getsentry/sentry">GitHub</Button>
+```
+
+### Controlling New Tab Behavior
+
+External URLs default to `openInNewTab={true}`, internal URLs to `openInNewTab={false}`. Override explicitly when needed.
+
+```jsx
+// Force external link to open in same tab
+<Button href="https://docs.sentry.io" openInNewTab={false}>Docs</Button>
+
+// Force internal link to open in new tab
+<Button href="/explore/logs" openInNewTab>Open Logs in New Tab</Button>
+```
+
+> [!WARNING]
+> Use `openInNewTab` sparingly for internal links. Opening internal links in a new tab breaks
+> the single-page app navigation flow and should only be used when users
+> need to preserve their current context.
+
 ## Accessibility
 
 To meet WCAG 2.2 AA compliance, `<Button>` automatically meets the [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) success criteria.
@@ -251,5 +306,5 @@ Developers should take care to ensure that their implementations additionally fo
 
 ## See Also
 
-- [LinkButton](/stories/core/linkbutton/) - Button-styled component for navigation
+- [LinkButton](/stories/core/linkbutton/) - Deprecated, use `<Button href="...">` instead
 - [Link](/stories/core/link/) - Text link component for navigation

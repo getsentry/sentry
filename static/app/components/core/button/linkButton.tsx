@@ -19,6 +19,11 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
 
+/**
+ * @deprecated Use `<Button href="...">` instead. `Button` now accepts an
+ * `href` prop that automatically renders a navigational link styled as a
+ * button, with automatic external URL detection.
+ */
 export function LinkButton({
   disabled,
   tooltipProps,

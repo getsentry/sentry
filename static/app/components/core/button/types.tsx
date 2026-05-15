@@ -30,6 +30,10 @@ export interface DO_NOT_USE_CommonButtonProps {
    */
   busy?: boolean;
   /**
+   * Indicator if the button should be disabled
+   */
+  disabled?: boolean;
+  /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.
    */
@@ -57,28 +61,86 @@ interface ButtonTooltipProps extends Omit<
   title?: TooltipProps['title'];
 }
 
-type ButtonElementProps = Omit<
+// ── Action button (no href → renders <button>) ──────────────────────
+
+type ActionElementProps = Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
   'label' | 'size' | 'title'
 >;
 
-interface BaseButtonProps extends DO_NOT_USE_CommonButtonProps, ButtonElementProps {
+interface ActionButtonBase extends DO_NOT_USE_CommonButtonProps, ActionElementProps {
+  href?: never;
+  openInNewTab?: never;
+  preventScrollReset?: never;
   ref?: React.Ref<HTMLButtonElement>;
+  replace?: never;
 }
 
-interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
+interface ActionButtonWithChildren extends ActionButtonBase {
   children: React.ReactNode;
 }
 
-interface ButtonPropsWithAriaLabel extends BaseButtonProps {
+interface ActionButtonWithAriaLabel extends ActionButtonBase {
   'aria-label': string;
   children?: never;
 }
 
+type ActionButtonProps = ActionButtonWithChildren | ActionButtonWithAriaLabel;
+
+// ── Navigation button (href present → renders <a> / Link) ───────────
+
+type NavElementProps = Omit<
+  React.AnchorHTMLAttributes<HTMLAnchorElement>,
+  'label' | 'size' | 'title' | 'href' | 'target'
+>;
+
+interface NavButtonBase extends DO_NOT_USE_CommonButtonProps, NavElementProps {
+  /**
+   * The URL to navigate to. Accepts a string URL or a react-router
+   * LocationDescriptor. When present, the button renders as an anchor.
+   *
+   * External URLs (http://, https://, or protocol-relative) are
+   * automatically detected — `target="_blank"` and security attributes
+   * are added unless `openInNewTab` is explicitly set to `false`.
+   */
+  href: string | LocationDescriptor;
+  /**
+   * Controls whether the link opens in a new tab.
+   *
+   * - For external URLs, defaults to `true`.
+   * - For internal URLs, defaults to `false`.
+   *
+   * Set explicitly to override the default behavior.
+   */
+  openInNewTab?: boolean;
+  /**
+   * If true, the link will not reset the scroll position of the page when clicked.
+   */
+  preventScrollReset?: boolean;
+  ref?: React.Ref<HTMLAnchorElement>;
+  /**
+   * Determines if the link should replace the current history entry.
+   */
+  replace?: boolean;
+}
+
+interface NavButtonWithChildren extends NavButtonBase {
+  children: React.ReactNode;
+}
+
+interface NavButtonWithAriaLabel extends NavButtonBase {
+  'aria-label': string;
+  children?: never;
+}
+
+type NavButtonProps = NavButtonWithChildren | NavButtonWithAriaLabel;
+
+// ── Exported union ──────────────────────────────────────────────────
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export type DO_NOT_USE_ButtonProps =
-  | ButtonPropsWithoutAriaLabel
-  | ButtonPropsWithAriaLabel;
+export type DO_NOT_USE_ButtonProps = ActionButtonProps | NavButtonProps;
+
+// ── Legacy LinkButton types (unchanged) ─────────────────────────────
 
 type LinkElementProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
