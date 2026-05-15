@@ -64,7 +64,7 @@ export function StreamingDemo() {
           Reset
         </Button>
       </Flex>
-      <Markdown raw={text} variant="streaming" />
+      <Markdown raw={text} />
     </Flex>
   );
 }

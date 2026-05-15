@@ -134,7 +134,7 @@ export function MessagePlaceholder({content}: {content?: string}) {
       >
         <Spinner />
       </Flex>
-      {hasValidContent(content) && <SeerMarkdown raw={content} variant="streaming" />}
+      {hasValidContent(content) && <SeerMarkdown raw={content} />}
     </Flex>
   );
 }

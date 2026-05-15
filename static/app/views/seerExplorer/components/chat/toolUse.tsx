@@ -54,7 +54,7 @@ export function ToolUseBlock() {
             </Text>
           </Disclosure.Title>
           <Disclosure.Content>
-            <SeerMarkdown raw={block.message.thinking_content} variant="streaming" />
+            <SeerMarkdown raw={block.message.thinking_content} />
           </Disclosure.Content>
         </Disclosure>
       )}
