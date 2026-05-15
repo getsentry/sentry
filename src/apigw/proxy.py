@@ -50,11 +50,21 @@ metric_cb_reject = prometheus_client.Counter(
 
 def build_proxied_headers(request):
     rv = []
+    forwarded_added = False
+    client_host = request._scope.client.split(":", 1)[0]
     for key in request.headers.keys():
         if key in REQUEST_HEADERS_FILTERED:
             continue
+        if key == "x-forwarded-for":
+            val = request.headers.get_all(key)
+            val.append(client_host)
+            rv.append((key, ", ".join(val)))
+            forwarded_added = True
+            continue
         for val in request.headers.get_all(key):
             rv.append((key, val))
+    if not forwarded_added:
+        rv.append(("x-forwarded-for", client_host))
     return rv
 
 
