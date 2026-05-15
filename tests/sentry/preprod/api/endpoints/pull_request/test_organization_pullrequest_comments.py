@@ -9,7 +9,6 @@ from sentry.preprod.api.endpoints.pull_request.organization_pullrequest_comments
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class OrganizationPrCommentsEndpointTest(TestCase):
@@ -254,7 +253,6 @@ class OrganizationPrCommentsEndpointTest(TestCase):
             pr_number=pr_number,
         )
 
-    @with_feature("organizations:pr-page")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_successful_pr_comments_fetch(self, mock_get):
         """Test successful fetch of both general and review comments."""
@@ -309,7 +307,6 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert len(helper_comments) == 1
         assert helper_comments[0]["body"] == "This could be simplified"
 
-    @with_feature("organizations:pr-page")
     def test_no_github_client(self) -> None:
         """Test when no GitHub client is available (no integration set up)."""
         Repository.objects.create(
@@ -325,7 +322,6 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert response.data["error"] == "integration_not_found"
         assert "No GitHub integration found" in response.data["message"]
 
-    @with_feature("organizations:pr-page")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_github_api_error(self, mock_get):
         """Test GitHub API error handling."""
@@ -338,7 +334,6 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert response.data["error"] == "api_error"
         assert "Failed to fetch pull request comments from GitHub" in response.data["message"]
 
-    @with_feature("organizations:pr-page")
     def test_repository_not_found(self) -> None:
         """Test when repository doesn't exist in the database."""
         response = self._make_request(repo_name="does-not/exist")
@@ -347,7 +342,6 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert response.data["error"] == "integration_not_found"
         assert "No GitHub integration found" in response.data["message"]
 
-    @with_feature("organizations:pr-page")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_unexpected_error(self, mock_get):
         """Test handling of unexpected errors."""
