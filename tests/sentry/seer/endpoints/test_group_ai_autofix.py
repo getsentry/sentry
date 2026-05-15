@@ -900,8 +900,9 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         mock_get_autofix_state.assert_called_once()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_routes_to_explorer_with_explorer_flag(self, mock_trigger_explorer):
+    def test_post_routes_to_explorer_with_explorer_flag(self, mock_trigger_explorer, _):
         """POST routes to explorer when any individual explorer flag is enabled."""
         for flag in EXPLORER_FLAGS:
             mock_trigger_explorer.reset_mock()
@@ -920,8 +921,26 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.data["run_id"] == 123
             mock_trigger_explorer.assert_called_once()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=False)
+    def test_post_returns_409_without_connected_repos(self, _):
+        """POST returns 409 when project has no connected repositories."""
+        for flag in EXPLORER_FLAGS:
+            group = self.create_group()
+
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "root_cause"},
+                    format="json",
+                )
+
+            assert response.status_code == 409, f"Failed for {flag}: {response.data}"
+            assert response.data["detail"] == "SCM integration is not configured for this project."
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_stopping_point(self, mock_trigger_explorer):
+    def test_stopping_point(self, mock_trigger_explorer, _):
         """POST routes to explorer and stopping point forces the step to be root_cause"""
         for flag in EXPLORER_FLAGS:
             mock_trigger_explorer.reset_mock()
@@ -949,8 +968,9 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
                 insert_index=None,
             )
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_insert_index_passed_through(self, mock_trigger_explorer):
+    def test_insert_index_passed_through(self, mock_trigger_explorer, _):
         """POST passes insert_index to trigger_autofix_agent for retry-from-step."""
         for flag in EXPLORER_FLAGS:
             mock_trigger_explorer.reset_mock()
@@ -977,8 +997,9 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
                 insert_index=3,
             )
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):
+    def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer, _):
         for flag in EXPLORER_FLAGS:
             mock_trigger_explorer.reset_mock()
             mock_trigger_explorer.side_effect = SeerPermissionError("Unknown run id for group")
@@ -995,8 +1016,9 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.status_code == 404, f"Failed for {flag}: {response.data}"
             mock_trigger_explorer.assert_called_once()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_returns_402_when_no_seer_quota(self, mock_trigger_explorer):
+    def test_post_returns_402_when_no_seer_quota(self, mock_trigger_explorer, _):
         """POST returns 402 Payment Required when quota check fails."""
         for flag in EXPLORER_FLAGS:
             mock_trigger_explorer.reset_mock()
@@ -1051,7 +1073,10 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         mock_call_autofix.assert_called_once()
 
-    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self) -> None:
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
+    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(
+        self, _
+    ) -> None:
         """POST returns 400 when both provider and integration_id are specified for coding_agent_handoff."""
         for flag in EXPLORER_FLAGS:
             group = self.create_group()
@@ -1072,8 +1097,9 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.status_code == 400, f"Failed for {flag}: {response.data}"
             assert response.data["detail"] == "Cannot specify both integration_id and provider"
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
-    def test_post_coding_agent_handoff_unknown_run_returns_404(self, mock_handoff):
+    def test_post_coding_agent_handoff_unknown_run_returns_404(self, mock_handoff, _):
         for flag in EXPLORER_FLAGS:
             mock_handoff.reset_mock()
             mock_handoff.side_effect = SeerPermissionError("Unknown run id for group")
@@ -1097,9 +1123,10 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
                 mock_handoff.call_args.kwargs["referrer"] == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
             )
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_open_pr(self, mock_explorer_update_request, mock_explorer_state_request):
+    def test_open_pr(self, mock_explorer_update_request, mock_explorer_state_request, _):
         self.login_as(user=self.user)
         group = self.create_group()
 
@@ -1138,10 +1165,11 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.status_code == 202, f"Failed for {flag}: {response.data}"
             assert response.data == {"run_id": 123}
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_open_pr_with_repo_name(
-        self, mock_explorer_update_request, mock_explorer_state_request
+        self, mock_explorer_update_request, mock_explorer_state_request, _
     ):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -1184,10 +1212,11 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert call_body["payload"]["type"] == "create_pr"
             assert call_body["payload"]["repo_name"] == "my-org/my-repo"
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_open_pr_without_repo_name(
-        self, mock_explorer_update_request, mock_explorer_state_request
+        self, mock_explorer_update_request, mock_explorer_state_request, _
     ):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -1229,7 +1258,8 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert call_body["payload"]["type"] == "create_pr"
             assert "repo_name" not in call_body["payload"]
 
-    def test_open_pr_no_run_id(self) -> None:
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
+    def test_open_pr_no_run_id(self, _) -> None:
         self.login_as(user=self.user)
 
         for flag in EXPLORER_FLAGS:
@@ -1244,8 +1274,9 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.status_code == 400, f"Failed for {flag}: {response.data}"
             assert response.data["detail"] == "run_id is required for open_pr"
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
-    def test_open_pr_permission_error(self, mock_explorer_state_request):
+    def test_open_pr_permission_error(self, mock_explorer_state_request, _):
         self.login_as(user=self.user)
         group = self.create_group()
 
@@ -1276,7 +1307,8 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 404, f"Failed for {flag}: {response.data}"
 
-    def test_open_pr_coding_disabled(self):
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
+    def test_open_pr_coding_disabled(self, _):
         self.login_as(user=self.user)
         group = self.create_group()
         self.organization.update_option("sentry:enable_seer_coding", False)
