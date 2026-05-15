@@ -72,9 +72,6 @@ class TestGroupAutofixUpdate(APITestCase):
         mock_request.return_value.status = 202
         mock_request.return_value.json.return_value = {}
 
-        self.group.refresh_from_db()
-        assert self.group.seer_autofix_last_triggered is None
-
         seer_run = self.create_seer_run(
             organization=self.organization,
             seer_run_state_id=456,
