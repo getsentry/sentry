@@ -5,6 +5,7 @@ import orjson
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class TestGroupAutofixUpdate(APITestCase):
@@ -74,6 +75,12 @@ class TestGroupAutofixUpdate(APITestCase):
         self.group.refresh_from_db()
         assert self.group.seer_autofix_last_triggered is None
 
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=456,
+            last_triggered_at=before_now(days=1),
+        )
+
         response = self.client.post(
             self.url,
             data={
@@ -90,6 +97,9 @@ class TestGroupAutofixUpdate(APITestCase):
 
         self.group.refresh_from_db()
         assert isinstance(self.group.seer_autofix_last_triggered, datetime)
+
+        seer_run.refresh_from_db()
+        assert seer_run.last_triggered_at == self.group.seer_autofix_last_triggered
 
     @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
     def test_coding_payload_blocked_when_coding_disabled(self, mock_request: MagicMock) -> None:
