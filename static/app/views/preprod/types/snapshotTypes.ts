@@ -27,7 +27,7 @@ interface SnapshotComparisonRunInfo {
   state?: ComparisonState;
 }
 
-export interface SnapshotApprover {
+interface SnapshotApprover {
   source: 'sentry' | 'github';
   approved_at?: string | null;
   avatar_url?: string | null;
@@ -79,7 +79,7 @@ export interface SnapshotDetailsApiResponse {
   unchanged_count: number;
 }
 
-export enum ComparisonState {
+enum ComparisonState {
   PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
   SUCCESS = 'SUCCESS',
