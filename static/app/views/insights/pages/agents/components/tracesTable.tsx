@@ -39,6 +39,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   ErrorCell,
   NumberPlaceholder,
@@ -49,7 +50,6 @@ import {
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {extractTextFromMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -67,12 +67,6 @@ interface TableData {
   traceId: string;
   isOutputLoading?: boolean;
   isSpanDataLoading?: boolean;
-}
-
-interface OutputMessage {
-  role: string;
-  content?: string | Array<{text: string}>;
-  parts?: Array<{type: string; content?: string; text?: string}>;
 }
 
 const EMPTY_ARRAY: never[] = [];
@@ -174,6 +168,7 @@ export function TracesTable({
       search: `gen_ai.operation.type:ai_client (has:gen_ai.output.messages OR has:gen_ai.response.text) trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}]`,
       fields: ['trace', 'gen_ai.output.messages', 'gen_ai.response.text', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'desc'}],
+      limit: (tracesData?.length ?? 0) * 10,
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       enabled: Boolean(tracesData && tracesData.length > 0),
     },
@@ -469,21 +464,11 @@ function OutputCellContent({
 function extractOutputFromSpan(span: Record<string, unknown>): string | null {
   const outputMessages = span['gen_ai.output.messages'];
   if (typeof outputMessages === 'string') {
-    try {
-      const parsed: unknown = JSON.parse(outputMessages);
-      if (!Array.isArray(parsed)) {
-        throw new Error('Not an array');
-      }
-      const messagesArray: OutputMessage[] = parsed;
-      const assistantMessage = messagesArray.findLast(
-        msg => msg.role === 'assistant' && (msg.content || msg.parts)
-      );
-      if (assistantMessage) {
-        const text = extractTextFromMessage(assistantMessage);
-        return text ? decodeUnicodeEscapes(text) : null;
-      }
-    } catch {
-      // Invalid JSON, fall through
+    const {responseText} = extractAssistantOutput(outputMessages, {
+      defaultRole: 'assistant',
+    });
+    if (responseText) {
+      return decodeUnicodeEscapes(responseText);
     }
   }
 
