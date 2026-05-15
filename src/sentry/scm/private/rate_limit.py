@@ -60,7 +60,6 @@ class DynamicRateLimiter:
     :param provider: The service-provider we received rate-limit headers from.
     :param rate_limit_window_seconds: The number of seconds in a rate-limit window.
     :param referrer_allocation: The referrer allocation pool we're working with.
-    :param referrer: The referrer being used to make a request.
     """
 
     def __init__(
