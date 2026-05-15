@@ -49,8 +49,8 @@ class NotificationMessage(Model):
     date_added = DateTimeField(default=timezone.now)
 
     # Related information regarding Action (Workflow Engine)
-    action = FlexibleForeignKey("workflow_engine.Action", db_default=0)
-    group = FlexibleForeignKey("sentry.Group", db_default=0)
+    action = FlexibleForeignKey("workflow_engine.Action")
+    group = FlexibleForeignKey("sentry.Group")
     # Key for a start of a specific open period of the group (e.g. metric/uptime issues)
     # This doesn't have to be set for all actions, only for actions that are related to a group which has a defined open period
     open_period_start = DateTimeField(null=True)
