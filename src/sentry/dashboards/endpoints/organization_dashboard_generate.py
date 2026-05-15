@@ -64,8 +64,6 @@ Limits:
 set. The maximum is 10 for most chart types, 25 for categorical bar charts, and 20 for table widgets.
 
 User Query:
-{query}
-
 """
 
 
@@ -121,7 +119,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         validated_data = serializer.validated_data
-        prompt = DASHBOARD_INSTRUCTIONS.format(query=validated_data["prompt"])
+        prompt = DASHBOARD_INSTRUCTIONS + validated_data["prompt"] + "\n"
         current_dashboard = validated_data.get("current_dashboard")
 
         # If current_dashboard is provided, we're editing; otherwise generating a new dashboard.
