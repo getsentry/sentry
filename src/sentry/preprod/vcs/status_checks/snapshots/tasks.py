@@ -18,6 +18,18 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
+from sentry.preprod.vcs.status_checks.snapshots.config import (
+    ENABLED_DEFAULT,
+    ENABLED_OPTION_KEY,
+    FAIL_ON_ADDED_DEFAULT,
+    FAIL_ON_ADDED_OPTION_KEY,
+    FAIL_ON_CHANGED_DEFAULT,
+    FAIL_ON_CHANGED_OPTION_KEY,
+    FAIL_ON_REMOVED_DEFAULT,
+    FAIL_ON_REMOVED_OPTION_KEY,
+    FAIL_ON_RENAMED_DEFAULT,
+    FAIL_ON_RENAMED_OPTION_KEY,
+)
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
@@ -42,13 +54,6 @@ logger = logging.getLogger(__name__)
 
 # Action identifier for the "Approve" button on snapshot GitHub check runs.
 APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
-
-ENABLED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_enabled"
-FAIL_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_added"
-FAIL_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_removed"
-FAIL_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_changed"
-FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_renamed"
-
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
@@ -107,7 +112,9 @@ def create_preprod_snapshot_status_check_task(
         )
         return
 
-    status_checks_enabled = preprod_artifact.project.get_option(ENABLED_OPTION_KEY, default=True)
+    status_checks_enabled = preprod_artifact.project.get_option(
+        ENABLED_OPTION_KEY, default=ENABLED_DEFAULT
+    )
     if not status_checks_enabled:
         logger.info(
             "preprod.snapshot_status_checks.create.disabled",
@@ -118,10 +125,18 @@ def create_preprod_snapshot_status_check_task(
         )
         return
 
-    fail_on_added = preprod_artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
-    fail_on_removed = preprod_artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
-    fail_on_changed = preprod_artifact.project.get_option(FAIL_ON_CHANGED_OPTION_KEY, default=True)
-    fail_on_renamed = preprod_artifact.project.get_option(FAIL_ON_RENAMED_OPTION_KEY, default=False)
+    fail_on_added = preprod_artifact.project.get_option(
+        FAIL_ON_ADDED_OPTION_KEY, default=FAIL_ON_ADDED_DEFAULT
+    )
+    fail_on_removed = preprod_artifact.project.get_option(
+        FAIL_ON_REMOVED_OPTION_KEY, default=FAIL_ON_REMOVED_DEFAULT
+    )
+    fail_on_changed = preprod_artifact.project.get_option(
+        FAIL_ON_CHANGED_OPTION_KEY, default=FAIL_ON_CHANGED_DEFAULT
+    )
+    fail_on_renamed = preprod_artifact.project.get_option(
+        FAIL_ON_RENAMED_OPTION_KEY, default=FAIL_ON_RENAMED_DEFAULT
+    )
 
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
