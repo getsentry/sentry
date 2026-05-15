@@ -13,7 +13,7 @@ from sentry.tsdb.base import TSDBModel
 
 @cell_silo_endpoint
 class ProjectServiceHookStatsEndpoint(ServiceHookEndpoint, StatsMixin):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

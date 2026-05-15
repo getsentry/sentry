@@ -4,7 +4,7 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 import pytest
 
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
-from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -360,6 +360,12 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert run.seer_run_state_id == 99
         assert run.user_id == self.user.id
 
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.title == "What happened?"
+        assert agent_run.source == ""
+        assert agent_run.project is None
+        assert agent_run.extras == {}
+
         sent_body = mock_request.call_args[0][0]
         assert sent_body["query"] == "What happened?"
         assert sent_body["organization_id"] == self.organization.id
@@ -391,6 +397,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         run = SeerRun.objects.get(organization_id=self.organization.id)
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
+        # SeerAgentRun commits with SeerRun before the outbox drain runs, so
+        # it persists even when the drain fails.
+        assert SeerAgentRun.objects.filter(run=run).exists()
 
 
 @with_feature("organizations:seer-explorer")

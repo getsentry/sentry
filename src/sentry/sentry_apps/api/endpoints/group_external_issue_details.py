@@ -13,7 +13,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 
 @cell_silo_endpoint
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }

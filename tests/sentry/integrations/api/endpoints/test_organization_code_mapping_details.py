@@ -44,8 +44,8 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         self.config = RepositoryProjectPathConfig.objects.create(
-            repository_id=self.repo.id,
-            project_id=self.project.id,
+            project=self.project,
+            repository=self.repo,
             organization_integration_id=self.org_integration.id,
             integration_id=self.org_integration.integration_id,
             organization_id=self.org_integration.organization_id,

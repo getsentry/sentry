@@ -1097,8 +1097,8 @@ class TestSeerRpcMethods(APITestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         RepositoryProjectPathConfig.objects.create(
-            repository=repo,
             project=project,
+            repository=repo,
             organization_integration_id=org_integration.id,
             integration_id=org_integration.integration_id,
             organization_id=self.organization.id,

@@ -411,9 +411,14 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     # codepath mappings must have an associated integration for stacktrace linking.
     configs = (
         RepositoryProjectPathConfig.objects.filter(
-            project=project, organization_integration_id__isnull=False
+            project_repository__project=project,
+            organization_integration_id__isnull=False,
         )
-        .select_related("repository")
+        .select_related(
+            "project_repository",
+            "project_repository__project",
+            "project_repository__repository",
+        )
         .order_by("id")
     )
 

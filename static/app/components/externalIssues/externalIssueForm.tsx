@@ -18,6 +18,7 @@ import {getConfigName} from 'sentry/components/externalIssues/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
+import type {Choice, Choices, SelectValue} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -151,6 +152,20 @@ export function ExternalIssueForm({
     action,
     integrationDetails: integrationDetails ?? null,
   });
+
+  const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
+  const handleAsyncOptionsFetched = useCallback(
+    (fieldName: string, options: Array<SelectValue<string>>) => {
+      setAsyncOptionsCache(prev => ({
+        ...prev,
+        [fieldName]: options.map((o): Choice => {
+          const label = typeof o.label === 'string' ? o.label : String(o.value);
+          return [o.value, label];
+        }),
+      }));
+    },
+    []
+  );
 
   /**
    * XXX: This function seems illegal but it's necessary.
@@ -314,8 +329,23 @@ export function ExternalIssueForm({
       return [];
     }
     const config = integrationDetails[getConfigName(action)];
-    return (config ?? []) as JsonFormAdapterFieldConfig[];
-  }, [integrationDetails, action]);
+    return (config ?? []).map(field => {
+      const cachedChoices = asyncOptionsCache[field.name];
+      if (field.url && cachedChoices) {
+        const existingValues = new Set((field.choices ?? []).map(c => String(c[0])));
+        const missingChoices = cachedChoices.filter(
+          c => !existingValues.has(String(c[0]))
+        );
+        if (missingChoices.length > 0) {
+          return {
+            ...field,
+            choices: [...(field.choices ?? []), ...missingChoices],
+          };
+        }
+      }
+      return field;
+    }) as JsonFormAdapterFieldConfig[];
+  }, [integrationDetails, action, asyncOptionsCache]);
 
   const hasFormErrors = formFields.some(
     field => field.name === 'error' && field.type === 'blank'
@@ -381,6 +411,7 @@ export function ExternalIssueForm({
           submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
           isLoading={isDynamicallyRefetching}
           dynamicFieldValues={dynamicFieldValues}
+          onAsyncOptionsFetched={handleAsyncOptionsFetched}
           onFieldChange={onFieldChange}
           submitDisabled={hasFormErrors}
           footer={({SubmitButton, disabled}) => (

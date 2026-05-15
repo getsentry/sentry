@@ -614,6 +614,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
           notMerge={props.notMerge}
+          replaceMerge={['xAxis', 'yAxis']}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from

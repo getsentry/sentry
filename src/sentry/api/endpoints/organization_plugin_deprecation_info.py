@@ -17,7 +17,7 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.INTEGRATION_PLATFORM
 
     def get(self, request, organization, plugin_slug):
         """

@@ -55,7 +55,7 @@ class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
 @extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,

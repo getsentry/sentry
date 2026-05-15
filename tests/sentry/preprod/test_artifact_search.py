@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.artifact_search import (
     artifact_matches_query,
     get_sequential_base_artifact,
@@ -13,6 +14,7 @@ from sentry.preprod.models import (
     PreprodComparisonApproval,
     PreprodSnapshotMetrics,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 from sentry.testutils.cases import TestCase
 
 
@@ -329,7 +331,7 @@ class ArtifactMatchesQueryIsApprovedFilterTest(TestCase):
         assert artifact_matches_query(pending_artifact, "!is_approved:true", self.organization)
 
 
-class ArtifactMatchesQueryApprovalStatusFilterTest(TestCase):
+class ArtifactMatchesQuerySnapshotStatusFilterTest(TestCase):
     def _create_artifact_with_approval(
         self,
         feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
@@ -347,18 +349,18 @@ class ArtifactMatchesQueryApprovalStatusFilterTest(TestCase):
             )
         return artifact
 
-    def test_approval_status_approved_matches_manual_only(self) -> None:
+    def test_snapshot_status_approved_matches_manual_only(self) -> None:
         manual = self._create_artifact_with_approval()
         auto = self._create_artifact_with_approval(extras={"auto_approval": True})
         pending = self._create_artifact_with_approval(
             status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
         )
 
-        assert artifact_matches_query(manual, "approval_status:approved", self.organization)
-        assert not artifact_matches_query(auto, "approval_status:approved", self.organization)
-        assert not artifact_matches_query(pending, "approval_status:approved", self.organization)
+        assert artifact_matches_query(manual, "snapshot_status:approved", self.organization)
+        assert not artifact_matches_query(auto, "snapshot_status:approved", self.organization)
+        assert not artifact_matches_query(pending, "snapshot_status:approved", self.organization)
 
-    def test_approval_status_auto_approved(self) -> None:
+    def test_snapshot_status_auto_approved(self) -> None:
         manual = self._create_artifact_with_approval()
         auto = self._create_artifact_with_approval(extras={"auto_approval": True})
         pending = self._create_artifact_with_approval(
@@ -366,45 +368,45 @@ class ArtifactMatchesQueryApprovalStatusFilterTest(TestCase):
         )
 
         assert not artifact_matches_query(
-            manual, "approval_status:auto_approved", self.organization
+            manual, "snapshot_status:auto_approved", self.organization
         )
-        assert artifact_matches_query(auto, "approval_status:auto_approved", self.organization)
+        assert artifact_matches_query(auto, "snapshot_status:auto_approved", self.organization)
         assert not artifact_matches_query(
-            pending, "approval_status:auto_approved", self.organization
+            pending, "snapshot_status:auto_approved", self.organization
         )
 
-    def test_approval_status_requires_approval(self) -> None:
+    def test_snapshot_status_requires_approval(self) -> None:
         manual = self._create_artifact_with_approval()
         pending = self._create_artifact_with_approval(
             status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
         )
 
         assert not artifact_matches_query(
-            manual, "approval_status:requires_approval", self.organization
+            manual, "snapshot_status:requires_approval", self.organization
         )
         assert artifact_matches_query(
-            pending, "approval_status:requires_approval", self.organization
+            pending, "snapshot_status:requires_approval", self.organization
         )
 
-    def test_approval_status_no_record_matches_nothing(self) -> None:
+    def test_snapshot_status_no_record_matches_nothing(self) -> None:
         no_row = self._create_artifact_with_approval(with_approval_row=False)
 
-        assert not artifact_matches_query(no_row, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(no_row, "snapshot_status:approved", self.organization)
         assert not artifact_matches_query(
-            no_row, "approval_status:auto_approved", self.organization
+            no_row, "snapshot_status:auto_approved", self.organization
         )
         assert not artifact_matches_query(
-            no_row, "approval_status:requires_approval", self.organization
+            no_row, "snapshot_status:requires_approval", self.organization
         )
 
-    def test_approval_status_scoped_to_snapshots(self) -> None:
+    def test_snapshot_status_scoped_to_snapshots(self) -> None:
         artifact = self._create_artifact_with_approval(
             feature_type=PreprodComparisonApproval.FeatureType.SIZE,
         )
 
-        assert not artifact_matches_query(artifact, "approval_status:approved", self.organization)
+        assert not artifact_matches_query(artifact, "snapshot_status:approved", self.organization)
 
-    def test_approval_status_in_filter(self) -> None:
+    def test_snapshot_status_in_filter(self) -> None:
         manual = self._create_artifact_with_approval()
         auto = self._create_artifact_with_approval(extras={"auto_approval": True})
         pending = self._create_artifact_with_approval(
@@ -412,27 +414,27 @@ class ArtifactMatchesQueryApprovalStatusFilterTest(TestCase):
         )
 
         assert artifact_matches_query(
-            manual, "approval_status:[approved, auto_approved]", self.organization
+            manual, "snapshot_status:[approved, auto_approved]", self.organization
         )
         assert artifact_matches_query(
-            auto, "approval_status:[approved, auto_approved]", self.organization
+            auto, "snapshot_status:[approved, auto_approved]", self.organization
         )
         assert not artifact_matches_query(
-            pending, "approval_status:[approved, auto_approved]", self.organization
+            pending, "snapshot_status:[approved, auto_approved]", self.organization
         )
 
-    def test_approval_status_negation(self) -> None:
+    def test_snapshot_status_negation(self) -> None:
         manual = self._create_artifact_with_approval()
         auto = self._create_artifact_with_approval(extras={"auto_approval": True})
         pending = self._create_artifact_with_approval(
             status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
         )
 
-        assert not artifact_matches_query(manual, "!approval_status:approved", self.organization)
-        assert artifact_matches_query(auto, "!approval_status:approved", self.organization)
-        assert artifact_matches_query(pending, "!approval_status:approved", self.organization)
+        assert not artifact_matches_query(manual, "!snapshot_status:approved", self.organization)
+        assert artifact_matches_query(auto, "!snapshot_status:approved", self.organization)
+        assert artifact_matches_query(pending, "!snapshot_status:approved", self.organization)
 
-    def test_approval_status_invalid_value(self) -> None:
+    def test_snapshot_status_invalid_value(self) -> None:
         import pytest
 
         from sentry.exceptions import InvalidSearchQuery
@@ -440,4 +442,126 @@ class ArtifactMatchesQueryApprovalStatusFilterTest(TestCase):
         artifact = self._create_artifact_with_approval()
 
         with pytest.raises(InvalidSearchQuery):
-            artifact_matches_query(artifact, "approval_status:bogus", self.organization)
+            artifact_matches_query(artifact, "snapshot_status:bogus", self.organization)
+
+    def _create_artifact_with_comparison_state(
+        self,
+        state: int,
+        commit_comparison: CommitComparison | None = None,
+    ) -> PreprodArtifact:
+        if commit_comparison is None:
+            commit_comparison = self.create_commit_comparison(organization=self.organization)
+        artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=commit_comparison
+        )
+        head_metrics = self.create_preprod_snapshot_metrics(
+            preprod_artifact=artifact, image_count=5
+        )
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        base_metrics = self.create_preprod_snapshot_metrics(
+            preprod_artifact=base_artifact, image_count=5
+        )
+        self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=state,
+        )
+        return artifact
+
+    def test_snapshot_status_base(self) -> None:
+        cc = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha=None,
+            head_repo_name="owner/repo",
+        )
+        base_artifact = self.create_preprod_artifact(project=self.project, commit_comparison=cc)
+        self.create_preprod_snapshot_metrics(preprod_artifact=base_artifact, image_count=5)
+
+        no_cc_artifact = self.create_preprod_artifact(project=self.project)
+        self.create_preprod_snapshot_metrics(preprod_artifact=no_cc_artifact, image_count=5)
+
+        pr_cc = self.create_commit_comparison(organization=self.organization)
+        pr_artifact = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            commit_comparison=pr_cc,
+        )
+
+        assert artifact_matches_query(base_artifact, "snapshot_status:base", self.organization)
+        assert artifact_matches_query(no_cc_artifact, "snapshot_status:base", self.organization)
+        assert not artifact_matches_query(pr_artifact, "snapshot_status:base", self.organization)
+
+    def test_snapshot_status_no_base(self) -> None:
+        cc = self.create_commit_comparison(organization=self.organization)
+        artifact = self.create_preprod_artifact(project=self.project, commit_comparison=cc)
+        self.create_preprod_snapshot_metrics(preprod_artifact=artifact, image_count=5)
+
+        base_cc = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha=None,
+            head_repo_name="owner/repo",
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=base_cc
+        )
+        self.create_preprod_snapshot_metrics(preprod_artifact=base_artifact, image_count=5)
+
+        assert artifact_matches_query(artifact, "snapshot_status:no_base", self.organization)
+        assert not artifact_matches_query(
+            base_artifact, "snapshot_status:no_base", self.organization
+        )
+
+    def test_snapshot_status_pending(self) -> None:
+        pending = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.PENDING
+        )
+        success = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.SUCCESS
+        )
+
+        assert artifact_matches_query(pending, "snapshot_status:pending", self.organization)
+        assert not artifact_matches_query(success, "snapshot_status:pending", self.organization)
+
+    def test_snapshot_status_processing(self) -> None:
+        processing = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.PROCESSING
+        )
+        success = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.SUCCESS
+        )
+
+        assert artifact_matches_query(processing, "snapshot_status:processing", self.organization)
+        assert not artifact_matches_query(success, "snapshot_status:processing", self.organization)
+
+    def test_snapshot_status_failed(self) -> None:
+        failed = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        success = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.SUCCESS
+        )
+
+        assert artifact_matches_query(failed, "snapshot_status:failed", self.organization)
+        assert not artifact_matches_query(success, "snapshot_status:failed", self.organization)
+
+    def test_snapshot_status_in_filter_mixed(self) -> None:
+        pending = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.PENDING
+        )
+        failed = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        success = self._create_artifact_with_comparison_state(
+            state=PreprodSnapshotComparison.State.SUCCESS
+        )
+
+        assert artifact_matches_query(
+            pending, "snapshot_status:[pending, failed]", self.organization
+        )
+        assert artifact_matches_query(
+            failed, "snapshot_status:[pending, failed]", self.organization
+        )
+        assert not artifact_matches_query(
+            success, "snapshot_status:[pending, failed]", self.organization
+        )

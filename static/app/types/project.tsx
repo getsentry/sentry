@@ -20,6 +20,8 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
+export type ProjectStats = TimeseriesValue[];
+
 /**
  * Matches the response from `ProjectSummarySerializer` used by
  * `GET /organizations/{org}/projects/`.
@@ -73,8 +75,8 @@ interface ProjectSummary extends AvatarProject {
     hasHealthData: boolean;
     previousCrashFreeRate: number | null;
   };
-  stats?: TimeseriesValue[];
-  transactionStats?: TimeseriesValue[];
+  stats?: ProjectStats;
+  transactionStats?: ProjectStats;
 }
 
 /**
