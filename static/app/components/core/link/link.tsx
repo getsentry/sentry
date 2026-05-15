@@ -20,7 +20,7 @@ export interface RoutedLinkProps
     >,
     Omit<
       React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
-      'href' | 'target' | 'as' | 'css'
+      'href' | 'as' | 'css'
     > {
   [key: `data-${string}`]: string | undefined;
   /**
@@ -50,7 +50,7 @@ export interface LinkProps
     >,
     Omit<
       React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
-      'href' | 'target' | 'as' | 'css'
+      'href' | 'as' | 'css'
     > {
   [key: `data-${string}`]: string | undefined;
   /**
@@ -82,7 +82,7 @@ export interface LinkProps
    */
   href?: string | LocationDescriptor;
   /**
-   * Whether to open external links in a new tab. Defaults to `true` for external URLs,
+   * Whether to open the link in a new tab. Defaults to `true` for external URLs,
    * `false` for internal URLs.
    */
   openInNewTab?: boolean;
@@ -144,6 +144,17 @@ export const Link = styled(({href, to, openInNewTab, ...props}: LinkComponentPro
   }
 
   // Internal link: delegate to the link behavior context (React Router)
+  if (openInNewTab) {
+    return (
+      <InternalLink
+        {...props}
+        to={resolvedHref}
+        target="_blank"
+        rel="noreferrer noopener"
+      />
+    );
+  }
+
   return <InternalLink {...props} to={resolvedHref} />;
 })`
   ${getLinkStyles}
