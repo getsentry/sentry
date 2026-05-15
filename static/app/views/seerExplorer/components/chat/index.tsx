@@ -12,6 +12,7 @@ import {UserBlock} from './user';
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  blocks?: Block[];
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   onClick?: () => void;
@@ -23,6 +24,7 @@ interface BlockProps {
 export function BlockComponent({
   block,
   blockIndex,
+  blocks,
   runId,
   getPageReferrer,
   interactionPending,
@@ -31,8 +33,16 @@ export function BlockComponent({
   ref,
 }: BlockProps) {
   const contextValue = useMemo(
-    () => ({block, blockIndex, getPageReferrer, interactionPending, runId, showThinking}),
-    [block, blockIndex, getPageReferrer, interactionPending, runId, showThinking]
+    () => ({
+      block,
+      blockIndex,
+      blocks,
+      getPageReferrer,
+      interactionPending,
+      runId,
+      showThinking,
+    }),
+    [block, blockIndex, blocks, getPageReferrer, interactionPending, runId, showThinking]
   );
 
   return (
