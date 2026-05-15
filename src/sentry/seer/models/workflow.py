@@ -25,7 +25,6 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     schedule = models.CharField(
         max_length=256, choices=WorkflowSchedule.choices, default=WorkflowSchedule.DAILY
     )
-    notification_config = models.JSONField(db_default={}, default=dict)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
