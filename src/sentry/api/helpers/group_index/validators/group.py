@@ -7,9 +7,14 @@ from rest_framework import serializers
 from sentry.api.fields.actor import ActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
-from sentry.models.group import STATUS_UPDATE_CHOICES, Group
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.types.actor import Actor
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
+from sentry.types.group import (
+    IGNORED_SUBSTATUS_CHOICES,
+    SUBSTATUS_UPDATE_CHOICES,
+    UNRESOLVED_SUBSTATUS_CHOICES,
+    PriorityLevel,
+)
 
 
 @extend_schema_serializer(
@@ -113,4 +118,28 @@ class GroupValidator(serializers.Serializer[Group]):
         attrs = super().validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
             raise serializers.ValidationError("Other attributes cannot be updated when discarding")
+
+        status = attrs.get("status")
+        substatus = attrs.get("substatus")
+        if status is not None and substatus is not None:
+            new_status = STATUS_UPDATE_CHOICES[status]
+            new_substatus = SUBSTATUS_UPDATE_CHOICES[substatus]
+            if new_status == GroupStatus.IGNORED:
+                if new_substatus not in IGNORED_SUBSTATUS_CHOICES:
+                    raise serializers.ValidationError(
+                        {
+                            "substatus": f"'{substatus}' is not a valid substatus for status '{status}'."
+                        }
+                    )
+            elif new_status == GroupStatus.UNRESOLVED:
+                if new_substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
+                    raise serializers.ValidationError(
+                        {
+                            "substatus": f"'{substatus}' is not a valid substatus for status '{status}'."
+                        }
+                    )
+            else:
+                raise serializers.ValidationError(
+                    {"substatus": f"Substatus is not allowed for status '{status}'."}
+                )
         return attrs

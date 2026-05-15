@@ -90,6 +90,30 @@ class InferSubstatusTest(TestCase):
             == GroupSubStatus.REGRESSED
         )
 
+    def test_drops_incompatible_substatus_for_ignored(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.IGNORED,
+                new_substatus=GroupSubStatus.ONGOING,
+                status_details={},
+                group_list=[],
+            )
+            == GroupSubStatus.FOREVER
+        )
+
+    def test_drops_incompatible_substatus_for_unresolved(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=GroupSubStatus.FOREVER,
+                status_details={},
+                group_list=[
+                    self.create_group(first_seen=datetime.now(timezone.utc) - timedelta(days=10))
+                ],
+            )
+            == GroupSubStatus.ONGOING
+        )
+
 
 class HandleStatusChangeTest(TestCase):
     def create_issue(self, status: int, substatus: int | None = None) -> None:

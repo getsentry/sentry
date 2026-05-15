@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
+from rest_framework import serializers
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
@@ -415,6 +416,21 @@ class UpdateGroupsTest(TestCase):
 
         group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
+
+    def test_rejects_mismatched_status_and_substatus(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "ignored", "substatus": "ongoing"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+
+        with pytest.raises(serializers.ValidationError):
+            update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
 
     def test_resolve_in_next_release_ignores_archived_releases(self) -> None:
         open_release = self.create_release(
