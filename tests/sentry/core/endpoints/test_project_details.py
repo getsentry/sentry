@@ -896,6 +896,22 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:scrub_ip_address") is False
         assert resp.data["scrubIPAddresses"] is False
 
+    def test_enable_native_source_server_mapping(self) -> None:
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
+        assert resp.data["enableNativeSourceServerMapping"] is False
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableNativeSourceServerMapping=True
+        )
+        assert self.project.get_option("sentry:enable_native_source_server_mapping") is True
+        assert resp.data["enableNativeSourceServerMapping"] is True
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableNativeSourceServerMapping=False
+        )
+        assert self.project.get_option("sentry:enable_native_source_server_mapping") is False
+        assert resp.data["enableNativeSourceServerMapping"] is False
+
     def test_scrape_javascript(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
         assert self.project.get_option("sentry:scrape_javascript") is False

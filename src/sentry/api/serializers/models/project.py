@@ -966,6 +966,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
+    enableNativeSourceServerMapping: bool
     dynamicSamplingBiases: list[dict[str, str | bool]]
     symbolSources: str
     isDynamicallySampled: bool
@@ -1120,6 +1121,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
+            ),
+            "enableNativeSourceServerMapping": bool(
+                self.get_value_with_default(attrs, "sentry:enable_native_source_server_mapping")
             ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"

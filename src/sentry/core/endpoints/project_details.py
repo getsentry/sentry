@@ -154,6 +154,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "storeCrashReports",
         "relayPiiConfig",
         "builtinSymbolSources",
+        "enableNativeSourceServerMapping",
         "symbolSources",
         "scrubIPAddresses",
         "groupingConfig",
@@ -263,6 +264,14 @@ E.g. `['release', 'environment']`""",
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
+    enableNativeSourceServerMapping = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "When enabled, native symbolication uses the source server (srcsrv) mapping "
+            "embedded in debug files to rewrite each frame's `abs_path`/`filename` and "
+            "report the per-frame VCS revision."
+        ),
+    )
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -782,6 +791,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
+                ]
+        if result.get("enableNativeSourceServerMapping") is not None:
+            if project.update_option(
+                "sentry:enable_native_source_server_mapping",
+                result["enableNativeSourceServerMapping"],
+            ):
+                changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
+                    "enableNativeSourceServerMapping"
                 ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(

@@ -192,11 +192,24 @@ class Symbolicator:
                 # Otherwise, we are done processing, yay
                 return json_response
 
+    def _native_options(self, **extra: Any) -> dict[str, Any]:
+        """Builds the `options` dict for native symbolication requests.
+
+        When the project has opted in to source server (srcsrv) path
+        rewriting, this also sets `apply_srcsrv` so symbolicator rewrites each
+        frame's `abs_path`/`filename` and emits the per-frame `revision`.
+        """
+        options: dict[str, Any] = {"dif_candidates": True, **extra}
+        if self.project.get_option("sentry:enable_native_source_server_mapping"):
+            options["apply_srcsrv"] = True
+        return options
+
     def process_minidump(
         self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
     ):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
+        native_options = self._native_options()
 
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
@@ -205,7 +218,7 @@ class Symbolicator:
                 "platform": platform,
                 "sources": sources,
                 "scraping": scraping_config,
-                "options": {"dif_candidates": True},
+                "options": native_options,
                 "symbolicate": {
                     "type": "minidump",
                     "storage_url": storage_url,
@@ -224,7 +237,7 @@ class Symbolicator:
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
-            "options": '{"dif_candidates": true}',
+            "options": orjson.dumps(native_options).decode(),
             "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
         }
         files = {"upload_file_minidump": minidump.load_data(self.project)}
@@ -235,6 +248,7 @@ class Symbolicator:
     def process_applecrashreport(self, platform: str, report: CachedAttachment):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
+        native_options = self._native_options()
 
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
@@ -243,7 +257,7 @@ class Symbolicator:
                 "platform": platform,
                 "sources": sources,
                 "scraping": scraping_config,
-                "options": {"dif_candidates": True},
+                "options": native_options,
                 "symbolicate": {
                     "type": "applecrashreport",
                     "storage_url": storage_url,
@@ -261,7 +275,7 @@ class Symbolicator:
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
-            "options": '{"dif_candidates": true}',
+            "options": orjson.dumps(native_options).decode(),
         }
         files = {"apple_crash_report": report.load_data(self.project)}
 
@@ -288,11 +302,10 @@ class Symbolicator:
         json = {
             "platform": platform,
             "sources": sources,
-            "options": {
-                "dif_candidates": True,
-                "apply_source_context": apply_source_context,
-                "frame_order": frame_order.value,
-            },
+            "options": self._native_options(
+                apply_source_context=apply_source_context,
+                frame_order=frame_order.value,
+            ),
             "stacktraces": stacktraces,
             "modules": modules,
             "scraping": scraping_config,

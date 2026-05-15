@@ -29,6 +29,7 @@ get_api_context:
         parentIndex: null
         platform: null
         rawFunction: null
+        revision: null
         sampleCount: null
         sourceLink: null
         symbol: Class.myfunc

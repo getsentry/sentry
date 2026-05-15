@@ -254,6 +254,7 @@ DETAILED_PROJECT = {
     "defaultEnvironment": "prod",
     "relayPiiConfig": None,
     "builtinSymbolSources": ["ios", "android", "chromium"],
+    "enableNativeSourceServerMapping": False,
     "dynamicSamplingBiases": [
         {"id": "boostEnvironments", "active": True},
         {"id": "boostLatestRelease", "active": True},
