@@ -117,9 +117,9 @@ export function getTraceMetaUptimeCount(meta: MetaArg) {
 
 export function getTraceMetaAiSpanCount(meta: MetaArg) {
   if (!meta) return;
-  const spansCountMap = isEAPTraceMeta(meta) ? meta.spansCountMap : meta.span_count_map;
+  if (!isEAPTraceMeta(meta)) return;
 
-  return Object.entries(spansCountMap).reduce((count, [op, opCount]) => {
+  return Object.entries(meta.spansCountMap).reduce((count, [op, opCount]) => {
     return op.startsWith('gen_ai') ? count + opCount : count;
   }, 0);
 }

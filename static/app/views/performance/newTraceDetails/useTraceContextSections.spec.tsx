@@ -90,7 +90,11 @@ describe('useTraceContextSections', () => {
 
     const {result} = renderHook(() =>
       useTraceContextSections({
-        tree: makeTree(),
+        tree: makeTree({
+          root: {
+            findChild: () => ({}) as BaseNode,
+          } as unknown as TraceTree['root'],
+        }),
         logs: [{}] as unknown as OurLogsResponseItem[],
         metrics: {count: 1},
         meta: legacyMeta,
@@ -99,6 +103,7 @@ describe('useTraceContextSections', () => {
 
     expect(result.current.hasLogs).toBe(true);
     expect(result.current.hasMetrics).toBe(true);
+    expect(result.current.hasAiSpans).toBe(true);
     expect(result.current.hasTraceEvents).toBe(true);
   });
 });
