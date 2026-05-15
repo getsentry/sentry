@@ -203,3 +203,18 @@ def test_parse_and_validate_actor() -> None:
     assert actor
     assert actor.id == team.id
     assert actor.actor_type == ActorType.TEAM
+
+
+@django_db_all
+def test_parse_and_validate_actor_rejects_deactivated_user() -> None:
+    from sentry.models.organizationmember import OrganizationMember
+
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+
+    OrganizationMember.objects.filter(organization=org, user_id=user.id).update(
+        user_is_active=False
+    )
+
+    with pytest.raises(serializers.ValidationError, match="deactivated"):
+        parse_and_validate_actor(f"user:{user.id}", org.id)
