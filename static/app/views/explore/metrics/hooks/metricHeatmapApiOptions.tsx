@@ -34,8 +34,8 @@ export function metricHeatmapApiOptions({
   const combinedQuery = query ? `${traceMetricFilter} ${query}` : traceMetricFilter;
 
   const intervalInMilliseconds = intervalToMilliseconds(interval);
-  const {start, end, period} = normalizeDateTimeParams(selection.datetime);
-  const usesRelativeDateRange = !defined(start) && !defined(end) && defined(period);
+  const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
+  const usesRelativeDateRange = !defined(start) && !defined(end) && defined(statsPeriod);
 
   return apiOptions.as<HeatMapSeries>()(
     '/organizations/$organizationIdOrSlug/events-heatmap/',
@@ -53,7 +53,7 @@ export function metricHeatmapApiOptions({
         environment: selection.environments,
         start,
         end,
-        ...(period ? {statsPeriod: period} : {}),
+        statsPeriod,
         referrer: 'api.explore.tracemetrics-heatmap',
       },
       staleTime:
