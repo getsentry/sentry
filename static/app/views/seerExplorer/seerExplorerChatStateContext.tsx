@@ -27,8 +27,7 @@ type SeerExplorerChatState = {
 
 type ChatStateAction =
   | {payload: {polling: PollingState; runId: number}; type: 'set polling'}
-  | {payload: number | null; type: 'set run id'}
-  | {payload: number; type: 'remove'};
+  | {payload: number | null; type: 'set run id'};
 
 const RUN_ID_STORAGE_KEY = 'seer-explorer-run-id';
 
@@ -38,7 +37,7 @@ function readRunIdFromStorage(): number | null {
     return null;
   }
   try {
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     return typeof parsed === 'number' ? parsed : null;
   } catch {
     return null;
@@ -74,13 +73,6 @@ function chatStateReducer(
         return state;
       }
       return {...state, runId: action.payload};
-    }
-    case 'remove': {
-      if (!(action.payload in state.chatStates)) {
-        return state;
-      }
-      const {[action.payload]: _, ...rest} = state.chatStates;
-      return {...state, chatStates: rest};
     }
     default:
       return state;
