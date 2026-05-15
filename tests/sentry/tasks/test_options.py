@@ -44,7 +44,7 @@ class SyncOptionsTest(TestCase):
         default_manager._seen.discard(self._SEEN_TEST_KEY)
 
         # First read: must emit exactly one log record with the key in extra.
-        with self.assertLogs("sentry.options.manager", level="INFO") as cm:
+        with self.assertLogs("sentry", level="INFO") as cm:
             default_manager.get(self._SEEN_TEST_KEY)
 
         assert any(
@@ -55,5 +55,5 @@ class SyncOptionsTest(TestCase):
         assert self._SEEN_TEST_KEY in default_manager._seen
 
         # Second read: short-circuit — _record_seen must not be called again.
-        with self.assertNoLogs("sentry.options.manager", level="INFO"):
+        with self.assertNoLogs("sentry", level="INFO"):
             default_manager.get(self._SEEN_TEST_KEY)

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 # Prevent ourselves from clobbering the builtin
 _type = type
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry")
 
 NoneType = type(None)
 
