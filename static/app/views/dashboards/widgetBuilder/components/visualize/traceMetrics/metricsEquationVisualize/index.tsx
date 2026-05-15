@@ -71,7 +71,7 @@ export function MetricsEquationVisualize({
     }
     metricQueries.push(defaultMetricQuery({type: 'equation'}));
     return metricQueries;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const [selectedLabel, setSelectedLabel] = useState<string | undefined>(() => {

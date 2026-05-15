@@ -88,7 +88,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   useLayoutEffect(() => {
     options.onResize(options.initialSize ?? 0, size, false);
     setSize(options.initialSize ?? 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [options.direction]);
 
   const sizeRef = useRef(size);

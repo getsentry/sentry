@@ -688,7 +688,7 @@ export function SearchQueryBuilderValueCombobox({
       setSelectionIndex(newInputValue.length);
     }
     // We want to avoid resetting the input value if the token text doesn't actually change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [canSelectMultipleValues, token.text]);
 
   // On mount, scroll to the end of the input

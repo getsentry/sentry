@@ -212,7 +212,7 @@ function DashboardInner({
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   // Handle newWidget parsed from Add to Dashboard flows

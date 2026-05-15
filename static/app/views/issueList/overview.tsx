@@ -174,7 +174,7 @@ function IssueListOverviewInner({
     if (!isEqual(groupIds, storeGroupIds)) {
       setGroupIds(storeGroupIds);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [groups]);
 
   useIssuesINPObserver();
@@ -544,7 +544,7 @@ function IssueListOverviewInner({
       // request will be repeated in componentDidUpdate
       fetchData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const previousSelection = usePrevious(selection);

@@ -242,7 +242,7 @@ export function ResultGrid(props: Props) {
         }));
       },
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [location, endpoint, method, defaultSort, JSON.stringify(defaultParams)]);
 
   const onSearch = (e: React.FormEvent<HTMLFormElement>) => {

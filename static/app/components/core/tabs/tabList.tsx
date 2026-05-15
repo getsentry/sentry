@@ -229,7 +229,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
   useEffect(() => {
     setTabListState(state);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu

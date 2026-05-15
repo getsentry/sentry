@@ -228,7 +228,7 @@ export function FiltersBar({
         [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {

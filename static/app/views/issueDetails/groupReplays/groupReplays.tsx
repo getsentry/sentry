@@ -107,7 +107,7 @@ function GroupReplaysContent({group}: Props) {
       organization,
     });
     // we only want to fire this event once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const {getReplayCountForIssue} = useReplayCountForIssues({

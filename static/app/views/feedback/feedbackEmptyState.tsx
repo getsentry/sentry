@@ -48,7 +48,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
     if (issueTab) {
       setProjId();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -260,7 +260,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     // Only re-run this if the view query param changes, otherwise if we pass location.search
     // as a dependency, the query will re-run every time we perform actions on the trace view; like
     // clicking on a span, that updates the url.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [
     options.limit,
     options.timestamp,

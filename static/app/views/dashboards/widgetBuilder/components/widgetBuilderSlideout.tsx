@@ -162,7 +162,7 @@ function WidgetBuilderSlideoutInner({
     // Ignore isEditing because it won't change during the
     // useful lifetime of the widget builder, but it
     // flickers when an edited widget is saved.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [openWidgetTemplates, organization]);
 
   const title = openWidgetTemplates

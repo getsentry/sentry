@@ -117,7 +117,7 @@ export function useLocalStorageState<S>(
 
     setValue(initializeStorage(key, initialState));
     // We only want to update the value when the key changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [key]);
 
   const setStoredValue = useCallback(

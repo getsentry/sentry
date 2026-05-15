@@ -100,7 +100,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
         {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
       </Fragment>
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (

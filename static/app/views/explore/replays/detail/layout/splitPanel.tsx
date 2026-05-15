@@ -26,7 +26,7 @@ export function ReplaySplitPanel({
     },
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line @eslint-react/exhaustive-deps
   const handleResize = useCallback(
     debounce(newSize => logEndPosition(`${(newSize / availableSize) * 100}%`), 750),
     [logEndPosition, availableSize]

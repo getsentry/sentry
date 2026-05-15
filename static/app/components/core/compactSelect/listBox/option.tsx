@@ -62,7 +62,7 @@ export function ListBoxOption({
 
   const labelPropsMemo = useMemo(
     () => ({...labelProps, as: typeof label === 'string' ? 'p' : 'div'}) as const,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [labelProps.id, label]
   );
 

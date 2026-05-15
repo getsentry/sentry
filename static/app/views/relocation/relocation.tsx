@@ -145,7 +145,7 @@ export function RelocationOnboarding() {
   }, [api, navigate, regions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const fetchPublicKeys = useCallback(() => {
@@ -173,7 +173,7 @@ export function RelocationOnboarding() {
   }, [api, regions]);
   useEffect(() => {
     fetchPublicKeys();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   // Called onExitComplete

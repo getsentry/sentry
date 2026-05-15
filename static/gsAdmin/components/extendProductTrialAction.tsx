@@ -44,7 +44,7 @@ export function ExtendProductTrialAction({
       });
     });
     // Only set up the callback once on mount, using ref for latest value
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const handleDaysChange = (value: string) => {

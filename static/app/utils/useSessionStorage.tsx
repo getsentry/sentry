@@ -32,7 +32,7 @@ export function useSessionStorage<T>(
   useEffect(() => {
     setState(readStorageValue(key, initialValue));
     // We want to re-initialized the storage value only when the key changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [key]);
 
   const wrappedSetState = useCallback(

@@ -231,7 +231,7 @@ export function ExternalIssueForm({
     return () => {
       span?.end();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   // End the span for the load request

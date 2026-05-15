@@ -114,7 +114,7 @@ function InlineField({
       onPropertyChange(index, name, String(placeholder));
     }
     // Value omitted on purpose to avoid overwriting user changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [onPropertyChange, index, name, placeholder, data.id]);
 
   switch (field.type) {

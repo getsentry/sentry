@@ -139,7 +139,7 @@ export function MetricsVisualize() {
     ];
   }, [metricOptionsData, optionFromTraceMetric, traceMetric.name, hasMetricUnitsUI]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line @eslint-react/exhaustive-deps
   const debouncedSetSearch = useCallback(
     debounce((newSearch: string) => {
       setSearch(newSearch);

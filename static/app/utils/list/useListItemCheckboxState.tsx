@@ -148,7 +148,7 @@ export function ListItemCheckboxProvider({
   useEffect(() => {
     queryKeyRef.current = queryKey;
     setState({ids: new Set()});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [serializedQueryKey]);
 
   return (
@@ -174,7 +174,7 @@ export function useListItemCheckboxContext(props?: PublicProps) {
       localQueryKeyRef.current = props.queryKey;
       setState({ids: new Set()});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [serializedPropsKey]);
 
   return useListItemCheckboxState({

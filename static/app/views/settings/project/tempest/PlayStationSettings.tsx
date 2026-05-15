@@ -85,7 +85,7 @@ export function PlayStationSettings({organization, project}: Props) {
         error_count: credentialErrors.length,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [credentialErrors]);
 
   const isSetupInstructionsOpen = location.query.setupInstructions === 'true';

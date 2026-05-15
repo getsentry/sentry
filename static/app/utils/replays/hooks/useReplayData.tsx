@@ -327,7 +327,7 @@ export function useReplayData({
   // the only thing we care about.
   const feedbackEvents = useMemo(() => {
     return rawFeedbackEvents;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [rawFeedbackEvents?.length]);
 
   const allStatuses = [

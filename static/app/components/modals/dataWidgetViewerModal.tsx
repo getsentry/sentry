@@ -461,7 +461,7 @@ function DataWidgetViewerModal(props: Props) {
     getDiscoverTotals();
     // Disabling this for now since this effect should only run on initial load and query index changes
     // Including all exhaustive deps would cause fetchDiscoverTotal on nearly every update
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [selectedQueryIndex]);
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {

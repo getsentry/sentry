@@ -99,7 +99,7 @@ export function MetricsEquationVisualize({
     return parsed.equationRow
       ? [...parsed.metricQueries, parsed.equationRow]
       : parsed.metricQueries;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   return (

@@ -122,7 +122,7 @@ jest.mock('@stripe/react-stripe-js', () => {
           // Use setTimeout to allow initial render assertions to run
           setTimeout(() => onReady(), 0);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line @eslint-react/exhaustive-deps
       }, []);
       return null;
     }),
@@ -139,7 +139,7 @@ jest.mock('@stripe/react-stripe-js', () => {
             onChange({complete: true});
           }
         }, 0);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line @eslint-react/exhaustive-deps
       }, []);
       return null;
     }),

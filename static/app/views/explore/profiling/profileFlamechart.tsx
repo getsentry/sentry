@@ -98,7 +98,7 @@ export default function ProfileFlamegraphWrapper() {
       },
     };
     // We only want to decode this when our component mounts
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   return (

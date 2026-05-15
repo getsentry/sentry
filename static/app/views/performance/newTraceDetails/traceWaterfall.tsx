@@ -149,7 +149,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     });
 
     return () => cleanup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [props.tree, props.replayTraces]);
 
   // Initialize the tabs reducer when the tree initializes
@@ -175,7 +175,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       },
     });
     // We only want to update the tabs when the tree changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [props.tree]);
 
   const searchingRaf = useRef<{id: number | null} | null>(null);

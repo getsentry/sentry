@@ -369,7 +369,7 @@ function FlamegraphSearch({
     handleChange(search.query);
     // Dont fire on query changes, we just want this to fire on initial load
     // as the spans and frames eventually get loaded into the view
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [handleChange, allFlamegraphFrames, spans]);
 
   const onNextSearchClick = useCallback(() => {

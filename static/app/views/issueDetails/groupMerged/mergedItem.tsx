@@ -90,7 +90,7 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
     return () => {
       teardown();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const {latestEvent, id, label} = fingerprint;

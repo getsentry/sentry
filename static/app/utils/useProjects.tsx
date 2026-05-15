@@ -279,7 +279,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       loadProjectsBySlug();
       return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [slugsRef.current]);
 
   // Update initiallyLoaded when we finish loading within the projectStore
@@ -295,7 +295,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
     }
 
     setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [store.loading]);
 
   const {initiallyLoaded, fetching, fetchError, hasMore} = state;

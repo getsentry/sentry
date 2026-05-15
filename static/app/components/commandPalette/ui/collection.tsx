@@ -135,7 +135,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
         // bind so that this.tree() works correctly in recursive calls
         tree: store.tree.bind(store),
       }),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line @eslint-react/exhaustive-deps
       [snapshot, store]
     );
   }
