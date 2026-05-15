@@ -36,11 +36,13 @@ def load_config(app):
     app.config.internal_port = os.environ.get("APIGW_INTERNAL_PORT", "8000")
     app.config.internal_fqdn = f"{app.config.internal_hostname}:{app.config.internal_port}"
 
+    app.config.AsyncPG.pool_size = int(os.environ.get("APIGW_DB_POOL_SIZE", 4))
+
     app.config.endpoints.control = os.environ.get("APIGW_ENDPOINT_CONTROL", "http://localhost:8002")
 
     app.config.proxy.timeout = None
     app.config.proxy.max_concurrency = int(os.environ.get("APIGW_PROXY_MAX_CONCURRENCY", 512))
-    app.config.proxy.max_failures = int(os.environ.get("APIGW_PROXY_MAX_FAILURES", 32))
+    app.config.proxy.max_failures = int(os.environ.get("APIGW_PROXY_MAX_FAILURES", 16))
     app.config.proxy.failure_window = int(os.environ.get("APIGW_PROXY_FAILURE_WINDOW", 60))
 
     if proxy_timeout := os.environ.get("APIGW_PROXY_TIMEOUT"):
@@ -50,8 +52,12 @@ def load_config(app):
     app.config.Sentry.dsn = os.environ.get("APIGW_SENTRY_DSN", "")
     app.config.Sentry.release = os.environ.get("GETSENTRY_VERSION_SHA", "latest")
 
+    if sentry_tracing_sample_rate := os.environ.get("APIGW_SENTRY_TRACING_SAMPLE_RATE"):
+        app.config.Sentry.enable_tracing = True
+        app.config.Sentry.tracing_sample_rate = float(sentry_tracing_sample_rate)
+        app.config.Sentry.tracing_exclude_routes = ["emmett_prometheus.metrics", "internal.health"]
+
     app.config.Prometheus.metrics_route_hostname = app.config.internal_fqdn
     app.config.Prometheus.enable_ws_metrics = False
-    app.config.Prometheus.http_histogram_statuses = [200, 201]
     app.config.Prometheus.http_histogram_buckets = [35, 100, 500, 1000, 5000, "INF"]
     app.config.Prometheus.exclude_routes = ["internal.health"]

@@ -9,12 +9,12 @@ proxy = app.module(__name__, "proxy")
 
 @proxy.route(
     [
+        "/api/0/_admin/customers/<str:org>(/<any:subp>)?",
+        "/api/0/customers/<str:org>(/<any:subp>)?",
+        "/api/0/internal-stats/<str:org>(/<any:subp>)?",
         "/api/0/organizations/<str:org>(/<any:subp>)?",
         "/api/0/projects/<str:org>(/<any:subp>)?",
         "/api/0/teams/<str:org>(/<any:subp>)?",
-        "/api/0/customers/<str:org>(/<any:subp>)?",
-        "/api/0/_admin/customers/<str:org>(/<any:subp>)?",
-        "/api/0/internal-stats/<str:org>(/<any:subp>)?",
         "/organizations/<str:org>/billing(/<any:subp>)?",
         "/organizations/<str:org>/payments(/<any:subp>)?",
     ],

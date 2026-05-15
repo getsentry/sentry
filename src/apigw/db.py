@@ -1,5 +1,3 @@
-import os
-
 import asyncpg
 from emmett55 import Pipe
 from emmett55.extensions import Extension, Signals, listen_signal
@@ -17,7 +15,6 @@ class AsyncPG(Extension):
         from django.conf import settings
 
         DB_CONF = settings.DATABASES["default"]
-        POOL_SIZE = int(os.environ.get("APIGW_DB_POOL_SIZE", "4"))
 
         self.pool = await asyncpg.create_pool(
             user=DB_CONF["USER"],
@@ -25,8 +22,8 @@ class AsyncPG(Extension):
             database=DB_CONF["NAME"],
             host=DB_CONF["HOST"],
             port=DB_CONF["PORT"],
-            min_size=POOL_SIZE,
-            max_size=POOL_SIZE,
+            min_size=self.config.pool_size,
+            max_size=self.config.pool_size,
         )
 
     @listen_signal(Signals.after_loop)
