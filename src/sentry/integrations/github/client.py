@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import logging
+import time
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -10,7 +12,7 @@ from typing import Any, TypedDict
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -38,6 +40,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckC
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
@@ -1123,7 +1126,31 @@ class _IntegrationIdParams(TypedDict, total=False):
     integration_id: int
 
 
+# TODO: Emerge Team - Update to be -> {"emerge": 0.05}.
+REFERRER_ALLOCATION: dict[str, float] = {}
+assert "shared" not in REFERRER_ALLOCATION
+
+GITHUB_RATE_LIMIT_WINDOW = 3600
+GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
+GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
+GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+
+
 class GitHubApiClient(GitHubBaseClient):
+    """
+    GitHub REST API client.
+
+    To opt in to reserved quota please use the `referrer` contextmanager.
+
+        with client.referrer("emerge"):
+            # Emerge referrer used.
+            client.get_pull_request(...)
+            client.create_branch(...)
+
+        # Shared referrer used
+        client.get_issue(...)
+    """
+
     def __init__(
         self,
         integration: Integration | RpcIntegration,
@@ -1142,3 +1169,50 @@ class GitHubApiClient(GitHubBaseClient):
             logging_context=logging_context,
             **kwargs,
         )
+
+        self.__referrer = "shared"
+        self.__rate_limiter = DynamicRateLimiter(
+            get_time_in_seconds=lambda: int(time.time()),
+            integration_id=self.integration.id,
+            provider="github",
+            rate_limit_provider=RedisRateLimitProvider(),
+            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
+            referrer_allocation=REFERRER_ALLOCATION,
+            recorded_capacity=None,
+        )
+
+    @contextlib.contextmanager
+    def referrer(self, referrer: str):
+        prev = self.__referrer
+        self.__referrer = referrer
+        try:
+            yield
+        finally:
+            self.__referrer = prev
+
+    def _do_send(self, *args, **kwargs) -> Response:
+        try:
+            if self.__rate_limiter.is_rate_limited(self.__referrer):
+                # For now do nothing. We'll eventually use this once we understand its behavior better.
+                # raise RateLimitExceed
+                metrics.incr("sentry.scm.github.rate_limit_exceeded")
+        except Exception as e:
+            # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
+            sentry_sdk.capture_exception(e)
+
+        response = super()._do_send(*args, **kwargs)
+
+        try:
+            self.__rate_limiter.update_rate_limit_meta(
+                capacity=int(response.headers[GITHUB_RATE_LIMIT_CAPACITY]),
+                consumed=int(response.headers[GITHUB_RATE_LIMIT_USED]),
+                next_window_start=int(response.headers[GITHUB_RATE_LIMIT_RESET]),
+            )
+        except KeyError:
+            # GitHub didn't return rate-limit headers for some unknown reason.
+            metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
+        except Exception as e:
+            # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
+            sentry_sdk.capture_exception(e)
+
+        return response
