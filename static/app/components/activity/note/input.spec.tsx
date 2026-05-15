@@ -129,13 +129,13 @@ describe('NoteInput', () => {
     });
 
     it('canels editing and moves to preview mode', async () => {
-      const onEditFinish = jest.fn();
-      render(<NoteInput {...props} onEditFinish={onEditFinish} />);
+      const onCancel = jest.fn();
+      render(<NoteInput {...props} onCancel={onCancel} />);
 
       await userEvent.type(screen.getByRole('textbox'), ' new content');
 
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-      expect(onEditFinish).toHaveBeenCalled();
+      expect(onCancel).toHaveBeenCalled();
     });
   });
 });

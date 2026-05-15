@@ -80,7 +80,7 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
       <EventDrawerBody>
         <StreamlinedActivitySection
           group={group}
-          isDrawer
+          variant="drawer"
           filterComments={filter === 'comments'}
           minHeight={72}
           placeholder={t('Add a comment. Tag users with @, or teams with #')}

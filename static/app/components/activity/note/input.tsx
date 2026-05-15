@@ -25,10 +25,6 @@ type Props = {
    */
   busy?: boolean;
   /**
-   * Use danger styling for the cancel button when editing an existing note.
-   */
-  dangerCancel?: boolean;
-  /**
    * Display an error message
    */
   error?: boolean;
@@ -42,9 +38,9 @@ type Props = {
    * you are editing an existing item
    */
   noteId?: string;
+  onCancel?: () => void;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
   onCreate?: (data: NoteType) => void;
-  onEditFinish?: () => void;
   onUpdate?: (data: NoteType) => void;
   placeholder?: string;
   /**
@@ -64,11 +60,10 @@ function NoteInput({
   onCreate,
   onChange,
   onUpdate,
-  onEditFinish,
+  onCancel,
   noteId,
   errorJSON,
   busy = false,
-  dangerCancel = true,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
   minHeight = 140,
 }: Props) {
@@ -122,7 +117,7 @@ function NoteInput({
 
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
-    onEditFinish?.();
+    onCancel?.();
   };
 
   const handleAddMember = useCallback(
@@ -170,6 +165,7 @@ function NoteInput({
                     <MentionsEditor>
                       <MentionsInput
                         {...fieldProps}
+                        aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
                         aria-errormessage={errorMessage ? errorId : undefined}
                         inputRef={ref}
                         style={mentionStyle({theme, minHeight})}
@@ -232,11 +228,7 @@ function NoteInput({
         )}
         <FooterActions>
           {existingItem && (
-            <Button
-              size="xs"
-              variant={dangerCancel ? 'danger' : undefined}
-              onClick={handleCancel}
-            >
+            <Button size="xs" onClick={handleCancel}>
               {t('Cancel')}
             </Button>
           )}

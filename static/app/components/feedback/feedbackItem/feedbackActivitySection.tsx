@@ -111,10 +111,10 @@ export function FeedbackActivitySection(props: Props) {
     <ActivitySectionContainer>
       <StreamlinedActivitySection
         group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
-        handleDelete={handleDelete}
-        handleCreate={handleCreate}
-        handleUpdate={handleUpdate}
-        isInline
+        onDelete={handleDelete}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        variant="inline"
         placeholder={t(
           'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'
         )}

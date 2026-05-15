@@ -53,15 +53,15 @@ function TimelineItem({
   group,
   teams,
   isDrawer,
-  useSimpleInput,
+  inputVariant,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
+  inputVariant: 'compact' | 'full';
   item: GroupActivity;
   teams: Team[];
   isDrawer?: boolean;
-  useSimpleInput?: boolean;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -115,7 +115,7 @@ function TimelineItem({
           itemKey={item.id}
           storageKey={`groupinput:${item.id}`}
           minHeight={96}
-          source={useSimpleInput ? 'issue-details' : undefined}
+          variant={inputVariant}
           text={item.data.text}
           noteId={item.id}
           onUpdate={n => {
@@ -123,7 +123,6 @@ function TimelineItem({
             setEditing(false);
           }}
           onCancel={() => setEditing(false)}
-          onEditFinish={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
         <NoteWrapper isDrawer={isDrawer}>
@@ -139,7 +138,7 @@ function TimelineItem({
 function ActivityNoteInput(props: React.ComponentProps<typeof NoteInputWithStorage>) {
   return (
     <ActivityInputFrame data-test-id="activity-input-frame">
-      <NoteInputWithStorage dangerCancel={false} {...props} />
+      <NoteInputWithStorage {...props} />
     </ActivityInputFrame>
   );
 }
@@ -150,27 +149,27 @@ interface StreamlinedActivitySectionProps {
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
-  handleCreate?: (n: NoteType, me: User) => void;
-  handleDelete?: (item: GroupActivity) => void;
-  handleUpdate?: (item: GroupActivity, n: NoteType) => void;
-  /**
-   * Whether the activity section is being rendered in the activity drawer.
-   * Disables collapse feature, and hides headers
-   */
-  isDrawer?: boolean;
-  isInline?: boolean;
   minHeight?: number;
+  onCreate?: (n: NoteType, me: User) => void;
+  onDelete?: (item: GroupActivity) => void;
+  onUpdate?: (item: GroupActivity, n: NoteType) => void;
   placeholder?: string;
+  /**
+   * Controls layout and input style.
+   * - `sidebar` (default): fold section, compact input, collapses at 5 items
+   * - `drawer`: full input, no collapse, larger text
+   * - `inline`: full input, no collapse
+   */
+  variant?: 'sidebar' | 'drawer' | 'inline';
 }
 
 export function StreamlinedActivitySection({
   group,
-  isDrawer,
   filterComments,
-  handleCreate: handleCreateProp,
-  handleDelete: handleDeleteProp,
-  handleUpdate: handleUpdateProp,
-  isInline,
+  onCreate: onCreateProp,
+  onDelete: onDeleteProp,
+  onUpdate: onUpdateProp,
+  variant = 'sidebar',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
 }: StreamlinedActivitySectionProps) {
@@ -197,8 +196,8 @@ export function StreamlinedActivitySection({
 
   const handleDelete = useCallback(
     (item: GroupActivity) => {
-      if (handleDeleteProp) {
-        handleDeleteProp(item);
+      if (onDeleteProp) {
+        onDeleteProp(item);
         return;
       }
 
@@ -227,13 +226,13 @@ export function StreamlinedActivitySection({
         }
       );
     },
-    [handleDeleteProp, group.activity, mutators, group.id, organization]
+    [onDeleteProp, group.activity, mutators, group.id, organization]
   );
 
   const handleUpdate = useCallback(
     (item: GroupActivity, n: NoteType) => {
-      if (handleUpdateProp) {
-        handleUpdateProp(item, n);
+      if (onUpdateProp) {
+        onUpdateProp(item, n);
         return;
       }
 
@@ -253,12 +252,12 @@ export function StreamlinedActivitySection({
         },
       });
     },
-    [handleUpdateProp, group.activity, mutators, group.id, organization]
+    [onUpdateProp, group.activity, mutators, group.id, organization]
   );
 
   const handleCreate = (n: NoteType, me: User) => {
-    if (handleCreateProp) {
-      handleCreateProp(n, me);
+    if (onCreateProp) {
+      onCreateProp(n, me);
       return;
     }
 
@@ -297,7 +296,8 @@ export function StreamlinedActivitySection({
   const filteredActivities = visibleActivities.filter(
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
-  const useSimpleInput = !isDrawer && !isInline;
+  const isDrawer = variant === 'drawer';
+  const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem
@@ -308,7 +308,7 @@ export function StreamlinedActivitySection({
       teams={teams}
       key={item.id}
       isDrawer={isDrawer}
-      useSimpleInput={useSimpleInput}
+      inputVariant={inputVariant}
     />
   );
 
@@ -321,7 +321,7 @@ export function StreamlinedActivitySection({
         handleCreate(n, activeUser);
         setInputId(uniqueId());
       }}
-      source={useSimpleInput ? 'issue-details' : undefined}
+      variant={inputVariant}
       {...noteProps}
     />
   );
@@ -332,7 +332,7 @@ export function StreamlinedActivitySection({
     </Timeline.Container>
   );
 
-  if (isDrawer || isInline) {
+  if (variant !== 'sidebar') {
     return (
       <InlineActivityLayout>
         {noteInput}
