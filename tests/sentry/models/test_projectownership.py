@@ -950,6 +950,39 @@ class ProjectOwnershipTestCase(TestCase):
         assert version is not None
         assert isinstance(version, float)
 
+    def test_handle_auto_assignment_skips_deactivated_user(self) -> None:
+        from sentry.models.organizationmember import OrganizationMember
+
+        self.ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            fallthrough=False,
+            auto_assignment=True,
+            suspect_committer_auto_assignment=True,
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            team_id=None,
+            project=self.project,
+            organization=self.project.organization,
+            context={"commitId": 1},
+        )
+
+        OrganizationMember.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        ).update(user_is_active=False)
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert not GroupAssignee.objects.filter(group=self.event.group).exists()
+
 
 class ResolveActorsTestCase(TestCase):
     def test_no_actors(self) -> None:

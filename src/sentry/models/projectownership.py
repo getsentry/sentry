@@ -318,6 +318,17 @@ class ProjectOwnership(Model):
                 return
             logging_extra["resolved_owner"] = owner
 
+            if isinstance(owner, RpcUser):
+                from sentry.models.organizationmember import OrganizationMember
+
+                if OrganizationMember.objects.filter(
+                    organization_id=group.project.organization_id,
+                    user_id=owner.id,
+                    user_is_active=False,
+                ).exists():
+                    logger.info("handle_auto_assignment.skip_deactivated_user", extra=logging_extra)
+                    return
+
             activity_details = {}
             if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value:
                 activity_details["integration"] = ActivityIntegration.SUSPECT_COMMITTER.value
