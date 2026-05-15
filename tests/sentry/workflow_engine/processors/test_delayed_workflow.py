@@ -721,7 +721,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         self.dcg_to_slow_conditions = get_slow_conditions_for_groups(list(self.event_data.dcg_ids))
 
     def test_simple(self) -> None:
-        result, _ = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -731,7 +731,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
 
         # NOTE: no WHEN DCGs. We only collect IF DCGs here to fire their actions in the fire_actions_for_groups function
         assert (
-            result
+            eval_result.groups_to_fire
             == {
                 self.group1.id: set(self.workflow1_if_dcgs),
                 self.group2.id: {
@@ -750,7 +750,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.group1.id: existing_result[self.group1.id]
         }
 
-        result, _ = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -759,7 +759,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
 
         # group2 should be excluded because it's missing from the query result
-        assert result == {
+        assert eval_result.groups_to_fire == {
             self.group1.id: set(self.workflow1_if_dcgs),
         }
 
@@ -774,7 +774,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             }
         )
 
-        result, _ = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -782,7 +782,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.dcg_to_slow_conditions,
         )
 
-        assert result == {
+        assert eval_result.groups_to_fire == {
             self.group1.id: {self.workflow1_if_dcgs[1]},
             self.group2.id: {self.workflow2_if_dcgs[1]},
         }
@@ -796,7 +796,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             }
         )
 
-        result, _ = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -804,7 +804,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.dcg_to_slow_conditions,
         )
 
-        assert result == {
+        assert eval_result.groups_to_fire == {
             self.group1.id: set(self.workflow1_if_dcgs),
         }
 
@@ -824,7 +824,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             + [self.workflow2_if_dcgs[0]]
         )
 
-        result, _ = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -833,7 +833,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
 
         # NOTE: same result as test_simple but without the deleted DCGs
-        assert result == {
+        assert eval_result.groups_to_fire == {
             self.group1.id: {self.workflow1_if_dcgs[1]},
         }
 
@@ -842,7 +842,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
 
         self.workflows_to_envs = {self.workflow2.id: None}
 
-        result, _ = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -851,7 +851,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
 
         # NOTE: same result as test_simple but without the deleted workflow
-        assert result == {self.group2.id: {self.workflow2_if_dcgs[1]}}
+        assert eval_result.groups_to_fire == {self.group2.id: {self.workflow2_if_dcgs[1]}}
 
     def test_tainted_when_condition_doesnt_trigger(self) -> None:
         query_for_when = UniqueConditionQuery(
@@ -861,7 +861,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
         self.condition_group_results[query_for_when] = {self.group2.id: 101}
 
-        result, stats = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -869,11 +869,11 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.dcg_to_slow_conditions,
         )
 
-        assert result == {
+        assert eval_result.groups_to_fire == {
             self.group2.id: {self.workflow2_if_dcgs[1]},
         }
-        assert stats.tainted == 2
-        assert stats.untainted == 2
+        assert eval_result.stats.tainted == 2
+        assert eval_result.stats.untainted == 2
 
     def test_when_untainted_doesnt_trigger(self) -> None:
         query_for_when = UniqueConditionQuery(
@@ -883,7 +883,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
         self.condition_group_results[query_for_when] = {self.group1.id: 99, self.group2.id: 101}
 
-        result, stats = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -891,11 +891,11 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.dcg_to_slow_conditions,
         )
 
-        assert result == {
+        assert eval_result.groups_to_fire == {
             self.group2.id: {self.workflow2_if_dcgs[1]},
         }
-        assert stats.tainted == 0
-        assert stats.untainted == 4
+        assert eval_result.stats.tainted == 0
+        assert eval_result.stats.untainted == 4
 
     def test_tainted_if_condition_counts(self) -> None:
         query_for_if = UniqueConditionQuery(
@@ -905,7 +905,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
         self.condition_group_results[query_for_if] = {self.group2.id: 101}
 
-        result, stats = get_groups_to_fire(
+        eval_result = get_groups_to_fire(
             self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
@@ -913,12 +913,12 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.dcg_to_slow_conditions,
         )
 
-        assert result == {
+        assert eval_result.groups_to_fire == {
             self.group1.id: {self.workflow1_if_dcgs[1]},
             self.group2.id: {self.workflow2_if_dcgs[1]},
         }
-        assert stats.tainted == 1
-        assert stats.untainted == 3
+        assert eval_result.stats.tainted == 1
+        assert eval_result.stats.untainted == 3
 
 
 class TestFireActionsForGroups(TestDelayedWorkflowBase):
