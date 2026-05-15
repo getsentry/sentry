@@ -137,7 +137,13 @@ class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    _handlers: dict[str, type[GitHubWebhook]] = {}
+    _handlers: dict[str, type[GitHubWebhook]] = {
+        "push": GitHubEnterprisePushEventWebhook,
+        "pull_request": GitHubEnterprisePullRequestEventWebhook,
+        "installation": GitHubEnterpriseInstallationEventWebhook,
+        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
+        "issues": GitHubEnterpriseIssuesEventWebhook,
+    }
 
     def _get_host(self, request: HttpRequest) -> str | None:
         """Resolve the host this webhook belongs to. Default: header-based (GHES + GHE Cloud)."""
@@ -369,13 +375,6 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    _handlers = {
-        "push": GitHubEnterprisePushEventWebhook,
-        "pull_request": GitHubEnterprisePullRequestEventWebhook,
-        "installation": GitHubEnterpriseInstallationEventWebhook,
-        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
-        "issues": GitHubEnterpriseIssuesEventWebhook,
-    }
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -394,13 +393,6 @@ class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
-    }
-    _handlers = {
-        "push": GitHubEnterprisePushEventWebhook,
-        "pull_request": GitHubEnterprisePullRequestEventWebhook,
-        "installation": GitHubEnterpriseInstallationEventWebhook,
-        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
-        "issues": GitHubEnterpriseIssuesEventWebhook,
     }
 
     def _get_host(self, request: HttpRequest) -> str:
