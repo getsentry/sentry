@@ -140,7 +140,7 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
     const greaterThan = screen.getByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
@@ -179,7 +179,7 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
     const greaterThan = screen.getByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const globPattern = screen.getByRole('option', {name: 'Glob Pattern'});
+    const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
     const literal = screen.getByRole('option', {name: 'Literal'});
 
     expect(globPattern).toBeInTheDocument();
@@ -219,7 +219,7 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const globPattern = screen.getByRole('option', {name: 'Glob Pattern'});
+    const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
     const literal = screen.getByRole('option', {name: 'Literal'});
 
     expect(globPattern).toBeInTheDocument();
@@ -277,7 +277,7 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
     await userEvent.click(lessThan);
 
     await waitFor(() =>
