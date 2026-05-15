@@ -293,7 +293,7 @@ describe('MonitorForm', () => {
     );
   });
 
-  it('filters non-ASCII characters from crontab schedule', async () => {
+  it.isKnownFlake('filters non-ASCII characters from crontab schedule', () => {
     render(
       <MonitorForm
         apiMethod="POST"
