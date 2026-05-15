@@ -12,6 +12,7 @@ from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import (
+    GitHubEnterpriseInstallationRedirect,
     GitHubEnterpriseIntegration,
     GitHubEnterpriseIntegrationProvider,
     InstallationConfigView,
@@ -1303,6 +1304,28 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         # No flag enabled — GHES install should proceed
         view.dispatch(request, pipeline)
         pipeline.next_step.assert_called_once()
+
+    def test_app_install_redirect_uses_apps_path_for_github_com(self) -> None:
+        # github.com hosts the App install page at /apps/{name}, not /github-apps/{name}
+        # (which is the GHES convention). Wrong URL → 404 → broken install flow.
+        redirect = GitHubEnterpriseInstallationRedirect()
+        assert (
+            redirect.get_app_url({"url": "github.com", "name": "my-app", "public_link": None})
+            == "https://github.com/apps/my-app"
+        )
+        assert (
+            redirect.get_app_url(
+                {"url": "github.example.org", "name": "my-app", "public_link": None}
+            )
+            == "https://github.example.org/github-apps/my-app"
+        )
+        # public_link, when set, takes precedence regardless of host
+        assert (
+            redirect.get_app_url(
+                {"url": "github.com", "name": "my-app", "public_link": "https://example.com/app"}
+            )
+            == "https://example.com/app"
+        )
 
     def test_github_com_install_rejected_for_normalized_inputs(self) -> None:
         # Any input that normalizes to "github.com" must hit the gate. Previously

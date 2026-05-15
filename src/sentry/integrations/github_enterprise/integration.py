@@ -844,6 +844,9 @@ class GitHubEnterpriseInstallationRedirect:
 
         url = installation_data.get("url")
         name = installation_data.get("name")
+        # github.com uses /apps/{name}; GHES uses /github-apps/{name}.
+        if url == "github.com":
+            return f"https://{url}/apps/{name}"
         return f"https://{url}/github-apps/{name}"
 
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
