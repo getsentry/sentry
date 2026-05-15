@@ -159,6 +159,7 @@ interface StreamlinedActivitySectionProps {
    */
   isDrawer?: boolean;
   isInline?: boolean;
+  minHeight?: number;
   placeholder?: string;
 }
 
@@ -170,6 +171,7 @@ export function StreamlinedActivitySection({
   handleDelete: handleDeleteProp,
   handleUpdate: handleUpdateProp,
   isInline,
+  minHeight = 96,
   placeholder = t('Add a comment\u2026'),
 }: StreamlinedActivitySectionProps) {
   const theme = useTheme();
@@ -182,7 +184,7 @@ export function StreamlinedActivitySection({
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
-    minHeight: 96,
+    minHeight,
     group,
     projectSlugs,
     placeholder,

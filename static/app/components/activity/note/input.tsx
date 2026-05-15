@@ -151,7 +151,7 @@ function NoteInput({
         <NoteInputModeHeader>
           <SegmentedControl<EditorMode>
             aria-label={t('Comment editor mode')}
-            size="sm"
+            size="xs"
             value={editorMode}
             onChange={setEditorMode}
           >
@@ -283,7 +283,7 @@ const EditorSurface = styled('div')`
 const NoteInputModeHeader = styled('div')`
   display: flex;
   align-items: flex-end;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space['2xs']};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.sm} ${p => p.theme.space['2xs']};
 `;
 
 const NoteInputPanel = styled('div')`
