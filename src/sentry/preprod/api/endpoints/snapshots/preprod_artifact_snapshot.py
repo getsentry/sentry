@@ -703,12 +703,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             except Exception:
                 logger.exception("Failed to record bundles_per_commit metric")
 
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "upload_completion",
-            },
-        )
         create_preprod_snapshot_pr_comment_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact.id,
@@ -716,6 +710,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             },
         )
 
+        comparison_starting = False
         if base_sha and base_repo_name:
             try:
                 base_artifact = find_base_snapshot_artifact(
@@ -758,6 +753,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                             "base_artifact_id": base_artifact.id,
                         },
                     )
+                    comparison_starting = True
 
                 else:
                     logger.info(
@@ -777,6 +773,17 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         "base_sha": base_sha,
                     },
                 )
+
+        # When a comparison is starting, the compare_snapshots task owns the
+        # status check lifecycle (IN_PROGRESS -> COMPLETED) to avoid a race
+        # where an async IN_PROGRESS update overwrites an already-COMPLETED one.
+        if not comparison_starting:
+            create_preprod_snapshot_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact.id,
+                    "caller": "upload_completion",
+                },
+            )
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
