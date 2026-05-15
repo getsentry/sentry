@@ -365,6 +365,48 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."
 
+    @pytest.mark.querybuilder
+    def test_truncate_param(self) -> None:
+        log = self.create_ourlog(
+            {"body": "hello world"},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_eap_items([log])
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": 5,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["log.body"] == "hello"
+
+    def test_truncate_param_invalid_type(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": "notanumber",
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "truncate must be a positive integer"
+
+    def test_truncate_param_invalid_value(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": 0,
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "truncate must be a positive integer"
+
     def test_homepage_query(self) -> None:
         """This query matches the one made on the logs homepage so that we can be sure everything is working at least
         for the initial load"""

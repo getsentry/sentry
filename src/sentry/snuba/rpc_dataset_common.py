@@ -91,6 +91,7 @@ class TableQuery:
     page_token: PageToken | None = None
     additional_queries: AdditionalQueries | None = None
     extra_conditions: TraceItemFilter | None = None
+    max_string_length: int | None = None
 
 
 @dataclass
@@ -238,10 +239,13 @@ class RPCBase:
 
     @classmethod
     def build_rpc_table_row_context(cls, query: TableQuery) -> dict[str, Any]:
-        return {
+        ctx: dict[str, Any] = {
             "project_ids": list(query.resolver.params.project_ids),
             "organization_id": query.resolver.params.organization_id,
         }
+        if query.max_string_length is not None:
+            ctx["max_string_length"] = query.max_string_length
+        return ctx
 
     @classmethod
     def get_table_rpc_request(cls, query: TableQuery) -> TableRequest:
@@ -461,8 +465,9 @@ class RPCBase:
         final_data: SnubaData,
         attribute: Any,
         resolved_column: ResolvedColumn,
-        **_context_kwargs: Any,
+        **context_kwargs: Any,
     ) -> None:
+        max_string_length: int | None = context_kwargs.get("max_string_length")
         for index, result in enumerate(column_value.results):
             result_value: Any
             if result.is_null:
@@ -470,6 +475,8 @@ class RPCBase:
             else:
                 result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
+            if max_string_length is not None and isinstance(result_value, str):
+                result_value = result_value[:max_string_length]
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     @classmethod
