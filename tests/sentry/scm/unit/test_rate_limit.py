@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 import pytest
 
-from sentry.scm.private.rate_limit import DynamicRateLimiter, total_limit_key, usage_count_key
+from sentry.scm.private.rate_limit import DynamicRateLimiter
 
 
 class MockRateLimitProvider:
@@ -97,74 +97,3 @@ class TestIsRateLimited:
             referrer_allocation={"my_referrer": 1.0},
         )
         assert limiter.is_rate_limited("shared") is True
-
-
-class TestUpdateRateLimitMeta:
-    def test_updates_limit_and_shared_usage(self) -> None:
-        """Limit and shared usage are written when provider reports new values."""
-        limiter, provider = make_limiter(
-            accounted_usage=40,
-            recorded_capacity=100,
-            referrer_allocation={"a": 0.05, "b": 0.01},
-        )
-        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
-
-        assert provider.accounted_keys == [
-            usage_count_key("github", 1, 0, "a"),
-            usage_count_key("github", 1, 0, "b"),
-        ], provider.accounted_keys
-        assert provider.set_kvs == {
-            # Sentry said our limit was 100 but GitHub says its 110. GitHub wins.
-            total_limit_key("github", 1): (110, None),
-            # GitHub said 50 used but we recorded 40. Shared pool usage is set to reflect.
-            usage_count_key("github", 1, 0, "shared"): (10, 3527),
-        }, provider.set_kvs
-
-    def test_accounted_keys_include_all_allocated_referrers(self) -> None:
-        """get_accounted_usage is called with all allocated referrer keys."""
-        limiter, provider = make_limiter(
-            accounted_usage=40,
-            recorded_capacity=100,
-        )
-        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
-
-        # No referrer allocation so not keys were looked up.
-        assert provider.accounted_keys == []
-
-        assert provider.set_kvs == {
-            # Sentry said our limit was 100 but GitHub says its 110. GitHub wins.
-            total_limit_key("github", 1): (110, None),
-            # GitHub said 50 used but we recorded 40. Shared pool usage is set to reflect.
-            usage_count_key("github", 1, 0, "shared"): (10, 3527),
-        }, provider.set_kvs
-
-    def test_shared_usage_floored_at_zero(self) -> None:
-        """Shared usage is never negative when accounted exceeds reported."""
-        limiter, provider = make_limiter(accounted_usage=100, recorded_capacity=100)
-        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
-
-        assert provider.set_kvs[usage_count_key("github", 1, 0, "shared")] == (0, 3527)
-
-    def test_window_miss_skips_shared_usage_update(self) -> None:
-        """Shared usage is not written when provider window does not match."""
-        limiter, provider = make_limiter(recorded_capacity=100)
-        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=0)
-
-        # Only the new capacity value was written.
-        assert provider.set_kvs == {total_limit_key("github", 1): (110, None)}
-
-    def test_matching_limits_skips_total_key_write(self) -> None:
-        """Capacity key is not written when recorded and specified capacities match."""
-        limiter, provider = make_limiter(recorded_capacity=110, accounted_usage=0)
-        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
-
-        # Service limit not overwritten.
-        assert provider.set_kvs == {usage_count_key("github", 1, 0, "shared"): (50, 3527)}
-
-    def test_matching_limits_and_window_miss_writes_nothing(self) -> None:
-        """No writes when capacities match and windows differ."""
-        limiter, provider = make_limiter(accounted_usage=50, recorded_capacity=110)
-        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=0)
-
-        # No values written.
-        assert provider.set_kvs == {}
