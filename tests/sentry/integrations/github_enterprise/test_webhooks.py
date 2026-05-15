@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 
 from fixtures.github_enterprise import (
@@ -1047,7 +1047,9 @@ class GitHubEnterpriseParserGitHubComTest(TestCase):
             data='{"installation": {"id": 42}}',
             content_type="application/json",
         )
-        parser = GithubEnterpriseRequestParser(request=request, response_handler=lambda r: None)
+        parser = GithubEnterpriseRequestParser(
+            request=request, response_handler=lambda r: HttpResponse()
+        )
         # Simulate URL resolution having set view_class on the parser
         parser.view_class = GitHubEnterpriseGitHubComWebhookEndpoint
         external_id = parser._get_external_id(event={"installation": {"id": 42}})
@@ -1061,7 +1063,9 @@ class GitHubEnterpriseParserGitHubComTest(TestCase):
             content_type="application/json",
             HTTP_X_GITHUB_ENTERPRISE_HOST="github.example.org",
         )
-        parser = GithubEnterpriseRequestParser(request=request, response_handler=lambda r: None)
+        parser = GithubEnterpriseRequestParser(
+            request=request, response_handler=lambda r: HttpResponse()
+        )
         parser.view_class = GitHubEnterpriseWebhookEndpoint
         external_id = parser._get_external_id(event={"installation": {"id": 42}})
         assert external_id == "github.example.org:42"

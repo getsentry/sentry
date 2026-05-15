@@ -26,6 +26,7 @@ class GithubEnterpriseRequestParser(GithubRequestParser):
     )
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
+        host: str | None
         if self.view_class is GitHubEnterpriseGitHubComWebhookEndpoint:
             host = "github.com"
         else:

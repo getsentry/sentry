@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import orjson
 import pytest
 import responses
+from django.http import HttpResponse
 from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
@@ -1269,6 +1270,7 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         # Form re-renders with an error rather than calling pipeline.next_step()
         assert pipeline.next_step.call_count == 0
         # The response body contains the form error message
+        assert isinstance(response, HttpResponse)
         assert b"github.com" in response.content
         assert response.status_code == 200  # form re-rendered
 
