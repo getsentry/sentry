@@ -32,9 +32,10 @@ import {
 
 export function ToolUseBlock() {
   const {block} = useBlockContext();
+
   return (
     <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
-      {hasValidContent(block.message.thinking_content) && (
+      {hasValidContent(block.message.thinking_content) && !block.message.tool_calls && (
         <Disclosure size="sm">
           <Disclosure.Title>
             <Text size="sm" variant="muted" monospace>
@@ -46,7 +47,7 @@ export function ToolUseBlock() {
           </Disclosure.Content>
         </Disclosure>
       )}
-      <ToolCallList />
+      {block.message.tool_calls ? <ToolCallList /> : null}
     </Stack>
   );
 }
