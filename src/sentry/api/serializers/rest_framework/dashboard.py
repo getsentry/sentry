@@ -1264,11 +1264,8 @@ def schedule_update_project_configs(dashboard: Dashboard):
     org = dashboard.organization
 
     on_demand_metrics = features.has("organizations:on-demand-metrics-extraction", org)
-    dashboard_on_demand_metrics = features.has(
-        "organizations:on-demand-metrics-extraction-experimental", org
-    )
 
-    if not on_demand_metrics or not dashboard_on_demand_metrics:
+    if not on_demand_metrics:
         return
 
     schedule_invalidate_project_config(

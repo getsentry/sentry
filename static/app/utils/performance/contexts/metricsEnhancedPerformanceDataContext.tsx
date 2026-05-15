@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useState} from 'react';
 
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
 import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
@@ -123,7 +122,6 @@ export function useExtractionStatus(props: {
   queryKey: MetricsResultsMetaMapKey;
 }): ExtractionStatus {
   const resultsMeta = useMetricsResultsMeta();
-  const organization = useOrganization();
   const _onDemandControl = useOnDemandControl();
 
   if (!_onDemandControl) {
@@ -134,11 +132,6 @@ export function useExtractionStatus(props: {
 
   const isMetricsExtractedData =
     resultsMeta?.metricsExtractedDataMap.get(props.queryKey.id ?? '') || undefined;
-
-  if (!organization.features.includes('on-demand-metrics-extraction-experimental')) {
-    // Separate if for easier flag deletion
-    return null;
-  }
 
   if (!forceOnDemand || isMetricsExtractedData === undefined) {
     return null;
