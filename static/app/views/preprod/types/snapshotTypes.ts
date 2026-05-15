@@ -1,5 +1,9 @@
 /* eslint-disable typescript-sort-keys/interface */
-import type {BuildDetailsVcsInfo} from './buildDetailsTypes';
+import type {
+  BuildDetailsVcsInfo,
+  SnapshotApprovalStatus,
+  SnapshotComparisonState,
+} from './buildDetailsTypes';
 
 export interface SnapshotImage {
   display_name: string | null;
@@ -23,7 +27,7 @@ interface SnapshotComparisonRunInfo {
   state?: ComparisonState;
 }
 
-interface SnapshotApprover {
+export interface SnapshotApprover {
   source: 'sentry' | 'github';
   approved_at?: string | null;
   avatar_url?: string | null;
@@ -53,6 +57,11 @@ export interface SnapshotDetailsApiResponse {
   comparison_run_info?: SnapshotComparisonRunInfo | null;
 
   approval_info?: SnapshotApprovalInfo | null;
+
+  comparison_state?: SnapshotComparisonState | null;
+  approval_status?: SnapshotApprovalStatus | null;
+  comparison_error_message?: string | null;
+  approvers?: SnapshotApprover[];
 
   diff_threshold?: number | null;
 
