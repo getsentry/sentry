@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useLayoutEffect,
   useEffect,
   useReducer,
   type Dispatch,
@@ -124,7 +125,7 @@ function SeerExplorerChatStatePolling({
 }) {
   const {pollingState} = useSeerExplorerPolling({runId});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (runId === null) {
       return;
     }
