@@ -1179,7 +1179,6 @@ class GitHubApiClient(GitHubBaseClient):
             rate_limit_provider=RedisRateLimitProvider(),
             rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
             referrer_allocation=REFERRER_ALLOCATION,
-            recorded_capacity=5_000,  # GitHub default. Overwritten by headers if different.
         )
 
     @contextlib.contextmanager

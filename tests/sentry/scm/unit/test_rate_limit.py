@@ -27,7 +27,6 @@ def make_limiter(
     get_and_set_return: tuple[int | None, int] = (None, 0),
     accounted_usage: int = 0,
     referrer_allocation: dict | None = None,
-    recorded_capacity: int | None = None,
     get_time_in_seconds: Callable[[], int] = lambda: 73,
 ) -> tuple[DynamicRateLimiter, MockRateLimitProvider]:
     provider = MockRateLimitProvider(get_and_set_return, accounted_usage)
@@ -38,7 +37,6 @@ def make_limiter(
         rate_limit_provider=provider,
         rate_limit_window_seconds=3600,
         referrer_allocation=referrer_allocation or {},
-        recorded_capacity=recorded_capacity,
     )
     return limiter, provider
 
@@ -102,18 +100,20 @@ class TestIsRateLimited:
 class TestSetTotalCapacity:
     def test_writes_capacity_when_no_prior_value(self) -> None:
         """Capacity is written when recorded_capacity is None."""
-        limiter, provider = make_limiter(recorded_capacity=None)
+        limiter, provider = make_limiter()
         limiter.set_total_capacity(5000)
         assert provider.set_kvs == {"limit:scm:github:1": (5000, None)}
 
     def test_writes_capacity_when_value_differs(self) -> None:
         """Capacity is written when it differs from recorded_capacity."""
-        limiter, provider = make_limiter(recorded_capacity=1000)
+        limiter, provider = make_limiter()
+        limiter.recorded_capacity = 1000
         limiter.set_total_capacity(5000)
         assert provider.set_kvs == {"limit:scm:github:1": (5000, None)}
 
     def test_skips_write_when_capacity_matches(self) -> None:
         """No write occurs when capacity matches recorded_capacity."""
-        limiter, provider = make_limiter(recorded_capacity=5000)
+        limiter, provider = make_limiter()
+        limiter.recorded_capacity = 5000
         limiter.set_total_capacity(5000)
         assert provider.set_kvs == {}

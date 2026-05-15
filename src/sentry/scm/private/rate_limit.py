@@ -68,7 +68,6 @@ class DynamicRateLimiter:
         rate_limit_provider: RateLimitProvider,
         rate_limit_window_seconds: int,
         referrer_allocation: dict[str, float],
-        recorded_capacity: int | None = None,
     ) -> None:
         self.get_time_in_seconds = get_time_in_seconds
         self.integration_id = integration_id
@@ -76,7 +75,7 @@ class DynamicRateLimiter:
         self.rate_limit_provider = rate_limit_provider
         self.rate_limit_window_seconds = rate_limit_window_seconds
         self.referrer_allocation = referrer_allocation
-        self.recorded_capacity = recorded_capacity
+        self.recorded_capacity = None
 
     def is_rate_limited(self, referrer: str) -> bool:
         """
@@ -109,16 +108,16 @@ class DynamicRateLimiter:
             expires_in,
         )
 
-        # If no limit could be found we fail open. We'll populate the limit on the other-side of the
-        # HTTP request.
-        if service_capacity is None:
-            return False
-
         # We can cache this value to skip the service_capacity set operation. It saves us from writing
         # the same capacity value over and over again. The cached capacity is preserved across multiple
         # callers meaning this caching, though local to the dynamic rate limiter, enjoys global
         # population semantics.
         self.recorded_capacity = service_capacity
+
+        # If no limit could be found we fail open. We'll populate the limit on the other-side of the
+        # HTTP request.
+        if service_capacity is None:
+            return False
 
         # If the referrer exists in the allocation pool then we compute its capacity otherwise we
         # need to compute the total unallocated "shared" capacity.
