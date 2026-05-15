@@ -299,7 +299,7 @@ describe('MonitorForm', () => {
     );
   });
 
-  it.isKnownFlake('filters non-ASCII characters from crontab schedule', () => {
+  it.isKnownFlake('filters non-ASCII characters from crontab schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -317,6 +317,9 @@ describe('MonitorForm', () => {
     fireEvent.change(schedule, {target: {value: '5 * * * *😀中文'}});
 
     // Non-ASCII characters should be filtered out, leaving only valid ASCII
-    expect(schedule).toHaveValue('5 * * * *');
+    // Wait for any validation/tooltip updates to complete
+    await waitFor(() => {
+      expect(schedule).toHaveValue('5 * * * *');
+    });
   });
 });
