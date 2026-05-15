@@ -60,7 +60,7 @@ Widget-type-specific rules:
 
 Limits:
 - For non-table, non-big_number chart widgets that have group-by columns, limit must be explicitly \
-set. The maximum is 10 for most chart types, 25 for bar charts, and 20 for table widgets.
+set. The maximum is 10 for most chart types, 25 for categorical bar charts, and 20 for table widgets.
 
 User Query:
 {query}
