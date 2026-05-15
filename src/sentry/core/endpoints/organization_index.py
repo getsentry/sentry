@@ -399,7 +399,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         metrics.incr(
             "api.organization_index.post",
-            tags={"silo": SiloMode.get_current_mode().name},
+            tags={"silo": SiloMode.get_current_mode().name.lower()},
             sample_rate=1.0,
         )
 
