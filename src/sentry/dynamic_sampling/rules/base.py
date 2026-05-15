@@ -23,9 +23,6 @@ ALWAYS_INCLUDED_RULE_TYPES = {
     RuleType.CUSTOM_RULE,
 }
 
-ALWAYS_ALLOWED_RULE_TYPES = {
-    RuleType.MINIMUM_SAMPLE_RATE_RULE,
-}
 # This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
@@ -100,14 +97,11 @@ def _get_rules_of_enabled_biases(
 
     for rule_type, bias in combined_biases.items():
         # Biases in ALWAYS_INCLUDED_RULE_TYPES are always included, regardless of sample rate or user activation.
-        # Biases in ALWAYS_ALLOWED_RULE_TYPES are included if users activated them, regardless of sample rate.
         # All other biases won't be enabled when base sample rate is 100%. This is because dynamic sampling
         # doesn't make sense when sample rate is 100%. While technically dynamic sampling is still enabled,
         # this detail is not important for our customers.
-        if (
-            rule_type in ALWAYS_INCLUDED_RULE_TYPES
-            or (rule_type.value in enabled_biases and 0.0 < base_sample_rate < 1.0)
-            or (rule_type.value in enabled_biases and rule_type in ALWAYS_ALLOWED_RULE_TYPES)
+        if rule_type in ALWAYS_INCLUDED_RULE_TYPES or (
+            rule_type.value in enabled_biases and 0.0 < base_sample_rate < 1.0
         ):
             try:
                 generated_rules = bias.generate_rules(project, base_sample_rate)

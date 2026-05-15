@@ -1798,7 +1798,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
-                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self) -> None:
@@ -1823,7 +1822,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
-                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_dynamic_sampling_bias_activation(self) -> None:
@@ -1944,7 +1942,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
             {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
-            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
         ]
         with Feature(
             {
@@ -2035,7 +2032,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 
                 # Enable a specific bias
                 updated_biases = [
-                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                    {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
                 ]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=updated_biases
@@ -2049,7 +2046,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entry is not None
-                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+                assert audit_entry.data["name"] == RuleType.RECALIBRATION_RULE.value
 
     def test_dynamic_sampling_bias_disable_audit_log(self) -> None:
         """Test that disabling a dynamic sampling bias creates the correct audit log entry."""
@@ -2094,7 +2091,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 expanded_biases = [
                     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                     {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
-                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                    {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
                 ]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
@@ -2108,7 +2105,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entry is not None
-                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+                assert audit_entry.data["name"] == RuleType.RECALIBRATION_RULE.value
 
     def test_dynamic_sampling_bias_add_new_inactive_bias_no_audit_log(self) -> None:
         """Test that adding a new bias as inactive does not create an audit log entry."""
@@ -2127,7 +2124,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 expanded_biases = [
                     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                     {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
-                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
+                    {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
                 ]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases

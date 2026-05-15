@@ -14,7 +14,6 @@ from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import (
     IgnoreHealthChecksTraceBias,
     IgnoreHealthChecksTransactionBias,
 )
-from sentry.dynamic_sampling.rules.biases.minimum_sample_rate_bias import MinimumSampleRateBias
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.utils import RuleType
 from sentry.models.organization import Organization
@@ -43,13 +42,7 @@ def get_relay_biases(organization: Organization) -> dict[RuleType, Bias]:
     default_combinator.add(
         RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE, BoostLowVolumeTransactionsBias()
     )
-    default_combinator.add_if(
-        RuleType.MINIMUM_SAMPLE_RATE_RULE,
-        MinimumSampleRateBias(),
-        lambda: features.has(
-            "organizations:dynamic-sampling-minimum-sample-rate", organization, actor=None
-        ),
-    )
+
     default_combinator.add(RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE, BoostLowVolumeProjectsBias())
 
     return default_combinator.biases
