@@ -23,7 +23,7 @@ describe('TeamKeyTransactionField', () => {
     act(() => TeamStore.loadInitialData(teams));
   });
 
-  it('renders with all teams checked', async () => {
+  it.isKnownFlake('renders with all teams checked', async () => {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,

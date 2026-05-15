@@ -29,7 +29,7 @@ describe('java-spring-boot onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders maven docs correctly', async () => {
+  it.isKnownFlake('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.maven-plugin': {

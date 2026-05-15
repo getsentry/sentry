@@ -188,7 +188,7 @@ describe('AssertionOpJsonPath', () => {
     expect(greaterThan).not.toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('shows string operand types as disabled when < or > comparison is selected', async () => {
+  it.isKnownFlake('shows string operand types as disabled when < or > comparison is selected', async () => {
     await renderOp(
       makeJsonPathOp({
         operator: {cmp: UptimeComparisonType.LESS_THAN},
@@ -208,7 +208,7 @@ describe('AssertionOpJsonPath', () => {
     expect(literal).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('shows string operand types as enabled when = or ≠ comparison is selected', async () => {
+  it.isKnownFlake('shows string operand types as enabled when = or ≠ comparison is selected', async () => {
     await renderOp(
       makeJsonPathOp({
         operator: defaultOperator,

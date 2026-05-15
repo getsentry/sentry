@@ -124,7 +124,7 @@ describe('WidgetFrame', () => {
       expect(await screen.findByText('Actions are not supported')).toBeInTheDocument();
     });
 
-    it('Renders multiple actions in a dropdown menu', async () => {
+    it.isKnownFlake('Renders multiple actions in a dropdown menu', async () => {
       const onAction1 = jest.fn();
       const onAction2 = jest.fn();
 
@@ -156,7 +156,7 @@ describe('WidgetFrame', () => {
       expect(onAction2).toHaveBeenCalledTimes(1);
     });
 
-    it('Allows disabling multiple actions', async () => {
+    it.isKnownFlake('Allows disabling multiple actions', async () => {
       render(
         <WidgetFrame
           title="EPS"

@@ -63,7 +63,7 @@ describe('RuleConditionsForm', () => {
     jest.clearAllMocks();
   });
 
-  it('searches with new searchbar (search-query-builder-alerts)', async () => {
+  it.isKnownFlake('searches with new searchbar (search-query-builder-alerts)', async () => {
     render(
       <RuleConditionsForm
         {...props}

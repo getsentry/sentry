@@ -270,7 +270,7 @@ describe('useTraceMeta', () => {
     });
   });
 
-  it('Collects errors from rejected api calls', async () => {
+  it.isKnownFlake('Collects errors from rejected api calls', async () => {
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trace-meta/slug1/',

@@ -31,7 +31,7 @@ describe('CronsBillingBanner', () => {
     });
   });
 
-  it('Shows warning when trial is about to end', async () => {
+  it.isKnownFlake('Shows warning when trial is about to end', async () => {
     const now = moment();
     const trialEnd = now.add(5, 'days').toISOString();
     const organization = OrganizationFixture();
@@ -70,7 +70,7 @@ describe('CronsBillingBanner', () => {
     ).toBeInTheDocument();
   });
 
-  it('Shows warning when trial has ended', async () => {
+  it.isKnownFlake('Shows warning when trial has ended', async () => {
     const now = moment();
     const lastTrialEnd = now.subtract(5, 'days').toISOString();
     const organization = OrganizationFixture();

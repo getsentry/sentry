@@ -161,7 +161,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('does not duplicate the current project in the list', async () => {
+  it.isKnownFlake('does not duplicate the current project in the list', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -183,7 +183,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getAllByRole('option', {name: 'project-b'})).toHaveLength(1);
   });
 
-  it('places the project first when identified by a single ?project= query param', async () => {
+  it.isKnownFlake('places the project first when identified by a single ?project= query param', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />

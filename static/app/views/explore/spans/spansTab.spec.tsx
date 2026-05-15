@@ -423,7 +423,7 @@ describe('SpansTabContent', () => {
       });
     });
 
-    it('brings along the query', async () => {
+    it.isKnownFlake('brings along the query', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,

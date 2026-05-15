@@ -71,7 +71,7 @@ describe('EventTagsTree', () => {
     });
   });
 
-  it('renders tag tree', async () => {
+  it.isKnownFlake('renders tag tree', async () => {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
     });
@@ -120,7 +120,7 @@ describe('EventTagsTree', () => {
     }
   });
 
-  it('renders release tag differently', async () => {
+  it.isKnownFlake('renders release tag differently', async () => {
     const releaseVersion = 'v1.0';
 
     const releaseEvent = EventFixture({

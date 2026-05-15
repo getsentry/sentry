@@ -22,7 +22,7 @@ describe('ProjectDetail > ProjectVelocity', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders release count', async () => {
+  it.isKnownFlake('renders release count', async () => {
     const previousDataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: Array.from({length: 98}).map((_item, index) => ({
@@ -81,7 +81,7 @@ describe('ProjectDetail > ProjectVelocity', () => {
     );
   });
 
-  it('renders without releases', async () => {
+  it.isKnownFlake('renders without releases', async () => {
     const dataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],

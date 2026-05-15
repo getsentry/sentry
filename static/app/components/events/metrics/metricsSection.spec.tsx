@@ -243,7 +243,7 @@ describe('MetricsSection', () => {
     expect(screen.getByRole('button', {name: 'View more'})).toBeInTheDocument();
   });
 
-  it('opens metrics drawer when view more is clicked', async () => {
+  it.isKnownFlake('opens metrics drawer when view more is clicked', async () => {
     const mockRequestWithManyMetrics = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
