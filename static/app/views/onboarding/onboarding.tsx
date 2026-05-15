@@ -19,7 +19,6 @@ import {categoryList} from 'sentry/data/platformPickerCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -84,22 +83,13 @@ function ScmConnectAdapter({onComplete, genBackButton}: StepProps) {
     clearDerivedState,
   } = useOnboardingContext();
 
-  const handleRepositoryChange = useCallback(
-    (repo: Repository | undefined) => {
-      // Changing or clearing the repo invalidates downstream state (platform,
-      // features, created project) which are all derived from the repo.
-      clearDerivedState();
-      setSelectedRepository(repo);
-    },
-    [clearDerivedState, setSelectedRepository]
-  );
-
   return (
     <ScmConnect
       selectedIntegration={selectedIntegration}
       selectedRepository={selectedRepository}
       onIntegrationChange={setSelectedIntegration}
-      onRepositoryChange={handleRepositoryChange}
+      onRepositoryChange={setSelectedRepository}
+      onClearDerivedState={clearDerivedState}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />

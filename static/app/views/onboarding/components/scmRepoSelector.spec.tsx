@@ -4,6 +4,8 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {Integration, Repository} from 'sentry/types/integrations';
+
 import {ScmRepoSelector} from './scmRepoSelector';
 
 // Mock the virtualizer so all items render in JSDOM (no layout engine).
@@ -20,6 +22,27 @@ jest.mock('@tanstack/react-virtual', () => ({
     measureElement: jest.fn(),
   })),
 }));
+
+interface DefaultPropsOverrides {
+  integration: Integration;
+  onClearDerivedState?: jest.Mock;
+  onRepositoryChange?: jest.Mock;
+  selectedRepository?: Repository;
+}
+
+function defaultProps({
+  integration,
+  onClearDerivedState = jest.fn(),
+  onRepositoryChange = jest.fn(),
+  selectedRepository,
+}: DefaultPropsOverrides) {
+  return {
+    integration,
+    selectedRepository,
+    onRepositoryChange,
+    onClearDerivedState,
+  };
+}
 
 describe('ScmRepoSelector', () => {
   const organization = OrganizationFixture();
@@ -49,14 +72,9 @@ describe('ScmRepoSelector', () => {
       body: {repos: []},
     });
 
-    render(
-      <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={undefined}
-        onRepositoryChange={jest.fn()}
-      />,
-      {organization}
-    );
+    render(<ScmRepoSelector {...defaultProps({integration: mockIntegration})} />, {
+      organization,
+    });
 
     expect(screen.getByText('Search repositories')).toBeInTheDocument();
   });
@@ -67,14 +85,9 @@ describe('ScmRepoSelector', () => {
       body: {repos: []},
     });
 
-    render(
-      <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={undefined}
-        onRepositoryChange={jest.fn()}
-      />,
-      {organization}
-    );
+    render(<ScmRepoSelector {...defaultProps({integration: mockIntegration})} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('textbox'));
 
@@ -92,14 +105,9 @@ describe('ScmRepoSelector', () => {
       body: {detail: 'Internal Error'},
     });
 
-    render(
-      <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={undefined}
-        onRepositoryChange={jest.fn()}
-      />,
-      {organization}
-    );
+    render(<ScmRepoSelector {...defaultProps({integration: mockIntegration})} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('textbox'));
 
@@ -119,14 +127,9 @@ describe('ScmRepoSelector', () => {
       },
     });
 
-    render(
-      <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={undefined}
-        onRepositoryChange={jest.fn()}
-      />,
-      {organization}
-    );
+    render(<ScmRepoSelector {...defaultProps({integration: mockIntegration})} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('textbox'));
 
@@ -149,9 +152,10 @@ describe('ScmRepoSelector', () => {
 
     render(
       <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={selectedRepo}
-        onRepositoryChange={jest.fn()}
+        {...defaultProps({
+          integration: mockIntegration,
+          selectedRepository: selectedRepo,
+        })}
       />,
       {organization}
     );
@@ -187,9 +191,7 @@ describe('ScmRepoSelector', () => {
     const onRepositoryChange = jest.fn();
     render(
       <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={undefined}
-        onRepositoryChange={onRepositoryChange}
+        {...defaultProps({integration: mockIntegration, onRepositoryChange})}
       />,
       {organization}
     );
@@ -215,9 +217,11 @@ describe('ScmRepoSelector', () => {
     const onRepositoryChange = jest.fn();
     render(
       <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={selectedRepo}
-        onRepositoryChange={onRepositoryChange}
+        {...defaultProps({
+          integration: mockIntegration,
+          selectedRepository: selectedRepo,
+          onRepositoryChange,
+        })}
       />,
       {organization}
     );
@@ -247,9 +251,10 @@ describe('ScmRepoSelector', () => {
 
     render(
       <ScmRepoSelector
-        integration={mockIntegration}
-        selectedRepository={selectedRepo}
-        onRepositoryChange={jest.fn()}
+        {...defaultProps({
+          integration: mockIntegration,
+          selectedRepository: selectedRepo,
+        })}
       />,
       {organization}
     );
@@ -265,5 +270,50 @@ describe('ScmRepoSelector', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'getsentry/sentry'})
     ).not.toBeInTheDocument();
+  });
+
+  it('fires onClearDerivedState exactly once per user-driven repo change', async () => {
+    // The underlying selection hook calls onRepositoryChange multiple times for
+    // a single user click (optimistic + resolved/created paths). The derived-
+    // state callback must only fire once per click so it isn't redundantly
+    // wiping flow state on every internal update.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
+      body: {
+        repos: [
+          {
+            externalId: '1',
+            identifier: 'getsentry/sentry',
+            name: 'sentry',
+            isInstalled: false,
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [
+        RepositoryFixture({name: 'getsentry/sentry', externalSlug: 'getsentry/sentry'}),
+      ],
+    });
+
+    const onClearDerivedState = jest.fn();
+    const onRepositoryChange = jest.fn();
+    render(
+      <ScmRepoSelector
+        {...defaultProps({
+          integration: mockIntegration,
+          onClearDerivedState,
+          onRepositoryChange,
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
+
+    await waitFor(() => expect(onRepositoryChange).toHaveBeenCalled());
+    expect(onClearDerivedState).toHaveBeenCalledTimes(1);
   });
 });

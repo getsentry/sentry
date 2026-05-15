@@ -14,14 +14,19 @@ import {useScmRepoSelection} from './useScmRepoSelection';
 
 interface ScmRepoSelectorProps {
   integration: Integration;
-  // Callers are responsible for clearing any state derived from the repo
-  // (platform, features, created project) when the repo changes.
+  // Fired once per user-driven change (select or clear) so callers can
+  // invalidate state derived from the repo (platform, features, created
+  // project). Distinct from onRepositoryChange because the underlying repo
+  // selection hook can fire that callback multiple times for one user action
+  // (optimistic + resolved + error paths).
+  onClearDerivedState: () => void;
   onRepositoryChange: (repo: Repository | undefined) => void;
   selectedRepository: Repository | undefined;
 }
 
 export function ScmRepoSelector({
   integration,
+  onClearDerivedState,
   onRepositoryChange,
   selectedRepository,
 }: ScmRepoSelectorProps) {
@@ -55,6 +60,8 @@ export function ScmRepoSelector({
   }, [dropdownItems, selectedRepository]);
 
   function handleChange(option: {value: string} | null) {
+    onClearDerivedState();
+
     if (option === null) {
       handleRemove();
     } else {
