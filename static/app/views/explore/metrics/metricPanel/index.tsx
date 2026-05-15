@@ -153,7 +153,7 @@ export function MetricPanel({
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled:
-      !isHeatmap &&
+      !(hasHeatMap && isHeatmap) &&
       (!isMetricOptionsEmpty ||
         (isVisualizeEquation(visualize) && Boolean(visualize.expression.text))),
   });
