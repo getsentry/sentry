@@ -14,7 +14,6 @@ const VISIBLE_FIELDS: Array<keyof SnapshotDetailsApiResponse> = [
   'app_id',
   'base_artifact_id',
   'comparison_state',
-  'comparison_type',
   'diff_threshold',
   'head_artifact_id',
   'project_id',
