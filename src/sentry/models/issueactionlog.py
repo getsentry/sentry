@@ -49,6 +49,9 @@ class IssueActionLog(Model):
     # Backfill code can pass an explicit value to place entries chronologically.
     date_added = models.DateTimeField(db_default=Now())
 
+    # When a group is merged into another, this records the original group ID.
+    original_group_id = BoundedBigIntegerField(null=True)
+
     # Optional idempotency key for deduplicating events from external sources
     # (e.g., a webhook delivery ID, a PR merge event ID). When set, the partial
     # unique index on (group, idempotency_key) prevents the same external event
