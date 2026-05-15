@@ -34,7 +34,7 @@ export function AssistantBlock() {
     <Fragment>
       {hasValidContent(content) && (
         <Container padding="xl" minWidth={0} overflow="hidden">
-          <SeerMarkdown raw={content} variant="streaming" />
+          <SeerMarkdown raw={content} />
         </Container>
       )}
       <BlockActionBar />
