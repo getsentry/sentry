@@ -4,7 +4,6 @@ import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
-from urllib.parse import urljoin
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -382,13 +381,10 @@ class ControlSiloOrganizationMappingSerializer(Serializer):
             # The avatar file is served by the cell that owns the org, so the
             # URL must point at that cell's locality rather than the local
             # control silo.
-            locality_url = generate_locality_url(get_locality_name_for_cell(obj.cell_name))
             avatar: SerializedAvatarFields = {
                 "avatarType": avatar_type,
                 "avatarUuid": avatar_replica.avatar_ident if avatar_type == "upload" else None,
-                "avatarUrl": urljoin(
-                    locality_url, f"/{OrganizationAvatar.url_path}/{avatar_replica.avatar_ident}/"
-                ),
+                "avatarUrl": avatar_replica.absolute_url(),
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
