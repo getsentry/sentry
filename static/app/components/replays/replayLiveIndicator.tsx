@@ -9,6 +9,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {usePollReplayRecord} from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -122,31 +124,48 @@ export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
 export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const organization = useOrganization();
   const {slug: orgSlug} = organization;
-  const replayId = replay?.id;
+  const replayId = replay?.id ?? ''; // empty is ok because `enabled` will be false
 
   const queryClient = useQueryClient();
-  const projectSlug = useReplayProjectSlug({replayRecord: replay});
+  const projectSlug = useReplayProjectSlug({replayRecord: replay})!;
   const {startSummaryRequest} = useReplaySummaryContext();
   const startSummaryRequestRef = useRef(startSummaryRequest);
   const isReplayExpired = Date.now() > getReplayExpiresAtMs(replay?.started_at ?? null);
   const polledReplayRecord = usePollReplayRecord({
     enabled: !isReplayExpired && Boolean(replayId),
-    replayId: replayId ?? '', // empty is ok because `enabled` will be false above
+    replayId,
     orgSlug,
   });
   startSummaryRequestRef.current = startSummaryRequest;
 
   const doRefresh = useCallback(async () => {
     trackAnalytics('replay.details-refresh-clicked', {organization});
-    await queryClient.refetchQueries({
-      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
-      exact: true,
-      type: 'all',
-    });
+
+    const replayUrl = getApiUrl(
+      '/organizations/$organizationIdOrSlug/replays/$replayId/',
+      {
+        path: {organizationIdOrSlug: orgSlug, replayId},
+      }
+    );
     await queryClient.invalidateQueries({
-      queryKey: [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-      ],
+      predicate: query => {
+        const key = safeParseQueryKey(query.queryKey);
+        return key?.url === replayUrl && !key?.options?.query?.isPolling;
+      },
+    });
+
+    const segmentsUrl = getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          replayId,
+        },
+      }
+    );
+    await queryClient.invalidateQueries({
+      predicate: query => safeParseQueryKey(query.queryKey)?.url === segmentsUrl,
       type: 'all',
     });
     startSummaryRequestRef.current();
