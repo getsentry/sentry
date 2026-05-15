@@ -47,7 +47,7 @@ Grid layout (6-column grid):
 - Each row of widgets should have widths that sum to exactly 6.
 
 Queries:
-- All queries on a single widget must share the same aggregates,fields, columns, and orderby. Only \
+- All queries on a single widget must share the same aggregates, fields, columns, and orderby. Only \
 conditions and name may differ between queries on the same widget.
 - Never use these aggregate functions — they are denylisted: spm, apdex, http_error_count, \
 http_error_count_percent.
@@ -56,12 +56,12 @@ http_error_count_percent.
 
 Widget-type-specific rules:
 - For text widgets, widget_type must be null and queries must be empty.
-- description must not exceed 255 characters for non-text widgets.
+- Description must not exceed 255 characters for non-text widgets. For text widgets,
+description must not exceed 15,000 characters.
 
 Limits:
 - For non-table, non-big_number chart widgets that have group-by columns, limit must be explicitly \
 set. The maximum is 10 for most chart types, 25 for categorical bar charts, and 20 for table widgets.
-- For text widgets, character limit is 15,000 characters.
 
 User Query:
 {query}
