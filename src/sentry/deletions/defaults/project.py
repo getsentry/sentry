@@ -76,9 +76,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig
             ProjectCodeOwners,
             ReplayRecordingSegment,
-            RepositoryProjectPathConfig,
-            SeerProjectRepository,
-            ProjectRepository,
             ServiceHookProject,
             ServiceHook,
             UserReport,
@@ -92,6 +89,26 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             IncidentProject,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
+
+        # These models join through ProjectRepository rather than having a direct project FK.
+        # Order matters: RPPC and SPR must be deleted before ProjectRepository.
+        relations.append(
+            ModelRelation(
+                RepositoryProjectPathConfig,
+                {"project_repository__project_id": instance.id},
+                BulkModelDeletionTask,
+            )
+        )
+        relations.append(
+            ModelRelation(
+                SeerProjectRepository,
+                {"project_repository__project_id": instance.id},
+                BulkModelDeletionTask,
+            )
+        )
+        relations.append(
+            ModelRelation(ProjectRepository, {"project_id": instance.id}, BulkModelDeletionTask)
+        )
 
         for m2 in (
             # GroupOpenPeriod should be deleted before Activity
