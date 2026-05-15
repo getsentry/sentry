@@ -24,10 +24,6 @@ type Props = {
    * Is the note saving?
    */
   busy?: boolean;
-  /**
-   * Display an error message
-   */
-  error?: boolean;
   errorJSON?: CreateError | null;
   /**
    * Minimum height of the edit area

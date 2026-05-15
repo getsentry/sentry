@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -334,10 +334,10 @@ export function StreamlinedActivitySection({
 
   if (variant !== 'sidebar') {
     return (
-      <InlineActivityLayout>
+      <Grid gap="xl">
         {noteInput}
         {timeline}
-      </InlineActivityLayout>
+      </Grid>
     );
   }
 
@@ -350,7 +350,7 @@ export function StreamlinedActivitySection({
       }
       sectionKey={SectionKey.ACTIVITY}
     >
-      <SidebarActivityLayout>
+      <Grid gap="lg">
         {noteInput}
         <Timeline.Container data-test-id="activity-timeline">
           {filteredActivities.length < 5 ? (
@@ -380,7 +380,7 @@ export function StreamlinedActivitySection({
             </Fragment>
           )}
         </Timeline.Container>
-      </SidebarActivityLayout>
+      </Grid>
     </SidebarFoldSection>
   );
 }
@@ -417,16 +417,6 @@ const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
 
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
   font-size: ${p => (p.isDrawer ? p.theme.font.size.md : p.theme.font.size.sm)};
-`;
-
-const InlineActivityLayout = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const SidebarActivityLayout = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const ActivityInputFrame = styled('div')`

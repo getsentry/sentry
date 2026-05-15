@@ -51,7 +51,7 @@ describe('NoteInput', () => {
 
     it('handles errors', async () => {
       const errorJSON = {detail: {message: 'Note is bad', code: 401, extra: ''}};
-      render(<NoteInput error={!!errorJSON} errorJSON={errorJSON} />);
+      render(<NoteInput errorJSON={errorJSON} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{enter}');
       expect(screen.getByText('Note is bad')).toBeInTheDocument();
