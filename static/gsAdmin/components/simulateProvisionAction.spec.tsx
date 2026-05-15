@@ -13,7 +13,6 @@ import {triggerSimulateProvision} from 'admin/components/simulateProvisionAction
 import {PlanTier} from 'getsentry/types';
 
 describe('simulateProvisionAction', () => {
-  const onSuccess = jest.fn();
   const mockOrg = OrganizationFixture();
   const mockSub = SubscriptionFixture({organization: mockOrg});
   const mockBillingConfig = BillingConfigFixture(PlanTier.ALL);
@@ -95,14 +94,12 @@ describe('simulateProvisionAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    onSuccess.mockClear();
   });
 
   it('renders modal with form fields', async () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -124,7 +121,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -159,7 +155,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -183,7 +178,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -210,7 +204,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -239,7 +232,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -266,7 +258,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -293,7 +284,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -321,7 +311,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 
@@ -348,7 +337,6 @@ describe('simulateProvisionAction', () => {
     triggerSimulateProvision({
       subscription: mockSub,
       orgId: mockOrg.slug,
-      onSuccess,
       billingConfig: mockBillingConfig,
     });
 

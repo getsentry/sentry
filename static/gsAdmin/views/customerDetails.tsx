@@ -727,7 +727,6 @@ export function CustomerDetails() {
                 orgId,
                 subscription,
                 billingConfig,
-                onSuccess: reloadData,
               }),
           },
           {

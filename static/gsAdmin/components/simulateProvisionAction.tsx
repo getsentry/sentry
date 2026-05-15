@@ -13,6 +13,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {prettyDate} from 'admin/utils';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {isAmEnterprisePlan, isTrialPlan} from 'getsentry/utils/billing';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type SimulationResponse = {
   currentSubscription: {
@@ -86,18 +87,13 @@ const INITIAL_FORM_DATA: FormData = {
 
 type Options = {
   billingConfig: BillingConfig | null | undefined;
-  onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
 };
 
 type ModalProps = ModalRenderProps & Options;
 
-function formatCurrency(cents: number): string {
-  return `$${(cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-}
-
-function formatBool(value: boolean | null): string {
+function formatBool(value: boolean | null | undefined): string {
   if (value === null || value === undefined) {
     return 'N/A';
   }
@@ -152,30 +148,26 @@ function SimulateProvisionModal({
     setError(null);
     setResult(null);
 
-    const postData: Record<string, any> = {
-      plan: formData.plan,
-      contractStart: formData.contractStart || undefined,
-      contractEnd: formData.contractEnd || undefined,
-      dealTerms: formData.dealTerms || undefined,
-      comments: formData.comments || undefined,
-      billingType: formData.billingType,
-      reservedErrors: formData.reservedErrors
-        ? parseInt(formData.reservedErrors, 10)
-        : undefined,
-      reservedTransactions: formData.reservedTransactions
-        ? parseInt(formData.reservedTransactions, 10)
-        : undefined,
-      reservedAttachments: formData.reservedAttachments
-        ? parseInt(formData.reservedAttachments, 10)
-        : undefined,
-      customPrice: formData.acv ? parseInt(formData.acv, 10) * 100 : undefined,
-    };
-
-    Object.keys(postData).forEach(key => {
-      if (postData[key] === undefined) {
-        delete postData[key];
-      }
-    });
+    const postData = Object.fromEntries(
+      Object.entries({
+        plan: formData.plan,
+        contractPeriodStart: formData.contractStart || undefined,
+        contractPeriodEnd: formData.contractEnd || undefined,
+        dealTerms: formData.dealTerms || undefined,
+        comments: formData.comments || undefined,
+        type: formData.billingType,
+        reservedErrors: formData.reservedErrors
+          ? parseInt(formData.reservedErrors, 10)
+          : undefined,
+        reservedTransactions: formData.reservedTransactions
+          ? parseInt(formData.reservedTransactions, 10)
+          : undefined,
+        reservedAttachments: formData.reservedAttachments
+          ? parseInt(formData.reservedAttachments, 10)
+          : undefined,
+        customPrice: formData.acv ? parseInt(formData.acv, 10) * 100 : undefined,
+      }).filter(([_, v]) => v !== undefined)
+    );
 
     try {
       const response: SimulationResponse = await api.requestPromise(
@@ -410,7 +402,7 @@ function SimulationResults({result}: {result: SimulationResponse}) {
             </DetailItem>
             <DetailItem>
               <DetailLabel>Soft Cap</DetailLabel>
-              <DetailValue>{provisioning.softCap ? 'Enabled' : 'Disabled'}</DetailValue>
+              <DetailValue>{formatBool(provisioning.softCap)}</DetailValue>
             </DetailItem>
             <DetailItem>
               <DetailLabel>Refund Needed</DetailLabel>
@@ -557,7 +549,7 @@ const Label = styled('label')`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-const Input = styled('input')`
+const formControlStyles = css`
   padding: ${p => p.theme.space.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -571,18 +563,12 @@ const Input = styled('input')`
   }
 `;
 
-const Select = styled('select')`
-  padding: ${p => p.theme.space.sm};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.font.size.md};
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
+const Input = styled('input')`
+  ${formControlStyles}
+`;
 
-  &:focus {
-    outline: none;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
-  }
+const Select = styled('select')`
+  ${formControlStyles}
 `;
 
 const ButtonRow = styled('div')`
