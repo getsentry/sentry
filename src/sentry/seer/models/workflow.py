@@ -7,11 +7,11 @@ from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 
 
-class WorkflowStrategy(models.TextChoices):
+class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
 
 
-class WorkflowSchedule(models.TextChoices):
+class SeerWorkflowSchedule(models.TextChoices):
     DAILY = "daily"
 
 
@@ -20,10 +20,10 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
-    strategy = models.CharField(max_length=256, choices=WorkflowStrategy.choices)
+    strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
-        max_length=256, choices=WorkflowSchedule.choices, default=WorkflowSchedule.DAILY
+        max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
     )
     extras = models.JSONField(db_default={}, default=dict)
 
@@ -40,7 +40,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
 
     @classmethod
     def get_or_create_for_strategy(
-        cls, organization_id: int, strategy: WorkflowStrategy
+        cls, organization_id: int, strategy: SeerWorkflowStrategy
     ) -> SeerWorkflowConfig:
         config, _ = cls.objects.get_or_create(
             organization_id=organization_id,

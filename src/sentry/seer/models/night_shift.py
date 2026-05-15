@@ -5,10 +5,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-
-
-class NightShiftRunResultKind(models.TextChoices):
-    AGENTIC_TRIAGE = "agentic_triage"
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 
 
 @cell_silo_model
@@ -47,7 +44,7 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
     run = FlexibleForeignKey(
         "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="results"
     )
-    kind = models.CharField(max_length=256, choices=NightShiftRunResultKind.choices)
+    kind = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
     group = FlexibleForeignKey(
         "sentry.Group", on_delete=models.CASCADE, db_constraint=False, null=True
     )
