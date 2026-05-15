@@ -149,7 +149,7 @@ class OrganizationIndexEndpoint(Endpoint):
         return self._get_from_cell(request)
 
     def _get_from_cell(self, request: Request) -> Response:
-        metrics.incr("api.organization_index.get", tags={"silo": "cell"})
+        metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
 
         owner_only = request.GET.get("owner") in ("1", "true")
 
@@ -249,7 +249,7 @@ class OrganizationIndexEndpoint(Endpoint):
         )
 
     def _get_from_control(self, request: Request) -> Response:
-        metrics.incr("api.organization_index.get", tags={"silo": "control"})
+        metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
 
         owner_only = request.GET.get("owner") in ("1", "true")
 
@@ -397,7 +397,11 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429,
             )
 
-        metrics.incr("api.organization_index.post", tags={"silo": SiloMode.get_current_mode().name})
+        metrics.incr(
+            "api.organization_index.post",
+            tags={"silo": SiloMode.get_current_mode().name},
+            sample_rate=1.0,
+        )
 
         serializer = OrganizationPostSerializer(data=request.data, context={"request": request})
 
