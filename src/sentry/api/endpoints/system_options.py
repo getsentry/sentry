@@ -22,6 +22,7 @@ SYSTEM_OPTIONS_ALLOWLIST = frozenset(
         "system.admin-email"
     ]
 )
+MAIL_TLS_SSL_OPTIONS = ("mail.use-tls", "mail.use-ssl")
 
 
 def _is_secret(k: Key) -> bool:
@@ -42,6 +43,7 @@ class SystemOptionsEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         query = request.GET.get("query")
+        required_only = query == "is:required"
         if query == "is:required":
             option_list = options.filter(flag=options.FLAG_REQUIRED)
         elif query:
@@ -50,12 +52,19 @@ class SystemOptionsEndpoint(Endpoint):
             option_list = options.all()
 
         smtp_disabled = not is_smtp_enabled()
+        disable_mail_tls_ssl_pair = required_only and self.__should_disable_mail_tls_ssl_pair()
 
         results = {}
         for k in option_list:
             disabled, disabled_reason = False, None
 
-            if smtp_disabled and k.name[:5] == "mail.":
+            if k.name in MAIL_TLS_SSL_OPTIONS and disable_mail_tls_ssl_pair:
+                disabled_reason, disabled = "diskPriority", True
+            elif (
+                smtp_disabled
+                and k.name[:5] == "mail."
+                and not (required_only and k.name in MAIL_TLS_SSL_OPTIONS)
+            ):
                 disabled_reason, disabled = "smtpDisabled", True
             elif bool(
                 k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name)
@@ -77,6 +86,16 @@ class SystemOptionsEndpoint(Endpoint):
             }
 
         return Response(results)
+
+    def __should_disable_mail_tls_ssl_pair(self) -> bool:
+        for option_name in MAIL_TLS_SSL_OPTIONS:
+            if not options.is_set_on_disk(option_name):
+                continue
+
+            if settings.SENTRY_OPTIONS[option_name] != options.lookup_key(option_name).default():
+                return True
+
+        return False
 
     def has_permission(self, request: Request) -> bool:
         if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:

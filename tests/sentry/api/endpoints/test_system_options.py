@@ -42,6 +42,30 @@ class SystemOptionsTest(APITestCase):
         assert response.status_code == 200
         assert "system.url-prefix" in response.data
 
+    def test_required_disables_mail_tls_ssl_pair_when_one_disk_value_is_non_default(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+
+        with override_options({"mail.use-tls": True, "mail.use-ssl": False}):
+            response = self.client.get(self.url, {"query": "is:required"})
+
+        assert response.status_code == 200
+        assert response.data["mail.use-tls"]["field"]["disabled"] is True
+        assert response.data["mail.use-tls"]["field"]["disabledReason"] == "diskPriority"
+        assert response.data["mail.use-ssl"]["field"]["disabled"] is True
+        assert response.data["mail.use-ssl"]["field"]["disabledReason"] == "diskPriority"
+
+    def test_required_keeps_mail_tls_ssl_pair_enabled_when_disk_values_match_defaults(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+
+        with override_options({"mail.use-tls": False, "mail.use-ssl": False}):
+            response = self.client.get(self.url, {"query": "is:required"})
+
+        assert response.status_code == 200
+        assert response.data["mail.use-tls"]["field"]["disabled"] is False
+        assert response.data["mail.use-tls"]["field"]["disabledReason"] is None
+        assert response.data["mail.use-ssl"]["field"]["disabled"] is False
+        assert response.data["mail.use-ssl"]["field"]["disabledReason"] is None
+
     def test_not_logged_in(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 401
@@ -62,6 +86,10 @@ class SystemOptionsTest(APITestCase):
             assert response.status_code == 200
             assert response.data["mail.host"]["field"]["disabled"] is True
             assert response.data["mail.host"]["field"]["disabledReason"] == "smtpDisabled"
+            assert response.data["mail.use-tls"]["field"]["disabled"] is True
+            assert response.data["mail.use-tls"]["field"]["disabledReason"] == "smtpDisabled"
+            assert response.data["mail.use-ssl"]["field"]["disabled"] is True
+            assert response.data["mail.use-ssl"]["field"]["disabledReason"] == "smtpDisabled"
 
     def test_put_user_access_forbidden(self) -> None:
         self.login_as(user=self.user, superuser=False)
