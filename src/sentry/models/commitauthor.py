@@ -51,7 +51,8 @@ class CommitAuthor(Model):
     users: list[RpcUser] | None = None
 
     def preload_users(self) -> list[RpcUser]:
-        self.users = None
+        if self.users is not None:
+            return self.users
         self.users = self.find_users()
         return self.users
 
