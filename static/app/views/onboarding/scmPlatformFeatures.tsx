@@ -13,7 +13,6 @@ import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/mod
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {
   getDisabledProducts,
   platformProductAvailability,
@@ -23,6 +22,7 @@ import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
 import {platforms} from 'sentry/data/platforms';
 import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
@@ -96,18 +96,32 @@ function getPlatformName(platformKey: PlatformKey | undefined) {
   return getPlatformInfo(platformKey)?.name;
 }
 
-export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
+interface ScmPlatformFeaturesProps {
+  createdProjectSlug: string | undefined;
+  onClearProjectDetailsForm: () => void;
+  onComplete: StepProps['onComplete'];
+  onFeaturesChange: (features: ProductSolution[] | undefined) => void;
+  onPlatformChange: (platform: OnboardingSelectedSDK | undefined) => void;
+  onProjectCreated: (slug: string | undefined) => void;
+  selectedFeatures: ProductSolution[] | undefined;
+  selectedPlatform: OnboardingSelectedSDK | undefined;
+  selectedRepository: Repository | undefined;
+  genBackButton?: StepProps['genBackButton'];
+}
+
+export function ScmPlatformFeatures({
+  createdProjectSlug,
+  onClearProjectDetailsForm,
+  onComplete,
+  onFeaturesChange,
+  onPlatformChange,
+  onProjectCreated,
+  selectedFeatures,
+  selectedPlatform,
+  selectedRepository,
+  genBackButton,
+}: ScmPlatformFeaturesProps) {
   const organization = useOrganization();
-  const {
-    selectedRepository,
-    selectedPlatform,
-    setSelectedPlatform,
-    selectedFeatures,
-    setSelectedFeatures,
-    setProjectDetailsForm,
-    createdProjectSlug,
-    setCreatedProjectSlug,
-  } = useOnboardingContext();
 
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -132,10 +146,10 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     (platformKey: PlatformKey) => {
       const info = getPlatformInfo(platformKey);
       if (info) {
-        setSelectedPlatform(toSelectedSdk(info));
+        onPlatformChange(toSelectedSdk(info));
       }
     },
-    [setSelectedPlatform]
+    [onPlatformChange]
   );
 
   const hasScmConnected = !!selectedRepository;
@@ -254,7 +268,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
         }
       }
 
-      setSelectedFeatures(Array.from(newFeatures));
+      onFeaturesChange(Array.from(newFeatures));
 
       trackAnalytics('onboarding.scm_platform_feature_toggled', {
         organization,
@@ -265,7 +279,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     },
     [
       currentFeatures,
-      setSelectedFeatures,
+      onFeaturesChange,
       disabledProducts,
       availableFeatures,
       organization,
@@ -274,9 +288,9 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
   );
 
   const applyPlatformSelection = (sdk: OnboardingSelectedSDK) => {
-    setSelectedPlatform(sdk);
-    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    setProjectDetailsForm(undefined);
+    onPlatformChange(sdk);
+    onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+    onClearProjectDetailsForm();
   };
 
   const handleManualPlatformSelect = async (option: {value: string}) => {
@@ -334,8 +348,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     }
 
     setPlatform(platformKey);
-    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    setProjectDetailsForm(undefined);
+    onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+    onClearProjectDetailsForm();
 
     trackAnalytics('onboarding.scm_platform_selected', {
       organization,
@@ -349,8 +363,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
       return;
     }
     setPlatform(platformKey);
-    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    setProjectDetailsForm(undefined);
+    onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+    onClearProjectDetailsForm();
 
     trackAnalytics('onboarding.scm_platform_selected', {
       organization,
@@ -372,8 +386,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     setShowManualPicker(false);
     if (detectedPlatformKey) {
       setPlatform(detectedPlatformKey);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-      setProjectDetailsForm(undefined);
+      onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+      onClearProjectDetailsForm();
     }
   }
 
@@ -392,7 +406,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
       setPlatform(currentPlatformKey);
     }
     if (!selectedFeatures) {
-      setSelectedFeatures(currentFeatures);
+      onFeaturesChange(currentFeatures);
     }
 
     if (!hasProjectDetailsStep) {
@@ -429,7 +443,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           default_rules: true,
           firstTeamSlug: firstAdminTeam?.slug,
         });
-        setCreatedProjectSlug(project.slug);
+        onProjectCreated(project.slug);
         onComplete(platform, {product: currentFeatures});
       } catch (error) {
         addErrorMessage(t('Failed to create project'));

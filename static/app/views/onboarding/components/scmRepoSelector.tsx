@@ -2,9 +2,8 @@ import {useMemo} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
+import type {Integration, Repository} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -15,12 +14,18 @@ import {useScmRepoSelection} from './useScmRepoSelection';
 
 interface ScmRepoSelectorProps {
   integration: Integration;
+  // Callers are responsible for clearing any state derived from the repo
+  // (platform, features, created project) when the repo changes.
+  onRepositoryChange: (repo: Repository | undefined) => void;
+  selectedRepository: Repository | undefined;
 }
 
-export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
+export function ScmRepoSelector({
+  integration,
+  onRepositoryChange,
+  selectedRepository,
+}: ScmRepoSelectorProps) {
   const organization = useOrganization();
-  const {selectedRepository, setSelectedRepository, clearDerivedState} =
-    useOnboardingContext();
   const {reposByIdentifier, dropdownItems, isFetching, isError} = useScmRepos(
     integration.id,
     selectedRepository
@@ -28,7 +33,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
-    onSelect: setSelectedRepository,
+    onSelect: onRepositoryChange,
     reposByIdentifier,
   });
 
@@ -50,10 +55,6 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   }, [dropdownItems, selectedRepository]);
 
   function handleChange(option: {value: string} | null) {
-    // Changing or clearing the repo invalidates downstream state (platform,
-    // features, created project) which are all derived from the selected repo.
-    clearDerivedState();
-
     if (option === null) {
       handleRemove();
     } else {

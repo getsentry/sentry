@@ -7,10 +7,9 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
+import type {Integration, Repository} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,6 +20,17 @@ import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
 import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
+
+interface ScmConnectProps {
+  onComplete: StepProps['onComplete'];
+  onIntegrationChange: (integration: Integration | undefined) => void;
+  // Callers are responsible for clearing any state derived from the repo
+  // (platform, features, created project) when the repo changes.
+  onRepositoryChange: (repo: Repository | undefined) => void;
+  selectedIntegration: Integration | undefined;
+  selectedRepository: Repository | undefined;
+  genBackButton?: StepProps['genBackButton'];
+}
 
 const SCM_INFO_SECTIONS = [
   {
@@ -47,14 +57,15 @@ const SCM_INFO_SECTIONS = [
   },
 ];
 
-export function ScmConnect({onComplete, genBackButton}: StepProps) {
+export function ScmConnect({
+  onComplete,
+  onIntegrationChange,
+  onRepositoryChange,
+  selectedIntegration,
+  selectedRepository,
+  genBackButton,
+}: ScmConnectProps) {
   const organization = useOrganization();
-  const {
-    selectedIntegration,
-    setSelectedIntegration,
-    selectedRepository,
-    setSelectedRepository,
-  } = useOnboardingContext();
   const {
     scmProviders,
     isPending,
@@ -76,11 +87,11 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
 
   const handleInstall = useCallback(
     (data: Integration) => {
-      setSelectedIntegration(data);
-      setSelectedRepository(undefined);
+      onIntegrationChange(data);
+      onRepositoryChange(undefined);
       refetchIntegrations();
     },
-    [setSelectedIntegration, setSelectedRepository, refetchIntegrations]
+    [onIntegrationChange, onRepositoryChange, refetchIntegrations]
   );
 
   return (
@@ -117,7 +128,11 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
                   effectiveIntegration.name
                 )}
               </Text>
-              <ScmRepoSelector integration={effectiveIntegration} />
+              <ScmRepoSelector
+                integration={effectiveIntegration}
+                selectedRepository={selectedRepository}
+                onRepositoryChange={onRepositoryChange}
+              />
             </Stack>
           </MotionStack>
         ) : (
@@ -212,7 +227,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
               }}
               onClick={() => {
                 if (effectiveIntegration && !selectedIntegration) {
-                  setSelectedIntegration(effectiveIntegration);
+                  onIntegrationChange(effectiveIntegration);
                 }
                 onComplete();
               }}
