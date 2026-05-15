@@ -69,11 +69,7 @@ export function DefaultLink({
 }
 
 export function DefaultCodeBlock({children, lang}: {children: string; lang?: string}) {
-  return (
-    <CodeBlock dark language={lang}>
-      {children}
-    </CodeBlock>
-  );
+  return <CodeBlock language={lang}>{children}</CodeBlock>;
 }
 
 export function DefaultHtmlBlock({html}: {html: string}) {
