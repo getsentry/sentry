@@ -177,7 +177,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             project.get_option("sentry:seer_automated_run_stopping_point")
             == AutofixStoppingPoint.OPEN_PR.value
         )
-        assert SeerProjectRepository.objects.filter(project=project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project).count() == 0
+        )
 
     def test_post_updates_each_preference_field_independently(self):
         project = self.create_project(organization=self.organization)
@@ -330,8 +332,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 204
 
-        assert SeerProjectRepository.objects.filter(project=project1).count() == 1
-        assert SeerProjectRepository.objects.filter(project=project2).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project1).count() == 1
+        )
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project2).count() == 0
+        )
 
     def test_post_updates_project_repo_mappings(self):
         project = self.create_project(organization=self.organization)
@@ -373,9 +379,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             == AutofixStoppingPoint.OPEN_PR.value
         )
 
-        seer_repos = list(SeerProjectRepository.objects.filter(project=project))
+        seer_repos = list(SeerProjectRepository.objects.filter(project_repository__project=project))
         assert len(seer_repos) == 1
-        assert seer_repos[0].repository_id == repo.id
+        assert seer_repos[0].project_repository.repository_id == repo.id
 
     def test_post_clears_repos_with_empty_list(self):
         project = self.create_project(organization=self.organization)
@@ -398,7 +404,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 204
 
-        assert SeerProjectRepository.objects.filter(project=project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project).count() == 0
+        )
 
     def test_post_overwrites_existing_repos(self):
         project = self.create_project(organization=self.organization)
@@ -436,9 +444,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 204
 
-        seer_repos = list(SeerProjectRepository.objects.filter(project=project))
+        seer_repos = list(SeerProjectRepository.objects.filter(project_repository__project=project))
         assert len(seer_repos) == 1
-        assert seer_repos[0].repository_id == new_repo.id
+        assert seer_repos[0].project_repository.repository_id == new_repo.id
 
     def test_post_only_updates_projects_with_changes(self):
         project1 = self.create_project(organization=self.organization)
@@ -478,10 +486,14 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 204
 
         # project1 got the new mapping; project2's existing repo is untouched.
-        assert SeerProjectRepository.objects.filter(project=project1).count() == 1
-        project2_repos = list(SeerProjectRepository.objects.filter(project=project2))
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project1).count() == 1
+        )
+        project2_repos = list(
+            SeerProjectRepository.objects.filter(project_repository__project=project2)
+        )
         assert len(project2_repos) == 1
-        assert project2_repos[0].repository_id == existing_repo.id
+        assert project2_repos[0].project_repository.repository_id == existing_repo.id
 
     def test_post_appends_repos_when_append_flag_true(self):
         project = self.create_project(organization=self.organization)
@@ -519,8 +531,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 204
 
-        seer_repos = SeerProjectRepository.objects.filter(project=project).order_by("repository_id")
-        assert [r.repository_id for r in seer_repos] == sorted([existing_repo.id, new_repo.id])
+        seer_repos = SeerProjectRepository.objects.filter(
+            project_repository__project=project
+        ).order_by("project_repository__repository_id")
+        assert [r.project_repository.repository_id for r in seer_repos] == sorted(
+            [existing_repo.id, new_repo.id]
+        )
 
     def test_post_append_skips_duplicates(self):
         project = self.create_project(organization=self.organization)
@@ -567,8 +583,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 204
 
         # Should only have 2 repos: the existing one and the new one (duplicate skipped)
-        seer_repos = SeerProjectRepository.objects.filter(project=project).order_by("repository_id")
-        assert [r.repository_id for r in seer_repos] == sorted([existing_repo.id, new_repo.id])
+        seer_repos = SeerProjectRepository.objects.filter(
+            project_repository__project=project
+        ).order_by("project_repository__repository_id")
+        assert [r.project_repository.repository_id for r in seer_repos] == sorted(
+            [existing_repo.id, new_repo.id]
+        )
 
     def test_post_creates_audit_log(self):
         project1 = self.create_project(organization=self.organization)
@@ -629,9 +649,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             },
         )
         assert response.status_code == 204
-        seer_repos = list(SeerProjectRepository.objects.filter(project=project))
+        seer_repos = list(SeerProjectRepository.objects.filter(project_repository__project=project))
         assert len(seer_repos) == 1
-        assert seer_repos[0].repository_id == repo.id
+        assert seer_repos[0].project_repository.repository_id == repo.id
 
     def test_post_rejects_repository_not_in_organization(self):
         """Test that POST fails when repository doesn't exist in the organization"""
@@ -655,7 +675,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project).count() == 0
+        )
 
     def test_post_rejects_repository_from_different_organization(self):
         """Test that POST fails when repository exists but belongs to a different organization"""
@@ -686,7 +708,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project).count() == 0
+        )
 
     def test_post_rejects_mismatched_organization_id_in_repository_data(self):
         """Test that POST fails when repository organization_id doesn't match the organization."""
@@ -718,7 +742,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project).count() == 0
+        )
 
     def test_post_rejects_mismatched_repo_name_or_owner(self):
         """Test that POST fails when repository name/owner don't match the database record."""
@@ -749,7 +775,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project).count() == 0
+        )
 
     def test_post_rejects_unsupported_repo_provider(self):
         project = self.create_project(organization=self.organization)
@@ -771,4 +799,6 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert SeerProjectRepository.objects.filter(project=project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=project).count() == 0
+        )

@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
-import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type OpenSeerExplorerDrawerOptions = {
@@ -30,7 +30,7 @@ export type OpenSeerExplorerDrawerOptions = {
 export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
-  const [_, setRunId] = useSeerExplorerRunId();
+  const dispatch = useSeerExplorerChatDispatch();
   const {getPageReferrer} = usePageReferrer();
 
   // Track drawer open state in a ref so callbacks don't go stale
@@ -65,13 +65,13 @@ export const useSeerExplorerDrawer = () => {
         // Always start a fresh session when a query is forwarded so it
         // auto-submits into an empty conversation, even if the drawer is
         // already open with an existing run.
-        setRunId(null);
+        dispatch({type: 'set run id', payload: null});
       } else if (isDrawerOpenRef.current) {
         return;
       } else if (openRunId !== undefined) {
-        setRunId(openRunId);
+        dispatch({type: 'set run id', payload: openRunId});
       } else if (startNewRun) {
-        setRunId(null);
+        dispatch({type: 'set run id', payload: null});
       }
 
       openDrawer(
@@ -91,7 +91,7 @@ export const useSeerExplorerDrawer = () => {
         }
       );
     },
-    [openDrawer, onOpen, setRunId, getPageReferrer]
+    [openDrawer, onOpen, dispatch, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {

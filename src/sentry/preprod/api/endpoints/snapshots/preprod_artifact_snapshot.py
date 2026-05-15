@@ -33,9 +33,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
-    SnapshotApprovalInfo,
     SnapshotApprover,
-    SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
 )
@@ -55,6 +53,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
     SnapshotManifest,
+    image_metadata_extras,
 )
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -122,6 +121,7 @@ def build_snapshot_image_response(
     global_diff_threshold: float | None,
 ) -> SnapshotImageResponse:
     return SnapshotImageResponse(
+        **image_metadata_extras(metadata, exclude={"key", "image_file_name"}),
         key=metadata.content_hash,
         display_name=metadata.display_name,
         image_file_name=image_file_name,
@@ -359,7 +359,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         }
 
         base_artifact_id: str | None = None
-        comparison_state: str | None = None
 
         if comparison_manifest is not None:
             base_artifact_id = str(comparison_manifest.base_artifact_id)
@@ -383,9 +382,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 ),
                 None,
             )
-            if pending_or_failed_state is not None:
-                comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
-
         if comparison_manifest is not None:
             comparison_type = "diff"
         elif commit_comparison and commit_comparison.base_sha and pending_or_failed_state is None:
@@ -393,18 +389,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         else:
             comparison_type = "solo"
 
-        run_info: SnapshotComparisonRunInfo | None = None
-        if comparison_state is not None:
-            run_info = SnapshotComparisonRunInfo(state=comparison_state)
-        elif comparison is not None:
-            duration = comparison.date_updated - comparison.date_added
-            run_info = SnapshotComparisonRunInfo(
-                state=PreprodSnapshotComparison.State(comparison.state).name,
-                completed_at=comparison.date_updated.isoformat(),
-                duration_ms=int(duration.total_seconds() * 1000),
-            )
-
-        approval_info: SnapshotApprovalInfo | None = None
         all_approvals = list(
             PreprodComparisonApproval.objects.filter(
                 preprod_artifact=artifact,
@@ -464,19 +448,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                             source="github",
                         )
                     )
-            is_auto_approved = any((a.extras or {}).get("auto_approval") is True for a in approved)
-            approval_info = SnapshotApprovalInfo(
-                status="approved",
-                approvers=approver_list,
-                is_auto_approved=is_auto_approved,
-            )
-        elif all_approvals:
-            # If records exist but none are APPROVED, they must be NEEDS_APPROVAL
-            approval_info = SnapshotApprovalInfo(
-                status="requires_approval",
-                approvers=[],
-            )
-
         sorted_approvals = sorted(all_approvals, key=lambda a: a.id, reverse=True)
         derived_status = derive_snapshot_status(
             SnapshotStatusInput(
@@ -512,8 +483,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             errored_count=len(categorized.errored),
             skipped=categorized.skipped,
             skipped_count=len(categorized.skipped),
-            comparison_run_info=run_info,
-            approval_info=approval_info,
             diff_threshold=manifest.diff_threshold,
             comparison_state=derived_status.comparison_state,
             approval_status=derived_status.approval_status,

@@ -10,6 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.commit import CommitSerializerResponse
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -20,7 +21,6 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 @cell_silo_endpoint

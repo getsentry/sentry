@@ -13,6 +13,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams
@@ -27,7 +28,6 @@ from sentry.notifications.api.serializers.notification_action_response import (
     OutgoingNotificationActionSerializer,
 )
 from sentry.notifications.models.notificationaction import NotificationAction
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 logger = logging.getLogger(__name__)
 

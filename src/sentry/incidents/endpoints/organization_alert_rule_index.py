@@ -40,6 +40,7 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -101,7 +102,6 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import (
     Detector,
