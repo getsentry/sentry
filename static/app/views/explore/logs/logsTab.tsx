@@ -445,7 +445,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <LogsSidebarProvider sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+    <LogsSidebarProvider value={setSidebarOpen}>
       <LogsSearchSection
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}

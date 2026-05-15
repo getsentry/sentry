@@ -70,9 +70,8 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
         newGroupBys.push(key);
       }
       setGroupBys(newGroupBys, Mode.AGGREGATE);
-      // Reveal the Visualize / Group By controls so the user can see the
-      // grouping they just added.
-      sidebar?.setSidebarOpen(true);
+      // Reveal the Group By controls so the user can see the grouping they just added.
+      sidebar?.(true);
     },
     [setGroupBys, groupBys, sidebar]
   );

@@ -1,36 +1,20 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useContext} from 'react';
 
-interface LogsSidebarContextValue {
-  setSidebarOpen: (open: boolean) => void;
-  sidebarOpen: boolean;
-}
+type LogsSidebarContextValue = (open: boolean) => void;
 
-const LogsSidebarContext = createContext<LogsSidebarContextValue | null>(null);
+const LogsSidebarContext = createContext<LogsSidebarContextValue | undefined>(undefined);
 
 interface LogsSidebarProviderProps {
   children: React.ReactNode;
-  setSidebarOpen: (open: boolean) => void;
-  sidebarOpen: boolean;
+  value: (open: boolean) => void;
 }
 
-export function LogsSidebarProvider({
-  children,
-  sidebarOpen,
-  setSidebarOpen,
-}: LogsSidebarProviderProps) {
-  const value = useMemo(
-    () => ({sidebarOpen, setSidebarOpen}),
-    [sidebarOpen, setSidebarOpen]
-  );
+export function LogsSidebarProvider({children, value}: LogsSidebarProviderProps) {
   return (
     <LogsSidebarContext.Provider value={value}>{children}</LogsSidebarContext.Provider>
   );
 }
 
-/**
- * Returns the logs sidebar context, or null when there is no surrounding
- * `LogsSidebarProvider` (e.g. embedded usages outside the logs tab).
- */
 export function useLogsSidebar() {
   return useContext(LogsSidebarContext);
 }

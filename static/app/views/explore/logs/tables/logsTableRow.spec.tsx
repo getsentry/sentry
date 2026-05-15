@@ -581,56 +581,12 @@ describe('logsTableRow', () => {
     expect(copiedUrl).toContain('logsQuery=id%3A1');
   });
 
-  it('adds a group by from the attribute actions menu', async () => {
-    const {router} = render(
-      <LogRowContent
-        dataRow={rowData}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
-
-    const logTableRow = await screen.findByTestId('log-table-row');
-    await userEvent.click(logTableRow);
-
-    await waitFor(() => {
-      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
-    });
-
-    const severityRow = await screen.findByTestId('tree-key-severity');
-    const attributeTreeRow = severityRow.closest('[data-test-id="attribute-tree-row"]')!;
-    expect(attributeTreeRow).toBeInTheDocument();
-
-    await userEvent.hover(attributeTreeRow);
-    await userEvent.click(
-      within(attributeTreeRow as HTMLElement).getByRole('button', {
-        name: 'Attribute Actions Menu',
-      })
-    );
-
-    const groupByItem = await screen.findByRole('menuitemradio', {
-      name: 'Group by attribute',
-    });
-    await userEvent.click(groupByItem);
-
-    expect(router.location.query).toEqual(
-      expect.objectContaining({
-        mode: 'aggregate',
-        aggregateField: expect.arrayContaining(['{"groupBy":"severity"}']),
-      })
-    );
-  });
-
-  it('opens the sidebar when group by is clicked', async () => {
+  it('adds a grouping and opens the sidebar when the attributes menu group by is clicked', async () => {
     const setSidebarOpen = jest.fn();
 
     function SidebarWrapper({children}: {children?: React.ReactNode}) {
       return (
-        <LogsSidebarProvider sidebarOpen={false} setSidebarOpen={setSidebarOpen}>
+        <LogsSidebarProvider value={setSidebarOpen}>
           <LogsQueryParamsProvider
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
@@ -643,7 +599,7 @@ describe('logsTableRow', () => {
       );
     }
 
-    render(
+    const {router} = render(
       <LogRowContent
         dataRow={rowData}
         highlightTerms={[]}
@@ -670,11 +626,16 @@ describe('logsTableRow', () => {
         name: 'Attribute Actions Menu',
       })
     );
-
     await userEvent.click(
       await screen.findByRole('menuitemradio', {name: 'Group by attribute'})
     );
 
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
+        mode: 'aggregate',
+        aggregateField: expect.arrayContaining(['{"groupBy":"severity"}']),
+      })
+    );
     expect(setSidebarOpen).toHaveBeenCalledWith(true);
   });
 
