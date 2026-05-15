@@ -216,6 +216,7 @@ function ToolCallRow({
           width="12px"
           height="12px"
           flexShrink={0}
+          style={{transform: 'translateY(0.15em)'}}
         >
           {blockStatus && <BlockStatusIndicator status={blockStatus} />}
         </Flex>
