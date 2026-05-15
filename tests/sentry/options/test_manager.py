@@ -25,7 +25,7 @@ from sentry.options.manager import (
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
-from sentry.utils.types import Int, String
+from sentry.utils.types import Dict, Int, String
 
 
 @all_silo_test
@@ -147,6 +147,32 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get("sentry:foo") == "bar"
         assert self.manager.delete("sentry:foo")
         assert self.manager.get("sentry:foo") == ""
+
+    def test_flagpole_key(self) -> None:
+        """
+        Allow feature. prefixed keys (flagpole feature flags) without
+        explicit registration, matching what FeatureManager.add() would
+        register for FLAGPOLE features.
+        """
+        key = "feature.projects:seer-night-shift"
+        opt = self.manager.lookup_key(key)
+        assert opt.name == key
+        assert opt.type is Dict
+        assert opt.has_any_flag({FLAG_AUTOMATOR_MODIFIABLE})
+
+        # Should be able to get/set/delete like a normal option
+        assert self.manager.get(key) == {}
+        self.manager.set(key, {"enabled": True}, channel=UpdateChannel.AUTOMATOR)
+        assert self.manager.get(key) == {"enabled": True}
+        assert self.manager.delete(key)
+        assert self.manager.get(key) == {}
+
+        # Also works for organization-scoped flags
+        org_key = "feature.organizations:my-feature"
+        org_opt = self.manager.lookup_key(org_key)
+        assert org_opt.name == org_key
+        assert org_opt.type is Dict
+        assert org_opt.has_any_flag({FLAG_AUTOMATOR_MODIFIABLE})
 
     def test_types(self) -> None:
         self.manager.register("some-int", type=Int, default=0)

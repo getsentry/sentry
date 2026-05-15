@@ -1,0 +1,7 @@
+options:
+  int_option: 40
+  feature.projects:seer-night-shift:
+    enabled: true
+    conditions:
+      - property: organization_slug
+        value: test-org

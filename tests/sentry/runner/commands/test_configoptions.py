@@ -249,6 +249,34 @@ class ConfigOptionsTest(CliTestCase):
         )
         assert rv.exit_code == 0, rv.output
 
+    def test_flagpole_patch(self) -> None:
+        """
+        Flagpole feature options (feature.projects:*, feature.organizations:*)
+        can be patched even when not explicitly registered in the codebase.
+        """
+        rv = self.invoke(
+            "--file=tests/sentry/runner/commands/flagpole_patch.yaml",
+            "patch",
+        )
+
+        assert rv.exit_code == 0, rv.output
+
+        # The registered int_option should be set
+        assert options.get("int_option") == 40
+
+        # The unregistered flagpole option should NOT produce an error
+        assert (
+            ConsolePresenter.UNREGISTERED_OPTION_ERROR % "feature.projects:seer-night-shift"
+            not in rv.output
+        )
+
+        # The flagpole option should be set successfully
+        flagpole_value = options.get("feature.projects:seer-night-shift")
+        assert flagpole_value == {
+            "enabled": True,
+            "conditions": [{"property": "organization_slug", "value": "test-org"}],
+        }
+
     def test_bad_patch(self) -> None:
         rv = self.invoke(
             "--file=tests/sentry/runner/commands/badpatch.yaml",

@@ -11,7 +11,7 @@ from django.conf import settings
 
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
-from sentry.utils.types import Any, Type, type_from_value
+from sentry.utils.types import Any, Dict, Type, type_from_value
 
 if TYPE_CHECKING:
     from sentry.options.store import GroupingInfo, Key, OptionsStore
@@ -230,6 +230,22 @@ class OptionsManager:
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
                 return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+            # Flagpole feature flags (feature.organizations:* and
+            # feature.projects:*) may be defined in the options-automator
+            # YAML before being registered in the sentry codebase.
+            # Construct a faux key matching what FeatureManager.add() would
+            # register so the automator can manage them.
+            if key.startswith("feature."):
+                logger.debug("Using unregistered flagpole key: %s", key, exc_info=True)
+                return self.make_key(
+                    key,
+                    lambda: {},
+                    Dict,
+                    FLAG_AUTOMATOR_MODIFIABLE,
+                    DEFAULT_KEY_TTL,
+                    DEFAULT_KEY_GRACE,
+                    None,
+                )
             raise UnknownOption(key)
 
     def make_key(
