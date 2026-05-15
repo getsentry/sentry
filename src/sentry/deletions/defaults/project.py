@@ -46,6 +46,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.userreport import UserReport
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
+        from sentry.seer.models.project_repository import SeerProjectRepository
         from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.snuba.models import QuerySubscription
         from sentry.workflow_engine.models import Detector
@@ -76,6 +77,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProjectCodeOwners,
             ReplayRecordingSegment,
             RepositoryProjectPathConfig,
+            SeerProjectRepository,
             ProjectRepository,
             ServiceHookProject,
             ServiceHook,
