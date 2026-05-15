@@ -8,7 +8,6 @@ import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modal
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';
 import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
-import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
@@ -266,18 +265,6 @@ export async function openLinkToDashboardModal(options: LinkToDashboardModalProp
     await import('sentry/components/modals/widgetBuilder/linkToDashboardModal');
 
   openModal(deps => <LinkToDashboardModal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
-    modalCss,
-  });
-}
-
-export async function openImportDashboardFromFileModal(
-  options: ImportDashboardFromFileModalProps
-) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/importDashboardFromFileModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
     modalCss,
   });

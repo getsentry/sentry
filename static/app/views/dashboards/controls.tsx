@@ -13,7 +13,7 @@ import {Confirm, openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
+import {IconAdd, IconCopy, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -34,7 +34,6 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
-import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
@@ -304,21 +303,7 @@ export function Controls({
                 }}
               />
             </Tooltip>
-            <Feature features="dashboards-import">
-              <Tooltip title={t('Export Dashboard')}>
-                <Button
-                  data-test-id="dashboard-export"
-                  aria-label={t('export-dashboard')}
-                  onClick={e => {
-                    e.preventDefault();
-                    exportDashboard();
-                  }}
-                  icon={<IconDownload />}
-                  variant="secondary"
-                  size="sm"
-                />
-              </Tooltip>
-            </Feature>
+
             {hasPageFrameFeature &&
               hasFeature &&
               (isPrebuiltDashboard ? (
