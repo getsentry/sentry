@@ -17,7 +17,7 @@ import {
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -39,7 +39,7 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  const [runId] = useSeerExplorerRunId();
+  const {runId} = useSeerExplorerChatState();
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,

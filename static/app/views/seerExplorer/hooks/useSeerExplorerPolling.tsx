@@ -5,6 +5,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -89,6 +90,7 @@ export const useSeerExplorerPolling = ({
 }) => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
+  const dispatch = useSeerExplorerChatDispatch();
   const errorPollCountRef = useRef(0);
   const [, forceRender] = useState(false);
 
@@ -164,6 +166,13 @@ export const useSeerExplorerPolling = ({
     errorPollCountRef.current,
     shouldPollOverride
   );
+
+  useEffect(() => {
+    if (runId === null) {
+      return;
+    }
+    dispatch({type: 'set polling', payload: {runId, polling: pollingState}});
+  }, [dispatch, runId, pollingState]);
 
   return {
     apiData,
