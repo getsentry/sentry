@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {useDrawer} from '@sentry/scraps/drawer';
+import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -40,7 +40,7 @@ export function ExplorerDrawerContent({
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
-  const {closeDrawer} = useDrawer();
+  const {onClose: closeDrawer = () => {}} = useDrawerContentContext();
 
   const [inputValue, setInputValue] = useState('');
   const [showThinking, setShowThinking] = useState(false);

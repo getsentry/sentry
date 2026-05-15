@@ -27,7 +27,7 @@ export type OpenSeerExplorerDrawerOptions = {
   startNewRun?: boolean;
 };
 
-export const useSeerExplorerDrawer = () => {
+export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
   const organization = useOrganization({allowNull: true});
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const [_, setRunId] = useSeerExplorerRunId();
@@ -38,6 +38,9 @@ export const useSeerExplorerDrawer = () => {
   useEffect(() => {
     isDrawerOpenRef.current = isDrawerOpen;
   }, [isDrawerOpen]);
+
+  const onCloseCallbackRef = useRef(options?.onClose);
+  onCloseCallbackRef.current = options?.onClose;
 
   // TODO: add effect that opens drawer and seeds run_id from URL, remove from current URL onClose
   // (useSeerExplorer hook should no longer handle this)
@@ -50,16 +53,21 @@ export const useSeerExplorerDrawer = () => {
     });
   }, [getPageReferrer, organization]);
 
+  const onClose = useCallback(() => {
+    onCloseCallbackRef.current?.();
+  }, []);
+
   const closeSeerExplorerDrawer = useCallback(() => {
     // Prevent closing the global drawer if another drawer (e.g. autofix) is open
     if (isDrawerOpenRef.current) {
+      onCloseCallbackRef.current?.();
       closeDrawer();
     }
   }, [closeDrawer]);
 
   const openSeerExplorerDrawer = useCallback(
-    (options?: OpenSeerExplorerDrawerOptions) => {
-      const {runId: openRunId, startNewRun, initialQuery} = options ?? {};
+    (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
+      const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
 
       if (initialQuery) {
         // Always start a fresh session when a query is forwarded so it
@@ -88,10 +96,11 @@ export const useSeerExplorerDrawer = () => {
           resizable: true,
           mode: 'passive',
           onOpen,
+          onClose,
         }
       );
     },
-    [openDrawer, onOpen, setRunId, getPageReferrer]
+    [openDrawer, onOpen, onClose, setRunId, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
