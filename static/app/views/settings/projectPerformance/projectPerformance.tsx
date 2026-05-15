@@ -27,7 +27,6 @@ import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -46,7 +45,6 @@ export const retentionPrioritiesLabels = {
   boostEnvironments: t('Prioritize dev environments'),
   boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
-  minimumSampleRate: t('Always use project sample rate'),
 };
 
 export const allowedDurationValues: number[] = [
@@ -366,20 +364,7 @@ export function ProjectPerformance() {
         getData: getRetentionPrioritiesData,
       },
     ];
-    if (
-      hasDynamicSamplingCustomFeature(organization) &&
-      organization.features.includes('dynamic-sampling-minimum-sample-rate')
-    ) {
-      fields.push({
-        name: 'minimumSampleRate',
-        type: 'boolean' as const,
-        label: retentionPrioritiesLabels.minimumSampleRate,
-        help: t(
-          'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
-        ),
-        getData: getRetentionPrioritiesData,
-      });
-    }
+
     return fields;
   }
 

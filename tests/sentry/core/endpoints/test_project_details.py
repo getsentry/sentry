@@ -1798,7 +1798,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
-                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self) -> None:
@@ -1823,7 +1822,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
-                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_dynamic_sampling_bias_activation(self) -> None:
@@ -1944,7 +1942,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
             {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
-            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
         ]
         with Feature(
             {
@@ -2027,15 +2024,18 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     def test_dynamic_sampling_bias_enable_audit_log(self) -> None:
         """Test that enabling a dynamic sampling bias creates the correct audit log entry."""
         with self.feature("organizations:dynamic-sampling"):
-            # Start with default biases
             with outbox_runner():
+                # First disable the bias so we can re-enable it
+                disabled_biases = [
+                    {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
+                ]
                 self.get_success_response(
-                    self.org_slug, self.proj_slug, dynamicSamplingBiases=DEFAULT_BIASES
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=disabled_biases
                 )
 
-                # Enable a specific bias
+                # Now enable it
                 updated_biases = [
-                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                    {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
                 ]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=updated_biases
@@ -2049,7 +2049,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entry is not None
-                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+                assert audit_entry.data["name"] == RuleType.RECALIBRATION_RULE.value
 
     def test_dynamic_sampling_bias_disable_audit_log(self) -> None:
         """Test that disabling a dynamic sampling bias creates the correct audit log entry."""
@@ -2080,21 +2080,22 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     def test_dynamic_sampling_bias_add_new_bias_audit_log(self) -> None:
         """Test that adding a new bias to existing biases creates the correct audit log entry."""
         with self.feature("organizations:dynamic-sampling"):
-            # Start with some initial biases
+            # Start with some initial biases, explicitly disabling recalibration
             initial_biases = [
                 {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                 {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
             ]
             with outbox_runner():
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
                 )
 
-                # Add a new bias that's enabled
+                # Re-enable recalibration bias
                 expanded_biases = [
                     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                     {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
-                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                    {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
                 ]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
@@ -2108,7 +2109,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entry is not None
-                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+                assert audit_entry.data["name"] == RuleType.RECALIBRATION_RULE.value
 
     def test_dynamic_sampling_bias_add_new_inactive_bias_no_audit_log(self) -> None:
         """Test that adding a new bias as inactive does not create an audit log entry."""
@@ -2127,7 +2128,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 expanded_biases = [
                     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                     {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
-                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
+                    {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
                 ]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
