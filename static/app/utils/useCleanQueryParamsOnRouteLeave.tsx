@@ -83,9 +83,7 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
         return;
       }
 
-      const query: Record<string, string> = Object.fromEntries(
-        newUrl.searchParams.entries()
-      );
+      const query = Object.fromEntries(newUrl.searchParams.entries());
       const newLocation = {
         pathname: newUrl.pathname,
         search: newUrl.search,
