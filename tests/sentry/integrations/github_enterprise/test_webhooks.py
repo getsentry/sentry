@@ -1018,6 +1018,35 @@ class GitHubComWebhookEndpointTest(APITestCase):
         # Note: no X-GitHub-Enterprise-Host / X-Github-Tenant header sent (github.com doesn't send them)
         assert response.status_code == 400
 
+    @patch("sentry.integrations.github_enterprise.webhook.metrics")
+    def test_increments_routed_metric(self, mock_metrics: MagicMock) -> None:
+        self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        mock_metrics.incr.assert_any_call(
+            "integrations.github_enterprise.webhook.routed",
+            tags={"variant": "github_com"},
+        )
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_invalid_signature_returns_401(self, mock_installation: MagicMock) -> None:
+        # github.com endpoint must reject a payload signed with the wrong secret with 401,
+        # matching the existing GHES endpoint's contract.
+        mock_installation.return_value = self.metadata
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE_256="sha256=" + "0" * 64,
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 401
+
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_skips_get_host_uses_github_com(self, mock_installation: MagicMock) -> None:
         # The github.com endpoint must not call get_host(); it should resolve host="github.com"
@@ -1035,6 +1064,70 @@ class GitHubComWebhookEndpointTest(APITestCase):
         # called with host="github.com", proving _get_host was bypassed.
         mock_installation.assert_called_once()
         assert mock_installation.call_args.args[1] == "github.com"
+
+
+@patch("sentry.integrations.github_enterprise.client.get_jwt")
+@patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+class GitHubComPushEventWebhookTest(APITestCase):
+    """Full happy-path: a signed push to the github.com webhook URL writes Commit rows."""
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github-enterprise/webhook/github-com/"
+        self.metadata = {
+            "url": "github.com",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github_enterprise",
+            name="baxterthehacker/public-repo",
+        )
+
+    @responses.activate
+    def test_push_creates_commits(
+        self,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
+        mock_get_jwt.return_value = ""
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self.create_integration(
+            external_id="github.com:12345",
+            organization=self.project.organization,
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "github.com/baxterthehacker",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        commits = list(Commit.objects.filter().select_related("author").order_by("-date_added"))
+        assert len(commits) == 2
+        assert commits[0].key == "133d60480286590a610a0eb7352ff6e02b9674c4"
+        assert commits[0].message == "Update README.md (àgain)"
+        assert commits[1].key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
 
 
 class GitHubEnterpriseParserGitHubComTest(TestCase):
