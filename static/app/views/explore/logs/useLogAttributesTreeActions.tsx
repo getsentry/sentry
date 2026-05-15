@@ -59,11 +59,10 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
 
   const addGroupBy = useCallback(
     (content: AttributesTreeContent) => {
-      const originalAttribute = content.originalAttribute;
-      if (!originalAttribute) {
+      if (!content.originalAttribute) {
         return;
       }
-      const key = originalAttribute.original_attribute_key;
+      const key = content.originalAttribute.original_attribute_key;
       // Drop empty placeholder group bys, dedupe, then append the new key.
       const newGroupBys = groupBys.filter(Boolean);
       if (!newGroupBys.includes(key)) {
