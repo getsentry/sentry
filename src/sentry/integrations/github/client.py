@@ -1140,15 +1140,16 @@ class GitHubApiClient(GitHubBaseClient):
     """
     GitHub REST API client.
 
-    To opt in to reserved quota please use the `referrer` contextmanager.
+    Certain referrers need reserved quota to ensure their requests are always completed. This
+    class enables that with the `referrer` context manager. This does not enforce GitHub's
+    secondary rate-limits which are not publicly known.
 
-        with client.referrer("emerge"):
-            # Emerge referrer used.
-            client.get_pull_request(...)
-            client.create_branch(...)
+    To use the reserved quota system you must:
 
-        # Shared referrer used
-        client.get_issue(...)
+    1. Register your referrer in the referrer allocation dictionary.
+    2. Use the with client.referrer(name): expression to scope your requests to your referrer.
+        - Lower priority requests can be made outside the with block which falls back to the
+          shared quota pool.
     """
 
     def __init__(
@@ -1191,10 +1192,12 @@ class GitHubApiClient(GitHubBaseClient):
             self.__referrer = prev
 
     def _do_send(self, *args, **kwargs) -> Response:
+        is_rate_limited = False
         try:
             if self.__rate_limiter.is_rate_limited(self.__referrer):
                 # For now do nothing. We'll eventually use this once we understand its behavior better.
                 # raise RateLimitExceed
+                is_rate_limited = True
                 metrics.incr("sentry.scm.github.rate_limit_exceeded")
         except Exception as e:
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
@@ -1203,16 +1206,21 @@ class GitHubApiClient(GitHubBaseClient):
         response = super()._do_send(*args, **kwargs)
 
         try:
-            self.__rate_limiter.update_rate_limit_meta(
-                capacity=int(response.headers[GITHUB_RATE_LIMIT_CAPACITY]),
-                consumed=int(response.headers[GITHUB_RATE_LIMIT_USED]),
-                next_window_start=int(response.headers[GITHUB_RATE_LIMIT_RESET]),
-            )
+            capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
+            self.__rate_limiter.set_total_capacity(capacity=capacity)
         except KeyError:
             # GitHub didn't return rate-limit headers for some unknown reason.
             metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
         except Exception as e:
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)
+
+        # QA metrics.
+        if is_rate_limited and response.status_code != 429:
+            # We thought we exceeded our rate-limit but actually we didn't.
+            metrics.incr("sentry.scm.github.rate_limit.false_positive")
+        elif response.status_code == 429 and not is_rate_limited:
+            # We thought we had capacity but actually we didn't.
+            metrics.incr("sentry.scm.github.rate_limit.false_negative")
 
         return response
