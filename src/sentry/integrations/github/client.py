@@ -1147,7 +1147,7 @@ class GitHubApiClient(GitHubBaseClient):
     To use the reserved quota system you must:
 
     1. Register your referrer in the referrer allocation dictionary.
-    2. Use the with client.referrer(name): expression to scope your requests to your referrer.
+    2. Use the `with client.referrer(name):` expression to scope your requests to your referrer.
         - Lower priority requests can be made outside the with block which falls back to the
           shared quota pool.
     """
