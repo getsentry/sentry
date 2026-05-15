@@ -574,14 +574,18 @@ class DelayedWorkflowEvaluationResult:
     when_dcg_missing: dict[WorkflowId, list[GroupId]]
     when_failed_untainted: dict[WorkflowId, list[GroupId]]
     when_failed_tainted: dict[WorkflowId, list[GroupId]]
-    fired: dict[WorkflowId, dict[GroupId, dict[DataConditionGroupId, list[int]]]]
-    not_fired: dict[WorkflowId, dict[GroupId, dict[DataConditionGroupId, list[int]]]]
+    # workflow_id -> group_id -> {dcg_id: [condition_ids that passed]}
+    # Includes both re-evaluated DCGs and pre-passing DCGs.
+    if_dcg_passed: dict[WorkflowId, dict[GroupId, dict[DataConditionGroupId, list[int]]]]
+    # workflow_id -> group_id -> [dcg_ids that failed]
+    # Condition-level detail is omitted; all conditions not in if_dcg_passed are assumed failed.
+    if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]]
 
     def to_log_dict(self) -> dict[str, Any]:
         return {
             "workflow_ids": sorted(self.workflow_ids),
-            "fired": self.fired,
-            "not_fired": self.not_fired,
+            "if_dcg_passed": self.if_dcg_passed,
+            "if_dcg_failed": self.if_dcg_failed,
             "when_failed_untainted": self.when_failed_untainted,
             "when_failed_tainted": self.when_failed_tainted,
             "when_dcg_missing": self.when_dcg_missing,
@@ -606,11 +610,11 @@ def get_groups_to_fire(
     when_dcg_missing: dict[WorkflowId, list[GroupId]] = defaultdict(list)
     when_failed_untainted: dict[WorkflowId, list[GroupId]] = defaultdict(list)
     when_failed_tainted: dict[WorkflowId, list[GroupId]] = defaultdict(list)
-    fired: dict[WorkflowId, dict[GroupId, dict[DataConditionGroupId, list[int]]]] = defaultdict(
-        lambda: defaultdict(dict)
+    if_dcg_passed: dict[WorkflowId, dict[GroupId, dict[DataConditionGroupId, list[int]]]] = (
+        defaultdict(lambda: defaultdict(dict))
     )
-    not_fired: dict[WorkflowId, dict[GroupId, dict[DataConditionGroupId, list[int]]]] = defaultdict(
-        lambda: defaultdict(dict)
+    if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]] = defaultdict(
+        lambda: defaultdict(list)
     )
 
     tainted, untainted = 0, 0
@@ -666,12 +670,13 @@ def get_groups_to_fire(
                     tainted += 1
                 else:
                     untainted += 1
-                condition_ids = [pc.condition.id for pc in if_group.condition_results]
                 if if_result.triggered:
                     groups_to_fire[group_id].add(dcg)
-                    fired[workflow_id][group_id][dcg.id] = condition_ids
+                    if_dcg_passed[workflow_id][group_id][dcg.id] = [
+                        pc.condition.id for pc in if_group.condition_results
+                    ]
                 else:
-                    not_fired[workflow_id][group_id][dcg.id] = condition_ids
+                    if_dcg_failed[workflow_id][group_id].append(dcg.id)
 
         for if_dcg_id in event_key.passing_dcg_ids:
             if dcg := data_condition_group_mapping.get(if_dcg_id):
@@ -681,7 +686,7 @@ def get_groups_to_fire(
                 else:
                     untainted += 1
                 groups_to_fire[group_id].add(dcg)
-                fired[workflow_id][group_id][dcg.id] = [
+                if_dcg_passed[workflow_id][group_id][dcg.id] = [
                     c.id for c in dcg_to_slow_conditions.get(dcg.id, [])
                 ]
 
@@ -692,8 +697,8 @@ def get_groups_to_fire(
         when_dcg_missing=when_dcg_missing,
         when_failed_untainted=when_failed_untainted,
         when_failed_tainted=when_failed_tainted,
-        fired=fired,
-        not_fired=not_fired,
+        if_dcg_passed=if_dcg_passed,
+        if_dcg_failed=if_dcg_failed,
     )
 
 
