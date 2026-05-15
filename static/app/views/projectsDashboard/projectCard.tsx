@@ -55,8 +55,8 @@ export function ProjectCard({
     hasPerformance,
   });
 
-  const projectStats = getProjectStats(simpleProject);
-  const {stats, transactionStats, sessionStats, latestDeploys} = projectStats;
+  const {stats, transactionStats, sessionStats, latestDeploys} =
+    getProjectStats(simpleProject);
   const {slug} = simpleProject;
   const {hasHealthData, currentCrashFreeRate, previousCrashFreeRate} = sessionStats || {};
 

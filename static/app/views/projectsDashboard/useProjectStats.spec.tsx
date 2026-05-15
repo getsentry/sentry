@@ -1,13 +1,13 @@
-import type {ReactNode} from 'react';
-import {QueryClientProvider} from '@tanstack/react-query';
+import {useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
-  renderHook,
+  render,
   renderHookWithProviders,
+  screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -22,10 +22,6 @@ describe('useProjectStats', () => {
     [1517281200, 2],
     [1517310000, 1],
   ];
-
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
-  });
 
   it('uses initial stats and batches missing project ids', async () => {
     const projects = [
@@ -82,11 +78,26 @@ describe('useProjectStats', () => {
   });
 
   it('keeps cached stats when the hook remounts', async () => {
-    const queryClient = makeTestQueryClient();
-    const wrapper = ({children}: {children?: ReactNode}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
     const project = ProjectFixture({id: '1', slug: 'm'});
+
+    function TestComponent() {
+      const {getOne} = useProjectStats({organization, hasPerformance: false});
+      const {stats} = getOne(project);
+      return <div>{stats ? 'loaded' : 'missing'}</div>;
+    }
+
+    function TestHarness() {
+      const [isMounted, setMounted] = useState(true);
+      return (
+        <div>
+          <button type="button" onClick={() => setMounted(mounted => !mounted)}>
+            Toggle project stats
+          </button>
+          {isMounted ? <TestComponent /> : null}
+        </div>
+      );
+    }
+
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [
@@ -97,28 +108,17 @@ describe('useProjectStats', () => {
       ],
     });
 
-    const {result, unmount} = renderHook(
-      () => useProjectStats({organization, hasPerformance: false}),
-      {wrapper}
-    );
+    render(<TestHarness />, {organization});
 
-    act(() => {
-      expect(result.current.getOne(project).stats).toBeUndefined();
-    });
+    expect(screen.getByText('missing')).toBeInTheDocument();
 
-    await waitFor(() =>
-      expect(result.current.getOne(project).stats).toEqual(responseStats)
-    );
+    expect(await screen.findByText('loaded')).toBeInTheDocument();
     expect(mock).toHaveBeenCalledTimes(1);
 
-    unmount();
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle project stats'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle project stats'}));
 
-    const {result: remountResult} = renderHook(
-      () => useProjectStats({organization, hasPerformance: false}),
-      {wrapper}
-    );
-
-    expect(remountResult.current.getOne(project).stats).toEqual(responseStats);
+    expect(await screen.findByText('loaded')).toBeInTheDocument();
     expect(mock).toHaveBeenCalledTimes(1);
   });
 });
