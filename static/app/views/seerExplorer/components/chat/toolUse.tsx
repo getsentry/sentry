@@ -63,8 +63,6 @@ export function ToolUseBlock() {
   );
 }
 
-// ─── Tool Call Components ───────────────────────────────────
-
 function useToolLinks() {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -241,8 +239,6 @@ function ToolCallRow({
   );
 }
 
-// ─── Leaf Components ────────────────────────────────────────
-
 function TodoList({todos}: {todos: TodoItem[]}) {
   return (
     <Stack as="ul" gap="sm" padding="0">
@@ -305,8 +301,6 @@ function BlockStatusIndicator({status}: {status: BlockStatus}) {
       return unreachable(status);
   }
 }
-
-// ─── Styled Components ──────────────────────────────────────
 
 const ToolCallText = styled(Text)`
   white-space: normal;
