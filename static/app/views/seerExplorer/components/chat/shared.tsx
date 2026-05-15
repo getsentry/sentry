@@ -29,29 +29,47 @@ function useBlockContext(): BlockContextValue {
 }
 
 export {BlockContext, useBlockContext};
-export type {BlockContextValue};
 
 // ─── Types ──────────────────────────────────────────────────
 
-export type ToolCallStatus = 'pending' | 'success' | 'failure';
+export type BlockStatus =
+  | 'loading'
+  | 'content'
+  | 'success'
+  | 'failure'
+  | 'mixed'
+  | 'pending';
 
 // ─── Pure Functions ─────────────────────────────────────────
 
-export function getToolCallStatus(
-  blockLoading: boolean | undefined,
-  toolLinkParams?: Record<string, any>
-): ToolCallStatus {
-  if (
-    blockLoading ||
-    toolLinkParams?.pending_approval ||
-    toolLinkParams?.pending_question
-  ) {
+export function getBlockStatus(block: Block): BlockStatus {
+  if (block.loading) {
+    return 'loading';
+  }
+
+  if (!block.message.tool_calls?.length) {
+    return 'content';
+  }
+
+  const toolLinks = (block.tool_links ?? []).filter(
+    (l): l is NonNullable<typeof l> => l !== null
+  );
+
+  if (toolLinks.some(l => l.params?.pending_approval || l.params?.pending_question)) {
     return 'pending';
   }
-  if (toolLinkParams?.is_error || toolLinkParams?.empty_results) {
-    return 'failure';
+
+  if (!toolLinks.length) {
+    return 'success';
   }
-  return 'success';
+
+  const failures = toolLinks.filter(
+    l => l.params?.is_error === true || l.params?.empty_results === true
+  ).length;
+
+  if (failures === 0) return 'success';
+  if (failures === toolLinks.length) return 'failure';
+  return 'mixed';
 }
 
 export function hasValidContent(content: string | null | undefined): content is string {
