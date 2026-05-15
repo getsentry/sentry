@@ -1,3 +1,6 @@
+# NOTE: not migrated to sentry_scm. The task is built around `client.get_repos()`
+# (list integration-accessible repos), which has no scm.types protocol. Revisit
+# once sentry_scm adds a ListRepositoriesProtocol.
 import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict

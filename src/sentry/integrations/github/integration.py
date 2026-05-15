@@ -65,6 +65,8 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.scm.cases import source_urls as source_urls_case
+from sentry.scm.cases._common import use_scm_for_org_id
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -256,17 +258,21 @@ class GitHubIntegration(
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        if use_scm_for_org_id(repo.organization_id):
+            return source_urls_case.format_source_url(repo, filepath, branch)
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        # NOTE: URL parsing is provider-specific; no scm.types protocol covers it.
         if not repo.url:
             return ""
         branch, _ = parse_github_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        # NOTE: URL parsing is provider-specific; no scm.types protocol covers it.
         if not repo.url:
             return ""
         _, source_path = parse_github_blob_url(repo.url, url)
@@ -296,6 +302,8 @@ class GitHubIntegration(
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
+        # NOTE: not migrated to sentry_scm. scm.types has no ListRepositoriesProtocol
+        # for "list integration-accessible repos". Revisit once sentry_scm adds one.
         client = self.get_client()
 
         def to_repo_info(raw_repos: Iterable[Mapping[str, Any]]) -> list[RepositoryInfo]:
@@ -362,6 +370,8 @@ class GitHubIntegration(
         return True
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        # NOTE: not migrated to sentry_scm. scm.types has no SearchIssuesProtocol;
+        # search query syntax is provider-specific.
         if query is None:
             query = ""
         resp = self.get_client().search_issues(query)

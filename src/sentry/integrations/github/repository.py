@@ -15,6 +15,8 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
+from sentry.scm.cases import repository as repository_case
+from sentry.scm.cases._common import use_scm_for_org_id
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 if TYPE_CHECKING:
@@ -87,6 +89,9 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
     def fetch_recent_commits(
         self, repo: Repository, end_sha: str, *, actor: Any | None = None
     ) -> Sequence[Mapping[str, Any]]:
+        if use_scm_for_org_id(repo.organization_id):
+            return repository_case.fetch_recent_commits(repo, end_sha)
+
         installation, client = self._get_installation_and_client(repo)
         # use config name because that is kept in sync via webhooks
         name = repo.config["name"]
@@ -105,6 +110,9 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
         *,
         actor: Any | None = None,
     ) -> Sequence[Mapping[str, Any]]:
+        if use_scm_for_org_id(repo.organization_id):
+            return repository_case.fetch_commits_for_compare_range(repo, start_sha, end_sha)
+
         installation, client = self._get_installation_and_client(repo)
         # use config name because that is kept in sync via webhooks
         name = repo.config["name"]
@@ -188,6 +196,8 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
         return changes
 
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
+        if use_scm_for_org_id(repo.organization_id):
+            return repository_case.pull_request_url(repo, pull_request)
         return f"{repo.url}/pull/{pull_request.key}"
 
     def repository_external_slug(self, repo: Repository) -> str:
