@@ -48,12 +48,10 @@ class DynamicRateLimiter:
     """
     Quota management class for external rate-limits with dynamic, per-organization request limits.
 
-    The `DynamicRateLimiter` class operates as an eventually consistent mirror of an externally
-    managed rate limiter. This class defines best-effort load shedding behavior. Because we will
-    never be consistent with the primary our goal is to reasonably allocate traffic between
-    referrers. We offer no guarantees that this class will actually reserve quota. It should more
-    accurately be thought of as a load-shedding heuristic where unallocated referrer requests are
-    eagerly dropped.
+    The `DynamicRateLimiter` class operates as a mirror of an externally managed rate limiter. This
+    call will attempt to load-shed requests when it thinks a quota allocation has been exceeded.
+    We do not attempt to synchronize with the source. This requires every outbound request to utilize
+    this request.
 
     :param get_time_in_seconds: Get the current UTC timestamp in seconds.
     :param integration_id: The integration we're scoped to.
