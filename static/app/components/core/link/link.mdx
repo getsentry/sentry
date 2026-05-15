@@ -12,50 +12,54 @@ resources:
 ---
 
 import {Container} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/link');
 
-The Link component provides context-aware navigation within the Sentry application, while ExternalLink handles external URLs. Both components maintain consistent styling and accessibility standards.
+The `Link` component provides a unified API for all navigation, handling both internal routes and external URLs through a single `href` prop. External URLs are automatically detected and rendered with appropriate security attributes.
 
-## Internal Links
+## Basic Usage
 
-Use `<Link>` for navigation within the Sentry application. The component uses React Router under the hood and falls back to a standard anchor tag when no router context is available.
-
-<Storybook.Demo>
-  <Link to="/organizations/sentry/issues/">Navigate to Issues</Link>
-</Storybook.Demo>
-```jsx
-<Link to="/organizations/sentry/issues/">Navigate to Issues</Link>
-```
-
-### Link Target Format
-
-The `to` prop accepts either a string path or a `LocationDescriptor` object. When using literal paths, always use slug-based URLs to ensure compatibility across different deployment environments (customer domains and single-tenant).
+Pass any URL to the `href` prop. Internal paths are routed through React Router, while external URLs (`http://` or `https://`) render as plain `<a>` elements with `target="_blank"` and `rel="noreferrer noopener"`.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Link to="/organizations/sentry/issues/">String path</Link>
-    <Link to={{pathname: '/settings/account/'}}>LocationDescriptor object</Link>
+    <Link href="/organizations/sentry/issues/">Internal: Issues page</Link>
+    <Link href="https://docs.sentry.io">External: Sentry Docs</Link>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
-<Link to="/organizations/sentry/issues/">String path</Link>
-<Link to={{pathname: '/settings/account/'}}>LocationDescriptor object</Link>
+<Link href="/organizations/sentry/issues/">Internal: Issues page</Link>
+<Link href="https://docs.sentry.io">External: Sentry Docs</Link>
+```
+
+## Link Target Format
+
+The `href` prop accepts either a string path or a `LocationDescriptor` object. When using literal paths, always use slug-based URLs to ensure compatibility across different deployment environments (customer domains and single-tenant).
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Link href="/organizations/sentry/issues/">String path</Link>
+    <Link href={{pathname: '/settings/account/'}}>LocationDescriptor object</Link>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Link href="/organizations/sentry/issues/">String path</Link>
+<Link href={{pathname: '/settings/account/'}}>LocationDescriptor object</Link>
 ```
 
 ## External Links
 
-Use `<ExternalLink>` for links to external websites. By default, external links open in a new tab.
+External URLs are automatically detected by the `href` prop. By default, they open in a new tab with `target="_blank"` and `rel="noreferrer noopener"`.
 
 <Storybook.Demo>
-  <ExternalLink href="https://docs.sentry.io">Visit Sentry Docs</ExternalLink>
+  <Link href="https://docs.sentry.io">Visit Sentry Docs</Link>
 </Storybook.Demo>
 ```jsx
-<ExternalLink href="https://docs.sentry.io">Visit Sentry Docs</ExternalLink>
+<Link href="https://docs.sentry.io">Visit Sentry Docs</Link>
 ```
 
 ### Opening in Same Tab
@@ -64,17 +68,17 @@ Set `openInNewTab={false}` to open external links in the same tab.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <ExternalLink href="https://docs.sentry.io">Opens in new tab (default)</ExternalLink>
-    <ExternalLink href="https://docs.sentry.io" openInNewTab={false}>
+    <Link href="https://docs.sentry.io">Opens in new tab (default)</Link>
+    <Link href="https://docs.sentry.io" openInNewTab={false}>
       Opens in same tab
-    </ExternalLink>
+    </Link>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
-<ExternalLink href="https://docs.sentry.io">Opens in new tab (default)</ExternalLink>
-<ExternalLink href="https://docs.sentry.io" openInNewTab={false}>
+<Link href="https://docs.sentry.io">Opens in new tab (default)</Link>
+<Link href="https://docs.sentry.io" openInNewTab={false}>
   Opens in same tab
-</ExternalLink>
+</Link>
 ```
 
 ## Disabled Links
@@ -83,37 +87,52 @@ Use the `disabled` prop to disable link navigation while maintaining visual pres
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Link to="/organizations/sentry/issues/">Active link</Link>
-    <Link to="/organizations/sentry/issues/" disabled>
+    <Link href="/organizations/sentry/issues/">Active link</Link>
+    <Link href="/organizations/sentry/issues/" disabled>
       Disabled link
     </Link>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
-<Link to="/issues/">Active link</Link>
-<Link to="/issues/" disabled>
+<Link href="/issues/">Active link</Link>
+<Link href="/issues/" disabled>
   Disabled Link
 </Link>
 ```
 
 ## Inline Links
 
-Both `<Link>` and `<ExternalLink>` components can be used inline in `<Text>` components to give a styled link.
+`Link` can be used inline within `Text` components.
 
 <Storybook.Demo>
   <Container padding="md">
     <Text>
       This is a paragraph with an{' '}
-      <Link to="/organizations/sentry/issues/">inline link</Link> that inherits text
+      <Link href="/organizations/sentry/issues/">inline link</Link> that inherits text
       styling.
     </Text>
   </Container>
 </Storybook.Demo>
 ```jsx
 <Text>
-  This is a paragraph with an <Link to="/organizations/sentry/issues/">inline link</Link>{' '}
-  that inherits text styling.
+  This is a paragraph with an{' '}
+  <Link href="/organizations/sentry/issues/">inline link</Link> that inherits text
+  styling.
 </Text>
+```
+
+## Migration from `ExternalLink` and `to`
+
+The `ExternalLink` component and the `to` prop are deprecated. Use `href` for all links.
+
+```jsx
+// Before
+<Link to="/issues/">Issues</Link>
+<ExternalLink href="https://docs.sentry.io">Docs</ExternalLink>
+
+// After
+<Link href="/issues/">Issues</Link>
+<Link href="https://docs.sentry.io">Docs</Link>
 ```
 
 ## See Also

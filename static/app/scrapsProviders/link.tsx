@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import {Link as RouterLink} from 'react-router-dom';
 
-import {LinkBehaviorContextProvider, type LinkProps} from '@sentry/scraps/link';
+import {LinkBehaviorContextProvider, type RoutedLinkProps} from '@sentry/scraps/link';
 
 import {preload} from 'sentry/router/preload';
 import {useRouteConfig} from 'sentry/router/routeConfigContext';
@@ -18,7 +18,7 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
       value={useMemo(
         () => ({
           component: RouterLink,
-          behavior: ({to, onMouseEnter, onFocus, ...props}: LinkProps) => {
+          behavior: ({to, onMouseEnter, onFocus, ...props}: RoutedLinkProps) => {
             const normalizedTo = locationDescriptorToTo(normalizeUrl(to, location));
 
             return {
