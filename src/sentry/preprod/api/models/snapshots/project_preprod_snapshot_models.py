@@ -50,7 +50,7 @@ class SnapshotImageDetailImageInfo(BaseModel):
     height: int
     diff_threshold: float | None = None
     description: str | None = None
-    tags: list[str] | None = None
+    tags: dict[str, str] | None = None
     image_url: str
 
     class Config:
