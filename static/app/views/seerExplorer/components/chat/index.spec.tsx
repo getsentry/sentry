@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 describe('BlockComponent', () => {

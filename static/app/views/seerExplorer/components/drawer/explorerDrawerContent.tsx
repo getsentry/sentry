@@ -12,7 +12,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
@@ -383,7 +383,6 @@ export function ExplorerDrawerContent({
                   }}
                   block={block}
                   blockIndex={index}
-                  blocksLength={blocks.length}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
                   interactionPending={isFileApprovalPending || isQuestionPending}
