@@ -384,7 +384,7 @@ export function generateSourceCards(
     sourceCards.push({
       key: `profile-${id}`,
       icon: <IconProfiling size="xs" />,
-      onClick: () => window.open(`/explore/profiling/profile/${id}/flamegraph`, '_blank'),
+      onClick: () => window.open(`/explore/profiles/profile/${id}/flamegraph`, '_blank'),
       label: t('Profile: %s', id.substring(0, 7)),
       isPrimary,
     });

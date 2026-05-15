@@ -94,7 +94,7 @@ export function ExploreSecondaryNavigation() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/profiling/`}
+                  to={`${baseUrl}/profiles/`}
                   analyticsItemName="explore_profiles"
                 >
                   {t('Profiles')}

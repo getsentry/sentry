@@ -274,7 +274,15 @@ describe('getProductForPath', () => {
     });
   });
 
-  it('returns PROFILES product for /profiling/ path', () => {
+  it('returns PROFILES product for /profiles/ path', () => {
+    const result = getProductForPath(subscription, '/profiles/');
+    expect(result).toEqual({
+      product: DataCategory.PROFILES,
+      categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
+    });
+  });
+
+  it('normalizes /profiling/ to /profiles/', () => {
     const result = getProductForPath(subscription, '/profiling/');
     expect(result).toEqual({
       product: DataCategory.PROFILES,
@@ -314,8 +322,16 @@ describe('getProductForPath', () => {
     });
   });
 
-  it('normalizes /explore/profiling/ to /profiling/', () => {
+  it('normalizes /explore/profiling/ to /profiles/', () => {
     const result = getProductForPath(subscription, '/explore/profiling/');
+    expect(result).toEqual({
+      product: DataCategory.PROFILES,
+      categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
+    });
+  });
+
+  it('normalizes /explore/profiles/ to /profiles/', () => {
+    const result = getProductForPath(subscription, '/explore/profiles/');
     expect(result).toEqual({
       product: DataCategory.PROFILES,
       categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],

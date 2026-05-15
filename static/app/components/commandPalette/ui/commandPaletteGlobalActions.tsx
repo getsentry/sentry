@@ -369,7 +369,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
-              to={`${prefix}/explore/profiling/`}
+              to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
