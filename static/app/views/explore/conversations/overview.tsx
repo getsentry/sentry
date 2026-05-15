@@ -80,6 +80,10 @@ function ConversationsOverviewPage() {
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
+        trackAnalytics('conversations.table.search', {
+          organization,
+          hasQuery: newQuery.trim().length > 0,
+        });
         setSearchQuery(newQuery);
         unsetCursor();
       },
@@ -90,7 +94,7 @@ function ConversationsOverviewPage() {
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],
     }),
-    [hasRawSearchReplacement, searchQuery, setSearchQuery, unsetCursor]
+    [hasRawSearchReplacement, organization, searchQuery, setSearchQuery, unsetCursor]
   );
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =

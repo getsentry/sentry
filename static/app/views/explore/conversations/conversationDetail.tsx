@@ -1,8 +1,10 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
@@ -20,6 +22,7 @@ function useConversationDetailQueryState() {
 }
 
 function ConversationDetailPage() {
+  const organization = useOrganization();
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
@@ -27,11 +30,20 @@ function ConversationDetailPage() {
 
   const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
 
+  useEffect(() => {
+    trackAnalytics('conversations.detail.page-view', {
+      organization,
+    });
+  }, [organization]);
+
   const handleSelectSpan = useCallback(
     (spanId: string) => {
+      trackAnalytics('conversations.detail.select-span', {
+        organization,
+      });
       setQueryState({spanId, focusedTool: null});
     },
-    [setQueryState]
+    [organization, setQueryState]
   );
 
   return (

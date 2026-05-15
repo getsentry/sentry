@@ -17,6 +17,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -139,6 +140,12 @@ export function ConversationAggregatesBar({
         value={<Count value={aggregates.errorCount} />}
         to={aggregates.errorCount > 0 ? errorsUrl : undefined}
         isLoading={isLoading}
+        onClick={
+          aggregates.errorCount > 0
+            ? () =>
+                trackAnalytics('conversations.detail.click-errors-link', {organization})
+            : undefined
+        }
       />
       <AggregateItem
         label={t('Tokens')}
@@ -223,6 +230,7 @@ export function ConversationSummary({
   }, [nodes]);
 
   const handleCopyConversationId = () => {
+    trackAnalytics('conversations.detail.copy-conversation-id', {organization});
     copyToClipboard(conversationId, {
       successMessage: t('Copied conversation ID to clipboard'),
     });
@@ -268,6 +276,11 @@ export function ConversationSummary({
                 )}
                 <StyledLink
                   to={getTraceUrl(organization.slug, trace.traceId, trace.spanId)}
+                  onClick={() =>
+                    trackAnalytics('conversations.detail.click-trace-link', {
+                      organization,
+                    })
+                  }
                 >
                   <Text size="sm" monospace variant="accent">
                     {trace.traceId.slice(0, 8)}
@@ -318,10 +331,12 @@ function AggregateItem({
   value,
   to,
   isLoading,
+  onClick,
 }: {
   label: string;
   value: React.ReactNode;
   isLoading?: boolean;
+  onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
@@ -342,7 +357,11 @@ function AggregateItem({
   );
 
   if (isInteractive) {
-    return <StyledLink to={to}>{content}</StyledLink>;
+    return (
+      <StyledLink to={to} onClick={onClick}>
+        {content}
+      </StyledLink>
+    );
   }
 
   return content;
