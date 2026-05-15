@@ -1164,6 +1164,66 @@ class TestHandleAssignedTo(TestCase):
             reason=GroupSubscriptionReason.assigned,
         ).exists()
 
+    def test_assigned_to_deactivated_user_is_noop(self) -> None:
+        from sentry.models.organizationmember import OrganizationMember
+
+        OrganizationMember.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        ).update(user_is_active=False)
+
+        assigned_to = handle_assigned_to(
+            Actor.from_identifier(self.user.id),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+
+        assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert assigned_to == {
+            "email": self.user.email,
+            "id": str(self.user.id),
+            "name": self.user.username,
+            "type": "user",
+        }
+
+
+class TestValidateAssignedToDeactivatedUser(TestCase):
+    def test_rejects_deactivated_user(self) -> None:
+        from sentry.api.helpers.group_index.validators.group import GroupValidator
+        from sentry.models.organizationmember import OrganizationMember
+
+        OrganizationMember.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        ).update(user_is_active=False)
+
+        serializer = GroupValidator(
+            data={"assignedTo": f"user:{self.user.id}"},
+            partial=True,
+            context={
+                "project": self.project,
+                "organization": self.organization,
+                "access": None,
+            },
+        )
+        assert not serializer.is_valid()
+        assert "assignedTo" in serializer.errors
+
+    def test_allows_active_user(self) -> None:
+        from sentry.api.helpers.group_index.validators.group import GroupValidator
+
+        serializer = GroupValidator(
+            data={"assignedTo": f"user:{self.user.id}"},
+            partial=True,
+            context={
+                "project": self.project,
+                "organization": self.organization,
+                "access": None,
+            },
+        )
+        assert serializer.is_valid()
+
 
 class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
