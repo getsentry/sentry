@@ -1,0 +1,340 @@
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {IconCheckmark, IconClose, IconLink, IconLinkBroken} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {unreachable} from 'sentry/utils/unreachable';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import type {TodoItem} from 'sentry/views/seerExplorer/types';
+import {
+  buildToolLinkUrl,
+  getToolsStringFromBlock,
+  getValidToolLinks,
+} from 'sentry/views/seerExplorer/utils';
+
+import {
+  type ToolCallStatus,
+  SeerMarkdown,
+  Spinner,
+  getToolCallStatus,
+  hasValidContent,
+  useBlockContext,
+} from './shared';
+
+export function ToolUseBlock() {
+  const {block} = useBlockContext();
+  return (
+    <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
+      {hasValidContent(block.message.thinking_content) && (
+        <Disclosure size="sm">
+          <Disclosure.Title>
+            <Text size="sm" variant="muted" monospace>
+              {t('Thinking')}
+            </Text>
+          </Disclosure.Title>
+          <Disclosure.Content>
+            <SeerMarkdown raw={block.message.thinking_content} variant="streaming" />
+          </Disclosure.Content>
+        </Disclosure>
+      )}
+      <ToolCallList />
+    </Stack>
+  );
+}
+
+// ─── Tool Call Components ───────────────────────────────────
+
+function useToolLinks() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {block} = useBlockContext();
+
+  const {sortedToolLinks, toolCallToLinkIndexMap} = useMemo(() => {
+    return getValidToolLinks(
+      block.tool_links || [],
+      block.tool_results || [],
+      block.message.tool_calls || [],
+      organization,
+      projects
+    );
+  }, [
+    block.tool_links,
+    block.tool_results,
+    block.message.tool_calls,
+    organization,
+    projects,
+  ]);
+
+  const toolLinkByCallId = useMemo(() => {
+    const map = new Map<string, Record<string, any> | undefined>();
+    (block.tool_results || []).forEach((result, idx) => {
+      if (result?.tool_call_id) {
+        map.set(result.tool_call_id, block.tool_links?.[idx]?.params);
+      }
+    });
+    return map;
+  }, [block.tool_links, block.tool_results]);
+
+  return {
+    sortedToolLinks,
+    toolCallToLinkIndexMap,
+    toolLinkByCallId,
+    organization,
+    projects,
+  };
+}
+
+function ToolCallList() {
+  const {block, getPageReferrer} = useBlockContext();
+  const {
+    sortedToolLinks,
+    toolCallToLinkIndexMap,
+    toolLinkByCallId,
+    organization,
+    projects,
+  } = useToolLinks();
+  const toolsUsed = getToolsStringFromBlock(block);
+
+  return (
+    <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
+      {block.message.tool_calls?.map((toolCall, idx) => {
+        const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
+        const toolLinkParams = toolCall.id
+          ? toolLinkByCallId.get(toolCall.id)
+          : undefined;
+        const status = getToolCallStatus(block.loading, toolLinkParams);
+        const hasLink = correspondingLinkIndex !== undefined;
+        const toolUrl = hasLink
+          ? buildToolLinkUrl(
+              sortedToolLinks[correspondingLinkIndex],
+              organization,
+              projects
+            )
+          : null;
+
+        const handleLinkClick = hasLink
+          ? (e: React.MouseEvent) => {
+              e.stopPropagation();
+              const selectedLink = sortedToolLinks[correspondingLinkIndex];
+              if (selectedLink) {
+                trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+                  referrer: getPageReferrer?.() ?? '',
+                  organization,
+                  tool_kind: selectedLink.kind,
+                });
+              }
+            }
+          : undefined;
+
+        const isTodoWrite = toolCall.function === 'todo_write';
+        const todos =
+          isTodoWrite && block.todos && block.todos.length > 0 ? block.todos : null;
+
+        const failureTooltip = toolLinkParams?.is_error
+          ? t('Tool call failed')
+          : toolLinkParams?.empty_results
+            ? t('Tool call returned empty results')
+            : null;
+
+        return (
+          <ToolCallRow
+            key={`${toolCall.function}-${idx}`}
+            toolString={toolsUsed[idx] ?? ''}
+            status={status}
+            toolUrl={toolUrl}
+            failureTooltip={failureTooltip}
+            onLinkClick={handleLinkClick}
+            todos={todos}
+          />
+        );
+      })}
+    </Stack>
+  );
+}
+
+function ToolCallRow({
+  toolString,
+  status,
+  toolUrl,
+  failureTooltip,
+  onLinkClick,
+  todos,
+}: {
+  failureTooltip: string | null;
+  status: ToolCallStatus;
+  todos: TodoItem[] | null;
+  toolString: string;
+  toolUrl: ReturnType<typeof buildToolLinkUrl>;
+  onLinkClick?: (e: React.MouseEvent) => void;
+}) {
+  const hasLink = toolUrl !== null;
+  const isLoading = status === 'pending';
+
+  const toolCallText = (
+    <Tooltip title={failureTooltip ?? ''} disabled={!failureTooltip}>
+      <ToolCallText size="xs" variant="muted" monospace>
+        {toolString}
+      </ToolCallText>
+    </Tooltip>
+  );
+
+  return (
+    <Stack gap="xs">
+      <Flex display="inline-flex" align="start" gap="md" maxWidth="100%">
+        <Flex
+          display="inline-flex"
+          align="center"
+          justify="center"
+          width="12px"
+          height="12px"
+          flexShrink={0}
+        >
+          <BlockStatusIndicator status={status} />
+        </Flex>
+        {hasLink ? (
+          <ToolCallLink to={toolUrl} onClick={onLinkClick}>
+            {toolCallText}
+            <ToolCallLinkIconWrapper>
+              <ToolCallLinkIcon size="xs" />
+            </ToolCallLinkIconWrapper>
+          </ToolCallLink>
+        ) : (
+          <ToolCallPlainRow>
+            {toolCallText}
+            <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
+              <ToolCallBrokenLinkIcon size="xs" />
+            </ToolCallBrokenLinkIconWrapper>
+          </ToolCallPlainRow>
+        )}
+      </Flex>
+      {todos && <TodoList todos={todos} />}
+    </Stack>
+  );
+}
+
+// ─── Leaf Components ────────────────────────────────────────
+
+function TodoList({todos}: {todos: TodoItem[]}) {
+  return (
+    <Stack as="ul" gap="sm" padding="0">
+      {todos.map(todo => {
+        const checked = todo.status === 'completed';
+        return (
+          <Flex key={todo.content} as="li" gap="sm" align="center">
+            <Checkbox size="xs" checked={checked} readOnly />
+            <Text size="xs" monospace strikethrough={checked} variant="muted">
+              {todo.content}
+            </Text>
+          </Flex>
+        );
+      })}
+    </Stack>
+  );
+}
+
+function BlockStatusIndicator({status}: {status: ToolCallStatus}) {
+  switch (status) {
+    case 'pending':
+      return (
+        <Tooltip title={t('Running...')}>
+          <Spinner />
+        </Tooltip>
+      );
+    case 'failure':
+      return (
+        <Tooltip title={t('Failed')}>
+          <Text variant="danger">
+            <IconClose size="xs" />
+          </Text>
+        </Tooltip>
+      );
+    case 'success':
+      return (
+        <Tooltip title={t('Completed')}>
+          <Text variant="success">
+            <IconCheckmark size="xs" />
+          </Text>
+        </Tooltip>
+      );
+    default:
+      return unreachable(status);
+  }
+}
+
+// ─── Styled Components ──────────────────────────────────────
+
+const ToolCallText = styled(Text)`
+  white-space: normal;
+  overflow: visible;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+`;
+
+const ToolCallLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  max-width: 100%;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+
+  &:hover {
+    ${ToolCallText} {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.hover};
+    }
+  }
+`;
+
+const ToolCallLinkIconWrapper = styled('span')`
+  display: inline-flex;
+  flex-shrink: 0;
+  visibility: hidden;
+
+  ${ToolCallLink}:hover & {
+    visibility: visible;
+  }
+`;
+
+const ToolCallLinkIcon = styled(IconLink)`
+  color: ${p => p.theme.tokens.content.secondary};
+  flex-shrink: 0;
+
+  ${ToolCallLink}:hover & {
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
+  }
+`;
+
+const ToolCallPlainRow = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  max-width: 100%;
+`;
+
+const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
+  color: ${p => p.theme.tokens.content.secondary};
+  flex-shrink: 0;
+  transform: translateY(2px);
+`;
+
+const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
+  display: inline-flex;
+  flex-shrink: 0;
+  visibility: hidden;
+
+  ${ToolCallPlainRow}:hover & {
+    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
+  }
+`;
