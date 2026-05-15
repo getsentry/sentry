@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 
 
@@ -7,39 +10,31 @@ def _meta(**kwargs: object) -> dict:
     return defaults
 
 
-class TestImageMetadataTagsCoercion:
+class TestImageMetadataTags:
     def test_tags_none(self) -> None:
         meta = ImageMetadata(**_meta())
         assert meta.tags is None
 
-    def test_tags_dict_passthrough(self) -> None:
+    def test_tags_dict(self) -> None:
         tags = {"theme": "dark", "device": "phone"}
         meta = ImageMetadata(**_meta(tags=tags))
         assert meta.tags == tags
-
-    def test_tags_list_converted_to_dict(self) -> None:
-        meta = ImageMetadata(**_meta(tags=["dark", "mobile"]))
-        assert meta.tags == {"dark": "dark", "mobile": "mobile"}
-
-    def test_tags_single_item_list(self) -> None:
-        meta = ImageMetadata(**_meta(tags=["solo"]))
-        assert meta.tags == {"solo": "solo"}
-
-    def test_tags_empty_list(self) -> None:
-        meta = ImageMetadata(**_meta(tags=[]))
-        assert meta.tags == {}
 
     def test_tags_empty_dict(self) -> None:
         meta = ImageMetadata(**_meta(tags={}))
         assert meta.tags == {}
 
-    def test_tags_unexpected_type_becomes_none(self) -> None:
-        meta = ImageMetadata(**_meta(tags=42))
-        assert meta.tags is None
+    def test_tags_list_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            ImageMetadata(**_meta(tags=["dark", "mobile"]))
 
-    def test_tags_string_becomes_none(self) -> None:
-        meta = ImageMetadata(**_meta(tags="not_a_dict_or_list"))
-        assert meta.tags is None
+    def test_tags_string_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            ImageMetadata(**_meta(tags="not_a_dict"))
+
+    def test_tags_int_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            ImageMetadata(**_meta(tags=42))
 
     def test_manifest_with_dict_tags(self) -> None:
         manifest = SnapshotManifest(
@@ -48,11 +43,3 @@ class TestImageMetadataTagsCoercion:
             }
         )
         assert manifest.images["screen.png"].tags == {"theme": "dark", "size": "large"}
-
-    def test_manifest_with_legacy_list_tags(self) -> None:
-        manifest = SnapshotManifest(
-            images={
-                "screen.png": _meta(tags=["dark", "mobile"]),
-            }
-        )
-        assert manifest.images["screen.png"].tags == {"dark": "dark", "mobile": "mobile"}
