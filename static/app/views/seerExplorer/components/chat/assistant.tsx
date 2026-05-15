@@ -42,8 +42,6 @@ export function AssistantBlock() {
   );
 }
 
-// ─── Action Bar ─────────────────────────────────────────────
-
 function useBlockFeedback(block: Block, blockIndex: number, runId: number | undefined) {
   const organization = useOrganization();
   const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
@@ -145,8 +143,6 @@ function FeedbackButton({
     </Button>
   );
 }
-
-// ─── Styled Components ──────────────────────────────────────
 
 const ActionBarWrapper = styled(Flex)`
   position: absolute;

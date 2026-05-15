@@ -9,8 +9,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
-// ─── Context ────────────────────────────────────────────────
-
 interface BlockContextValue {
   block: Block;
   blockIndex: number;
@@ -33,8 +31,6 @@ function useBlockContext(): BlockContextValue {
 
 export {BlockContext, useBlockContext};
 
-// ─── Types ──────────────────────────────────────────────────
-
 export type BlockStatus =
   | 'loading'
   | 'content'
@@ -42,8 +38,6 @@ export type BlockStatus =
   | 'failure'
   | 'mixed'
   | 'pending';
-
-// ─── Pure Functions ─────────────────────────────────────────
 
 export function getBlockStatus(block: Block): BlockStatus {
   if (block.loading) {
@@ -82,8 +76,6 @@ export function hasValidContent(content: string | null | undefined): content is 
   const trimmed = content.trim();
   return trimmed.length > 0 && trimmed !== '.';
 }
-
-// ─── Markdown ───────────────────────────────────────────────
 
 const ISSUE_SHORT_ID_PATTERN =
   /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
@@ -138,8 +130,6 @@ export function MessagePlaceholder({content}: {content?: string}) {
     </Flex>
   );
 }
-
-// ─── Styled Components ──────────────────────────────────────
 
 const spin = keyframes`
   to { transform: rotate(360deg); }
