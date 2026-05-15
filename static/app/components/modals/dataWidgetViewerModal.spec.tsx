@@ -23,6 +23,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -83,18 +84,20 @@ async function renderModal({
     navigate: jest.fn(),
   });
   const rendered = render(
-    <DataWidgetViewerModal
-      Header={stubEl}
-      Footer={stubEl as ModalRenderProps['Footer']}
-      Body={stubEl as ModalRenderProps['Body']}
-      CloseButton={stubEl}
-      closeModal={() => {}}
-      organization={organization}
-      widget={widget}
-      onEdit={() => {}}
-      dashboardFilters={dashboardFilters}
-      widgetLegendState={widgetLegendState}
-    />,
+    <WidgetQueryQueueProvider>
+      <DataWidgetViewerModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => {}}
+        organization={organization}
+        widget={widget}
+        onEdit={() => {}}
+        dashboardFilters={dashboardFilters}
+        widgetLegendState={widgetLegendState}
+      />
+    </WidgetQueryQueueProvider>,
     {
       organization,
       initialRouterConfig: routerConfig,
