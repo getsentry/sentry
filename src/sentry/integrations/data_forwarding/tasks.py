@@ -6,6 +6,8 @@ from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
 from taskbroker_client.retry import Retry
 
+from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -48,9 +50,6 @@ def forward_event(
     event_payload: dict[str, Any],
     task_payload: dict[str, Any],
 ) -> None:
-    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
-    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
-
     logging_ctx: dict[str, Any] = {"data_forwarder_project_id": data_forwarder_project_id}
     try:
         data_forwarder_project = DataForwarderProject.objects.select_related("data_forwarder").get(

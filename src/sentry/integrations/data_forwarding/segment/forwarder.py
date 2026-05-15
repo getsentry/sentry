@@ -98,7 +98,7 @@ class SegmentForwarder(BaseDataForwarder):
                     self.endpoint,
                     json=payload,
                     auth=(write_key, ""),
-                    timeout=10,
+                    timeout=(3.5, 10),
                 )
                 response.raise_for_status()
         except Exception:
@@ -145,6 +145,6 @@ class SegmentForwarder(BaseDataForwarder):
                 SegmentForwarder.endpoint,
                 json=event_payload,
                 auth=(write_key, ""),
-                timeout=10,
+                timeout=(3.5, 10),
             )
             response.raise_for_status()
