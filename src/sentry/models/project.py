@@ -16,7 +16,6 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
-from sentry import features
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -738,12 +737,7 @@ class Project(Model):
 
         # Delete issue ownership objects to prevent them from being stuck on the old org
         ProjectCodeOwners.objects.filter(project_id=self.id).delete()
-        if features.has("organizations:project-repository-fk-reads", organization):
-            RepositoryProjectPathConfig.objects.filter(
-                project_repository__project_id=self.id
-            ).delete()
-        else:
-            RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
+        RepositoryProjectPathConfig.objects.filter(project_repository__project_id=self.id).delete()
         ProjectRepository.objects.filter(project_id=self.id).delete()
 
         for external_issues in chunked(

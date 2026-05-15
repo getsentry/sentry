@@ -21,6 +21,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
@@ -606,6 +607,12 @@ class AutofixOnCompletionHookTest(TestCase):
         self.organization.update_option("sentry:enable_seer_coding", True)
         group = self.create_group(project=self.project)
 
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            last_triggered_at=before_now(days=1),
+        )
+
         # Mock run state: SOLUTION step just completed
         state = run_state(
             blocks=[solution_memory_block()],
@@ -625,3 +632,7 @@ class AutofixOnCompletionHookTest(TestCase):
         assert call_kwargs["step"] == AutofixStep.CODE_CHANGES
         assert call_kwargs["group"] == group
         assert call_kwargs["run_id"] == 123
+
+        seer_run.refresh_from_db()
+        group.refresh_from_db()
+        assert seer_run.last_triggered_at == group.seer_explorer_autofix_last_triggered

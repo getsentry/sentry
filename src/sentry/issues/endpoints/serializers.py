@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import build_codeowners_associations
@@ -97,11 +97,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
 
         project = self.context["project"]
         try:
-            if features.has("organizations:project-repository-fk-reads", project.organization):
-                return RepositoryProjectPathConfig.objects.get(
-                    id=code_mapping_id, project_repository__project=project
-                )
-            return RepositoryProjectPathConfig.objects.get(id=code_mapping_id, project=project)
+            return RepositoryProjectPathConfig.objects.get(
+                id=code_mapping_id, project_repository__project=project
+            )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise serializers.ValidationError("This code mapping does not exist.")
 

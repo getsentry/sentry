@@ -34,6 +34,38 @@ EDIT_ON_PAGE_CONTEXT_TEMPLATE = """The user is editing an existing dashboard. Th
 
 This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Do not perform code changes or any tasks unrelated to dashboard editing."""
 
+DASHBOARD_INSTRUCTIONS = """\
+You are generating a Sentry dashboard. Follow these rules strictly:
+
+Data accuracy:
+- Every field name, span description, span op, tag key, or attribute value you use in a widget \
+query must either come from an actual tool call result or be a field documented in the system prompt.
+- Do not invent or guess values that have not been confirmed via a tool call or the system prompt.
+
+Grid layout (6-column grid):
+- The grid is 6 columns wide. Every widget's x + w must be <= 6.
+- Each row of widgets should have widths that sum to exactly 6.
+
+Queries:
+- All queries on a single widget must share the same aggregates, fields, columns, and orderby. Only \
+conditions and name may differ between queries on the same widget.
+- Never use these aggregate functions — they are denylisted: spm, apdex, http_error_count, \
+http_error_count_percent.
+- Do not use widget_type "discover" or "transaction-like" — they are deprecated. Use "spans" or \
+"error-events" instead.
+
+Widget-type-specific rules:
+- For text widgets, widget_type must be null and queries must be empty.
+- Description must not exceed 255 characters for non-text widgets. For text widgets,
+description must not exceed 15,000 characters.
+
+Limits:
+- For non-table, non-big_number chart widgets that have group-by columns, limit must be explicitly \
+set. The maximum is 10 for most chart types, 25 for categorical bar charts, and 20 for table widgets.
+
+User Query:
+"""
+
 
 class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
     prompt = serializers.CharField(
@@ -87,7 +119,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         validated_data = serializer.validated_data
-        prompt = validated_data["prompt"]
+        prompt = DASHBOARD_INSTRUCTIONS + validated_data["prompt"] + "\n"
         current_dashboard = validated_data.get("current_dashboard")
 
         # If current_dashboard is provided, we're editing; otherwise generating a new dashboard.

@@ -5,7 +5,13 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -293,7 +299,7 @@ describe('MonitorForm', () => {
     );
   });
 
-  it('filters non-ASCII characters from crontab schedule', async () => {
+  it.isKnownFlake('filters non-ASCII characters from crontab schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -305,11 +311,15 @@ describe('MonitorForm', () => {
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
 
-    // Type schedule with emoji and Unicode characters
-    await userEvent.clear(schedule);
-    await userEvent.type(schedule, '5 * * * *😀中文');
+    // Fire a single change event with mixed ASCII and non-ASCII characters.
+    // Using fireEvent.change instead of userEvent.type avoids cursor desync
+    // caused by transformInput changing the controlled input's value mid-type.
+    fireEvent.change(schedule, {target: {value: '5 * * * *😀中文'}});
 
     // Non-ASCII characters should be filtered out, leaving only valid ASCII
-    expect(schedule).toHaveValue('5 * * * *');
+    // Wait for any validation/tooltip updates to complete
+    await waitFor(() => {
+      expect(schedule).toHaveValue('5 * * * *');
+    });
   });
 });

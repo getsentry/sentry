@@ -56,8 +56,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -98,8 +98,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -143,8 +143,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         depot_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=depot_repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -160,8 +160,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=myproject_repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="myproject/",
@@ -211,8 +211,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -250,8 +250,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -286,8 +286,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/game/project/",
@@ -329,8 +329,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -387,8 +387,8 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         )
         self.code_mapping = RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            organization_id=self.organization.id,
             repository=self.repo,
+            organization_id=self.organization.id,
             organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
@@ -486,8 +486,8 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         )
         code_mapping_web = RepositoryProjectPathConfig.objects.create(
             project=project_web,
-            organization_id=self.organization.id,
             repository=repo_web,
+            organization_id=self.organization.id,
             organization_integration_id=org_integration_web.id,
             integration_id=integration_with_web.id,
             stack_root="depot/",

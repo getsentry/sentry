@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.core.exceptions import BadRequest
 from pydantic import BaseModel, Field
 
-from sentry import features
 from sentry.integrations.models.repository_project_path_config import (
     RepositoryProjectPathConfig,
 )
@@ -200,22 +199,14 @@ def _format_linked_repos(project_id: int, organization: Organization) -> str:
     agent doesn't have to guess it from the project slug. Includes source_root
     because many repos place app code under a subdirectory (e.g. `python/`).
     """
-    use_fk = features.has("organizations:project-repository-fk-reads", organization)
-    if use_fk:
-        configs = (
-            RepositoryProjectPathConfig.objects.filter(project_repository__project_id=project_id)
-            .select_related("project_repository__repository")
-            .order_by("id")
-        )
-    else:
-        configs = (
-            RepositoryProjectPathConfig.objects.filter(project_id=project_id)
-            .select_related("repository")
-            .order_by("id")
-        )
+    configs = (
+        RepositoryProjectPathConfig.objects.filter(project_repository__project_id=project_id)
+        .select_related("project_repository__repository")
+        .order_by("id")
+    )
     lines: list[str] = []
     for cfg in configs:
-        repo_name = cfg.project_repository.repository.name if use_fk else cfg.repository.name
+        repo_name = cfg.project_repository.repository.name
         source_root = cfg.source_root or ""
         stack_root = cfg.stack_root or ""
         parts = [f"- {repo_name}"]

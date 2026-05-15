@@ -7,7 +7,6 @@ from typing import Any, NamedTuple
 
 from django.db import router, transaction
 
-from sentry import features
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
@@ -410,27 +409,18 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     # sure that we are still ordering by `id` because we want to make sure
     # the ordering is deterministic
     # codepath mappings must have an associated integration for stacktrace linking.
-    if features.has("organizations:project-repository-fk-reads", project.organization):
-        configs = (
-            RepositoryProjectPathConfig.objects.filter(
-                project_repository__project=project,
-                organization_integration_id__isnull=False,
-            )
-            .select_related(
-                "project_repository",
-                "project_repository__project",
-                "project_repository__repository",
-            )
-            .order_by("id")
+    configs = (
+        RepositoryProjectPathConfig.objects.filter(
+            project_repository__project=project,
+            organization_integration_id__isnull=False,
         )
-    else:
-        configs = (
-            RepositoryProjectPathConfig.objects.filter(
-                project=project, organization_integration_id__isnull=False
-            )
-            .select_related("repository")
-            .order_by("id")
+        .select_related(
+            "project_repository",
+            "project_repository__project",
+            "project_repository__repository",
         )
+        .order_by("id")
+    )
 
     sorted_configs: list[RepositoryProjectPathConfig] = []
 
