@@ -107,5 +107,5 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
         });
       }
     };
-  }, []);
+  }, [navigate]);
 }
