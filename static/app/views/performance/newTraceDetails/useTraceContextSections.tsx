@@ -25,19 +25,23 @@ export function useTraceContextSections({
   logs,
   metrics,
   meta,
+  logsEnabled = true,
+  metricsEnabled = true,
 }: {
   logs: OurLogsResponseItem[] | undefined;
   metrics: {count: number} | undefined;
   tree: TraceTree;
+  logsEnabled?: boolean;
   meta?: TraceMetaQueryResults['data'];
+  metricsEnabled?: boolean;
 }) {
   const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
 
-  const hasLogs = hasCount(getTraceMetaLogsCount(meta), !!(logs && logs?.length > 0));
-  const hasMetrics = hasCount(
-    getTraceMetaMetricsCount(meta),
-    !!(metrics && metrics.count > 0)
-  );
+  const hasLogs =
+    logsEnabled && hasCount(getTraceMetaLogsCount(meta), !!(logs && logs?.length > 0));
+  const hasMetrics =
+    metricsEnabled &&
+    hasCount(getTraceMetaMetricsCount(meta), !!(metrics && metrics.count > 0));
   const hasOnlyLogs = tree.type === 'empty' && hasLogs;
 
   const allowedVitals = Object.keys(VITAL_DETAILS);
@@ -45,10 +49,8 @@ export function useTraceContextSections({
     vitalGroup.some(vital => allowedVitals.includes(`measurements.${vital.key}`))
   );
 
-  const hasAiSpans = hasCount(
-    getTraceMetaAiSpanCount(meta),
-    !!tree.root.findChild(getIsAiNode)
-  );
+  const hasAiSpans =
+    (getTraceMetaAiSpanCount(meta) ?? 0) > 0 || !!tree.root.findChild(getIsAiNode);
 
   const traceEventCount =
     (getTraceMetaSpanCount(meta) ?? 0) +

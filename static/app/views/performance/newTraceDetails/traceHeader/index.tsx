@@ -8,10 +8,12 @@ import type {Project} from 'sentry/types/project';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -51,6 +53,8 @@ const traceViewFeedbackOptions = {
 
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
+  const logsEnabled = isLogsEnabled(props.organization);
+  const metricsEnabled = canUseMetricsUI(props.organization);
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
@@ -59,6 +63,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     tree: props.tree,
     logs: props.logs,
     metrics: props.metrics,
+    logsEnabled,
+    metricsEnabled,
   });
 
   const isLoading =
@@ -139,6 +145,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             representativeEvent={rep}
             logs={props.logs}
             metrics={props.metrics}
+            logsEnabled={logsEnabled}
+            metricsEnabled={metricsEnabled}
           />
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.StyledBreak />

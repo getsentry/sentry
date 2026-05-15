@@ -58,7 +58,7 @@ describe('useTraceContextSections', () => {
     expect(result.current.hasTraceEvents).toBe(true);
   });
 
-  it('treats zero trace meta counts as authoritative for covered sections', () => {
+  it('treats zero trace meta counts as authoritative for logs and metrics', () => {
     const {result} = renderHook(() =>
       useTraceContextSections({
         tree: makeTree({
@@ -74,7 +74,43 @@ describe('useTraceContextSections', () => {
 
     expect(result.current.hasLogs).toBe(false);
     expect(result.current.hasMetrics).toBe(false);
-    expect(result.current.hasAiSpans).toBe(false);
+    expect(result.current.hasAiSpans).toBe(true);
+  });
+
+  it('falls back to tree data for AI spans when EAP trace meta has no gen_ai span op count', () => {
+    const {result} = renderHook(() =>
+      useTraceContextSections({
+        tree: makeTree({
+          root: {
+            findChild: () => ({}) as BaseNode,
+          } as unknown as TraceTree['root'],
+        }),
+        logs: undefined,
+        metrics: undefined,
+        meta: makeEapMeta({spansCountMap: {http: 1}}),
+      })
+    );
+
+    expect(result.current.hasAiSpans).toBe(true);
+  });
+
+  it('does not show logs or metrics from trace meta when the product features are disabled', () => {
+    const {result} = renderHook(() =>
+      useTraceContextSections({
+        tree: makeTree(),
+        logs: [{}] as unknown as OurLogsResponseItem[],
+        metrics: {count: 1},
+        meta: makeEapMeta({
+          logsCount: 2,
+          metricsCount: 3,
+        }),
+        logsEnabled: false,
+        metricsEnabled: false,
+      })
+    );
+
+    expect(result.current.hasLogs).toBe(false);
+    expect(result.current.hasMetrics).toBe(false);
   });
 
   it('falls back to loaded data for sections not covered by legacy trace meta', () => {

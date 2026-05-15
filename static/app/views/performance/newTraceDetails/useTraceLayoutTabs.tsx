@@ -108,7 +108,9 @@ export function getInitialTab({
 interface UseTraceLayoutTabsProps {
   isLoading: boolean;
   logs: OurLogsResponseItem[] | undefined;
+  logsEnabled: boolean;
   metrics: {count: number} | undefined;
+  metricsEnabled: boolean;
   tree: TraceTree;
   meta?: TraceMetaQueryResults['data'];
 }
@@ -119,6 +121,8 @@ export function useTraceLayoutTabs({
   logs,
   meta,
   metrics,
+  logsEnabled,
+  metricsEnabled,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const sections = useTraceContextSections({
@@ -126,6 +130,8 @@ export function useTraceLayoutTabs({
     logs,
     meta,
     metrics,
+    logsEnabled,
+    metricsEnabled,
   });
   const tabOptions = getTabOptions({sections: {...sections}});
 

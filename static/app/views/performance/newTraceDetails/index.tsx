@@ -10,7 +10,9 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -113,6 +115,8 @@ function useInitialLogsData(): OurLogsResponseItem[] | undefined {
 
 function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
+  const logsEnabled = isLogsEnabled(organization);
+  const metricsEnabled = canUseMetricsUI(organization);
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsData = useInitialLogsData();
@@ -158,6 +162,8 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     logs: logsData,
     meta: meta.data,
     metrics: traceMetricsData,
+    logsEnabled,
+    metricsEnabled,
   });
 
   // Push trace metadata into the LLM context tree for Seer Explorer.

@@ -55,8 +55,10 @@ const SectionBody = styled('div')<{alignment?: boolean}>`
 
 interface MetaProps {
   logs: OurLogsResponseItem[] | undefined;
+  logsEnabled: boolean;
   meta: TraceMetaQueryResults['data'];
   metrics: {count: number} | undefined;
+  metricsEnabled: boolean;
   organization: Organization;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
@@ -104,9 +106,9 @@ export function Meta(props: MetaProps) {
 
   const hasDifferentSpansCount = loadedSpansCount !== 0 && totalSpansCount !== 0;
   const hasSpans = spansCount > 0 || loadedSpansCount > 0 || totalSpansCount > 0;
-  const hasLogs = (props.logs?.length ?? 0) > 0;
+  const hasLogs = props.logsEnabled && (props.logs?.length ?? 0) > 0;
   const metricsCount = getTraceMetaMetricsCount(props.meta) ?? props.metrics?.count ?? 0;
-  const hasMetrics = metricsCount > 0;
+  const hasMetrics = props.metricsEnabled && metricsCount > 0;
 
   const repEvent = props.representativeEvent?.event;
 
