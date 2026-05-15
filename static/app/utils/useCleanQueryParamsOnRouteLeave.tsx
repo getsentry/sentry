@@ -28,7 +28,7 @@ export function getCleanLocationIfNeeded<Q extends Record<PropertyKey, unknown>>
 
   const query = fieldsToClean.reduce(
     (newQuery, field) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(2862): Type 'Q' is generic and can only be indexed for reading.
       newQuery[field] = undefined;
       return newQuery;
     },
@@ -68,9 +68,12 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
     }
   }, [location, navigate]);
 
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+
   // When the component unmounts due to route change, the effect above won't
   // fire because React unmounts the component before re-rendering with the
-  // new location. Fall back to window.history to clean params directly.
+  // new location. Use navigate via ref to stay in sync with React Router.
   useEffect(() => {
     return () => {
       const oldPathname = previousPathnameRef.current;
@@ -80,30 +83,34 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
         return;
       }
 
-      if (shouldCleanRef.current) {
-        const query = Object.fromEntries(newUrl.searchParams.entries());
-        const newLocation = {
-          pathname: newUrl.pathname,
-          search: newUrl.search,
-          hash: newUrl.hash,
-          state: null,
-          query,
-          key: '',
-        } as Location<Q>;
-        if (!shouldCleanRef.current(newLocation)) {
-          return;
-        }
-      }
+      const query: Record<string, string> = Object.fromEntries(
+        newUrl.searchParams.entries()
+      );
+      const newLocation = {
+        pathname: newUrl.pathname,
+        search: newUrl.search,
+        hash: newUrl.hash,
+        state: null,
+        query,
+        key: '',
+      } as Location<Q>;
 
-      const fields = fieldsToCleanRef.current;
-      if (!fields.some(f => newUrl.searchParams.has(f))) {
+      if (shouldCleanRef.current && !shouldCleanRef.current(newLocation)) {
         return;
       }
 
-      for (const f of fields) {
-        newUrl.searchParams.delete(f);
+      const cleanLocation = getCleanLocationIfNeeded({
+        fieldsToClean: fieldsToCleanRef.current,
+        newLocation: newLocation as Location<Q & Record<PropertyKey, unknown>>,
+        oldPathname,
+      });
+
+      if (cleanLocation) {
+        navigateRef.current(cleanLocation, {
+          replace: true,
+          preventScrollReset: true,
+        });
       }
-      window.history.replaceState(window.history.state, '', newUrl.toString());
     };
   }, []);
 }
