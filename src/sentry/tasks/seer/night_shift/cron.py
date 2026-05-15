@@ -30,6 +30,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.workflow import SeerWorkflowConfig, WorkflowStrategy
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
@@ -208,6 +209,11 @@ def run_night_shift_for_org(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
+    workflow_config = SeerWorkflowConfig.get_or_create_for_strategy(
+        organization_id=organization.id,
+        strategy=WorkflowStrategy.AGENTIC_TRIAGE,
+    )
+
     extras: dict[str, object] = {"options": dict(resolved_options)}
     if project_ids is not None:
         extras["target_project_ids"] = project_ids
@@ -216,6 +222,7 @@ def run_night_shift_for_org(
 
     run = SeerNightShiftRun.objects.create(
         organization=organization,
+        workflow_config=workflow_config,
         extras=extras,
     )
 

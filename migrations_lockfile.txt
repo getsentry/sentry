@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0012_make_project_repository_fk_notnull
+seer: 0013_add_workflow_config
 
 sentry: 1096_backfill_mcp_dashboard_widget_filters
 

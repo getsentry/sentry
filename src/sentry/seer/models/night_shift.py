@@ -21,6 +21,9 @@ class SeerNightShiftRun(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    workflow_config = FlexibleForeignKey(
+        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
+    )
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -29,9 +32,10 @@ class SeerNightShiftRun(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["organization", "date_added"]),
             models.Index(fields=["date_added"]),
+            models.Index(fields=["workflow_config", "date_added"]),
         ]
 
-    __repr__ = sane_repr("organization_id", "date_added")
+    __repr__ = sane_repr("organization_id", "workflow_config_id", "date_added")
 
 
 @cell_silo_model
