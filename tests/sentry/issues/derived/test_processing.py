@@ -13,8 +13,9 @@ from sentry.issues.derived.lib import (
     StateView,
     aggregator,
 )
-from sentry.issues.derived.processing import process_group_log
+from sentry.issues.derived.processing import pipeline, process_group_log
 from sentry.issues.derived.recording import record
+from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.types import (
     AutofixPrCreatedAction,
     CommentAction,
@@ -90,7 +91,6 @@ class ProcessGroupLogTest(TestCase):
         assert derived.date_updated == old_updated
 
     def test_process_group_log_only_affects_target(self) -> None:
-        """process_group_log for one group doesn't advance another group's cursor."""
         group_a = self.create_group()
         group_b = self.create_group()
         user = self.user
@@ -127,7 +127,7 @@ class ProcessGroupLogTest(TestCase):
         # Reprocess from scratch so both entries are seen in order.
         GroupDerivedData.objects.filter(group_id=group.id).delete()
         derived = process_group_log(group.id)
-        assert derived.data["last_seen"] == latest_entry.date_added.timestamp()
+        assert derived.last_seen == latest_entry.date_added.timestamp()
 
     def test_last_seen_ignores_non_view_actions(self) -> None:
         group = self.create_group()
@@ -137,7 +137,7 @@ class ProcessGroupLogTest(TestCase):
         record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
 
         derived = process_group_log(group.id)
-        assert derived.data["last_seen"] is None
+        assert derived.last_seen is None
 
     def test_last_seen_incremental(self) -> None:
         group = self.create_group()
@@ -145,11 +145,13 @@ class ProcessGroupLogTest(TestCase):
 
         record(group_id=group.id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
-        first_seen = derived.data["last_seen"]
+        assert derived.last_seen is not None
+        first_seen = derived.last_seen
 
         record(group_id=group.id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
-        assert derived.data["last_seen"] > first_seen
+        assert derived.last_seen is not None
+        assert derived.last_seen > first_seen
 
     def test_batched_processing(self) -> None:
         group = self.create_group()
@@ -482,7 +484,6 @@ class ProcessGroupLogTest(TestCase):
         assert derived.data["was_autofixed"] is True
 
     def test_not_autofixed_when_already_closed(self) -> None:
-        """RESOLVED_IN_PULL_REQUEST on an already-closed issue doesn't trigger was_autofixed."""
         group = self.create_group()
         user = self.user
 
@@ -500,23 +501,103 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.data["was_autofixed"] is False
 
-    def test_mutation_checking_catches_in_place_mutation(self) -> None:
-        """Verify that check_mutations=True detects aggregators that mutate state."""
-        ITEMS = Feature[list[str]]("items", default_factory=list)
 
-        @aggregator(outputs=(ITEMS,))
-        def bad_mutator(state: StateView, entry: object) -> AggregatorResult:
-            state[ITEMS].append("oops")
-            return None
+# --- Pure Python tests (no DB) ---
 
-        p = Pipeline([bad_mutator], version=1, check_mutations=True)
-        state = p.initial_state()
 
-        class FakeEntry:
-            type = 0
+def test_mutation_checking_catches_in_place_mutation() -> None:
+    ITEMS = Feature[list[str]]("items", default_factory=list)
 
-        with pytest.raises(RuntimeError, match="mutated feature 'items' in place"):
-            p.step(state, FakeEntry())
+    @aggregator(outputs=(ITEMS,))
+    def bad_mutator(state: StateView, entry: object) -> AggregatorResult:
+        state[ITEMS].append("oops")
+        return None
+
+    p = Pipeline([bad_mutator], version=1, check_mutations=True)
+    state = p.initial_state()
+
+    class FakeEntry:
+        type = 0
+
+    with pytest.raises(RuntimeError, match="mutated feature 'items' in place"):
+        p.step(state, FakeEntry())
+
+
+def test_store_apply_to_instance() -> None:
+    derived = GroupDerivedData()
+    derived.data = {}
+    update = {"data": {"status": "closed"}, "view_count": 5}
+    GroupDerivedDataStore.apply_to_instance(derived, update)
+    assert derived.data == {"status": "closed"}
+    assert derived.view_count == 5
+
+
+# --- Store tests (need DB) ---
+
+
+class GroupDerivedDataStoreTest(TestCase):
+    def test_load_returns_defaults_for_empty_data(self) -> None:
+        from sentry.issues.derived.fields import LAST_SEEN, STATUS, VIEW_COUNT
+
+        group = self.create_group()
+        derived = GroupDerivedData.objects.create(
+            group=group,
+            version=1,
+            data={},
+            primary=True,
+        )
+        state = GroupDerivedDataStore.load(pipeline, derived)
+        assert state[LAST_SEEN] is None
+        assert state[VIEW_COUNT] == 0
+        assert state[STATUS] == "open"
+
+    def test_round_trip_preserves_state(self) -> None:
+        group = self.create_group()
+        user = self.user
+
+        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user.id)
+        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        derived = process_group_log(group.id)
+
+        state = GroupDerivedDataStore.load(pipeline, derived)
+        update = GroupDerivedDataStore.build_update(pipeline, state)
+
+        # JSON data should match, and column values should match.
+        assert update["data"] == derived.data
+        assert update["last_seen"] == derived.last_seen
+        assert update["view_count"] == derived.view_count
+
+    def test_round_trip_with_rich_types(self) -> None:
+        """Codec-backed features (FetchInfo, WorkingOnEntry, frozenset) survive round-trip."""
+        from sentry.issues.derived.fields import (
+            AUTOFIX_PRS,
+            RECENT_FETCHED,
+            WORKING_ON,
+        )
+
+        group = self.create_group()
+        user = self.user
+
+        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user.id)
+        record(
+            group_id=group.id,
+            action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
+        )
+        derived = process_group_log(group.id)
+
+        state1 = GroupDerivedDataStore.load(pipeline, derived)
+        update = GroupDerivedDataStore.build_update(pipeline, state1)
+
+        # Simulate persisting and reloading.
+        GroupDerivedDataStore.apply_to_instance(derived, update)
+        state2 = GroupDerivedDataStore.load(pipeline, derived)
+
+        assert state2[RECENT_FETCHED] == state1[RECENT_FETCHED]
+        assert state2[WORKING_ON] == state1[WORKING_ON]
+        assert state2[AUTOFIX_PRS] == state1[AUTOFIX_PRS]
+        assert isinstance(state2[AUTOFIX_PRS], frozenset)
 
 
 class IssueActionLogDebugEndpointTest(APITestCase):

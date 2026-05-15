@@ -8,12 +8,12 @@ the IssueActionLog model (for choices) and recording.py (for record()).
 from __future__ import annotations
 
 import abc
-from enum import Enum
+from enum import IntEnum
 
 from pydantic import BaseModel
 
 
-class IssueActionType(Enum):
+class IssueActionType(IntEnum):
     """
     The set of action kinds that can be recorded in IssueActionLog.
 

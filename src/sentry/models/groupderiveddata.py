@@ -52,6 +52,10 @@ class GroupDerivedData(DefaultFieldsModel):
     data = models.JSONField(default=dict)
     primary = models.BooleanField(default=False)
 
+    # Column-backed features — promoted from JSON for indexing/querying.
+    last_seen = models.FloatField(null=True, default=None)
+    view_count = BoundedPositiveIntegerField(default=0)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupderiveddata"

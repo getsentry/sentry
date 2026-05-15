@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from dataclasses import dataclass
 
@@ -7,6 +5,7 @@ from django.db.models import Q
 
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.lib import Pipeline
+from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.issueactionlog import IssueActionLog
 
@@ -41,7 +40,6 @@ class ProcessResult:
 
 
 def _ensure_derived(group_id: int, version: int) -> tuple[GroupDerivedData, bool]:
-    """Get or create the GroupDerivedData row, handling primary demotion for new rows."""
     derived, created = GroupDerivedData.objects.get_or_create(
         group_id=group_id,
         version=version,
@@ -58,7 +56,6 @@ def _ensure_derived(group_id: int, version: int) -> tuple[GroupDerivedData, bool
 def _entries_after_cursor(
     group_id: int, cursor_date: object, cursor_id: int, batch_size: int
 ) -> list[IssueActionLog]:
-    """Fetch the next batch of entries after the given cursor position."""
     return list(
         IssueActionLog.objects.filter(
             Q(group_id=group_id)
@@ -68,7 +65,6 @@ def _entries_after_cursor(
 
 
 def _cursor_lte(cursor_date: object, cursor_id: int) -> Q:
-    """Q expression for (cursor_date, cursor_id) <= (given date, given id)."""
     return Q(cursor_date__lt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__lte=cursor_id)
 
 
@@ -89,23 +85,23 @@ def _process_batch(
     if not entries:
         return False
 
-    state = p.load_state(derived.data)
+    state = GroupDerivedDataStore.load(p, derived)
     for entry in entries:
         state = p.step(state, entry)
 
     last = entries[-1]
     last_date = last.date_added
     last_id = last.id
-    new_data = p.dump_state(state)
+    state_update = GroupDerivedDataStore.build_update(p, state)
 
     updated = GroupDerivedData.objects.filter(
         Q(group_id=group_id, version=version) & _cursor_lte(last_date, last_id)
-    ).update(cursor_date=last_date, cursor_id=last_id, data=new_data)
+    ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
         derived.cursor_date = last_date
         derived.cursor_id = last_id
-        derived.data = new_data
+        GroupDerivedDataStore.apply_to_instance(derived, state_update)
         logger.info(
             "issues.derived.processed",
             extra={

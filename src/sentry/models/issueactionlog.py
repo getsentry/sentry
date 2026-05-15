@@ -6,8 +6,8 @@ from django.db.models.functions import Now
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    FlexibleForeignKey,
     Model,
     cell_silo_model,
     sane_repr,
@@ -33,7 +33,9 @@ class IssueActionLog(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group")
+    # References sentry.Group. No FK constraint — this table will live on a separate DB.
+    group_id = BoundedBigIntegerField()
+    # An IssueActionType value.
     type = BoundedPositiveIntegerField(
         choices=[(t.value, t.name) for t in IssueActionType],
     )
@@ -58,11 +60,11 @@ class IssueActionLog(Model):
         app_label = "sentry"
         db_table = "sentry_issueactionlog"
         indexes = [
-            models.Index(fields=["group", "date_added", "id"]),
+            models.Index(fields=["group_id", "date_added", "id"]),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["group", "idempotency_key"],
+                fields=["group_id", "idempotency_key"],
                 name="uniq_issueactionlog_group_idempotency_key",
                 condition=models.Q(idempotency_key__isnull=False),
             ),

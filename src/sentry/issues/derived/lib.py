@@ -303,21 +303,6 @@ class Pipeline:
             state = self.step(state, entry)
         return state
 
-    def load_state(self, data: dict[str, Any]) -> State:
-        """Deserialize a JSON dict into a State, using field defaults for missing keys."""
-        result: dict[Feature[Any], Any] = {}
-        for f in self._fields:
-            if f.name in data:
-                result[f] = f.load(data[f.name])
-            else:
-                result[f] = f.initial_value()
-        return State(result)
-
-    def dump_state(self, state: State) -> dict[str, Any]:
-        """Serialize a State to a JSON-compatible dict."""
-        fields_by_name = {f.name: f for f in self._fields}
-        return {name: fields_by_name[name].dump(val) for name, val in state.items()}
-
 
 def resolve(
     targets: Iterable[Feature[Any]],
