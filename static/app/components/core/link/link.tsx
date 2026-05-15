@@ -5,41 +5,16 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {isExternalUrl} from './isExternalUrl';
-import {useLinkBehavior} from './linkBehaviorContext';
+import {type ResolvedLinkProps, useLinkBehavior} from './linkBehaviorContext';
 
 /**
- * Props for internal (routed) links. Used by the LinkBehaviorContext to
- * normalize and transform link destinations before rendering.
- */
-export interface RoutedLinkProps
-  extends
-    React.RefAttributes<HTMLAnchorElement>,
-    Pick<
-      ReactRouterLinkProps,
-      'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'
-    >,
-    Omit<
-      React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
-      'href' | 'as' | 'css'
-    > {
-  [key: `data-${string}`]: string | undefined;
-  /**
-   * The string path or LocationDescriptor object.
-   */
-  to: LocationDescriptor;
-  /**
-   * Indicator if the link should be disabled
-   */
-  disabled?: boolean;
-}
-
-/**
- * Public props for the `<Link>` component.
+ * Props for the `<Link>` component.
  *
  * Accepts either `href` (preferred) or `to` (deprecated) as the link
- * destination. When `href` is an external URL (`http://` or `https://`),
- * the link renders as a plain `<a>` with `target="_blank"` and security
- * attributes. Otherwise it routes through React Router.
+ * destination. When `href` is an external URL (`http://`, `https://`, or
+ * protocol-relative `//`), the link renders as a plain `<a>` with
+ * `target="_blank"` and security attributes by default. Otherwise it
+ * routes through React Router and the LinkBehaviorContext.
  */
 export interface LinkProps
   extends
@@ -54,28 +29,15 @@ export interface LinkProps
     > {
   [key: `data-${string}`]: string | undefined;
   /**
-   * The string path or LocationDescriptor object.
-   *
-   * @deprecated Use `href` instead. The `href` prop provides a unified API that
-   * automatically handles both internal and external URLs.
-   *
-   * If your link target is a string literal or a `LocationDescriptor` with
-   * a literal `pathname`, you need to use the slug based URL
-   * e.g `/organizations/${slug}/issues/`. This ensures that your link will
-   * work in environments that do have customer-domains (saas) and those without
-   * customer-domains (single-tenant).
-   */
-  to: LocationDescriptor;
-  /**
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
   /**
    * The link destination. Accepts a URL string or a `LocationDescriptor` object.
    *
-   * External URLs (starting with `http://` or `https://`) automatically render as
-   * `<a>` elements with `target="_blank"` and `rel="noreferrer noopener"`. Internal
-   * paths are routed through React Router.
+   * External URLs (starting with `http://`, `https://`, or protocol-relative
+   * `//`) automatically render as `<a>` elements with `target="_blank"` and
+   * `rel="noreferrer noopener"`. Internal paths are routed through React Router.
    *
    * When using literal paths, use slug-based URLs (e.g. `/organizations/${slug}/issues/`)
    * to ensure compatibility across deployment environments.
@@ -86,13 +48,14 @@ export interface LinkProps
    * `false` for internal URLs.
    */
   openInNewTab?: boolean;
+  /**
+   * The string path or LocationDescriptor object for internal routing.
+   *
+   * @deprecated Use `href` instead. The `href` prop provides a unified API that
+   * automatically handles both internal and external URLs.
+   */
+  to?: LocationDescriptor;
 }
-
-/**
- * Internal component props that relax the `to` requirement so callers
- * can pass just `href` without providing `to`.
- */
-type LinkComponentProps = Omit<LinkProps, 'to'> & {to?: LocationDescriptor};
 
 const getLinkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => css`
   /* @TODO(jonasbadalic) This was defined on theme and only used here */
@@ -116,7 +79,7 @@ const Anchor = styled('a', {
   ${getLinkStyles}
 `;
 
-export const Link = styled(({href, to, openInNewTab, ...props}: LinkComponentProps) => {
+export const Link = styled(({href, to, openInNewTab, ...props}: LinkProps) => {
   const resolvedHref = href ?? to;
 
   // Disabled state: render an inert anchor with no destination
@@ -144,27 +107,16 @@ export const Link = styled(({href, to, openInNewTab, ...props}: LinkComponentPro
   }
 
   // Internal link: delegate to the link behavior context (React Router)
-  if (openInNewTab) {
-    return (
-      <InternalLink
-        {...props}
-        to={resolvedHref}
-        target="_blank"
-        rel="noreferrer noopener"
-      />
-    );
-  }
+  const newTabProps = openInNewTab
+    ? {target: '_blank' as const, rel: 'noreferrer noopener'}
+    : {};
 
-  return <InternalLink {...props} to={resolvedHref} />;
+  return <InternalLink {...props} {...newTabProps} to={resolvedHref} />;
 })`
   ${getLinkStyles}
 `;
 
-/**
- * Internal-only link that delegates to the LinkBehaviorContext.
- * Separated so the `useLinkBehavior` hook receives a proper `to` prop.
- */
-function InternalLink(props: RoutedLinkProps) {
+function InternalLink(props: ResolvedLinkProps) {
   const {Component, behavior} = useLinkBehavior(props);
   return <Component {...behavior()} />;
 }

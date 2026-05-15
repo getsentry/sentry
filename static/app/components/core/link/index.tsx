@@ -1,3 +1,3 @@
-export {Link, type LinkProps, type RoutedLinkProps, ExternalLink} from './link';
+export {Link, type LinkProps, ExternalLink} from './link';
 export {isExternalUrl} from './isExternalUrl';
-export {LinkBehaviorContextProvider} from './linkBehaviorContext';
+export {LinkBehaviorContextProvider, type ResolvedLinkProps} from './linkBehaviorContext';
