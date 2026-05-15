@@ -5,13 +5,13 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 def delete_old_rows_metric_alerts(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     NotificationMessage = apps.get_model("notifications", "NotificationMessage")
 
-    for row in RangeQuerySetWrapperWithProgressBar(
+    for row in RangeQuerySetWrapper(
         NotificationMessage.objects.filter(incident__isnull=False, trigger_action__isnull=False)
     ):
         row.delete()
