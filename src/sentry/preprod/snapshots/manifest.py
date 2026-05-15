@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class ImageMetadata(BaseModel):
@@ -14,6 +14,16 @@ class ImageMetadata(BaseModel):
     diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
     description: str | None = None
     tags: dict[str, str] | None = None
+
+    @validator("tags", pre=True)
+    def coerce_tags(cls, v: object) -> dict[str, str] | None:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, list):
+            return {str(tag): str(tag) for tag in v}
+        return None
 
     class Config:
         extra = "allow"
