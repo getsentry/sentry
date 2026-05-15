@@ -141,7 +141,7 @@ describe('AssertionOpJsonPath', () => {
     await userEvent.click(comparisonButton);
 
     const lessThan = await screen.findByRole('option', {name: 'less than'});
-    const greaterThan = screen.getByRole('option', {name: 'greater than'});
+    const greaterThan = await screen.findByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
     expect(greaterThan).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe('AssertionOpJsonPath', () => {
     await userEvent.click(comparisonButton);
 
     const lessThan = await screen.findByRole('option', {name: 'less than'});
-    const greaterThan = screen.getByRole('option', {name: 'greater than'});
+    const greaterThan = await screen.findByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
     expect(greaterThan).toBeInTheDocument();
@@ -200,7 +200,7 @@ describe('AssertionOpJsonPath', () => {
     await userEvent.click(comparisonButton);
 
     const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
-    const literal = screen.getByRole('option', {name: 'Literal'});
+    const literal = await screen.findByRole('option', {name: 'Literal'});
 
     expect(globPattern).toBeInTheDocument();
     expect(literal).toBeInTheDocument();
@@ -220,7 +220,7 @@ describe('AssertionOpJsonPath', () => {
     await userEvent.click(comparisonButton);
 
     const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
-    const literal = screen.getByRole('option', {name: 'Literal'});
+    const literal = await screen.findByRole('option', {name: 'Literal'});
 
     expect(globPattern).toBeInTheDocument();
     expect(literal).toBeInTheDocument();
