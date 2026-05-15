@@ -157,7 +157,7 @@ export default function SnapshotsPage() {
       organization,
       comparison_type: data.comparison_type,
       image_count: data.image_count,
-      approval_status: data.approval_info?.status ?? null,
+      approval_status: data.approval_status ?? null,
       has_base_build: !!data.base_artifact_id,
       project_id: data.project_id,
     });

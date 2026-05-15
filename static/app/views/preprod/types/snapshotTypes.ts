@@ -79,13 +79,6 @@ export interface SnapshotDetailsApiResponse {
   unchanged_count: number;
 }
 
-enum ComparisonState {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
-}
-
 export enum DiffStatus {
   CHANGED = 'changed',
   ADDED = 'added',
