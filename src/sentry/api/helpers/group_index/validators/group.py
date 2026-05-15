@@ -8,6 +8,7 @@ from sentry.api.fields.actor import ActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group
+from sentry.models.organizationmember import OrganizationMember
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
@@ -89,8 +90,6 @@ class GroupValidator(serializers.Serializer[Group]):
         organization = self.context.get("organization")
 
         if value.is_user and organization:
-            from sentry.models.organizationmember import OrganizationMember
-
             if OrganizationMember.objects.filter(
                 organization=organization,
                 user_id=value.id,

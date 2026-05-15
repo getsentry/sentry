@@ -21,6 +21,7 @@ from sentry.api.helpers.group_index.update import (
     most_recent_release,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
+from sentry.api.helpers.group_index.validators.group import GroupValidator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.issues.issue_search import parse_search_query
@@ -35,6 +36,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
@@ -1165,8 +1167,6 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
     def test_assigned_to_deactivated_user_is_noop(self) -> None:
-        from sentry.models.organizationmember import OrganizationMember
-
         OrganizationMember.objects.filter(
             organization=self.organization, user_id=self.user.id
         ).update(user_is_active=False)
@@ -1191,9 +1191,6 @@ class TestHandleAssignedTo(TestCase):
 
 class TestValidateAssignedToDeactivatedUser(TestCase):
     def test_rejects_deactivated_user(self) -> None:
-        from sentry.api.helpers.group_index.validators.group import GroupValidator
-        from sentry.models.organizationmember import OrganizationMember
-
         OrganizationMember.objects.filter(
             organization=self.organization, user_id=self.user.id
         ).update(user_is_active=False)

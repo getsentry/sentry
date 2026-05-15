@@ -26,6 +26,7 @@ from sentry.issues.ownership.grammar import (
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
@@ -319,8 +320,6 @@ class ProjectOwnership(Model):
             logging_extra["resolved_owner"] = owner
 
             if isinstance(owner, RpcUser):
-                from sentry.models.organizationmember import OrganizationMember
-
                 if OrganizationMember.objects.filter(
                     organization_id=group.project.organization_id,
                     user_id=owner.id,

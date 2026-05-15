@@ -8,6 +8,7 @@ from sentry.models.groupowner import (
     GroupOwnerType,
     OwnerRuleType,
 )
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
@@ -951,8 +952,6 @@ class ProjectOwnershipTestCase(TestCase):
         assert isinstance(version, float)
 
     def test_handle_auto_assignment_skips_deactivated_user(self) -> None:
-        from sentry.models.organizationmember import OrganizationMember
-
         self.ownership = ProjectOwnership.objects.create(
             project_id=self.project.id,
             fallthrough=False,

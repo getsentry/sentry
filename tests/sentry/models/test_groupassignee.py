@@ -9,6 +9,7 @@ from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -400,8 +401,6 @@ class GroupAssigneeTestCase(TestCase):
             ).exists()
 
     def test_assign_deactivated_user_is_noop(self) -> None:
-        from sentry.models.organizationmember import OrganizationMember
-
         OrganizationMember.objects.filter(
             organization=self.organization, user_id=self.user.id
         ).update(user_is_active=False)

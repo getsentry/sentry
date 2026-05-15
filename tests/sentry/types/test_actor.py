@@ -1,6 +1,7 @@
 import pytest
 from rest_framework import serializers
 
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -207,8 +208,6 @@ def test_parse_and_validate_actor() -> None:
 
 @django_db_all
 def test_parse_and_validate_actor_rejects_deactivated_user() -> None:
-    from sentry.models.organizationmember import OrganizationMember
-
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
 
