@@ -17,7 +17,7 @@ import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
 import {
   BlockWrapper,
   SeerMarkdown,
-  Spinner,
+  MessagePlaceholder,
   hasValidContent,
   useBlockContext,
 } from './shared';
@@ -27,7 +27,7 @@ export function AssistantBlock() {
   const content = block.message.content ?? '';
 
   if (block.loading) {
-    return <AssistantPlaceholder content={content} />;
+    return <MessagePlaceholder content={content} />;
   }
 
   return (
@@ -39,26 +39,6 @@ export function AssistantBlock() {
       )}
       <BlockActionBar />
     </Fragment>
-  );
-}
-
-// ─── Placeholder ────────────────────────────────────────────
-
-function AssistantPlaceholder({content}: {content: string}) {
-  return (
-    <Flex align="center" gap="md" padding="xl" width="100%">
-      <Flex
-        display="inline-flex"
-        align="center"
-        justify="center"
-        width="12px"
-        height="12px"
-        flexShrink={0}
-      >
-        <Spinner />
-      </Flex>
-      {hasValidContent(content) && <SeerMarkdown raw={content} variant="streaming" />}
-    </Flex>
   );
 }
 

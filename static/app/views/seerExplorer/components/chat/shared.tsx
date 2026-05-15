@@ -2,6 +2,7 @@ import {createContext, Fragment, useContext} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
@@ -118,6 +119,24 @@ const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
 
 export function SeerMarkdown(props: Omit<MarkdownProps, 'components'>) {
   return <Markdown {...props} components={SEER_MARKDOWN_COMPONENTS} />;
+}
+
+export function MessagePlaceholder({content}: {content?: string}) {
+  return (
+    <Flex align="center" gap="md" padding="xl" width="100%">
+      <Flex
+        display="inline-flex"
+        align="center"
+        justify="center"
+        width="12px"
+        height="12px"
+        flexShrink={0}
+      >
+        <Spinner />
+      </Flex>
+      {hasValidContent(content) && <SeerMarkdown raw={content} variant="streaming" />}
+    </Flex>
+  );
 }
 
 // ─── Styled Components ──────────────────────────────────────

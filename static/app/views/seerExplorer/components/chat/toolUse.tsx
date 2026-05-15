@@ -29,6 +29,7 @@ import {
 
 import {
   type BlockStatus,
+  MessagePlaceholder,
   SeerMarkdown,
   Spinner,
   getBlockStatus,
@@ -38,6 +39,10 @@ import {
 
 export function ToolUseBlock() {
   const {block, showThinking} = useBlockContext();
+
+  if (block.loading && !block.message.tool_calls) {
+    return <MessagePlaceholder />;
+  }
 
   return (
     <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
