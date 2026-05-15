@@ -280,6 +280,40 @@ describe('TraceMetaDataHeader', () => {
   });
 
   describe('meta', () => {
+    it('should render logs count from trace meta before logs have loaded', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const logsOrganization = OrganizationFixture({
+        features: ['ourlogs-enabled'],
+      });
+
+      const props = {
+        ...baseProps,
+        logs: undefined,
+        metaResults: {
+          ...baseProps.metaResults,
+          data: {
+            errorsCount: 0,
+            logsCount: 5,
+            metricsCount: 0,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+            spansCountMap: {},
+            transactionChildCountMap: {},
+            uptimeCount: 0,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />);
+
+      expect(screen.getByText('Logs')).toBeInTheDocument();
+      expect(screen.getByText('5')).toBeInTheDocument();
+    });
+
     it('should render metrics count', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({

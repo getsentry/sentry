@@ -63,6 +63,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     tree: props.tree,
     logs: props.logs,
     metrics: props.metrics,
+    meta: props.metaResults.data,
     logsEnabled,
     metricsEnabled,
   });

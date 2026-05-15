@@ -106,7 +106,8 @@ export function Meta(props: MetaProps) {
 
   const hasDifferentSpansCount = loadedSpansCount !== 0 && totalSpansCount !== 0;
   const hasSpans = spansCount > 0 || loadedSpansCount > 0 || totalSpansCount > 0;
-  const hasLogs = props.logsEnabled && (props.logs?.length ?? 0) > 0;
+  const logsCount = getTraceMetaLogsCount(props.meta) ?? props.logs?.length ?? 0;
+  const hasLogs = props.logsEnabled && logsCount > 0;
   const metricsCount = getTraceMetaMetricsCount(props.meta) ?? props.metrics?.count ?? 0;
   const hasMetrics = props.metricsEnabled && metricsCount > 0;
 
@@ -154,7 +155,7 @@ export function Meta(props: MetaProps) {
         </MetaSection>
       ) : hasLogs ? (
         <MetaSection rightAlignBody headingText={t('Logs')}>
-          {getTraceMetaLogsCount(props.meta) ?? props.logs?.length ?? 0}
+          {logsCount}
         </MetaSection>
       ) : null}
       {hasMetrics ? (
