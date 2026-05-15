@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 # Prevent ourselves from clobbering the builtin
 _type = type
 
-logger = logging.getLogger("sentry")
+logger = logging.getLogger(__name__)
 
 NoneType = type(None)
 
@@ -283,11 +283,11 @@ class OptionsManager:
         return key in settings.SENTRY_OPTIONS
 
     def _record_seen(self, key: str) -> None:
-        """Log that this option key was read. Called at most once per key per
-        process lifetime — self._seen deduplicates within the process so the
-        same pod never emits the same key twice."""
-        self._seen.add(key)
+        """Emit one log line per key per process lifetime so reads can be
+        audited in GCP. Logs before adding to _seen so a logging failure
+        doesn't permanently suppress the event."""
         logger.info("option.seen", extra={"option_key": key})
+        self._seen.add(key)
 
     def get(self, key: str, silent=False):
         """
