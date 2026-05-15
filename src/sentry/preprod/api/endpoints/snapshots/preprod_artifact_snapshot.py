@@ -53,6 +53,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
     SnapshotManifest,
+    image_metadata_extras,
 )
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -120,6 +121,7 @@ def build_snapshot_image_response(
     global_diff_threshold: float | None,
 ) -> SnapshotImageResponse:
     return SnapshotImageResponse(
+        **image_metadata_extras(metadata, exclude={"key", "image_file_name"}),
         key=metadata.content_hash,
         display_name=metadata.display_name,
         image_file_name=image_file_name,

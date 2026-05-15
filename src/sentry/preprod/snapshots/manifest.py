@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Set
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, validator
@@ -39,6 +40,16 @@ class ImageMetadata(BaseModel):
                         {"type": "null"},
                     ]
                 }
+
+
+_SCHEMA_FIELDS = frozenset(ImageMetadata.__fields__)
+
+
+def image_metadata_extras(
+    metadata: ImageMetadata, exclude: Set[str] | None = None
+) -> dict[str, Any]:
+    skip = _SCHEMA_FIELDS | exclude if exclude else _SCHEMA_FIELDS
+    return {k: v for k, v in metadata.dict().items() if k not in skip}
 
 
 class SnapshotManifest(BaseModel):
