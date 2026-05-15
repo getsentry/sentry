@@ -31,9 +31,6 @@ class SeerWorkflowConfig(DefaultFieldsModel):
         app_label = "seer"
         db_table = "seer_workflowconfig"
         unique_together = (("organization", "strategy"),)
-        indexes = [
-            models.Index(fields=["organization", "strategy"]),
-        ]
 
     __repr__ = sane_repr("organization_id", "strategy", "enabled")
 
