@@ -554,8 +554,8 @@ export default typescript.config([
       'react/jsx-boolean-value': ['error', 'never'],
       'react/jsx-fragments': ['error', 'element'],
       'react/jsx-handler-names': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'react/no-did-mount-set-state': 'error',
-      'react/no-did-update-set-state': 'error',
+      // 'react/no-did-mount-set-state': 'error',
+      // 'react/no-did-update-set-state': 'error',
       'react/no-redundant-should-component-update': 'error',
       'react/no-typos': 'error',
       'react/self-closing-comp': 'error',
@@ -567,8 +567,21 @@ export default typescript.config([
       ],
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off',
-      'react/no-unknown-property': ['error', {ignore: ['css']}],
+      // 'react/no-unknown-property': ['error', {ignore: ['css']}],
       'react/prop-types': 'off', // TODO(ryan953): Fix violations and delete this line
+
+      'react/jsx-key': 'off', // Replaced by @eslint-react/no-missing-key + @eslint-react/no-duplicate-key + @eslint-react/no-implicit-key
+      'react/jsx-no-comment-textnodes': 'off', // Replaced by @eslint-react/jsx-no-comment-textnodes
+      'react/no-children-prop': 'off', // Replaced by @eslint-react/jsx-no-children-prop
+      'react/no-danger-with-children': 'off', // Replaced by @eslint-react/dom-no-dangerously-set-innerhtml-with-children
+      'react/no-deprecated': 'off', // Replaced by no-component-will-mount + no-component-will-receive-props + no-component-will-update + no-create-ref + no-forward-ref + dom-no-render + dom-no-render-return-value + dom-no-hydrate + dom-no-find-dom-node
+      'react/no-did-mount-set-state': 'off', // Replaced by @eslint-react/no-set-state-in-component-did-mount
+      'react/no-did-update-set-state': 'off', // Replaced by @eslint-react/no-set-state-in-component-did-update
+      'react/no-direct-mutation-state': 'off', // Replaced by @eslint-react/no-direct-mutation-state
+      'react/no-find-dom-node': 'off', // Replaced by @eslint-react/dom-no-find-dom-node
+      'react/no-render-return-value': 'off', // Replaced by @eslint-react/dom-no-render-return-value
+      'react/no-target-blank': 'off', // Replaced by @eslint-react/dom-no-unsafe-target-blank
+      'react/no-unknown-property': 'off', // Replaced by @eslint-react/dom-no-unknown-property
     },
   },
   {
@@ -580,12 +593,11 @@ export default typescript.config([
       '@eslint-react/dom-no-missing-button-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/dom-no-missing-iframe-sandbox': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/dom-no-unsafe-iframe-sandbox': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@eslint-react/dom-no-unsafe-target-blank': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/exhaustive-deps': [
         'error',
         {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
       ],
-      '@eslint-react/jsx-no-children-prop': 'off', // TODO(ryan953): Fix violations and delete this line
+
       '@eslint-react/jsx-no-children-prop-with-children': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/jsx-no-key-after-spread': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/jsx-no-leaked-dollar': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -602,13 +614,8 @@ export default typescript.config([
       '@eslint-react/no-class-component': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/no-clone-element': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/no-context-provider': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@eslint-react/no-create-ref': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@eslint-react/no-forward-ref': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@eslint-react/no-missing-key': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/no-misused-capture-owner-stack': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/no-nested-component-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@eslint-react/no-set-state-in-component-did-mount': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@eslint-react/no-set-state-in-component-did-update': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/no-unnecessary-use-prefix': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/no-unsafe-component-will-receive-props': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/no-unstable-context-value': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -625,6 +632,27 @@ export default typescript.config([
       '@eslint-react/web-api-no-leaked-interval': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/web-api-no-leaked-resize-observer': 'off', // TODO(ryan953): Fix violations and delete this line
       '@eslint-react/web-api-no-leaked-timeout': 'off', // TODO(ryan953): Fix violations and delete this line
+
+      '@eslint-react/dom-no-dangerously-set-innerhtml-with-children': 'error',
+      '@eslint-react/dom-no-find-dom-node': 'error',
+      '@eslint-react/dom-no-hydrate': 'error',
+      '@eslint-react/dom-no-render': 'error',
+      '@eslint-react/dom-no-render-return-value': 'error',
+      '@eslint-react/dom-no-unknown-property': ['error', {ignore: ['css']}],
+      '@eslint-react/dom-no-unsafe-target-blank': 'error',
+      '@eslint-react/jsx-no-children-prop': 'error',
+      '@eslint-react/jsx-no-comment-textnodes': 'error',
+      '@eslint-react/no-component-will-mount': 'error',
+      '@eslint-react/no-component-will-receive-props': 'error',
+      '@eslint-react/no-component-will-update': 'error',
+      '@eslint-react/no-create-ref': 'error',
+      '@eslint-react/no-direct-mutation-state': 'error',
+      '@eslint-react/no-duplicate-key': 'error',
+      '@eslint-react/no-forward-ref': 'error',
+      // '@eslint-react/no-implicit-key': 'error', // needs type info
+      '@eslint-react/no-missing-key': 'error',
+      '@eslint-react/no-set-state-in-component-did-mount': 'error',
+      '@eslint-react/no-set-state-in-component-did-update': 'error',
     },
   },
   {
