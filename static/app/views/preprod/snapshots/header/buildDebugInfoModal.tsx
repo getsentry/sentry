@@ -13,7 +13,7 @@ import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapsh
 const VISIBLE_FIELDS: Array<keyof SnapshotDetailsApiResponse> = [
   'app_id',
   'base_artifact_id',
-  'comparison_run_info',
+  'comparison_state',
   'comparison_type',
   'diff_threshold',
   'head_artifact_id',

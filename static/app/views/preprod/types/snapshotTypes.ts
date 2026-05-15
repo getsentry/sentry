@@ -21,12 +21,6 @@ export interface SnapshotDiffPair {
   head_image: SnapshotImage;
 }
 
-interface SnapshotComparisonRunInfo {
-  completed_at?: string;
-  duration_ms?: number;
-  state?: SnapshotComparisonState;
-}
-
 interface SnapshotApprover {
   source: 'sentry' | 'github';
   approved_at?: string | null;
@@ -35,12 +29,6 @@ interface SnapshotApprover {
   id?: string | null;
   name?: string | null;
   username?: string | null;
-}
-
-interface SnapshotApprovalInfo {
-  approvers: SnapshotApprover[];
-  status: 'approved' | 'requires_approval';
-  is_auto_approved?: boolean;
 }
 
 export interface SnapshotDetailsApiResponse {
@@ -53,10 +41,6 @@ export interface SnapshotDetailsApiResponse {
   vcs_info: BuildDetailsVcsInfo;
 
   app_id?: string | null;
-
-  comparison_run_info?: SnapshotComparisonRunInfo | null;
-
-  approval_info?: SnapshotApprovalInfo | null;
 
   comparison_state?: SnapshotComparisonState | null;
   approval_status?: SnapshotApprovalStatus | null;
