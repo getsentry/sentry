@@ -69,6 +69,10 @@ class TestImageMetadataJsonSchema:
         schema = ImageMetadata.schema()
         jsonschema.validate(_meta(tags=["dark", "mobile"]), schema)
 
+    def test_schema_accepts_null_tags(self) -> None:
+        schema = ImageMetadata.schema()
+        jsonschema.validate(_meta(tags=None), schema)
+
     def test_schema_accepts_no_tags(self) -> None:
         schema = ImageMetadata.schema()
         jsonschema.validate(_meta(), schema)

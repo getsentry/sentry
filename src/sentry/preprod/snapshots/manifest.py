@@ -36,6 +36,7 @@ class ImageMetadata(BaseModel):
                     "anyOf": [
                         {"type": "object", "additionalProperties": {"type": "string"}},
                         {"type": "array", "items": {"type": "string"}},
+                        {"type": "null"},
                     ]
                 }
 
