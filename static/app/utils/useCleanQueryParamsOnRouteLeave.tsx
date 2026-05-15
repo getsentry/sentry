@@ -68,12 +68,9 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
     }
   }, [location, navigate]);
 
-  const navigateRef = useRef(navigate);
-  navigateRef.current = navigate;
-
   // When the component unmounts due to route change, the effect above won't
   // fire because React unmounts the component before re-rendering with the
-  // new location. Use navigate via ref to stay in sync with React Router.
+  // new location. Use navigate to stay in sync with React Router.
   useEffect(() => {
     return () => {
       const oldPathname = previousPathnameRef.current;
@@ -104,7 +101,7 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
       });
 
       if (cleanLocation) {
-        navigateRef.current(cleanLocation, {
+        navigate(cleanLocation, {
           replace: true,
           preventScrollReset: true,
         });
