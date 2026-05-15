@@ -1,13 +1,13 @@
+import {Fragment, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {IconDownload} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose, IconDownload} from 'sentry/icons';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
@@ -15,9 +15,25 @@ import {ResultTable} from 'admin/components/resultTable';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
+interface SeatCosts {
+  ondemand?: number | null;
+  prepaid?: number | null;
+  standard?: number | null;
+}
+
+interface CategoryInfo {
+  billed_category: string;
+  is_add_on: boolean;
+  name: string;
+  tally_type: string;
+  seat_costs?: SeatCosts;
+  unit_size?: number;
+}
+
 export interface BillingPlansResponse {
   data: Plans;
-  not_live: string[];
+  categories?: Record<string, CategoryInfo | string>;
+  not_live?: string[];
 }
 
 type Plans = Record<string, PlanTier>;
@@ -28,6 +44,10 @@ interface PlanDetails {
   data_categories_disabled: DataCategory[];
   price_tiers: Partial<Record<DataCategory, PriceTier[]>>;
   pricing: Record<string, Price>;
+  allow_reserved_budgets?: boolean;
+  has_custom_dynamic_sampling?: boolean;
+  has_ondemand_modes?: boolean;
+  id?: string;
 }
 
 interface Price {
@@ -47,7 +67,6 @@ interface PriceTier {
 export function BillingPlans() {
   const {
     data: billingPlansResponse = {
-      not_live: [],
       data: {},
     },
   } = useQuery(
@@ -121,8 +140,8 @@ export function BillingPlans() {
         for (let i = 0; i < maxTiers; i++) {
           if (i === 0) {
             row = [
-              formatCurrency(planDetails.pricing.Platform!.monthly),
-              formatCurrency(planDetails.pricing.Platform!.annual),
+              formatCurrency(planDetails.pricing.Platform?.monthly ?? 0),
+              formatCurrency(planDetails.pricing.Platform?.annual ?? 0),
               ' ', // empty column
               ' ', // empty column
             ];
@@ -140,10 +159,22 @@ export function BillingPlans() {
               row.push(
                 tier.tier.toString(), // Tier
                 tier.volume.toString(), // Volume (max)
-                formatCurrency(tier.monthly), // Monthly
-                formatCurrency(tier.annual), // Annual
-                displayUnitPrice({cents: tier.reserved_ppe, minDigits: 2, maxDigits: 10}), // Reserved PPE
-                displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10}), // PAYG PPE
+                tier.monthly === 0 ? '' : formatCurrency(tier.monthly), // Monthly
+                tier.annual === 0 ? '' : formatCurrency(tier.annual), // Annual
+                tier.reserved_ppe === 0
+                  ? ''
+                  : displayUnitPrice({
+                      cents: tier.reserved_ppe,
+                      minDigits: 2,
+                      maxDigits: 10,
+                    }), // Reserved PPE
+                tier.od_ppe === 0
+                  ? ''
+                  : displayUnitPrice({
+                      cents: tier.od_ppe,
+                      minDigits: 2,
+                      maxDigits: 10,
+                    }), // PAYG PPE
                 ' ' // empty column
               );
             } else {
@@ -192,11 +223,13 @@ export function BillingPlans() {
         Download CSV
       </Button>
       <TableOfContents plans={plans} />
-      {Object.entries(plans).map(([planTierId, planTier]) => (
+      {buildPlanSections(plans).map(({id, label, planTier}) => (
         <PlanTierSection
-          key={planTierId}
-          planTierId={planTierId}
+          key={id}
+          planTierId={id}
+          planTierLabel={label}
           planTier={planTier}
+          categories={billingPlansResponse.categories}
           notLive={billingPlansResponse.not_live}
         />
       ))}
@@ -204,79 +237,285 @@ export function BillingPlans() {
   );
 }
 
+const PREFERRED_PLAN_ORDER = [
+  'developer',
+  'team',
+  'business',
+  'enterprise_business',
+  'enterprise_team_auf',
+] as const;
+
+const BUNDLE_PLAN_KEYS = new Set([
+  'team_bundle',
+  'business_bundle',
+  'business_249_bundle',
+]);
+const SPONSORED_PLAN_KEYS = new Set([
+  'sponsored',
+  'sponsored_business',
+  'sponsored_team_auf',
+]);
+const TRIAL_PLAN_KEYS = new Set(['trial', 'enterprise_trial']);
+
+function getPlanColumnOrder(plans: Plans): string[] {
+  const allPlanNames = new Set<string>();
+  Object.values(plans).forEach(planTier => {
+    Object.keys(planTier).forEach(planName => allPlanNames.add(planName));
+  });
+  const preferred = PREFERRED_PLAN_ORDER.filter(p => allPlanNames.has(p));
+  const preferredSet = new Set<string>(PREFERRED_PLAN_ORDER);
+  const others = [...allPlanNames].filter(p => !preferredSet.has(p)).sort();
+  return [...preferred, ...others];
+}
+
+const AM_TIER_ORDER = ['am3', 'am2', 'am1'];
+const LEGACY_TIER_ORDER = ['mm2', 'mm1'];
+
 function TableOfContents({plans}: {plans: Plans}) {
+  const amTiers = AM_TIER_ORDER.filter(id => id in plans);
+  const legacyTiers = LEGACY_TIER_ORDER.filter(id => id in plans);
+
+  const EXTRA_PLAN_KEYS = new Set([
+    ...BUNDLE_PLAN_KEYS,
+    ...SPONSORED_PLAN_KEYS,
+    ...TRIAL_PLAN_KEYS,
+  ]);
+
+  // Exclude bundle, sponsored, and trial plans from the table columns
+  const amPlansForTable = Object.fromEntries(
+    amTiers.map(id => [
+      id,
+      Object.fromEntries(
+        Object.entries(plans[id]!).filter(([planName]) => !EXTRA_PLAN_KEYS.has(planName))
+      ),
+    ])
+  );
+  const planColumnOrder = getPlanColumnOrder(amPlansForTable);
+
+  const trialPlans = amTiers.flatMap(id =>
+    Object.entries(plans[id]!).filter(([planName]) => TRIAL_PLAN_KEYS.has(planName))
+  );
+  const sponsoredPlans = amTiers.flatMap(id =>
+    Object.entries(plans[id]!).filter(([planName]) => SPONSORED_PLAN_KEYS.has(planName))
+  );
+  const am2BundlePlans = plans.am2
+    ? Object.entries(plans.am2).filter(([planName]) => BUNDLE_PLAN_KEYS.has(planName))
+    : [];
+
+  const extraLinks: Array<{entries: Array<[string, PlanDetails]>; label: string}> = [];
+  if (trialPlans.length > 0) {
+    extraLinks.push({label: 'Trials', entries: trialPlans});
+  }
+  if (sponsoredPlans.length > 0) {
+    extraLinks.push({label: 'Sponsored', entries: sponsoredPlans});
+  }
+  if (am2BundlePlans.length > 0) {
+    extraLinks.push({label: 'AM2 Bundles', entries: am2BundlePlans});
+  }
+  for (const planTierId of legacyTiers) {
+    extraLinks.push({
+      label: formatPlanTierId(planTierId),
+      entries: Object.entries(plans[planTierId]!),
+    });
+  }
+
   return (
     <TOCContainer>
-      <h2>Table of Contents</h2>
-      <ul>
-        {Object.entries(plans).map(([planTierId, planTier]) => {
-          const planTierIdFormatted = formatPlanTierId(planTierId);
-          return (
-            <li key={planTierIdFormatted}>
-              <a href={`#${planTierIdFormatted}`}>{planTierIdFormatted} Plans</a>
-              <ul>
-                {Object.entries(planTier).map(([planName, planDetails]) => {
-                  const planNameFormatted = formatPlanName(planName);
-                  const planTypeId = `${planTierIdFormatted}-${planNameFormatted}`;
-                  const pricingId = `${planTierIdFormatted}-${planNameFormatted}-pricing`;
-                  return (
-                    <li key={planTypeId}>
-                      <a href={`#${planTypeId}`}>{planNameFormatted}</a>
-                      <ul>
-                        <li>
-                          <a href={`#${pricingId}`}>Pricing</a>
-                          <ul>
-                            {Object.entries(planDetails.price_tiers).map(
-                              ([dataCategory]) => {
-                                const dataCategoryFormatted = formatDataCategory(
-                                  dataCategory as DataCategory
-                                );
-                                const dataCategoryId = `${planTypeId}-${dataCategoryFormatted}`;
-                                return (
-                                  <li key={dataCategoryId}>
-                                    <a href={`#${dataCategoryId}`}>
-                                      {dataCategoryFormatted}
-                                    </a>
-                                  </li>
-                                );
-                              }
-                            )}
-                          </ul>
-                        </li>
-                      </ul>
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>
-          );
-        })}
-      </ul>
+      <h2 style={{marginTop: 20}}>Table of Contents</h2>
+      <Panel>
+        <StyledResultTable>
+          <thead>
+            <tr>
+              <th />
+              {planColumnOrder.map(planName => (
+                <th key={planName}>{formatPlanName(planName, true)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {amTiers.length === 0 ? (
+              <tr>
+                <td colSpan={planColumnOrder.length + 1}>No plans.</td>
+              </tr>
+            ) : (
+              amTiers.map(planTierId => {
+                const planTier = plans[planTierId]!;
+                const planTierIdFormatted = formatPlanTierId(planTierId);
+                return (
+                  <tr key={planTierIdFormatted}>
+                    <td>{planTierIdFormatted}</td>
+                    {planColumnOrder.map(planName => {
+                      const planDetails = planTier[planName];
+                      return (
+                        <td key={planName}>
+                          {planDetails ? (
+                            <span style={{display: 'block'}}>
+                              <a
+                                href={`#${planDetails.id ?? planFallbackAnchorId(planTierIdFormatted, planName)}`}
+                              >
+                                {formatPlanName(planName, true)}
+                              </a>
+                              {planDetails.id && (
+                                <span
+                                  style={{
+                                    display: 'block',
+                                    paddingTop: '7px',
+                                  }}
+                                >
+                                  <code>{planDetails.id}</code>
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </StyledResultTable>
+      </Panel>
+      {extraLinks.length > 0 && (
+        <div style={{marginTop: 12, fontSize: 14}}>
+          {extraLinks.map(({label, entries}) => (
+            <div key={label} style={{marginBottom: 6}}>
+              <strong>{label}:</strong>{' '}
+              {entries.map(([planName, planDetails], idx) => (
+                <Fragment key={planName}>
+                  {idx > 0 && ', '}
+                  <a
+                    href={`#${planDetails.id ?? planFallbackAnchorId(formatPlanTierId(label.replace(/ /g, '_')), planName)}`}
+                  >
+                    {planDetails.id ?? planName}
+                  </a>
+                </Fragment>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </TOCContainer>
   );
 }
 
+function buildPlanSections(
+  plans: Plans
+): Array<{id: string; label: string; planTier: PlanTier}> {
+  const EXTRA_KEYS = new Set([
+    ...BUNDLE_PLAN_KEYS,
+    ...SPONSORED_PLAN_KEYS,
+    ...TRIAL_PLAN_KEYS,
+  ]);
+  const sections: Array<{id: string; label: string; planTier: PlanTier}> = [];
+
+  // AM tiers — core plans only (no trials/sponsored/bundles)
+  for (const tierId of AM_TIER_ORDER) {
+    if (!(tierId in plans)) continue;
+    const filtered = Object.fromEntries(
+      Object.entries(plans[tierId]!).filter(([k]) => !EXTRA_KEYS.has(k))
+    );
+    if (Object.keys(filtered).length > 0) {
+      sections.push({
+        id: tierId,
+        label: `${formatPlanTierId(tierId)} Plans`,
+        planTier: filtered,
+      });
+    }
+  }
+
+  // Trial plans collected from AM tiers in order
+  const trialEntries = AM_TIER_ORDER.flatMap(id =>
+    id in plans ? Object.entries(plans[id]!).filter(([k]) => TRIAL_PLAN_KEYS.has(k)) : []
+  );
+  if (trialEntries.length > 0) {
+    sections.push({
+      id: 'trials',
+      label: 'Trials',
+      planTier: Object.fromEntries(trialEntries),
+    });
+  }
+
+  // Sponsored plans collected from AM tiers in order
+  const sponsoredEntries = AM_TIER_ORDER.flatMap(id =>
+    id in plans
+      ? Object.entries(plans[id]!).filter(([k]) => SPONSORED_PLAN_KEYS.has(k))
+      : []
+  );
+  if (sponsoredEntries.length > 0) {
+    sections.push({
+      id: 'sponsored',
+      label: 'Sponsored',
+      planTier: Object.fromEntries(sponsoredEntries),
+    });
+  }
+
+  // AM2 bundle plans
+  if ('am2' in plans) {
+    const bundleEntries = Object.entries(plans.am2).filter(([k]) =>
+      BUNDLE_PLAN_KEYS.has(k)
+    );
+    if (bundleEntries.length > 0) {
+      sections.push({
+        id: 'am2_bundles',
+        label: 'AM2 Bundles',
+        planTier: Object.fromEntries(bundleEntries),
+      });
+    }
+  }
+
+  // Legacy MM tiers
+  for (const tierId of LEGACY_TIER_ORDER) {
+    if (tierId in plans) {
+      sections.push({
+        id: tierId,
+        label: `${formatPlanTierId(tierId)} Plans`,
+        planTier: plans[tierId]!,
+      });
+    }
+  }
+
+  return sections;
+}
+
 function PlanTierSection({
   planTierId,
+  planTierLabel,
   planTier,
+  categories,
   notLive,
 }: {
-  notLive: string[];
   planTier: PlanTier;
   planTierId: string;
+  categories?: Record<string, CategoryInfo | string>;
+  notLive?: string[];
+  planTierLabel?: string;
 }) {
   const planTierIdFormatted = formatPlanTierId(planTierId);
+  const heading = planTierLabel ?? `${planTierIdFormatted} Plans`;
+  const isNotLive = notLive?.includes(planTierId) ?? false;
 
   return (
-    <div>
-      <h2 id={planTierIdFormatted}>{planTierIdFormatted} Plans</h2>
+    <div
+      style={{
+        borderTop: '1px solid rgb(230, 230, 233)',
+        borderBottom: '1px solid rgb(230, 230, 233)',
+      }}
+    >
+      <h2 id={planTierIdFormatted} style={{marginTop: 20}}>
+        {heading}
+      </h2>
       {Object.entries(planTier).map(([planName, planDetails]) => (
         <PlanDetailsSection
           key={planName}
           planTierIdFormatted={planTierIdFormatted}
           planName={planName}
           planDetails={planDetails}
-          notLive={notLive.includes(planTierId)}
+          categories={categories}
+          isNotLive={isNotLive}
         />
       ))}
     </div>
@@ -287,49 +526,115 @@ function PlanDetailsSection({
   planTierIdFormatted,
   planName,
   planDetails,
-  notLive,
+  categories,
+  isNotLive,
 }: {
   planDetails: PlanDetails;
   planName: string;
   planTierIdFormatted: string;
-  notLive?: boolean;
+  categories?: Record<string, CategoryInfo | string>;
+  isNotLive?: boolean;
 }) {
   const theme = useTheme();
   const planNameFormatted = formatPlanName(planName);
-  const planTypeId = `${planTierIdFormatted}-${planNameFormatted}`;
-  const pricingId = `${planTierIdFormatted}-${planNameFormatted}-pricing`;
 
   return (
     <div>
       <div
         style={{display: 'flex', alignItems: 'center', marginBottom: theme.space['2xl']}}
       >
-        <h3 id={planTypeId} style={{margin: 0}}>
+        <h3
+          id={planDetails.id ?? planFallbackAnchorId(planTierIdFormatted, planName)}
+          style={{margin: '20px 0 5px'}}
+        >
           {planTierIdFormatted} {planNameFormatted} Plan
+          {planDetails.id ? ` (${planDetails.id})` : null}
         </h3>
-        <Badge variant={notLive ? 'warning' : 'new'}>
-          {notLive ? 'NOT LIVE' : 'LIVE'}
-        </Badge>
+        {isNotLive ? (
+          <span
+            style={{
+              marginLeft: 8,
+              padding: '2px 6px',
+              background: '#f55459',
+              color: '#fff',
+              borderRadius: 3,
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            NOT LIVE
+          </span>
+        ) : (
+          <span
+            style={{
+              marginLeft: 8,
+              padding: '2px 6px',
+              background: '#2ba22b',
+              color: '#fff',
+              borderRadius: 3,
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            LIVE
+          </span>
+        )}
       </div>
 
+      {/* Plan Features — only when backend sends a boolean for has_custom_dynamic_sampling */}
+      {typeof planDetails.has_custom_dynamic_sampling === 'boolean' ? (
+        <Fragment>
+          <h4>Plan Features</h4>
+          <Panel>
+            <StyledResultTable>
+              <thead>
+                <tr>
+                  <th>Has Custom Dynamic Sampling</th>
+                  <th>Has Ondemand Modes</th>
+                  <th>Allow Reserved Budgets</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    {planDetails.has_custom_dynamic_sampling ? (
+                      <IconCheckmark size="sm" variant="success" />
+                    ) : (
+                      <IconClose size="sm" />
+                    )}
+                  </td>
+                  <td>
+                    {planDetails.has_ondemand_modes ? (
+                      <IconCheckmark size="sm" variant="success" />
+                    ) : (
+                      <IconClose size="sm" />
+                    )}
+                  </td>
+                  <td>
+                    {planDetails.allow_reserved_budgets ? (
+                      <IconCheckmark size="sm" variant="success" />
+                    ) : (
+                      <IconClose size="sm" />
+                    )}
+                  </td>
+                </tr>
+              </tbody>
+            </StyledResultTable>
+          </Panel>
+        </Fragment>
+      ) : null}
+
       {/* Pricing Table */}
-      <h4 id={pricingId}>Pricing:</h4>
+      <h4>Pricing</h4>
       <PricingTable pricing={planDetails.pricing} />
 
-      {/* Price Tiers Tables */}
-      {(
-        Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
-      ).map(([dataCategory, tiers]) => (
-        <PriceTiersTable
-          key={dataCategory}
-          planTierIdFormatted={planTierIdFormatted}
-          planNameFormatted={planNameFormatted}
-          dataCategory={dataCategory}
-          tiers={tiers}
-          notLive={notLive}
-          data_categories_disabled={planDetails.data_categories_disabled}
-        />
-      ))}
+      {/* Price Tiers (single merged table) */}
+      <MergedPriceTiersTable
+        planTierIdFormatted={planTierIdFormatted}
+        planName={planName}
+        planDetails={planDetails}
+        categories={categories}
+      />
     </div>
   );
 }
@@ -359,91 +664,597 @@ function PricingTable({pricing}: {pricing: Record<string, Price>}) {
   );
 }
 
-function PriceTiersTable({
-  planTierIdFormatted,
-  planNameFormatted,
-  dataCategory,
-  tiers,
-  notLive,
-  data_categories_disabled,
-}: {
+interface TierGroup {
+  bands: PriceTier[];
+  categoryLabel: string;
   dataCategory: DataCategory;
-  data_categories_disabled: DataCategory[];
-  planNameFormatted: string;
+  dataCategoryFormatted: string;
+  dataCategoryId: string;
+  disabled: boolean;
+  groupKey: string;
+  tierNumber: number;
+  categoryCode?: string;
+  tallyType?: string;
+  unitSize?: number;
+}
+
+function getCategoryInfo(
+  categories: Record<string, CategoryInfo | string> | undefined,
+  dataCategory: string,
+  dataCategoryFormatted: string
+): {categoryCode?: string; seatCosts?: SeatCosts; tallyType?: string; unitSize?: number} {
+  if (!categories) return {};
+  const entry =
+    categories[dataCategory] ??
+    categories[dataCategoryFormatted] ??
+    categories[dataCategoryFormatted.toLowerCase()];
+  if (!entry) return {};
+  if (typeof entry === 'string') {
+    return {categoryCode: entry.toLowerCase()};
+  }
+  return {
+    categoryCode: entry.billed_category?.toLowerCase(),
+    seatCosts: entry.seat_costs,
+    tallyType: entry.tally_type,
+    unitSize: entry.unit_size,
+  };
+}
+
+function shouldShowCategoryCode(categoryLabel: string, categoryCode?: string): boolean {
+  if (!categoryCode) return false;
+  const baseLabel = categoryLabel.replace(/\s*\(DISABLED\)\s*$/i, '').trim();
+  const labelWithoutPlural = baseLabel.toLowerCase().replace(/s$/, '');
+  const codeWithoutPlural = categoryCode.toLowerCase().replace(/s$/, '');
+  return labelWithoutPlural !== codeWithoutPlural;
+}
+
+function MergedPriceTiersTable({
+  planTierIdFormatted,
+  planName,
+  planDetails,
+  categories,
+}: {
+  planDetails: PlanDetails;
+  planName: string;
   planTierIdFormatted: string;
-  tiers: PriceTier[];
-  notLive?: boolean;
+  categories?: Record<string, CategoryInfo | string>;
 }) {
-  const theme = useTheme();
-  const dataCategoryFormatted = formatDataCategory(dataCategory);
-  const dataCategoryId = `${planTierIdFormatted}-${planNameFormatted}-${dataCategoryFormatted}`;
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
-  const disabled = data_categories_disabled.includes(dataCategory);
+  const entries = (
+    Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
+  )
+    .filter(([, tiers]) => tiers?.length)
+    .sort(([a], [b]) => formatDataCategory(a).localeCompare(formatDataCategory(b)));
 
-  const badgeText = notLive ? 'NOT LIVE' : disabled ? 'DISABLED' : 'LIVE';
-  const badgeType = notLive || disabled ? 'warning' : 'new';
+  const groups: TierGroup[] = entries.flatMap(([dataCategory, tiers]) => {
+    const dataCategoryFormatted = formatDataCategory(dataCategory);
+    const dataCategoryId = `${planTierIdFormatted}-${planName}-${dataCategory}`;
+    const disabled = planDetails.data_categories_disabled.includes(dataCategory);
+    const categoryLabel = disabled
+      ? `${dataCategoryFormatted} (DISABLED)`
+      : dataCategoryFormatted;
+    const {categoryCode, tallyType, unitSize} = getCategoryInfo(
+      categories,
+      dataCategory,
+      dataCategoryFormatted
+    );
 
-  return (
-    <div>
-      <div
-        style={{display: 'flex', alignItems: 'center', marginBottom: theme.space['2xl']}}
-      >
-        <h5 id={dataCategoryId} style={{margin: 0}}>
-          {dataCategoryFormatted} for {planTierIdFormatted} {planNameFormatted}
-        </h5>
-        <Badge variant={badgeType}>{badgeText}</Badge>
-      </div>
+    const byTier = (tiers ?? []).reduce<Map<number, PriceTier[]>>((acc, t) => {
+      const list = acc.get(t.tier) ?? [];
+      list.push(t);
+      acc.set(t.tier, list);
+      return acc;
+    }, new Map());
+
+    const isVolumeConstant = (v: number) => v === -1 || v === -2;
+
+    const result: TierGroup[] = [];
+    for (const [tierNumber, bands] of Array.from(byTier.entries()).sort(
+      ([a], [b]) => a - b
+    )) {
+      const constantBands = bands.filter(t => isVolumeConstant(t.volume));
+      const scalarBands = bands.filter(t => !isVolumeConstant(t.volume));
+
+      for (const band of constantBands) {
+        result.push({
+          dataCategory,
+          tierNumber,
+          bands: [band],
+          groupKey: `${dataCategory}-${tierNumber}-vol${band.volume}`,
+          categoryCode,
+          tallyType,
+          unitSize,
+          dataCategoryFormatted,
+          dataCategoryId,
+          categoryLabel,
+          disabled,
+        });
+      }
+      if (scalarBands.length > 0) {
+        result.push({
+          dataCategory,
+          tierNumber,
+          bands: scalarBands,
+          groupKey: `${dataCategory}-${tierNumber}`,
+          categoryCode,
+          tallyType,
+          unitSize,
+          dataCategoryFormatted,
+          dataCategoryId,
+          categoryLabel,
+          disabled,
+        });
+      }
+    }
+    return result;
+  });
+
+  const usageGroups = groups.filter(
+    g => !g.tallyType || g.tallyType.toUpperCase() === 'USAGE'
+  );
+
+  const seatPricingRows = (
+    Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
+  )
+    .filter(([, tiers]) => tiers?.length)
+    .map(([dataCategory]) => {
+      const dataCategoryFormatted = formatDataCategory(dataCategory);
+      const disabled = planDetails.data_categories_disabled.includes(dataCategory);
+      const categoryLabel = disabled
+        ? `${dataCategoryFormatted} (DISABLED)`
+        : dataCategoryFormatted;
+      const info = getCategoryInfo(categories, dataCategory, dataCategoryFormatted);
+      if (info.tallyType?.toUpperCase() !== 'SEAT' || !info.seatCosts) return null;
+      return {
+        categoryLabel,
+        categoryCode: info.categoryCode,
+        seatCosts: info.seatCosts,
+        disabled,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel));
+
+  const toggleExpanded = (key: string) => {
+    setExpandedKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const renderBandCells = (tier: PriceTier, unitSize?: number) => (
+    <Fragment>
+      <td>{renderVolume(tier.volume, unitSize)}</td>
+      <td style={{textAlign: 'right'}}>
+        {tier.monthly === 0 ? '' : formatCurrency(tier.monthly)}
+      </td>
+      <td style={{textAlign: 'right'}}>
+        {tier.annual === 0 ? '' : formatCurrency(tier.annual)}
+      </td>
+      <td style={{textAlign: 'right'}}>
+        {tier.reserved_ppe === 0
+          ? ''
+          : displayUnitPrice({
+              cents: tier.reserved_ppe,
+              minDigits: 2,
+              maxDigits: 10,
+            })}
+      </td>
+      <td style={{textAlign: 'right'}}>
+        {tier.od_ppe === 0
+          ? ''
+          : displayUnitPrice({
+              cents: tier.od_ppe,
+              minDigits: 2,
+              maxDigits: 10,
+            })}
+      </td>
+    </Fragment>
+  );
+
+  const renderTiersTable = (tableGroups: TierGroup[]) => {
+    const categoryGroups = (() => {
+      const byCategory = new Map<string, TierGroup[]>();
+      for (const group of tableGroups) {
+        const list = byCategory.get(group.dataCategory) ?? [];
+        list.push(group);
+        byCategory.set(group.dataCategory, list);
+      }
+      return Array.from(byCategory.entries()).sort(([a], [b]) => a.localeCompare(b));
+    })();
+
+    return (
       <Panel>
         <StyledResultTable>
           <thead>
             <tr>
+              <th style={{width: 0}} />
+              <th>Data Category</th>
               <th>Tier</th>
-              <th>Volume</th>
-              <th>Monthly</th>
-              <th>Annual</th>
-              <th>Reserved PPE</th>
-              <th>PAYG PPE</th>
+              <th>Volume (max)</th>
+              <th style={{textAlign: 'right'}}>Monthly</th>
+              <th style={{textAlign: 'right'}}>Annual</th>
+              <th style={{textAlign: 'right'}}>Reserved PPE</th>
+              <th style={{textAlign: 'right'}}>PAYG PPE</th>
             </tr>
           </thead>
           <tbody>
-            {tiers.map((tier, index) => (
-              <tr key={`${dataCategoryId}-${tier.tier}-${index}`}>
-                <td>{tier.tier}</td>
-                <td>{Number(tier.volume).toLocaleString('en-US')}</td>
-                <td>{formatCurrency(tier.monthly)}</td>
-                <td>{formatCurrency(tier.annual)}</td>
-                <td>
-                  {displayUnitPrice({
-                    cents: tier.reserved_ppe,
-                    minDigits: 2,
-                    maxDigits: 10,
+            {categoryGroups.map(([dataCategory, categoryTierGroups], categoryIndex) => {
+              const firstGroup = categoryTierGroups[0];
+              const categoryBgStyle =
+                categoryIndex % 2 === 0
+                  ? {backgroundColor: '#fafbfc'}
+                  : {backgroundColor: '#f4f5f8'};
+              if (!firstGroup) return null;
+              const {categoryLabel, dataCategoryId} = firstGroup;
+              const expandKey = dataCategory;
+              const isExpanded = expandedKeys.has(expandKey);
+              const totalRows = categoryTierGroups.reduce(
+                (sum, g) => sum + g.bands.length,
+                0
+              );
+              const hasSingleTierAndBand =
+                categoryTierGroups.length === 1 &&
+                categoryTierGroups[0]!.bands.length === 1;
+
+              if (hasSingleTierAndBand) {
+                const group = categoryTierGroups[0]!;
+                const tier = group.bands[0];
+                if (!tier) return null;
+                return (
+                  <tr
+                    key={expandKey}
+                    id={dataCategoryId}
+                    style={{
+                      ...categoryBgStyle,
+                      ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                    }}
+                  >
+                    <td />
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{categoryLabel}</span>
+                      {shouldShowCategoryCode(categoryLabel, group.categoryCode) && (
+                        <code
+                          style={{
+                            display: 'block',
+                            textAlign: 'left',
+                            background: 'none',
+                          }}
+                        >
+                          {group.categoryCode}
+                        </code>
+                      )}
+                    </td>
+                    <td>{group.tierNumber}</td>
+                    {renderBandCells(tier, group.unitSize)}
+                  </tr>
+                );
+              }
+
+              if (!isExpanded) {
+                return (
+                  <tr
+                    key={expandKey}
+                    id={dataCategoryId}
+                    style={{
+                      ...categoryBgStyle,
+                      ...(firstGroup.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                    }}
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(expandKey)}
+                        aria-expanded={false}
+                        style={{
+                          padding: 0,
+                          border: 0,
+                          background: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <IconChevron direction="right" size="xs" />
+                      </button>
+                    </td>
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{categoryLabel}</span>
+                      {shouldShowCategoryCode(categoryLabel, firstGroup.categoryCode) && (
+                        <code
+                          style={{
+                            display: 'block',
+                            textAlign: 'left',
+                            background: 'none',
+                          }}
+                        >
+                          {firstGroup.categoryCode}
+                        </code>
+                      )}
+                    </td>
+                    <td
+                      colSpan={6}
+                      style={{
+                        color: '#557',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {totalRows} row{totalRows === 1 ? '' : 's'} — click to expand
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <Fragment key={expandKey}>
+                  {categoryTierGroups.map((group, groupIndex) => {
+                    const {bands, tierNumber, groupKey} = group;
+                    const isSingleBand = bands.length === 1;
+
+                    if (isSingleBand) {
+                      const tier = bands[0];
+                      if (!tier) return null;
+                      return (
+                        <tr
+                          key={groupKey}
+                          id={groupIndex === 0 ? dataCategoryId : undefined}
+                          style={{
+                            ...categoryBgStyle,
+                            ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                          }}
+                        >
+                          <td>
+                            {groupIndex === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(expandKey)}
+                                aria-expanded
+                                style={{
+                                  padding: 0,
+                                  border: 0,
+                                  background: 'none',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <IconChevron direction="down" size="xs" />
+                              </button>
+                            ) : null}
+                          </td>
+                          <td style={{textAlign: 'left'}}>
+                            {groupIndex === 0 ? (
+                              <Fragment>
+                                <span style={{display: 'block'}}>{categoryLabel}</span>
+                                {shouldShowCategoryCode(
+                                  categoryLabel,
+                                  group.categoryCode
+                                ) && (
+                                  <code
+                                    style={{
+                                      display: 'block',
+                                      textAlign: 'left',
+                                      background: 'none',
+                                    }}
+                                  >
+                                    {group.categoryCode}
+                                  </code>
+                                )}
+                              </Fragment>
+                            ) : (
+                              ''
+                            )}
+                          </td>
+                          <td>{tierNumber}</td>
+                          {renderBandCells(tier, group.unitSize)}
+                        </tr>
+                      );
+                    }
+
+                    const [first, ...rest] = bands;
+                    if (!first) return null;
+                    return (
+                      <Fragment key={groupKey}>
+                        <tr
+                          id={groupIndex === 0 ? dataCategoryId : undefined}
+                          style={{
+                            ...categoryBgStyle,
+                            ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                          }}
+                        >
+                          <td>
+                            {groupIndex === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(expandKey)}
+                                aria-expanded
+                                style={{
+                                  padding: 0,
+                                  border: 0,
+                                  background: 'none',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <IconChevron direction="down" size="xs" />
+                              </button>
+                            ) : null}
+                          </td>
+                          <td style={{textAlign: 'left'}}>
+                            {groupIndex === 0 ? (
+                              <Fragment>
+                                <span style={{display: 'block'}}>{categoryLabel}</span>
+                                {shouldShowCategoryCode(
+                                  categoryLabel,
+                                  group.categoryCode
+                                ) && (
+                                  <code
+                                    style={{
+                                      display: 'block',
+                                      textAlign: 'left',
+                                      background: 'none',
+                                    }}
+                                  >
+                                    {group.categoryCode}
+                                  </code>
+                                )}
+                              </Fragment>
+                            ) : (
+                              ''
+                            )}
+                          </td>
+                          <td>{tierNumber}</td>
+                          {renderBandCells(first, group.unitSize)}
+                        </tr>
+                        {rest.map((tier, index) => (
+                          <tr
+                            key={`${groupKey}-band-${index}`}
+                            style={{
+                              ...categoryBgStyle,
+                              ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                            }}
+                          >
+                            <td />
+                            <td />
+                            <td />
+                            {renderBandCells(tier, group.unitSize)}
+                          </tr>
+                        ))}
+                      </Fragment>
+                    );
                   })}
-                </td>
-                <td>
-                  {displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10})}
-                </td>
-              </tr>
-            ))}
+                </Fragment>
+              );
+            })}
           </tbody>
         </StyledResultTable>
       </Panel>
+    );
+  };
+
+  return (
+    <div>
+      {usageGroups.length > 0 && (
+        <Fragment>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '20px',
+              marginTop: '20px',
+            }}
+          >
+            <h4 style={{margin: 0}}>Usage Price Tiers</h4>
+          </div>
+          {renderTiersTable(usageGroups)}
+        </Fragment>
+      )}
+      {seatPricingRows.length > 0 && (
+        <Fragment>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '20px',
+              marginTop: '20px',
+            }}
+          >
+            <h4 style={{margin: 0}}>Seat Pricing</h4>
+          </div>
+          <Panel>
+            <StyledResultTable>
+              <thead>
+                <tr>
+                  <th>Data Category</th>
+                  <th style={{textAlign: 'right'}}>Standard</th>
+                  <th style={{textAlign: 'right'}}>Reserved</th>
+                  <th style={{textAlign: 'right'}}>PAYG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seatPricingRows.map(row => (
+                  <tr
+                    key={row.categoryCode ?? row.categoryLabel}
+                    style={row.disabled ? {backgroundColor: '#e8e9ec'} : undefined}
+                  >
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{row.categoryLabel}</span>
+                      {shouldShowCategoryCode(row.categoryLabel, row.categoryCode) && (
+                        <code
+                          style={{
+                            display: 'block',
+                            textAlign: 'left',
+                            background: 'none',
+                          }}
+                        >
+                          {row.categoryCode}
+                        </code>
+                      )}
+                    </td>
+                    <td style={{textAlign: 'right'}}>
+                      {typeof row.seatCosts.standard === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.standard,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                    <td style={{textAlign: 'right'}}>
+                      {typeof row.seatCosts.prepaid === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.prepaid,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                    <td style={{textAlign: 'right'}}>
+                      {typeof row.seatCosts.ondemand === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.ondemand,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </StyledResultTable>
+          </Panel>
+        </Fragment>
+      )}
     </div>
   );
 }
 
 const StyledResultTable = styled(ResultTable)`
-  margin-bottom: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
+  thead th {
+    background-color: #f0f0ff;
+    padding: 12px 2px;
+  }
+  td {
+    padding: 12px 2px;
+    vertical-align: middle;
+  }
+  td code {
+    padding: 0.45em 0 0 0;
+    font-size: 12px;
+    background: #f6f6f6;
+  }
 `;
 
 const TOCContainer = styled('nav')`
   margin-bottom: ${p => p.theme.space['3xl']};
-  ul {
-    list-style-type: none;
-    padding-left: ${p => p.theme.space.xl};
-  }
-  li {
-    margin-bottom: ${p => p.theme.space.md};
-  }
   a {
     text-decoration: none;
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
@@ -453,12 +1264,151 @@ const TOCContainer = styled('nav')`
   }
 `;
 
+const badgeStyle = {
+  width: '100%',
+  textAlign: 'center' as const,
+  padding: '4px 8px',
+  borderRadius: 4,
+  fontSize: 12,
+  fontWeight: 600,
+};
+
+function ReservedVolumeBadge() {
+  return (
+    <div
+      style={{
+        ...badgeStyle,
+        backgroundColor: '#EBEFFC',
+        color: '#365EC8',
+      }}
+    >
+      RESERVED
+    </div>
+  );
+}
+
+function UnlimitedVolumeBadge() {
+  return (
+    <div
+      style={{
+        ...badgeStyle,
+        backgroundColor: '#E2F6EF',
+        color: '#268D75',
+      }}
+    >
+      UNLIMITED
+    </div>
+  );
+}
+
+// Mirrors Python constants for unit_size (TERABYTE, GIGABYTE, etc.)
+const UNIT_SIZE_CONSTANTS: ReadonlyArray<[number, string]> = [
+  [10 ** 12, 'TB'],
+  [10 ** 9, 'GB'],
+  [10 ** 6, 'MB'],
+  [10 ** 3, 'KB'],
+];
+
+function formatVolume(volume: number): string {
+  const n = Number(volume);
+  if (n === -2) return 'RESERVED_BUDGET_QUOTA';
+  if (n === -1) return 'UNLIMITED_ONDEMAND';
+  if (n === 0) return '0';
+  if (Math.abs(n) < 0.0001 && Math.abs(n) > 0) {
+    return n.toFixed(15).replace(/\.?0+$/, '');
+  }
+  return n.toLocaleString('en-US', {maximumFractionDigits: 10});
+}
+
+function getUnitSizeLabel(unitSize: number | undefined): string | undefined {
+  if (unitSize === undefined) return undefined;
+  for (const [constant, name] of UNIT_SIZE_CONSTANTS) {
+    if (unitSize === constant) return name;
+  }
+  return undefined;
+}
+
+/** Format large volumes as K/M/B when no unit size (e.g. 1,000 → 1K, 1,000,000 → 1M) */
+function formatVolumeCompact(volume: number): string {
+  if (volume >= 1_000_000_000) {
+    const b = volume / 1_000_000_000;
+    const s =
+      b % 1 === 0
+        ? String(Math.round(b))
+        : b.toLocaleString('en-US', {maximumFractionDigits: 2, minimumFractionDigits: 0});
+    return `${s}B`;
+  }
+  if (volume >= 1_000_000) {
+    const m = volume / 1_000_000;
+    const s =
+      m % 1 === 0
+        ? String(Math.round(m))
+        : m.toLocaleString('en-US', {maximumFractionDigits: 2, minimumFractionDigits: 0});
+    return `${s}M`;
+  }
+  if (volume >= 1_000) {
+    const k = volume / 1_000;
+    const s =
+      k % 1 === 0
+        ? String(Math.round(k))
+        : k.toLocaleString('en-US', {maximumFractionDigits: 2, minimumFractionDigits: 0});
+    return `${s}K`;
+  }
+  return formatVolume(volume);
+}
+
+/** Convert volume+unitSize to largest appropriate unit (e.g. 1000 gb → 1 tb) */
+function toLargestUnit(
+  volume: number,
+  unitSize: number | undefined
+): {unit: string; value: number} | null {
+  if (volume === 0 || unitSize === undefined) return null;
+  const unitLabel = getUnitSizeLabel(unitSize);
+  if (!unitLabel) return null;
+  const total = volume * unitSize;
+  for (const [constant, name] of UNIT_SIZE_CONSTANTS) {
+    if (total >= constant && total % constant === 0) {
+      const value = total / constant;
+      return {value, unit: name};
+    }
+  }
+  return null;
+}
+
+function renderVolume(volume: number, unitSize?: number): ReactNode {
+  const formatted = formatVolume(volume);
+  if (formatted === 'RESERVED_BUDGET_QUOTA') return <ReservedVolumeBadge />;
+  if (formatted === 'UNLIMITED_ONDEMAND') return <UnlimitedVolumeBadge />;
+  if (volume === 0) return formatted;
+  const converted = toLargestUnit(volume, unitSize);
+  if (converted) {
+    const displayValue = formatVolume(converted.value);
+    return `${displayValue}${converted.unit}`;
+  }
+  const unitLabel = getUnitSizeLabel(unitSize);
+  if (unitLabel) return `${formatted}${unitLabel}`;
+  return formatVolumeCompact(volume);
+}
+
 function formatPlanTierId(planTierId: string): string {
   return planTierId.toUpperCase();
 }
 
-function formatPlanName(planType: string): string {
-  return planType.charAt(0).toUpperCase() + planType.slice(1);
+/** Fragment id when `planDetails.id` is missing; uses API plan key (no spaces) so anchors stay valid HTML. */
+function planFallbackAnchorId(planTierIdFormatted: string, planNameKey: string): string {
+  return `${planTierIdFormatted}-${planNameKey}`;
+}
+
+function formatPlanName(planType: string, shortenEnterprise = false): string {
+  if (planType.startsWith('enterprise_')) {
+    const suffix = planType.slice('enterprise_'.length);
+    const parts = suffix
+      .split('_')
+      .map(part => (part.length <= 2 ? part.toUpperCase() : capitalizeWords(part)));
+    const prefix = shortenEnterprise ? 'Ent ' : 'Enterprise ';
+    return prefix + parts.join(' ');
+  }
+  return planType.split('_').map(capitalizeWords).join(' ');
 }
 
 function formatDataCategory(dataCategory: DataCategory): string {

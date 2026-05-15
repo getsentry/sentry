@@ -53,7 +53,7 @@ afterEach(() => {
 const mockPlansResponse: BillingPlansResponse = {
   not_live: [],
   data: {
-    am9000: {
+    am3: {
       business: {
         data_categories_disabled: [],
         pricing: {
@@ -99,7 +99,7 @@ describe('BillingPlans Component', () => {
 
     // Wait for the plans data to be fetched and rendered
     await waitFor(() => {
-      expect(screen.getAllByText('AM9000 Plans').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('AM3 Plans').length).toBeGreaterThan(0);
     });
   });
 
@@ -111,10 +111,7 @@ describe('BillingPlans Component', () => {
       expect(screen.getByText('Table of Contents')).toBeInTheDocument();
     });
 
-    expect(await screen.findByRole('link', {name: /AM9000\s+Plans/})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /Business/})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /Pricing/})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /Errors/})).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: /Business/})).toBeInTheDocument();
   });
 
   it('renders pricing tables correctly', async () => {
@@ -122,7 +119,7 @@ describe('BillingPlans Component', () => {
 
     // Wait for the pricing tables to be rendered
     await waitFor(() => {
-      expect(screen.getByText('Pricing:')).toBeInTheDocument();
+      expect(screen.getByText('Pricing')).toBeInTheDocument();
     });
 
     // Check that pricing information is displayed
@@ -136,21 +133,27 @@ describe('BillingPlans Component', () => {
   it('renders price tiers tables correctly', async () => {
     render(<BillingPlans />);
 
-    // Wait for the price tiers tables to be rendered
+    // Wait for the price tiers table to be rendered
     await waitFor(() => {
-      expect(screen.getByText('Errors for AM9000 Business')).toBeInTheDocument();
+      expect(screen.getByText('Usage Price Tiers')).toBeInTheDocument();
     });
 
-    // Check that price tier information is displayed
-    expect(await screen.findByText('Tier')).toBeInTheDocument();
-    expect(screen.getByText('Reserved PPE')).toBeInTheDocument();
-    expect(screen.getByText('PAYG PPE')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('100,000')).toBeInTheDocument();
-    expect(screen.getAllByText('$0.00')).toHaveLength(2); // Both reserved_ppe and od_ppe for tier 1
+    // Column headers are always visible
+    expect(screen.getByRole('columnheader', {name: 'Tier'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Reserved PPE'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'PAYG PPE'})).toBeInTheDocument();
 
+    // Rows are collapsed by default — expand them
+    const expandButton = screen
+      .getAllByRole('button')
+      .find(btn => btn.getAttribute('aria-expanded') !== null)!;
+    await userEvent.click(expandButton);
+
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('100K')).toBeInTheDocument(); // formatVolumeCompact(100000)
+    // Tier 1 has monthly=0, annual=0, od_ppe=0, reserved_ppe=0 — all render as empty cells
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('1,000,000')).toBeInTheDocument();
+    expect(screen.getByText('1M')).toBeInTheDocument(); // formatVolumeCompact(1000000)
     expect(screen.getByText('$1.60')).toBeInTheDocument(); // reserved_ppe
     expect(screen.getByText('$2.00')).toBeInTheDocument(); // od_ppe
   });
@@ -166,7 +169,7 @@ describe('BillingPlans Component', () => {
 
     // Wait for the plans data to be fetched and rendered
     await waitFor(() => {
-      expect(screen.getAllByText('AM9000 Plans').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('AM3 Plans').length).toBeGreaterThan(0);
     });
 
     // Find the download button and click it
@@ -190,7 +193,7 @@ describe('BillingPlans Component', () => {
     expect(downloadLink!.download).toMatch(expectedFilenamePattern);
 
     expect(TEST_BLOB_CONSTRUCTOR).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.stringContaining('AM9000')]),
+      expect.arrayContaining([expect.stringContaining('AM3')]),
       {type: 'text/csv;charset=utf-8;'}
     );
 
@@ -198,19 +201,19 @@ describe('BillingPlans Component', () => {
     const blobText = blobArgs.join('');
 
     // Perform assertions on the CSV content
-    expect(blobText).toContain('AM9000');
-    expect(blobText).toContain('Am9000 Business, , , ,Errors,,,,,,');
+    expect(blobText).toContain('AM3');
+    expect(blobText).toContain('Am3 Business, , , ,Errors,,,,,,');
     expect(blobText).toContain(
       'Monthly,Annual, , ,Tier,Volume (max),Monthly,Annual,Reserved PPE,PAYG PPE,'
     );
-    expect(blobText).toContain('$89,$960, , ,1,100000,$0,$0,$0.00,$0.00,');
+    expect(blobText).toContain('$89,$960, , ,1,100000,,,,,');
     expect(blobText).toContain(' , , , ,2,1000000,$100,"$1,000",$1.60,$2.00,');
   });
 
   it('displays "NOT LIVE" badge for plans that are not live', async () => {
     // Mock response with a plan in the 'not_live' array
     const mockNotLiveResponse = {
-      not_live: ['am9000'],
+      not_live: ['am3'],
       data: mockPlansResponse.data,
     };
 
@@ -225,26 +228,16 @@ describe('BillingPlans Component', () => {
 
     // Wait for the plans data to be fetched and rendered
     await waitFor(() => {
-      expect(screen.getAllByText('AM9000 Plans').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('AM3 Plans').length).toBeGreaterThan(0);
     });
 
     // Check that the 'NOT LIVE' badge is displayed next to the plan header
     const planHeader = screen.getByRole('heading', {
       level: 3,
-      name: /AM9000\s+Business\s+Plan/i,
+      name: /AM3\s+Business\s+Plan/i,
     });
     const planNotLiveBadge = within(planHeader.parentElement!).getByText('NOT LIVE');
     expect(planNotLiveBadge).toBeInTheDocument();
-
-    // Check that the 'NOT LIVE' badge is displayed next to the data category header
-    const dataCategoryHeader = screen.getByRole('heading', {
-      level: 5,
-      name: /Errors\s+for\s+AM9000\s+Business/i,
-    });
-    const dataCategoryNotLiveBadge = within(dataCategoryHeader.parentElement!).getByText(
-      'NOT LIVE'
-    );
-    expect(dataCategoryNotLiveBadge).toBeInTheDocument();
   });
 
   it('displays "DISABLED" badge for data categories that are disabled', async () => {
@@ -252,7 +245,7 @@ describe('BillingPlans Component', () => {
     const mockDisabledDataCategoryResponse = {
       not_live: [],
       data: {
-        am9000: {
+        am3: {
           business: {
             data_categories_disabled: ['errors'],
             pricing: {
@@ -294,13 +287,11 @@ describe('BillingPlans Component', () => {
 
     // Wait for the plans data to be fetched and rendered
     await waitFor(() => {
-      expect(screen.getAllByText('AM9000 Plans').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('AM3 Plans').length).toBeGreaterThan(0);
     });
 
-    // Check that the 'DISABLED' badge is displayed next to the data category
-    const dataCategoryHeader = screen.getByText('Errors for AM9000 Business');
-    const disabledBadge = within(dataCategoryHeader.parentElement!).getByText('DISABLED');
-    expect(disabledBadge).toBeInTheDocument();
+    // Disabled categories are shown with "(DISABLED)" in the category label
+    expect(await screen.findByText('Errors (DISABLED)')).toBeInTheDocument();
   });
 
   it('renders without crashing and displays LIVE badges', async () => {
@@ -311,19 +302,14 @@ describe('BillingPlans Component', () => {
 
     // Wait for the plans data to be fetched and rendered
     await waitFor(() => {
-      expect(screen.getAllByText('AM9000 Plans').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('AM3 Plans').length).toBeGreaterThan(0);
     });
 
     // Check that the LIVE badge is displayed for the plan
-    const planHeader = screen.getByRole('heading', {level: 2, name: /AM9000 Plans/i});
+    const planHeader = screen.getByRole('heading', {level: 2, name: /AM3 Plans/i});
     const headerLiveBadges = within(planHeader.parentElement!).getAllByText('LIVE');
     headerLiveBadges.forEach(badge => {
       expect(badge).toBeInTheDocument();
     });
-
-    // Check that the LIVE badge is displayed for the data category
-    const dataCategoryHeader = screen.getByText('Errors for AM9000 Business');
-    const liveBadge = within(dataCategoryHeader.parentElement!).getByText('LIVE');
-    expect(liveBadge).toBeInTheDocument();
   });
 });
