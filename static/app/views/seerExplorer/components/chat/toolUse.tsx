@@ -8,7 +8,13 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCheckmark, IconClose, IconLink, IconLinkBroken} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconClose,
+  IconLink,
+  IconLinkBroken,
+  IconWarning,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -22,10 +28,10 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import {
-  type ToolCallStatus,
+  type BlockStatus,
   SeerMarkdown,
   Spinner,
-  getToolCallStatus,
+  getBlockStatus,
   hasValidContent,
   useBlockContext,
 } from './shared';
@@ -104,6 +110,8 @@ function ToolCallList() {
     projects,
   } = useToolLinks();
   const toolsUsed = getToolsStringFromBlock(block);
+  const blockStatus = getBlockStatus(block);
+  const isLoading = blockStatus === 'loading' || blockStatus === 'pending';
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -112,7 +120,6 @@ function ToolCallList() {
         const toolLinkParams = toolCall.id
           ? toolLinkByCallId.get(toolCall.id)
           : undefined;
-        const status = getToolCallStatus(block.loading, toolLinkParams);
         const hasLink = correspondingLinkIndex !== undefined;
         const toolUrl = hasLink
           ? buildToolLinkUrl(
@@ -150,7 +157,8 @@ function ToolCallList() {
           <ToolCallRow
             key={`${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
-            status={status}
+            blockStatus={idx === 0 ? blockStatus : undefined}
+            isLoading={isLoading}
             toolUrl={toolUrl}
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
@@ -164,21 +172,22 @@ function ToolCallList() {
 
 function ToolCallRow({
   toolString,
-  status,
+  blockStatus,
+  isLoading,
   toolUrl,
   failureTooltip,
   onLinkClick,
   todos,
 }: {
+  blockStatus: BlockStatus | undefined;
   failureTooltip: string | null;
-  status: ToolCallStatus;
+  isLoading: boolean;
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
   const hasLink = toolUrl !== null;
-  const isLoading = status === 'pending';
 
   const toolCallText = (
     <Tooltip title={failureTooltip ?? ''} disabled={!failureTooltip}>
@@ -199,7 +208,7 @@ function ToolCallRow({
           height="12px"
           flexShrink={0}
         >
-          <BlockStatusIndicator status={status} />
+          {blockStatus && <BlockStatusIndicator status={blockStatus} />}
         </Flex>
         {hasLink ? (
           <ToolCallLink to={toolUrl} onClick={onLinkClick}>
@@ -242,30 +251,46 @@ function TodoList({todos}: {todos: TodoItem[]}) {
   );
 }
 
-function BlockStatusIndicator({status}: {status: ToolCallStatus}) {
+function BlockStatusIndicator({status}: {status: BlockStatus}) {
   switch (status) {
-    case 'pending':
+    case 'loading':
       return (
         <Tooltip title={t('Running...')}>
           <Spinner />
         </Tooltip>
       );
+    case 'pending':
+      return (
+        <Tooltip title={t('Waiting for approval')}>
+          <Spinner />
+        </Tooltip>
+      );
     case 'failure':
       return (
-        <Tooltip title={t('Failed')}>
+        <Tooltip title={t('All tool calls failed')}>
           <Text variant="danger">
             <IconClose size="xs" />
           </Text>
         </Tooltip>
       );
+    case 'mixed':
+      return (
+        <Tooltip title={t('Some tool calls succeeded and some failed')}>
+          <Text variant="warning">
+            <IconWarning size="xs" />
+          </Text>
+        </Tooltip>
+      );
     case 'success':
       return (
-        <Tooltip title={t('Completed')}>
+        <Tooltip title={t('All tool calls succeeded')}>
           <Text variant="success">
             <IconCheckmark size="xs" />
           </Text>
         </Tooltip>
       );
+    case 'content':
+      return null;
     default:
       return unreachable(status);
   }
