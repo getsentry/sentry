@@ -98,7 +98,7 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
     expect(router.location.query.cursor).toBe('0:1:0');
   });
 
-  it('should clean query params when navigating to a new path', async () => {
+  it('should clean query params when navigating to a new path', () => {
     const {router, rerender} = renderHookWithProviders(useCleanQueryParamsOnRouteLeave, {
       initialProps: {
         fieldsToClean: ['cursor'],

@@ -46,20 +46,49 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
   const navigate = useNavigate();
   const previousPathnameRef = useRef(location.pathname);
 
+  const fieldsToCleanRef = useRef(fieldsToClean);
+  fieldsToCleanRef.current = fieldsToClean;
+  const shouldCleanRef = useRef(shouldClean);
+  shouldCleanRef.current = shouldClean;
+
   useEffect(() => {
     const oldPathname = previousPathnameRef.current;
     previousPathnameRef.current = location.pathname;
 
-    if (!shouldClean || shouldClean(location as Location<Q>)) {
+    if (!shouldCleanRef.current || shouldCleanRef.current(location as Location<Q>)) {
       const cleanLocation = getCleanLocationIfNeeded({
-        fieldsToClean,
+        fieldsToClean: fieldsToCleanRef.current,
         newLocation: location as Location<Q & Record<PropertyKey, unknown>>,
         oldPathname,
       });
 
       if (cleanLocation) {
-        navigate(cleanLocation, {replace: true});
+        navigate(cleanLocation, {replace: true, preventScrollReset: true});
       }
     }
-  }, [location, fieldsToClean, shouldClean, navigate]);
+  }, [location, navigate]);
+
+  // When the component unmounts due to route change, the effect above won't
+  // fire because React unmounts the component before re-rendering with the
+  // new location. Fall back to window.history to clean params directly.
+  useEffect(() => {
+    return () => {
+      const oldPathname = previousPathnameRef.current;
+      const newUrl = new URL(window.location.href);
+
+      if (newUrl.pathname === oldPathname) {
+        return;
+      }
+
+      const fields = fieldsToCleanRef.current;
+      if (!fields.some(f => newUrl.searchParams.has(f))) {
+        return;
+      }
+
+      for (const f of fields) {
+        newUrl.searchParams.delete(f);
+      }
+      window.history.replaceState(window.history.state, '', newUrl.toString());
+    };
+  }, []);
 }
