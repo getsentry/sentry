@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 # Action identifier for the "Approve" button on snapshot GitHub check runs.
 APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 
+
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
     namespace=preprod_tasks,
