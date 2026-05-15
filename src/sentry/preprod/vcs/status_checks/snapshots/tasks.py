@@ -444,6 +444,21 @@ def post_snapshot_status_check_task(
     completed_at = datetime.fromisoformat(completed_at_iso) if completed_at_iso else None
     status_enum = StatusCheckStatus(status)
 
+    if status_enum == StatusCheckStatus.IN_PROGRESS:
+        has_terminal_comparison = PreprodSnapshotComparison.objects.filter(
+            head_snapshot_metrics__preprod_artifact_id=preprod_artifact_id,
+            state__in=[
+                PreprodSnapshotComparison.State.SUCCESS,
+                PreprodSnapshotComparison.State.FAILED,
+            ],
+        ).exists()
+        if has_terminal_comparison:
+            logger.info(
+                "preprod.snapshot_status_checks.post.skipped_stale_in_progress",
+                extra={"preprod_artifact_id": preprod_artifact_id},
+            )
+            return
+
     try:
         check_id = provider.create_status_check(
             repo=commit_comparison.head_repo_name,
