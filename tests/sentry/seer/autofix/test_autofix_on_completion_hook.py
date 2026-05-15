@@ -17,7 +17,7 @@ from sentry.seer.autofix.on_completion_hook import (
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, read_preference_from_sentry_db
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
@@ -568,6 +568,73 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
         assert call_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
+
+
+class TestHandoffRegressionRootCauseStoppingPoint(TestCase):
+    """Regression: new-autofix path drops handoff when stopping_point=root_cause.
+
+    Legacy seer-side gate (seer/automation/autofix/steps/root_cause_step.py
+    _check_and_trigger_coding_agent_handoff) fires handoff whenever
+    automation_handoff is configured with handoff_point=ROOT_CAUSE — it does not
+    look at the run's stopping_point. The new sentry-side gate
+    (on_completion_hook._get_handoff_config_if_applicable) returns None when
+    stopping_point is ROOT_CAUSE, silently skipping the case "let seer find the
+    root cause, then hand off to an external coding agent to do the fix" —
+    which is a coherent, expected configuration.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+
+        # Customer-impacting config: stop seer at root cause, then external
+        # coding agent takes over.
+        self.project.update_option(
+            "sentry:seer_automated_run_stopping_point",
+            AutofixStoppingPoint.ROOT_CAUSE.value,
+        )
+        self.project.update_option(
+            "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE.value
+        )
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 123)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+    def test_legacy_gate_fires_handoff(self) -> None:
+        # The legacy seer-side gate's full check, reproduced from
+        # seer/automation/autofix/steps/root_cause_step.py:184. It reads the
+        # same preference that the new path reads, then trusts
+        # handoff_point alone. No stopping_point check.
+        preference = read_preference_from_sentry_db(self.project)
+        handoff_config = preference.automation_handoff
+        auto_run_source = True  # automation-triggered run
+
+        would_handoff = (
+            auto_run_source
+            and handoff_config is not None
+            and handoff_config.handoff_point == AutofixHandoffPoint.ROOT_CAUSE
+        )
+
+        assert would_handoff is True
+        assert handoff_config is not None
+        assert handoff_config.target == "cursor_background_agent"
+
+    def test_new_gate_silently_skips_handoff(self) -> None:
+        # Same config, same group, run completed root_cause step. The new gate
+        # returns None because stopping_point == ROOT_CAUSE — even though
+        # handoff_point is ROOT_CAUSE and a target is configured. After the
+        # fix, this assertion should flip to assert a non-None config.
+        result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+            current_step=AutofixStep.ROOT_CAUSE,
+            group=self.group,
+        )
+
+        assert result is None
 
 
 class AutofixOnCompletionHookTest(TestCase):
