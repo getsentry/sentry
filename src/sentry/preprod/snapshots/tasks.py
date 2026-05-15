@@ -381,6 +381,12 @@ def compare_snapshots(
                 "caller": "compare_failure",
             },
         )
+        create_preprod_snapshot_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
         return
 
     try:
@@ -395,6 +401,12 @@ def compare_snapshots(
             },
         )
         create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
+        create_preprod_snapshot_pr_comment_task.apply_async(
             kwargs={
                 "preprod_artifact_id": head_artifact_id,
                 "caller": "compare_failure",
