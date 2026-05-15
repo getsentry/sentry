@@ -68,6 +68,7 @@ import {triggerProvisionSubscription} from 'admin/components/provisionSubscripti
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
+import {triggerSimulateProvision} from 'admin/components/simulateProvisionAction';
 import {SponsorshipAction} from 'admin/components/sponsorshipAction';
 import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
@@ -706,6 +707,23 @@ export function CustomerDetails() {
             skipConfirmModal: true,
             onAction: () =>
               triggerProvisionSubscription({
+                orgId,
+                subscription,
+                billingConfig,
+                onSuccess: reloadData,
+              }),
+          },
+          {
+            key: 'simulateProvisioning',
+            name: 'Simulate Provisioning',
+            help: 'Preview what an SFDC provisioning request would do without making changes.',
+            disabled: !isBillingAdmin || !hasProvisionPermission,
+            disabledReason: isBillingAdmin
+              ? 'Requires provisioning permissions.'
+              : 'Requires billing admin permissions.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerSimulateProvision({
                 orgId,
                 subscription,
                 billingConfig,
