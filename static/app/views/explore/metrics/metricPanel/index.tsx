@@ -27,6 +27,7 @@ import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics'
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
+  DEFAULT_YAXIS_BY_TYPE,
   getTraceSamplesTableFields,
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
@@ -50,12 +51,17 @@ import {
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
+import {
+  mapMetricUnitToFieldType,
+  updateVisualizeYAxis,
+} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
+  useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
@@ -112,6 +118,8 @@ export function MetricPanel({
   const mode = useQueryParamsMode();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const groupBys = useQueryParamsGroupBys();
+  const setGroupBys = useSetQueryParamsGroupBys();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
@@ -193,7 +201,35 @@ export function MetricPanel({
   });
 
   function handleChartTypeChange(newChartType: ChartType) {
-    setVisualizes(visualizes.map(v => v.replace({chartType: newChartType})));
+    if (newChartType === ChartType.HEATMAP) {
+      // Heatmap always uses count() with no group by
+      setVisualizes(
+        visualizes.map(v =>
+          isVisualizeFunction(v)
+            ? updateVisualizeYAxis(v, 'count', traceMetric).replace({
+                chartType: ChartType.HEATMAP,
+              })
+            : v.replace({chartType: ChartType.HEATMAP})
+        )
+      );
+      if (groupBys.length > 0) {
+        setGroupBys([]);
+      }
+    } else if (isHeatmap) {
+      // Switching away from heatmap — restore the default aggregate
+      const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'count';
+      setVisualizes(
+        visualizes.map(v =>
+          isVisualizeFunction(v)
+            ? updateVisualizeYAxis(v, defaultAggregate, traceMetric).replace({
+                chartType: newChartType,
+              })
+            : v.replace({chartType: newChartType})
+        )
+      );
+    } else {
+      setVisualizes(visualizes.map(v => v.replace({chartType: newChartType})));
+    }
   }
 
   const actions = (
