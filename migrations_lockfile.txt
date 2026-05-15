@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0013_add_workflow_config
+seer: 0014_add_new_unique_constraints
 
-sentry: 1096_backfill_mcp_dashboard_widget_filters
+sentry: 1097_add_new_unique_constraints
 
 social_auth: 0003_social_auth_json_field
 
