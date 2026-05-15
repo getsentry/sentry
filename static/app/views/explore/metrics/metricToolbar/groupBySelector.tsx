@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -6,7 +7,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
@@ -18,6 +18,7 @@ import {
   useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {
   selectTraceItemTagCollection,
   traceItemAttributeKeysOptions,
@@ -115,7 +116,15 @@ export function GroupBySelector({
   return (
     <CompactSelect
       multiple
-      search
+      search={{
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.TRACEMETRICS,
+            option,
+            searchText,
+          });
+        },
+      }}
       clearable
       trigger={triggerProps => (
         <OverlayTrigger.Button

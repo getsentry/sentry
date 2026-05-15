@@ -1,8 +1,14 @@
-import {useCallback, useMemo, useState, type ReactNode} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,13 +32,19 @@ function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
     .filter(Boolean);
 }
 
-const [
-  _MultiMetricsQueryParamsContextProvider,
-  useMultiMetricsQueryParamsContext,
-  MultiMetricsQueryParamsContext,
-] = createDefinedContext<MetricQueriesControllerValue>({
-  name: 'QueryParamsContext',
-});
+const MultiMetricsQueryParamsContext = createContext<
+  MetricQueriesControllerValue | undefined
+>(undefined);
+
+function useMultiMetricsQueryParamsContext(): MetricQueriesControllerValue {
+  const context = useContext(MultiMetricsQueryParamsContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "QueryParamsContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;

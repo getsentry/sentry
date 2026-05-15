@@ -30,6 +30,7 @@ export type MetricsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
+    ai_query_run_id?: number;
     panel_index?: number;
   };
   'metrics.explorer.setup_button_clicked': {
@@ -42,9 +43,6 @@ export type MetricsAnalyticsEventParameters = {
   };
   'metrics.nav.rendered': {
     has_feature_flag: boolean;
-    has_metrics_supported_platform: boolean;
-    metrics_supported_platform_name: string | undefined;
-    metrics_tab_visible: boolean;
     organization: Organization;
   };
   'metrics.onboarding': {

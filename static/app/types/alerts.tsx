@@ -129,7 +129,7 @@ interface IssueAlertGenericActionConfig extends IssueAlertConfigBase {
  * Currently filters and conditions are basically the same, just with different IDs.
  * Do not add properties unless they are used by all filters.
  */
-export interface IssueAlertGenericConditionConfig extends IssueAlertConfigBase {
+interface IssueAlertGenericConditionConfig extends IssueAlertConfigBase {
   id: `${IssueAlertConditionType}` | `${IssueAlertFilterType}`;
   formFields?: Record<string, IssueAlertRuleFormField>;
 }
@@ -201,7 +201,7 @@ export interface IssueAlertRuleActionTemplate {
   sentryAppInstallationUuid?: string;
   ticketType?: string;
 }
-export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
+type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 
 /**
  * These are the action or condition data that the user is editing or has saved.

@@ -1,5 +1,6 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -7,19 +8,18 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ApiResult} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackListHeader} from 'sentry/components/feedback/list/feedbackListHeader';
 import {FeedbackListItem} from 'sentry/components/feedback/list/feedbackListItem';
-import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import type {InfiniteApiQueryKey} from 'sentry/utils/queryClient';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 
 function NoFeedback() {
   return (
@@ -36,40 +36,32 @@ interface Props {
 }
 
 export function FeedbackList({onItemSelect}: Props) {
-  const {listQueryKey} = useFeedbackQueryKeys();
-  const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
-    queryKey:
-      listQueryKey ??
-      ([{infinite: true, version: 'v1'}, ''] as unknown as InfiniteApiQueryKey),
-    enabled: Boolean(listQueryKey),
-  });
+  const {listApiOptions} = useFeedbackApiOptions();
+  const queryResult = useInfiniteQuery(listApiOptions);
 
   // Deduplicated issues. In case one page overlaps with another.
   const issues = useMemo(
-    () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
+    () => uniqBy(queryResult.data?.pages.flatMap(page => page.json) ?? [], 'id'),
     [queryResult.data?.pages]
   );
-  const checkboxState = useListItemCheckboxContext({
-    hits: Number(
-      queryResult.data?.pages[0]?.[2]?.getResponseHeader('X-Hits') ?? issues.length
-    ),
-    knownIds: issues.map(issue => issue.id),
-    queryKey: listQueryKey,
-  });
 
   return (
-    <Fragment>
-      <FeedbackListHeader {...checkboxState} />
+    <ListItemCheckboxProvider
+      hits={Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length)}
+      knownIds={issues.map(issue => issue.id)}
+      endpointOptions={safeParseQueryKey(listApiOptions.queryKey)?.options}
+    >
+      <FeedbackListHeader />
       <Stack flexGrow={1} paddingBottom="xs">
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}
           loadingMessage={() => <LoadingIndicator />}
         >
-          <InfiniteListItems<FeedbackIssueListItem, ApiResult<FeedbackIssueListItem[]>>
+          <InfiniteListItems<FeedbackIssueListItem, ApiResponse<FeedbackIssueListItem[]>>
             deduplicateItems={pages =>
               uniqBy(
-                pages.flatMap(page => page[0]),
+                pages.flatMap(page => page.json),
                 'id'
               )
             }
@@ -81,10 +73,6 @@ export function FeedbackList({onItemSelect}: Props) {
                 <ErrorBoundary mini>
                   <FeedbackListItem
                     feedbackItem={item}
-                    isSelected={checkboxState.isSelected(item.id)}
-                    onSelect={() => {
-                      checkboxState.toggleSelected(item.id);
-                    }}
                     onItemSelect={() => onItemSelect(itemIndex)}
                   />
                 </ErrorBoundary>
@@ -102,7 +90,7 @@ export function FeedbackList({onItemSelect}: Props) {
           />
         </InfiniteListState>
       </Stack>
-    </Fragment>
+    </ListItemCheckboxProvider>
   );
 }
 

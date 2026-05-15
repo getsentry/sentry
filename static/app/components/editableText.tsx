@@ -201,6 +201,7 @@ export function EditableText({
         <InputWrapper
           ref={innerWrapperRef}
           isEmpty={isDraftEmpty}
+          isCompact={isCompact}
           data-test-id="editable-text-input"
         >
           <StyledInput
@@ -240,29 +241,43 @@ const Label = styled('div')<{isDisabled: boolean}>`
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
-const InnerLabel = styled(TextOverflow)<{isCompact?: boolean}>`
+const InnerLabel = styled(TextOverflow)<{isCompact: boolean}>`
   border-top: 1px solid transparent;
   border-bottom: ${p =>
     p.isCompact ? 'none' : `1px dotted ${p.theme.tokens.border.primary}`};
-  line-height: ${p => (p.isCompact ? 'inherit' : '38px')};
+  ${p =>
+    !p.isCompact &&
+    css`
+      line-height: 38px;
+    `}
 `;
 
-const InputWrapper = styled('div')<{isEmpty: boolean}>`
+const InputWrapper = styled('div')<{isCompact: boolean; isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.tokens.background.tertiary};
   border-radius: ${p => p.theme.radius.md};
   margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   max-width: calc(100% + ${p => p.theme.space.xl});
+  /* Mirror InnerLabel's transparent top border so the baseline stays put on edit. */
+  border-top: ${p => (p.isCompact ? '1px solid transparent' : 'none')};
 `;
 
-const StyledInput = styled(Input)<{isCompact?: boolean}>`
+const StyledInput = styled(Input)<{isCompact: boolean}>`
   border: none !important;
   background: transparent;
   height: auto;
   min-height: ${p => (p.isCompact ? 'auto' : '40px')};
   padding: 0;
   font-size: inherit;
+  ${p =>
+    p.isCompact &&
+    css`
+      /* Match TextOverflow's line-height so the baseline doesn't shift on edit. */
+      line-height: 1.2;
+      font-weight: inherit;
+      border-radius: 0 !important;
+    `}
   &,
   &:focus,
   &:active,

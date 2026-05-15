@@ -14,7 +14,7 @@ describe('ErrorsControlSection', () => {
 });
 
 describe('ErrorsContentSection', () => {
-  it('renders collapse sidebar button when expanded', () => {
+  it('renders collapse sidebar button when expanded', async () => {
     const setControlSectionExpanded = jest.fn();
     render(
       <ErrorsContentSection
@@ -23,12 +23,12 @@ describe('ErrorsContentSection', () => {
       />
     );
 
-    const collapseButton = screen.getByRole('button', {name: 'Collapse sidebar'});
+    const collapseButton = await screen.findByRole('button', {name: 'Collapse sidebar'});
     expect(collapseButton).toBeInTheDocument();
     expect(collapseButton).not.toHaveTextContent('Advanced');
   });
 
-  it('renders expand sidebar button when collapsed', () => {
+  it('renders expand sidebar button when collapsed', async () => {
     const setControlSectionExpanded = jest.fn();
     render(
       <ErrorsContentSection
@@ -37,7 +37,7 @@ describe('ErrorsContentSection', () => {
       />
     );
 
-    const expandButton = screen.getByRole('button', {name: 'Expand sidebar'});
+    const expandButton = await screen.findByRole('button', {name: 'Expand sidebar'});
     expect(expandButton).toBeInTheDocument();
     expect(expandButton).toHaveTextContent('Advanced');
   });
@@ -51,7 +51,19 @@ describe('ErrorsContentSection', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Collapse sidebar'}));
     expect(setControlSectionExpanded).toHaveBeenCalledWith(false);
+  });
+
+  it('renders Export and Settings buttons', async () => {
+    render(
+      <ErrorsContentSection
+        controlSectionExpanded
+        setControlSectionExpanded={jest.fn()}
+      />
+    );
+
+    expect(await screen.findByRole('button', {name: 'Export data'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Settings'})).toBeInTheDocument();
   });
 });

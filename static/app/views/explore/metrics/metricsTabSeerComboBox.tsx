@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -13,7 +15,7 @@ import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -73,6 +75,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const location = useLocation();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
+  const {setRunId} = useAiQueryContext();
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();
@@ -167,7 +170,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) return;
       const {
         query: queryToUse,
@@ -290,6 +293,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         visualize_count: visualizations?.length ?? 0,
       });
 
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
+
       // Single navigate with both metric params and datetime
       // (Previously, setQueryParams and navigate were called separately,
       // causing the second navigate to overwrite the first with stale location)
@@ -317,6 +324,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       organization,
       pageFilters.selection,
       queryParams,
+      setRunId,
     ]
   );
 
@@ -395,7 +403,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         }}
         applySeerSearchQuery={applySeerSearchQuery}
         transformResponse={transformResponse}
-        analyticsSource="metrics"
         fallbackMutationOptions={metricsTabAskSeerMutationOptions}
       />
     );
@@ -406,7 +413,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       initialQuery={initialSeerQuery}
       askSeerMutationOptions={metricsTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
-      analyticsSource="metrics"
     />
   );
 }

@@ -3,11 +3,10 @@ import {useEffect} from 'react';
 import {getRelativeDate} from 'sentry/components/timeSince';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
+import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 
-import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import {getTraceMetaSpanCount, type TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
 import type {TraceTree} from './traceModels/traceTree';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
@@ -16,7 +15,7 @@ import {useTraceQueryParams} from './useTraceQueryParams';
 
 type Options = {
   organization: Organization;
-  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
+  trace: TraceQueryResult;
   traceTreeSource: TraceTreeSource;
   tree: TraceTree;
   meta?: TraceMetaQueryResults;
@@ -35,6 +34,7 @@ export function useTraceStateAnalytics({
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
   const {timestamp} = useTraceQueryParams();
+  const metaSpanCount = getTraceMetaSpanCount(meta?.data);
 
   useEffect(() => {
     if (trace.status === 'pending' || meta?.status === 'pending') {
@@ -43,12 +43,11 @@ export function useTraceStateAnalytics({
 
     if (trace.status === 'error') {
       const errorStatus = trace.error?.status ?? null;
-      const metaSpansCount = meta?.data?.span_count ?? null;
 
       traceAnalytics.trackTraceErrorState(
         organization,
         traceTreeSource,
-        metaSpansCount,
+        metaSpanCount ?? null,
         errorStatus
       );
       return;
@@ -88,7 +87,7 @@ export function useTraceStateAnalytics({
     trace.data,
     trace.error,
     meta?.status,
-    meta?.data?.span_count,
+    metaSpanCount,
     isLoadingSubscriptionDetails,
     tree,
     traceTreeSource,

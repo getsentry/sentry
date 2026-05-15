@@ -197,7 +197,7 @@ class MsTeamsEvents(Enum):
 
 @all_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -574,6 +574,13 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 integration_id=integration.id, status=ObjectStatus.ACTIVE
             )
             if integration is None:
+                group = None
+            elif not integration_service.get_organization_integrations(
+                organization_id=group.project.organization_id,
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+                limit=1,
+            ):
                 group = None
 
         if integration is None or group is None:

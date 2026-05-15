@@ -60,18 +60,20 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "organizations:relay-otlp-traces-endpoint",
-    "organizations:relay-otel-logs-endpoint",
     "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
+    "organizations:relay-default-trace-id",
     "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
     "projects:relay-upload-endpoint",
+    "projects:relay-minidump-attachment-uploads",
+    "projects:relay-minidump-uploads",
+    "projects:relay-playstation-uploads",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -310,6 +312,23 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
+def _browser_name_one_of(*args):
+    """Returns a condition that matches if an event
+    or span's browser name is one of the options in `args`.
+
+    For events and V1 spans, this checks the `event.contexts.browser.name` field.
+    For V2 spans, it checks the `span.attributes.browser.name.value` field.
+    """
+    return {
+        "op": "or",
+        "inner": [
+            {"op": "eq", "name": field, "value": browser}
+            for field in ["event.contexts.browser.name", "span.attributes.browser.name.value"]
+            for browser in args
+        ],
+    }
+
+
 def _get_desktop_browser_performance_profiles(
     organization: Organization,
 ) -> list[dict[str, Any]]:
@@ -346,11 +365,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Chrome",
-            },
+            "condition": _browser_name_one_of("Chrome"),
         },
         {
             "name": "Firefox",
@@ -384,11 +399,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Firefox",
-            },
+            "condition": _browser_name_one_of("Firefox"),
         },
         {
             "name": "Safari",
@@ -422,11 +433,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Safari",
-            },
+            "condition": _browser_name_one_of("Safari"),
         },
         {
             "name": "Edge",
@@ -460,11 +467,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Edge",
-            },
+            "condition": _browser_name_one_of("Edge"),
         },
         {
             "name": "Opera",
@@ -498,11 +501,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Opera",
-            },
+            "condition": _browser_name_one_of("Opera"),
         },
         {
             "name": "Chrome INP",
@@ -515,21 +514,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": False,
                 },
             ],
-            "condition": {
-                "op": "or",
-                "inner": [
-                    {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Chrome",
-                    },
-                    {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Google Chrome",
-                    },
-                ],
-            },
+            "condition": _browser_name_one_of("Chrome", "Google Chrome"),
         },
         {
             "name": "Edge INP",
@@ -542,11 +527,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": False,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Edge",
-            },
+            "condition": _browser_name_one_of("Edge"),
         },
         {
             "name": "Opera INP",
@@ -559,11 +540,7 @@ def _get_desktop_browser_performance_profiles(
                     "optional": False,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Opera",
-            },
+            "condition": _browser_name_one_of("Opera"),
         },
     ]
 
@@ -604,11 +581,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Chrome Mobile",
-            },
+            "condition": _browser_name_one_of("Chrome Mobile"),
         },
         {
             "name": "Firefox Mobile",
@@ -642,11 +615,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Firefox Mobile",
-            },
+            "condition": _browser_name_one_of("Firefox Mobile"),
         },
         {
             "name": "Safari Mobile",
@@ -680,11 +649,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Mobile Safari",
-            },
+            "condition": _browser_name_one_of("Mobile Safari"),
         },
         {
             "name": "Edge Mobile",
@@ -718,11 +683,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Edge Mobile",
-            },
+            "condition": _browser_name_one_of("Edge Mobile"),
         },
         {
             "name": "Opera Mobile",
@@ -756,11 +717,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": True,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Opera Mobile",
-            },
+            "condition": _browser_name_one_of("Opera Mobile"),
         },
         {
             "name": "Chrome Mobile INP",
@@ -773,16 +730,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": False,
                 },
             ],
-            "condition": {
-                "op": "or",
-                "inner": [
-                    {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Chrome Mobile",
-                    },
-                ],
-            },
+            "condition": _browser_name_one_of("Chrome Mobile"),
         },
         {
             "name": "Edge Mobile INP",
@@ -795,11 +743,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": False,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Edge Mobile",
-            },
+            "condition": _browser_name_one_of("Edge Mobile"),
         },
         {
             "name": "Opera Mobile INP",
@@ -812,11 +756,7 @@ def _get_mobile_browser_performance_profiles(
                     "optional": False,
                 },
             ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Opera Mobile",
-            },
+            "condition": _browser_name_one_of("Opera Mobile"),
         },
     ]
 

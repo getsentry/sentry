@@ -9,12 +9,12 @@ import {
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture();
@@ -39,8 +39,14 @@ function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
 
 describe('useReplayData', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('should hydrate the replayRecord', async () => {
@@ -154,6 +160,8 @@ describe('useReplayData', () => {
       },
     });
 
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
     await waitFor(() => expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1));
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
@@ -224,6 +232,8 @@ describe('useReplayData', () => {
         errorsPerPage: 1,
       },
     });
+
+    await act(() => jest.advanceTimersByTimeAsync(0));
 
     await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
     expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1);
@@ -358,6 +368,8 @@ describe('useReplayData', () => {
       },
     });
 
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
     await waitFor(() => expect(mockedErrorEventsMetaCall1).toHaveBeenCalledTimes(1));
     expect(mockedErrorEventsMetaCall2).toHaveBeenCalledTimes(1);
     expect(mockedIssuePlatformEventsMetaCall1).toHaveBeenCalledTimes(1);
@@ -455,6 +467,10 @@ describe('useReplayData', () => {
     expect(mockedSegmentsCall).not.toHaveBeenCalled();
     expect(result.current).toEqual(expectedReplayData);
 
+    // Advance past the replay asyncDelay (1ms) so it resolves,
+    // but segments (100ms) and errors (250ms) are still pending
+    await act(() => jest.advanceTimersByTimeAsync(2));
+
     // Afterwards we see the attachments & errors requests are made
     await waitFor(() => expect(mockedReplayCall).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
@@ -473,6 +489,9 @@ describe('useReplayData', () => {
       )
     );
 
+    // Advance past the segments asyncDelay (100ms) so rrweb data arrives
+    await act(() => jest.advanceTimersByTimeAsync(100));
+
     // Next we see that some rrweb data has arrived
     await waitFor(() =>
       expect(result.current).toStrictEqual(
@@ -483,6 +502,9 @@ describe('useReplayData', () => {
         })
       )
     );
+
+    // Advance past the errors asyncDelay (250ms) so error data arrives
+    await act(() => jest.advanceTimersByTimeAsync(250));
 
     // Finally we see fetching is complete, errors are here too
     await waitFor(() =>
@@ -531,7 +553,8 @@ describe('useReplayData', () => {
       },
     });
 
-    // We need this 'await waitFor()' for the following assertions to pass:
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
     await waitFor(() => {
       expect(result.current).toBeTruthy();
     });
@@ -544,6 +567,8 @@ describe('useReplayData', () => {
     });
 
     result.current.onRetry();
+
+    await act(() => jest.advanceTimersByTimeAsync(0));
 
     await waitFor(() => {
       expect(mockedReplayCall).toHaveBeenCalledTimes(2);

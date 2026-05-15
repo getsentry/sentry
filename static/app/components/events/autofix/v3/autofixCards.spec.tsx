@@ -8,19 +8,16 @@ import type {
   SolutionArtifact,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
+import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
+import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
+import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
-
-import {
-  CodeChangesCard,
-  CodingAgentCard,
-  PullRequestsCard,
-  RootCauseCard,
-  SolutionCard,
-} from './autofixCards';
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
@@ -31,7 +28,7 @@ function makeSection(
   status: AutofixSection['status'],
   artifacts: AutofixArtifact[]
 ): AutofixSection {
-  return {step, artifacts, messages: [], status};
+  return {step, artifacts, blocks: [], status};
 }
 
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
@@ -114,6 +111,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -131,6 +129,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -151,6 +150,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -166,6 +166,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -188,6 +189,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -206,6 +208,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -223,13 +226,12 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 
@@ -325,9 +327,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 
@@ -439,9 +439,91 @@ describe('ArtifactCard', () => {
         />
       );
 
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+    });
+
+    it('renders error state when all patches have no changes', () => {
+      const emptyPatch = {
+        repo_name: 'org/repo',
+        diff: '',
+        patch: {
+          path: 'src/app.py',
+          added: 0,
+          removed: 0,
+          hunks: [],
+          source_file: 'src/app.py',
+          target_file: 'src/app.py',
+          type: 'M',
+        },
+      } as ExplorerFilePatch;
+
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [[emptyPatch]])}
+        />
+      );
+
       expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
+        screen.getByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
+    });
+
+    it('calls startStep when re-run button is clicked in error state', async () => {
+      const startStepMock = jest.fn();
+      const autofixWithRunState = {
+        ...mockAutofix,
+        startStep: startStepMock,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed' as const,
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          autofix={autofixWithRunState}
+          section={makeSection('code_changes', 'completed', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+      expect(startStepMock).toHaveBeenCalledWith(
+        'code_changes',
+        expect.objectContaining({runId: 123})
+      );
+    });
+
+    it('renders loading state when processing, not error', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'processing', [])}
+        />
+      );
+
+      expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
       ).not.toBeInTheDocument();
+    });
+
+    it('does not render file diff viewers in error state', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [])}
+        />
+      );
+
+      expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
     });
   });
 
@@ -540,6 +622,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -556,6 +639,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -575,6 +659,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -605,10 +690,10 @@ describe('ArtifactCard', () => {
     };
   }
 
-  describe('CodingAgentCard', () => {
+  describe('CodingAgentsCard', () => {
     it('renders agent name based on Cursor provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -625,7 +710,7 @@ describe('ArtifactCard', () => {
 
     it('renders agent name based on Claude provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -642,7 +727,7 @@ describe('ArtifactCard', () => {
 
     it('renders agent name based on GitHub Copilot provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -659,7 +744,7 @@ describe('ArtifactCard', () => {
 
     it('renders default agent name for unknown provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [makeCodingAgent({provider: 'unknown_provider' as any})],
@@ -672,7 +757,7 @@ describe('ArtifactCard', () => {
 
     it('renders agent status tags', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [makeCodingAgent({status: 'running'})],
@@ -685,7 +770,7 @@ describe('ArtifactCard', () => {
 
     it('renders "Open in" link when agent_url is present', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -703,7 +788,7 @@ describe('ArtifactCard', () => {
 
     it('renders result PR links when results have pr_url', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -728,7 +813,7 @@ describe('ArtifactCard', () => {
 
     it('handles multiple coding agents', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -755,7 +840,7 @@ describe('ArtifactCard', () => {
 
     it('copies markdown when copy button is clicked', async () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -776,15 +861,13 @@ describe('ArtifactCard', () => {
 
     it('does not show copy button when no artifacts', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [])}
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 });

@@ -155,7 +155,6 @@ export function PrebuiltDashboardRenderer({
     <LoadingContainer isLoading={isLoading} showChildrenWhileLoading={false}>
       <DashboardDetail
         dashboard={dashboard}
-        dashboards={[]}
         initialState={DashboardState.EMBEDDED}
         pageAlerts={pageAlerts}
         storageNamespace={storageNamespace}

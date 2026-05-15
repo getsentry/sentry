@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,

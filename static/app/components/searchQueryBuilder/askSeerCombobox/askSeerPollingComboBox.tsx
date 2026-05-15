@@ -4,6 +4,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import type {UseMutationOptions} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -32,11 +33,9 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {UseMutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
-
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -89,13 +88,7 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
-  /**
-   * The source of the analytics event, must be a dot-separated identifier like "trace.
-   * explorer" or "issue.list"
-   * @example 'trace.explorer'
-   */
-  analyticsSource: string;
-  applySeerSearchQuery: (item: T) => void;
+  applySeerSearchQuery: (item: T, runId?: number) => void;
   initialQuery: string;
   projectIds: number[];
   strategy: string;
@@ -118,7 +111,6 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
 
 export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   initialQuery,
-  analyticsSource,
   projectIds,
   strategy,
   transformResponse,
@@ -162,6 +154,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     completedSteps,
     reset,
     startFailed,
+    runId,
   } = useAskSeerPolling<T>({
     projectIds,
     strategy,
@@ -238,11 +231,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       if (typeof key !== 'string') return;
 
       if (key === 'none-of-these') {
-        trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
-          organization,
-          natural_language_query: searchQuery,
-          num_queries_returned: queries.length ?? 0,
-        });
         trackAnalytics('ai_query.rejected', {
           organization,
           area: analyticsArea,
@@ -260,7 +248,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       }
 
       askSeerNLQueryRef.current = searchQuery.trim();
-      props.applySeerSearchQuery(item);
+      props.applySeerSearchQuery(item, runId ?? undefined);
       setDisplayAskSeerFeedback(true);
       setDisplayAskSeer(false);
       reset();
@@ -315,10 +303,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
-              trackAnalytics(`${analyticsSource}.ai_query_interface`, {
-                organization,
-                action: 'closed',
-              });
               trackAnalytics('ai_query.interface', {
                 organization,
                 area: analyticsArea,
@@ -333,11 +317,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
-                organization,
-                natural_language_query: searchQuery,
-                num_queries_returned: queries.length ?? 0,
-              });
               trackAnalytics('ai_query.rejected', {
                 organization,
                 area: analyticsArea,
@@ -357,7 +336,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               }
 
               askSeerNLQueryRef.current = searchQuery.trim();
-              props.applySeerSearchQuery(item);
+              props.applySeerSearchQuery(item, runId ?? undefined);
               setDisplayAskSeerFeedback(true);
               setDisplayAskSeer(false);
               reset();
@@ -370,10 +349,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
-              trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
-                organization,
-                natural_language_query: searchQuery.trim(),
-              });
               trackAnalytics('ai_query.submitted', {
                 organization,
                 area: analyticsArea,
@@ -439,10 +414,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 
   useLayoutEffect(() => {
     if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
-        organization,
-        natural_language_query: searchQuery.trim(),
-      });
       trackAnalytics('ai_query.submitted', {
         organization,
         area: analyticsArea,
@@ -453,7 +424,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     }
   }, [
     analyticsArea,
-    analyticsSource,
     autoSubmitSeer,
     organization,
     searchQuery,
@@ -476,7 +446,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         initialQuery={initialQuery}
         askSeerMutationOptions={fallbackMutationOptions}
         applySeerSearchQuery={props.applySeerSearchQuery}
-        analyticsSource={analyticsSource}
       />
     );
   }
@@ -504,10 +473,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
-            trackAnalytics(`${analyticsSource}.ai_query_interface`, {
-              organization,
-              action: 'closed',
-            });
             trackAnalytics('ai_query.interface', {
               organization,
               area: analyticsArea,
@@ -518,7 +483,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             reset();
           }}
           aria-label={t('Close Seer Search')}
-          priority="transparent"
+          variant="transparent"
         />
       </ButtonsWrapper>
       {state.isOpen ? (
@@ -564,8 +529,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </SeerContent>
           )}
-          <SeerFooter>
-            {openForm && (
+          {openForm && (
+            <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
                 icon={<IconMegaphone />}
@@ -581,8 +546,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               >
                 {t('Give Feedback')}
               </Button>
-            )}
-          </SeerFooter>
+            </SeerFooter>
+          )}
         </AskSeerSearchPopover>
       ) : null}
     </Wrapper>

@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -11,7 +13,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -43,6 +45,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryContext();
   const {
     currentInputValueRef,
     query,
@@ -176,7 +179,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) return;
       const {
         query: queryToUse,
@@ -232,10 +235,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         columns,
       });
 
-      trackAnalytics('errors.ai_query_applied', {
-        organization,
-        query: queryToUse,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
@@ -281,6 +280,10 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.end = undefined;
       }
 
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
+
       // Navigate with all params
       navigate(
         {...location, query: newQueryParams},
@@ -293,8 +296,9 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       location,
       navigate,
       onSearch,
-      organization,
       pageFilters.selection.datetime,
+      organization,
+      setRunId,
     ]
   );
 
@@ -309,7 +313,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       strategy="Errors"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="errors"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

@@ -17,11 +17,12 @@ import {
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
+  VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
 function syncUpdatedMetricQueries(
@@ -109,7 +110,7 @@ export function useMetricQueriesController({
             // When changing trace metrics, adjust the currently selected
             // aggregation so it's valid for the new metric's type.
             const visualize = metricQuery.queryParams.visualizes[0];
-            let aggregateFields = undefined;
+            let aggregateFields: Array<GroupBy | VisualizeFunction> | undefined;
             if (visualize && isVisualizeFunction(visualize)) {
               const selectedAggregation = visualize.parsedFunction?.name;
               const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];

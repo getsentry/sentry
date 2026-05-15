@@ -135,7 +135,7 @@ class InstalledPlugin extends Component<Props> {
           </IntegrationItemBox>
           <div>
             <StyledLinkButton
-              priority="transparent"
+              variant="transparent"
               icon={<IconSettings />}
               to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
               data-test-id="integration-configure-button"
@@ -156,7 +156,7 @@ class InstalledPlugin extends Component<Props> {
             >
               <StyledButton
                 disabled={!hasAccess}
-                priority="transparent"
+                variant="transparent"
                 icon={<IconDelete />}
                 data-test-id="integration-remove-button"
               >

@@ -1,12 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';

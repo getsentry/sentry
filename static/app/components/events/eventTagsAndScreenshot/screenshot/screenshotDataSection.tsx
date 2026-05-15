@@ -21,7 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 interface ScreenshotDataSectionProps {
@@ -46,7 +46,7 @@ export function ScreenshotDataSection({
     },
     {enabled: !isShare}
   );
-  const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
+  const [screenshotInFocus, setScreenshotInFocus] = useState(0);
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
   const screenshots = attachments?.filter(attachment =>
     attachment.name.includes('screenshot')
@@ -109,12 +109,9 @@ export function ScreenshotDataSection({
   const title = tn('Screenshot', 'Screenshots', screenshots.length);
 
   return showScreenshot ? (
-    <InterimSection
+    <FoldSection
+      sectionKey={SectionKey.SCREENSHOT}
       title={title}
-      showPermalink={false}
-      help={t('This image was captured around the time that the event occurred.')}
-      data-test-id="screenshot-data-section"
-      type={SectionKey.SCREENSHOT}
       actions={
         <LinkButton to={linkPath} size="xs">
           {t('View All')}
@@ -134,6 +131,6 @@ export function ScreenshotDataSection({
         totalScreenshots={screenshots.length}
         openVisualizationModal={handleOpenVisualizationModal}
       />
-    </InterimSection>
+    </FoldSection>
   ) : null;
 }

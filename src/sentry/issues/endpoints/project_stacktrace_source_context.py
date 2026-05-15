@@ -40,13 +40,6 @@ class ProjectStacktraceSourceContextEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
 
     def get(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            "organizations:scm-source-context",
-            project.organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         if not project.get_option("sentry:scm_source_context_enabled", False):
             return Response(status=404)
 
@@ -68,7 +61,8 @@ class ProjectStacktraceSourceContextEndpoint(ProjectEndpoint):
                 }
             )
 
-        result = fetch_source_context_from_scm(configs, ctx)
+        use_fk = features.has("organizations:project-repository-fk-reads", project.organization)
+        result = fetch_source_context_from_scm(configs, ctx, use_project_repository_fk=use_fk)
 
         return Response(
             {

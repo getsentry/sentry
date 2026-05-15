@@ -1,16 +1,14 @@
+import {FieldGroup} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import SpikeProtectionProjectToggle from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 
 interface SpikeProtectionProjectSettingsProps {
-  project: Project;
+  project: DetailedProject;
 }
 
 export function SpikeProtectionProjectSettings({
@@ -29,17 +27,14 @@ export function SpikeProtectionProjectSettings({
   );
 
   return (
-    <Panel>
-      <PanelHeader>{t('Spike Protection')}</PanelHeader>
-      <PanelBody>
-        <SpikeProtectionProjectToggle
-          project={project}
-          label={t('Spike Protection')}
-          help={helpText}
-          analyticsView="project_settings"
-          disabled={!project.access.includes('project:write')}
-        />
-      </PanelBody>
-    </Panel>
+    <FieldGroup title={t('Spike Protection')}>
+      <SpikeProtectionProjectToggle
+        project={project}
+        label={t('Spike Protection')}
+        help={helpText}
+        analyticsView="project_settings"
+        disabled={!project.access.includes('project:write')}
+      />
+    </FieldGroup>
   );
 }

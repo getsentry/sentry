@@ -9,8 +9,6 @@ import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export const TabListWrapper = styled('div')`
   width: 100%;
-  padding-left: ${p => p.theme.space.md};
-  padding-top: ${p => p.theme.space.md};
 `;
 
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;

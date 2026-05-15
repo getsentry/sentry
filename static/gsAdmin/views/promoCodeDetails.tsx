@@ -1,3 +1,4 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {
@@ -10,12 +11,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -137,6 +133,8 @@ export function PromoCodeDetails() {
                 {...deps}
                 promoCode={promoCode}
                 onSubmit={(newCode: PromoCode) => {
+                  // Will be fixed soon when we get rid of setApiQueryData.
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
                   setApiQueryData<PromoCode>(queryClient, [ENDPOINT], newCode);
                 }}
               />

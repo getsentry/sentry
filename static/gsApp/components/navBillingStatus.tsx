@@ -159,7 +159,7 @@ function QuotaExceededContent({
           </Description>
           <Flex justify="between" align="center">
             <LinkButton
-              priority="primary"
+              variant="primary"
               href="mailto:sales@sentry.io"
               external
               size="xs"
@@ -204,7 +204,7 @@ function QuotaExceededContent({
           </Description>
           <Flex justify="start" align="center">
             <LinkButton
-              priority="primary"
+              variant="primary"
               href="mailto:sales@sentry.io"
               external
               size="xs"

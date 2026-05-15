@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
@@ -31,14 +31,14 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  CRASH_FREE_DECIMAL_THRESHOLD,
+  displayCrashFreePercent,
+} from 'sentry/views/explore/releases/utils';
+import {
   getPerformanceBaseUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
-import {
-  CRASH_FREE_DECIMAL_THRESHOLD,
-  displayCrashFreePercent,
-} from 'sentry/views/releases/utils';
 
 import {Deploys} from './deploys';
 import {ProjectChart} from './projectChart';
@@ -119,7 +119,7 @@ export function ProjectCard({
 
   return (
     <CardPanel data-test-id={slug}>
-      <CardHeader>
+      <Container height="32px">
         <HeaderRow>
           <AlignedIdBadge
             project={project}
@@ -129,7 +129,7 @@ export function ProjectCard({
           />
           <Grid flow="column" align="center" gap="xs">
             <SettingsButton
-              priority="transparent"
+              variant="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
               tooltipProps={{title: t('Settings')}}
@@ -168,7 +168,7 @@ export function ProjectCard({
             <SummaryLinkPlaceholder />
           )}
         </SummaryLinks>
-      </CardHeader>
+      </Container>
       <ChartContainer data-test-id="chart-container">
         {stats ? (
           <ProjectChart
@@ -223,10 +223,6 @@ const CardPanel = styled(Panel)`
   height: 100%;
   padding: ${p => p.theme.space.xl};
   margin: 0;
-`;
-
-const CardHeader = styled('div')`
-  height: 32px;
 `;
 
 const CardFooter = styled('div')`

@@ -9,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.seer.agent.utils import _convert_profile_to_execution_tree
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
@@ -16,25 +17,23 @@ from sentry.seer.autofix.autofix import (
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _pre_resolve_stacktrace_frames,
-    _resolve_project_preference,
     _respond_with_error,
     get_all_tags_overview,
-    trigger_autofix,
+    trigger_legacy_autofix,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import (
-    SeerApiError,
-    SeerAutomationHandoffConfiguration,
     SeerProjectPreference,
-    SeerRawPreferenceResponse,
+    SeerRepoDefinition,
 )
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.utils import get_github_username_for_user
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import json as sentry_json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -476,7 +475,7 @@ class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_basic(self, mock_get_from_profiling_service) -> None:
         """Test finding a profile for a matching transaction in trace tree."""
         # Setup mock event with transaction name
@@ -538,7 +537,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.profiles.profile_chunks.get_chunk_ids")
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_with_profiler_id(
         self, mock_get_from_profiling_service, mock_get_chunk_ids
     ) -> None:
@@ -646,7 +645,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         profile_result = _get_profile_from_trace_tree(None, event, self.project)
         assert profile_result is None
 
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service) -> None:
         """Test that function returns None when profiling API returns an error."""
         event = Mock()
@@ -836,10 +835,8 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_trigger_autofix_with_event_id(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_call,
         mock_get_trace,
@@ -867,7 +864,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         test_user = self.create_user()
 
         # Call the function
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             event_id=event.event_id,
             user=test_user,
@@ -911,10 +908,8 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference")
-    def test_trigger_autofix_passes_resolved_preference(
+    def test_trigger_autofix_passes_project_preference(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_call,
         mock_get_trace,
@@ -922,25 +917,19 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_tags,
         mock_record_seer_run,
     ):
-        """Tests that a resolved preference's repos and preference object are passed to _call_autofix."""
+        """Tests that the preference is passed to _call_autofix."""
         mock_get_profile.return_value = None
         mock_get_trace.return_value = None
         mock_get_tags.return_value = None
 
-        mock_preference = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                {
-                    "provider": "integrations:github",
-                    "owner": "getsentry",
-                    "name": "seer",
-                    "external_id": "456",
-                }
-            ],
-            automated_run_stopping_point="code_changes",
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="456",
+            name="getsentry/seer",
         )
-        mock_resolve_pref.return_value = mock_preference
+        self.create_seer_project_repository(project=self.project, repository=repo)
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "code_changes")
 
         data = load_data("python", timestamp=before_now(minutes=1))
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
@@ -950,7 +939,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call.return_value = 123
         test_user = self.create_user()
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             event_id=event.event_id,
             user=test_user,
@@ -960,11 +949,13 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response.status_code == 202
 
         call_kwargs = mock_call.call_args.kwargs
-        assert call_kwargs["preference"] == mock_preference
-        # repos should be replaced by preference repos (dict form)
-        assert len(call_kwargs["repos"]) == 1
-        assert call_kwargs["repos"][0]["name"] == "seer"
-        assert call_kwargs["repos"][0]["external_id"] == "456"
+        preference = call_kwargs["preference"]
+        assert isinstance(preference, SeerProjectPreference)
+        assert preference.project_id == self.project.id
+        assert preference.automated_run_stopping_point == "code_changes"
+        assert len(preference.repositories) == 1
+        assert preference.repositories[0].name == "seer"
+        assert preference.repositories[0].external_id == "456"
 
     @patch("sentry.models.Group.get_recommended_event_for_environments")
     @patch("sentry.models.Group.get_latest_event")
@@ -984,7 +975,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self.create_group()
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1005,10 +996,8 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_trigger_autofix_with_web_vitals_issue(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_call,
         mock_get_trace,
@@ -1048,7 +1037,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1086,7 +1075,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         group = self.create_group()
         user = self.create_user()
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1097,163 +1086,6 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         assert "AI features are disabled for this organization" in response.data["detail"]
         # Verify _get_serialized_event was not called since AI features are disabled
         mock_get_serialized_event.assert_not_called()
-
-
-@with_feature("organizations:seer-project-settings-dual-write")
-class TestResolveProjectPreference(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization()
-        self.project = self.create_project(organization=self.organization)
-
-    def _mock_repo(self, name: str = "sentry", external_id: str = "123") -> dict:
-        return {
-            "provider": "integrations:github",
-            "owner": "getsentry",
-            "name": name,
-            "external_id": external_id,
-        }
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_existing_preference(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(
-            preference=SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[self._mock_repo("seer", "999")],
-                automated_run_stopping_point="root_cause",
-            )
-        )
-
-        result = _resolve_project_preference(self.organization, self.project)
-
-        assert result is not None
-        assert len(result.repositories) == 1
-        assert result.repositories[0].name == "seer"
-        assert result.repositories[0].external_id == "999"
-        assert result.automated_run_stopping_point == "root_cause"
-        mock_set_pref.assert_not_called()
-        mock_write_sentry.assert_not_called()
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_existing_preference_with_empty_repos(
-        self, mock_get_prefs, mock_set_pref, mock_write_sentry
-    ):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(
-            preference=SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[],
-                automated_run_stopping_point="root_cause",
-                automation_handoff=SeerAutomationHandoffConfiguration(
-                    handoff_point="root_cause",
-                    target="cursor_background_agent",
-                    integration_id=42,
-                    auto_create_pr=True,
-                ),
-            )
-        )
-
-        result = _resolve_project_preference(self.organization, self.project)
-
-        assert result is not None
-        assert result.repositories == []
-        assert result.automated_run_stopping_point == "root_cause"
-        assert result.automation_handoff is not None
-        assert result.automation_handoff.handoff_point == "root_cause"
-        assert result.automation_handoff.target == "cursor_background_agent"
-        assert result.automation_handoff.integration_id == 42
-        assert result.automation_handoff.auto_create_pr is True
-        mock_set_pref.assert_not_called()
-        mock_write_sentry.assert_not_called()
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_no_preference_creates_one_with_org_defaults(
-        self, mock_get_prefs, mock_set_pref, mock_write_sentry
-    ):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
-        self.organization.update_option("sentry:auto_open_prs", True)
-
-        result = _resolve_project_preference(self.organization, self.project)
-
-        assert result is not None
-        assert result.project_id == self.project.id
-        assert result.organization_id == self.organization.id
-        assert result.repositories == []
-        assert result.automated_run_stopping_point == "open_pr"
-        mock_set_pref.assert_called_once()
-        mock_write_sentry.assert_called_once()
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_none_on_get_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
-        mock_get_prefs.side_effect = SeerApiError("test error", 500)
-
-        result = _resolve_project_preference(self.organization, self.project)
-
-        assert result is None
-        mock_set_pref.assert_not_called()
-        mock_write_sentry.assert_not_called()
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_none_on_set_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
-        mock_set_pref.side_effect = SeerApiError("test error", 500)
-
-        result = _resolve_project_preference(self.organization, self.project)
-
-        assert result is None
-        mock_write_sentry.assert_not_called()
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_preference_on_sentry_db_write_error(
-        self, mock_get_prefs, mock_set_pref, mock_write_sentry
-    ):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
-        mock_write_sentry.side_effect = Exception()
-
-        result = _resolve_project_preference(self.organization, self.project)
-
-        assert result is not None
-        assert result.project_id == self.project.id
-        assert result.repositories == []
-        mock_set_pref.assert_called_once()
-        mock_write_sentry.assert_called_once()
-
-    @with_feature("organizations:seer-project-settings-read-from-sentry")
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.read_preference_from_sentry_db")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_reads_from_sentry_db(
-        self, mock_get_prefs, mock_read_db, mock_set_pref, mock_write_sentry
-    ):
-        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
-        mock_read_db.return_value = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[self._mock_repo("seer", "999")],
-            automated_run_stopping_point="root_cause",
-        )
-
-        result = _resolve_project_preference(self.organization, self.project)
-
-        assert result is not None
-        assert result.repositories[0].name == "seer"
-        mock_get_prefs.assert_not_called()
-        mock_set_pref.assert_not_called()
 
 
 class TestCallAutofix(TestCase):
@@ -1283,7 +1115,18 @@ class TestCallAutofix(TestCase):
         group.first_seen = now
 
         # Test data
-        repos = [{"name": "test-repo"}]
+        preference = SeerProjectPreference(
+            organization_id=456,
+            project_id=789,
+            repositories=[
+                SeerRepoDefinition(
+                    provider="integrations:github",
+                    owner="getsentry",
+                    name="test-repo",
+                    external_id="123",
+                )
+            ],
+        )
         serialized_event = {"event_id": "test-event"}
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
@@ -1295,7 +1138,7 @@ class TestCallAutofix(TestCase):
         run_id = _call_autofix(
             user=user,
             group=group,
-            repos=repos,
+            preference=preference,
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
@@ -1317,7 +1160,8 @@ class TestCallAutofix(TestCase):
         body = orjson.loads(mock_request.call_args[0][0])
         assert body["organization_id"] == 456
         assert body["project_id"] == 789
-        assert body["repos"] == repos
+        assert body["repos"] == [repo.dict() for repo in preference.repositories]
+        assert body["preference"] == preference.dict()
         assert body["issue"]["id"] == 101112
         assert body["issue"]["title"] == "Test Group"
         assert body["issue"]["short_id"] == "TEST-123"
@@ -1337,6 +1181,73 @@ class TestCallAutofix(TestCase):
             == "https://github.com/getsentry/sentry/pull/123"
         )
         assert body["options"]["disable_coding_step"] is False
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_creates_run_and_returns_run_id(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with self.feature("organizations:seer-run-mirror-autofix"):
+            run_id = _call_autofix(
+                user=self.user,
+                group=group,
+                preference=preference,
+                serialized_event={"event_id": "test-event"},
+                profile=None,
+                trace_tree=None,
+                logs=None,
+                tags_overview=None,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            )
+
+        assert run_id == 42
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.type == SeerRunType.AUTOFIX
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.seer_run_state_id == 42
+        assert run.user_id == self.user.id
+
+        sent_body = mock_request.call_args[0][0]
+        body = sentry_json.loads(sent_body)
+        assert body["organization_id"] == group.organization.id
+        assert body["project_id"] == group.project.id
+        assert "external_idempotency_key" in body
+        assert body["external_idempotency_key"] == str(run.uuid)
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_flush_error_marks_failed_and_raises(self, mock_request: Mock) -> None:
+        mock_request.side_effect = Exception("Seer exploded")
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with pytest.raises(Exception, match="Outbox flush failed"):
+            with self.feature("organizations:seer-run-mirror-autofix"):
+                _call_autofix(
+                    user=self.user,
+                    group=group,
+                    preference=preference,
+                    serialized_event={"event_id": "test-event"},
+                    profile=None,
+                    trace_tree=None,
+                    logs=None,
+                    tags_overview=None,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                )
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
 
 
 class TestGetGithubUsernameForUser(TestCase):
@@ -1703,13 +1614,13 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_http_error(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 500
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1718,14 +1629,14 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_json_decode_error(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 200
         mock_response.json.side_effect = Exception("Invalid JSON")
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1734,14 +1645,14 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_success(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 200
         mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1750,7 +1661,7 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
         from sentry.seer.autofix.types import AutofixCreatePRPayload, AutofixSelectSolutionPayload
 
         self.organization.update_option("sentry:enable_seer_coding", False)
@@ -1760,7 +1671,7 @@ class UpdateAutofixTest(TestCase):
             AutofixCreatePRPayload(type="create_pr"),
         ]
         for payload in payloads:
-            response = update_autofix(
+            response = update_legacy_autofix(
                 organization_id=self.organization.id,
                 run_id=self.run_id,
                 payload=payload,
@@ -1773,7 +1684,7 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_allows_select_root_cause_when_coding_disabled(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         self.organization.update_option("sentry:enable_seer_coding", False)
         mock_response = Mock()
@@ -1781,7 +1692,7 @@ class UpdateAutofixTest(TestCase):
         mock_response.json.return_value = {"run_id": self.run_id}
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id,
             run_id=self.run_id,
             payload={"type": "select_root_cause", "cause_id": 1},

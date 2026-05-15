@@ -173,7 +173,7 @@ class OutboxBase(Model):
     category = BoundedPositiveIntegerField(choices=OutboxCategory.as_choices(), null=False)
     object_identifier = BoundedBigIntegerField(null=False)
 
-    # payload is used for webhook payloads.
+    # payload is used for outboxes that need to snapshot state like provisioning and audit logs.
     payload = models.JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.

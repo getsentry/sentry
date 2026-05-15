@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any, Literal
 
+from django.utils import timezone
 from pydantic import BaseModel, Field
 
 from sentry.preprod.build_distribution_utils import (
@@ -15,8 +16,10 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodComparisonApproval,
 )
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
+from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
 
@@ -91,13 +94,16 @@ class PostedStatusChecks(BaseModel):
 
 class SnapshotComparisonInfo(BaseModel):
     image_count: int
-    comparison_state: Literal["pending", "processing", "success", "failed"] | None = None
+    comparison_state: (
+        Literal["pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"]
+        | None
+    ) = None
     comparison_error_message: str | None = None
     images_added: int = 0
     images_removed: int = 0
     images_changed: int = 0
     images_unchanged: int = 0
-    approval_status: Literal["approved", "requires_approval"] | None = None
+    approval_status: Literal["approved", "auto_approved", "requires_approval"] | None = None
 
 
 class SizeInfoSizeMetric(BaseModel):
@@ -299,7 +305,30 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
         reverse=True,
     )
     comparison = comparisons[0] if comparisons else None
-    if comparison:
+    if not comparison:
+        cc = head_artifact.commit_comparison
+        if cc and cc.base_sha:
+            grace_period_expired = (
+                timezone.now() - head_artifact.date_added
+            ).total_seconds() > MISSING_BASE_GRACE_PERIOD_SECONDS
+
+            if (
+                grace_period_expired
+                and find_base_snapshot_artifact(
+                    organization_id=cc.organization_id,
+                    base_sha=cc.base_sha,
+                    base_repo_name=cc.base_repo_name or cc.head_repo_name,
+                    project_id=head_artifact.project_id,
+                    app_id=head_artifact.app_id,
+                    artifact_type=head_artifact.artifact_type,
+                    build_configuration=head_artifact.build_configuration,
+                )
+                is None
+            ):
+                comparison_state = "no_base_build"
+            else:
+                comparison_state = "waiting_for_base"
+    elif comparison:
         comparison_state = PreprodSnapshotComparison.State(comparison.state).name.lower()
         if comparison.state == PreprodSnapshotComparison.State.SUCCESS:
             images_added = comparison.images_added
@@ -319,7 +348,10 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
     approvals.sort(key=lambda a: a.id, reverse=True)
     if approvals:
         if approvals[0].approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED:
-            approval_status = "approved"
+            if (approvals[0].extras or {}).get("auto_approval") is True:
+                approval_status = "auto_approved"
+            else:
+                approval_status = "approved"
         else:
             approval_status = "requires_approval"
 
@@ -435,7 +467,7 @@ def _parse_success_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
         logger.warning(
             "preprod.build_details.invalid_check_id",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "check_id_type": type(check_id).__name__,
             },
         )
@@ -454,7 +486,7 @@ def _parse_failure_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
             logger.warning(
                 "preprod.build_details.invalid_error_type",
                 extra={
-                    "artifact_id": artifact_id,
+                    "preprod_artifact_id": artifact_id,
                     "error_type": error_type_str,
                 },
             )

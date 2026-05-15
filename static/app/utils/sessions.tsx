@@ -17,8 +17,11 @@ import type {
 } from 'sentry/types/organization';
 import {SessionStatus} from 'sentry/types/organization';
 import {defined, percent} from 'sentry/utils';
-import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
-import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
+import {
+  getCrashFreePercent,
+  getSessionStatusPercent,
+} from 'sentry/views/explore/releases/utils';
+import {sessionTerm} from 'sentry/views/explore/releases/utils/sessionTerm';
 
 /**
  * If the time window is less than or equal 10, seconds will be displayed on the graphs

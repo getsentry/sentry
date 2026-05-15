@@ -34,7 +34,7 @@ import {
   TransactionsDatasetWarning,
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
-import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -81,7 +81,7 @@ function MetricDetectorForm() {
       <DetectSection step={4} />
       <IssueOwnershipSection step={5} />
       <MetricIssuePreview step={6} />
-      <AutomateSection step={7} />
+      <AutomateSectionDeprecated step={7} />
     </Stack>
   );
 }
@@ -223,6 +223,20 @@ function validateMediumThreshold({
   }
 
   return [];
+}
+
+// The medium threshold's validation depends on the high threshold value, but the
+// form model only validates the field being edited. Without this, the medium
+// threshold's error tooltip persists after the high threshold is corrected.
+function useRevalidateMediumThreshold() {
+  const formContext = useContext(FormContext);
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
+  );
+
+  useEffect(() => {
+    formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+  }, [highThreshold, formContext.form]);
 }
 
 interface PriorityRowProps {
@@ -496,6 +510,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
 }
 
 function DetectSection({step}: {step?: number}) {
+  useRevalidateMediumThreshold();
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );

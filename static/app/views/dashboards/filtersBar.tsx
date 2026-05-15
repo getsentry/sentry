@@ -367,7 +367,7 @@ export function FiltersBar({
                     !hasEditAccess &&
                     t('You do not have permission to edit this dashboard'),
                 }}
-                priority="primary"
+                variant="primary"
                 onClick={async () => {
                   await onSave?.();
                   invalidateStarredDashboards();
@@ -425,7 +425,7 @@ export function FiltersBar({
                       size: 'sm',
                       showChevron: true,
                       icon: <IconAdd size="sm" />,
-                      priority: 'primary',
+                      variant: 'primary',
                     }}
                     position="bottom-end"
                   />

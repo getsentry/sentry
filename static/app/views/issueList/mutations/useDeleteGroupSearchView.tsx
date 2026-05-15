@@ -1,12 +1,12 @@
-import {useQueryClient} from '@tanstack/react-query';
+import {
+  useQueryClient,
+  useMutation,
+  type UseMutationOptions,
+} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {
-  fetchMutation,
-  useMutation,
-  type UseMutationOptions,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';

@@ -1,7 +1,6 @@
 import type {Simplify} from 'type-fest';
 
 import type {PlatformKey} from 'sentry/types/project';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -55,6 +54,7 @@ export enum SpanFields {
   TRANSACTION_EVENT_ID = 'transaction.event_id',
   SPAN_SELF_TIME = 'span.self_time',
   TRACE = 'trace',
+  TRACE_PARENT_SPAN = 'trace.parent_span',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
   REPLAYID = 'replayId',
@@ -78,6 +78,7 @@ export enum SpanFields {
   PRECISE_START_TS = 'precise.start_ts',
   PRECISE_FINISH_TS = 'precise.finish_ts',
   OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
@@ -143,18 +144,31 @@ export enum SpanFields {
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
   // Mobile fields
+  DEVICE_CLASS = 'device.class',
+  DEVICE_MODEL = 'device.model',
+  DEVICE_MANUFACTURER = 'device.manufacturer',
+  APP_VITALS_START_COLD_VALUE = 'app.vitals.start.cold.value',
+  APP_VITALS_START_WARM_VALUE = 'app.vitals.start.warm.value',
+  APP_VITALS_START_TYPE = 'app.vitals.start.type',
+  APP_VITALS_TTID_VALUE = 'app.vitals.ttid.value',
+  APP_VITALS_TTFD_VALUE = 'app.vitals.ttfd.value',
+  APP_VITALS_FRAMES_SLOW_COUNT = 'app.vitals.frames.slow.count',
+  APP_VITALS_FRAMES_FROZEN_COUNT = 'app.vitals.frames.frozen.count',
+  APP_VITALS_FRAMES_TOTAL_COUNT = 'app.vitals.frames.total.count',
+  APP_VITALS_FRAMES_DELAY_VALUE = 'app.vitals.frames.delay.value',
+
+  // Mobile fields (deprecated, prefer app.vitals.* equivalents)
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
-  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
-  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
-  DEVICE_CLASS = 'device.class',
   APP_START_COLD = 'measurements.app_start_cold',
   APP_START_WARM = 'measurements.app_start_warm',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
   APP_START_TYPE = 'app_start_type',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
   TTID = 'sentry.ttid',
   TTFD = 'sentry.ttfd',
 
@@ -204,7 +218,7 @@ type SpanBooleanFields =
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
-export type SpanNumberFields =
+type SpanNumberFields =
   | SpanFields.AI_TOTAL_COST
   | SpanFields.AI_TOTAL_TOKENS_USED
   | SpanFields.SPAN_SELF_TIME
@@ -214,6 +228,14 @@ export type SpanNumberFields =
   | SpanFields.HTTP_RESPONSE_TRANSFER_SIZE
   | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanFields.CACHE_ITEM_SIZE
+  | SpanFields.APP_VITALS_START_COLD_VALUE
+  | SpanFields.APP_VITALS_START_WARM_VALUE
+  | SpanFields.APP_VITALS_TTID_VALUE
+  | SpanFields.APP_VITALS_TTFD_VALUE
+  | SpanFields.APP_VITALS_FRAMES_SLOW_COUNT
+  | SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT
+  | SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT
+  | SpanFields.APP_VITALS_FRAMES_DELAY_VALUE
   | SpanFields.MOBILE_FRAMES_DELAY
   | SpanFields.MOBILE_FROZEN_FRAMES
   | SpanFields.MOBILE_TOTAL_FRAMES
@@ -267,7 +289,7 @@ export type SpanNumberFields =
 // is _not_ up-to-date! If you discover more nullable string fields, update this
 // list. In theory, maybe _all_ of these fields are actually nullable in
 // reality, which means we'll need to update a lot of code.
-export type NonNullableStringFields =
+type NonNullableStringFields =
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
   | SpanFields.HTTP_REQUEST_METHOD
@@ -296,6 +318,7 @@ export type NonNullableStringFields =
   | SpanFields.MCP_RESOURCE_URI
   | SpanFields.MCP_PROMPT_NAME
   | SpanFields.TRACE
+  | SpanFields.TRACE_PARENT_SPAN
   | SpanFields.PROFILEID
   | SpanFields.PROFILE_ID
   | SpanFields.REPLAYID
@@ -314,6 +337,8 @@ export type NonNullableStringFields =
   | SpanFields.SDK_NAME
   | SpanFields.SDK_VERSION
   | SpanFields.DEVICE_CLASS
+  | SpanFields.DEVICE_MODEL
+  | SpanFields.DEVICE_MANUFACTURER
   | SpanFields.SPAN_ACTION
   | SpanFields.SPAN_DOMAIN
   | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
@@ -321,6 +346,7 @@ export type NonNullableStringFields =
   | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
   | SpanFields.MESSAGING_MESSAGE_ID
   | SpanFields.TRACE_STATUS
+  | SpanFields.APP_VITALS_START_TYPE
   | SpanFields.APP_START_TYPE
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
@@ -331,7 +357,9 @@ export type NonNullableStringFields =
   | SpanFields.TRANSACTION
   | SpanFields.TRANSACTION_METHOD
   | SpanFields.RELEASE
+  | SpanFields.ENVIRONMENT
   | SpanFields.OS_NAME
+  | SpanFields.OS_VERSION
   | SpanFields.SPAN_STATUS_CODE
   | SpanFields.SPAN_AI_PIPELINE_GROUP
   | SpanFields.PROJECT
@@ -343,7 +371,7 @@ export type NonNullableStringFields =
 
 type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
-export type SpanStringFields = NullableStringFields | NonNullableStringFields;
+type SpanStringFields = NullableStringFields | NonNullableStringFields;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE
@@ -554,38 +582,6 @@ export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanFields.PROJECT_ID]?: string;
 };
 
-export enum ErrorField {
-  ISSUE = 'issue',
-  ID = 'id',
-  ISSUE_ID = 'issue.id',
-  TITLE = 'title',
-}
-
-enum ErrorFunction {
-  COUNT = 'count',
-  EPM = 'epm',
-  LAST_SEEN = 'last_seen',
-}
-
-type ErrorStringFields = ErrorField.TITLE | ErrorField.ID | ErrorField.ISSUE_ID;
-type ErrorNumberFields = ErrorField.ISSUE;
-
-type NoArgErrorFunction =
-  | ErrorFunction.COUNT
-  | ErrorFunction.EPM
-  | ErrorFunction.LAST_SEEN;
-
-type ErrorResponseRaw = {
-  [Property in ErrorStringFields as `${Property}`]: string;
-} & {
-  [Property in ErrorNumberFields as `${Property}`]: number;
-} & {
-  [Property in NoArgErrorFunction as `${Property}()`]: number;
-};
-
-export type ErrorResponse = Simplify<ErrorResponseRaw>;
-export type ErrorProperty = keyof ErrorResponse;
-
 // Maps the subregion code to the subregion name according to UN m49 standard
 // We also define this in relay in `country_subregion.rs`
 export const subregionCodeToName = {
@@ -614,5 +610,3 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
-
-export type SearchHook = {search: MutableSearch; enabled?: boolean};

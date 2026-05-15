@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {useMutation} from '@tanstack/react-query';
+
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -15,7 +17,7 @@ import type {
 import type {Member} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
@@ -26,6 +28,8 @@ type Props = {
 };
 
 export function IntegrationExternalUserMappings(props: Props) {
+  const {openModal} = useModal();
+
   const {integration} = props;
   const organization = useOrganization();
 

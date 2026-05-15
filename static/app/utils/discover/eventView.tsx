@@ -213,6 +213,9 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
   const needle = query[key];
   const collection = decodeList(needle);
   return collection.reduce((acc: string[], item: string) => {
+    if (typeof item !== 'string') {
+      return acc;
+    }
     item = item.trim();
 
     if (item.length > 0) {
@@ -250,7 +253,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
     .filter(team => team === 'myteams' || !isNaN(team));
 };
 
-export const decodeProjects = (location: Location): number[] => {
+const decodeProjects = (location: Location): number[] => {
   if (!location.query?.project) {
     return [];
   }
@@ -622,7 +625,7 @@ export class EventView {
       id: this.id,
       name: this.name || '',
       fields: this.getFields(),
-      widths: this.getWidths().map(w => String(w)),
+      widths: this.getWidths().map(String),
       orderby,
       query: this.query || '',
       projects: this.project,
@@ -1099,7 +1102,7 @@ export class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
+  getQuery(inputQuery?: string | string[] | null): string {
     const queryParts: string[] = [];
 
     if (this.query) {
@@ -1199,8 +1202,8 @@ export class EventView {
           ? encodeSorts(this.sorts)
           : encodeSort(this.sorts[0]!);
     const fields = this.getFields();
-    const team = this.team.map(proj => String(proj));
-    const project = this.project.map(proj => String(proj));
+    const team = this.team.map(String);
+    const project = this.project.map(String);
     const environment = this.environment as string[];
 
     let queryString = this.getQueryWithAdditionalConditions();

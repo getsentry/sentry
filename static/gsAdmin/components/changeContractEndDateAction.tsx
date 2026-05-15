@@ -72,7 +72,7 @@ const openActionModal = (props: Options) =>
 
 export function ChangeContractEndDateAction(props: Options) {
   return (
-    <Button priority="link" size="zero" onClick={() => openActionModal(props)}>
+    <Button variant="link" size="zero" onClick={() => openActionModal(props)}>
       {moment(props.contractPeriodEnd).format('ll')}
     </Button>
   );

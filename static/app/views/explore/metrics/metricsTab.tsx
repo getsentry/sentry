@@ -10,6 +10,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,7 +40,6 @@ import {
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -68,7 +68,6 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
@@ -87,25 +86,23 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
               searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
             />
           </StyledPageFilterBar>
-          {hasPageFrameFeature && (
-            <Flex gap="sm" align="center">
+          <Flex gap="sm" align="center">
+            <ToolbarVisualizeAddChart
+              add={addMetricQuery}
+              disabled={isAddMetricDisabled}
+              label={t('Add Metric')}
+              display="button"
+            />
+            {hasEquations && (
               <ToolbarVisualizeAddChart
-                add={addMetricQuery}
-                disabled={isAddMetricDisabled}
-                label={t('Add Metric')}
                 display="button"
+                add={addEquationQuery}
+                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                label={t('Add Equation')}
               />
-              {hasEquations && (
-                <ToolbarVisualizeAddChart
-                  display="button"
-                  add={addEquationQuery}
-                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-                  label={t('Add Equation')}
-                />
-              )}
-              <MetricSaveAs size="md" />
-            </Flex>
-          )}
+            )}
+            <MetricSaveAs size="md" />
+          </Flex>
         </FilterBarWithSaveAsContainer>
       </Layout.Main>
     </ExploreBodySearch>
@@ -121,16 +118,12 @@ function MetricsTabBodySection({
   referencedMetricLabels,
   onEquationLabelsChange,
 }: SectionProps) {
-  const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const metricQueries = useMultiMetricsQueryParams();
-  const addMetricQuery = useAddMetricQuery();
   const [interval] = useChartInterval();
   const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
     enabled: true,
   });
-  const addEquationQuery = useAddMetricQuery({type: 'equation'});
-  const hasEquations = canUseMetricsEquations(organization);
+
   useMetricsAnalytics({
     interval,
     metricQueries,
@@ -151,11 +144,6 @@ function MetricsTabBodySection({
     isDragging &&
     aggregateMetricQueries.sortableItems.length > 0 &&
     equationMetricQueries.sortableItems.length > 0;
-
-  // Cannot add metric queries beyond Z
-  const isAddMetricDisabled =
-    metricQueries.length >= MAX_METRICS_ALLOWED ||
-    metricQueries.some(q => q.label === 'Z');
 
   return (
     <ExploreContentSection>
@@ -186,25 +174,6 @@ function MetricsTabBodySection({
             referencedMetricLabels={referencedMetricLabels}
             onEquationLabelsChange={onEquationLabelsChange}
           />
-          {hasPageFrameFeature ? null : (
-            <Flex gap="sm" direction="row">
-              <ToolbarVisualizeAddChart
-                add={addMetricQuery}
-                disabled={isAddMetricDisabled}
-                label={t('Add Metric')}
-                display="button"
-              />
-              {hasEquations && (
-                <ToolbarVisualizeAddChart
-                  display="button"
-                  add={addEquationQuery}
-                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-                  label={t('Add Equation')}
-                />
-              )}
-              <MetricSaveAs size="md" />
-            </Flex>
-          )}
         </WidgetSyncContextProvider>
       </Stack>
     </ExploreContentSection>
@@ -254,17 +223,19 @@ function SortableMetricPanelSection({
                 setTraceMetric={metricQuery.setTraceMetric}
                 removeMetric={metricQuery.removeMetric}
               >
-                <SortableMetricPanel
-                  referencedMetricLabels={referencedMetricLabels}
-                  onEquationLabelsChange={onEquationLabelsChange}
-                  sortableId={id}
-                  traceMetric={metricQuery.metric}
-                  queryIndex={index}
-                  queryLabel={metricQuery.label ?? ''}
-                  referenceMap={referenceMap}
-                  isAnyDragging={isAnyDragging}
-                  canDrag={sortableItems.length > 1}
-                />
+                <AiQueryProvider>
+                  <SortableMetricPanel
+                    referencedMetricLabels={referencedMetricLabels}
+                    onEquationLabelsChange={onEquationLabelsChange}
+                    sortableId={id}
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    queryLabel={metricQuery.label ?? ''}
+                    referenceMap={referenceMap}
+                    isAnyDragging={isAnyDragging}
+                    canDrag={sortableItems.length > 1}
+                  />
+                </AiQueryProvider>
               </MetricsQueryParamsProvider>
             );
           })}

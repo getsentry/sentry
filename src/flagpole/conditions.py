@@ -25,6 +25,11 @@ class ConditionOperatorKind(str, Enum):
     NOT_EQUALS = "not_equals"
     """Compare a value to not be equal to another. Values are compared with types"""
 
+    MATCHES = "matches"
+    """
+    Provided a list of patterns, check if the property value matches any pattern.
+    """
+
 
 class ConditionTypeMismatchException(Exception):
     pass
@@ -186,6 +191,73 @@ class NotEqualsCondition(ConditionBase):
         )
 
 
+def _glob_star_match(pattern: str, value: str) -> bool:
+    """
+    Match value against a star-only glob pattern (case-insensitive).
+
+    '*' matches zero or more of any character. Every other character,
+    including '?' and '[', is treated as a literal for now.
+    """
+    pattern = pattern.lower()
+    value = value.lower()
+    # Split on '*' to get the literal segments that must appear in order.
+    # e.g. "a*b*c" -> ["a", "b", "c"]
+    parts = pattern.split("*")
+    # No wildcard — require exact equality.
+    if len(parts) == 1:
+        return value == pattern
+    # parts[0] is the prefix anchor; value must start with it.
+    if not value.startswith(parts[0]):
+        return False
+    # parts[-1] is the suffix anchor; value must end with it (unless the
+    # pattern ends with '*', in which case parts[-1] is "" and any suffix matches).
+    if not value.endswith(parts[-1]) and parts[-1] != "":
+        return False
+    # Narrow the search window to exclude the already-matched prefix and suffix.
+    end = len(value) - len(parts[-1]) if parts[-1] else len(value)
+    start = len(parts[0])
+    # The prefix and suffix anchors overlap, meaning the
+    # value is shorter than prefix + suffix combined — no valid match possible.
+    if start > end:
+        return False
+    # Walk the middle segments left-to-right, advancing the cursor after each hit
+    # so that relative ordering is preserved.
+    for part in parts[1:-1]:
+        if not part:
+            # Consecutive '*'s produce empty segments — nothing to match, skip.
+            continue
+        idx = value.find(part, start, end)
+        if idx == -1:
+            return False
+        start = idx + len(part)
+    return True
+
+
+MatchesOperatorValueTypes = list[str]
+
+
+class MatchesCondition(ConditionBase):
+    value: MatchesOperatorValueTypes
+    operator: str = dataclasses.field(default="matches")
+
+    def _operator_match(self, condition_property: Any, segment_name: str) -> bool:
+        if not isinstance(self.value, list):
+            raise ConditionTypeMismatchException(
+                f"'Matches' condition value must be a list of strings, but was provided a"
+                f" '{get_type_name(self.value)}' of segment {segment_name}"
+            )
+        if isinstance(condition_property, (list, dict)):
+            raise ConditionTypeMismatchException(
+                "'Matches' condition property value must be a string, but was provided a"
+                f" '{get_type_name(condition_property)}' of segment {segment_name}"
+            )
+        if condition_property is None:
+            return False
+        if not isinstance(condition_property, str):
+            return False
+        return any(_glob_star_match(pattern, condition_property) for pattern in self.value)
+
+
 OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
     ConditionOperatorKind.IN: InCondition,
     ConditionOperatorKind.NOT_IN: NotInCondition,
@@ -193,6 +265,7 @@ OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
     ConditionOperatorKind.NOT_CONTAINS: NotContainsCondition,
     ConditionOperatorKind.EQUALS: EqualsCondition,
     ConditionOperatorKind.NOT_EQUALS: NotEqualsCondition,
+    ConditionOperatorKind.MATCHES: MatchesCondition,
 }
 
 

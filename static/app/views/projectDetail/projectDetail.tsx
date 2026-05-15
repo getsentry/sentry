@@ -1,10 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -24,9 +22,8 @@ import {MissingProjectMembership} from 'sentry/components/projects/missingProjec
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
-import {t, tctCode} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -82,28 +79,6 @@ export function ProjectDetail() {
     }
     return ['chart1'];
   }, [hasTransactions, hasSessions]);
-
-  const {setPageInfo, pageAlert} = usePageAlert();
-  const {orgId, projectId: projectSlug} = params;
-  const msg = useMemo(
-    () =>
-      tctCode(
-        'Project Details will be removed soon. Find this project’s settings under [settingsLink:Settings]. Similar charts are available on the [sessionHealth:Session Health] and [backendOverview:Backend Overview] dashboards.',
-        {
-          settingsLink: <Link to={`/settings/${orgId}/projects/${projectSlug}/`} />,
-          sessionHealth: (
-            <Link to={`/organizations/${orgId}/insights/mobile/sessions/`} />
-          ),
-          backendOverview: <Link to={`/organizations/${orgId}/insights/backend/`} />,
-        }
-      ),
-    [orgId, projectSlug]
-  );
-  useEffect(() => {
-    if (pageAlert?.message !== msg) {
-      setPageInfo(msg);
-    }
-  }, [msg, pageAlert, setPageInfo]);
 
   const onRetryProjects = useCallback(() => {
     fetchOrganizationDetails(api, params.orgId);
@@ -280,8 +255,7 @@ export function ProjectDetail() {
 
             <Layout.Body noRowGap>
               <Layout.Main>
-                <PageAlert />
-                <ProjectFiltersWrapper>
+                <Container marginBottom="xl">
                   <ProjectFilters
                     query={query}
                     onSearch={handleSearch}
@@ -292,7 +266,7 @@ export function ProjectDetail() {
                     }
                     tagValueLoader={tagValueLoader}
                   />
-                </ProjectFiltersWrapper>
+                </Container>
 
                 <ProjectScoreCards
                   organization={organization}
@@ -358,7 +332,3 @@ export function ProjectDetail() {
     </SentryDocumentTitle>
   );
 }
-
-const ProjectFiltersWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

@@ -14,7 +14,7 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   replayErrors: RawReplayError[];

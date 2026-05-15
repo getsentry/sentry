@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -6,7 +7,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
@@ -43,7 +43,7 @@ function metricOptionsQueryKey({
     queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);
   }
 
-  let searchValue: MutableSearch | undefined = undefined;
+  let searchValue: MutableSearch | undefined;
   if (search) {
     searchValue = new MutableSearch('');
     searchValue.addContainsFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, search);
@@ -62,7 +62,7 @@ function metricOptionsQueryKey({
   if (datetime) {
     Object.entries(normalizeDateTimeParams(datetime)).forEach(([key, value]) => {
       if (value !== undefined) {
-        query[key] = value as string | string[];
+        query[key] = value!;
       }
     });
   }
@@ -114,7 +114,7 @@ export function useMetricOptions({
 
   const filteredData = useMemo(() => {
     if (!result?.data) {
-      return undefined;
+      return;
     }
     // Filter out empty string metric names which cause infinite update loops
     return result.data

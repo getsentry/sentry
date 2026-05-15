@@ -54,7 +54,7 @@ interface ParsedEquationComponent {
  * The main normalization that's occurring here is the removal of the `_if` combinator if
  * applicable and extraction of the query from that combinator.
  */
-function normalizeFunctionToken(token: TokenFunction): ParsedEquationComponent {
+export function normalizeFunctionToken(token: TokenFunction): ParsedEquationComponent {
   if (!token.function.endsWith(IF_SUFFIX) || token.attributes.length === 0) {
     return {plainAggregate: token.text, filterQuery: ''};
   }

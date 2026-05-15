@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -48,12 +48,13 @@ import type {
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -61,6 +62,7 @@ export interface GetExploreUrlArgs {
   aggregateField?: Array<GroupBy | BaseVisualize>;
   caseInsensitive?: CaseInsensitive;
   chartSelection?: ChartSelectionQueryParam;
+  crossEvents?: CrossEvent[];
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -92,6 +94,7 @@ export function getExploreUrl({
   title,
   referrer,
   caseInsensitive,
+  crossEvents,
 }: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -117,6 +120,7 @@ export function getExploreUrl({
     referrer,
     caseInsensitive: caseInsensitive ? '1' : undefined,
     chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
+    crossEvents: crossEvents?.length ? JSON.stringify(crossEvents) : undefined,
   };
 
   return (
@@ -520,7 +524,7 @@ export function findSuggestedColumns(
     }
 
     if (
-      !oldFilters.hasOwnProperty(key) || // new filter key
+      !Object.hasOwn(oldFilters, key) || // new filter key
       isSimpleFilter(key, oldFilters[key] || [], attributes) // existing filter key turned complex
     ) {
       keys.add(normalizeKey(key));
@@ -530,14 +534,14 @@ export function findSuggestedColumns(
 
   const oldHas = new Set(oldFilters.has);
   for (const key of newFilters.has || []) {
-    if (oldFilters.hasOwnProperty(key) || oldHas.has(key)) {
+    if (Object.hasOwn(oldFilters, key) || oldHas.has(key)) {
       // old condition, don't add column
       continue;
     }
 
     // if there's a simple filter on the key, don't add column
     if (
-      newFilters.hasOwnProperty(key) &&
+      Object.hasOwn(newFilters, key) &&
       isSimpleFilter(key, newFilters[key] || [], attributes)
     ) {
       continue;
@@ -765,7 +769,7 @@ export class TraceItemMetaInfo {
     attribute: string,
     meta: TraceItemDetailsMeta,
     organization?: Organization,
-    project?: Project
+    project?: DetailedProject
   ): string | React.ReactNode | null {
     const metaInfo = new TraceItemMetaInfo(meta);
     const remarks = metaInfo.getRemarks(attribute);

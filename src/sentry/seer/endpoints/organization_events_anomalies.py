@@ -29,7 +29,7 @@ from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 @cell_silo_endpoint
 class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }

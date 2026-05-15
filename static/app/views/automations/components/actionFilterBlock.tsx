@@ -129,7 +129,7 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
-              priority="transparent"
+              variant="transparent"
               onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
             />

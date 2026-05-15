@@ -1,7 +1,7 @@
-import {queryOptions} from '@tanstack/react-query';
+import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
 import {
   type BaseDetectorUpdatePayload,
@@ -11,7 +11,7 @@ import {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -131,7 +131,7 @@ export function useCreateDetector<T extends Detector = Detector>() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({variant: 'danger', message: t('Unable to create monitor')});
+      addErrorMessage(t('Unable to create monitor'));
     },
   });
 }
@@ -165,7 +165,7 @@ export function useUpdateDetector<T extends Detector = Detector>() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({variant: 'danger', message: t('Unable to update monitor')});
+      addErrorMessage(t('Unable to update monitor'));
     },
   });
 }

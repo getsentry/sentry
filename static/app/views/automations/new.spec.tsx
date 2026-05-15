@@ -357,7 +357,7 @@ describe('AutomationNewSettings', () => {
       const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
       const stagingTarget = stagingTargets.at(-1);
       expect(stagingTarget).toBeDefined();
-      await userEvent.type(stagingTarget as HTMLElement, '#staging-alerts', {
+      await userEvent.type(stagingTarget!, '#staging-alerts', {
         delay: null,
       });
     }
@@ -371,7 +371,7 @@ describe('AutomationNewSettings', () => {
     const targets = screen.getAllByRole('textbox', {name: 'Target'});
     const msTeamsTarget = targets.at(-1);
     expect(msTeamsTarget).toBeDefined();
-    await userEvent.type(msTeamsTarget as HTMLElement, 'alerts-team', {delay: null});
+    await userEvent.type(msTeamsTarget!, 'alerts-team', {delay: null});
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');

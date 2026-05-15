@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
 
@@ -38,7 +39,6 @@ import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
@@ -122,8 +122,8 @@ export function FilterSelector({
     };
   }, [filterToken, fieldDefinition]);
 
-  const [stagedOperator, setStagedOperator] = useState<TermOperator>(initialOperator);
-  const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
+  const [stagedOperator, setStagedOperator] = useState(initialOperator);
+  const [activeFilterValues, setActiveFilterValues] = useState(initialValues);
   const [stagedFilterValues, setStagedFilterValues] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -445,7 +445,7 @@ export function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" priority="transparent">
+                  <Button {...triggerProps} size="zero" variant="transparent">
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />

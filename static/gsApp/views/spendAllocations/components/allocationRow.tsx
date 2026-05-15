@@ -126,7 +126,7 @@ export function AllocationRow({
             icon={<IconDelete />}
             size="xs"
             onClick={deleteAction}
-            priority="danger"
+            variant="danger"
             style={deleteHovered ? {color: theme.colors.red500} : {}}
             onMouseEnter={() => setDeleteHovered(true)}
             onMouseLeave={() => setDeleteHovered(false)}

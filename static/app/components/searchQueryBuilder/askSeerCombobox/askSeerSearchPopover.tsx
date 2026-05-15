@@ -25,7 +25,7 @@ export function AskSeerSearchPopover(props: PopoverProps) {
       <ListBoxOverlay
         ref={element => {
           popoverRef.current = element;
-          if (!element || !props.containerRef.current) return undefined;
+          if (!element || !props.containerRef.current) return;
 
           const resizeObserver = new ResizeObserver(entries => {
             if (!props.containerRef.current) return;

@@ -1,7 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
@@ -22,12 +24,7 @@ import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integr
 import {defined} from 'sentry/utils';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -120,7 +117,7 @@ export function TicketRuleModal({
   const initialConfigQuery = useMemo(() => {
     return (instance.dynamic_form_fields || [])
       .filter(field => field.updatesForm)
-      .filter(field => instance.hasOwnProperty(field.name))
+      .filter(field => Object.hasOwn(instance, field.name))
       .reduce(
         (accumulator, {name}) => {
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -164,7 +161,7 @@ export function TicketRuleModal({
 
   const validAndSavableFieldNames = useMemo(() => {
     return issueConfigFieldsCache
-      .filter(field => field.hasOwnProperty('name'))
+      .filter(field => Object.hasOwn(field, 'name'))
       .map(field => field.name);
   }, [issueConfigFieldsCache]);
 
@@ -232,7 +229,7 @@ export function TicketRuleModal({
         [key: string]: any;
         integration?: string | number;
       } = {};
-      if (instance?.hasOwnProperty('integration')) {
+      if (instance && Object.hasOwn(instance, 'integration')) {
         formData.integration = instance.integration;
       }
       formData.dynamic_form_fields = issueConfigFieldsCache;
@@ -275,7 +272,7 @@ export function TicketRuleModal({
   const onFieldChange = useCallback(
     (fieldName: string, value: unknown) => {
       setShowInstanceValues(false);
-      if (dynamicFieldValues.hasOwnProperty(fieldName)) {
+      if (Object.hasOwn(dynamicFieldValues, fieldName)) {
         setLastChangedField({[fieldName]: value});
         setDynamicFieldValue(fieldName, value as FieldValue);
         refetchWithDynamicFields({
@@ -438,7 +435,7 @@ export function TicketRuleModal({
         <Heading as="h4">{title}</Heading>
       </Header>
       <Body>
-        <BodyText>
+        <Container marginBottom="2xl">
           {link
             ? tct(
                 'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs:stay in sync] with the new Sentry Issue.',
@@ -448,7 +445,7 @@ export function TicketRuleModal({
                 'When this alert is triggered [ticketType] will be created with the following fields.',
                 {ticketType}
               )}
-        </BodyText>
+        </Container>
         {Object.entries(formErrors).map(([name, errorNode]) => (
           <Fragment key={name}>{errorNode}</Fragment>
         ))}
@@ -473,10 +470,6 @@ export function TicketRuleModal({
     </Fragment>
   );
 }
-
-const BodyText = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
 
 const FieldErrorLabel = styled('label')`
   padding-bottom: ${p => p.theme.space.xl};

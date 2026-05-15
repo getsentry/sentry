@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -66,6 +67,10 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert config.repository == self.repo1
         assert config.organization_id == self.organization.id
         assert config.automatically_generated is False
+        assert config.project_repository is not None
+        assert ProjectRepository.objects.filter(
+            project=self.project1, repository=self.repo1
+        ).exists()
 
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(

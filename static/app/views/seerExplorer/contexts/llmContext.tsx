@@ -8,8 +8,6 @@ import {
   useRef,
 } from 'react';
 
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-
 import type {
   LLMContextInternalValue,
   LLMContextNode,
@@ -20,18 +18,20 @@ import type {
 
 // Internal context — holds the registry operations (registerNode, etc.)
 
-const [_LLMContextProvider, _useLLMContextValue] =
-  createDefinedContext<LLMContextInternalValue>({
-    name: 'LLMContext',
-    strict: true,
-  });
+const LLMInternalContext = createContext<LLMContextInternalValue | undefined>(undefined);
 
 /**
  * Hook for internal use by registerLLMContext and useLLMContext to access
  * the registry operations (registerNode, unregisterNode, updateNodeData, getSnapshot).
  * Throws if called outside an LLMContextProvider.
  */
-export const useLLMContextRegistry = _useLLMContextValue;
+export function useLLMContextRegistry(): LLMContextInternalValue {
+  const context = useContext(LLMInternalContext);
+  if (context === undefined) {
+    throw new Error('useContext for "LLMContext" must be inside a Provider with a value');
+  }
+  return context;
+}
 
 /**
  * LLMNodeContext — carries the current component's nodeId down the tree
@@ -68,9 +68,20 @@ function buildTree(
   const children: LLMContextNodeSnapshot[] = [];
   for (const [id, node] of nodes) {
     if (node.parentId === parentId) {
+      const raw = nodeData.has(id) ? nodeData.get(id) : {};
+      let priority = 0;
+      let data = raw;
+      if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
+        const {priority: p, ...rest} = raw as Record<string, unknown>;
+        if (typeof p === 'number') {
+          priority = p;
+        }
+        data = rest;
+      }
       children.push({
         nodeType: node.nodeType,
-        data: nodeData.has(id) ? nodeData.get(id) : {},
+        priority,
+        data,
         children: buildTree(nodes, nodeData, id),
       });
     }
@@ -88,12 +99,23 @@ function serializeState(
     if (!node) {
       return {version: state.version, nodes: []};
     }
+    const raw = nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {};
+    let priority = 0;
+    let data = raw;
+    if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
+      const {priority: p, ...rest} = raw as Record<string, unknown>;
+      if (typeof p === 'number') {
+        priority = p;
+      }
+      data = rest;
+    }
     return {
       version: state.version,
       nodes: [
         {
           nodeType: node.nodeType,
-          data: nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {},
+          priority,
+          data,
           children: buildTree(state.nodes, nodeData, fromNodeId),
         },
       ],
@@ -119,8 +141,8 @@ const INITIAL_STATE: LLMContextState = {
 export function LLMContextProvider({children}: LLMContextProviderProps) {
   // All state lives in refs — no re-renders needed. Consumers read
   // the latest data imperatively via getSnapshot().
-  const stateRef = useRef<LLMContextState>(INITIAL_STATE);
-  const nodeDataRef = useRef<Map<string, unknown>>(new Map());
+  const stateRef = useRef(INITIAL_STATE);
+  const nodeDataRef = useRef(new Map<string, unknown>());
 
   const getSnapshot = useCallback((fromNodeId?: string): LLMContextSnapshot => {
     return serializeState(stateRef.current, nodeDataRef.current, fromNodeId);
@@ -162,7 +184,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     [getSnapshot, registerNode, unregisterNode, updateNodeData]
   );
 
-  return <_LLMContextProvider value={value}>{children}</_LLMContextProvider>;
+  return <LLMInternalContext value={value}>{children}</LLMInternalContext>;
 }
 
 /**
@@ -196,7 +218,7 @@ export function useLLMContext(
 ): void | {getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot} {
   const ctx = useLLMContextRegistry();
   const nodeId = useContext(LLMNodeContext);
-  const prevDataRef = useRef<string>('');
+  const prevDataRef = useRef('');
 
   // Write path: sync data into the nearest node whenever it changes.
   // JSON equality guard prevents redundant writes. updateNodeData writes

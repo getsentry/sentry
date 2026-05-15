@@ -8,13 +8,17 @@ from typing import Any
 import orjson
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 from django.utils import timezone
+from django.utils.timezone import now
 from rest_framework.response import Response
 
 from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
@@ -26,6 +30,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.agent.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES, AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
@@ -35,16 +40,12 @@ from sentry.seer.autofix.types import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_org_default_seer_automation_handoff,
-    get_project_seer_preferences,
     make_autofix_start_request,
     make_autofix_update_request,
     read_preference_from_sentry_db,
-    set_project_seer_preference,
-    write_preference_to_sentry_db,
 )
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.models import SeerApiError, SeerApiResponseValidationError, SeerProjectPreference
+from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.utils import get_github_username_for_user
 from sentry.services import eventstore
@@ -54,6 +55,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.event_frames import EventFrame
 
@@ -187,6 +189,7 @@ def _get_serialized_event(
 def _pre_resolve_stacktrace_frames(
     serialized_event: dict[str, Any],
     code_mappings: list[RepositoryProjectPathConfig],
+    use_project_repository_fk: bool = False,
 ) -> None:
     """
     Pre-resolve stacktrace frame repo_name and filename using Sentry's code mappings
@@ -201,7 +204,7 @@ def _pre_resolve_stacktrace_frames(
     # Build ordered list of (repo_full_name, code_mapping) preserving global priority
     ordered_mappings: list[tuple[str, RepositoryProjectPathConfig]] = []
     for cm in code_mappings:
-        repo = cm.repository
+        repo = cm.project_repository.repository if use_project_repository_fk else cm.repository
         repo_name_sections = repo.name.split("/")
         if len(repo_name_sections) > 1 and repo.provider:
             ordered_mappings.append((repo.name, cm))
@@ -313,7 +316,10 @@ def _get_trace_tree_for_event(
 
         trace_endpoint = OrganizationTraceEndpoint()
         trace = trace_endpoint.query_trace_data(
-            snuba_params, trace_id, organization=project.organization
+            snuba_params,
+            trace_id,
+            Referrer.SEER_AUTOFIX_GET_TRACE_EVENTS.value,
+            organization=project.organization,
         )
 
         if not trace:
@@ -460,7 +466,7 @@ def _call_autofix(
     *,
     user: User | AnonymousUser | RpcUser,
     group: Group,
-    repos: list[dict],
+    preference: SeerProjectPreference,
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
@@ -473,55 +479,91 @@ def _call_autofix(
     auto_run_source: str | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
-    preference: SeerProjectPreference | None = None,
 ):
-    body = orjson.dumps(
-        {
-            "organization_id": group.organization.id,
-            "project_id": group.project.id,
-            "repos": repos,
-            "issue": {
-                "id": group.id,
-                "title": group.title,
-                "short_id": group.qualified_short_id,
-                "first_seen": group.first_seen.isoformat(),
-                "events": [serialized_event],
-            },
-            "profile": profile,
-            "trace_tree": trace_tree,
-            "logs": logs,
-            "tags_overview": tags_overview,
-            "instruction": instruction,
-            "timeout_secs": timeout_secs,
-            "last_updated": datetime.now().isoformat(),
-            "invoking_user": (
-                {
-                    "id": user.id,
-                    "display_name": user.get_display_name(),
-                    "github_username": github_username,
-                }
-                if not isinstance(user, AnonymousUser)
-                else None
-            ),
-            "options": {
-                "comment_on_pr_with_url": pr_to_comment_on_url,
-                "auto_run_source": auto_run_source,
-                "referrer": referrer.value,
-                "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
-                ),
-                "stopping_point": stopping_point.value if stopping_point else None,
-            },
-            "preference": preference.dict() if preference else None,
+    body_dict = {
+        "organization_id": group.organization.id,
+        "project_id": group.project.id,
+        "preference": preference.dict(),
+        "repos": [repo.dict() for repo in preference.repositories],
+        "issue": {
+            "id": group.id,
+            "title": group.title,
+            "short_id": group.qualified_short_id,
+            "first_seen": group.first_seen.isoformat(),
+            "events": [serialized_event],
         },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
+        "profile": profile,
+        "trace_tree": trace_tree,
+        "logs": logs,
+        "tags_overview": tags_overview,
+        "instruction": instruction,
+        "timeout_secs": timeout_secs,
+        "last_updated": datetime.now().isoformat(),
+        "invoking_user": (
+            {
+                "id": user.id,
+                "display_name": user.get_display_name(),
+                "github_username": github_username,
+            }
+            if not isinstance(user, AnonymousUser)
+            else None
+        ),
+        "options": {
+            "comment_on_pr_with_url": pr_to_comment_on_url,
+            "auto_run_source": auto_run_source,
+            "referrer": referrer.value,
+            "disable_coding_step": not group.organization.get_option(
+                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+            ),
+            "stopping_point": stopping_point.value if stopping_point else None,
+        },
+    }
 
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     if not isinstance(user, AnonymousUser):
         viewer_context["user_id"] = user.id
 
-    response = make_autofix_start_request(body, viewer_context=viewer_context)
+    if features.has("organizations:seer-run-mirror-autofix", group.organization):
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+                run = SeerRun.objects.create(
+                    organization=group.organization,
+                    user_id=user.id if not isinstance(user, AnonymousUser) else None,
+                    type=SeerRunType.AUTOFIX,
+                    last_triggered_at=now(),
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": body_dict,
+                        "viewer_context": dict(viewer_context),
+                    },
+                ).save()
+        except OutboxFlushError:
+            metrics.incr("seer.outbox_flush_error", tags={"type": "autofix", "source": "legacy"})
+            logger.exception(
+                "autofix.outbox_flush_error",
+                extra={
+                    "organization_id": group.organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
+            )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise Exception("Outbox flush failed for autofix SeerRun")
+        run.refresh_from_db()
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise Exception("Seer run failed during outbox drain")
+        return run.seer_run_state_id
+
+    response = make_autofix_start_request(
+        orjson.dumps(body_dict, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -636,62 +678,7 @@ def get_all_tags_overview(
     }
 
 
-def _resolve_project_preference(
-    organization: Organization, project: Project
-) -> SeerProjectPreference | None:
-    """
-    Resolve the Seer project preference for a project before triggering autofix.
-
-    Returns the existing preference if one exists. If not, creates a new one
-    with empty repos and org default settings.
-    """
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        return read_preference_from_sentry_db(project)
-
-    try:
-        preference = get_project_seer_preferences(project.id).preference
-        if preference:
-            return preference
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "seer.resolve_project_preference.get_failed",
-            extra={"project_id": project.id, "organization_id": organization.id},
-        )
-        return None
-
-    # No preference exists — create one with org defaults.
-    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
-    preference = SeerProjectPreference(
-        organization_id=organization.id,
-        project_id=project.id,
-        repositories=[],
-        automated_run_stopping_point=default_stopping_point,
-        automation_handoff=default_handoff,
-    )
-
-    try:
-        set_project_seer_preference(preference)
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "seer.resolve_project_preference.set_failed",
-            extra={"project_id": project.id, "organization_id": organization.id},
-        )
-        return None
-
-    if features.has("organizations:seer-project-settings-dual-write", organization):
-        try:
-            write_preference_to_sentry_db(project, preference)
-        except Exception:
-            logger.exception(
-                "seer.resolve_project_preference.write_failed",
-                extra={"project_id": project.id, "organization_id": organization.id},
-                exc_info=True,
-            )
-
-    return preference
-
-
-def trigger_autofix(
+def trigger_legacy_autofix(
     *,
     group: Group,
     event_id: str | None = None,
@@ -738,18 +725,17 @@ def trigger_autofix(
 
     code_mappings = get_sorted_code_mapping_configs(group.project)
 
-    # Resolve the project preference, or create a new one with org defaults.
-    # Preference repos are the source of truth (even if empty).
-    preference = _resolve_project_preference(group.organization, group.project)
-    if preference:
-        repos = [repo.dict() for repo in preference.repositories]
-    else:
-        repos = []
+    preference = read_preference_from_sentry_db(group.project)
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
     try:
-        _pre_resolve_stacktrace_frames(serialized_event, code_mappings)
+        use_fk = features.has(
+            "organizations:project-repository-fk-reads", group.project.organization
+        )
+        _pre_resolve_stacktrace_frames(
+            serialized_event, code_mappings, use_project_repository_fk=use_fk
+        )
     except Exception:
         logger.exception("Failed to pre-resolve stacktrace frames")
 
@@ -790,7 +776,7 @@ def trigger_autofix(
         run_id = _call_autofix(
             user=user,
             group=group,
-            repos=repos,
+            preference=preference,
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
@@ -803,7 +789,6 @@ def trigger_autofix(
             auto_run_source=auto_run_source,
             stopping_point=stopping_point,
             github_username=github_username,
-            preference=preference,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")
@@ -832,14 +817,14 @@ def trigger_autofix(
     )
 
 
-def update_autofix(
+def update_legacy_autofix(
     *,
     organization_id: int,
     run_id: int,
     payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
 ) -> Response:
     """
-    Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
+    Issue an update to an autofix run. Intentionally matching the output of trigger_legacy_autofix.
     """
     if payload.get("type") in CODING_PAYLOAD_TYPES:
         try:

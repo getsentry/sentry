@@ -49,7 +49,7 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      # Setup custom TypeScript matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
         run: |
           echo "::remove-matcher owner=masters::"
@@ -57,7 +57,7 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: pnpm exec tsc -p tsconfig.json
+        run: pnpm run typecheck
 
       - name: tsc (mdx)
         id: tsc-mdx
@@ -123,7 +123,7 @@ jobs:
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
 
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7]
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -162,7 +162,7 @@ jobs:
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
-          CI_NODE_TOTAL: 4
+          CI_NODE_TOTAL: 8
           CI_NODE_INDEX: ${{ matrix.instance }}
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just

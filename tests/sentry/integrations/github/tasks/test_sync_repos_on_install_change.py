@@ -6,14 +6,15 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.sync_repos_on_install_change import (
     sync_repos_on_install_change,
 )
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
 FEATURE_FLAG = "organizations:github-repo-auto-sync-webhook"
-REMOVAL_FLAG = "organizations:scm-repo-auto-sync-removal"
 
 
 @control_silo_test
@@ -71,7 +72,7 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        with self.feature([FEATURE_FLAG, REMOVAL_FLAG]):
+        with self.feature(FEATURE_FLAG):
             sync_repos_on_install_change(
                 integration_id=self.integration.id,
                 action="removed",
@@ -101,7 +102,7 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        with self.feature([FEATURE_FLAG, REMOVAL_FLAG]):
+        with self.feature(FEATURE_FLAG):
             sync_repos_on_install_change(
                 integration_id=self.integration.id,
                 action="added",
@@ -195,6 +196,81 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
+
+    def test_stamps_last_sync_on_org_integration(self, _: MagicMock) -> None:
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+        oi.config = {
+            "last_sync": "2020-01-01T00:00:00+00:00",
+            "last_repos_change": "2020-01-01T00:00:00+00:00",
+        }
+        oi.save()
+
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=self._make_repos_added(),
+                repos_removed=[],
+                repository_selection="selected",
+            )
+
+        oi.refresh_from_db()
+        assert oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
+        assert oi.config["last_repos_change"] > "2020-01-01T00:00:00+00:00"
+
+    def test_does_not_stamp_last_repos_change_when_no_diff(self, _: MagicMock) -> None:
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+        oi.config = {
+            "last_sync": "2020-01-01T00:00:00+00:00",
+            "last_repos_change": "2020-01-01T00:00:00+00:00",
+        }
+        oi.save()
+
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=[],
+                repos_removed=[],
+                repository_selection="selected",
+            )
+
+        oi.refresh_from_db()
+        assert oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
+        assert oi.config["last_repos_change"] == "2020-01-01T00:00:00+00:00"
+
+    def test_skips_disable_for_repo_with_recent_activity(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-repo",
+                external_id="3",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            Commit.objects.create(
+                organization_id=self.organization.id,
+                repository_id=repo.id,
+                key="abc123",
+            )
+
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="removed",
+                repos_added=[],
+                repos_removed=self._make_repos_removed(),
+                repository_selection="selected",
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE
 
     def test_does_not_disable_already_disabled_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):

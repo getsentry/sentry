@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -9,10 +10,14 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/pageFilters/persistence';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  AiQueryProvider,
+  useAiQueryContext,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -37,6 +42,7 @@ function Homepage() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const {getRunIdForAnalytics} = useAiQueryContext();
   const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
     makeDiscoverHomepageQueryKey(organization),
     {
@@ -115,6 +121,7 @@ function Homepage() {
 
   return (
     <Results
+      getAiQueryRunId={getRunIdForAnalytics}
       api={api}
       loading={isLoading}
       location={location}
@@ -131,7 +138,9 @@ function Homepage() {
 export default function HomepageContainer() {
   return (
     <PageFiltersContainer skipInitializeUrlParams>
-      <Homepage />
+      <AiQueryProvider>
+        <Homepage />
+      </AiQueryProvider>
     </PageFiltersContainer>
   );
 }

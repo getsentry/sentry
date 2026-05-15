@@ -71,7 +71,7 @@ function NoteInputWithStorage({
       return '';
     }
 
-    if (!storageObj.hasOwnProperty(itemKey)) {
+    if (!Object.hasOwn(storageObj, itemKey)) {
       return '';
     }
     if (!onLoad) {
@@ -122,7 +122,7 @@ function NoteInputWithStorage({
       const storageObj = fetchFromStorage(storageKey) ?? {};
 
       // Nothing from this `itemKey` is saved to storage, do nothing
-      if (!storageObj.hasOwnProperty(itemKey)) {
+      if (!Object.hasOwn(storageObj, itemKey)) {
         return;
       }
 

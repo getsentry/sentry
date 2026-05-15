@@ -13,8 +13,8 @@ type Props = {
   align: Alignments;
   canSort: boolean;
   direction: Directions;
-  generateSortLink: () => LocationDescriptorObject | undefined;
   title: React.ReactNode;
+  generateSortLink?: () => LocationDescriptorObject | undefined;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   preventScrollReset?: boolean;
   replace?: boolean;
@@ -30,7 +30,7 @@ export function SortLink({
   replace,
   preventScrollReset,
 }: Props) {
-  const target = generateSortLink();
+  const target = generateSortLink?.();
   const navigate = useNavigate();
 
   if (!target || !canSort) {

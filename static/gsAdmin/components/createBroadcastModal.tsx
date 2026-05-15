@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
@@ -7,11 +8,9 @@ import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
 import {Form} from 'sentry/components/forms/form';
 import type {Field, OnSubmitCallback} from 'sentry/components/forms/types';
 import type {Broadcast} from 'sentry/types/system';
-import {useMutation} from 'sentry/utils/queryClient';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
 interface CreateBroadcastModal extends ModalRenderProps {
   fields: Field[];
 }

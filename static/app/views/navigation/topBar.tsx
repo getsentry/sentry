@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -7,9 +7,16 @@ import {slot, withSlots} from '@sentry/scraps/slot';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
+import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {
+  getExplorerFeedbackOptions,
+  isSeerExplorerEnabled,
+} from 'sentry/views/seerExplorer/utils';
 
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
@@ -17,14 +24,14 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const, {
-  providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
-});
+const Slot = slot(['title', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
+
+  const organization = useOrganization({allowNull: true});
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
@@ -32,6 +39,16 @@ function TopBarContent() {
       document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
     };
   }, [contentTop]);
+
+  const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
+  const [seerExplorerRunId] = useSeerExplorerRunId();
+
+  const feedbackOptions = useMemo(() => {
+    if (isSeerExplorerOpen) {
+      return getExplorerFeedbackOptions(seerExplorerRunId);
+    }
+    return {tags: {['feedback.source']: 'top_navigation'}};
+  }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   if (!hasPageFrame) {
     return null;
@@ -64,7 +81,7 @@ function TopBarContent() {
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
 
-          <AskSeerButton />
+          {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
 
           <Slot.Outlet name="feedback">
             {props => (
@@ -73,7 +90,7 @@ function TopBarContent() {
                 <Slot.Fallback>
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
-                    feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                    feedbackOptions={feedbackOptions}
                     tooltipProps={{title: t('Give Feedback')}}
                   >
                     {null}

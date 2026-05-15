@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -45,7 +46,7 @@ const isPolling = <T extends QueryTokensProps>(
   }
 
   // Poll while status is processing or there's a current step in progress
-  return sessionData.status === 'processing' || sessionData.current_step !== null;
+  return sessionData.status === 'processing' || !!sessionData.current_step;
 };
 
 const makeInitialAskSeerData = <
@@ -81,6 +82,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const [runId, setRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
+  const inFlightQueryRef = useRef<string | null>(null);
 
   const queryKey = makeAskSeerQueryKey(orgSlug, runId ?? undefined);
 
@@ -92,7 +94,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        const sessionData = query.state.data?.[0]?.session ?? null;
+        const sessionData = query.state.data?.json?.session ?? null;
         if (isPolling(sessionData, waitingForResponse)) {
           return POLL_INTERVAL;
         }
@@ -106,6 +108,10 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   // Start a new search
   const submitQuery = useCallback(
     async (query: string) => {
+      if (inFlightQueryRef.current === query) {
+        return;
+      }
+      inFlightQueryRef.current = query;
       setWaitingForResponse(true);
 
       try {
@@ -132,6 +138,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
           });
         }
       } catch (error) {
+        inFlightQueryRef.current = null;
         setWaitingForResponse(false);
         setStartFailed(true);
         addErrorMessage((error as Error)?.message ?? 'Failed to start AI search');
@@ -141,11 +148,17 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     [api, orgSlug, options, queryClient]
   );
 
+  useEffect(() => {
+    if (!waitingForResponse) {
+      inFlightQueryRef.current = null;
+    }
+  }, [waitingForResponse]);
+
   // Handle completion callback
   useEffect(() => {
     if (waitingForResponse && sessionData) {
       const isStillProcessing =
-        sessionData.status === 'processing' || sessionData.current_step !== null;
+        sessionData.status === 'processing' || !!sessionData.current_step;
       if (!isStillProcessing) {
         setWaitingForResponse(false);
         if (sessionData.status === 'completed' && sessionData.final_response) {
@@ -157,10 +170,13 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   // Reset function
   const reset = useCallback(() => {
+    inFlightQueryRef.current = null;
     setRunId(null);
     setWaitingForResponse(false);
     setStartFailed(false);
     if (queryKey) {
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<AskSeerPollingResponse<T>>(
         queryClient,
         queryKey,

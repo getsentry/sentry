@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PluginFixture} from 'sentry-fixture/plugin';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {getProjectSettingsCommandPaletteSections} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 
@@ -11,7 +11,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
       features: ['performance-view'],
       slug: 'acme',
     });
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       slug: 'frontend',
       plugins: [
         PluginFixture({enabled: true, id: 'github', isDeprecated: false, name: 'GitHub'}),
@@ -29,7 +29,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     expect(sections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: 'Project Settings',
+          label: 'frontend',
           items: expect.arrayContaining([
             expect.objectContaining({
               label: 'General',
@@ -64,7 +64,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     expect(sections).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: 'Project Settings',
+          label: 'frontend',
           items: expect.arrayContaining([
             expect.objectContaining({
               label: 'Processing',

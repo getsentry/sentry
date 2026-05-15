@@ -16,14 +16,15 @@ const productionEntryPoints = [
   // --- we should be able to get rid of those: ---
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
+  'static/app/components/core/markdown/**/*.{ts,tsx}',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
-  'static/app/components/pipeline/**/*.{js,ts,tsx}',
-  // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when integration into Explore has started
+  'static/app/views/dashboards/widgets/heatMapWidget/**/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [

@@ -75,7 +75,15 @@ SearchType = (
     SizeUnit
     | DurationUnit
     | Literal[
-        "duration", "integer", "number", "percentage", "string", "boolean", "rate", "currency"
+        "duration",
+        "integer",
+        "number",
+        "percentage",
+        "string",
+        "boolean",
+        "rate",
+        "currency",
+        "array",
     ]
 )
 
@@ -87,11 +95,13 @@ STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
+ARRAY = AttributeKey.TYPE_ARRAY
 TYPE_TO_STRING_MAP = {
     STRING: "string",
     BOOLEAN: "boolean",
     DOUBLE: "double",
     INT: "integer",
+    ARRAY: "array",
 }
 
 # TODO: we need a datetime type
@@ -126,6 +136,7 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "string": STRING,
     "boolean": BOOLEAN,
     "currency": DOUBLE,
+    "array": ARRAY,
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py

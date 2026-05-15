@@ -73,7 +73,6 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentTrigger,
     IncidentType,
     TriggerStatus,
 )
@@ -1027,9 +1026,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
-        # Ignore "unreachable" because Mypy sees the `user_id` field declaration on
-        # the AlertRule model class and assumes that it's always non-null.
-        update_alert_rule(  # type: ignore[unreachable]
+        update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_identifier(f"user:{self.user.id}"),
         )
@@ -2976,7 +2973,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
-        assert action.target_identifier == target_identifier
+        assert str(action.target_identifier) == str(target_identifier)
         assert action.target_display == "hellboi"
         assert action.integration_id == integration.id
 
@@ -3549,11 +3546,6 @@ class TestDeduplicateTriggerActions(TestCase):
             integration_id=self.integration.id,
             target_type=target_type,
             target_identifier=target_identifier,
-        )
-        IncidentTrigger.objects.create(
-            incident=self.incident,
-            alert_rule_trigger=alert_rule_trigger,
-            status=incident_trigger_status,
         )
         return alert_rule_trigger, action
 

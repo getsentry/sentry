@@ -1,7 +1,11 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type UseMutationOptions,
+} from '@tanstack/react-query';
 import type {Simplify} from 'type-fest';
 
-import {fetchMutation, type UseMutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';

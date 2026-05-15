@@ -14,6 +14,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -246,6 +247,11 @@ class ProjectTest(APITestCase, TestCase):
             integration_id=integration.id,
         )
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         repository_project_path_config = RepositoryProjectPathConfig.objects.create(
             repository=repository,
             project=project,
@@ -255,6 +261,7 @@ class ProjectTest(APITestCase, TestCase):
             stack_root="/app",
             source_root="/src",
             default_branch="main",
+            project_repository=project_repo,
         )
 
         ProjectCodeOwners.objects.create(
@@ -627,6 +634,24 @@ class ProjectTest(APITestCase, TestCase):
         assert detector.project_id == project.id
         assert workflow.organization_id == to_org.id
         assert when_condition_group.organization_id == to_org.id
+
+    def test_transfer_to_organization_nulls_detector_owner(self) -> None:
+        from_user = self.create_user()
+        from_org = self.create_organization(owner=from_user)
+        team = self.create_team(organization=from_org)
+        project = self.create_project(teams=[team])
+
+        to_user = self.create_user()
+        to_org = self.create_organization(owner=to_user)
+
+        detector = self.create_detector(project=project, owner_team_id=team.id, owner_user_id=None)
+
+        project.transfer_to(organization=to_org)
+
+        detector.refresh_from_db()
+
+        assert detector.owner_team_id is None
+        assert detector.owner_user_id is None
 
 
 class CopyProjectSettingsTest(TestCase):

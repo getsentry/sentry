@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
@@ -17,7 +15,6 @@ import {t, tct} from 'sentry/locale';
 import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -31,7 +28,7 @@ import {
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
@@ -189,7 +186,7 @@ export function useSpanProfileDetails(
       }
     }
 
-    return undefined;
+    return;
   }, [organization, project, event, span, threadId]);
 
   return {
@@ -303,41 +300,24 @@ export function SpanProfileDetails({
           </LinkButton>
         </SpanDetailsItem>
       </SpanDetails>
-      {organization.features.includes('issue-details-new-stack-trace') ? (
-        <StackTraceViewStateProvider platform={event.platform || 'other'}>
-          <StackTraceProvider
-            event={processedEvent}
-            stacktrace={{
-              framesOmitted: null,
-              hasSystemFrames: false,
-              registers: null,
-              frames,
-            }}
-            maxDepth={MAX_STACK_DEPTH}
-          >
-            <StackTraceFrames
-              borderless
-              frameActionsComponent={IssueFrameActions}
-              frameContextComponent={FrameContent}
-            />
-          </StackTraceProvider>
-        </StackTraceViewStateProvider>
-      ) : (
-        <StackTraceContent
+      <StackTraceViewStateProvider platform={event.platform || 'other'}>
+        <StackTraceProvider
           event={processedEvent}
-          newestFirst
-          platform={event.platform || 'other'}
           stacktrace={{
             framesOmitted: null,
             hasSystemFrames: false,
             registers: null,
             frames,
           }}
-          stackView={StackView.APP}
-          inlined
           maxDepth={MAX_STACK_DEPTH}
-        />
-      )}
+        >
+          <StackTraceFrames
+            borderless
+            frameActionsComponent={IssueFrameActions}
+            frameContextComponent={FrameContent}
+          />
+        </StackTraceProvider>
+      </StackTraceViewStateProvider>
     </SpanContainer>
   );
 }
@@ -474,11 +454,6 @@ const SpanContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-
-  ${StackTraceContentPanel} {
-    margin-bottom: 0;
-    box-shadow: none;
-  }
 `;
 const SpanDetails = styled('div')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};

@@ -1,3 +1,7 @@
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {IconDownload, IconSettings} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -5,6 +9,7 @@ import {
   ExploreContentSection,
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
+import {ErrorsCharts} from 'sentry/views/explore/errors/charts';
 import {ErrorsToolbar} from 'sentry/views/explore/errors/toolbar';
 import {ChevronButton} from 'sentry/views/explore/spans/spansTab';
 
@@ -32,7 +37,7 @@ export function ErrorsContentSection({
   setControlSectionExpanded,
 }: ErrorsContentSectionProps) {
   return (
-    <ExploreContentSection>
+    <ExploreContentSection gap="md">
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={
@@ -51,7 +56,14 @@ export function ErrorsContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
+        <Flex gap="xs">
+          <Button size="xs" aria-label={t('Export data')} icon={<IconDownload />}>
+            {t('Export')}
+          </Button>
+          <Button size="xs" aria-label={t('Settings')} icon={<IconSettings />} />
+        </Flex>
       </OverChartButtonGroup>
+      <ErrorsCharts />
     </ExploreContentSection>
   );
 }

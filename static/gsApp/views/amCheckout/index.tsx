@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
+import type {QueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -22,7 +23,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {QueryClient} from 'sentry/utils/queryClient';
+import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
@@ -564,6 +565,8 @@ function AMCheckout(props: Props) {
     loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
   }, []);
 
+  const hasIntercom = organization.features.includes('intercom-support');
+
   useEffect(() => {
     trackGetsentryAnalytics('am_checkout.viewed', {
       organization,
@@ -572,6 +575,15 @@ function AMCheckout(props: Props) {
 
     Sentry.getReplay()?.start();
   }, [organization, subscription]);
+
+  useEffect(() => {
+    if (hasIntercom) {
+      trackGetsentryAnalytics('intercom_link.viewed', {
+        organization,
+        source: 'checkout',
+      });
+    }
+  }, [hasIntercom, organization]);
 
   useEffect(() => {
     if (subscription.canSelfServe) {
@@ -748,10 +760,32 @@ function AMCheckout(props: Props) {
               <Text align="right">
                 {tct('[help:Find an answer] or [contact]', {
                   help: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                    <ExternalLink href="https://www.sentry.help/en/collections/18842102-account-billing" />
                   ),
-                  contact: hasZendesk() ? (
-                    <Button size="zero" priority="link" onClick={activateZendesk}>
+                  contact: hasIntercom ? (
+                    <Button
+                      size="zero"
+                      variant="link"
+                      onClick={async () => {
+                        trackGetsentryAnalytics('intercom_link.clicked', {
+                          organization,
+                          source: 'checkout',
+                        });
+                        try {
+                          await showIntercom(organization.slug);
+                        } catch {
+                          // Fall back to mailto
+                          const supportEmail = ConfigStore.get('supportEmail');
+                          if (supportEmail) {
+                            window.location.href = `mailto:${supportEmail}?subject=${window.encodeURIComponent('Billing Question')}`;
+                          }
+                        }
+                      }}
+                    >
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </Button>
+                  ) : hasZendesk() ? (
+                    <Button size="zero" variant="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </Button>
                   ) : (
@@ -819,7 +853,7 @@ function AMCheckout(props: Props) {
             to={`/settings/${organization.slug}/billing/`}
             icon={<IconChevron direction="left" />}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={() => {
               trackGetsentryAnalytics('checkout.exit', {
                 subscription,

@@ -56,7 +56,7 @@ def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
     if artifact.artifact_type is not None:
         tags["artifact_type"] = PreprodArtifactModel.ArtifactType(artifact.artifact_type).to_str()
 
-    tags["artifact_id"] = str(artifact.id)
+    tags["preprod_artifact_id"] = str(artifact.id)
 
     return tags
 
@@ -404,7 +404,6 @@ class PreprodSizeAnalysisGroupType(GroupType):
     slug = "preprod_size_analysis"
     description = "Size Analysis"
     category = GroupCategory.PREPROD.value
-    category_v2 = GroupCategory.PREPROD.value
     default_priority = PriorityLevel.LOW
     released = False
     enable_auto_resolve = True

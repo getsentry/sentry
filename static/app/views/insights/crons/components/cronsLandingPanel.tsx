@@ -95,7 +95,7 @@ export function CronsLandingPanel() {
         <BackButton
           icon={<IconChevron direction="left" />}
           onClick={() => setPlatformGuide(null)}
-          priority="transparent"
+          variant="transparent"
         >
           {t('Back to Platforms')}
         </BackButton>

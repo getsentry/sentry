@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
@@ -23,19 +24,18 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {
   ListItemCheckboxProvider,
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
-import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SeerRepoTableHeader} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
-
 const GRID_COLUMNS = '40px 1fr 138px 150px';
 const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
@@ -190,7 +190,7 @@ export function SeerRepoTable() {
         {isFetchingNextPage ? <LoadingIndicator mini /> : null}
 
         <LinkButton
-          priority="primary"
+          variant="primary"
           size="sm"
           to={`/settings/${organization.slug}/repos/`}
           icon={<IconOpen />}
@@ -201,7 +201,7 @@ export function SeerRepoTable() {
       <ListItemCheckboxProvider
         hits={repositories?.length ?? 0}
         knownIds={knownIds}
-        queryKey={queryOptions.queryKey}
+        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
         <TablePanel>
           <SeerRepoTableHeader

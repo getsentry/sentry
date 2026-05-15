@@ -15,12 +15,12 @@ import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
@@ -66,12 +66,13 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useIsEquationMode} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEquationMode';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -104,7 +105,7 @@ function WidgetBuilderSlideoutInner({
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const {visible: isModalVisible} = useGlobalModal();
+  const {visible: isModalVisible} = useModal();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
@@ -114,6 +115,7 @@ function WidgetBuilderSlideoutInner({
 
   // Push widget builder state into the LLM context tree for Seer Explorer.
   useLLMContext({
+    priority: 1,
     contextHint:
       'Sentry widget builder. The user is configuring a dashboard widget. visualize is the y-axis metrics (timeseries) or the aggregate (big number/table). fields are group-by columns (timeseries) or visible columns (table). query filters the data and sort controls ordering.',
     dashboardTitle: dashboard.title,
@@ -144,6 +146,10 @@ function WidgetBuilderSlideoutInner({
     convertBuilderStateToWidget(state)
   );
 
+  // Tracks whether the user has entered the metrics equation mode since we
+  // do not render the filter bar. The metrics equations UI has filters built in.
+  const [isInEquationMode, setIsInEquationMode] = useIsEquationMode();
+
   useEffect(() => {
     if (!openWidgetTemplates) {
       trackAnalytics('dashboards_views.widget_builder.opened', {
@@ -171,6 +177,7 @@ function WidgetBuilderSlideoutInner({
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS && !isTextWidget;
   const showQueryFilterBuilder =
     !isTextWidget &&
+    !(state.dataset === WidgetType.TRACEMETRICS && isInEquationMode) &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
   // Group By is used by time-series chart widgets to break down data by a field.
@@ -233,7 +240,7 @@ function WidgetBuilderSlideoutInner({
     [observer]
   );
 
-  const widgetLibraryWidgets = getTopNConvertedDefaultWidgets(organization);
+  const widgetLibraryWidgets = getDefaultWidgets(organization);
 
   const widgetLibraryElement = (
     <SlideoutBreadcrumb
@@ -301,7 +308,7 @@ function WidgetBuilderSlideoutInner({
     >
       <Breadcrumbs crumbs={breadcrumbs} />
       <CloseButton
-        priority="link"
+        variant="link"
         size="zero"
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
@@ -345,7 +352,7 @@ function WidgetBuilderSlideoutInner({
                           setShowTransactionsDeprecationAlert(false);
                         }}
                         size="zero"
-                        priority="transparent"
+                        variant="transparent"
                       />
                     }
                   >
@@ -376,7 +383,7 @@ function WidgetBuilderSlideoutInner({
                               </Link>
                             ),
                             FAQLink: (
-                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                              <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                             ),
                           }
                         )
@@ -384,7 +391,7 @@ function WidgetBuilderSlideoutInner({
                           'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                           {
                             FAQLink: (
-                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                              <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                             ),
                           }
                         )}
@@ -477,7 +484,12 @@ function WidgetBuilderSlideoutInner({
                     )}
                     {showVisualizeSection && (
                       <Section>
-                        <Visualize error={error} setError={setError} />
+                        <Visualize
+                          error={error}
+                          setError={setError}
+                          isEquationMode={isInEquationMode}
+                          onSetEquationMode={setIsInEquationMode}
+                        />
                       </Section>
                     )}
                     {showQueryFilterBuilder && (

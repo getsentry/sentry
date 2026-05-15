@@ -6,12 +6,12 @@ import type {Location} from 'history';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -40,6 +40,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -342,9 +343,10 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: normalizeUrl(
-              `/organizations/${organization.slug}/replays/${row.replayId}/`
-            ),
+            pathname: makeReplaysPathname({
+              path: `/${row.replayId}/`,
+              organization,
+            }),
             query: {
               referrer: 'performance',
             },

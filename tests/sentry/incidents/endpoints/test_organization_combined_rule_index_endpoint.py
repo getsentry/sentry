@@ -7,9 +7,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
 )
-from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import RuleSource
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.monitors.models import MonitorStatus
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -24,6 +22,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_write_alert_rule,
     migrate_alert_rule,
 )
+from sentry.workflow_engine.models import WorkflowFireHistory
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -990,27 +989,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             resolve_threshold=10,
             threshold_period=1,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
-        trigger2 = self.create_alert_rule_trigger(alert_rule_critical, "bye", 50)
-
-        trigger3 = self.create_alert_rule_trigger(alert_rule_warning, "meow", 200)
-
         self.create_incident(status=2, alert_rule=alert_rule_critical)
-        warning_incident = self.create_incident(status=10, alert_rule=alert_rule_critical)
+        self.create_incident(status=10, alert_rule=alert_rule_critical)
         self.create_incident(status=10, alert_rule=alert_rule_warning)
         self.create_incident(status=10, alert_rule=another_alert_rule_warning)
-        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
-        IncidentTrigger.objects.create(
-            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
-        )
-        IncidentTrigger.objects.create(
-            incident=crit_incident, alert_rule_trigger=trigger2, status=TriggerStatus.ACTIVE.value
-        )
-        IncidentTrigger.objects.create(
-            incident=warning_incident,
-            alert_rule_trigger=trigger3,
-            status=TriggerStatus.ACTIVE.value,
-        )
+        self.create_incident(status=20, alert_rule=alert_rule_critical)
 
         uptime_detector = self.create_uptime_detector()
         failed_uptime_detector = self.create_uptime_detector(
@@ -1185,13 +1168,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             resolve_threshold=10,
             threshold_period=1,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
-
         self.create_incident(status=2, alert_rule=alert_rule_critical)
         crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
-        IncidentTrigger.objects.create(
-            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
-        )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
@@ -1252,7 +1230,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] is None
-        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        alert_rule_workflow = self.create_alert_rule_workflow(rule_id=rule.id)
+        WorkflowFireHistory.objects.create(
+            workflow=alert_rule_workflow.workflow, group=self.group, event_id="test-event-id"
+        )
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 

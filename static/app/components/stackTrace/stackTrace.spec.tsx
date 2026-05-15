@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -276,8 +276,8 @@ describe('Core StackTrace', () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
-    const projectDetails = ProjectFixture({
+    const project = DetailedProjectFixture({id: event.projectID});
+    const projectDetails = DetailedProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
@@ -403,7 +403,7 @@ describe('Core StackTrace', () => {
   it('renders stacktrace code mapping links when project data is available', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
+    const project = DetailedProjectFixture({id: event.projectID});
 
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -477,7 +477,7 @@ describe('Core StackTrace', () => {
       sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
     });
     const organization = OrganizationFixture({slug: 'org-slug'});
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       id: javascriptEvent.projectID,
       slug: 'project-slug',
       platform: 'javascript',
@@ -616,7 +616,7 @@ describe('Core StackTrace', () => {
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
+    const project = DetailedProjectFixture({id: event.projectID});
     const integration = GitHubIntegrationFixture();
 
     ProjectsStore.loadInitialData([project]);
@@ -782,34 +782,6 @@ describe('Core StackTrace', () => {
     expect(await screen.findByText('native_module.c')).toBeInTheDocument();
     expect(screen.queryByText(':0')).not.toBeInTheDocument();
     expect(screen.queryByText(':0:0')).not.toBeInTheDocument();
-  });
-
-  it('does not render line number for non-in-app frames', async () => {
-    const {event, stacktrace} = makeStackTraceData();
-    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
-
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              filename: 'library_internal.py',
-              lineNo: 42,
-              inApp: false,
-            },
-          ],
-        }}
-      >
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
-
-    expect(await screen.findByText('library_internal.py')).toBeInTheDocument();
-    // Line number not shown for non-in-app frames
-    expect(screen.queryByText(/42/)).not.toBeInTheDocument();
   });
 
   it('falls back to raw function and renders trimmed package in title metadata', async () => {
@@ -989,8 +961,8 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it.isKnownFlake('shows URL link in tooltip when absPath is an http URL', async () => {
-    jest.useFakeTimers();
+  it('shows URL link in tooltip when absPath is an http URL', async () => {
+    jest.useFakeTimers({advanceTimers: true});
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 

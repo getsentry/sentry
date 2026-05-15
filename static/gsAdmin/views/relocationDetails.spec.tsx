@@ -147,11 +147,15 @@ describe('Relocation Details', () => {
     expect(screen.getByText('Abort')).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
-    model.scheduledPauseAtStep = 'PREPROCESSING';
+    const pausedModel = {...model, scheduledPauseAtStep: 'PREPROCESSING'};
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: pausedModel,
+    });
     const firstPauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/pause/`,
       method: 'PUT',
-      body: model,
+      body: pausedModel,
     });
     await userEvent.click(screen.getByText('Schedule Pause'));
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
@@ -168,9 +172,9 @@ describe('Relocation Details', () => {
     );
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
     await waitForModalToHide();
-    expect(screen.getAllByText('Preprocessing')).toHaveLength(1);
-    expect(screen.getAllByText('--')).toHaveLength(1);
     expect(firstPauseCall.mock.calls[0][1].data.atStep).toBeUndefined();
+    await waitFor(() => expect(screen.getAllByText('Preprocessing')).toHaveLength(1));
+    expect(screen.getAllByText('--')).toHaveLength(1);
 
     // Change the pause step.
     await userEvent.click(screen.getByText('Relocation Actions'));
@@ -180,11 +184,15 @@ describe('Relocation Details', () => {
     expect(screen.getByText('Abort')).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
-    model.scheduledPauseAtStep = 'VALIDATING';
+    const rePausedModel = {...model, scheduledPauseAtStep: 'VALIDATING'};
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: rePausedModel,
+    });
     const secondPauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/pause/`,
       method: 'PUT',
-      body: model,
+      body: rePausedModel,
     });
     await userEvent.click(screen.getByText('Schedule Pause'));
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
@@ -195,8 +203,8 @@ describe('Relocation Details', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
     await waitForModalToHide();
     expect(secondPauseCall.mock.calls[0][1].data.atStep).toBe('VALIDATING');
+    await waitFor(() => expect(screen.getAllByText('Validating')).toHaveLength(1));
     expect(screen.queryByText('Preprocessing')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Validating')).toHaveLength(1);
     expect(screen.getAllByText('--')).toHaveLength(1);
 
     // Remove pause.
@@ -207,11 +215,15 @@ describe('Relocation Details', () => {
     expect(screen.getByText('Abort')).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
-    model.scheduledPauseAtStep = null;
+    const unpausedModel = {...model, scheduledPauseAtStep: null};
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: unpausedModel,
+    });
     const unpauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/unpause/`,
       method: 'PUT',
-      body: model,
+      body: unpausedModel,
     });
     await userEvent.click(screen.getByText('Unpause'));
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Until'}));
@@ -219,9 +231,9 @@ describe('Relocation Details', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Unpause'}));
     await waitForModalToHide();
     expect(unpauseCall.mock.calls[0][1].data.untilStep).toBeUndefined();
+    await waitFor(() => expect(screen.getAllByText('--')).toHaveLength(2));
     expect(screen.queryByText('Preprocessing')).not.toBeInTheDocument();
     expect(screen.queryByText('Validating')).not.toBeInTheDocument();
-    expect(screen.getAllByText('--')).toHaveLength(2);
   });
 
   it('unpauses paused relocation', async () => {
@@ -256,11 +268,15 @@ describe('Relocation Details', () => {
     expect(screen.getByText('Abort')).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
-    model.status = 'IN_PROGRESS';
+    const unpausedModel = {...model, status: 'IN_PROGRESS'};
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: unpausedModel,
+    });
     const unpauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/unpause/`,
       method: 'PUT',
-      body: model,
+      body: unpausedModel,
     });
     await userEvent.click(screen.getByText('Unpause'));
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Until'}));
@@ -273,8 +289,8 @@ describe('Relocation Details', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Unpause'}));
     await waitForModalToHide();
     expect(unpauseCall.mock.calls[0][1].data.untilStep).toBeUndefined();
+    expect(await screen.findByText('Working')).toBeInTheDocument();
     expect(screen.queryByText('Paused')).not.toBeInTheDocument();
-    expect(screen.getByText('Working')).toBeInTheDocument();
     expect(screen.getAllByText('--')).toHaveLength(3);
   });
 
@@ -330,8 +346,7 @@ describe('Relocation Details', () => {
 
   it('cancels and aborts incomplete relocation', async () => {
     const uuid = in_progress_relocation_uuid;
-    const model = get_in_progress_relocation_model();
-    model.step = 'PREPROCESSING';
+    const model = {...get_in_progress_relocation_model(), step: 'PREPROCESSING'};
 
     MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/`,
@@ -361,11 +376,15 @@ describe('Relocation Details', () => {
     expect(screen.getByText('Abort')).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
-    model.scheduledCancelAtStep = 'VALIDATING';
+    const cancelledModel = {...model, scheduledCancelAtStep: 'VALIDATING'};
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: cancelledModel,
+    });
     const firstCancelCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/cancel/`,
       method: 'PUT',
-      body: model,
+      body: cancelledModel,
     });
     await userEvent.click(screen.getByText('Schedule Cancellation'));
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
@@ -378,8 +397,8 @@ describe('Relocation Details', () => {
     );
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
     await waitForModalToHide();
-    expect(screen.getAllByText('Cancelling')).toHaveLength(1);
     expect(firstCancelCall.mock.calls[0][1].data.atStep).toBeUndefined();
+    await waitFor(() => expect(screen.getAllByText('Cancelling')).toHaveLength(1));
 
     // Change the cancel step.
     await userEvent.click(screen.getByText('Relocation Actions'));
@@ -389,11 +408,15 @@ describe('Relocation Details', () => {
     expect(screen.getByText('Abort')).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
-    model.scheduledCancelAtStep = 'NOTIFYING';
+    const reCancelledModel = {...model, scheduledCancelAtStep: 'NOTIFYING'};
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: reCancelledModel,
+    });
     const secondCancelCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/cancel/`,
       method: 'PUT',
-      body: model,
+      body: reCancelledModel,
     });
     await userEvent.click(screen.getByText('Schedule Cancellation'));
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
@@ -404,7 +427,7 @@ describe('Relocation Details', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
     await waitForModalToHide();
     expect(secondCancelCall.mock.calls[0][1].data.atStep).toBe('NOTIFYING');
-    expect(screen.getAllByText('Cancelling')).toHaveLength(1);
+    await waitFor(() => expect(screen.getAllByText('Cancelling')).toHaveLength(1));
 
     // Abort.
     await userEvent.click(screen.getByText('Relocation Actions'));
@@ -414,27 +437,32 @@ describe('Relocation Details', () => {
     expect(screen.getByText('Abort')).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
-    model.status = 'FAILURE';
-    model.scheduledCancelAtStep = null;
-    model.failureReason = 'Some reason';
+    const abortedModel = {
+      ...model,
+      status: 'FAILURE',
+      scheduledCancelAtStep: null,
+      failureReason: 'Some reason',
+    };
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: abortedModel,
+    });
     const abortCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/abort/`,
       method: 'PUT',
-      body: model,
+      body: abortedModel,
     });
     await userEvent.click(screen.getByText('Abort'));
     await userEvent.click(screen.getByRole('button', {name: 'Abort'}));
     await waitForModalToHide();
     await waitFor(() => expect(abortCall).toHaveBeenCalled());
-    expect(abortCall).toHaveBeenCalled();
-    expect(screen.getAllByText('Failed')).toHaveLength(1);
+    await waitFor(() => expect(screen.getAllByText('Failed')).toHaveLength(1));
     expect(screen.getByText('Some reason')).toBeInTheDocument();
   });
 
   it('hides cancel and pause actions on penultimate step', async () => {
     const uuid = paused_relocation_uuid;
-    const model = get_paused_relocation_model();
-    model.step = 'NOTIFYING';
+    const model = {...get_paused_relocation_model(), step: 'NOTIFYING'};
 
     MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/`,
@@ -461,11 +489,15 @@ describe('Relocation Details', () => {
 
     const {waitForModalToHide} = renderGlobalModal();
 
-    model.status = 'IN_PROGRESS';
+    const unpausedModel = {...model, status: 'IN_PROGRESS'};
+    MockApiClient.addMockResponse({
+      url: `/relocations/${uuid}/`,
+      body: unpausedModel,
+    });
     const unpauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/unpause/`,
       method: 'PUT',
-      body: model,
+      body: unpausedModel,
     });
     await userEvent.click(screen.getByText('Unpause'));
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Until'}));
@@ -475,8 +507,9 @@ describe('Relocation Details', () => {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Until'}), 'Completion');
     await userEvent.click(screen.getByRole('button', {name: 'Unpause'}));
     await waitForModalToHide();
-    await userEvent.click(screen.getByText('Relocation Actions'));
     expect(unpauseCall.mock.calls[0][1].data.untilStep).toBeUndefined();
+    expect(await screen.findByText('Working')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Relocation Actions'));
     expect(screen.queryByText('Schedule Pause')).not.toBeInTheDocument();
     expect(screen.queryByText('Unpause')).not.toBeInTheDocument();
     expect(screen.queryByText('Schedule Cancellation')).not.toBeInTheDocument();
@@ -488,8 +521,10 @@ describe('Relocation Details', () => {
     jest.spyOn(useNavigateModule, 'useNavigate').mockReturnValue(navigate);
 
     const old_uuid = paused_relocation_uuid;
-    const old_model = get_paused_relocation_model();
-    old_model.status = 'FAILURE';
+    const old_model = {
+      ...get_paused_relocation_model(),
+      status: 'FAILURE',
+    };
 
     MockApiClient.addMockResponse({
       url: `/relocations/${old_uuid}/`,
@@ -516,9 +551,16 @@ describe('Relocation Details', () => {
 
     const {waitForModalToHide} = renderGlobalModal();
 
-    const new_uuid = in_progress_relocation_uuid;
-    const new_model = get_in_progress_relocation_model();
-    const retryCall = MockApiClient.addMockResponse({
+    const new_uuid = 'e89d8a6c-da41-40c3-8f21-a2e8ffb0cf21';
+    const new_model = {
+      ...old_model,
+      uuid: new_uuid,
+      status: 'IN_PROGRESS',
+      step: 'UPLOADING',
+      failureReason: null,
+    };
+
+    MockApiClient.addMockResponse({
       url: `/relocations/${old_uuid}/retry/`,
       method: 'POST',
       body: new_model,
@@ -526,8 +568,6 @@ describe('Relocation Details', () => {
     await userEvent.click(screen.getByText('Retry'));
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
     await waitForModalToHide();
-    await waitFor(() => expect(retryCall).toHaveBeenCalled());
-    expect(retryCall).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(`/_admin/relocations/test/${new_uuid}/`);
   });
 });

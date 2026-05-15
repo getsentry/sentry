@@ -1,8 +1,9 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

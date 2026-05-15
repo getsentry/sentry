@@ -6,14 +6,19 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContextProvider,
+  useOnboardingContext,
+} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {SetupDocs} from 'sentry/views/onboarding/setupDocs';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];
@@ -56,6 +61,10 @@ function renderMockRequests({
 }
 
 describe('Onboarding Setup Docs', () => {
+  beforeEach(() => {
+    sessionStorageWrapper.clear();
+  });
+
   it('does not render Product Selection', async () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture({
@@ -373,7 +382,7 @@ describe('Onboarding Setup Docs', () => {
         await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Session Replay'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Session Replay'}));
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);
 
       expect(updateLoaderMock).toHaveBeenLastCalledWith(
@@ -424,6 +433,144 @@ describe('Onboarding Setup Docs', () => {
         await screen.findByRole('heading', {name: 'Configure Other SDK'})
       ).toBeInTheDocument();
     });
+  });
+
+  it('syncs product toggles into onboarding context for SCM onboarding', async () => {
+    const organization = OrganizationFixture({
+      features: ['session-replay', 'performance-view', 'onboarding-scm-experiment'],
+    });
+    const project = ProjectFixture({
+      slug: 'javascript-react',
+      platform: 'javascript-react',
+    });
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+
+    renderMockRequests({project, orgSlug: organization.slug});
+
+    function FeaturesObserver() {
+      const {selectedFeatures} = useOnboardingContext();
+      return (
+        <div data-test-id="selected-features">{(selectedFeatures ?? []).join(',')}</div>
+      );
+    }
+
+    render(
+      <OnboardingContextProvider
+        initialValue={{
+          selectedFeatures: [
+            ProductSolution.PERFORMANCE_MONITORING,
+            ProductSolution.SESSION_REPLAY,
+          ],
+        }}
+      >
+        <FeaturesObserver />
+        <SetupDocs
+          onComplete={() => {}}
+          stepIndex={2}
+          genSkipOnboardingLink={() => ''}
+          recentCreatedProject={project}
+        />
+      </OnboardingContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
+            query: {
+              product: [
+                ProductSolution.PERFORMANCE_MONITORING,
+                ProductSolution.SESSION_REPLAY,
+              ],
+            },
+          },
+          route: '/onboarding/:orgId/setup-docs/',
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Configure React SDK'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Session Replay'}));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selected-features')).toHaveTextContent(
+        ProductSolution.PERFORMANCE_MONITORING
+      );
+    });
+    expect(screen.getByTestId('selected-features')).not.toHaveTextContent(
+      ProductSolution.SESSION_REPLAY
+    );
+  });
+
+  it('does not sync product toggles into onboarding context for legacy onboarding', async () => {
+    const organization = OrganizationFixture({
+      features: ['session-replay', 'performance-view'],
+    });
+    const project = ProjectFixture({
+      slug: 'javascript-react',
+      platform: 'javascript-react',
+    });
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+
+    renderMockRequests({project, orgSlug: organization.slug});
+
+    function FeaturesObserver() {
+      const {selectedFeatures} = useOnboardingContext();
+      return (
+        <div data-test-id="selected-features">{(selectedFeatures ?? []).join(',')}</div>
+      );
+    }
+
+    render(
+      <OnboardingContextProvider
+        initialValue={{
+          selectedFeatures: [
+            ProductSolution.PERFORMANCE_MONITORING,
+            ProductSolution.SESSION_REPLAY,
+          ],
+        }}
+      >
+        <FeaturesObserver />
+        <SetupDocs
+          onComplete={() => {}}
+          stepIndex={2}
+          genSkipOnboardingLink={() => ''}
+          recentCreatedProject={project}
+        />
+      </OnboardingContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
+            query: {
+              product: [
+                ProductSolution.PERFORMANCE_MONITORING,
+                ProductSolution.SESSION_REPLAY,
+              ],
+            },
+          },
+          route: '/onboarding/:orgId/setup-docs/',
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Configure React SDK'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Session Replay'}));
+
+    // Context remains at its initial value; toggle only updated URL, not context.
+    expect(screen.getByTestId('selected-features')).toHaveTextContent(
+      ProductSolution.SESSION_REPLAY
+    );
   });
 
   it('reads feature selections from URL params', async () => {

@@ -7,6 +7,8 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {
   TraceError as TraceErrorType,
@@ -31,8 +33,6 @@ import {
   type RENDERABLE_MEASUREMENTS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {EapSpanNode} from './traceTreeNode/eapSpanNode';
@@ -388,7 +388,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return trace;
   }
 
-  static Error(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
+  static ErrorState(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
     const trace = makeExampleTrace(metadata, organization);
     trace.type = 'error';
     trace.build();

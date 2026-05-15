@@ -821,7 +821,7 @@ const Wrapper = styled(PanelItem)<{
     `};
 `;
 
-export const GroupSummary = styled('div')<{canSelect: boolean}>`
+const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
   margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
   margin-right: ${p => p.theme.space['3xl']};

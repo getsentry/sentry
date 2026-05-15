@@ -58,8 +58,7 @@ export function ScreenshotModal({
 
   const screenshots = attachments.filter(({name}) => name.includes('screenshot'));
 
-  const [currentEventAttachment, setCurrentAttachment] =
-    useState<EventAttachment>(eventAttachment);
+  const [currentEventAttachment, setCurrentAttachment] = useState(eventAttachment);
 
   const currentAttachmentIndex = screenshots.findIndex(
     attachment => attachment.id === currentEventAttachment.id
@@ -162,7 +161,7 @@ export function ScreenshotModal({
               priority="danger"
               onConfirm={onDelete}
             >
-              <Button priority="danger">{t('Delete')}</Button>
+              <Button variant="danger">{t('Delete')}</Button>
             </Confirm>
           )}
           <LinkButton onClick={onDownload} href={downloadUrl}>

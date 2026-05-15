@@ -12,6 +12,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -20,6 +21,31 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
+    def setUp(self) -> None:
+        super().setUp()
+        patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")
+        self.mock_notify_seer_repository_deleted = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_schedules_seer_notification_when_repository_deleted(self) -> None:
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        self.mock_notify_seer_repository_deleted.delay.assert_called_once_with(
+            org.id, repo.id, repo.provider, repo.name
+        )
+        assert not Repository.objects.filter(id=repo.id).exists()
+
     def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -65,7 +91,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             created_at=timezone.now(),
             updated_at=timezone.now(),
         )
-        seer_project_repo = SeerProjectRepository.objects.create(
+        seer_project_repo = self.create_seer_project_repository(
             project=project,
             repository=repo,
         )
@@ -94,6 +120,11 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             name="example/example",
             status=ObjectStatus.PENDING_DELETION,
         )
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
         path_config = RepositoryProjectPathConfig.objects.create(
             project=project,
             repository=repo,
@@ -103,6 +134,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             organization_integration_id=org_integration.id,
             integration_id=org_integration.integration_id,
             organization_id=org_integration.organization_id,
+            project_repository=project_repo,
         )
         code_owner = ProjectCodeOwners.objects.create(
             project=project,

@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,12 +8,7 @@ import {
 import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface ConsoleSdkInviteUser {

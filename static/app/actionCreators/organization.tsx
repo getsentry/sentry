@@ -103,7 +103,7 @@ export async function fetchOrganizationDetails(api: Client, slug: string): Promi
   };
 
   const loadOrganization = async () => {
-    let org: Organization | undefined = undefined;
+    let org: Organization | undefined;
     try {
       org = await fetchOrg(api, slug);
     } catch (err: any) {
@@ -122,7 +122,7 @@ export async function fetchOrganizationDetails(api: Client, slug: string): Promi
           throw errMessage;
         }
 
-        return undefined;
+        return;
       }
       Sentry.captureException(err);
     }

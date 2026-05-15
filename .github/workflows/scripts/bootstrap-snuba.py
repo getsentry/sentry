@@ -211,7 +211,7 @@ def main() -> None:
     workers_str = os.environ.get("XDIST_WORKERS")
     if not workers_str:
         fail("XDIST_WORKERS must be set")
-    workers = range(int(workers_str))
+    workers = range(int(workers_str))  # type: ignore[arg-type]
     start = time.monotonic()
 
     wait_for_prerequisites()

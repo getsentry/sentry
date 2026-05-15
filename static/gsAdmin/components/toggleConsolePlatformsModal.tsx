@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -26,7 +27,7 @@ import {
   type ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkPlatformInvite,

@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import React, {Component, Fragment, useEffect} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
@@ -25,6 +25,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {showIntercom} from 'sentry/utils/intercom';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
@@ -96,10 +97,43 @@ function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any
 const ALERTS_OFF = objectFromBilledCategories(() => false);
 
 type SuspensionModalProps = ModalRenderProps & {
+  organization: Organization;
   subscription: Subscription;
 };
 
-function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalProps) {
+function SuspensionModal({
+  Header,
+  Body,
+  Footer,
+  organization,
+  subscription,
+}: SuspensionModalProps) {
+  const hasIntercom = organization.features.includes('intercom-support');
+
+  useEffect(() => {
+    if (hasIntercom) {
+      trackGetsentryAnalytics('intercom_link.viewed', {
+        organization,
+        source: 'account-suspension',
+      });
+    }
+  }, [hasIntercom, organization]);
+
+  async function handleIntercomClick() {
+    trackGetsentryAnalytics('intercom_link.clicked', {
+      organization,
+      source: 'account-suspension',
+    });
+    try {
+      await showIntercom(organization.slug);
+    } catch {
+      const supportEmail = ConfigStore.get('supportEmail');
+      if (supportEmail) {
+        window.location.href = `mailto:${supportEmail}?subject=${window.encodeURIComponent('Account Suspension')}`;
+      }
+    }
+  }
+
   return (
     <Fragment>
       <Header>{'Action Required'}</Header>
@@ -120,13 +154,17 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
         </p>
       </Body>
       <Footer>
-        <ZendeskLink
-          subject="Account Suspension"
-          Component={props => <LinkButton {...props} href={props.href ?? ''} />}
-          source="account-suspension"
-        >
-          {t('Contact Support')}
-        </ZendeskLink>
+        {hasIntercom ? (
+          <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
+        ) : (
+          <ZendeskLink
+            subject="Account Suspension"
+            Component={props => <LinkButton {...props} href={props.href ?? ''} />}
+            source="account-suspension"
+          >
+            {t('Contact Support')}
+          </ZendeskLink>
+        )}
       </Footer>
     </Fragment>
   );
@@ -272,7 +310,7 @@ function NoticeModal({
       <Footer>
         <Button onClick={() => closeModalDoNotContinue()}>{t('Remind Me Later')}</Button>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => closeModalAndContinue(link)}
           style={{marginLeft: theme.space.xl}}
           data-test-id="modal-continue-button"
@@ -482,13 +520,19 @@ class GSBanner extends Component<Props, State> {
   }
 
   tryTriggerSuspendedModal() {
-    const {subscription} = this.props;
+    const {organization, subscription} = this.props;
 
     if (!subscription.isSuspended) {
       return;
     }
 
-    openModal(props => <SuspensionModal {...props} subscription={subscription} />);
+    openModal(props => (
+      <SuspensionModal
+        {...props}
+        organization={organization}
+        subscription={subscription}
+      />
+    ));
   }
 
   tryTriggerNoticeModal() {
@@ -745,11 +789,11 @@ class GSBanner extends Component<Props, State> {
     if (!subscription.canSelfServe) {
       return null;
     }
-    if (Object.values(this.overageAlertActive).some(a => a)) {
+    if (Object.values(this.overageAlertActive).some(Boolean)) {
       return 'critical';
     }
 
-    if (Object.values(this.overageWarningActive).some(a => a)) {
+    if (Object.values(this.overageWarningActive).some(Boolean)) {
       return 'warning';
     }
     return null;
@@ -909,7 +953,7 @@ class GSBanner extends Component<Props, State> {
           />
         ) : null;
       })
-      .filter((node: any) => node);
+      .filter(Boolean);
   }
 
   render() {
@@ -965,7 +1009,7 @@ class GSBanner extends Component<Props, State> {
                       <LinkButton
                         to={billingUrl}
                         size="zero"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Update payment information')}
                         onClick={addButtonAnalytics}
                       />
@@ -979,7 +1023,7 @@ class GSBanner extends Component<Props, State> {
                       <LinkButton
                         to={membersPageUrl}
                         size="zero"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Org Owner or Billing Member')}
                         onClick={addButtonAnalytics}
                       />
@@ -1022,14 +1066,14 @@ class GSBanner extends Component<Props, State> {
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
                     size="xs"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Upgrade')}
                   </LinkButton>
                   <Button
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"
-                    priority="default"
+                    variant="secondary"
                     tooltipProps={{
                       title: t(
                         'You can also resolve this warning by removing the deactivated members from your organization'

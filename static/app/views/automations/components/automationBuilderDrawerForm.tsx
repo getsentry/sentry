@@ -1,8 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 import {Observer} from 'mobx-react-lite';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -14,7 +16,6 @@ import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
 import {
@@ -64,6 +65,9 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
   return (
     <DrawerBody>
       <Stack direction="column" gap="xl">
+        <Alert variant="info">
+          {t('This alert will only trigger on issues created by this monitor.')}
+        </Alert>
         <Flex direction="column" gap="lg">
           <Stack gap="md">
             <AutomationBuilder />
@@ -84,7 +88,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           </Button>
           <Observer>
             {() => (
-              <Button priority="primary" type="submit" busy={model.isSaving}>
+              <Button variant="primary" type="submit" busy={model.isSaving}>
                 {t('Create Alert')}
               </Button>
             )}

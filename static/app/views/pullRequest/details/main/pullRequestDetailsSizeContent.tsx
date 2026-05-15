@@ -1,8 +1,7 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -21,9 +20,7 @@ export function PullRequestDetailsSizeContent({
   buildDetails,
 }: PullRequestDetailsSizeContentProps) {
   const organization = useOrganization();
-  const [selectedBuildId, setSelectedBuildId] = useState<string | undefined>(
-    buildDetails[0]?.id
-  );
+  const [selectedBuildId, setSelectedBuildId] = useState(buildDetails[0]?.id);
 
   const appSizeQuery = useApiQuery<AppSizeApiResponse>(
     // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (should be organization prefix?)
@@ -71,7 +68,7 @@ export function PullRequestDetailsSizeContent({
       {buildDetails.length > 1 && (
         <Flex align="center" gap="md">
           <Heading as="h2">{t('Builds (%s)', buildDetails.length)}</Heading>
-          <SelectContainer>
+          <Container flex="1" maxWidth="300px">
             <CompactSelect
               size="md"
               value={selectedBuildId}
@@ -81,7 +78,7 @@ export function PullRequestDetailsSizeContent({
               options={selectOptions}
               aria-label={t('Select build')}
             />
-          </SelectContainer>
+          </Container>
         </Flex>
       )}
       <Grid areas='"main sidebar"' columns="1fr 325px" gap="3xl">
@@ -106,8 +103,3 @@ export function PullRequestDetailsSizeContent({
     </Stack>
   );
 }
-
-const SelectContainer = styled('div')`
-  flex: 1;
-  max-width: 300px;
-`;

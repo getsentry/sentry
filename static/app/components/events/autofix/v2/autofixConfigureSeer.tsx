@@ -136,7 +136,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
             <Stack align="start">
               {orgNeedsToConfigureSeer ? (
                 <LinkButton
-                  priority="primary"
+                  variant="primary"
                   to={`/settings/${organization.slug}/seer/onboarding/`}
                   icon={<IconSeer />}
                 >
@@ -144,7 +144,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
                 </LinkButton>
               ) : (
                 <LinkButton
-                  priority="primary"
+                  variant="primary"
                   to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   icon={<IconSeer />}
                 >

@@ -36,9 +36,9 @@ describe('Discover > ResultsChart', () => {
         organization={organization}
         eventView={eventView}
         location={location}
-        onAxisChange={() => undefined}
-        onIntervalChange={() => undefined}
-        onDisplayChange={() => undefined}
+        onAxisChange={() => {}}
+        onIntervalChange={() => {}}
+        onDisplayChange={() => {}}
         total={1}
         confirmedQuery
         yAxis={['count()', 'failure_count()']}
@@ -68,9 +68,9 @@ describe('Discover > ResultsChart', () => {
         organization={organization}
         eventView={eventView}
         location={location}
-        onAxisChange={() => undefined}
-        onDisplayChange={() => undefined}
-        onIntervalChange={() => undefined}
+        onAxisChange={() => {}}
+        onDisplayChange={() => {}}
+        onIntervalChange={() => {}}
         total={1}
         confirmedQuery
         yAxis={[]}

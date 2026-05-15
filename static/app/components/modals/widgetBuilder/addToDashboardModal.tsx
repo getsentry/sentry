@@ -6,7 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {
@@ -24,7 +24,6 @@ import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -47,6 +46,7 @@ import type {
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
+  DashboardFilter,
   DEFAULT_WIDGET_NAME,
   DisplayType,
   MAX_WIDGETS,
@@ -70,7 +70,7 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -127,9 +127,7 @@ function AddToDashboardModal({
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const widget = widgets[0];
-  const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
-    getFallbackWidgetTitle(widget)
-  );
+  const [newWidgetTitle, setNewWidgetTitle] = useState(getFallbackWidgetTitle(widget));
   const [orderBy, setOrderBy] = useState<string>();
   const [tableWidths, setTableWidths] = useState<number[]>();
 
@@ -139,7 +137,7 @@ function AddToDashboardModal({
   const hasMultipleWidgets = widgets.length > 1;
 
   // Check if the widget is a static widget from a widget template
-  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+  const widgetTemplates = getDefaultWidgets(organization);
   const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
   const shouldOpenWidgetLibrary =
     !isWidgetEditable(widget.displayType) || widgetTemplate?.isCustomizable === false;
@@ -150,7 +148,7 @@ function AddToDashboardModal({
   };
 
   const handleWidgetTableColumnResize = (columns: TabularColumn[]) => {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   };
 
@@ -167,7 +165,9 @@ function AddToDashboardModal({
     // Track mounted state so we dont call setState on unmounted components
     let unmounted = false;
 
-    fetchDashboards(api, organization.slug).then(response => {
+    fetchDashboards(api, organization.slug, {
+      filter: DashboardFilter.EXCLUDE_PREBUILT,
+    }).then(response => {
       // If component has unmounted, dont set state
       if (unmounted) {
         return;
@@ -386,7 +386,6 @@ function AddToDashboardModal({
           tooltipOptions: {position: 'right', isHoverable: true},
         },
         ...dashboards
-          .filter(dashboard => !defined(dashboard.prebuiltId)) // Cannot add to prebuilt dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true
@@ -436,7 +435,7 @@ function AddToDashboardModal({
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
       <Body>
-        <Wrapper>
+        <Container marginBottom="xl">
           <DashboardCreateLimitWrapper>
             {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
               <Select
@@ -454,9 +453,9 @@ function AddToDashboardModal({
               />
             )}
           </DashboardCreateLimitWrapper>
-        </Wrapper>
+        </Container>
         {!hasMultipleWidgets && (
-          <Wrapper>
+          <Container marginBottom="xl">
             <SectionHeader title={t('Widget Name')} optional />
             <Input
               type="text"
@@ -464,9 +463,9 @@ function AddToDashboardModal({
               placeholder={t('Name')}
               onChange={e => updateWidgetTitle(e.target.value)}
             />
-          </Wrapper>
+          </Container>
         )}
-        <Wrapper>
+        <Container marginBottom="xl">
           {hasMultipleWidgets
             ? tct(
                 'Adding [count] widgets to the selected dashboard. Any conflicting filters from these queries will be overridden by Dashboard filters.',
@@ -475,7 +474,7 @@ function AddToDashboardModal({
             : t(
                 'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
               )}
-        </Wrapper>
+        </Container>
         {!hasMultipleWidgets && (
           <MetricsCardinalityProvider organization={organization} location={location}>
             <MetricsDataSwitcher
@@ -559,7 +558,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('add-and-open-dashboard') && (
             <Button
-              priority={hasMultipleWidgets ? 'primary' : 'default'}
+              variant={hasMultipleWidgets ? 'primary' : 'secondary'}
               onClick={handleAddAndOpenDashboard}
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
@@ -569,7 +568,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('open-in-widget-builder') && !hasMultipleWidgets && (
             <Button
-              priority="primary"
+              variant="primary"
               onClick={() => goToDashboard('builder')}
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
@@ -586,10 +585,6 @@ function AddToDashboardModal({
 }
 
 export default AddToDashboardModal;
-
-const Wrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const StyledButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />

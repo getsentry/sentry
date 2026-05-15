@@ -30,8 +30,8 @@ import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
 import {

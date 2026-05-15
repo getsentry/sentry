@@ -1,14 +1,16 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,6 +48,7 @@ export function IssueListSeerComboBox() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
@@ -164,7 +167,7 @@ export function IssueListSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: IssueAskSeerSearchQuery) => {
+    (result: IssueAskSeerSearchQuery, runId?: number) => {
       if (!result) {
         return;
       }
@@ -186,10 +189,6 @@ export function IssueListSeerComboBox() {
         end: resultEnd,
       });
 
-      trackAnalytics('issue.list.ai_query_applied', {
-        organization,
-        query: queryToUse,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
@@ -225,6 +224,10 @@ export function IssueListSeerComboBox() {
         ...timeParams,
       };
 
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
+
       navigate(
         {
           pathname: location.pathname,
@@ -240,6 +243,7 @@ export function IssueListSeerComboBox() {
       location.query,
       navigate,
       organization,
+      setRunId,
     ]
   );
 
@@ -254,7 +258,6 @@ export function IssueListSeerComboBox() {
       strategy="Issues"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="issue.list"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

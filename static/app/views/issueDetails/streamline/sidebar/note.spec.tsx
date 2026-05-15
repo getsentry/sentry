@@ -3,18 +3,19 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
 
 describe('StreamlinedNoteInput', () => {
   beforeEach(() => {
     TeamStore.reset();
-    MemberListStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: UserFixture()}],
+    });
   });
 
   it('can mention a member', async () => {
-    MemberListStore.loadInitialData([UserFixture()], false, null);
     const onCreate = jest.fn();
     render(<StreamlinedNoteInput onCreate={onCreate} />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@foo');

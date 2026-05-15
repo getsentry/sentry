@@ -76,7 +76,7 @@ function defaultMarkerFormatter(value: string) {
 
 function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
-    return undefined;
+    return;
   }
   if (Array.isArray(series.data)) {
     return series.data[offset];
@@ -85,7 +85,7 @@ function getSeriesValue(series: any, offset: number) {
     return series.data.value[offset];
   }
 
-  return undefined;
+  return;
 }
 
 type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';
@@ -243,6 +243,21 @@ export function getFormatter({
           serie
         );
 
+        if (serie.seriesType === 'heatmap') {
+          const zAxisCountValue = (getSeriesValue(serie, 2) ?? 0).toString();
+          const yAxisValue = valueFormatter(
+            getSeriesValue(serie, 1),
+            serie.seriesName,
+            serie
+          );
+
+          acc.series.push(
+            `<div><span class="tooltip-label"><strong>${yAxisValue}</strong></span> ${zAxisCountValue}</div>`
+          );
+
+          return acc;
+        }
+
         const value = valueFormatter(getSeriesValue(serie, 1), serie.seriesName, serie);
 
         const marker = markerFormatter(serie.marker ?? '', serie.seriesName);
@@ -372,7 +387,7 @@ export function computeChartTooltip(
     trigger: 'item',
     backgroundColor: theme.tokens.background.primary,
     borderWidth: 0,
-    extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}`,
+    extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}; z-index: ${theme.zIndex.tooltip} !important;`,
     transitionDuration: 0,
     padding: 0,
     className: 'tooltip-container',

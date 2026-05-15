@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -16,13 +18,7 @@ import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
@@ -79,6 +75,8 @@ function ApiTokens() {
       addErrorMessage(t('Unable to remove token. Please try again.'));
 
       if (context?.previous) {
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<InternalAppApiToken[]>(
           queryClient,
           API_TOKEN_QUERY_KEY,
@@ -103,7 +101,7 @@ function ApiTokens() {
 
   const action = (
     <LinkButton
-      priority="primary"
+      variant="primary"
       size={hasPageFrame ? 'md' : 'sm'}
       icon={<IconAdd />}
       to="/settings/account/api/auth-tokens/new-token/"

@@ -21,7 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
-import {useReplayCountForTransactions} from 'sentry/utils/replayCount/useReplayCountForTransactions';
+import {useReplayCountForTransaction} from 'sentry/utils/replayCount/useReplayCountForTransaction';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,6 +49,8 @@ import {Tab} from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
+
+const REPLAY_COUNT_LIMIT = 50;
 
 type Props = {
   currentTab: Tab;
@@ -151,10 +153,11 @@ export function TransactionHeader({
     isProfilingSupportedOrProjectHasProfiles(project);
 
   // Hard-code 90d for the replay tab to surface more interesting data.
-  const {getReplayCountForTransaction} = useReplayCountForTransactions({
+  const replaysCount = useReplayCountForTransaction({
+    transaction: transactionName,
     statsPeriod: '90d',
+    limit: REPLAY_COUNT_LIMIT,
   });
-  const replaysCount = getReplayCountForTransaction(transactionName);
 
   const tabList = (
     <TabList
@@ -169,7 +172,7 @@ export function TransactionHeader({
       </TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
         {t('Replays')}
-        <ReplayCountBadge count={replaysCount} />
+        <ReplayCountBadge count={replaysCount} limit={REPLAY_COUNT_LIMIT} />
       </TabList.Item>
       <TabList.Item key={Tab.PROFILING} textValue={t('Profiling')} hidden={!hasProfiling}>
         {t('Profiles')}
@@ -420,7 +423,7 @@ export function TransactionHeader({
           hidden={!hasSessionReplay}
         >
           {t('Replays')}
-          <ReplayCountBadge count={replaysCount} />
+          <ReplayCountBadge count={replaysCount} limit={REPLAY_COUNT_LIMIT} />
         </TabList.Item>
         <TabList.Item
           key={Tab.PROFILING}

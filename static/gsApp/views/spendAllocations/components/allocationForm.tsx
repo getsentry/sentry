@@ -57,17 +57,17 @@ function AllocationForm({
   spendAllocations,
   subscription,
 }: AllocationFormProps) {
-  const [allocationVolume, setAllocationVolume] = useState<number>(0);
+  const [allocationVolume, setAllocationVolume] = useState(0);
   const [errorFields, setErrorFields] = useState<string[]>([]);
-  const [showPrice, setShowPrice] = useState<boolean>(false);
-  const [selectedMetric, setSelectedMetric] = useState<DataCategory>(
+  const [showPrice, setShowPrice] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState(
     initializedData
       ? normalizeBillingMetric(initializedData.billingMetric)
       : initialMetric && getCategoryInfoFromPlural(initialMetric)?.canAllocate
         ? initialMetric
         : DataCategory.ERRORS // default to errors
   );
-  const [targetId, setTargetId] = useState<string | undefined>(
+  const [targetId, setTargetId] = useState(
     initializedData && String(initializedData.targetId)
   );
   const api = useApi();
@@ -185,7 +185,7 @@ function AllocationForm({
       return;
     }
     let METHOD = 'POST';
-    let [start, end] = (rootAllocation as SpendAllocation).period;
+    let [start, end] = rootAllocation!.period;
     if (initializedData) {
       METHOD = 'PUT';
       [start, end] = initializedData.period;
@@ -493,7 +493,7 @@ function AllocationForm({
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button
             data-test-id="spend-allocation-submit"
-            priority="primary"
+            variant="primary"
             onClick={onSubmit}
             disabled={overBudgetedEvents || !rootAllocation}
           >
