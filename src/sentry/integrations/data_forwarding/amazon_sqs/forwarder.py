@@ -27,7 +27,12 @@ class AmazonSQSForwarder(BaseDataForwarder):
     def get_event_payload(
         self, event: Event | GroupEvent, config: dict[str, Any]
     ) -> dict[str, Any]:
-        return serialize(event)
+        # We do this since serialize(event) returns datetime objects, and taskbroker doesn't support
+        # those as arguments. This dump -> load step gets around it, and leaves the payload being
+        # forwarded in the same format it has always been.
+        return orjson.loads(
+            orjson.dumps(serialize(event), option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS)
+        )
 
     def is_unrecoverable_client_error(self, error: ClientError) -> bool:
         error_str = str(error)
@@ -138,3 +143,66 @@ class AmazonSQSForwarder(BaseDataForwarder):
             raise
 
         return True
+
+    def get_task_payload(self, event: Event | GroupEvent, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "event_id": event.event_id,
+            "project_slug": event.project.slug,
+            "date": event.datetime.strftime("%Y-%m-%d"),
+        }
+
+    @staticmethod
+    def forward_event_from_task(
+        *,
+        config: dict[str, Any],
+        event_payload: dict[str, Any],
+        task_payload: dict[str, Any],
+    ) -> None:
+        queue_url = config["queue_url"]
+        region = config["region"]
+        access_key = config["access_key"]
+        secret_key = config["secret_key"]
+        message_group_id = config.get("message_group_id")
+        s3_bucket = config.get("s3_bucket")
+
+        boto3_args = {
+            "aws_access_key_id": access_key,
+            "aws_secret_access_key": secret_key,
+            "region_name": region,
+        }
+
+        if s3_bucket:
+            date = task_payload["date"]
+            project_slug = task_payload["project_slug"]
+            event_id = task_payload["event_id"]
+            key = f"{project_slug}/{date}/{event_id}"
+
+            s3_client = boto3.client(
+                service_name="s3", config=Config(signature_version="s3v4"), **boto3_args
+            )
+            s3_client.put_object(
+                Bucket=s3_bucket,
+                Body=orjson.dumps(
+                    event_payload, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS
+                ).decode(),
+                Key=key,
+            )
+
+            url = f"https://{s3_bucket}.s3.{region}.amazonaws.com/{key}"
+            event_payload = {"s3Url": url, "eventID": event_id}
+
+        message = orjson.dumps(
+            event_payload, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS
+        ).decode()
+
+        if len(message) > AWS_SQS_MAX_MESSAGE_SIZE:
+            return
+
+        client = boto3.client(service_name="sqs", **boto3_args)
+        send_message_args = {"QueueUrl": queue_url, "MessageBody": message}
+
+        if message_group_id:
+            send_message_args["MessageGroupId"] = message_group_id
+            send_message_args["MessageDeduplicationId"] = uuid4().hex
+
+        client.send_message(**send_message_args)

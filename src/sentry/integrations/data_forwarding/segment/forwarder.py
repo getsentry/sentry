@@ -98,7 +98,7 @@ class SegmentForwarder(BaseDataForwarder):
                     self.endpoint,
                     json=payload,
                     auth=(write_key, ""),
-                    timeout=10,
+                    timeout=(3.5, 10),
                 )
                 response.raise_for_status()
         except Exception:
@@ -108,3 +108,43 @@ class SegmentForwarder(BaseDataForwarder):
             )
             return False
         return True
+
+    def get_task_payload(self, event: Event | GroupEvent, config: dict[str, Any]) -> dict[str, Any]:
+        # we avoid instantiating interfaces here as they're only going to be
+        # used if there's a User present
+        user_interface = event.interfaces.get("user")
+        if not user_interface:
+            return {"event_type": event.get_event_type(), "has_user": False}
+
+        # if the user id is not present, we can't forward the event
+        return {
+            "event_type": event.get_event_type(),
+            "has_user": True if user_interface.id else False,
+        }
+
+    @staticmethod
+    def forward_event_from_task(
+        *,
+        config: dict[str, Any],
+        event_payload: dict[str, Any],
+        task_payload: dict[str, Any],
+    ) -> None:
+        # we currently only support errors
+        if task_payload.get("event_type") != "error":
+            return
+
+        if not task_payload.get("has_user", False):
+            return
+
+        write_key = config["write_key"]
+        if not write_key:
+            return
+
+        with http.build_session() as session:
+            response = session.post(
+                SegmentForwarder.endpoint,
+                json=event_payload,
+                auth=(write_key, ""),
+                timeout=(3.5, 10),
+            )
+            response.raise_for_status()

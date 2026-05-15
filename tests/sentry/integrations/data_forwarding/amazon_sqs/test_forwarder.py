@@ -4,11 +4,14 @@ import orjson
 from botocore.exceptions import ClientError
 
 from sentry.api.serializers import serialize
-from sentry.integrations.data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
+from sentry.integrations.data_forwarding.amazon_sqs.forwarder import (
+    AmazonSQSForwarder,
+)
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class AmazonSQSDataForwarderTest(TestCase):
@@ -141,3 +144,40 @@ class AmazonSQSDataForwarderTest(TestCase):
         expected_url = f"https://my_bucket.s3.us-east-1.amazonaws.com/{expected_key}"
         assert message_body["s3Url"] == expected_url
         assert "s3-" not in message_body["s3Url"]
+
+    def test_get_task_payload(self) -> None:
+        event = self.store_event(
+            data={"message": "test", "type": "error"},
+            project_id=self.project.id,
+        )
+
+        config = self.data_forwarder_project.get_config()
+        result = self.forwarder.get_task_payload(event, config)
+
+        assert result["event_id"] == event.event_id
+        assert result["project_slug"] == event.project.slug
+        assert result["date"] == event.datetime.strftime("%Y-%m-%d")
+
+    @patch("boto3.client")
+    @override_options({"data-forwarding.task-rollout-rate": 1.0})
+    def test_forward_event_from_task(self, mock_client) -> None:
+        self.data_forwarder.config["message_group_id"] = "my_group"
+        self.data_forwarder.config["s3_bucket"] = "my_bucket"
+        self.data_forwarder.save()
+
+        event = self.store_event(data={"message": "test"}, project_id=self.project.id)
+        with self.tasks():
+            self.forwarder.post_process(event, self.data_forwarder_project)
+
+        mock_client.return_value.put_object.assert_called_once()
+        put_args = mock_client.return_value.put_object.call_args[1]
+        assert put_args["Bucket"] == "my_bucket"
+        event_date = event.datetime.strftime("%Y-%m-%d")
+        assert put_args["Key"] == f"{self.project.slug}/{event_date}/{event.event_id}"
+
+        send_args = mock_client.return_value.send_message.call_args[1]
+        message_body = orjson.loads(send_args["MessageBody"])
+        assert message_body["eventID"] == event.event_id
+        assert send_args["MessageGroupId"] == "my_group"
+        assert "MessageDeduplicationId" in send_args
+        assert "s3Url" in message_body
