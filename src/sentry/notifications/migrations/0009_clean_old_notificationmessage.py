@@ -33,12 +33,8 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        (
-            "notifications",
-            "0008_remove_metric_alert_constraints_notificationmessage",
-            "sentry",
-            "1096_backfill_mcp_dashboard_widget_filters",
-        ),
+        ("notifications", "0008_remove_metric_alert_constraints_notificationmessage"),
+        ("sentry", "1096_backfill_mcp_dashboard_widget_filters"),
     ]
 
     operations = [
