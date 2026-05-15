@@ -132,7 +132,7 @@ class DynamicRateLimiter:
         else:
             referrer_capacity = int(service_capacity * self.referrer_allocation[referrer])
 
-        return quota_used >= referrer_capacity
+        return quota_used > referrer_capacity
 
     def set_total_capacity(self, capacity: int) -> None:
         """Set the service capacity if it does not match what already exists."""
