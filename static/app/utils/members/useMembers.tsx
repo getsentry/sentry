@@ -24,7 +24,7 @@ function findMembersInCache(
   ids: string[]
 ): ApiResponse<Member[]> | undefined {
   const idSet = new Set(ids);
-  const prefixes = [
+  const memberListUrls = [
     `/organizations/${orgSlug}/members/`,
     `/organizations/${orgSlug}/users/`,
   ];
@@ -32,12 +32,12 @@ function findMembersInCache(
   const cached = queryClient.getQueriesData<ApiResponse<Member[]>>({
     predicate: query => {
       const url = query.queryKey[0];
-      return typeof url === 'string' && prefixes.some(prefix => url.startsWith(prefix));
+      return typeof url === 'string' && memberListUrls.includes(url);
     },
   });
 
   for (const [, data] of cached) {
-    if (!data?.json) {
+    if (!Array.isArray(data?.json)) {
       continue;
     }
     const matchedMembers = data.json.filter(m => m.user && idSet.has(m.user.id));

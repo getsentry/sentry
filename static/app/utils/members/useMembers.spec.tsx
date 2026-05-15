@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -63,5 +64,35 @@ describe('useMembers', () => {
 
     expect(mockRequest).toHaveBeenCalled();
     expect(result.current.data).toEqual(expect.arrayContaining([userFoo]));
+  });
+
+  it('ignores cached user detail responses when looking for members by id', async () => {
+    const userFoo = UserFixture({id: '10'});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: [{user: userFoo}],
+    });
+
+    function SeedUserDetailCache({children}: {children?: React.ReactNode}) {
+      const queryClient = useQueryClient();
+
+      queryClient.setQueryData([`/organizations/${org.slug}/users/10/`], {
+        headers: {},
+        json: userFoo,
+      });
+
+      return children;
+    }
+
+    const {result} = renderHookWithProviders(useMembers, {
+      additionalWrapper: SeedUserDetailCache,
+      initialProps: {ids: ['10']},
+      organization: org,
+    });
+
+    await waitFor(() => expect(result.current.data).toEqual([userFoo]));
+
+    expect(mockRequest).toHaveBeenCalled();
   });
 });
