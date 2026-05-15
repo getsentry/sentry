@@ -34,7 +34,7 @@ type OnboardingContextProps = {
   selectedRepository?: Repository;
 };
 
-export type OnboardingSessionState = {
+type OnboardingSessionState = {
   createdProjectSlug?: string;
   projectDetailsForm?: ProjectDetailsFormState;
   selectedFeatures?: ProductSolution[];
