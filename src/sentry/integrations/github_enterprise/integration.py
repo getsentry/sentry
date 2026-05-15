@@ -637,7 +637,11 @@ class InstallationConfigView:
             form = InstallationForm(request.POST)
             if form.is_valid():
                 form_data = form.cleaned_data
-                form_data["url"] = urlparse(form_data["url"]).netloc
+                parsed = urlparse(form_data["url"])
+                # Tolerate input without a scheme — `urlparse("github.com").netloc` is empty
+                # and the host lands in `path`. Without this, OAuth URLs become malformed
+                # (`https:///login/...`) and the github.com flag gate below is bypassed.
+                form_data["url"] = (parsed.netloc or parsed.path).strip("/").lower()
 
                 if form_data["url"] == "github.com" and not features.has(
                     "organizations:github-enterprise-github-com-source",

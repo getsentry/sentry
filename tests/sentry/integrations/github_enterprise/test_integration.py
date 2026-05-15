@@ -1304,6 +1304,21 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         view.dispatch(request, pipeline)
         pipeline.next_step.assert_called_once()
 
+    def test_github_com_install_rejected_for_normalized_inputs(self) -> None:
+        # Any input that normalizes to "github.com" must hit the gate. Previously
+        # `urlparse("github.com").netloc` returned empty and let the bypass through,
+        # producing malformed OAuth URLs and a silent gate bypass.
+        view = InstallationConfigView()
+        for url_input in ("github.com", "GitHub.com", "https://GitHub.com", "github.com/"):
+            request = RequestFactory().post("/", data=self._make_post_data(url_input))
+            request.user = self.user
+            pipeline = MagicMock()
+            pipeline.organization = self.organization
+            response = view.dispatch(request, pipeline)
+            assert pipeline.next_step.call_count == 0, f"flag bypassed for input {url_input!r}"
+            assert isinstance(response, HttpResponse)
+            assert response.status_code == 200
+
 
 class BuildIntegrationGitHubComTest(TestCase):
     """build_integration must produce external_id with the 'github.com:' prefix so the
