@@ -1,4 +1,5 @@
 from sentry.testutils.cases import TestMigrations
+from django.db.migrations.state import StateApps
 
 
 class CleanOldNotificationMessageTest(TestMigrations):
@@ -14,7 +15,7 @@ class CleanOldNotificationMessageTest(TestMigrations):
         self.action = self.create_action()
         self.group = self.create_group(project=self.project)
 
-    def setup_before_migration(self, apps) -> None:
+    def setup_before_migration(self, apps: StateApps) -> None:
         NotificationMessage = apps.get_model("notifications", "NotificationMessage")
 
         self.metric_alert_msg = NotificationMessage.objects.create(
