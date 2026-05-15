@@ -10,7 +10,6 @@ import sentry_sdk
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -286,6 +285,8 @@ class RepositoryIntegration(
             except ApiRetryError as e:
                 # Ignore retry errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
+                from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
+
                 if (
                     self.integration_name == IntegrationProviderSlug.GITLAB.value
                     and client.base_url != GITLAB_CLOUD_BASE_URL
