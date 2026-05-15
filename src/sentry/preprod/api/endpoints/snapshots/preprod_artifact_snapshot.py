@@ -782,9 +782,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     },
                 )
 
-        # When a comparison is starting, the compare_snapshots task owns the
-        # status check lifecycle (IN_PROGRESS -> COMPLETED) to avoid a race
-        # where an async IN_PROGRESS update overwrites an already-COMPLETED one.
+        # Only post a status check when no comparison was kicked off. When a
+        # comparison starts, compare_snapshots owns the full status check
+        # lifecycle itself; posting one here too would race with it.
         if not comparison_starting:
             create_preprod_snapshot_status_check_task.apply_async(
                 kwargs={
