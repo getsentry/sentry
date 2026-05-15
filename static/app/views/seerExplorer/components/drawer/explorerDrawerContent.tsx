@@ -405,6 +405,7 @@ export function ExplorerDrawerContent({
                   }}
                   block={block}
                   blockIndex={index}
+                  blocks={blocks}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
                   interactionPending={isFileApprovalPending || isQuestionPending}

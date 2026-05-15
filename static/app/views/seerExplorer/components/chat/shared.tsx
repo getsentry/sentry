@@ -13,6 +13,7 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 interface BlockContextValue {
   block: Block;
   blockIndex: number;
+  blocks?: Block[];
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   runId?: number;
