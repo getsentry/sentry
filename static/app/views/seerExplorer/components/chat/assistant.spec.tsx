@@ -126,5 +126,30 @@ describe('AssistantBlock', () => {
       expect(upButton).toBeEnabled();
       expect(downButton).toBeEnabled();
     });
+
+    it('hides action bar when interactionPending', async () => {
+      const {container} = render(
+        <BlockComponent
+          block={createBlock()}
+          blockIndex={0}
+          runId={123}
+          interactionPending
+        />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      expect(
+        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders nothing for empty content', () => {
+    const block = createBlock({
+      message: {role: 'assistant', content: ''},
+    });
+    const {container} = render(<BlockComponent block={block} blockIndex={0} />);
+    expect(container).toHaveTextContent('');
   });
 });
