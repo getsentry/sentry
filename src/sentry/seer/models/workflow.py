@@ -30,7 +30,11 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     class Meta:
         app_label = "seer"
         db_table = "seer_workflowconfig"
-        unique_together = (("organization", "strategy"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "strategy"], name="seer_workflowconfig_org_strategy_uniq"
+            ),
+        ]
 
     __repr__ = sane_repr("organization_id", "strategy", "enabled")
 
