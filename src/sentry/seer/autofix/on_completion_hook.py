@@ -335,7 +335,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # seer/automation/autofix/steps/root_cause_step.py, where
         # _check_and_trigger_coding_agent_handoff runs before
         # _should_auto_run_solution_step.
-        handoff_config = cls._get_handoff_config_if_applicable(stopping_point, current_step, group)
+        handoff_config = cls._get_handoff_config_if_applicable(current_step, group)
         if handoff_config:
             cls._trigger_coding_agent_handoff(
                 organization,
@@ -455,7 +455,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     @classmethod
     def _get_handoff_config_if_applicable(
         cls,
-        stopping_point: AutofixStoppingPoint,
         current_step: AutofixStep | None,
         group: Group,
     ) -> SeerAutomationHandoffConfiguration | None:
