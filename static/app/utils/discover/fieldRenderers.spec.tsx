@@ -577,7 +577,8 @@ describe('getFieldRenderer', () => {
       renderer(
         {...data, 'replay.id': 'abc123def456'},
         {location, organization, theme}
-      ) as React.ReactElement<any, any>
+      ) as React.ReactElement<any, any>,
+      {organization}
     );
 
     const link = await screen.findByRole('link');
