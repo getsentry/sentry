@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.preprod.api.models.public.snapshot_status_check_rules import (
+from sentry.preprod.vcs.status_checks.snapshots.config import (
     ENABLED_DEFAULT,
     ENABLED_OPTION_KEY,
     FAIL_ON_ADDED_DEFAULT,
@@ -13,7 +13,6 @@ from sentry.preprod.api.models.public.snapshot_status_check_rules import (
     FAIL_ON_RENAMED_DEFAULT,
     FAIL_ON_RENAMED_OPTION_KEY,
 )
-from sentry.preprod.vcs.status_checks.snapshots import tasks as snapshot_status_check_tasks
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -138,14 +137,14 @@ class ProjectPreprodSnapshotStatusCheckRulesEndpointTest(APITestCase):
 
         assert response.status_code == 403
 
-    def test_public_option_config_matches_snapshot_status_check_task(self) -> None:
-        assert ENABLED_OPTION_KEY == snapshot_status_check_tasks.ENABLED_OPTION_KEY
-        assert FAIL_ON_ADDED_OPTION_KEY == snapshot_status_check_tasks.FAIL_ON_ADDED_OPTION_KEY
-        assert FAIL_ON_REMOVED_OPTION_KEY == snapshot_status_check_tasks.FAIL_ON_REMOVED_OPTION_KEY
-        assert FAIL_ON_CHANGED_OPTION_KEY == snapshot_status_check_tasks.FAIL_ON_CHANGED_OPTION_KEY
-        assert FAIL_ON_RENAMED_OPTION_KEY == snapshot_status_check_tasks.FAIL_ON_RENAMED_OPTION_KEY
-        assert ENABLED_DEFAULT == snapshot_status_check_tasks.ENABLED_DEFAULT
-        assert FAIL_ON_ADDED_DEFAULT == snapshot_status_check_tasks.FAIL_ON_ADDED_DEFAULT
-        assert FAIL_ON_REMOVED_DEFAULT == snapshot_status_check_tasks.FAIL_ON_REMOVED_DEFAULT
-        assert FAIL_ON_CHANGED_DEFAULT == snapshot_status_check_tasks.FAIL_ON_CHANGED_DEFAULT
-        assert FAIL_ON_RENAMED_DEFAULT == snapshot_status_check_tasks.FAIL_ON_RENAMED_DEFAULT
+    def test_shared_status_check_config_defines_expected_runtime_defaults(self) -> None:
+        assert ENABLED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_enabled"
+        assert FAIL_ON_ADDED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_added"
+        assert FAIL_ON_REMOVED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_removed"
+        assert FAIL_ON_CHANGED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_changed"
+        assert FAIL_ON_RENAMED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_renamed"
+        assert ENABLED_DEFAULT is True
+        assert FAIL_ON_ADDED_DEFAULT is False
+        assert FAIL_ON_REMOVED_DEFAULT is True
+        assert FAIL_ON_CHANGED_DEFAULT is True
+        assert FAIL_ON_RENAMED_DEFAULT is False
