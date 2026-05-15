@@ -547,11 +547,3 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # fmt: on
-
-    # Partner oauth
-    manager.add(
-        "organizations:scoped-partner-oauth",
-        OrganizationFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=False,
-    )

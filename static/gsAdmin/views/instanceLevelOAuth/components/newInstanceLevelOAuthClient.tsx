@@ -3,15 +3,9 @@ import {Fragment} from 'react';
 import {useModal} from '@sentry/scraps/modal';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 import {ClientSecretModal} from './clientSecretModal';
 
@@ -23,9 +17,7 @@ const fieldProps = {
 
 export function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
   const {openModal} = useModal();
-
-  const systemFeatures = ConfigStore.get('features');
-  const formModel = new InstanceLevelOAuthClientModel();
+  const formModel = new FormModel();
 
   return (
     <Fragment>
@@ -92,61 +84,8 @@ export function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
             placeholder="e.g. https://sentry.io/terms/"
             help="URL to client's terms and conditions"
           />
-          {systemFeatures.has('system:scoped-partner-oauth') && (
-            <Fragment>
-              <Panel>
-                <PanelHeader>Permissions</PanelHeader>
-                <PanelBody withPadding>
-                  <PermissionSelection
-                    displaySpecialPermissions={false}
-                    hasContinuousIntegration={false}
-                    permissions={{
-                      Event: 'no-access',
-                      Member: 'no-access',
-                      Organization: 'no-access',
-                      Project: 'no-access',
-                      Release: 'no-access',
-                      Team: 'no-access',
-                    }}
-                    onChange={() => {}}
-                    appPublished={false}
-                  />
-                </PanelBody>
-              </Panel>
-              <CheckboxField
-                label="Requires organization level access"
-                help="If enabled, at the time of installation the user will select only one organization which then the client will have access to."
-                name="requiresOrgLevelAccess"
-              />
-            </Fragment>
-          )}
         </Form>
       </Body>
     </Fragment>
   );
-}
-
-class InstanceLevelOAuthClientModel extends FormModel {
-  /**
-   * Filter out Permission input field values.
-   *
-   * Permissions (API Scopes) are presented as a list of SelectFields.
-   * Instead of them being submitted individually, we want them rolled
-   * up into a single list of scopes (this is done in `PermissionSelection`).
-   *
-   * Because they are all individual inputs, we end up with attributes
-   * in the JSON we send to the API that we don't want.
-   *
-   * This function filters those attributes out of the data that is
-   * ultimately sent to the API.
-   */
-  getData() {
-    return this.fields.toJSON().reduce((data, [k, v]) => {
-      if (!k.endsWith('--permission')) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        data[k] = v;
-      }
-      return data;
-    }, {});
-  }
 }
