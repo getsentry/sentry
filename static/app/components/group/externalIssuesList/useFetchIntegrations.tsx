@@ -27,6 +27,6 @@ export function useFetchIntegrations({
   organization: OrganizationSummary;
 }) {
   return useApiQuery<GroupIntegration[]>(makeIntegrationsQueryKey(group, organization), {
-    staleTime: 30_000,
+    staleTime: Infinity,
   });
 }
