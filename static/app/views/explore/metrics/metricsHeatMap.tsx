@@ -42,10 +42,10 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
         Title={<Widget.WidgetTitle title={chartTitle} />}
         Actions={actions}
         Visualization={
-          isPending || !heatMapSeries ? (
-            <WidgetLoadingPanel />
-          ) : error ? (
+          error ? (
             <Widget.WidgetError error={error} />
+          ) : isPending || !heatMapSeries ? (
+            <WidgetLoadingPanel />
           ) : heatMapSeries.values.length === 0 ? (
             <Widget.WidgetError error={t('No data')} />
           ) : (

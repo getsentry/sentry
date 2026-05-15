@@ -23,6 +23,10 @@ import {
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
+  MINIMIZED_GRAPH_HEIGHT,
+  STACKED_GRAPH_HEIGHT,
+} from 'sentry/views/explore/metrics/settings';
+import {
   createTraceMetricEventsFilter,
   getEquationMetricsTotalFilter,
 } from 'sentry/views/explore/metrics/utils';
@@ -55,11 +59,6 @@ export function getMetricsChartTypeOptions(organization: Organization) {
   }
   return EXPLORE_CHART_TYPE_OPTIONS;
 }
-
-import {
-  MINIMIZED_GRAPH_HEIGHT,
-  STACKED_GRAPH_HEIGHT,
-} from 'sentry/views/explore/metrics/settings';
 
 interface MetricsGraphProps {
   actions: React.ReactNode;
