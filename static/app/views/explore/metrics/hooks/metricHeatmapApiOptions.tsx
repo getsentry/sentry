@@ -31,7 +31,7 @@ export function metricHeatmapApiOptions({
   yBuckets,
 }: MetricHeatmapApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
-  const combinedQuery = query ? `${traceMetricFilter} ${query}` : traceMetricFilter;
+  const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;
 
   const intervalInMilliseconds = intervalToMilliseconds(interval);
   const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
