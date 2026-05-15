@@ -24,7 +24,7 @@ export interface SnapshotDiffPair {
 interface SnapshotComparisonRunInfo {
   completed_at?: string;
   duration_ms?: number;
-  state?: ComparisonState;
+  state?: SnapshotComparisonState;
 }
 
 interface SnapshotApprover {
