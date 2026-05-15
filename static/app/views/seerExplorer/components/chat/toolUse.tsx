@@ -101,7 +101,7 @@ function useToolLinks() {
 }
 
 function ToolCallList() {
-  const {block, getPageReferrer} = useBlockContext();
+  const {block, blocks, getPageReferrer} = useBlockContext();
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
@@ -145,7 +145,11 @@ function ToolCallList() {
 
         const isTodoWrite = toolCall.function === 'todo_write';
         const todos =
-          isTodoWrite && block.todos && block.todos.length > 0 ? block.todos : null;
+          isTodoWrite &&
+          block.todos?.length &&
+          blocks?.findLast(b => b.todos?.length) === block
+            ? block.todos
+            : null;
 
         const failureTooltip = toolLinkParams?.is_error
           ? t('Tool call failed')
