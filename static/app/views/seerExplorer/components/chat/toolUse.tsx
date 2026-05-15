@@ -37,11 +37,11 @@ import {
 } from './shared';
 
 export function ToolUseBlock() {
-  const {block} = useBlockContext();
+  const {block, showThinking} = useBlockContext();
 
   return (
     <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
-      {hasValidContent(block.message.thinking_content) && !block.message.tool_calls && (
+      {showThinking && hasValidContent(block.message.thinking_content) && (
         <Disclosure size="sm">
           <Disclosure.Title>
             <Text size="sm" variant="muted" monospace>

@@ -16,6 +16,7 @@ interface BlockContextValue {
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   runId?: number;
+  showThinking?: boolean;
 }
 
 const BlockContext = createContext<BlockContextValue | null>(null);

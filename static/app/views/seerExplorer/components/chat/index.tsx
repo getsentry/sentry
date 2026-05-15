@@ -17,6 +17,7 @@ interface BlockProps {
   onClick?: () => void;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
+  showThinking?: boolean;
 }
 
 export function BlockComponent({
@@ -25,12 +26,13 @@ export function BlockComponent({
   runId,
   getPageReferrer,
   interactionPending,
+  showThinking,
   onClick,
   ref,
 }: BlockProps) {
   const contextValue = useMemo(
-    () => ({block, blockIndex, getPageReferrer, interactionPending, runId}),
-    [block, blockIndex, getPageReferrer, interactionPending, runId]
+    () => ({block, blockIndex, getPageReferrer, interactionPending, runId, showThinking}),
+    [block, blockIndex, getPageReferrer, interactionPending, runId, showThinking]
   );
 
   return (
