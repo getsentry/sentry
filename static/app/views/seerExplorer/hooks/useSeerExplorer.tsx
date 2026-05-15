@@ -153,7 +153,7 @@ export const useSeerExplorer = () => {
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
-  const {mutate: sendMessageMutate} = useMutation<
+  const {mutate: sendMessageMutate, isPending: isSendingMessage} = useMutation<
     SeerExplorerChatResponse,
     RequestError,
     {
@@ -569,7 +569,11 @@ export const useSeerExplorer = () => {
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (!isPolling) {
+    const awaitingResponse =
+      isSendingMessage ||
+      (runId !== null && rawSessionData === null) ||
+      (rawSessionData?.status === 'processing' && !isTimedOut);
+    if (!isPolling && !awaitingResponse) {
       // filter out incomplete loading blocks (can happen on timeout)
       return rawSessionData === null
         ? null
@@ -642,7 +646,7 @@ export const useSeerExplorer = () => {
       ...baseSession,
       blocks: visibleBlocks,
     };
-  }, [rawSessionData, runId, lastSentMessage, isPolling]);
+  }, [rawSessionData, runId, lastSentMessage, isPolling, isSendingMessage, isTimedOut]);
 
   return {
     sessionData: processedSessionData,
