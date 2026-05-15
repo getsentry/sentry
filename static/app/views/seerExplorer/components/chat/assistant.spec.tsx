@@ -143,6 +143,21 @@ describe('AssistantBlock', () => {
         screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
       ).not.toBeInTheDocument();
     });
+
+    it('hides action bar in readOnly mode', async () => {
+      const {container} = render(
+        <BlockComponent block={createBlock()} blockIndex={0} runId={123} readOnly />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      expect(
+        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Copy block content'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('renders nothing for empty content', () => {

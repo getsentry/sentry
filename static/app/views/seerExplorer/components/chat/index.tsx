@@ -16,6 +16,7 @@ interface BlockProps {
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   onClick?: () => void;
+  readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
   showThinking?: boolean;
@@ -28,6 +29,7 @@ export function BlockComponent({
   runId,
   getPageReferrer,
   interactionPending,
+  readOnly,
   showThinking,
   onClick,
   ref,
@@ -39,10 +41,20 @@ export function BlockComponent({
       blocks,
       getPageReferrer,
       interactionPending,
+      readOnly,
       runId,
       showThinking,
     }),
-    [block, blockIndex, blocks, getPageReferrer, interactionPending, runId, showThinking]
+    [
+      block,
+      blockIndex,
+      blocks,
+      getPageReferrer,
+      interactionPending,
+      readOnly,
+      runId,
+      showThinking,
+    ]
   );
 
   return (
