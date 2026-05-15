@@ -51,7 +51,7 @@ class DynamicRateLimiter:
     The `DynamicRateLimiter` class operates as a mirror of an externally managed rate limiter. This
     call will attempt to load-shed requests when it thinks a quota allocation has been exceeded.
     We do not attempt to synchronize with the source. This requires every outbound request to utilize
-    this request.
+    this class otherwise the counters will de-sync.
 
     :param get_time_in_seconds: Get the current UTC timestamp in seconds.
     :param integration_id: The integration we're scoped to.
