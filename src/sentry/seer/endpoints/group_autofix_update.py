@@ -88,6 +88,9 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         with transaction.atomic(using=router.db_for_write(Group)):
             group.update(seer_autofix_last_triggered=now)
             if isinstance(run_id, int):
-                SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now)
+                SeerRun.objects.filter(
+                    organization_id=group.organization.id,
+                    seer_run_state_id=run_id,
+                ).update(last_triggered_at=now)
 
         return Response(status=202, data=response.json())

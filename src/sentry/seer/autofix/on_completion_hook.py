@@ -93,7 +93,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         now = timezone.now()
         with transaction.atomic(using=router.db_for_write(Group)):
             group.update(seer_explorer_autofix_last_triggered=now)
-            SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now)
+            SeerRun.objects.filter(
+                organization_id=organization.id,
+                seer_run_state_id=run_id,
+            ).update(last_triggered_at=now)
 
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, state, group)
