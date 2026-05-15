@@ -1,3 +1,5 @@
+import jsonschema
+
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 
 
@@ -56,3 +58,17 @@ class TestImageMetadataTagsCoercion:
             }
         )
         assert manifest.images["screen.png"].tags == {"dark": "dark", "mobile": "mobile"}
+
+
+class TestImageMetadataJsonSchema:
+    def test_schema_accepts_dict_tags(self) -> None:
+        schema = ImageMetadata.schema()
+        jsonschema.validate(_meta(tags={"theme": "dark"}), schema)
+
+    def test_schema_accepts_list_tags(self) -> None:
+        schema = ImageMetadata.schema()
+        jsonschema.validate(_meta(tags=["dark", "mobile"]), schema)
+
+    def test_schema_accepts_no_tags(self) -> None:
+        schema = ImageMetadata.schema()
+        jsonschema.validate(_meta(), schema)

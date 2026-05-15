@@ -28,6 +28,17 @@ class ImageMetadata(BaseModel):
     class Config:
         extra = "allow"
 
+        @staticmethod
+        def schema_extra(schema: dict, model: type) -> None:
+            tags = schema.get("properties", {}).get("tags")
+            if tags:
+                schema["properties"]["tags"] = {
+                    "anyOf": [
+                        {"type": "object", "additionalProperties": {"type": "string"}},
+                        {"type": "array", "items": {"type": "string"}},
+                    ]
+                }
+
 
 class SnapshotManifest(BaseModel):
     images: dict[str, ImageMetadata]
