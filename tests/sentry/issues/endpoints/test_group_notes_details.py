@@ -46,6 +46,18 @@ class GroupNotesDetailsTest(APITestCase):
     def url(self) -> str:
         return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 
+    def test_delete_invalid_note_id(self) -> None:
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{self.group.id}/comments/abc/"
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 404
+
+    def test_put_invalid_note_id(self) -> None:
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{self.group.id}/comments/abc/"
+        response = self.client.put(url, format="json", data={"text": "updated"})
+        assert response.status_code == 404
+
     def test_delete(self) -> None:
         self.login_as(user=self.user)
 
