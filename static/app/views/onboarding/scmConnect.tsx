@@ -22,10 +22,12 @@ import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
 
 interface ScmConnectProps {
+  // Fired once per user-driven repo change so callers can invalidate state
+  // derived from the repo (platform, features, created project). See
+  // ScmRepoSelector for why this is separate from onRepositoryChange.
+  onClearDerivedState: () => void;
   onComplete: StepProps['onComplete'];
   onIntegrationChange: (integration: Integration | undefined) => void;
-  // Callers are responsible for clearing any state derived from the repo
-  // (platform, features, created project) when the repo changes.
   onRepositoryChange: (repo: Repository | undefined) => void;
   selectedIntegration: Integration | undefined;
   selectedRepository: Repository | undefined;
@@ -58,6 +60,7 @@ const SCM_INFO_SECTIONS = [
 ];
 
 export function ScmConnect({
+  onClearDerivedState,
   onComplete,
   onIntegrationChange,
   onRepositoryChange,
@@ -132,6 +135,7 @@ export function ScmConnect({
                 integration={effectiveIntegration}
                 selectedRepository={selectedRepository}
                 onRepositoryChange={onRepositoryChange}
+                onClearDerivedState={onClearDerivedState}
               />
             </Stack>
           </MotionStack>

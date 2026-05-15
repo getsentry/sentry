@@ -401,7 +401,7 @@ export function ScmPlatformFeatures({
     !hasProjectDetailsStep && (isLoadingTeams || !projectsLoaded);
 
   async function handleContinue() {
-    // Persist derived defaults to context if user accepted them
+    // Persist derived defaults if the user accepted them without an explicit click
     if (currentPlatformKey && !selectedPlatform?.key) {
       setPlatform(currentPlatformKey);
     }
