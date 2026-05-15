@@ -40,6 +40,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             delete_old_rows_metric_alerts,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["notifications_notificationmessage"]},
+            hints={"tables": ["sentry_notificationmessage"]},
         ),
     ]
