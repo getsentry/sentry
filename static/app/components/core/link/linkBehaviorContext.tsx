@@ -2,11 +2,11 @@ import {createContext, useContext, type FunctionComponent} from 'react';
 import {Link as RouterLink} from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
-import type {LinkProps} from './link';
+import type {RoutedLinkProps} from './link';
 
 type LinkBehavior = {
-  behavior: (props: LinkProps) => LinkProps;
-  component: FunctionComponent<LinkProps>;
+  behavior: (props: RoutedLinkProps) => RoutedLinkProps;
+  component: FunctionComponent<RoutedLinkProps>;
 };
 
 const LinkBehaviorContext = createContext<LinkBehavior | null>(null);
@@ -18,7 +18,7 @@ const defaultLinkBehavior = {
 
 export const LinkBehaviorContextProvider = LinkBehaviorContext.Provider;
 
-export const useLinkBehavior = (props: LinkProps) => {
+export const useLinkBehavior = (props: RoutedLinkProps) => {
   const linkBehavior = useContext(LinkBehaviorContext);
 
   if (process.env.NODE_ENV === 'production' && !linkBehavior) {
