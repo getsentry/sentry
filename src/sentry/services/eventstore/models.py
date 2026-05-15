@@ -641,7 +641,14 @@ class Event(BaseEvent):
         if not self.group_id:
             return None
         if not hasattr(self, "_group_cache"):
-            self._group_cache = Group.objects.get(id=self.group_id)
+            try:
+                self._group_cache = Group.objects.get(id=self.group_id)
+            except Group.DoesNotExist:
+                # The group may have been deleted between the time the event
+                # was fetched (e.g. from nodestore) and the time `group` is
+                # accessed. Treat this the same as having no group_id so that
+                # callers using truthy/None semantics behave consistently.
+                self._group_cache = None
         return self._group_cache
 
     @group.setter
