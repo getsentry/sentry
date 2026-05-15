@@ -67,6 +67,12 @@ class IsAutofixEnabledForRepoTest(TestCase):
 
         assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
 
+    def test_returns_true_via_project_repository_fk(self) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+
+        with self.feature("organizations:project-repository-fk-reads"):
+            assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is True
+
 
 class ShouldIncrementContributorSeatTest(TestCase):
     def setUp(self) -> None:

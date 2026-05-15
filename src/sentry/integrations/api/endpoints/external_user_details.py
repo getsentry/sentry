@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 @cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.INTEGRATION_PLATFORM
     permission_classes = (ExternalUserPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

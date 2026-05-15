@@ -43,6 +43,7 @@ from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_agg
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id_list
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
     dual_update_alert_rule,
@@ -420,7 +421,19 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         channel_lookup_timeout_error = None
         if triggers is not None:
             # Delete triggers we don't have present in the incoming data
-            trigger_ids = [x["id"] for x in triggers if "id" in x]
+            raw_trigger_ids = [x["id"] for x in triggers if "id" in x]
+            trigger_ids = to_valid_int_id_list("triggers", raw_trigger_ids)
+            if trigger_ids:
+                existing_trigger_ids = set(
+                    AlertRuleTrigger.objects.filter(
+                        alert_rule=alert_rule, id__in=trigger_ids
+                    ).values_list("id", flat=True)
+                )
+                missing_ids = [tid for tid in trigger_ids if tid not in existing_trigger_ids]
+                if missing_ids:
+                    raise serializers.ValidationError(
+                        f"Trigger IDs do not belong to this alert rule: {missing_ids}"
+                    )
             triggers_to_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
                 id__in=trigger_ids
             )

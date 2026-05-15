@@ -7,6 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -71,11 +72,18 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.context["organization"]
 
     def validate(self, attrs):
-        query = RepositoryProjectPathConfig.objects.filter(
-            project_id=attrs.get("project_id"),
-            stack_root=attrs.get("stack_root"),
-            source_root=attrs.get("source_root"),
-        )
+        if features.has("organizations:project-repository-fk-reads", self.organization):
+            query = RepositoryProjectPathConfig.objects.filter(
+                project_repository__project_id=attrs.get("project_id"),
+                stack_root=attrs.get("stack_root"),
+                source_root=attrs.get("source_root"),
+            )
+        else:
+            query = RepositoryProjectPathConfig.objects.filter(
+                project_id=attrs.get("project_id"),
+                stack_root=attrs.get("stack_root"),
+                source_root=attrs.get("source_root"),
+            )
         if self.instance:
             query = query.exclude(id=self.instance.id)
         if query.exists():
@@ -203,9 +211,19 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         projects = self.get_projects(
             request, organization, include_all_accessible=not has_explicit_projects
         )
-        queryset = RepositoryProjectPathConfig.objects.filter(project__in=projects).select_related(
-            "project", "repository"
-        )
+        if features.has("organizations:project-repository-fk-reads", organization):
+            queryset = RepositoryProjectPathConfig.objects.filter(
+                project_repository__project__in=projects
+            ).select_related(
+                "project",
+                "repository",
+                "project_repository__project",
+                "project_repository__repository",
+            )
+        else:
+            queryset = RepositoryProjectPathConfig.objects.filter(
+                project__in=projects
+            ).select_related("project", "repository")
 
         if integration_id:
             # get_organization_integration will raise a 404 if no org_integration is found

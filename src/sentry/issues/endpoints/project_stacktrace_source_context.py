@@ -5,6 +5,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -60,7 +61,8 @@ class ProjectStacktraceSourceContextEndpoint(ProjectEndpoint):
                 }
             )
 
-        result = fetch_source_context_from_scm(configs, ctx)
+        use_fk = features.has("organizations:project-repository-fk-reads", project.organization)
+        result = fetch_source_context_from_scm(configs, ctx, use_project_repository_fk=use_fk)
 
         return Response(
             {

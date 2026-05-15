@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -150,7 +150,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         scope = Scope.get_isolation_scope()
 
         set_top_tags(scope, project, ctx, len(configs) > 0)
-        result = get_stacktrace_config(configs, ctx)
+        use_fk = features.has("organizations:project-repository-fk-reads", project.organization)
+        result = get_stacktrace_config(configs, ctx, use_project_repository_fk=use_fk)
         error = result["error"]
         src_path = result["src_path"]
         # Post-processing before exiting scope context

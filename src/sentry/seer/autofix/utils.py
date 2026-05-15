@@ -34,7 +34,6 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
@@ -48,6 +47,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -463,9 +463,18 @@ def _write_preferences_to_sentry_db(
         list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
 
         # Only delete SeerProjectRepository for active repos.
-        SeerProjectRepository.objects.filter(
-            project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
-        ).delete()
+        if features.has(
+            "organizations:project-repository-fk-reads",
+            project_preferences[0][0].organization,
+        ):
+            SeerProjectRepository.objects.filter(
+                project_repository__project_id__in=project_ids,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            ).delete()
+        else:
+            SeerProjectRepository.objects.filter(
+                project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
+            ).delete()
 
         all_repo_ids = {
             repo_def.repository_id
@@ -534,9 +543,13 @@ def _write_preferences_to_sentry_db(
             # Create branch overrides using the created project repos.
             overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
             for seer_project_repo in created_project_repos:
-                for override in overrides_by_key.get(
-                    (seer_project_repo.project_id, seer_project_repo.repository_id), []
-                ):
+                pr = seer_project_repo.project_repository
+                key = (
+                    (pr.project_id, pr.repository_id)
+                    if pr is not None
+                    else (seer_project_repo.project_id, seer_project_repo.repository_id)
+                )
+                for override in overrides_by_key.get(key, []):
                     overrides_to_create.append(
                         SeerProjectRepositoryBranchOverride(
                             seer_project_repository=seer_project_repo,
@@ -595,11 +608,16 @@ def clear_preference_automation_handoff(project: Project) -> None:
 
 def build_repo_definition_from_project_repo(
     seer_project_repo: SeerProjectRepository,
+    use_project_repository_fk: bool = False,
 ) -> SeerRepoDefinition | None:
     """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository.
 
     Returns None if Repository name is invalid."""
-    repo = seer_project_repo.repository
+    if use_project_repository_fk:
+        pr = seer_project_repo.project_repository
+        repo = pr.repository if pr is not None else seer_project_repo.repository
+    else:
+        repo = seer_project_repo.repository
     repo_name_sections = repo.name.split("/")
     if len(repo_name_sections) < 2:
         sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
@@ -647,17 +665,33 @@ def build_automation_handoff(
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
-    seer_project_repo_qs = (
-        SeerProjectRepository.objects.filter(
-            project=project, repository__status=ObjectStatus.ACTIVE
+    use_fk = features.has("organizations:project-repository-fk-reads", project.organization)
+    if use_fk:
+        seer_project_repo_qs = (
+            SeerProjectRepository.objects.filter(
+                project_repository__project=project,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("project_repository", "project_repository__repository")
+            .prefetch_related("branch_overrides")
         )
-        .select_related("repository")
-        .prefetch_related("branch_overrides")
-    )
+    else:
+        seer_project_repo_qs = (
+            SeerProjectRepository.objects.filter(
+                project=project, repository__status=ObjectStatus.ACTIVE
+            )
+            .select_related("repository", "project_repository", "project_repository__repository")
+            .prefetch_related("branch_overrides")
+        )
     repo_definitions = [
         repo_def
         for project_repo in seer_project_repo_qs
-        if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
+        if (
+            repo_def := build_repo_definition_from_project_repo(
+                project_repo, use_project_repository_fk=use_fk
+            )
+        )
+        is not None
     ]
 
     return SeerProjectPreference(
@@ -679,17 +713,29 @@ def bulk_read_preferences_from_sentry_db(
 
     projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
 
+    org = Organization.objects.get(id=organization_id)
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
-    for project_repo in (
-        SeerProjectRepository.objects.filter(
+    use_fk = features.has("organizations:project-repository-fk-reads", org)
+    if use_fk:
+        seer_repo_qs = SeerProjectRepository.objects.filter(
+            project_repository__project_id__in=project_ids,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).select_related("project_repository", "project_repository__repository")
+    else:
+        seer_repo_qs = SeerProjectRepository.objects.filter(
             project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
+        ).select_related("repository", "project_repository", "project_repository__repository")
+    for seer_repo in seer_repo_qs.prefetch_related("branch_overrides"):
+        repo_def = build_repo_definition_from_project_repo(
+            seer_repo, use_project_repository_fk=use_fk
         )
-        .select_related("repository")
-        .prefetch_related("branch_overrides")
-    ):
-        repo_def = build_repo_definition_from_project_repo(project_repo)
         if repo_def is not None:
-            repo_definitions_by_project[project_repo.project_id].append(repo_def)
+            if use_fk:
+                pr = seer_repo.project_repository
+                pid = pr.project_id if pr is not None else seer_repo.project_id
+            else:
+                pid = seer_repo.project_id
+            repo_definitions_by_project[pid].append(repo_def)
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
     # which automatically falls back to the registered well-known key default.
@@ -798,6 +844,13 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
+    if features.has("organizations:project-repository-fk-reads", organization):
+        return SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__project__organization_id=organization.id,
+            project_repository__project__status=ObjectStatus.ACTIVE,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).exists()
     return SeerProjectRepository.objects.filter(
         project=project,
         project__organization_id=organization.id,
@@ -817,9 +870,12 @@ def get_autofix_repos_from_project_code_mappings(
     if code_mappings is None:
         code_mappings = get_sorted_code_mapping_configs(project)
 
+    use_fk = features.has("organizations:project-repository-fk-reads", project.organization)
     repos: dict[tuple, dict] = {}
     for code_mapping in code_mappings:
-        repo: Repository = code_mapping.repository
+        repo: Repository = (
+            code_mapping.project_repository.repository if use_fk else code_mapping.repository
+        )
         repo_name_sections = repo.name.split("/")
 
         if (
@@ -830,7 +886,7 @@ def get_autofix_repos_from_project_code_mappings(
             and repo.integration_id is not None
             and repo.external_id
             and repo.provider
-            and repo.provider in SEER_SUPPORTED_SCM_PROVIDERS
+            and repo.provider in get_supported_scm_providers(project.organization)
         ):
             repo_dict = {
                 "repository_id": repo.id,

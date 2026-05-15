@@ -14,7 +14,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
-  errorStatusCode: null,
+  errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
   overrideCtxEngEnable: true,
@@ -131,7 +131,7 @@ describe('ExplorerDrawerContent', () => {
         ...defaultHookReturn,
         runId: 123,
         isError: true,
-        errorStatusCode: null,
+        errorStatusCode: undefined,
       });
 
       render(

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from django.db import models
-from django.db.models import DateTimeField, IntegerField, Q
-from django.db.models.constraints import UniqueConstraint
+from django.db.models import DateTimeField, IntegerField
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -50,7 +49,7 @@ class NotificationMessage(Model):
     # Related information regarding Action (Workflow Engine)
     action = FlexibleForeignKey("workflow_engine.Action", null=True)
     group = FlexibleForeignKey("sentry.Group", null=True)
-    # Key for a start of aspecific open period of the group (e.g. metric/uptime issues)
+    # Key for a start of a specific open period of the group (e.g. metric/uptime issues)
     # This doesn't have to be set for all actions, only for actions that are related to a group which has a defined open period
     open_period_start = DateTimeField(null=True)
 
@@ -61,38 +60,6 @@ class NotificationMessage(Model):
             models.Index(
                 fields=["group", "action", "date_added"],
                 name="idx_notifmsg_group_action_date",
-            ),
-        ]
-        constraints = [
-            # 1 parent message per incident and trigger action
-            UniqueConstraint(
-                fields=("incident", "trigger_action"),
-                condition=Q(
-                    error_code__isnull=True,
-                    parent_notification_message__isnull=True,
-                    incident__isnull=False,
-                    trigger_action__isnull=False,
-                ),
-                name="singular_parent_message_per_incident_and_trigger_action",
-            ),
-            # A row is either a metric-alert message (incident + trigger_action)
-            # or a workflow-action message (action + group), never both.
-            models.CheckConstraint(
-                condition=(
-                    Q(
-                        incident__isnull=False,
-                        trigger_action__isnull=False,
-                        action__isnull=True,
-                        group__isnull=True,
-                    )
-                    | Q(
-                        incident__isnull=True,
-                        trigger_action__isnull=True,
-                        action__isnull=False,
-                        group__isnull=False,
-                    )
-                ),
-                name="notifmsg_metric_or_workflow_exclusive",
             ),
         ]
 

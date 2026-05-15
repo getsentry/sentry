@@ -1,5 +1,7 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Hovercard} from 'sentry/components/hovercard';
 
 describe('Hovercard', () => {
@@ -93,5 +95,28 @@ describe('Hovercard', () => {
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
+  });
+
+  it('does not snap-close when a tooltip inside the body is hovered', async () => {
+    render(
+      <Hovercard
+        position="top"
+        body={
+          <Tooltip title="Inner tooltip content">
+            <span>Inner trigger</span>
+          </Tooltip>
+        }
+        header="Hovercard Header"
+      >
+        Hovercard Trigger
+      </Hovercard>
+    );
+
+    await userEvent.hover(screen.getByText('Hovercard Trigger'));
+    expect(await screen.findByText(/Hovercard Header/)).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Inner trigger'));
+    expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
+    expect(await screen.findByText('Inner tooltip content')).toBeInTheDocument();
   });
 });

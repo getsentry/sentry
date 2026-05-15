@@ -36,7 +36,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
 
 @control_silo_endpoint
 class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.FOUNDATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

@@ -518,6 +518,21 @@ class TestHasProjectConnectedRepos(TestCase):
 
         assert has_project_connected_repos(self.organization, self.project) is True
 
+    def test_returns_true_via_project_repository_fk(self):
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="789",
+            name="owner/fk-repo",
+        )
+        pr = ProjectRepository.objects.create(project=self.project, repository=repo)
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=repo, project_repository=pr
+        )
+
+        with self.feature("organizations:project-repository-fk-reads"):
+            assert has_project_connected_repos(self.organization, self.project) is True
+
 
 class TestDeduplicateRepositories(TestCase):
     def test_keys_by_provider_and_external_id(self) -> None:
@@ -1134,6 +1149,20 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert repo_by_name["other-repo"].branch_overrides == []
         assert result.automated_run_stopping_point == "code_changes"
         assert result.automation_handoff is None
+
+    def test_reads_via_project_repository_fk(self):
+        pr = ProjectRepository.objects.create(project=self.project, repository=self.repo)
+        SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=self.repo,
+            project_repository=pr,
+            branch_name="main",
+        )
+
+        with self.feature("organizations:project-repository-fk-reads"):
+            result = read_preference_from_sentry_db(self.project)
+            assert len(result.repositories) == 1
+            assert result.repositories[0].branch_name == "main"
 
     def test_autofix_automation_tuning_default(self):
         self.create_seer_project_repository(
