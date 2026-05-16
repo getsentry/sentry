@@ -1,6 +1,5 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
@@ -9,18 +8,17 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import type {Client} from 'sentry/api';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {QueryCount} from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
 import {getReleaseParams} from 'sentry/views/explore/releases/utils';
@@ -48,79 +46,218 @@ type IssuesQueryParams = {
   sort: string;
 };
 
-const defaultProps = {
-  withChart: false,
-};
-
-type Props = {
-  api: Client;
-  location: Location;
-  organization: Organization;
+interface Props {
   releaseBounds: ReleaseBounds;
   version: string;
   queryFilterDescription?: string;
-} & Partial<typeof defaultProps>;
+  withChart?: boolean;
+}
 
-type State = {
-  count: {
+function getActiveIssuesType(location: ReturnType<typeof useLocation>): IssuesType {
+  const query = (location.query?.issuesType as string) ?? '';
+  return Object.values<string>(IssuesType).includes(query)
+    ? (query as IssuesType)
+    : IssuesType.NEW;
+}
+
+function getIssuesEndpoint(
+  version: string,
+  location: ReturnType<typeof useLocation>,
+  releaseBounds: ReleaseBounds,
+  issuesType: IssuesType
+): {
+  endpoint: React.ComponentProps<typeof GroupList>['endpoint'];
+  queryParams: IssuesQueryParams;
+} {
+  const queryParams = {
+    ...getReleaseParams({
+      location,
+      releaseBounds,
+    }),
+    limit: 10,
+    sort: IssueSortOptions.FREQ,
+    groupStatsPeriod: 'auto',
+  };
+
+  switch (issuesType) {
+    case IssuesType.ALL:
+      return {
+        endpoint: {
+          path: '/organizations/$organizationIdOrSlug/issues/',
+        },
+        queryParams: {
+          ...queryParams,
+          query: new MutableSearch([
+            `${issuesQuery.all}:${version}`,
+            'is:unresolved',
+          ]).formatString(),
+        },
+      };
+    case IssuesType.RESOLVED:
+      return {
+        endpoint: {
+          path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/',
+          version,
+        },
+        queryParams: {...queryParams, query: ''},
+      };
+    case IssuesType.UNHANDLED:
+      return {
+        endpoint: {
+          path: '/organizations/$organizationIdOrSlug/issues/',
+        },
+        queryParams: {
+          ...queryParams,
+          query: new MutableSearch([
+            `${issuesQuery.all}:${version}`,
+            issuesQuery.unhandled,
+            'is:unresolved',
+          ]).formatString(),
+        },
+      };
+    case IssuesType.REGRESSED:
+      return {
+        endpoint: {
+          path: '/organizations/$organizationIdOrSlug/issues/',
+        },
+        queryParams: {
+          ...queryParams,
+          query: new MutableSearch([
+            `${issuesQuery.regressed}:${version}`,
+          ]).formatString(),
+        },
+      };
+    case IssuesType.NEW:
+    default:
+      return {
+        endpoint: {
+          path: '/organizations/$organizationIdOrSlug/issues/',
+        },
+        queryParams: {
+          ...queryParams,
+          query: new MutableSearch([
+            `${issuesQuery.new}:${version}`,
+            'is:unresolved',
+          ]).formatString(),
+        },
+      };
+  }
+}
+
+function ReleaseIssues({
+  releaseBounds,
+  version,
+  queryFilterDescription,
+  withChart = false,
+}: Props) {
+  const api = useApi();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+
+  const [count, setCount] = useState<{
     all: number | null;
     new: number | null;
     regressed: number | null;
     resolved: number | null;
     unhandled: number | null;
-  };
-  onCursor?: () => void;
-  pageLinks?: string;
-};
+  }>({
+    new: null,
+    all: null,
+    resolved: null,
+    unhandled: null,
+    regressed: null,
+  });
+  const [pageLinks, setPageLinks] = useState<string | undefined>();
+  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
-class ReleaseIssues extends Component<Props, State> {
-  static defaultProps = defaultProps;
-  state: State = this.getInitialState();
+  const issuesType = getActiveIssuesType(location);
+  const {endpoint, queryParams} = getIssuesEndpoint(
+    version,
+    location,
+    releaseBounds,
+    issuesType
+  );
 
-  getInitialState() {
-    return {
-      count: {
-        new: null,
-        all: null,
-        resolved: null,
-        unhandled: null,
-        regressed: null,
-      },
-    };
-  }
+  const releaseParams = useMemo(
+    () => getReleaseParams({location, releaseBounds}),
+    [location, releaseBounds]
+  );
+  const prevReleaseParamsRef = useRef(releaseParams);
 
-  componentDidMount() {
-    this.fetchIssuesCount();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (
-      !isEqual(
-        getReleaseParams({
-          location: this.props.location,
-          releaseBounds: this.props.releaseBounds,
-        }),
-        getReleaseParams({
-          location: prevProps.location,
-          releaseBounds: prevProps.releaseBounds,
-        })
-      )
-    ) {
-      this.fetchIssuesCount();
+  useEffect(() => {
+    if (isEqual(releaseParams, prevReleaseParamsRef.current)) {
+      return;
     }
+    prevReleaseParamsRef.current = releaseParams;
+  }, [releaseParams]);
+
+  const fetchIssuesCount = useCallback(async () => {
+    const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
+    const params = [
+      `${issuesQuery.new}:"${version}" is:unresolved`,
+      `${issuesQuery.all}:"${version}" is:unresolved`,
+      `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
+      `${issuesQuery.regressed}:"${version}"`,
+    ];
+    const queryParameters = {
+      ...getReleaseParams({location, releaseBounds}),
+      query: params,
+    };
+    const issueCountEndpoint = `${issuesCountPath}?${qs.stringify(queryParameters)}`;
+    const resolvedEndpoint = `/organizations/${
+      organization.slug
+    }/releases/${encodeURIComponent(version)}/resolved/`;
+
+    try {
+      const [issueResponse, resolvedResponse] = await Promise.all([
+        api.requestPromise(issueCountEndpoint),
+        api.requestPromise(resolvedEndpoint),
+      ]);
+      setCount({
+        all: issueResponse[`${issuesQuery.all}:"${version}" is:unresolved`] || 0,
+        new: issueResponse[`${issuesQuery.new}:"${version}" is:unresolved`] || 0,
+        resolved: resolvedResponse.length,
+        unhandled:
+          issueResponse[
+            `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
+          ] || 0,
+        regressed: issueResponse[`${issuesQuery.regressed}:"${version}"`] || 0,
+      });
+    } catch {
+      // do nothing
+    }
+  }, [api, organization.slug, version, location, releaseBounds]);
+
+  useEffect(() => {
+    fetchIssuesCount();
+  }, [fetchIssuesCount]);
+
+  function handleIssuesTypeSelection(newIssuesType: IssuesType) {
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          issuesType: newIssuesType,
+        },
+      },
+      {replace: true}
+    );
   }
 
-  getActiveIssuesType(): IssuesType {
-    const query = (this.props.location.query?.issuesType as string) ?? '';
-    return Object.values<string>(IssuesType).includes(query)
-      ? (query as IssuesType)
-      : IssuesType.NEW;
-  }
+  const handleFetchSuccess = useCallback((groupListState: any, cursorFn: any) => {
+    setPageLinks(groupListState.pageLinks);
+    setOnCursor(() => cursorFn);
+  }, []);
 
-  getIssuesUrl() {
-    const {version, organization} = this.props;
-    const issuesType = this.getActiveIssuesType();
-    const {queryParams} = this.getIssuesEndpoint();
+  const getIssuesUrl = useCallback(() => {
+    const {queryParams: qp} = getIssuesEndpoint(
+      version,
+      location,
+      releaseBounds,
+      issuesType
+    );
     const query = new MutableSearch([]);
 
     switch (issuesType) {
@@ -143,167 +280,15 @@ class ReleaseIssues extends Component<Props, State> {
     return {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
-        ...queryParams,
+        ...qp,
         limit: undefined,
         cursor: undefined,
         query: query.formatString(),
       },
     };
-  }
+  }, [version, location, releaseBounds, issuesType, organization.slug]);
 
-  getIssuesEndpoint(): {
-    endpoint: React.ComponentProps<typeof GroupList>['endpoint'];
-    queryParams: IssuesQueryParams;
-  } {
-    const {version, location, releaseBounds} = this.props;
-    const issuesType = this.getActiveIssuesType();
-
-    const queryParams = {
-      ...getReleaseParams({
-        location,
-        releaseBounds,
-      }),
-      limit: 10,
-      sort: IssueSortOptions.FREQ,
-      groupStatsPeriod: 'auto',
-    };
-
-    switch (issuesType) {
-      case IssuesType.ALL:
-        return {
-          endpoint: {
-            path: '/organizations/$organizationIdOrSlug/issues/',
-          },
-          queryParams: {
-            ...queryParams,
-            query: new MutableSearch([
-              `${issuesQuery.all}:${version}`,
-              'is:unresolved',
-            ]).formatString(),
-          },
-        };
-      case IssuesType.RESOLVED:
-        return {
-          endpoint: {
-            path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/',
-            version,
-          },
-          queryParams: {...queryParams, query: ''},
-        };
-      case IssuesType.UNHANDLED:
-        return {
-          endpoint: {
-            path: '/organizations/$organizationIdOrSlug/issues/',
-          },
-          queryParams: {
-            ...queryParams,
-            query: new MutableSearch([
-              `${issuesQuery.all}:${version}`,
-              issuesQuery.unhandled,
-              'is:unresolved',
-            ]).formatString(),
-          },
-        };
-      case IssuesType.REGRESSED:
-        return {
-          endpoint: {
-            path: '/organizations/$organizationIdOrSlug/issues/',
-          },
-          queryParams: {
-            ...queryParams,
-            query: new MutableSearch([
-              `${issuesQuery.regressed}:${version}`,
-            ]).formatString(),
-          },
-        };
-      case IssuesType.NEW:
-      default:
-        return {
-          endpoint: {
-            path: '/organizations/$organizationIdOrSlug/issues/',
-          },
-          queryParams: {
-            ...queryParams,
-            query: new MutableSearch([
-              `${issuesQuery.new}:${version}`,
-              'is:unresolved',
-            ]).formatString(),
-          },
-        };
-    }
-  }
-
-  async fetchIssuesCount() {
-    const {api, organization, version} = this.props;
-    const issueCountEndpoint = this.getIssueCountEndpoint();
-    const resolvedEndpoint = `/organizations/${
-      organization.slug
-    }/releases/${encodeURIComponent(version)}/resolved/`;
-
-    try {
-      await Promise.all([
-        api.requestPromise(issueCountEndpoint),
-        api.requestPromise(resolvedEndpoint),
-      ]).then(([issueResponse, resolvedResponse]) => {
-        this.setState({
-          count: {
-            all: issueResponse[`${issuesQuery.all}:"${version}" is:unresolved`] || 0,
-            new: issueResponse[`${issuesQuery.new}:"${version}" is:unresolved`] || 0,
-            resolved: resolvedResponse.length,
-            unhandled:
-              issueResponse[
-                `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
-              ] || 0,
-            regressed: issueResponse[`${issuesQuery.regressed}:"${version}"`] || 0,
-          },
-        });
-      });
-    } catch {
-      // do nothing
-    }
-  }
-
-  getIssueCountEndpoint() {
-    const {organization, version, location, releaseBounds} = this.props;
-    const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
-
-    const params = [
-      `${issuesQuery.new}:"${version}" is:unresolved`,
-      `${issuesQuery.all}:"${version}" is:unresolved`,
-      `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
-      `${issuesQuery.regressed}:"${version}"`,
-    ];
-    const queryParams = params.map(param => param);
-    const queryParameters = {
-      ...getReleaseParams({
-        location,
-        releaseBounds,
-      }),
-      query: queryParams,
-    };
-
-    return `${issuesCountPath}?${qs.stringify(queryParameters)}`;
-  }
-
-  handleIssuesTypeSelection = (issuesType: IssuesType) => {
-    const {location} = this.props;
-
-    browserHistory.replace({
-      ...location,
-      query: {
-        ...location.query,
-        issuesType,
-      },
-    });
-  };
-
-  handleFetchSuccess = (groupListState: any, onCursor: any) => {
-    this.setState({pageLinks: groupListState.pageLinks, onCursor});
-  };
-
-  renderEmptyMessage = () => {
-    const {location, releaseBounds} = this.props;
-    const issuesType = this.getActiveIssuesType();
+  const renderEmptyMessage = useCallback(() => {
     const isEntireReleasePeriod =
       !location.query.pageStatsPeriod && !location.query.pageStart;
 
@@ -351,94 +336,88 @@ class ReleaseIssues extends Component<Props, State> {
           : null}
       </EmptyState>
     );
-  };
+  }, [issuesType, location, releaseBounds]);
 
-  render() {
-    const {count, pageLinks, onCursor} = this.state;
-    const issuesType = this.getActiveIssuesType();
-    const {queryFilterDescription, withChart, version} = this.props;
-    const {endpoint, queryParams} = this.getIssuesEndpoint();
-    const issuesTypes = [
-      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
-      {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
-      {
-        value: IssuesType.UNHANDLED,
-        label: t('Unhandled'),
-        issueCount: count.unhandled,
-      },
-      {
-        value: IssuesType.REGRESSED,
-        label: t('Regressed'),
-        issueCount: count.regressed,
-      },
-      {
-        value: IssuesType.RESOLVED,
-        label: t('Resolved'),
-        issueCount: count.resolved,
-      },
-    ];
+  const issuesTypes = [
+    {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
+    {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
+    {
+      value: IssuesType.UNHANDLED,
+      label: t('Unhandled'),
+      issueCount: count.unhandled,
+    },
+    {
+      value: IssuesType.REGRESSED,
+      label: t('Regressed'),
+      issueCount: count.regressed,
+    },
+    {
+      value: IssuesType.RESOLVED,
+      label: t('Resolved'),
+      issueCount: count.resolved,
+    },
+  ];
 
-    return (
-      <Fragment>
-        <ControlsWrapper>
-          <DemoTourElement
-            id={DemoTourStep.RELEASES_ISSUES}
-            title={t('New and regressed issues')}
-            description={t(
-              'Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.'
-            )}
-            position="top-start"
-          >
-            {tourProps => (
-              <div {...tourProps}>
-                <SegmentedControl
-                  aria-label={t('Issue type')}
-                  size="xs"
-                  value={issuesType}
-                  onChange={key => this.handleIssuesTypeSelection(key)}
-                >
-                  {issuesTypes.map(({value, label, issueCount}) => (
-                    <SegmentedControl.Item key={value} textValue={label}>
-                      {label}&nbsp;
-                      <QueryCount
-                        count={issueCount}
-                        max={99}
-                        hideParens
-                        hideIfEmpty={false}
-                      />
-                    </SegmentedControl.Item>
-                  ))}
-                </SegmentedControl>
-              </div>
-            )}
-          </DemoTourElement>
+  return (
+    <Fragment>
+      <ControlsWrapper>
+        <DemoTourElement
+          id={DemoTourStep.RELEASES_ISSUES}
+          title={t('New and regressed issues')}
+          description={t(
+            'Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.'
+          )}
+          position="top-start"
+        >
+          {tourProps => (
+            <div {...tourProps}>
+              <SegmentedControl
+                aria-label={t('Issue type')}
+                size="xs"
+                value={issuesType}
+                onChange={key => handleIssuesTypeSelection(key)}
+              >
+                {issuesTypes.map(({value, label, issueCount}) => (
+                  <SegmentedControl.Item key={value} textValue={label}>
+                    {label}&nbsp;
+                    <QueryCount
+                      count={issueCount}
+                      max={99}
+                      hideParens
+                      hideIfEmpty={false}
+                    />
+                  </SegmentedControl.Item>
+                ))}
+              </SegmentedControl>
+            </div>
+          )}
+        </DemoTourElement>
 
-          <OpenInButtonBar>
-            <LinkButton to={this.getIssuesUrl()} size="xs">
-              {t('Open in Issues')}
-            </LinkButton>
+        <OpenInButtonBar>
+          <LinkButton to={getIssuesUrl()} size="xs">
+            {t('Open in Issues')}
+          </LinkButton>
 
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
-          </OpenInButtonBar>
-        </ControlsWrapper>
-        <div data-test-id="release-wrapper">
-          <GroupList
-            endpoint={endpoint}
-            queryParams={queryParams}
-            query={`release:"${escapeDoubleQuotes(version)}"`}
-            canSelectGroups={false}
-            queryFilterDescription={queryFilterDescription}
-            withChart={withChart}
-            renderEmptyMessage={this.renderEmptyMessage}
-            withPagination={false}
-            onFetchSuccess={this.handleFetchSuccess}
-            source="release"
-            numPlaceholderRows={queryParams.limit}
-          />
-        </div>
-      </Fragment>
-    );
-  }
+          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
+        </OpenInButtonBar>
+      </ControlsWrapper>
+      <div data-test-id="release-wrapper">
+        <GroupList
+          endpoint={endpoint}
+          queryParams={queryParams}
+          query={`release:"${escapeDoubleQuotes(version)}"`}
+          canSelectGroups={false}
+          queryFilterDescription={queryFilterDescription}
+          withChart={withChart}
+          renderEmptyMessage={renderEmptyMessage}
+          withPagination={false}
+          onFetchSuccess={handleFetchSuccess}
+          source="release"
+          numPlaceholderRows={queryParams.limit}
+        />
+      </div>
+    </Fragment>
+  );
 }
 
 const ControlsWrapper = styled('div')`
@@ -461,4 +440,4 @@ const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
 
-export default withApi(withOrganization(ReleaseIssues));
+export {ReleaseIssues};
