@@ -371,6 +371,9 @@ export class Results extends Component<Props, State> {
       return;
     }
 
+    const aiQueryRunId = getAiQueryRunId?.() ?? null;
+    const mode = eventView.hasAggregateField() ? 'aggregate' : 'samples';
+
     try {
       const totals = await fetchTotalCount(
         api,
@@ -379,11 +382,10 @@ export class Results extends Component<Props, State> {
       );
       this.setState({totalValues: totals});
 
-      const aiQueryRunId = getAiQueryRunId?.() ?? null;
       if (aiQueryRunId !== null) {
         trackAiQueryOutcome({
           dataset: 'errors',
-          mode: eventView.hasAggregateField() ? 'aggregate' : 'samples',
+          mode,
           referrer: 'errors',
           resultCount: totals,
           orgSlug: organization.slug,
@@ -392,6 +394,17 @@ export class Results extends Component<Props, State> {
       }
     } catch (err) {
       Sentry.captureException(err);
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'errors',
+          mode,
+          referrer: 'errors',
+          resultCount: 0,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+          error: err instanceof Error ? err : true,
+        });
+      }
     }
   }
 

@@ -103,12 +103,12 @@ function useTrackAnalytics({
 
   const tableError =
     queryType === 'aggregate'
-      ? (aggregatesTableResult.result.error?.message ?? '')
+      ? aggregatesTableResult.result.error
       : queryType === 'traces'
-        ? (tracesTableResult?.error?.message ?? '')
-        : (spansTableResult.result.error?.message ?? '');
-  const chartError = timeseriesResult.error?.message ?? '';
-  const query_status = tableError || chartError ? 'error' : 'success';
+        ? tracesTableResult?.error
+        : spansTableResult.result.error;
+  const chartError = timeseriesResult.error;
+  const query_status = tableError?.message || chartError?.message ? 'error' : 'success';
   const tableErrorBox = useBox(tableError);
 
   const {isLoading: isLoadingSeerSetup} = useOrganizationSeerSetup({
@@ -664,8 +664,8 @@ export function useLogAnalytics({
   const fields = useQueryParamsFields();
   const page_source = source;
 
-  const tableError = logsTableResult.error?.message ?? '';
-  const query_status = tableError ? 'error' : 'success';
+  const tableError = logsTableResult.error;
+  const query_status = tableError?.message ? 'error' : 'success';
   const tableErrorBox = useBox(tableError);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const autorefreshBox = useBox(autorefreshEnabled); // Boxed to avoid useEffect firing analytics on changes.
@@ -960,9 +960,9 @@ export function useMetricsPanelAnalytics({
 
   const tableError =
     mode === Mode.AGGREGATE
-      ? (metricAggregatesTableResult.result.error?.message ?? '')
-      : (metricSamplesTableResult.error?.message ?? '');
-  const query_status = tableError ? 'error' : 'success';
+      ? metricAggregatesTableResult.result.error
+      : metricSamplesTableResult.error;
+  const query_status = tableError?.message ? 'error' : 'success';
   const tableErrorBox = useBox(tableError);
 
   const aggregatesResultLengthBox = useBox(

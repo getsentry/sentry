@@ -6,7 +6,21 @@ import type {
   NoneOfTheseItem,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+
+function extractErrorReason(err: Error): string {
+  if (err instanceof RequestError) {
+    const detail = err.responseJSON?.detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    if (detail?.message) {
+      return detail.message;
+    }
+  }
+  return err.message;
+}
 
 export function trackAiQueryOutcome({
   dataset,
@@ -23,14 +37,19 @@ export function trackAiQueryOutcome({
   referrer: string;
   resultCount: number;
   runId: number;
-  error?: string | boolean;
+  error?: string | boolean | Error;
 }) {
   const outcome = error
     ? 'error_on_load'
     : resultCount > 0
       ? 'has_results'
       : 'empty_results';
-  const errorReason = typeof error === 'string' ? error : undefined;
+  const errorReason =
+    typeof error === 'string'
+      ? error
+      : error instanceof Error
+        ? extractErrorReason(error)
+        : undefined;
   const attributes = {
     dataset,
     mode: mode.toString(),
