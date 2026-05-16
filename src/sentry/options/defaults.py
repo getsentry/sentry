@@ -2500,6 +2500,21 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When true, cross-silo RPC calls reuse a process-wide requests.Session so that
+# TCP/TLS connections are kept alive between calls. When false, each call builds
+# a fresh Session (legacy behavior).
+register(
+    "hybridcloud.rpc.use-persistent-session",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Size of the urllib3 connection pool used by the persistent RPC session.
+# Only consulted at first-use; changes require a process restart to take effect.
+register(
+    "hybridcloud.rpc.persistent-session-pool-size",
+    default=20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.

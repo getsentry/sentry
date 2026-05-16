@@ -7,6 +7,7 @@ import importlib
 import inspect
 import logging
 import pkgutil
+import threading
 from abc import abstractmethod
 from collections.abc import (
     Callable,
@@ -47,6 +48,63 @@ _T = TypeVar("_T")
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
 _CELL_RESOLUTION_ATTR = "__cell_resolution"
 _CELL_RESOLUTION_OPTIONAL_RETURN_ATTR = "__cell_resolution_optional_return"
+
+
+def _build_retry_adapter(retry_count: int, pool_size: int | None = None) -> HTTPAdapter:
+    kwargs: dict[str, Any] = {
+        "max_retries": Retry(
+            total=retry_count,
+            backoff_factor=0.1,
+            status_forcelist=[503],
+            allowed_methods=["POST"],
+        ),
+    }
+    if pool_size is not None:
+        kwargs["pool_connections"] = pool_size
+        kwargs["pool_maxsize"] = pool_size
+    return HTTPAdapter(**kwargs)
+
+
+def _build_one_shot_session(retry_count: int) -> requests.Session:
+    adapter = _build_retry_adapter(retry_count)
+    http = requests.Session()
+    http.mount("http://", adapter)
+    http.mount("https://", adapter)
+    return http
+
+
+# Cache of persistent sessions keyed by retry count. Each session owns its own
+# urllib3 connection pool, so reusing it across calls keeps TCP/TLS connections
+# warm. Retry behavior is configured on the adapter, which means each unique
+# per-method retry count gets its own session — in practice this is a small
+# number of buckets (the global default plus any explicit overrides).
+_persistent_sessions: dict[int, requests.Session] = {}
+_persistent_sessions_lock = threading.Lock()
+
+
+def _get_persistent_session(retry_count: int) -> requests.Session:
+    session = _persistent_sessions.get(retry_count)
+    if session is not None:
+        return session
+    with _persistent_sessions_lock:
+        session = _persistent_sessions.get(retry_count)
+        if session is not None:
+            return session
+        pool_size = options.get("hybridcloud.rpc.persistent-session-pool-size")
+        adapter = _build_retry_adapter(retry_count, pool_size=pool_size)
+        session = requests.Session()
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        _persistent_sessions[retry_count] = session
+        return session
+
+
+def _reset_persistent_sessions() -> None:
+    """Drop all cached persistent sessions. Test helper."""
+    with _persistent_sessions_lock:
+        for session in _persistent_sessions.values():
+            session.close()
+        _persistent_sessions.clear()
 
 
 class RpcException(Exception):
@@ -688,19 +746,11 @@ class _RemoteSiloCall:
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_count = self.get_method_retry_count()
-        retry_adapter = HTTPAdapter(
-            max_retries=Retry(
-                total=retry_count,
-                backoff_factor=0.1,
-                status_forcelist=[503],
-                allowed_methods=["POST"],
-            )
-        )
-        http = requests.Session()
-        http.mount("http://", retry_adapter)
-        http.mount("https://", retry_adapter)
+        if options.get("hybridcloud.rpc.use-persistent-session"):
+            http = _get_persistent_session(retry_count)
+        else:
+            http = _build_one_shot_session(retry_count)
 
-        # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
         timeout = self.get_method_timeout()

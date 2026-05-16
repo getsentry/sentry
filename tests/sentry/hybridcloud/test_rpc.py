@@ -15,6 +15,7 @@ from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
     RpcDisabledException,
     _RemoteSiloCall,
+    _reset_persistent_sessions,
     dispatch_remote_call,
     dispatch_to_local_service,
 )
@@ -308,3 +309,87 @@ class DispatchRemoteCallTest(TestCase):
         timeout_override_setting = {"organization_service.some_other_method": 20}
         with override_options({"hybridcloud.rpc.method_retry_overrides": timeout_override_setting}):
             assert test_class.get_method_retry_count() == default_value
+
+
+@no_silo_test
+class RpcPersistentSessionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        _reset_persistent_sessions()
+
+    def tearDown(self) -> None:
+        _reset_persistent_sessions()
+        super().tearDown()
+
+    @staticmethod
+    def _make_call() -> _RemoteSiloCall:
+        return _RemoteSiloCall(
+            service_name="organization",
+            method_name="get_organization_by_id",
+            cell=None,
+            serial_arguments={},
+        )
+
+    def test_one_shot_session_used_when_option_off(self) -> None:
+        with override_options({"hybridcloud.rpc.use-persistent-session": False}):
+            call = self._make_call()
+            with mock.patch("sentry.hybridcloud.rpc.service.requests.Session.post") as mock_post:
+                mock_post.return_value = mock.Mock(status_code=200)
+                call._fire_request({"Content-Type": "application/json"}, b"{}")
+                call._fire_request({"Content-Type": "application/json"}, b"{}")
+
+        from sentry.hybridcloud.rpc.service import _persistent_sessions
+
+        assert _persistent_sessions == {}
+
+    def test_persistent_session_reused_across_calls(self) -> None:
+        captured: list[Any] = []
+
+        original_post = __import__("requests").Session.post
+
+        def capture(self: Any, *args: Any, **kwargs: Any) -> Any:
+            captured.append(self)
+            return mock.Mock(status_code=200, content=b"", json=lambda: {})
+
+        with override_options({"hybridcloud.rpc.use-persistent-session": True}):
+            with mock.patch("sentry.hybridcloud.rpc.service.requests.Session.post", new=capture):
+                call = self._make_call()
+                call._fire_request({"Content-Type": "application/json"}, b"{}")
+                call._fire_request({"Content-Type": "application/json"}, b"{}")
+
+        # Sanity: ensure we exercised the mock, not the original.
+        assert original_post is not capture
+        assert len(captured) == 2
+        assert captured[0] is captured[1]
+
+        from sentry.hybridcloud.rpc.service import _persistent_sessions
+
+        assert len(_persistent_sessions) == 1
+
+    def test_persistent_session_separate_per_retry_count(self) -> None:
+        default_retries = options.get("hybridcloud.rpc.retries")
+        override_retries = default_retries + 1
+
+        with override_options(
+            {
+                "hybridcloud.rpc.use-persistent-session": True,
+                "hybridcloud.rpc.method_retry_overrides": {
+                    "organization.get_organization_by_id": override_retries,
+                },
+            }
+        ):
+            with mock.patch("sentry.hybridcloud.rpc.service.requests.Session.post") as mock_post:
+                mock_post.return_value = mock.Mock(status_code=200, content=b"", json=lambda: {})
+                self._make_call()._fire_request({"Content-Type": "application/json"}, b"{}")
+
+                other_call = _RemoteSiloCall(
+                    service_name="organization",
+                    method_name="get_organizations",
+                    cell=None,
+                    serial_arguments={},
+                )
+                other_call._fire_request({"Content-Type": "application/json"}, b"{}")
+
+        from sentry.hybridcloud.rpc.service import _persistent_sessions
+
+        assert set(_persistent_sessions.keys()) == {default_retries, override_retries}
