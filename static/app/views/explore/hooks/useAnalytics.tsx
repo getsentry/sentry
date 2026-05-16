@@ -664,7 +664,8 @@ export function useLogAnalytics({
   const fields = useQueryParamsFields();
   const page_source = source;
 
-  const tableError = logsTableResult.error;
+  const tableError =
+    mode === Mode.AGGREGATE ? logsAggregatesTableResult.error : logsTableResult.error;
   const query_status = tableError?.message ? 'error' : 'success';
   const tableErrorBox = useBox(tableError);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
