@@ -1,7 +1,6 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
-import * as qs from 'query-string';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
@@ -13,9 +12,9 @@ import {QueryCount} from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -188,24 +187,10 @@ export function ReleaseIssues({
   queryFilterDescription,
   withChart = false,
 }: Props) {
-  const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
 
-  const [count, setCount] = useState<{
-    all: number | null;
-    new: number | null;
-    regressed: number | null;
-    resolved: number | null;
-    unhandled: number | null;
-  }>({
-    new: null,
-    all: null,
-    resolved: null,
-    unhandled: null,
-    regressed: null,
-  });
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
@@ -221,55 +206,49 @@ export function ReleaseIssues({
     () => getReleaseParams({location, releaseBounds}),
     [location, releaseBounds]
   );
-  const prevReleaseParamsRef = useRef(releaseParams);
 
-  useEffect(() => {
-    if (isEqual(releaseParams, prevReleaseParamsRef.current)) {
-      return;
-    }
-    prevReleaseParamsRef.current = releaseParams;
-  }, [releaseParams]);
+  const {data: issueCountData} = useQuery(
+    apiOptions.as<Record<string, number>>()(
+      '/organizations/$organizationIdOrSlug/issues-count/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          ...releaseParams,
+          query: [
+            `${issuesQuery.new}:"${version}" is:unresolved`,
+            `${issuesQuery.all}:"${version}" is:unresolved`,
+            `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
+            `${issuesQuery.regressed}:"${version}"`,
+          ],
+        },
+        staleTime: 0,
+      }
+    )
+  );
 
-  const fetchIssuesCount = useCallback(async () => {
-    const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
-    const params = [
-      `${issuesQuery.new}:"${version}" is:unresolved`,
-      `${issuesQuery.all}:"${version}" is:unresolved`,
-      `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
-      `${issuesQuery.regressed}:"${version}"`,
-    ];
-    const queryParameters = {
-      ...getReleaseParams({location, releaseBounds}),
-      query: params,
-    };
-    const issueCountEndpoint = `${issuesCountPath}?${qs.stringify(queryParameters)}`;
-    const resolvedEndpoint = `/organizations/${
-      organization.slug
-    }/releases/${encodeURIComponent(version)}/resolved/`;
+  const {data: resolvedData} = useQuery(
+    apiOptions.as<unknown[]>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/resolved/',
+      {
+        path: {organizationIdOrSlug: organization.slug, version},
+        staleTime: 0,
+      }
+    )
+  );
 
-    try {
-      const [issueResponse, resolvedResponse] = await Promise.all([
-        api.requestPromise(issueCountEndpoint),
-        api.requestPromise(resolvedEndpoint),
-      ]);
-      setCount({
-        all: issueResponse[`${issuesQuery.all}:"${version}" is:unresolved`] || 0,
-        new: issueResponse[`${issuesQuery.new}:"${version}" is:unresolved`] || 0,
-        resolved: resolvedResponse.length,
-        unhandled:
-          issueResponse[
-            `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
-          ] || 0,
-        regressed: issueResponse[`${issuesQuery.regressed}:"${version}"`] || 0,
-      });
-    } catch {
-      // do nothing
-    }
-  }, [api, organization.slug, version, location, releaseBounds]);
-
-  useEffect(() => {
-    fetchIssuesCount();
-  }, [fetchIssuesCount]);
+  const count = useMemo(
+    () => ({
+      new: issueCountData?.[`${issuesQuery.new}:"${version}" is:unresolved`] ?? null,
+      all: issueCountData?.[`${issuesQuery.all}:"${version}" is:unresolved`] ?? null,
+      resolved: resolvedData?.length ?? null,
+      unhandled:
+        issueCountData?.[
+          `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
+        ] ?? null,
+      regressed: issueCountData?.[`${issuesQuery.regressed}:"${version}"`] ?? null,
+    }),
+    [issueCountData, resolvedData, version]
+  );
 
   function handleIssuesTypeSelection(newIssuesType: IssuesType) {
     navigate(
