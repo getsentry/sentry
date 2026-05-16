@@ -110,10 +110,7 @@ class Tags extends Component<Props, State> {
         cursor = paginationObject.next?.cursor;
       }
 
-      let tags = data;
-      if (appendTags) {
-        tags = [...this.state.tags, ...tags];
-      }
+      const tags = appendTags ? [...this.state.tags, ...data] : data;
       this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
     } catch (err: any) {
       if (
