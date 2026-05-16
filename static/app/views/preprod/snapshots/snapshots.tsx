@@ -815,9 +815,15 @@ const DragHandle = styled('div')`
 
 function imageSearchKey(image: SnapshotImage): string {
   const parts: string[] = [];
-  if (image.display_name) parts.push(image.display_name);
-  if (image.image_file_name) parts.push(image.image_file_name);
-  if (image.group) parts.push(image.group);
+  if (image.display_name) {
+    parts.push(image.display_name);
+  }
+  if (image.image_file_name) {
+    parts.push(image.image_file_name);
+  }
+  if (image.group) {
+    parts.push(image.group);
+  }
   return parts.join('\n').toLowerCase();
 }
 
@@ -852,8 +858,12 @@ function narrowItemBySearch(
         allMatched = false;
       }
     }
-    if (kept.length === 0) return null;
-    if (allMatched) return item;
+    if (kept.length === 0) {
+      return null;
+    }
+    if (allMatched) {
+      return item;
+    }
     return {...item, pairs: kept};
   }
   const kept: SnapshotImage[] = [];
@@ -865,7 +875,11 @@ function narrowItemBySearch(
       allMatched = false;
     }
   }
-  if (kept.length === 0) return null;
-  if (allMatched) return item;
+  if (kept.length === 0) {
+    return null;
+  }
+  if (allMatched) {
+    return item;
+  }
   return {...item, images: kept};
 }

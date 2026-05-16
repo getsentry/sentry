@@ -267,7 +267,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
             onlyOperator={onlyOperator}
             {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
             ref={r => {
-              if (!r || !triggerProps.ref) return;
+              if (!r || !triggerProps.ref) {
+                return;
+              }
 
               if (typeof triggerProps.ref === 'function') {
                 triggerProps.ref(r);

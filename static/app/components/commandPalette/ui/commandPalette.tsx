@@ -177,7 +177,9 @@ export function CommandPalette({
       !isLoading &&
       !isEmptyPromptQuery;
 
-    if (!showSeerFallback) return [scored, scoredPrefixMap, false];
+    if (!showSeerFallback) {
+      return [scored, scoredPrefixMap, false];
+    }
 
     const truncated =
       state.query.length > 24 ? state.query.slice(0, 24) + '...' : state.query;
@@ -690,10 +692,16 @@ function presortBySlotRef(
     const aEl = a.ref?.current ?? null;
     const bEl = b.ref?.current ?? null;
 
-    if (aEl === bEl) return 0; // both null, or same outlet element — preserve order
+    if (aEl === bEl) {
+      return 0;
+    } // both null, or same outlet element — preserve order
 
-    if (!aEl) return 1; // a has no slot ref → sort after b
-    if (!bEl) return -1; // b has no slot ref → sort a before b
+    if (!aEl) {
+      return 1;
+    } // a has no slot ref → sort after b
+    if (!bEl) {
+      return -1;
+    } // b has no slot ref → sort a before b
     return aEl.compareDocumentPosition(bEl) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
   });
 }
@@ -713,7 +721,9 @@ function scoreNode(
   let bestLength = Infinity;
   let matched = false;
   for (const candidate of [label, details, ...keywords]) {
-    if (!candidate) continue;
+    if (!candidate) {
+      continue;
+    }
     const result = fzf(candidate, query, false);
     if (result.end !== -1 && result.score > best) {
       best = result.score;
@@ -856,7 +866,9 @@ function flattenActions(
     let root: CollectionTreeNode<CMDKActionData> = item;
     while (root.parent !== null) {
       const parent = nodeMap.get(root.parent);
-      if (!parent) break;
+      if (!parent) {
+        break;
+      }
       root = parent;
     }
     nodeRootKey.set(item.key, root.key);
@@ -871,9 +883,13 @@ function flattenActions(
   const rootBestScore = new Map<string, CommandPaletteScore>();
   for (const [key, score] of scores) {
     const node = nodeMap.get(key);
-    if (node?.parent === null && node.children.length === 0) continue;
+    if (node?.parent === null && node.children.length === 0) {
+      continue;
+    }
     const rootKey = nodeRootKey.get(key);
-    if (rootKey === undefined) continue;
+    if (rootKey === undefined) {
+      continue;
+    }
     const current = rootBestScore.get(rootKey);
     if (current === undefined || compareCommandPaletteScores(score, current) < 0) {
       rootBestScore.set(rootKey, score);
@@ -914,7 +930,9 @@ function flattenActions(
   const usedSectionHeaders = new Set<string>();
 
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
-    if (seen.has(item.key)) return [];
+    if (seen.has(item.key)) {
+      return [];
+    }
     seen.add(item.key);
 
     if (item.children.length > 0) {
@@ -927,7 +945,9 @@ function flattenActions(
       const shouldUseFallbackChildren =
         matched.length === 0 && scores.get(item.key)?.matched;
       const candidateChildren = shouldUseFallbackChildren ? fallbackChildren : matched;
-      if (!candidateChildren.length) return [];
+      if (!candidateChildren.length) {
+        return [];
+      }
       const sortedMatches = shouldUseFallbackChildren
         ? candidateChildren
         : candidateChildren.sort((a, b) =>
@@ -945,7 +965,9 @@ function flattenActions(
       const intermediatePath: string[] = [];
       while (root.parent !== null) {
         const parent = nodeMap.get(root.parent);
-        if (!parent) break;
+        if (!parent) {
+          break;
+        }
         intermediatePath.unshift(root.display.label);
         root = parent;
       }
@@ -1045,7 +1067,9 @@ function getSourceAction(
   const headerMatch = actions.find(
     candidate => candidate.key === `${sourceActionKey}:header`
   );
-  if (headerMatch) return headerMatch;
+  if (headerMatch) {
+    return headerMatch;
+  }
 
   // For nested groups the original header was replaced by the root ancestor header.
   // The prefix map stores the group label under a distinct `:source-label` key.

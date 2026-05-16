@@ -44,10 +44,15 @@ function useScrollToSection({aiAutofix}: {aiAutofix: ReturnType<typeof useAiAuto
       }
 
       const step = autofixDataRef.current.steps?.find(s => {
-        if (sectionType === 'root_cause')
+        if (sectionType === 'root_cause') {
           return s.type === AutofixStepType.ROOT_CAUSE_ANALYSIS;
-        if (sectionType === 'solution') return s.type === AutofixStepType.SOLUTION;
-        if (sectionType === 'code_changes') return s.type === AutofixStepType.CHANGES;
+        }
+        if (sectionType === 'solution') {
+          return s.type === AutofixStepType.SOLUTION;
+        }
+        if (sectionType === 'code_changes') {
+          return s.type === AutofixStepType.CHANGES;
+        }
         return false;
       });
 

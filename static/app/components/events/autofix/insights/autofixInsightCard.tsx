@@ -131,7 +131,9 @@ export function AutofixInsightCard({
     // Remove markdown formatting and whitespace for the check
     const plainText = (hasFullJustification ? insight.justification : '').trim();
     // If there is a diff or markdown_snippets, allow expansion
-    if (insight.change_diff || insight.markdown_snippets) return true;
+    if (insight.change_diff || insight.markdown_snippets) {
+      return true;
+    }
     // If the justification is empty or just 'No details here.', not expandable
     return !!plainText && plainText.toLowerCase() !== t('No details here.').toLowerCase();
   }, [

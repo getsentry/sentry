@@ -60,7 +60,9 @@ export function useTypingAnimation({
     const interval = 1000 / speed; // ms per character
 
     const animate = (timestamp: number) => {
-      if (!enabled) return; // Check enabled status
+      if (!enabled) {
+        return;
+      } // Check enabled status
 
       const elapsed = timestamp - lastUpdateTimeRef.current;
       const charsToAdd = Math.floor(elapsed / interval);

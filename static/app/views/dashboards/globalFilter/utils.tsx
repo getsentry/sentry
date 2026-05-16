@@ -140,7 +140,9 @@ export function newNumericFilterQuery(
     valueType,
     token: filterToken,
   });
-  if (!cleanedValue) return '';
+  if (!cleanedValue) {
+    return '';
+  }
   const newFilterValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
 
   const newFilterTokens = parseFilterValue(newFilterValue, globalFilter);

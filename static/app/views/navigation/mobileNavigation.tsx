@@ -228,7 +228,9 @@ export function MobilePageFrameNavigation() {
   }, [isOpen, view]);
 
   const handleClickOutside = useCallback((e: MouseEvent | TouchEvent) => {
-    if (toggleButtonRef.current?.contains(e.target as Node)) return;
+    if (toggleButtonRef.current?.contains(e.target as Node)) {
+      return;
+    }
     setIsOpen(false);
   }, []);
 
@@ -244,7 +246,9 @@ export function MobilePageFrameNavigation() {
           <Button
             ref={toggleButtonRef}
             onClick={() => {
-              if (!isOpen) setView('expanded');
+              if (!isOpen) {
+                setView('expanded');
+              }
               setIsOpen(v => !v);
             }}
             icon={<IconMenu aria-hidden="true" />}

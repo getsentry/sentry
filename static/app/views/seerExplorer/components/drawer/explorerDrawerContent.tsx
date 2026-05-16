@@ -107,7 +107,9 @@ export function ExplorerDrawerContent({
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
       const block = blocks[i];
-      if (block && Array.isArray(block.todos) && block.todos.length > 0) return i;
+      if (block && Array.isArray(block.todos) && block.todos.length > 0) {
+        return i;
+      }
     }
     return -1;
   }, [blocks]);
@@ -152,7 +154,9 @@ export function ExplorerDrawerContent({
   });
 
   const handleCopyLink = useCallback(async () => {
-    if (runId === null) return;
+    if (runId === null) {
+      return;
+    }
     try {
       const url = getExplorerUrl(runId);
       await navigator.clipboard.writeText(url);

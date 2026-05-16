@@ -171,9 +171,13 @@ function mapScopeErrors(scopeErrors: unknown): ScopeErrors {
     return result;
   }
   for (const message of scopeErrors) {
-    if (typeof message !== 'string') continue;
+    if (typeof message !== 'string') {
+      continue;
+    }
     const match = message.match(/Requested permission of (\w+:\w+)/);
-    if (!match) continue;
+    if (!match) {
+      continue;
+    }
     const scope = match[1]!;
     if (scope === CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope) {
       result.continuousIntegration ??= message;

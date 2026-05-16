@@ -215,7 +215,9 @@ export function PrimaryNavigationWhatsNew() {
   const uniqueBroadcasts = useMemo(() => {
     const seenTitles = new Set<string>();
     return allBroadcasts.filter(item => {
-      if (seenTitles.has(item.title)) return false;
+      if (seenTitles.has(item.title)) {
+        return false;
+      }
       seenTitles.add(item.title);
       return true;
     });

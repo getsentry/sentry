@@ -48,7 +48,9 @@ export default function EventDetails() {
   );
 
   useEffect(() => {
-    if (!event) return;
+    if (!event) {
+      return;
+    }
 
     if (event.groupID && event.eventID) {
       navigate({

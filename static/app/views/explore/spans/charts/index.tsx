@@ -281,7 +281,9 @@ function Chart({
                   }
                 },
                 onInsideSelectionClick: params => {
-                  if (!params.selectionState) return;
+                  if (!params.selectionState) {
+                    return;
+                  }
 
                   params.setSelectionState({
                     ...params.selectionState,
@@ -289,7 +291,9 @@ function Chart({
                   });
                 },
                 onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) return;
+                  if (!params.selectionState?.isActionMenuVisible) {
+                    return;
+                  }
 
                   params.setSelectionState({
                     ...params.selectionState,

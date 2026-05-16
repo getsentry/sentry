@@ -321,7 +321,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     ...fields.platform,
     options: fields.platform.options.filter(({value}) => {
       // Always include the current project's platform to display its icon and label
-      if (project.platform === value) return true;
+      if (project.platform === value) {
+        return true;
+      }
       return isPlatformAllowed({isSelfHosted, organization, platform: value});
     }),
     isOptionDisabled: (option: SelectOptionWithKey<string>) => {

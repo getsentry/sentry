@@ -101,7 +101,9 @@ function mergeCodeUrls(urls: string[]): Map<string, string> {
       urlMapping.set(item.url, item.url);
     });
 
-    if (withRanges.length === 0) return;
+    if (withRanges.length === 0) {
+      return;
+    }
 
     // Sort by range size (largest first) to prioritize wider ranges
     withRanges.sort((a, b) => {
@@ -113,7 +115,9 @@ function mergeCodeUrls(urls: string[]): Map<string, string> {
     const processed = new Set<string>();
 
     withRanges.forEach(item => {
-      if (processed.has(item.url)) return;
+      if (processed.has(item.url)) {
+        return;
+      }
 
       const currentRange = {
         startLine: item.parsed.startLine!,
@@ -175,7 +179,9 @@ function deduplicateSources(insights: AutofixInsight[]): InsightSources {
   const allDiffUrls: string[] = [];
 
   insights.forEach(insight => {
-    if (!insight?.sources) return;
+    if (!insight?.sources) {
+      return;
+    }
 
     const sources = insight.sources;
 
@@ -256,7 +262,9 @@ function updateInsightsWithMergedUrls(insights: AutofixInsight[]): AutofixInsigh
   const allDiffUrls: string[] = [];
 
   insights.forEach(insight => {
-    if (!insight?.sources) return;
+    if (!insight?.sources) {
+      return;
+    }
     const sources = insight.sources;
 
     sources.code_used_urls?.forEach(url => allCodeUrls.push(url));
@@ -269,7 +277,9 @@ function updateInsightsWithMergedUrls(insights: AutofixInsight[]): AutofixInsigh
 
   // Update each insight with merged URLs
   return insights.map(insight => {
-    if (!insight?.sources) return insight;
+    if (!insight?.sources) {
+      return insight;
+    }
 
     const updatedSources: InsightSources = {
       ...insight.sources,

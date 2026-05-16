@@ -90,7 +90,9 @@ const REPO_NAMES = [
  * "many projects (with +N collapse)" rows without reshuffling on every render.
  */
 function pickSlugsForRepo(allSlugs: string[], repoIndex: number): string[] {
-  if (allSlugs.length === 0) return [];
+  if (allSlugs.length === 0) {
+    return [];
+  }
   const counts = [0, 1, 1, 3, 0, 5];
   const count = Math.min(counts[repoIndex % counts.length]!, allSlugs.length);
   const start = (repoIndex * 3) % allSlugs.length;

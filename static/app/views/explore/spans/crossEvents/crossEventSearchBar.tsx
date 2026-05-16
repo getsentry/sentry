@@ -50,11 +50,15 @@ export const SpansTabCrossEventSearchBar = memo(
       () => ({
         initialQuery: query,
         onSearch: (newQuery: string) => {
-          if (!crossEvents) return;
+          if (!crossEvents) {
+            return;
+          }
 
           setCrossEvents?.(
             crossEvents.map((c, i) => {
-              if (i === index) return {query: newQuery, type};
+              if (i === index) {
+                return {query: newQuery, type};
+              }
               return c;
             })
           );

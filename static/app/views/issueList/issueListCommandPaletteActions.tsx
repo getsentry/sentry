@@ -65,8 +65,12 @@ interface IssueListCommandPaletteActionsProps {
  * child items under header groups).
  */
 function getTagValueStrings(tag: Tag): string[] {
-  if (!tag.values?.length) return [];
-  if (typeof tag.values[0] === 'string') return tag.values as string[];
+  if (!tag.values?.length) {
+    return [];
+  }
+  if (typeof tag.values[0] === 'string') {
+    return tag.values as string[];
+  }
 
   const groups = tag.values as SearchGroup[];
   return groups.flatMap(group => {
