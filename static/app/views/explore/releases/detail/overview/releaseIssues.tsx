@@ -144,6 +144,44 @@ function getIssuesEndpoint(
   }
 }
 
+function getIssuesUrl(
+  version: string,
+  location: ReturnType<typeof useLocation>,
+  releaseBounds: ReleaseBounds,
+  issuesType: IssuesType,
+  organizationSlug: string
+) {
+  const {queryParams} = getIssuesEndpoint(version, location, releaseBounds, issuesType);
+  const query = new MutableSearch([]);
+
+  switch (issuesType) {
+    case IssuesType.NEW:
+      query.setFilterValues('firstRelease', [version]);
+      break;
+    case IssuesType.UNHANDLED:
+      query.setFilterValues('release', [version]);
+      query.setFilterValues('error.handled', ['0']);
+      break;
+    case IssuesType.REGRESSED:
+      query.setFilterValues('regressed_in_release', [version]);
+      break;
+    case IssuesType.RESOLVED:
+    case IssuesType.ALL:
+    default:
+      query.setFilterValues('release', [version]);
+  }
+
+  return {
+    pathname: `/organizations/${organizationSlug}/issues/`,
+    query: {
+      ...queryParams,
+      limit: undefined,
+      cursor: undefined,
+      query: query.formatString(),
+    },
+  };
+}
+
 export function ReleaseIssues({
   releaseBounds,
   version,
@@ -251,43 +289,6 @@ export function ReleaseIssues({
     setOnCursor(() => cursorFn);
   }, []);
 
-  const getIssuesUrl = useCallback(() => {
-    const {queryParams: qp} = getIssuesEndpoint(
-      version,
-      location,
-      releaseBounds,
-      issuesType
-    );
-    const query = new MutableSearch([]);
-
-    switch (issuesType) {
-      case IssuesType.NEW:
-        query.setFilterValues('firstRelease', [version]);
-        break;
-      case IssuesType.UNHANDLED:
-        query.setFilterValues('release', [version]);
-        query.setFilterValues('error.handled', ['0']);
-        break;
-      case IssuesType.REGRESSED:
-        query.setFilterValues('regressed_in_release', [version]);
-        break;
-      case IssuesType.RESOLVED:
-      case IssuesType.ALL:
-      default:
-        query.setFilterValues('release', [version]);
-    }
-
-    return {
-      pathname: `/organizations/${organization.slug}/issues/`,
-      query: {
-        ...qp,
-        limit: undefined,
-        cursor: undefined,
-        query: query.formatString(),
-      },
-    };
-  }, [version, location, releaseBounds, issuesType, organization.slug]);
-
   const renderEmptyMessage = useCallback(() => {
     const isEntireReleasePeriod =
       !location.query.pageStatsPeriod && !location.query.pageStart;
@@ -394,7 +395,16 @@ export function ReleaseIssues({
         </DemoTourElement>
 
         <OpenInButtonBar>
-          <LinkButton to={getIssuesUrl()} size="xs">
+          <LinkButton
+            to={getIssuesUrl(
+              version,
+              location,
+              releaseBounds,
+              issuesType,
+              organization.slug
+            )}
+            size="xs"
+          >
             {t('Open in Issues')}
           </LinkButton>
 
