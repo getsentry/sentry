@@ -144,7 +144,7 @@ function getIssuesEndpoint(
   }
 }
 
-function ReleaseIssues({
+export function ReleaseIssues({
   releaseBounds,
   version,
   queryFilterDescription,
@@ -439,5 +439,3 @@ const OpenInButtonBar = styled((props: GridProps) => (
 const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
-
-export {ReleaseIssues};
