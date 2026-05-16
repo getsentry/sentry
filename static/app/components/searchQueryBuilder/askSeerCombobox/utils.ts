@@ -15,6 +15,7 @@ export function trackAiQueryOutcome({
   referrer,
   resultCount,
   runId,
+  error = false,
 }: {
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   mode: Mode | 'samples' | 'aggregate';
@@ -22,15 +23,24 @@ export function trackAiQueryOutcome({
   referrer: string;
   resultCount: number;
   runId: number;
+  error?: string | boolean;
 }) {
+  const outcome = error
+    ? 'error_on_load'
+    : resultCount > 0
+      ? 'has_results'
+      : 'empty_results';
+  const errorReason = typeof error === 'string' ? error : undefined;
   const attributes = {
     dataset,
     mode: mode.toString(),
     org_slug: orgSlug,
     referrer,
     run_id: runId,
-    outcome: resultCount > 0 ? 'has_results' : 'empty_results',
+    outcome,
+    error_reason: errorReason,
   };
+
   Sentry.logger.info('assisted_query.outcome', {
     ...attributes,
     result_count: resultCount,

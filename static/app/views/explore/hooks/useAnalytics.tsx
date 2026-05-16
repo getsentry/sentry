@@ -109,6 +109,7 @@ function useTrackAnalytics({
         : (spansTableResult.result.error?.message ?? '');
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
+  const tableErrorBox = useBox(tableError);
 
   const {isLoading: isLoadingSeerSetup} = useOrganizationSeerSetup({
     enabled: !organization.hideAiFeatures,
@@ -172,6 +173,7 @@ function useTrackAnalytics({
         referrer: 'spans',
         resultCount: aggregatesTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
+        error: tableErrorBox.current || false,
       });
     }
 
@@ -219,6 +221,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
+    tableErrorBox,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -304,6 +307,7 @@ function useTrackAnalytics({
         referrer: 'spans',
         resultCount: spansTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
+        error: tableErrorBox.current || false,
       });
     }
   }, [
@@ -327,6 +331,7 @@ function useTrackAnalytics({
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
     spansTableResult.result.meta?.dataScanned,
+    tableErrorBox,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -495,6 +500,7 @@ function useTrackAnalytics({
         referrer: 'traces',
         resultCount: tracesTableResult.result.data?.json?.data?.length ?? 0,
         runId: aiQueryRunId,
+        error: tableErrorBox.current || false,
       });
     }
   }, [
@@ -513,6 +519,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
+    tableErrorBox,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -659,6 +666,7 @@ export function useLogAnalytics({
 
   const tableError = logsTableResult.error?.message ?? '';
   const query_status = tableError ? 'error' : 'success';
+  const tableErrorBox = useBox(tableError);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const autorefreshBox = useBox(autorefreshEnabled); // Boxed to avoid useEffect firing analytics on changes.
   const aggregatesResultLengthBox = useBox(
@@ -756,6 +764,7 @@ export function useLogAnalytics({
         referrer: 'logs',
         resultCount: resultLengthBox.current,
         runId: aiQueryRunId,
+        error: tableErrorBox.current || false,
       });
     }
   }, [
@@ -778,6 +787,7 @@ export function useLogAnalytics({
     mode,
     resultLengthBox,
     sortBysBox,
+    tableErrorBox,
     yAxesBox,
     getRunIdForAnalytics,
   ]);
@@ -846,6 +856,7 @@ export function useLogAnalytics({
         referrer: 'logs',
         resultCount: aggregatesResultLengthBox.current,
         runId: aiQueryRunId,
+        error: tableErrorBox.current || false,
       });
     }
   }, [
@@ -868,6 +879,7 @@ export function useLogAnalytics({
     query,
     query_status,
     search,
+    tableErrorBox,
     yAxes,
     getRunIdForAnalytics,
   ]);
@@ -951,6 +963,7 @@ export function useMetricsPanelAnalytics({
       ? (metricAggregatesTableResult.result.error?.message ?? '')
       : (metricSamplesTableResult.error?.message ?? '');
   const query_status = tableError ? 'error' : 'success';
+  const tableErrorBox = useBox(tableError);
 
   const aggregatesResultLengthBox = useBox(
     metricAggregatesTableResult.result.data?.length || 0
@@ -1031,6 +1044,7 @@ export function useMetricsPanelAnalytics({
         referrer: 'tracemetrics',
         resultCount: resultLengthBox.current,
         runId: aiQueryRunId,
+        error: tableErrorBox.current || false,
       });
     }
   }, [
@@ -1055,6 +1069,7 @@ export function useMetricsPanelAnalytics({
     aggregateFunctionBox,
     groupBysBox,
     metricTypeBox,
+    tableErrorBox,
     getRunIdForAnalytics,
   ]);
 
@@ -1086,6 +1101,7 @@ export function useMetricsPanelAnalytics({
         referrer: 'tracemetrics',
         resultCount: aggregatesResultLengthBox.current,
         runId: aiQueryRunId,
+        error: tableErrorBox.current || false,
       });
     }
   }, [
@@ -1107,6 +1123,7 @@ export function useMetricsPanelAnalytics({
     metricNameBox,
     query,
     query_status,
+    tableErrorBox,
     getRunIdForAnalytics,
   ]);
 }
