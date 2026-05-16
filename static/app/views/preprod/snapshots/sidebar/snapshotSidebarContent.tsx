@@ -128,7 +128,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={t('Search components...')}
+            placeholder={t('Filter components...')}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />

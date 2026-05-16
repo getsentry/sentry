@@ -50,7 +50,7 @@ jest.mock('./snapshotDiffBodies', () => {
           width: '100%',
         }}
       >
-        PLACEHOLDER IMAGE
+        HAHAHAHICHANGEDTHISNAME IMAGE
       </div>
     );
   }
