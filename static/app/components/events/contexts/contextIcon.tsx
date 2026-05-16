@@ -1,158 +1,118 @@
-import {css} from '@emotion/react';
-import logoAmazon from 'sentry-logos/logo-amazon.svg';
-import logoAmd from 'sentry-logos/logo-amd.svg';
-import logoAndroidPhone from 'sentry-logos/logo-android-phone.svg';
-import logoAndroidTablet from 'sentry-logos/logo-android-tablet.svg';
-import logoAndroid from 'sentry-logos/logo-android.svg';
-import logoApplePhone from 'sentry-logos/logo-apple-phone.svg';
-import logoAppleTablet from 'sentry-logos/logo-apple-tablet.svg';
-import logoAppleTv from 'sentry-logos/logo-apple-tv.svg';
-import logoAppleWatch from 'sentry-logos/logo-apple-watch.svg';
-import logoApple from 'sentry-logos/logo-apple.svg';
-import logoArm from 'sentry-logos/logo-arm.svg';
-import logoBazzite from 'sentry-logos/logo-bazzite.svg';
-import logoChrome from 'sentry-logos/logo-chrome.svg';
-import logoChromium from 'sentry-logos/logo-chromium.svg';
-import logoCloudflareWorker from 'sentry-logos/logo-cloudflare-worker.svg';
-import logoCrystal from 'sentry-logos/logo-crystal.svg';
-import logoDeno from 'sentry-logos/logo-deno.svg';
-import logoDotnet from 'sentry-logos/logo-dotnet.svg';
-import logoEdgeNew from 'sentry-logos/logo-edge-new.svg';
-import logoEdgeOld from 'sentry-logos/logo-edge-old.svg';
-import logoElectron from 'sentry-logos/logo-electron.svg';
-import logoFirefox from 'sentry-logos/logo-firefox.svg';
-import logoGoogle from 'sentry-logos/logo-google.svg';
-import logoIe from 'sentry-logos/logo-ie.svg';
-import logoLinux from 'sentry-logos/logo-linux.svg';
-import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
-import logoMotorola from 'sentry-logos/logo-motorola.svg';
-import logoNetcore from 'sentry-logos/logo-netcore.svg';
-import logoNetframework from 'sentry-logos/logo-netframework.svg';
-import logoNintendoSwitch2 from 'sentry-logos/logo-nintendo-switch-2.svg';
-import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
-import logoNode from 'sentry-logos/logo-node.svg';
-import logoNvidia from 'sentry-logos/logo-nvidia.svg';
-import logoOpera from 'sentry-logos/logo-opera.svg';
-import logoPhp from 'sentry-logos/logo-php.svg';
-import logoPlaystation from 'sentry-logos/logo-playstation.svg';
-import logoPython from 'sentry-logos/logo-python.svg';
-import logoQq from 'sentry-logos/logo-qq.svg';
-import logoRuby from 'sentry-logos/logo-ruby.svg';
-import logoSafari from 'sentry-logos/logo-safari.svg';
-import logoSamsung from 'sentry-logos/logo-samsung.svg';
-import logoSteamos from 'sentry-logos/logo-steamos.svg';
-import logoUbuntu from 'sentry-logos/logo-ubuntu.svg';
-import logoUnity from 'sentry-logos/logo-unity.svg';
+import {PlatformIcon, platforms} from 'platformicons';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
-import logoVercel from 'sentry-logos/logo-vercel.svg';
-import logoWindows from 'sentry-logos/logo-windows.svg';
-import logoXbox from 'sentry-logos/logo-xbox.svg';
 
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 const LOGO_MAPPING = {
-  'android-phone': logoAndroidPhone,
-  'android-tablet': logoAndroidTablet,
-  'google-chrome': logoChrome,
-  'internet-explorer': logoIe,
-  'legacy-edge': logoEdgeOld,
-  'mac-os-x': logoApple,
-  'mobile-safari': logoSafari,
-  'nintendo-switch': logoNintendoSwitch,
-  'nintendo-switch-2': logoNintendoSwitch2,
-  'net-core': logoNetcore,
-  'net-framework': logoNetframework,
-  'qq-browser': logoQq,
-  'microsoft-edge': logoEdgeNew,
-  amazon: logoAmazon,
-  amd: logoAmd,
-  android: logoAndroid,
-  bazzite: logoBazzite,
-  apple: logoApple,
-  appletv: logoAppleTv,
-  arm: logoArm,
-  chrome: logoChrome,
-  chromium: logoChromium,
-  cloudflare: logoCloudflareWorker,
-  cpython: logoPython,
-  crystal: logoCrystal,
-  darwin: logoApple,
-  deno: logoDeno,
-  edge: logoEdgeNew,
-  electron: logoElectron,
-  firefox: logoFirefox,
-  google: logoGoogle,
-  il: logoUnity,
-  ios: logoApple,
-  ipad: logoAppleTablet,
-  iphone: logoApplePhone,
-  ipod: logoApplePhone,
-  linux: logoLinux,
-  mac: logoApple,
-  macos: logoApple,
-  mono: logoMonogorilla,
-  motorola: logoMotorola,
-  net: logoDotnet,
-  node: logoNode,
-  nvidia: logoNvidia,
-  opera: logoOpera,
-  php: logoPhp,
-  playstation: logoPlaystation,
-  python: logoPython,
-  ruby: logoRuby,
-  safari: logoSafari,
-  samsung: logoSamsung,
-  steamos: logoSteamos,
-  tvos: logoApple,
-  ubuntu: logoUbuntu,
-  vercel: logoVercel,
-  watch: logoAppleWatch,
-  watchos: logoApple,
-  windows: logoWindows,
-  xbox: logoXbox,
-};
+  'android-phone': 'android-phone',
+  'android-tablet': 'android-tablet',
+  'google-chrome': 'chrome',
+  'internet-explorer': 'internet-explorer',
+  'legacy-edge': 'edge-legacy',
+  'mac-os-x': 'apple',
+  'mobile-safari': 'safari',
+  'nintendo-switch': 'nintendo-switch',
+  'nintendo-switch-2': 'nintendo-switch-2',
+  'net-core': 'dotnetcore',
+  'net-framework': 'dotnetframework',
+  'qq-browser': 'qq',
+  'microsoft-edge': 'edge',
+  amazon: 'amazon',
+  amd: 'amd',
+  android: 'android',
+  bazzite: 'bazzite',
+  apple: 'apple',
+  appletv: 'apple-tv',
+  arm: 'arm',
+  chrome: 'chrome',
+  chromium: 'chromium',
+  cloudflare: 'cloudflare',
+  cpython: 'python',
+  crystal: 'crystal',
+  darwin: 'apple',
+  deno: 'deno',
+  edge: 'edge',
+  electron: 'electron',
+  firefox: 'firefox',
+  google: 'android',
+  il: 'unity',
+  ios: 'apple',
+  ipad: 'apple-ipad',
+  iphone: 'apple-iphone',
+  ipod: 'apple-iphone',
+  linux: 'linux',
+  mac: 'apple',
+  macos: 'apple',
+  mono: 'mono',
+  motorola: 'motorola',
+  net: 'dotnet',
+  node: 'node',
+  nvidia: 'nvidia',
+  opera: 'opera',
+  php: 'php',
+  playstation: 'playstation',
+  python: 'python',
+  ruby: 'ruby',
+  safari: 'safari',
+  samsung: 'samsung',
+  steamos: 'steamos',
+  tvos: 'apple-tv',
+  ubuntu: 'ubuntu',
+  vercel: 'vercel',
+  watch: 'apple-watch',
+  watchos: 'apple-watch',
+  windows: 'windows',
+  xbox: 'xbox',
+} as const;
 
 /** @internal used in stories **/
 export const NAMES = Object.keys(LOGO_MAPPING);
 
-// The logos in this list will be inverted when the theme is set to dark mode
-const INVERT_IN_DARKMODE = new Set<string>([
-  logoApple,
-  logoVercel,
-  logoPlaystation,
-  logoAmd,
-]);
+const SUPPORTED_PLATFORM_ICONS = new Set(platforms);
 
-const darkCss = css`
-  filter: invert(100%);
-  opacity: 0.8;
-`;
+function getPlatformIconName(name: string) {
+  if (name in LOGO_MAPPING) {
+    return LOGO_MAPPING[name as keyof typeof LOGO_MAPPING];
+  }
 
-export function getLogoImage(name: string) {
   if (name.startsWith('amd-')) {
-    return logoAmd;
+    return 'amd';
   }
 
   if (name.startsWith('nvidia-')) {
-    return logoNvidia;
+    return 'nvidia';
   }
 
   if (name.startsWith('nintendo-')) {
-    return logoNintendoSwitch;
+    return 'nintendo-switch';
   }
 
   if (name.startsWith('chrome-')) {
-    return logoChrome;
+    return 'chrome';
   }
 
   if (name.startsWith('firefox-')) {
-    return logoFirefox;
+    return 'firefox';
   }
 
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return LOGO_MAPPING[name] ?? logoUnknown;
+  return name;
+}
+
+function supportsPlatformIcon(name: string) {
+  if (SUPPORTED_PLATFORM_ICONS.has(name)) {
+    return true;
+  }
+
+  if (!name.includes('-')) {
+    return false;
+  }
+
+  return SUPPORTED_PLATFORM_ICONS.has(name.split('-')[0]!);
+}
+
+export function getLogoImage(name: string) {
+  const platformIconName = getPlatformIconName(name);
+  return supportsPlatformIcon(platformIconName) ? platformIconName : logoUnknown;
 }
 
 export interface ContextIconProps {
@@ -162,11 +122,12 @@ export interface ContextIconProps {
 
 export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
   const size = SvgIcon.ICON_SIZES[providedSize];
+  const platformIconName = getLogoImage(name);
 
-  // Apply darkmode CSS to icon when in darkmode
-  const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
-  const imageName = getLogoImage(name);
-  const extraCass = isDarkmode && INVERT_IN_DARKMODE.has(imageName) ? darkCss : null;
-
-  return <img height={size} width={size} css={extraCass} src={imageName} />;
+  return (
+    <PlatformIcon
+      platform={platformIconName === logoUnknown ? 'default' : platformIconName}
+      size={size}
+    />
+  );
 }
