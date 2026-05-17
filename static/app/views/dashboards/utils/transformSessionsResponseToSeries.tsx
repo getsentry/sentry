@@ -65,10 +65,12 @@ export function transformSessionsResponseToSeries(
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
-          data: data.intervals.map((interval, index) => ({
-            name: interval,
-            value: group.series[field]?.[index] ?? 0,
-          })),
+          data: trimNullDataPoints(
+            data.intervals.map((interval, index) => ({
+              name: interval,
+              value: group.series[field]?.[index] ?? null,
+            }))
+          ),
         });
       }
     });
@@ -89,10 +91,12 @@ export function transformSessionsResponseToSeries(
           }
           results.push({
             seriesName: getSeriesName(status, group, queryAlias),
-            data: data.intervals.map((interval, index) => ({
-              name: interval,
-              value: metricField ? (group.series[metricField]?.[index] ?? 0) : 0,
-            })),
+            data: trimNullDataPoints(
+              data.intervals.map((interval, index) => ({
+                name: interval,
+                value: metricField ? (group.series[metricField]?.[index] ?? null) : 0,
+              }))
+            ),
           });
         }
       });
@@ -100,4 +104,29 @@ export function transformSessionsResponseToSeries(
   });
 
   return results;
+}
+
+/**
+ * Trims leading and trailing entries where the value is null, coercing any
+ * remaining interior nulls to 0. The Sessions API returns null for time
+ * buckets with no data (e.g. out of retention at the start, or not yet
+ * populated at the end).
+ */
+function trimNullDataPoints(
+  points: Array<{name: string; value: number | null}>
+): Array<{name: string; value: number}> {
+  let start = 0;
+  while (start < points.length && points[start]!.value === null) {
+    start++;
+  }
+
+  let end = points.length - 1;
+  while (end >= start && points[end]!.value === null) {
+    end--;
+  }
+
+  return points.slice(start, end + 1).map(point => ({
+    name: point.name,
+    value: point.value ?? 0,
+  }));
 }

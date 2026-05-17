@@ -1143,6 +1143,112 @@ describe('transformSessionsResponseToSeries', () => {
     ]);
   });
 
+  it('trims leading null values from API response', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: [],
+      orderby: '',
+    });
+
+    // The Sessions API returns null for time buckets with no data (e.g. out
+    // of retention). The type doesn't reflect this, so we cast to simulate
+    // the real API response.
+    const response = {
+      start: '2022-01-15T00:00:00Z',
+      end: '2022-01-18T00:00:00Z',
+      query: '',
+      intervals: ['2022-01-15T00:00:00Z', '2022-01-16T00:00:00Z', '2022-01-17T00:00:00Z'],
+      groups: [
+        {
+          by: {},
+          series: {
+            'crash_free_rate(session)': [null, 0.99, 0.98] as Array<number | null>,
+          },
+          totals: {
+            'crash_free_rate(session)': 0.985,
+          },
+        },
+      ],
+    } as any;
+
+    const result = transformSessionsResponseToSeries(response, widgetQuery);
+    expect(result[0]!.data).toEqual([
+      {name: '2022-01-16T00:00:00Z', value: 0.99},
+      {name: '2022-01-17T00:00:00Z', value: 0.98},
+    ]);
+  });
+
+  it('trims leading and trailing nulls but coerces interior nulls to 0', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: [],
+      orderby: '',
+    });
+
+    const response = {
+      start: '2022-01-15T00:00:00Z',
+      end: '2022-01-19T00:00:00Z',
+      query: '',
+      intervals: [
+        '2022-01-15T00:00:00Z',
+        '2022-01-16T00:00:00Z',
+        '2022-01-17T00:00:00Z',
+        '2022-01-18T00:00:00Z',
+      ],
+      groups: [
+        {
+          by: {},
+          series: {
+            'crash_free_rate(session)': [null, 0.99, null, null] as Array<number | null>,
+          },
+          totals: {
+            'crash_free_rate(session)': 0.99,
+          },
+        },
+      ],
+    } as any;
+
+    const result = transformSessionsResponseToSeries(response, widgetQuery);
+    // Leading null trimmed, trailing nulls trimmed, only the data point remains
+    expect(result[0]!.data).toEqual([{name: '2022-01-16T00:00:00Z', value: 0.99}]);
+  });
+
+  it('coerces interior nulls to 0 between valid data points', () => {
+    const widgetQuery = WidgetQueryFixture({
+      aggregates: [],
+      orderby: '',
+    });
+
+    const response = {
+      start: '2022-01-15T00:00:00Z',
+      end: '2022-01-19T00:00:00Z',
+      query: '',
+      intervals: [
+        '2022-01-15T00:00:00Z',
+        '2022-01-16T00:00:00Z',
+        '2022-01-17T00:00:00Z',
+        '2022-01-18T00:00:00Z',
+      ],
+      groups: [
+        {
+          by: {},
+          series: {
+            'crash_free_rate(session)': [null, 0.99, null, 0.98] as Array<number | null>,
+          },
+          totals: {
+            'crash_free_rate(session)': 0.985,
+          },
+        },
+      ],
+    } as any;
+
+    const result = transformSessionsResponseToSeries(response, widgetQuery);
+    // Leading null trimmed, interior null coerced to 0
+    expect(result[0]!.data).toEqual([
+      {name: '2022-01-16T00:00:00Z', value: 0.99},
+      {name: '2022-01-17T00:00:00Z', value: 0},
+      {name: '2022-01-18T00:00:00Z', value: 0.98},
+    ]);
+  });
+
   it('supports legend aliases', () => {
     const widgetQuery = WidgetQueryFixture({
       name: 'Lorem',

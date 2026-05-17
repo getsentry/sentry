@@ -247,35 +247,46 @@ class ProjectSessionsChartRequest extends Component<
       {
         seriesName: t('This Period'),
         color: theme.colors.green400,
-        data: responseData.intervals
-          .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
-          .map((interval, i) => {
-            const crashedSessionsPercent =
-              responseData.groups[0]?.series[field]!.slice(
+        data: trimNullDataPoints(
+          responseData.intervals
+            .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
+            .map((interval, i) => {
+              const rawValue = responseData.groups[0]?.series[field]?.slice(
                 fetchedWithPrevious ? dataMiddleIndex : 0
-              )[i]! * 100;
+              )[i];
 
-            return {
-              name: interval,
-              value: getCrashFreePercent(crashedSessionsPercent),
-            };
-          }),
+              return {
+                name: interval,
+                value:
+                  rawValue === null || rawValue === undefined
+                    ? null
+                    : getCrashFreePercent(rawValue * 100),
+              };
+            })
+        ),
       },
-    ] as Series[]; // TODO(project-detail): Change SeriesDataUnit value to support null
+    ] as Series[];
 
     const previousTimeseriesData = fetchedWithPrevious
       ? ({
           seriesName: t('Previous Period'),
-          data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
-            const crashedSessionsPercent =
-              responseData.groups[0]?.series[field]!.slice(0, dataMiddleIndex)[i]! * 100;
+          data: trimNullDataPoints(
+            responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
+              const rawValue = responseData.groups[0]?.series[field]?.slice(
+                0,
+                dataMiddleIndex
+              )[i];
 
-            return {
-              name: responseData.intervals[i + dataMiddleIndex],
-              value: getCrashFreePercent(crashedSessionsPercent),
-            };
-          }),
-        } as Series) // TODO(project-detail): Change SeriesDataUnit value to support null
+              return {
+                name: responseData.intervals[i + dataMiddleIndex]!,
+                value:
+                  rawValue === null || rawValue === undefined
+                    ? null
+                    : getCrashFreePercent(rawValue * 100),
+              };
+            })
+          ),
+        } as Series)
       : null;
 
     const totalCount =
@@ -362,3 +373,28 @@ class ProjectSessionsChartRequest extends Component<
 }
 
 export default withTheme(ProjectSessionsChartRequest);
+
+/**
+ * Trims leading and trailing entries where the value is null, coercing any
+ * remaining interior nulls to 0. The Sessions API returns null for time
+ * buckets with no data (e.g. out of retention at the start, or not yet
+ * populated at the end).
+ */
+function trimNullDataPoints(
+  points: Array<{name: string; value: number | null}>
+): Array<{name: string; value: number}> {
+  let start = 0;
+  while (start < points.length && points[start]!.value === null) {
+    start++;
+  }
+
+  let end = points.length - 1;
+  while (end >= start && points[end]!.value === null) {
+    end--;
+  }
+
+  return points.slice(start, end + 1).map(point => ({
+    name: point.name,
+    value: point.value ?? 0,
+  }));
+}
