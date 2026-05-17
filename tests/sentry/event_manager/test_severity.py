@@ -17,6 +17,7 @@ from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
     SEER_ERROR_COUNT_KEY,
     EventManager,
+    SeverityScoreRequest,
     _get_severity_score,
     make_severity_score_request,
     severity_connection_pool,
@@ -332,30 +333,22 @@ class TestGetEventSeverity(TestCase):
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
 
     @patch("sentry.event_manager.make_signed_seer_api_request")
-    def test_group_seer_rollout_routes_to_scoring_pool(self, mock_request: MagicMock) -> None:
-        body = {
+    def test_group_seer_rollout_selects_pool(self, mock_request: MagicMock) -> None:
+        body: SeverityScoreRequest = {
             "message": "boom",
             "has_stacktrace": 0,
             "handled": True,
             "org_id": 1,
             "project_id": 1,
         }
-        with override_options({"issues.severity.group-seer-rollout-rate": 1.0}):
-            make_severity_score_request(body)
-        assert mock_request.call_args[0][0] is severity_connection_pool_group_seer
 
-    @patch("sentry.event_manager.make_signed_seer_api_request")
-    def test_group_seer_rollout_disabled_uses_default_pool(self, mock_request: MagicMock) -> None:
-        body = {
-            "message": "boom",
-            "has_stacktrace": 0,
-            "handled": True,
-            "org_id": 1,
-            "project_id": 1,
-        }
         with override_options({"issues.severity.group-seer-rollout-rate": 0.0}):
             make_severity_score_request(body)
         assert mock_request.call_args[0][0] is severity_connection_pool
+
+        with override_options({"issues.severity.group-seer-rollout-rate": 1.0}):
+            make_severity_score_request(body)
+        assert mock_request.call_args[0][0] is severity_connection_pool_group_seer
 
 
 @with_feature("projects:first-event-severity-calculation")
