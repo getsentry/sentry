@@ -818,13 +818,15 @@ class SeerOperatorTest(TestCase):
             assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_seer_event_creates_activity(self, _mock_has_access):
+    def test_seer_event_creates_activity_rca_completed(self, _mock_has_access):
         event_payload = {
             "run_id": MOCK_RUN_ID,
             "group_id": self.group.id,
             "root_cause": {
-                "description": "Test root cause",
-                "steps": [{"title": "Step 1"}],
+                "one_line_description": "Test root cause summary",
+                "five_whys": ["why1", "why2"],
+                "reproduction_steps": ["step1"],
+                "relevant_repo": "getsentry/sentry",
             },
         }
 
@@ -839,7 +841,57 @@ class SeerOperatorTest(TestCase):
             group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
         )
         assert activity.data["run_id"] == MOCK_RUN_ID
-        assert activity.data["root_cause"]["description"] == "Test root cause"
+        assert activity.data["summary"] == "Test root cause summary"
+        assert "root_cause" not in activity.data
+        assert "five_whys" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_event_creates_activity_solution_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "solution": {
+                "one_line_summary": "Test solution summary",
+                "steps": [{"title": "Fix the bug", "description": "Change X to Y"}],
+            },
+        }
+
+        with self.feature("organizations:seer-activity-timeline"):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+        assert activity.data["run_id"] == MOCK_RUN_ID
+        assert activity.data["summary"] == "Test solution summary"
+        assert "solution" not in activity.data
+        assert "steps" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_event_creates_activity_coding_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "code_changes": {"getsentry/sentry": [{"diff": "...", "path": "foo.py"}]},
+        }
+
+        with self.feature("organizations:seer-activity-timeline"):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_CODING_COMPLETED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_CODING_COMPLETED.value
+        )
+        assert activity.data["run_id"] == MOCK_RUN_ID
+        assert "changes" not in activity.data
+        assert "code_changes" not in activity.data
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_all_mapped_event_types(self, _mock_has_access):

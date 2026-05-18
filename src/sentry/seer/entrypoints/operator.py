@@ -712,11 +712,13 @@ def _create_seer_activity(
         activity_data["run_id"] = run_id
 
     if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
-        activity_data["root_cause"] = event_payload.get("root_cause")
+        root_cause = event_payload.get("root_cause")
+        if root_cause:
+            activity_data["summary"] = root_cause.get("one_line_description")
     elif event_type == SentryAppEventType.SEER_SOLUTION_COMPLETED:
-        activity_data["solution"] = event_payload.get("solution")
-    elif event_type == SentryAppEventType.SEER_CODING_COMPLETED:
-        activity_data["changes"] = event_payload.get("changes")
+        solution = event_payload.get("solution")
+        if solution:
+            activity_data["summary"] = solution.get("one_line_summary")
     elif event_type == SentryAppEventType.SEER_PR_CREATED:
         activity_data["pull_requests"] = event_payload.get("pull_requests")
 
