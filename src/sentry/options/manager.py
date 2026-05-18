@@ -296,7 +296,7 @@ class OptionsManager:
 
         with metrics.timer(
             "options.store.get",
-            tags={"region": settings.SENTRY_OPTIONS.get("system.region", "unknown")},
+            tags={"key": key, "region": settings.SENTRY_OPTIONS.get("system.region", "unknown")},
             sample_rate=0.01,
         ) as tags:
             opt = self.lookup_key(key)
