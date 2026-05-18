@@ -1,7 +1,7 @@
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
 import {IconEdit} from 'sentry/icons';
@@ -12,6 +12,8 @@ import ResultGrid from 'admin/components/resultGrid';
 import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
 export function SentryEmployees() {
+  const {openModal} = useModal();
+
   const gridColumns = [
     <th key="user">User</th>,
     <th key="email" style={{width: 100, textAlign: 'center'}}>

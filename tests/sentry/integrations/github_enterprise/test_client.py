@@ -194,7 +194,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
             body="docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
         )
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert (
             responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"

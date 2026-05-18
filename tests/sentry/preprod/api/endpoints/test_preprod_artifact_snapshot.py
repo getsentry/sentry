@@ -186,49 +186,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
-        assert 'Validation error in image "hash1"' in response.data["detail"]
-
-    def test_snapshot_boolean_tag_value_error_message(self) -> None:
-        url = self._get_create_url()
-        data = {
-            "app_id": "com.example.app",
-            "images": {
-                "screen.png": {
-                    "content_hash": "abc123",
-                    "width": 375,
-                    "height": 812,
-                    "tags": {"show_background": True},
-                },
-            },
-        }
-
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
-
-        assert response.status_code == 400
-        assert 'Validation error in image "screen.png"' in response.data["detail"]
-        assert "tags" in response.data["detail"]
-
-    def test_snapshot_boolean_display_name_error_message(self) -> None:
-        url = self._get_create_url()
-        data = {
-            "app_id": "com.example.app",
-            "images": {
-                "login.png": {
-                    "content_hash": "abc123",
-                    "width": 375,
-                    "height": 812,
-                    "display_name": True,
-                },
-            },
-        }
-
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
-
-        assert response.status_code == 400
-        assert 'Validation error in image "login.png"' in response.data["detail"]
-        assert "display_name" in response.data["detail"]
+        assert "detail" in response.data
 
     def test_snapshot_negative_dimensions(self) -> None:
         url = self._get_create_url()

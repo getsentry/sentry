@@ -17,7 +17,10 @@ def _get_repository_child_relations(instance: Repository) -> list[BaseRelation]:
     return [
         ModelRelation(Commit, {"repository_id": instance.id}),
         ModelRelation(PullRequest, {"repository_id": instance.id}),
-        ModelRelation(RepositoryProjectPathConfig, {"repository_id": instance.id}),
+        ModelRelation(
+            RepositoryProjectPathConfig,
+            {"project_repository__repository_id": instance.id},
+        ),
     ]
 
 
@@ -39,7 +42,10 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
             # project-repo links should survive a hide so they're restored
             # if the repo is re-enabled.
             ModelRelation(ProjectRepository, {"repository_id": instance.id}),
-            ModelRelation(SeerProjectRepository, {"repository_id": instance.id}),
+            ModelRelation(
+                SeerProjectRepository,
+                {"project_repository__repository_id": instance.id},
+            ),
         ]
 
     def delete_instance(self, instance: Repository) -> None:
