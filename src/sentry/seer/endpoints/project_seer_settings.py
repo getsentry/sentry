@@ -121,6 +121,8 @@ class ProjectSettingsUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"integrationId": "Required when agent is an external coding agent."}
             )
+        if "integrationId" in data and "agent" not in data:
+            raise serializers.ValidationError({"agent": "Required when integrationId is provided."})
 
         has_update = any(k in data for k in ("agent", "stoppingPoint", "scannerAutomation"))
         if not has_update:
