@@ -8,7 +8,6 @@ from sentry.preprod.api.endpoints.pull_request.organization_pullrequest_details 
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class OrganizationPullRequestDetailsEndpointTest(TestCase):
@@ -121,7 +120,6 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
             pr_number=pr_number,
         )
 
-    @with_feature("organizations:pr-page")
     @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_successful_pr_details_fetch(self, mock_get, mock_get_files):
@@ -168,7 +166,6 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         renamed_file = next(f for f in files_data if f["status"] == "renamed")
         assert renamed_file["previous_filename"] == "old-component.tsx"
 
-    @with_feature("organizations:pr-page")
     def test_no_github_client(self) -> None:
         """Test when no GitHub client is available (no integration set up)."""
         Repository.objects.create(
@@ -184,7 +181,6 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert response.data["error"] == "integration_not_found"
         assert "No GitHub integration found" in response.data["message"]
 
-    @with_feature("organizations:pr-page")
     @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     def test_github_api_error(self, mock_get_files):
         """Test GitHub API error handling."""
@@ -197,7 +193,6 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert response.data["error"] == "api_error"
         assert "Failed to fetch pull request data from GitHub" in response.data["message"]
 
-    @with_feature("organizations:pr-page")
     @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_empty_pr_files(self, mock_get, mock_get_files):
@@ -211,7 +206,6 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert len(response.data["files"]) == 0
         assert response.data["pull_request"]["changed_files_count"] == 0
 
-    @with_feature("organizations:pr-page")
     def test_repository_not_found(self) -> None:
         """Test when repository doesn't exist in the database."""
         response = self._make_request(repo_name="does-not/exist")
@@ -220,7 +214,6 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert response.data["error"] == "integration_not_found"
         assert "No GitHub integration found" in response.data["message"]
 
-    @with_feature("organizations:pr-page")
     @patch("sentry.integrations.github.client.GitHubApiClient.get_pull_request_files")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
     def test_missing_timestamps_handled_correctly(self, mock_get, mock_get_files):

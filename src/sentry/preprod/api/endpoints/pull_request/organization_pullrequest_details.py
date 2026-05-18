@@ -5,7 +5,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -42,9 +42,6 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
                 pr_number=pr_number,
             )
         )
-
-        if not features.has("organizations:pr-page", organization, actor=request.user):
-            return Response({"error": "Feature not enabled"}, status=403)
 
         client = get_github_client(organization, repo_name)
         if not client:

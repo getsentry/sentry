@@ -47,37 +47,26 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
         )
 
     def test_size_analysis_download_success(self) -> None:
-        with self.feature("organizations:pr-page"):
-            url = self._get_url()
-            response = self.client.get(url)
-
-            assert response.status_code == 200
-            assert response["Content-Type"] == "application/json"
-            assert response["Content-Length"] == str(self.analysis_file.size)
-
-    def test_size_analysis_download_feature_not_enabled(self) -> None:
-        # Test without the feature flag
         url = self._get_url()
         response = self.client.get(url)
 
-        assert response.status_code == 403
-        assert response.json()["detail"] == "Feature not enabled"
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        assert response["Content-Length"] == str(self.analysis_file.size)
 
     def test_size_analysis_download_artifact_not_found(self) -> None:
-        with self.feature("organizations:pr-page"):
-            url = self._get_url(artifact_id=999999)
-            response = self.client.get(url)
+        url = self._get_url(artifact_id=999999)
+        response = self.client.get(url)
 
-            assert response.status_code == 404
-            assert "The requested preprod artifact does not exist" in response.json()["detail"]
+        assert response.status_code == 404
+        assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
     def test_size_analysis_download_invalid_artifact_id(self) -> None:
-        with self.feature("organizations:pr-page"):
-            url = self._get_url(artifact_id="invalid-id")
-            response = self.client.get(url)
+        url = self._get_url(artifact_id="invalid-id")
+        response = self.client.get(url)
 
-            assert response.status_code == 404
-            assert "The requested preprod artifact does not exist" in response.json()["detail"]
+        assert response.status_code == 404
+        assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
     def test_size_analysis_download_artifact_from_different_organization(self) -> None:
         # Create another organization and artifact
@@ -90,13 +79,12 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
             artifact_type=PreprodArtifact.ArtifactType.APK,
         )
 
-        with self.feature("organizations:pr-page"):
-            # Try to access artifact from different org
-            url = self._get_url(artifact_id=other_artifact.id)
-            response = self.client.get(url)
+        # Try to access artifact from different org
+        url = self._get_url(artifact_id=other_artifact.id)
+        response = self.client.get(url)
 
-            assert response.status_code == 404
-            assert "The requested preprod artifact does not exist" in response.json()["detail"]
+        assert response.status_code == 404
+        assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
     def test_size_analysis_download_no_size_metrics(self) -> None:
         # Create artifact without size metrics
@@ -106,14 +94,11 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
             artifact_type=PreprodArtifact.ArtifactType.APK,
         )
 
-        with self.feature("organizations:pr-page"):
-            url = self._get_url(artifact_id=artifact_without_metrics.id)
-            response = self.client.get(url)
+        url = self._get_url(artifact_id=artifact_without_metrics.id)
+        response = self.client.get(url)
 
-            assert response.status_code == 404
-            assert (
-                response.json()["detail"] == "Size analysis results not available for this artifact"
-            )
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Size analysis results not available for this artifact"
 
     def test_size_analysis_download_multiple_size_metrics_same_file(self) -> None:
         PreprodArtifactSizeMetrics.objects.create(
@@ -124,12 +109,11 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with self.feature("organizations:pr-page"):
-            url = self._get_url()
-            response = self.client.get(url)
+        url = self._get_url()
+        response = self.client.get(url)
 
-            assert response.status_code == 200
-            assert response["Content-Type"] == "application/json"
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
 
     def test_size_analysis_download_multiple_different_files(self) -> None:
         other_file = self.create_file(
@@ -144,15 +128,11 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with self.feature("organizations:pr-page"):
-            url = self._get_url()
-            response = self.client.get(url)
+        url = self._get_url()
+        response = self.client.get(url)
 
-            assert response.status_code == 409
-            assert (
-                response.json()["detail"]
-                == "Multiple size analysis results found for this artifact"
-            )
+        assert response.status_code == 409
+        assert response.json()["detail"] == "Multiple size analysis results found for this artifact"
 
     def test_size_analysis_download_no_analysis_file(self) -> None:
         artifact_no_file = PreprodArtifact.objects.create(
@@ -168,22 +148,16 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with self.feature("organizations:pr-page"):
-            url = self._get_url(artifact_id=artifact_no_file.id)
-            response = self.client.get(url)
+        url = self._get_url(artifact_id=artifact_no_file.id)
+        response = self.client.get(url)
 
-            assert response.status_code == 500
-            assert (
-                response.json()["detail"] == "Size analysis completed but results are unavailable"
-            )
+        assert response.status_code == 500
+        assert response.json()["detail"] == "Size analysis completed but results are unavailable"
 
     def test_returns_404_for_expired_artifact(self) -> None:
-        with (
-            self.feature("organizations:pr-page"),
-            patch(
-                "sentry.preprod.api.endpoints.pull_request.organization_pullrequest_size_analysis_download.get_size_retention_cutoff"
-            ) as mock_cutoff,
-        ):
+        with patch(
+            "sentry.preprod.api.endpoints.pull_request.organization_pullrequest_size_analysis_download.get_size_retention_cutoff"
+        ) as mock_cutoff:
             mock_cutoff.return_value = timezone.now() - timedelta(days=30)
             self.preprod_artifact.date_added = timezone.now() - timedelta(days=60)
             self.preprod_artifact.save()
