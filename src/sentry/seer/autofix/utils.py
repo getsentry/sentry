@@ -766,7 +766,7 @@ def _get_seer_project_options_to_update(
     stopping_point: str | None = data.get("stoppingPoint")
     if stopping_point is not None:
         if stopping_point == "off":
-            # Turn off tuning and leave stopping point and handoff_auto_create_pr unchanged
+            # Disable automation and leave stopping point and handoff_auto_create_pr unchanged
             # so that reenabling restores the prior state.
             _set_or_clear(
                 "sentry:autofix_automation_tuning",
@@ -774,6 +774,7 @@ def _get_seer_project_options_to_update(
                 default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
             )
         else:
+            # Enable automation and set the stopping point.
             _set_or_clear(
                 "sentry:autofix_automation_tuning",
                 AutofixAutomationTuningSettings.MEDIUM,
@@ -784,6 +785,7 @@ def _get_seer_project_options_to_update(
                 stopping_point,
                 default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
             )
+
             if stopping_point == AutofixStoppingPoint.OPEN_PR:
                 # Safe to set even if no external handoff is configured
                 # since we'll only read it if the other handoff options are all non-null.
@@ -843,7 +845,7 @@ def bulk_update_seer_project_settings(
             )
 
     # For all projects, manually reload cache and invalidate Relay config
-    # since bulk ProjectOption operations bypass post_save/post_delete signals.
+    # since bulk ProjectOption operations bypass update_option/delete_option.
     for project_id in project_ids:
         ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
 
