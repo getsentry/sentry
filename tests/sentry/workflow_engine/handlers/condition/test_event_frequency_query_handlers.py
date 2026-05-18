@@ -27,13 +27,15 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
         (1, 1),
         ("true", 1),
         ("1", 1),
+        ("yes", 1),
         (False, 0),
         (0, 0),
         ("false", 0),
         ("0", 0),
+        ("no", 0),
     ],
 )
-def test_error_handled_normalizes_value(value, expected_rhs):
+def test_error_handled_normalizes_value(value: bool | int | str, expected_rhs: int) -> None:
     cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
         {"attribute": "error.handled", "match": "eq", "value": value}, TSDBModel.group
     )
@@ -50,14 +52,18 @@ def test_error_handled_normalizes_value(value, expected_rhs):
         (1, 0),
         ("true", 0),
         ("1", 0),
+        ("yes", 0),
         # "unhandled = false" →  handled = 1
         (False, 1),
         (0, 1),
         ("false", 1),
         ("0", 1),
+        ("no", 1),
     ],
 )
-def test_error_unhandled_normalizes_and_flips_value(value, expected_rhs):
+def test_error_unhandled_normalizes_and_flips_value(
+    value: bool | int | str, expected_rhs: int
+) -> None:
     cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
         {"attribute": "error.unhandled", "match": "eq", "value": value}, TSDBModel.group
     )
@@ -67,7 +73,7 @@ def test_error_unhandled_normalizes_and_flips_value(value, expected_rhs):
 
 
 @pytest.mark.parametrize("attribute", ["error.handled", "error.unhandled"])
-def test_error_handled_unrecognized_value_returns_none(attribute):
+def test_error_handled_unrecognized_value_returns_none(attribute: str) -> None:
     cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
         {"attribute": attribute, "match": "eq", "value": "garbage"}, TSDBModel.group
     )

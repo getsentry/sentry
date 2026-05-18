@@ -32,8 +32,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 logger = logging.getLogger(__name__)
 
-_HANDLED_TRUE_VALUES = (True, 1, "true", "1")
-_HANDLED_FALSE_VALUES = (False, 0, "false", "0")
+_HANDLED_TRUE_VALUES = (True, 1, "true", "1", "yes")
+_HANDLED_FALSE_VALUES = (False, 0, "false", "0", "no")
 
 QueryFilter = dict[str, Any]
 QueryResult = dict[int, int | float]
@@ -236,6 +236,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         if attribute in ("error.handled", "error.unhandled"):
             # The stored value may be a string ("true"/"false"), bool, or int.
             # Normalize to 1/0 for the Snuba condition (UInt8 column).
+            # We can get stricter here once we clean existing data and validate within the API.
             raw = condition["value"]
             if raw in _HANDLED_TRUE_VALUES:
                 int_value = 1
