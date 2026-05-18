@@ -82,7 +82,7 @@ describe('EventDetailsHeader', () => {
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
     // Date selection is based on first seen unless selected by the user
     expect(
-      screen.getByRole('button', {name: 'Since First Seen (20D)'})
+      screen.getByRole('button', {name: 'Since First Seen (19d)'})
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Filter events\u2026')).toBeInTheDocument();
     expect(
