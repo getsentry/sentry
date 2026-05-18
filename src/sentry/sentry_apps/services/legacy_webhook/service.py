@@ -72,4 +72,4 @@ def send_legacy_webhooks_for_project(
 
     payload = build_legacy_webhook_payload(group, event, triggering_rules)
     for url in urls:
-        send_legacy_webhook_task.delay(url=url, payload=payload, project_id=project.id)
+        send_legacy_webhook_task.delay(url=url, payload=payload)

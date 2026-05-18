@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from requests.exceptions import ConnectionError, ReadTimeout
 from taskbroker_client.retry import Retry
 
 from sentry import features
-from sentry.models.project import Project
+from sentry.exceptions import RestrictedIPAddress
+from sentry.models.group import Group
 from sentry.sentry_apps.services.legacy_webhook.client import LegacyWebhookClient
 from sentry.sentry_apps.services.legacy_webhook.service import LegacyWebhookPayload
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_tasks
@@ -23,20 +26,19 @@ logger = logging.getLogger("sentry.legacy_webhook")
         times=3,
         delay=60 * 5,
         on=(Exception,),
+        ignore=(RestrictedIPAddress, ConnectionError, ReadTimeout, ApiError),
     ),
+    silenced_exceptions=(RestrictedIPAddress, ConnectionError, ReadTimeout, ApiError),
     silo_mode=SiloMode.CELL,
 )
-def send_legacy_webhook_task(
-    url: str, payload: LegacyWebhookPayload, project_id: int, **kwargs: Any
-) -> None:
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = project.organization
+def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: Any) -> None:
+    group = Group.objects.get(id=int(payload["id"]))
+    organization = group.project.organization
 
     if features.has("organizations:legacy-webhook-dry-run", organization):
         logger.info(
             "legacy_webhook.dry_run",
             extra={
-                "project_id": project_id,
                 "url": url,
                 "payload": payload,
             },

@@ -69,8 +69,6 @@ class TestSendLegacyWebhooksForProject(TestCase):
         assert mock_task.delay.call_count == 2
         urls_called = {call.kwargs["url"] for call in mock_task.delay.call_args_list}
         assert urls_called == {"http://a.com", "http://b.com"}
-        for call in mock_task.delay.call_args_list:
-            assert call.kwargs["project_id"] == self.project.id
 
     @mock.patch(
         "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",

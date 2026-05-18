@@ -17,11 +17,7 @@ class TestSendLegacyWebhookTask(TestCase):
         payload = build_legacy_webhook_payload(
             group=self.group, event=self.event, triggering_rules=["test-rule"]
         )
-        send_legacy_webhook_task(
-            url="http://example.com/hook",
-            payload=payload,
-            project_id=self.project.id,
-        )
+        send_legacy_webhook_task(url="http://example.com/hook", payload=payload)
 
         assert len(responses.calls) == 1
         body = json.loads(responses.calls[0].request.body)
@@ -37,16 +33,11 @@ class TestSendLegacyWebhookTask(TestCase):
         payload = build_legacy_webhook_payload(
             group=self.group, event=self.event, triggering_rules=["test-rule"]
         )
-        send_legacy_webhook_task(
-            url="http://example.com/hook",
-            payload=payload,
-            project_id=self.project.id,
-        )
+        send_legacy_webhook_task(url="http://example.com/hook", payload=payload)
 
         assert len(responses.calls) == 0
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
         assert call_args[0][0] == "legacy_webhook.dry_run"
-        assert call_args[1]["extra"]["project_id"] == self.project.id
         assert call_args[1]["extra"]["url"] == "http://example.com/hook"
         assert call_args[1]["extra"]["payload"] == payload
