@@ -716,7 +716,7 @@ def fire_actions_for_groups(
     serialized_groups = {
         group.id: group_event.event_id for group, (group_event, _) in group_to_groupevent.items()
     }
-    logger.info(
+    logger.debug(
         "workflow_engine.delayed_workflow.fire_actions_for_groups",
         extra={
             "groups_to_fire": groups_to_fire,
