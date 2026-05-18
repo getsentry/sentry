@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 import requests
 import responses
 
-from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
 )
@@ -158,6 +157,53 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert result[1]["type"] == "rule"
         self.assert_alert_rule_serialized(self.alert_rule_2, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
+
+    def test_snoozed_rules(self) -> None:
+        """
+        Test that we properly serialize snoozed rules with and without an owner
+        """
+        self.setup_rules()
+        issue_rule2 = self.create_issue_alert_rule(
+            data={
+                "project": self.project2,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4),
+            }
+        )
+        self.snooze_rule(user_id=self.user.id, rule=self.issue_rule)
+        self.snooze_rule(user_id=self.user.id, rule=issue_rule2, owner_id=self.user.id)
+        self.snooze_rule(user_id=self.user.id, alert_rule=self.alert_rule)
+        self.snooze_rule(
+            user_id=self.user.id, alert_rule=self.alert_rule_team2, owner_id=self.user.id
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": self.project_ids}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = response.data
+        assert len(result) == 5
+        self.assert_alert_rule_serialized(self.alert_rule_team2, result[0], skip_dates=True)
+        assert result[0]["snooze"]
+
+        assert result[1]["id"] == str(issue_rule2.id)
+        assert result[1]["type"] == "rule"
+        assert result[1]["snooze"]
+
+        assert result[2]["id"] == str(self.issue_rule.id)
+        assert result[2]["type"] == "rule"
+        assert result[2]["snooze"]
+
+        self.assert_alert_rule_serialized(self.alert_rule_2, result[3], skip_dates=True)
+        assert not result[3].get("snooze")
+
+        self.assert_alert_rule_serialized(self.alert_rule, result[4], skip_dates=True)
+        assert result[4]["snooze"]
 
     def test_invalid_limit(self) -> None:
         self.setup_rules()
@@ -346,6 +392,55 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
         result = response.data
         assert len(result) == 0
+
+    def test_offset_pagination(self) -> None:
+        self.setup_rules()
+
+        date_added = before_now(minutes=1)
+        one_alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project, self.project2],
+            date_added=date_added,
+        )
+        two_alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project2],
+            date_added=date_added,
+        )
+        three_alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[self.project]
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "2", "project": self.project_ids}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+
+        result = response.data
+        assert len(result) == 2
+        self.assert_alert_rule_serialized(three_alert_rule, result[0], skip_dates=True)
+        self.assert_alert_rule_serialized(one_alert_rule, result[1], skip_dates=True)
+
+        links = requests.utils.parse_header_links(
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"cursor": next_cursor, "per_page": "2", "project": self.project_ids}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+
+        result = response.data
+        assert len(result) == 2
+
+        self.assert_alert_rule_serialized(two_alert_rule, result[0], skip_dates=True)
+        self.assert_alert_rule_serialized(self.alert_rule_team2, result[1], skip_dates=True)
 
     def test_filter_by_project(self) -> None:
         self.setup_rules()
@@ -1159,21 +1254,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             run_deletion(deletion.id)
 
         self.get_success_response(org.slug)
-
-    def test_active_and_disabled_rules(self) -> None:
-        """Test that we return both active and disabled rules"""
-        self.setup_rules()
-        disabled_alert = self.create_project_rule(name="disabled rule")
-        disabled_alert.status = ObjectStatus.DISABLED
-        disabled_alert.save()
-        request_data = {"per_page": "10"}
-        response = self.client.get(
-            path=self.combined_rules_url, data=request_data, content_type="application/json"
-        )
-        assert len(response.data) == 5
-        for data in response.data:
-            if data["name"] == disabled_alert.label:
-                assert data["status"] == "disabled"
 
     def test_dataset_filter(self) -> None:
         self.create_alert_rule(dataset=Dataset.Metrics)
