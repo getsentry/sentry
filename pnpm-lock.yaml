@@ -366,8 +366,8 @@ importers:
         specifier: 0.25.10
         version: 0.25.10
       focus-trap:
-        specifier: 7.6.5
-        version: 7.6.5
+        specifier: 8.2.0
+        version: 8.2.0
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.3.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -5720,8 +5720,8 @@ packages:
   flatted@3.3.2:
     resolution: {integrity: sha512-AiwGJM8YcNOaobumgtng+6NHuOqC3A7MixFeDafM3X9cIUM+xUXoS5Vfgf+OihAYe20fxqNM9yPBXJzRtZ/4eA==}
 
-  focus-trap@7.6.5:
-    resolution: {integrity: sha512-7Ke1jyybbbPZyZXFxEftUtxFGLMpE2n6A+z//m4CRDlj0hW+o3iYSmh8nFlYMurOiJVDmJRilUQtJr08KfIxlg==}
+  focus-trap@8.2.0:
+    resolution: {integrity: sha512-CaBdQ9P4fa/yCA6pDf/3aJd8bf9IOG5QGK21/E+86o2V4V8kzXaR4A9E6tNR7KkkS1+T5ZIU1tJDBDLwsucz9g==}
 
   follow-redirects@1.15.11:
     resolution: {integrity: sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ==}
@@ -8550,8 +8550,8 @@ packages:
     resolution: {integrity: sha512-+XZ+r1XGIJGeQk3VvXhT6xx/VpbHsRzsTkGgF6E5RX9TTXD0118l87puaEBZ566FhqblC6U0d4XnubznJDm30A==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  tabbable@6.2.0:
-    resolution: {integrity: sha512-Cat63mxsVJlzYvN51JmVXIgNoUokrIaT2zLclCXjRd8boZ0004U4KCs/sToJ75C6sdlByWxpYnb5Boif1VSFew==}
+  tabbable@6.4.0:
+    resolution: {integrity: sha512-05PUHKSNE8ou2dwIxTngl4EzcnsCDZGJ/iCLtDflR/SHB/ny14rXc+qU5P4mG9JkusiV7EivzY9Mhm55AzAvCg==}
 
   table@6.8.2:
     resolution: {integrity: sha512-w2sfv80nrAh2VCbqR5AK27wswXhqcck2AhfnNW76beQXskGZ1V12GwS//yYVa3d3fcvAip2OUnbDAjW2k3v9fA==}
@@ -15232,9 +15232,9 @@ snapshots:
 
   flatted@3.3.2: {}
 
-  focus-trap@7.6.5:
+  focus-trap@8.2.0:
     dependencies:
-      tabbable: 6.2.0
+      tabbable: 6.4.0
 
   follow-redirects@1.15.11: {}
 
@@ -18908,7 +18908,7 @@ snapshots:
     dependencies:
       '@pkgr/core': 0.2.4
 
-  tabbable@6.2.0: {}
+  tabbable@6.4.0: {}
 
   table@6.8.2:
     dependencies:
