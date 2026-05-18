@@ -5,16 +5,25 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapper
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def delete_old_rows_metric_alerts(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     NotificationMessage = apps.get_model("notifications", "NotificationMessage")
 
-    for row in RangeQuerySetWrapper(
-        NotificationMessage.objects.filter(incident__isnull=False, trigger_action__isnull=False)
-    ):
-        row.delete()
+    while True:
+        ids = list(
+            NotificationMessage.objects.filter(
+                incident__isnull=False, trigger_action__isnull=False
+            ).values_list("id", flat=True)[:1000]
+        )
+        if not ids:
+            break
+
+        logger.info("Deleteing NotificationMessage rows", extra={"ids": ids})
+        NotificationMessage.objects.filter(id__in=ids).delete()
 
 
 class Migration(CheckedMigration):
