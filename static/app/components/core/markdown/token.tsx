@@ -1,4 +1,4 @@
-import type {ComponentType, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
@@ -170,12 +170,7 @@ export function Token({
               {token.header.map((cell, i) => (
                 <Th
                   key={i}
-                  Default={
-                    DefaultTableHeaderCell as ComponentType<{
-                      children: ReactNode;
-                      align?: string | null;
-                    }>
-                  }
+                  Default={DefaultTableHeaderCell}
                   align={token.align[i] ?? undefined}
                 >
                   {renderInline(cell.tokens, components)}
@@ -189,12 +184,7 @@ export function Token({
                 {row.map((cell, cellIndex) => (
                   <Td
                     key={cellIndex}
-                    Default={
-                      DefaultTableCell as ComponentType<{
-                        children: ReactNode;
-                        align?: string | null;
-                      }>
-                    }
+                    Default={DefaultTableCell}
                     align={token.align[cellIndex] ?? undefined}
                   >
                     {renderInline(cell.tokens, components)}
