@@ -68,7 +68,6 @@ export function BlockComponent({
   );
 }
 
-BlockComponent.displayName = 'BlockComponent';
 
 function BlockVariant() {
   const {block} = useBlockContext();
