@@ -79,6 +79,41 @@ function generateMockTickData(
     .filter(([ts, _]) => ts <= timeWindowConfig.end.getTime() / 1000);
 }
 
+function generateStackedMockTickData(
+  secondsGap: number,
+  timeWindowConfig: TimeWindowConfig
+): Array<CheckInBucket<ExampleStatus>> {
+  const buckets = timeWindowConfig.timelineWidth;
+  const secondsPerBucket = (timeWindowConfig.elapsedMinutes * 60) / buckets;
+
+  return Array.from({length: timeWindowConfig.timelineWidth})
+    .fill(null)
+    .map<CheckInBucket<ExampleStatus>>((_, bucketIndex) => {
+      const second = Math.floor(bucketIndex * secondsPerBucket);
+      const ts = timeWindowConfig.start.getTime() / 1000 + second;
+
+      const includesStatus =
+        second + secondsPerBucket > Math.ceil(second / secondsGap) * secondsGap;
+
+      const last20Percent = bucketIndex / timeWindowConfig.timelineWidth > 0.8;
+      const last10Percent = bucketIndex / timeWindowConfig.timelineWidth > 0.9;
+
+      const totalCheckIns = includesStatus ? 12 : 0;
+      const timeoutCheckIns = includesStatus && last20Percent ? 3 : 0;
+      const errorCheckIns = includesStatus && last10Percent ? 2 : 0;
+
+      return [
+        ts,
+        {
+          [ExampleStatus.OK]: totalCheckIns - timeoutCheckIns - errorCheckIns,
+          [ExampleStatus.TIMEOUT]: timeoutCheckIns,
+          [ExampleStatus.ERROR]: errorCheckIns,
+        },
+      ];
+    })
+    .filter(([ts, _]) => ts <= timeWindowConfig.end.getTime() / 1000);
+}
+
 export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
@@ -88,6 +123,10 @@ export default Storybook.story('CheckInTimeline', story => {
     const [secondsGap, setSecondsGap] = useState(60);
     const data = useMemo(
       () => generateMockTickData(secondsGap, timeWindowConfig),
+      [secondsGap, timeWindowConfig]
+    );
+    const stackedData = useMemo(
+      () => generateStackedMockTickData(secondsGap, timeWindowConfig),
       [secondsGap, timeWindowConfig]
     );
 
@@ -131,6 +170,25 @@ export default Storybook.story('CheckInTimeline', story => {
               statusStyle={statusStyle}
               statusLabel={statusLabel}
               statusPrecedent={statusPrecedent}
+              timeWindowConfig={timeWindowConfig}
+            />
+          </Flex>
+        </ExampleContainer>
+
+        <p>
+          Use <Storybook.JSXProperty name="displayMode" value="stacked" /> to show
+          proportional counts within each time slice.
+        </p>
+
+        <ExampleContainer>
+          <Flex align="center" width="100%" height="40px" ref={elementRef}>
+            <CheckInTimeline
+              bucketedData={stackedData}
+              statusStyle={statusStyle}
+              statusLabel={statusLabel}
+              statusPrecedent={statusPrecedent}
+              stackedStatusOrder={statusPrecedent}
+              displayMode="stacked"
               timeWindowConfig={timeWindowConfig}
             />
           </Flex>

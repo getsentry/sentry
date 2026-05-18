@@ -21,6 +21,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
 import {CheckInStatus, type MonitorBucket} from 'sentry/views/insights/crons/types';
 import {
+  checkInStatusStackedBarOrder,
   checkInStatusPrecedent,
   statusToText,
   tickStyle,
@@ -179,6 +180,8 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
                   statusLabel={statusToText}
                   statusStyle={tickStyle}
                   statusPrecedent={checkInStatusPrecedent}
+                  displayMode="stacked"
+                  stackedStatusOrder={checkInStatusStackedBarOrder}
                   timeWindowConfig={timeWindowConfig}
                 />
               </Fragment>

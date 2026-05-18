@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import chunk from 'lodash/chunk';
 
 import {Container} from '@sentry/scraps/layout';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -9,9 +10,11 @@ import {tn} from 'sentry/locale';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
 import {getTickStyle} from './utils/getTickStyle';
+import {isStatsBucketEmpty} from './utils/isStatsBucketEmpty';
 import {mergeBuckets} from './utils/mergeBuckets';
+import {mergeStats} from './utils/mergeStats';
 import {CheckInTooltip} from './checkInTooltip';
-import type {CheckInBucket, TickStyle, TimeWindowConfig} from './types';
+import type {CheckInBucket, JobTickData, TickStyle, TimeWindowConfig} from './types';
 
 interface CheckInTimelineConfig<Status extends string> {
   /**
@@ -29,6 +32,8 @@ interface CheckInTimelineConfig<Status extends string> {
   statusStyle: TickStyle<Status>;
   timeWindowConfig: TimeWindowConfig;
   className?: string;
+  displayMode?: 'aggregate' | 'stacked';
+  stackedStatusOrder?: Status[];
   style?: React.CSSProperties;
 }
 
@@ -61,14 +66,16 @@ export function CheckInTimeline<Status extends string>({
   statusPrecedent,
   className,
   style,
+  displayMode = 'aggregate',
+  stackedStatusOrder = statusPrecedent,
   makeUnit = count => tn('check-in', 'check-ins', count),
   tooltipProps,
 }: CheckInTimelineProps<Status>) {
-  const jobTicks = mergeBuckets(
-    statusPrecedent,
-    timeWindowConfig.rollupConfig,
-    bucketedData
-  );
+  const jobTicks =
+    displayMode === 'stacked'
+      ? getStackedJobTicks(statusPrecedent, timeWindowConfig.rollupConfig, bucketedData)
+      : mergeBuckets(statusPrecedent, timeWindowConfig.rollupConfig, bucketedData);
+  const isStacked = displayMode === 'stacked';
 
   return (
     <Container
@@ -84,6 +91,7 @@ export function CheckInTimeline<Status extends string>({
         const {left, startTs, width, stats, isStarting, isEnding} = jobTick;
 
         const status = getAggregateStatus(statusPrecedent, stats)!;
+        const total = getStatsTotal(stats);
 
         return (
           <CheckInTooltip
@@ -96,18 +104,80 @@ export function CheckInTimeline<Status extends string>({
             makeUnit={makeUnit}
             {...tooltipProps}
           >
-            <JobTick
-              style={{left, width}}
-              css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft={isStarting && left !== 0}
-              roundedRight={isEnding && left + width !== timeWindowConfig.timelineWidth}
-              data-test-id="monitor-checkin-tick"
-            />
+            {isStacked ? (
+              <StackedJobTick style={{left, width}} data-test-id="monitor-checkin-tick">
+                {stackedStatusOrder.map(stackedStatus => {
+                  const count = stats[stackedStatus] ?? 0;
+
+                  if (count <= 0) {
+                    return null;
+                  }
+
+                  return (
+                    <StackedJobTickSegment
+                      key={stackedStatus}
+                      style={{height: `${(count / total) * 100}%`}}
+                      css={theme => ({
+                        background: statusStyle(theme)[stackedStatus]?.tickColor,
+                      })}
+                      data-test-id="monitor-checkin-tick-segment"
+                    />
+                  );
+                })}
+              </StackedJobTick>
+            ) : (
+              <JobTick
+                style={{left, width}}
+                css={theme => getTickStyle(statusStyle, status, theme)}
+                roundedLeft={isStarting && left !== 0}
+                roundedRight={isEnding && left + width !== timeWindowConfig.timelineWidth}
+                data-test-id="monitor-checkin-tick"
+              />
+            )}
           </CheckInTooltip>
         );
       })}
     </Container>
   );
+}
+
+function getStatsTotal<Status extends string>(stats: JobTickData<Status>['stats']) {
+  return Object.values<number>(stats).reduce((sum, count) => sum + count, 0);
+}
+
+function getStackedJobTicks<Status extends string>(
+  statusPrecedent: Status[],
+  rollupConfig: TimeWindowConfig['rollupConfig'],
+  data: Array<CheckInBucket<Status>>
+): Array<JobTickData<Status>> {
+  const {bucketPixels, interval} = rollupConfig;
+  const groupedBuckets =
+    bucketPixels < 1 ? chunk(data, 1 / bucketPixels) : data.map(bucket => [bucket]);
+  const width = Math.max(1, bucketPixels);
+
+  return groupedBuckets.flatMap((currentGroup, index) => {
+    const stats = mergeStats(statusPrecedent, ...currentGroup.map(bucket => bucket[1]));
+
+    if (isStatsBucketEmpty(stats)) {
+      return [];
+    }
+
+    const startTs = currentGroup.at(0)![0];
+    const endTs = currentGroup.at(-1)![0] + interval;
+    const left = index * width - rollupConfig.underscanStartOffset;
+
+    return [
+      {
+        endTs,
+        isEnding: false,
+        isStarting: false,
+        left,
+        startTs,
+        stats,
+        width,
+      },
+    ];
+  });
 }
 
 interface MockCheckInTimelineProps<
@@ -198,4 +268,19 @@ const JobTick = styled('div')<{
     css`
       border-right-width: 0;
     `};
+`;
+
+const StackedJobTick = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column-reverse;
+  width: 4px;
+  height: 14px;
+  overflow: hidden;
+`;
+
+const StackedJobTickSegment = styled('div')`
+  width: 100%;
+  min-height: 1px;
+  flex-shrink: 0;
 `;
