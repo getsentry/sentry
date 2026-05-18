@@ -667,6 +667,79 @@ class TestWebhookIssueAlertHandler(BaseWorkflowTest):
             assert blob == expected
 
 
+class TestWebhookIssueAlertHandlerInvokeLegacyRegistry(BaseWorkflowTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.handler = WebhookIssueAlertHandler()
+        self.detector = self.create_detector(project=self.project)
+        self.workflow = self.create_workflow(environment=self.environment)
+        self.action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={"target_identifier": "http://example.com/hook"},
+        )
+        self.group, self.event, self.group_event = self.create_group_event()
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, group=self.group
+        )
+        self.invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
+    @mock.patch(
+        "sentry.notifications.notification_action.issue_alert_registry.handlers.webhook_issue_alert_handler.send_legacy_webhooks_for_project"
+    )
+    def test_default_no_flags_fires_old_path_only(self, mock_send: mock.MagicMock) -> None:
+        with mock.patch.object(BaseIssueAlertHandler, "invoke_legacy_registry") as mock_old_path:
+            self.handler.invoke_legacy_registry(self.invocation)
+            mock_old_path.assert_called_once_with(self.invocation)
+        mock_send.assert_not_called()
+
+    @mock.patch(
+        "sentry.notifications.notification_action.issue_alert_registry.handlers.webhook_issue_alert_handler.send_legacy_webhooks_for_project"
+    )
+    def test_new_path_fires_both_paths(self, mock_send: mock.MagicMock) -> None:
+        with (
+            self.feature("organizations:legacy-webhook-new-path"),
+            mock.patch.object(BaseIssueAlertHandler, "invoke_legacy_registry") as mock_old_path,
+        ):
+            self.handler.invoke_legacy_registry(self.invocation)
+            mock_old_path.assert_called_once_with(self.invocation)
+        mock_send.assert_called_once()
+
+    @mock.patch(
+        "sentry.notifications.notification_action.issue_alert_registry.handlers.webhook_issue_alert_handler.send_legacy_webhooks_for_project"
+    )
+    def test_new_path_disable_old_fires_new_only(self, mock_send: mock.MagicMock) -> None:
+        with (
+            self.feature(
+                {
+                    "organizations:legacy-webhook-new-path": True,
+                    "organizations:legacy-webhook-disable-old-path": True,
+                }
+            ),
+            mock.patch.object(BaseIssueAlertHandler, "invoke_legacy_registry") as mock_old_path,
+        ):
+            self.handler.invoke_legacy_registry(self.invocation)
+            mock_old_path.assert_not_called()
+        mock_send.assert_called_once()
+
+    @mock.patch(
+        "sentry.notifications.notification_action.issue_alert_registry.handlers.webhook_issue_alert_handler.send_legacy_webhooks_for_project"
+    )
+    def test_guard_disable_old_without_new_path_fires_old(self, mock_send: mock.MagicMock) -> None:
+        with (
+            self.feature("organizations:legacy-webhook-disable-old-path"),
+            mock.patch.object(BaseIssueAlertHandler, "invoke_legacy_registry") as mock_old_path,
+        ):
+            self.handler.invoke_legacy_registry(self.invocation)
+            mock_old_path.assert_called_once_with(self.invocation)
+        mock_send.assert_not_called()
+
+
 class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
