@@ -1850,7 +1850,8 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
             project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
         bulk_update_seer_project_settings(
-            self.projects, {"stoppingPoint": SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT}
+            self.projects,
+            {"stoppingPoint": AutofixStoppingPoint(SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT)},
         )
 
         for project in self.projects:
