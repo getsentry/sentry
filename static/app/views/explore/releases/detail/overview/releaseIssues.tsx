@@ -1,6 +1,6 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {useQueries} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
@@ -202,53 +202,50 @@ export function ReleaseIssues({
     issuesType
   );
 
-  const releaseParams = useMemo(
-    () => getReleaseParams({location, releaseBounds}),
-    [location, releaseBounds]
-  );
-
-  const {data: issueCountData} = useQuery(
-    apiOptions.as<Record<string, number>>()(
-      '/organizations/$organizationIdOrSlug/issues-count/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          ...releaseParams,
-          query: [
-            `${issuesQuery.new}:"${version}" is:unresolved`,
-            `${issuesQuery.all}:"${version}" is:unresolved`,
-            `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
-            `${issuesQuery.regressed}:"${version}"`,
-          ],
-        },
-        staleTime: 0,
-      }
-    )
-  );
-
-  const {data: resolvedData} = useQuery(
-    apiOptions.as<unknown[]>()(
-      '/organizations/$organizationIdOrSlug/releases/$version/resolved/',
-      {
-        path: {organizationIdOrSlug: organization.slug, version},
-        staleTime: 0,
-      }
-    )
-  );
-
-  const count = useMemo(
-    () => ({
-      new: issueCountData?.[`${issuesQuery.new}:"${version}" is:unresolved`] ?? null,
-      all: issueCountData?.[`${issuesQuery.all}:"${version}" is:unresolved`] ?? null,
-      resolved: resolvedData?.length ?? null,
-      unhandled:
-        issueCountData?.[
-          `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
-        ] ?? null,
-      regressed: issueCountData?.[`${issuesQuery.regressed}:"${version}"`] ?? null,
+  const {data: count} = useQueries({
+    queries: [
+      apiOptions.as<Record<string, number>>()(
+        '/organizations/$organizationIdOrSlug/issues-count/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+          query: {
+            ...getReleaseParams({location, releaseBounds}),
+            query: [
+              `${issuesQuery.new}:"${version}" is:unresolved`,
+              `${issuesQuery.all}:"${version}" is:unresolved`,
+              `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
+              `${issuesQuery.regressed}:"${version}"`,
+            ],
+          },
+          staleTime: 0,
+        }
+      ),
+      apiOptions.as<unknown[]>()(
+        '/organizations/$organizationIdOrSlug/releases/$version/resolved/',
+        {
+          path: {organizationIdOrSlug: organization.slug, version},
+          staleTime: 0,
+        }
+      ),
+    ],
+    combine: ([issueCountResult, resolvedResult]) => ({
+      data: {
+        new:
+          issueCountResult.data?.[`${issuesQuery.new}:"${version}" is:unresolved`] ??
+          null,
+        all:
+          issueCountResult.data?.[`${issuesQuery.all}:"${version}" is:unresolved`] ??
+          null,
+        resolved: resolvedResult.data?.length ?? null,
+        unhandled:
+          issueCountResult.data?.[
+            `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
+          ] ?? null,
+        regressed:
+          issueCountResult.data?.[`${issuesQuery.regressed}:"${version}"`] ?? null,
+      },
     }),
-    [issueCountData, resolvedData, version]
-  );
+  });
 
   function handleIssuesTypeSelection(newIssuesType: IssuesType) {
     navigate(
