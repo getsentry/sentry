@@ -55,10 +55,6 @@ describe('ReleaseIssues', () => {
         }),
       ],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/1.0.0/resolved/`,
-    });
-
     issuesEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       body: [],
