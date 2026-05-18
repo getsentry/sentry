@@ -21,7 +21,7 @@ class ImageMetadata(BaseModel):
         if v is None:
             return None
         if isinstance(v, dict):
-            return v
+            return {str(k): str(v_) for k, v_ in v.items()}
         if isinstance(v, list):
             return {str(tag): str(tag) for tag in v}
         return None
@@ -35,7 +35,7 @@ class ImageMetadata(BaseModel):
             if tags:
                 schema["properties"]["tags"] = {
                     "anyOf": [
-                        {"type": "object", "additionalProperties": {"type": "string"}},
+                        {"type": "object"},
                         {"type": "array", "items": {"type": "string"}},
                         {"type": "null"},
                     ]
