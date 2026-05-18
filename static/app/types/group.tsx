@@ -915,8 +915,8 @@ interface GroupActivitySeerRcaStarted extends GroupActivityBase {
 
 interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
   data: {
+    root_cause?: Record<string, any>;
     run_id?: number;
-    summary?: string;
   };
   type: GroupActivityType.SEER_RCA_COMPLETED;
 }
@@ -931,7 +931,7 @@ interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
 interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
   data: {
     run_id?: number;
-    summary?: string;
+    solution?: Record<string, any>;
   };
   type: GroupActivityType.SEER_SOLUTION_COMPLETED;
 }
@@ -945,6 +945,7 @@ interface GroupActivitySeerCodingStarted extends GroupActivityBase {
 
 interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
   data: {
+    changes?: Array<Record<string, any>>;
     run_id?: number;
   };
   type: GroupActivityType.SEER_CODING_COMPLETED;
