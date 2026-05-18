@@ -36,16 +36,6 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export const ISSUE_ACTIVITY_TIMELINE_STATUS = {
-  NEW: 'new',
-} as const;
-
-export type IssueActivityTimelineStatus =
-  | GroupStatus.IGNORED
-  | GroupStatus.RESOLVED
-  | GroupStatus.UNRESOLVED
-  | (typeof ISSUE_ACTIVITY_TIMELINE_STATUS)[keyof typeof ISSUE_ACTIVITY_TIMELINE_STATUS];
-
 const RESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SET_RESOLVED,
   GroupActivityType.SET_RESOLVED_BY_AGE,
@@ -60,74 +50,17 @@ const UNRESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.AUTO_SET_ONGOING,
 ]);
 
-const STATUS_CHANGE_ACTIVITY_TYPES = new Set<GroupActivityType>([
-  ...RESOLVED_ACTIVITY_TYPES,
-  ...UNRESOLVED_ACTIVITY_TYPES,
-  GroupActivityType.SET_IGNORED,
-]);
-
-function getInitialTimelineStatus(status: GroupStatus): IssueActivityTimelineStatus {
-  if (status === GroupStatus.RESOLVED || status === GroupStatus.IGNORED) {
-    return status;
-  }
-  return GroupStatus.UNRESOLVED;
-}
-
-function getStatusBeforeOldestActivity(
-  activity: GroupActivity,
-  currentGroupStatus: GroupStatus
-): IssueActivityTimelineStatus {
-  if (
-    activity.type === GroupActivityType.FIRST_SEEN ||
-    RESOLVED_ACTIVITY_TYPES.has(activity.type) ||
-    activity.type === GroupActivityType.SET_IGNORED
-  ) {
-    return GroupStatus.UNRESOLVED;
-  }
-  if (
-    activity.type === GroupActivityType.SET_UNRESOLVED ||
-    activity.type === GroupActivityType.SET_REGRESSION
-  ) {
+function getActivityStatusChange(item: GroupActivity): GroupStatus | undefined {
+  if (RESOLVED_ACTIVITY_TYPES.has(item.type)) {
     return GroupStatus.RESOLVED;
   }
-  return getInitialTimelineStatus(currentGroupStatus);
-}
-
-function getStatusAfterActivity(
-  activity: GroupActivity,
-  currentStatus: IssueActivityTimelineStatus
-): IssueActivityTimelineStatus {
-  if (activity.type === GroupActivityType.FIRST_SEEN) {
-    return ISSUE_ACTIVITY_TIMELINE_STATUS.NEW;
-  }
-  if (RESOLVED_ACTIVITY_TYPES.has(activity.type)) {
-    return GroupStatus.RESOLVED;
-  }
-  if (activity.type === GroupActivityType.SET_IGNORED) {
+  if (item.type === GroupActivityType.SET_IGNORED) {
     return GroupStatus.IGNORED;
   }
-  if (UNRESOLVED_ACTIVITY_TYPES.has(activity.type)) {
+  if (UNRESOLVED_ACTIVITY_TYPES.has(item.type)) {
     return GroupStatus.UNRESOLVED;
   }
-  return currentStatus;
-}
-
-export function getIssueActivityTimelineStatuses(
-  currentGroupStatus: GroupStatus,
-  activity: GroupActivity[]
-) {
-  const statuses = new Map<string, IssueActivityTimelineStatus>();
-  const oldestActivity = activity.at(-1);
-  let currentStatus = oldestActivity
-    ? getStatusBeforeOldestActivity(oldestActivity, currentGroupStatus)
-    : getInitialTimelineStatus(currentGroupStatus);
-
-  for (const item of activity.toReversed()) {
-    currentStatus = getStatusAfterActivity(item, currentStatus);
-    statuses.set(item.id, currentStatus);
-  }
-
-  return statuses;
+  return undefined;
 }
 
 function getAuthorName(item: GroupActivity) {
@@ -254,9 +187,6 @@ export function StreamlinedActivitySection({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
-  const timelineStatuses = isDrawer
-    ? getIssueActivityTimelineStatuses(group.status, group.activity)
-    : undefined;
 
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -351,10 +281,8 @@ export function StreamlinedActivitySection({
     },
   };
 
-  const getStatusColor = (status: IssueActivityTimelineStatus | undefined) => {
+  const getStatusColor = (status: GroupStatus | undefined) => {
     switch (status) {
-      case ISSUE_ACTIVITY_TIMELINE_STATUS.NEW:
-        return theme.tokens.border.warning.vibrant;
       case GroupStatus.RESOLVED:
         return theme.tokens.border.success.vibrant;
       case GroupStatus.UNRESOLVED:
@@ -366,10 +294,13 @@ export function StreamlinedActivitySection({
   };
 
   const getTimelineIconBorderColor = (item: GroupActivity) => {
-    if (!timelineStatuses || !STATUS_CHANGE_ACTIVITY_TYPES.has(item.type)) {
+    if (!isDrawer) {
       return;
     }
-    const status = timelineStatuses.get(item.id);
+    const status = getActivityStatusChange(item);
+    if (!status) {
+      return;
+    }
     return getStatusColor(status) ?? theme.tokens.border.secondary;
   };
 
