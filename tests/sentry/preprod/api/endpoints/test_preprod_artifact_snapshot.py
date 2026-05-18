@@ -151,6 +151,25 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 400
         assert "detail" in response.data
 
+    def test_snapshot_boolean_tag_values_accepted(self) -> None:
+        url = self._get_create_url()
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "screen.png": {
+                    "content_hash": "abc123",
+                    "width": 375,
+                    "height": 812,
+                    "tags": {"show_background": True, "count": 42},
+                },
+            },
+        }
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(url, data, format="json")
+
+        assert response.status_code != 400
+
     def test_snapshot_invalid_image_schema(self) -> None:
         url = self._get_create_url()
         data = {
