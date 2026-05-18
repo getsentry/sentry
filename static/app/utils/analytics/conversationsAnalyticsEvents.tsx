@@ -19,16 +19,12 @@ export type ConversationsEventParameters = {
   'conversations.table.paginate': {
     direction: 'next' | 'previous';
   };
-  'conversations.table.search': {
-    hasQuery: boolean;
-  };
 };
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
   'conversations.page-view': 'Conversations: Page View',
   'conversations.table.open': 'Conversations: Table Open',
   'conversations.table.paginate': 'Conversations: Table Paginate',
-  'conversations.table.search': 'Conversations: Table Search',
   'conversations.detail.page-view': 'Conversations: Detail Page View',
   'conversations.detail.tab-switch': 'Conversations: Detail Tab Switch',
   'conversations.detail.select-span': 'Conversations: Detail Select Span',

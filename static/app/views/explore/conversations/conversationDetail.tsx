@@ -34,7 +34,7 @@ function ConversationDetailPage() {
     trackAnalytics('conversations.detail.page-view', {
       organization,
     });
-  }, [organization]);
+  }, [organization, conversationId]);
 
   const handleSelectSpan = useCallback(
     (spanId: string) => {

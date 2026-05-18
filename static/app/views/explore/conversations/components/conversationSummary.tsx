@@ -112,11 +112,13 @@ export function ConversationAggregatesBar({
   conversationId,
   isLoading,
   lastMessageDate,
+  onErrorsLinkClick,
 }: {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   lastMessageDate?: Date | null;
+  onErrorsLinkClick?: () => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -140,12 +142,7 @@ export function ConversationAggregatesBar({
         value={<Count value={aggregates.errorCount} />}
         to={aggregates.errorCount > 0 ? errorsUrl : undefined}
         isLoading={isLoading}
-        onClick={
-          aggregates.errorCount > 0
-            ? () =>
-                trackAnalytics('conversations.detail.click-errors-link', {organization})
-            : undefined
-        }
+        onClick={aggregates.errorCount > 0 ? onErrorsLinkClick : undefined}
       />
       <AggregateItem
         label={t('Tokens')}
@@ -321,6 +318,9 @@ export function ConversationSummary({
         conversationId={conversationId}
         isLoading={isLoading}
         lastMessageDate={lastMessageDate}
+        onErrorsLinkClick={() =>
+          trackAnalytics('conversations.detail.click-errors-link', {organization})
+        }
       />
     </Flex>
   );
