@@ -302,7 +302,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
                     aggregation = aggregation(start, end, DEFAULT_TRENDS_WEIGHTS)
-            aggregations.append(aggregation + [alias])
+            aggregations.append(list(aggregation) + [alias])
 
         return aggregations
 
