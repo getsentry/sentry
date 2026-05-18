@@ -1,19 +1,17 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   BuildDetailsApiResponse,
-  SnapshotApprovalStatus,
   SnapshotComparisonState,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
@@ -28,80 +26,21 @@ interface PreprodBuildsSnapshotTableProps {
   onRowClick?: (build: BuildDetailsApiResponse) => void;
 }
 
-function ApprovalBadge({
-  comparisonState,
-  approvalStatus,
-}: {
-  approvalStatus: SnapshotApprovalStatus | null | undefined;
-  comparisonState: SnapshotComparisonState | null | undefined;
-}) {
-  if (!comparisonState) {
-    return <Tag variant="info">{t('Base')}</Tag>;
-  }
-  if (comparisonState !== 'success') {
-    return <Text variant="muted">{'–'}</Text>;
-  }
-  if (approvalStatus === 'approved') {
-    return <Tag variant="success">{t('Approved')}</Tag>;
-  }
-  if (approvalStatus === 'auto_approved') {
-    return <Tag variant="success">{t('Auto Approved')}</Tag>;
-  }
-  if (approvalStatus === 'requires_approval') {
-    return <Tag variant="warning">{t('Needs Approval')}</Tag>;
-  }
-  return <Text variant="muted">{'–'}</Text>;
-}
-
 function ChangeCounts({
   added,
   removed,
   changed,
   unchanged,
   comparisonState,
-  errorMessage,
 }: {
   added: number;
   changed: number;
   comparisonState: SnapshotComparisonState | null | undefined;
-  errorMessage: string | null | undefined;
   removed: number;
   unchanged: number;
 }) {
-  if (!comparisonState) {
+  if (comparisonState !== 'success') {
     return <Text variant="muted">{'–'}</Text>;
-  }
-  if (comparisonState === 'waiting_for_base') {
-    return (
-      <Tooltip
-        title={t(
-          "Base snapshots haven't been uploaded yet. This will resolve automatically within ~10 minutes or fail."
-        )}
-      >
-        <Tag variant="muted">{t('Waiting for base')}</Tag>
-      </Tooltip>
-    );
-  }
-  if (comparisonState === 'pending') {
-    return (
-      <Tooltip title={t('Waiting to start comparison')}>
-        <Tag variant="muted">{t('Pending')}</Tag>
-      </Tooltip>
-    );
-  }
-  if (comparisonState === 'processing') {
-    return (
-      <Tooltip title={t('Comparing against base snapshot')}>
-        <Tag variant="muted">{t('Processing')}</Tag>
-      </Tooltip>
-    );
-  }
-  if (comparisonState === 'failed') {
-    return (
-      <Tooltip title={errorMessage || t('Comparison failed')}>
-        <Tag variant="danger">{t('Failed')}</Tag>
-      </Tooltip>
-    );
   }
   if (added === 0 && removed === 0 && changed === 0) {
     return (
@@ -162,9 +101,10 @@ export function PreprodBuildsSnapshotTable({
             </SimpleTable.RowCell>
           )}
           <SimpleTable.RowCell>
-            <ApprovalBadge
+            <SnapshotStatusBadge
               comparisonState={info?.comparison_state}
               approvalStatus={info?.approval_status}
+              errorMessage={info?.comparison_error_message}
             />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
@@ -174,7 +114,6 @@ export function PreprodBuildsSnapshotTable({
               changed={info?.images_changed ?? 0}
               unchanged={info?.images_unchanged ?? 0}
               comparisonState={info?.comparison_state}
-              errorMessage={info?.comparison_error_message}
             />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="start">

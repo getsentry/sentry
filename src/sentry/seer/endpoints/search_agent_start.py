@@ -15,7 +15,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
+from sentry.hybridcloud.models.outbox import (
+    CellOutbox,
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
@@ -116,7 +121,7 @@ def send_search_agent_start_request(
                         "viewer_context": dict(viewer_context) if viewer_context else None,
                     },
                 ).save()
-        except OutboxFlushError:
+        except (OutboxFlushError, OutboxDatabaseError):
             metrics.incr("seer.outbox_flush_error", tags={"type": "assisted_query"})
             logger.exception(
                 "search_agent.outbox_flush_error",

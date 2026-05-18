@@ -481,7 +481,7 @@ const AddWidgetWrapper = styled('div')`
 
 // eslint-disable-next-line @sentry/no-calling-components-as-functions
 const GridLayout = styled(WidthProvider(Responsive))`
-  margin: -${p => p.theme.space.xl};
+  margin: -${p => p.theme.space.lg} -${p => p.theme.space.xl};
 
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.tokens.background.transparent.accent.muted};

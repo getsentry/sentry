@@ -18,7 +18,7 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
-import {GroupActivityType, GroupStatus} from 'sentry/types/group';
+import {GroupActivityType, GroupStatus, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -386,6 +386,11 @@ export function StreamlinedActivitySection({
     return getStatusColor(status);
   };
 
+  const showSeerActivities = organization.features.includes('seer-activity-timeline');
+  const visibleActivities = showSeerActivities
+    ? group.activity
+    : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
+
   return isDrawer ? (
     <Timeline.Container>
       <NoteInputWithStorage
@@ -399,7 +404,7 @@ export function StreamlinedActivitySection({
         source="issue-details"
         {...noteProps}
       />
-      {group.activity
+      {visibleActivities
         .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
         .map((item, index, displayedActivity) => {
           return (
@@ -441,8 +446,8 @@ export function StreamlinedActivitySection({
           source="issue-details"
           {...noteProps}
         />
-        {group.activity.length < 5 ? (
-          group.activity
+        {visibleActivities.length < 5 ? (
+          visibleActivities
             .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
             .map(item => {
               return (
@@ -459,7 +464,7 @@ export function StreamlinedActivitySection({
             })
         ) : (
           <Fragment>
-            {group.activity.slice(0, 3).map(item => {
+            {visibleActivities.slice(0, 3).map(item => {
               return (
                 <TimelineItem
                   item={item}
@@ -483,10 +488,10 @@ export function StreamlinedActivitySection({
                   analyticsEventKey="issue_details.activity_expanded"
                   analyticsEventName="Issue Details: Activity Expanded"
                   analyticsParams={{
-                    num_activities_hidden: group.activity.length - 3,
+                    num_activities_hidden: visibleActivities.length - 3,
                   }}
                 >
-                  {t('View %s more', group.activity.length - 3)}
+                  {t('View %s more', visibleActivities.length - 3)}
                 </LinkButton>
               }
               icon={<RotatedEllipsisIcon direction="up" />}

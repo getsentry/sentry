@@ -324,12 +324,6 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('User Feedback')}}
             to={`${prefix}/issues/feedback/`}
           />
-          {organization.features.includes('seer-autopilot') && (
-            <CMDKAction
-              display={{label: t('Instrumentation')}}
-              to={`${prefix}/issues/instrumentation/`}
-            />
-          )}
           <CMDKAction display={{label: t('All Views')}} to={`${prefix}/issues/views/`} />
           {starredViews.map(starredView => (
             <CMDKAction

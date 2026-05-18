@@ -1224,6 +1224,28 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
             assert resp.data == {"nonFieldErrors": ['Trigger 2 must be labeled "warning"']}
 
+    def test_update_trigger_id_not_belonging_to_alert_rule(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        alert_rule = self.alert_rule
+        other_alert_rule = self.new_alert_rule(
+            data={**deepcopy(self.alert_rule_dict), "name": "other rule"}
+        )
+        other_trigger = AlertRuleTrigger.objects.filter(alert_rule=other_alert_rule).first()
+        assert other_trigger is not None
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["triggers"][0]["id"] = other_trigger.id
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+            assert "do not belong to this alert rule" in str(resp.data)
+
     def test_update_trigger_alert_threshold(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]

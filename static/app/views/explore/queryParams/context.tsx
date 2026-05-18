@@ -1,14 +1,17 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import type {Location} from 'history';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import type {
   AggregateField,
@@ -35,10 +38,17 @@ interface QueryParamsContextValue {
   setQueryParams: (queryParams: WritableQueryParams) => void;
 }
 
-const [_QueryParamsContextProvider, useQueryParamsContext, QueryParamsContext] =
-  createDefinedContext<QueryParamsContextValue>({
-    name: 'QueryParamsContext',
-  });
+const QueryParamsContext = createContext<QueryParamsContextValue | undefined>(undefined);
+
+function useQueryParamsContext(): QueryParamsContextValue {
+  const context = useContext(QueryParamsContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "QueryParamsContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 interface QueryParamsContextProps {
   children: ReactNode;
@@ -449,18 +459,16 @@ export function useQueryParamsTitle() {
 
 export function useSetQueryParamsSavedQuery() {
   // This by-passes the context entirely because wrapping the modal in the context
-  // is not practical. Instead, we directly use `useLocation` and `useNavigate` to
-  // set the `id` and `title`.
-  const location = useLocation();
-  const navigate = useNavigate();
+  // is not practical. Instead, we directly use nuqs to set the `id` and `title`.
+  const [, setParams] = useQueryStates({
+    [ID_KEY]: parseAsString,
+    [TITLE_KEY]: parseAsString,
+  });
   return useCallback(
     (id: string, title: string) => {
-      const target: Location = {...location, query: {...location.query}};
-      updateNullableLocation(target, ID_KEY, id);
-      updateNullableLocation(target, TITLE_KEY, title);
-      navigate(target);
+      setParams({[ID_KEY]: id, [TITLE_KEY]: title});
     },
-    [location, navigate]
+    [setParams]
   );
 }
 

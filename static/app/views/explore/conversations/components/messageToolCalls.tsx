@@ -6,6 +6,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {getFirstToolInputValue} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -23,6 +25,7 @@ export function MessageToolCalls({
   nodeMap,
   onSelectNode,
 }: MessageToolCallsProps) {
+  const organization = useOrganization();
   return (
     <Flex direction="column" gap="xs" padding="sm md xs md">
       {toolCalls.map(tool => {
@@ -37,6 +40,7 @@ export function MessageToolCalls({
             cursor="pointer"
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
+              trackAnalytics('conversations.message.click-tool-call', {organization});
               if (toolNode) {
                 onSelectNode(toolNode);
               }

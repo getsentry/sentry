@@ -36,6 +36,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.projectbookmark import ProjectBookmark
         from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectkey import ProjectKey
+        from sentry.models.projectrepository import ProjectRepository
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.promptsactivity import PromptsActivity
         from sentry.models.release_threshold import ReleaseThreshold
@@ -75,6 +76,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProjectCodeOwners,
             ReplayRecordingSegment,
             RepositoryProjectPathConfig,
+            ProjectRepository,
             ServiceHookProject,
             ServiceHook,
             UserReport,

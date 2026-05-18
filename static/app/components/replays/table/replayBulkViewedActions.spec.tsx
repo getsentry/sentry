@@ -6,8 +6,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {ReplayBulkViewedActions} from 'sentry/components/replays/table/replayBulkViewedActions';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
@@ -51,22 +49,11 @@ describe('ReplayBulkViewedActions', () => {
   const replay = createReplay();
 
   const deselectAll = jest.fn();
-  const apiUrl = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
-    {
-      path: {
-        organizationIdOrSlug: organization.id,
-        projectIdOrSlug: 2,
-        replayId: replay.id,
-      },
-    }
-  );
-  const queryKey: ApiQueryKey = [apiUrl, {}, {infinite: false}];
-  const queryKeyRef = {current: queryKey};
+  const endpointOptionsRef: ListCheckboxQueryKeyRef = {current: {query: {}}};
 
   const renderWithOrganization = (
     overrides: {
-      queryKeyRef?: ListCheckboxQueryKeyRef;
+      endpointOptionsRef?: ListCheckboxQueryKeyRef;
       replays?: ReplayListRecord[];
       selectedIds?: string[];
     } = {}
@@ -74,7 +61,7 @@ describe('ReplayBulkViewedActions', () => {
     render(
       <ReplayBulkViewedActions
         deselectAll={deselectAll}
-        queryKeyRef={overrides.queryKeyRef ?? queryKeyRef}
+        endpointOptionsRef={overrides.endpointOptionsRef ?? endpointOptionsRef}
         replays={overrides.replays ?? [replay]}
         selectedIds={overrides.selectedIds ?? [replay.id]}
       />,

@@ -12,11 +12,13 @@ from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers.rest_framework import DummyRuleSerializer
 from sentry.models.rule import Rule
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationFormError,
 )
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.samples import create_sample_event
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.migration_helpers.rule_action import (
@@ -36,8 +38,16 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
-
     permission_classes = (ProjectAlertRulePermission,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=50, window=60),
+            }
+        }
+    )
 
     def post(self, request: Request, project) -> Response:
         """

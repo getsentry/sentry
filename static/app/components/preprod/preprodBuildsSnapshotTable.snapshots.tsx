@@ -124,6 +124,26 @@ describe('PreprodBuildsSnapshotTable', () => {
     );
 
     it.snapshot(
+      'status-no-base-build',
+      () =>
+        renderTable(
+          makeBuild({
+            snapshot_comparison_info: {
+              image_count: 24,
+              comparison_state: 'no_base_build',
+              approval_status: null,
+              comparison_error_message: null,
+              images_added: 0,
+              images_removed: 0,
+              images_changed: 0,
+              images_unchanged: 0,
+            },
+          })
+        ),
+      {theme: themeName, state: 'status-no-base-build'}
+    );
+
+    it.snapshot(
       'status-no-comparison',
       () =>
         renderTable(

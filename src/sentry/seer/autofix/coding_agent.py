@@ -437,7 +437,6 @@ def launch_coding_agents_for_run(
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
     user_id: int | None = None,
-    initiator: str | None = None,
     referrer: str | None = None,
 ) -> dict[str, list]:
     """
@@ -541,7 +540,6 @@ def launch_coding_agents_for_run(
             group_id=autofix_state.request.issue["id"],
             referrer=referrer,
             coding_agent=coding_agent_name,
-            initiator=initiator,
         )
     )
 

@@ -3,6 +3,8 @@ import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -92,6 +94,7 @@ function useTrackAnalytics({
   crossEventQueries,
 }: UseTrackAnalyticsProps) {
   const organization = useOrganization();
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const {
     data: {hasExceededPerformanceUsageLimit},
@@ -130,6 +133,7 @@ function useTrackAnalytics({
 
     const dataScanned = aggregatesTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const aiQueryRunId = getRunIdForAnalytics();
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -139,7 +143,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: aggregatesTableResult.result.data?.length || 0,
+      result_length: aggregatesTableResult.result.data?.length ?? 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -157,7 +161,19 @@ function useTrackAnalytics({
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
       cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'spans',
+        mode: Mode.AGGREGATE,
+        orgSlug: organization.slug,
+        referrer: 'spans',
+        resultCount: aggregatesTableResult.result.data?.length ?? 0,
+        runId: aiQueryRunId,
+      });
+    }
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
@@ -192,6 +208,7 @@ function useTrackAnalytics({
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
+    getRunIdForAnalytics,
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSeerSetup,
@@ -226,6 +243,7 @@ function useTrackAnalytics({
 
     const dataScanned = spansTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const aiQueryRunId = getRunIdForAnalytics();
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -235,7 +253,7 @@ function useTrackAnalytics({
       columns: fields,
       columns_count: fields.length,
       query_status,
-      result_length: spansTableResult.result.data?.length || 0,
+      result_length: spansTableResult.result.data?.length ?? 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -254,6 +272,7 @@ function useTrackAnalytics({
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
       cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -276,6 +295,17 @@ function useTrackAnalytics({
       cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'spans',
+        mode: Mode.SAMPLES,
+        orgSlug: organization.slug,
+        referrer: 'spans',
+        resultCount: spansTableResult.result.data?.length ?? 0,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
@@ -283,6 +313,7 @@ function useTrackAnalytics({
     crossEventQueries?.spanQuery,
     dataset,
     fields,
+    getRunIdForAnalytics,
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSeerSetup,
@@ -318,6 +349,9 @@ function useTrackAnalytics({
       : 'given';
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
+
+    // consume aiQueryRunId if there is one - we're not interested in tracking attribute breakdowns
+    getRunIdForAnalytics();
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -388,6 +422,7 @@ function useTrackAnalytics({
     timeseriesResult.isPending,
     title,
     visualizes,
+    getRunIdForAnalytics,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -421,6 +456,7 @@ function useTrackAnalytics({
       : 'given';
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const aiQueryRunId = getRunIdForAnalytics();
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -430,7 +466,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: tracesTableResult.result.data?.json?.data?.length || 0,
+      result_length: tracesTableResult.result.data?.json?.data?.length ?? 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -448,12 +484,25 @@ function useTrackAnalytics({
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
       cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'spans',
+        mode: Mode.SAMPLES,
+        orgSlug: organization.slug,
+        referrer: 'traces',
+        resultCount: tracesTableResult.result.data?.json?.data?.length ?? 0,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     crossEventQueries?.logQuery,
     crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
+    getRunIdForAnalytics,
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSeerSetup,
@@ -599,6 +648,7 @@ export function useLogAnalytics({
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails({traceItemDataset: 'logs'});
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const dataset = DiscoverDatasets.OURLOGS;
   const dataScanned = logsTableResult.meta?.dataScanned ?? '';
@@ -650,6 +700,8 @@ export function useLogAnalytics({
       return;
     }
 
+    const aiQueryRunId = getRunIdForAnalytics();
+
     trackAnalytics('logs.explorer.metadata', {
       organization,
       dataset,
@@ -676,6 +728,7 @@ export function useLogAnalytics({
       user_queries_count: search.tokens.length,
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
 
     info(
@@ -694,6 +747,17 @@ export function useLogAnalytics({
     `,
       {isAnalytics: true}
     );
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'logs',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'logs',
+        resultCount: resultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     organization,
     dataset,
@@ -715,6 +779,7 @@ export function useLogAnalytics({
     resultLengthBox,
     sortBysBox,
     yAxesBox,
+    getRunIdForAnalytics,
   ]);
 
   useEffect(() => {
@@ -731,6 +796,8 @@ export function useLogAnalytics({
       // Auto-refresh causes constant metadata events, so we don't want to track them.
       return;
     }
+
+    const aiQueryRunId = getRunIdForAnalytics();
 
     trackAnalytics('logs.explorer.metadata', {
       organization,
@@ -751,6 +818,7 @@ export function useLogAnalytics({
       user_queries_count: search.tokens.length,
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
+      ai_query_run_id: aiQueryRunId ?? undefined,
     });
 
     info(
@@ -769,6 +837,17 @@ export function useLogAnalytics({
     `,
       {isAnalytics: true}
     );
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'logs',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'logs',
+        resultCount: aggregatesResultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     aggregateSortBysBox,
     aggregatesResultLengthBox,
@@ -790,6 +869,7 @@ export function useLogAnalytics({
     query_status,
     search,
     yAxes,
+    getRunIdForAnalytics,
   ]);
 }
 
@@ -847,6 +927,7 @@ export function useMetricsPanelAnalytics({
   panelIndex?: number;
 }) {
   const organization = useOrganization();
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const dataset = DiscoverDatasets.METRICS;
   const dataScanned =
@@ -932,10 +1013,26 @@ export function useMetricsPanelAnalytics({
     ) {
       return;
     }
+    const aiQueryRunId = getRunIdForAnalytics();
     const attributes = getAttributes('metric samples');
 
-    trackAnalytics('metrics.explorer.panel.metadata', {...attributes, organization});
+    trackAnalytics('metrics.explorer.panel.metadata', {
+      ...attributes,
+      organization,
+      ai_query_run_id: aiQueryRunId ?? undefined,
+    });
     info('metric.explorer.panel.metadata', {...attributes, isAnalytics: true});
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'tracemetrics',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'tracemetrics',
+        resultCount: resultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     organization,
     dataset,
@@ -958,6 +1055,7 @@ export function useMetricsPanelAnalytics({
     aggregateFunctionBox,
     groupBysBox,
     metricTypeBox,
+    getRunIdForAnalytics,
   ]);
 
   useEffect(() => {
@@ -971,9 +1069,25 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
+    const aiQueryRunId = getRunIdForAnalytics();
     const attributes = getAttributes('aggregates');
-    trackAnalytics('metrics.explorer.panel.metadata', {...attributes, organization});
+    trackAnalytics('metrics.explorer.panel.metadata', {
+      ...attributes,
+      organization,
+      ai_query_run_id: aiQueryRunId ?? undefined,
+    });
     info('metric.explorer.panel.metadata', {...attributes, isAnalytics: true});
+
+    if (aiQueryRunId !== null) {
+      trackAiQueryOutcome({
+        dataset: 'tracemetrics',
+        mode,
+        orgSlug: organization.slug,
+        referrer: 'tracemetrics',
+        resultCount: aggregatesResultLengthBox.current,
+        runId: aiQueryRunId,
+      });
+    }
   }, [
     organization,
     dataset,
@@ -993,6 +1107,7 @@ export function useMetricsPanelAnalytics({
     metricNameBox,
     query,
     query_status,
+    getRunIdForAnalytics,
   ]);
 }
 

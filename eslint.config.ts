@@ -1399,6 +1399,9 @@ export default typescript.config([
     ignores: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'error',
+      ...(enableTypeAwareLinting && {
+        '@typescript-eslint/no-unsafe-return': 'error',
+      }),
     },
   },
 ]);

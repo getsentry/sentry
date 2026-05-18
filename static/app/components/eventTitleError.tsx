@@ -1,21 +1,19 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
 export function EventTitleError() {
   return (
     <Flex as="span" wrap="wrap">
-      <Title>{t('<unknown>')}</Title>
+      <Container as="span" marginRight="xs">
+        {t('<unknown>')}
+      </Container>
       <ErrorMessage>{t('There was an error rendering the title')}</ErrorMessage>
     </Flex>
   );
 }
-
-const Title = styled('span')`
-  margin-right: ${p => p.theme.space.xs};
-`;
 
 const ErrorMessage = styled('span')`
   color: ${p => p.theme.colors.red500};
