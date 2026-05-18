@@ -1,12 +1,10 @@
-import logoUnknown from 'sentry-logos/logo-unknown.svg';
-
 import {getLogoImage} from 'sentry/components/events/contexts/contextIcon';
 
 describe('getLogoImage', () => {
   it('maps context icon aliases to platformicons ids', () => {
     expect(getLogoImage('legacy-edge')).toBe('edge-legacy');
     expect(getLogoImage('mac-os-x')).toBe('apple');
-    expect(getLogoImage('google')).toBe('android');
+    expect(getLogoImage('google')).toBe('google');
   });
 
   it('maps prefixed names to supported platformicons ids', () => {
@@ -15,7 +13,13 @@ describe('getLogoImage', () => {
     expect(getLogoImage('firefox-mobile')).toBe('firefox');
   });
 
-  it('returns the unknown logo sentinel when no platform icon exists', () => {
-    expect(getLogoImage('acme-device')).toBe(logoUnknown);
+  it('passes through identifiers shipped by platformicons', () => {
+    expect(getLogoImage('convex')).toBe('convex');
+    expect(getLogoImage('javascript-effect')).toBe('javascript-effect');
+    expect(getLogoImage('javascript-nitro')).toBe('javascript-nitro');
+  });
+
+  it('returns null when no platform icon exists', () => {
+    expect(getLogoImage('acme-device')).toBeNull();
   });
 });

@@ -1,5 +1,4 @@
 import {PlatformIcon, platforms} from 'platformicons';
-import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
@@ -34,7 +33,7 @@ const LOGO_MAPPING: Readonly<Record<string, string>> = {
   edge: 'edge',
   electron: 'electron',
   firefox: 'firefox',
-  google: 'android',
+  google: 'google',
   il: 'unity',
   ios: 'apple',
   ipad: 'apple-ipad',
@@ -78,7 +77,7 @@ const PREFIX_ALIASES: ReadonlyArray<readonly [string, string]> = [
   ['firefox-', 'firefox'],
 ];
 
-export function getLogoImage(name: string) {
+export function getLogoImage(name: string): string | null {
   const mapped = LOGO_MAPPING[name];
   const prefixed = PREFIX_ALIASES.find(([prefix]) => name.startsWith(prefix))?.[1];
   const icon = mapped ?? prefixed ?? name;
@@ -90,7 +89,7 @@ export function getLogoImage(name: string) {
   if (dash > 0 && PLATFORM_ICONS.has(icon.slice(0, dash))) {
     return icon;
   }
-  return logoUnknown;
+  return null;
 }
 
 export interface ContextIconProps {
@@ -103,9 +102,6 @@ export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps)
   const platformIconName = getLogoImage(name);
 
   return (
-    <PlatformIcon
-      platform={platformIconName === logoUnknown ? 'default' : platformIconName}
-      size={size}
-    />
+    <PlatformIcon platform={platformIconName ?? 'default'} size={size} format="lg" />
   );
 }
