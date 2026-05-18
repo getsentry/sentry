@@ -11,11 +11,13 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,6 +41,15 @@ interface ConversationSummaryProps {
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+}
+
+const VISIBLE_TRACE_COUNT = 5;
+const VISIBLE_TOOL_COUNT = 5;
+
+function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
+  return normalizeUrl(
+    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
+  );
 }
 
 interface ConversationAggregates {
@@ -101,11 +112,13 @@ export function ConversationAggregatesBar({
   conversationId,
   isLoading,
   lastMessageDate,
+  onErrorsLinkClick,
 }: {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   lastMessageDate?: Date | null;
+  onErrorsLinkClick?: () => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -114,7 +127,7 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:${conversationId} span.status:internal_error`,
+    query: `gen_ai.conversation.id:"${conversationId.replace(/"/g, '\\"')}" span.status:internal_error`,
   });
 
   return (
@@ -129,6 +142,7 @@ export function ConversationAggregatesBar({
         value={<Count value={aggregates.errorCount} />}
         to={aggregates.errorCount > 0 ? errorsUrl : undefined}
         isLoading={isLoading}
+        onClick={aggregates.errorCount > 0 ? onErrorsLinkClick : undefined}
       />
       <AggregateItem
         label={t('Tokens')}
@@ -168,11 +182,31 @@ export function ConversationAggregatesBar({
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {aggregates.toolNames.map(name => (
+            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
               <Tag key={name} variant="info">
                 {name}
               </Tag>
             ))}
+            {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+              <DropdownMenu
+                size="sm"
+                triggerLabel={
+                  <Text size="sm" variant="muted">
+                    {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                  </Text>
+                }
+                triggerProps={{
+                  size: 'zero',
+                  variant: 'transparent',
+                  showChevron: false,
+                }}
+                items={aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => ({
+                  key: name,
+                  label: <Tag variant="info">{name}</Tag>,
+                  textValue: name,
+                }))}
+              />
+            )}
           </ToolTagsRow>
         )
       )}
@@ -193,6 +227,7 @@ export function ConversationSummary({
   }, [nodes]);
 
   const handleCopyConversationId = () => {
+    trackAnalytics('conversations.detail.copy-conversation-id', {organization});
     copyToClipboard(conversationId, {
       successMessage: t('Copied conversation ID to clipboard'),
     });
@@ -218,7 +253,7 @@ export function ConversationSummary({
         <Tooltip title={t('Copy conversation ID')}>
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy conversation ID')}
             icon={<IconCopy size="xs" />}
             onClick={handleCopyConversationId}
@@ -229,7 +264,7 @@ export function ConversationSummary({
             <Text size="sm" variant="muted">
               {traces.length === 1 ? t('Trace') : t('Traces')}
             </Text>
-            {traces.map((trace, i) => (
+            {traces.slice(0, VISIBLE_TRACE_COUNT).map((trace, i) => (
               <Flex key={trace.traceId} align="baseline" gap="xs">
                 {i > 0 && (
                   <Text size="sm" variant="muted">
@@ -237,16 +272,44 @@ export function ConversationSummary({
                   </Text>
                 )}
                 <StyledLink
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/explore/traces/trace/${trace.traceId}/?node=span-${trace.spanId}`
-                  )}
+                  to={getTraceUrl(organization.slug, trace.traceId, trace.spanId)}
+                  onClick={() =>
+                    trackAnalytics('conversations.detail.click-trace-link', {
+                      organization,
+                    })
+                  }
                 >
-                  <Text size="sm" monospace>
+                  <Text size="sm" monospace variant="accent">
                     {trace.traceId.slice(0, 8)}
                   </Text>
                 </StyledLink>
               </Flex>
             ))}
+            {traces.length > VISIBLE_TRACE_COUNT && (
+              <DropdownMenu
+                size="sm"
+                triggerLabel={
+                  <Text size="sm" variant="muted">
+                    {t('+%s more', traces.length - VISIBLE_TRACE_COUNT)}
+                  </Text>
+                }
+                triggerProps={{
+                  size: 'zero',
+                  variant: 'transparent',
+                  showChevron: false,
+                }}
+                items={traces.slice(VISIBLE_TRACE_COUNT).map(trace => ({
+                  key: trace.traceId,
+                  label: (
+                    <Text size="sm" monospace>
+                      {trace.traceId.slice(0, 8)}
+                    </Text>
+                  ),
+                  textValue: trace.traceId,
+                  to: getTraceUrl(organization.slug, trace.traceId, trace.spanId),
+                }))}
+              />
+            )}
           </Flex>
         )}
       </Flex>
@@ -255,6 +318,9 @@ export function ConversationSummary({
         conversationId={conversationId}
         isLoading={isLoading}
         lastMessageDate={lastMessageDate}
+        onErrorsLinkClick={() =>
+          trackAnalytics('conversations.detail.click-errors-link', {organization})
+        }
       />
     </Flex>
   );
@@ -265,10 +331,12 @@ function AggregateItem({
   value,
   to,
   isLoading,
+  onClick,
 }: {
   label: string;
   value: React.ReactNode;
   isLoading?: boolean;
+  onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
@@ -289,7 +357,11 @@ function AggregateItem({
   );
 
   if (isInteractive) {
-    return <StyledLink to={to}>{content}</StyledLink>;
+    return (
+      <StyledLink to={to} onClick={onClick}>
+        {content}
+      </StyledLink>
+    );
   }
 
   return content;

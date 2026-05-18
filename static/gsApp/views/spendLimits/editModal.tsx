@@ -235,7 +235,7 @@ class SpendLimitsEditModal extends Component<Props, State> {
             >
               {t('Cancel')}
             </Button>
-            <Button priority="primary" onClick={this.handleSave}>
+            <Button variant="primary" onClick={this.handleSave}>
               {t('Save')}
             </Button>
           </Grid>

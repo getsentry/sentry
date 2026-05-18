@@ -246,7 +246,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         filters = [
             {
                 "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": GroupCategory.PERFORMANCE.value,
+                "value": GroupCategory.MOBILE.value,
             }
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)

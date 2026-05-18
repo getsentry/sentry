@@ -280,7 +280,7 @@ class GitHubApiClientTest(TestCase):
             body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert (
             responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
@@ -333,7 +333,7 @@ class GitHubApiClientTest(TestCase):
                 status=404,
             )
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert result is None
 

@@ -45,7 +45,7 @@ class RepositoryService(RpcService):
         *,
         organization_id: int,
         integration_id: int | None = None,
-        external_id: int | None = None,
+        external_id: str | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
@@ -98,6 +98,23 @@ class RepositoryService(RpcService):
         """
         Disables specific repositories by external_id for a given integration.
         Only active repositories are affected. Code mappings and commits are preserved.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def find_recently_active_repo_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+        cutoff_days: int,
+    ) -> list[str]:
+        """
+        Of the given ``external_ids`` (scoped to the org/integration/provider),
+        return the subset whose underlying ``Repository`` rows have at least one
+        commit, pull request, or code review event in the last ``cutoff_days``.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

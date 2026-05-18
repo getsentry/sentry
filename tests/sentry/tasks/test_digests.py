@@ -1,6 +1,8 @@
 import uuid
+from contextlib import contextmanager
 from unittest import mock
 
+import pytest
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
@@ -12,6 +14,7 @@ from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
@@ -76,3 +79,15 @@ class DeliverDigestTest(TestCase):
     def test_no_records(self) -> None:
         # This shouldn't error if no records are present
         deliver_digest(f"mail:p:{self.project.id}:IssueOwners:")
+
+    def test_unable_to_acquire_lock_propagates(self) -> None:
+        @contextmanager
+        def raise_lock_error(*args, **kwargs):
+            raise UnableToAcquireLock("test lock contention")
+            yield  # type: ignore[unreachable]
+
+        with mock.patch.object(sentry, "digests") as digests:
+            digests.backend.digest = raise_lock_error
+            key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
+            with pytest.raises(UnableToAcquireLock):
+                deliver_digest(key)

@@ -12,6 +12,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
+
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
@@ -154,7 +158,7 @@ describe('MetricsSection', () => {
     expect(screen.queryByText(/Metrics/)).not.toBeInTheDocument();
   });
 
-  it('renders empty when no metrics data', () => {
+  it('renders empty when no metrics data', async () => {
     const mockRequestEmpty = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -167,8 +171,12 @@ describe('MetricsSection', () => {
       organization,
     });
 
-    expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText(/Metrics/)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/Metrics/)).not.toBeInTheDocument();
+    });
   });
 
   it('renders metrics section with data', async () => {
@@ -184,7 +192,9 @@ describe('MetricsSection', () => {
       },
     });
 
-    expect(mockRequest).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/Metrics/)).toBeInTheDocument();
@@ -222,7 +232,9 @@ describe('MetricsSection', () => {
       organization,
     });
 
-    expect(mockRequestWithManyMetrics).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockRequestWithManyMetrics).toHaveBeenCalledTimes(1);
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/Metrics/)).toBeInTheDocument();
@@ -268,7 +280,9 @@ describe('MetricsSection', () => {
       },
     });
 
-    expect(mockRequestWithManyMetrics).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockRequestWithManyMetrics).toHaveBeenCalledTimes(1);
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/Metrics/)).toBeInTheDocument();
@@ -284,9 +298,9 @@ describe('MetricsSection', () => {
     expect(aside).toBeInTheDocument();
 
     // Check that the drawer contains the expected elements
-    expect(within(aside).getByText('Metrics')).toBeInTheDocument();
+    expect(within(aside).getByText('Application Metrics')).toBeInTheDocument();
     expect(
-      within(aside).getByPlaceholderText('Search metrics for this trace')
+      within(aside).getByPlaceholderText('Search application metrics for this trace')
     ).toBeInTheDocument();
   });
 
@@ -319,7 +333,9 @@ describe('MetricsSection', () => {
       organization,
     });
 
-    expect(mockRequestWithFewMetrics).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockRequestWithFewMetrics).toHaveBeenCalledTimes(1);
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/Metrics/)).toBeInTheDocument();

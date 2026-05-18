@@ -273,7 +273,7 @@ export function usePRWidgetData({
         ) : (
           <Button
             size="sm"
-            priority="primary"
+            variant="primary"
             onClick={handleCreateAllPRs}
             icon={<IconUpload />}
           >

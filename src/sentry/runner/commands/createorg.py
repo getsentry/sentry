@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import click
+from django.conf import settings
 
 from sentry.runner.decorators import configuration
 
@@ -37,12 +38,18 @@ def createorg(
         OrganizationProvisioningException,
         organization_provisioning_service,
     )
+    from sentry.users.models.user import User
+    from sentry.users.services.user.serial import serialize_generic_user
+
+    owner = User.objects.get(email=owner_email)
+    rpc_owner = serialize_generic_user(owner)
+    assert rpc_owner  # remove None
 
     provision_args = OrganizationProvisioningOptions(
         provision_options=OrganizationOptions(
             name=name,
             slug=slug or name,
-            owning_email=owner_email,
+            owner=rpc_owner,
             create_default_team=not no_default_team,
         ),
         post_provision_options=PostProvisionOptions(),
@@ -50,6 +57,7 @@ def createorg(
 
     try:
         rpc_org = organization_provisioning_service.provision_organization_in_cell(
+            cell_name=settings.SENTRY_MONOLITH_REGION,
             provisioning_options=provision_args,
         )
     except OrganizationProvisioningException as e:

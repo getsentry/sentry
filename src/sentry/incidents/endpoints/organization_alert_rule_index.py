@@ -10,6 +10,7 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Q,
+    QuerySet,
     Subquery,
     Value,
     When,
@@ -31,6 +32,7 @@ from sentry.api.bases.organization import OrganizationAlertRulePermission, Organ
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -38,11 +40,12 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
@@ -99,7 +102,6 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import (
     Detector,
@@ -194,7 +196,7 @@ def create_metric_alert(
         raise ValidationError(validator.errors)
 
     try:
-        trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
+        trigger_sentry_app_action_creators_for_incidents(validator.validated_data, organization)
     except SentryAppBaseError as e:
         return e.response_from_exception()
 
@@ -333,14 +335,11 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-        prefilling_for_deprecation = (
-            "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-        )
         alert_specs = get_default_version_alert_metric_specs(
             project,
             enabled_features,
             prefilling,
-            prefilling_for_deprecation=prefilling_for_deprecation,
+            prefilling_for_deprecation=False,
         )
 
         return Response(
@@ -400,7 +399,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         projects: Sequence[Project],
-        teams_query: BaseQuerySet[Team] | None,
+        teams_query: QuerySet[Team] | None,
         unassigned: bool | None,
         name: str | None,
         datasets: list[str],
@@ -915,8 +914,8 @@ Metric alert rule trigger actions follow the following structure:
 class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAlertRulePermission,)
     workflow_engine_method_flags = {
@@ -938,6 +937,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated
@@ -969,6 +969,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated
@@ -1127,9 +1128,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            alert_rules = AlertRule.objects.fetch_for_organization(organization=organization)
             # filter out alert rules without any projects
-            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
+            alert_count = alert_rules.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
                 log_alerting_quota_hit(

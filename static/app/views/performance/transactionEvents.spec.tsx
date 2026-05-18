@@ -9,6 +9,13 @@ import TransactionSummaryLayout from 'sentry/views/performance/transactionSummar
 import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
+// TODO: covers the legacy (non-EAP) path. useTransactionSummaryEAP now
+// always returns true after the flag graduated; mock back to false until
+// the legacy paths are deleted.
+jest.mock('sentry/views/performance/eap/useTransactionSummaryEAP', () => ({
+  useTransactionSummaryEAP: () => false,
+}));
+
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
 
 const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
@@ -175,6 +182,15 @@ describe('Performance > TransactionSummary', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      match: [
+        (_url, options) => {
+          return options.query?.dataset === 'spans';
+        },
+      ],
     });
   });
 

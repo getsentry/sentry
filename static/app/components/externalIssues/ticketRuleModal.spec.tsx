@@ -3,14 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {
   makeClosableHeader,
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import type {IssueConfigField} from 'sentry/types/integrations';
 

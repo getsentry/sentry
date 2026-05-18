@@ -12,7 +12,7 @@ describe('DashboardsSecondaryNavigation', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['dashboards-starred-reordering'],
+      features: ['dashboards-prebuilt-insights-dashboards'],
     });
 
     MockApiClient.addMockResponse({
@@ -21,7 +21,7 @@ describe('DashboardsSecondaryNavigation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/starred/`,
+      url: `/organizations/${organization.slug}/dashboards/`,
       body: [
         DashboardListItemFixture({
           id: '9999',
@@ -32,6 +32,7 @@ describe('DashboardsSecondaryNavigation', () => {
           title: 'Dashboard 1',
         }),
       ],
+      match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
     });
   });
 
@@ -47,6 +48,8 @@ describe('DashboardsSecondaryNavigation', () => {
 
     expect(screen.getAllByRole('link').map(el => el.textContent)).toEqual([
       'All Dashboards',
+      'Custom Dashboards',
+      'Sentry Built',
       'Dashboard 9999',
       'Dashboard 1',
     ]);

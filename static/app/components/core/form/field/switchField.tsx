@@ -35,7 +35,7 @@ export function SwitchField({
               }
             }}
           />
-          {indicator}
+          {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
         </Flex>
       )}
     </BaseField>

@@ -4,9 +4,9 @@ import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';

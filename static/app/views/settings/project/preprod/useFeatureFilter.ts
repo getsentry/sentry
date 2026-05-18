@@ -6,7 +6,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 export type PreprodEnabledWriteKey =
@@ -16,7 +16,7 @@ export type PreprodEnabledWriteKey =
 interface UseFeatureFilterOptions {
   enabledReadKey: string;
   enabledWriteKey: PreprodEnabledWriteKey;
-  project: Project;
+  project: DetailedProject;
   queryReadKey: string;
   queryWriteKey: string;
   successMessage: string;

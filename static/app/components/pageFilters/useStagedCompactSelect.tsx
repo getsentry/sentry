@@ -66,13 +66,23 @@ function stagingReducer<Value extends SelectKey>(
     case 'toggle': {
       const newSet = new Set(action.currentStaged);
       newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-      return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
+      const stagedValue = Array.from(newSet);
+      return {
+        ...state,
+        stagedValue,
+        lastSelected: stagedValue.length === 0 ? null : action.val,
+      };
     }
     case 'toggle range': {
       if (state.lastSelected === null) {
         const newSet = new Set(action.currentStaged);
         newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-        return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
+        const stagedValue = Array.from(newSet);
+        return {
+          ...state,
+          stagedValue,
+          lastSelected: stagedValue.length === 0 ? null : action.val,
+        };
       }
 
       // Only include options visible in the current filtered state so that
@@ -92,7 +102,12 @@ function stagingReducer<Value extends SelectKey>(
         // Anchor or clicked item not visible — fall back to single toggle
         const newSet = new Set(action.currentStaged);
         newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-        return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
+        const stagedValue = Array.from(newSet);
+        return {
+          ...state,
+          stagedValue,
+          lastSelected: stagedValue.length === 0 ? null : action.val,
+        };
       }
 
       const targetState = !action.currentStaged.includes(action.val);
@@ -112,7 +127,11 @@ function stagingReducer<Value extends SelectKey>(
         return aIdx - bIdx;
       });
 
-      return {...state, stagedValue: sortedValue, lastSelected: action.val};
+      return {
+        ...state,
+        stagedValue: sortedValue,
+        lastSelected: sortedValue.length === 0 ? null : action.val,
+      };
     }
     case 'remove staged':
       return {...state, stagedValue: null};

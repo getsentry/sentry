@@ -32,7 +32,7 @@ interface AssignedMessageProps {
 
 function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
   const {data} = activity;
-  let assignee: string | User | undefined = undefined;
+  let assignee: string | User | undefined;
   const {teams} = useTeamsById(
     data.assigneeType === 'team' ? {ids: [data.assignee]} : undefined
   );
@@ -373,6 +373,21 @@ export function GroupActivityItem({
         }
         return tct('[author] marked this issue as resolved in a commit', {author});
       }
+      case GroupActivityType.REFERENCED_IN_COMMIT: {
+        if (activity.data.commit) {
+          return tct('[author] referenced this issue in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] referenced this issue in a commit', {author});
+      }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
@@ -605,6 +620,29 @@ export function GroupActivityItem({
       }
       case GroupActivityType.DELETED_ATTACHMENT:
         return tct('[author] deleted an attachment', {author});
+      case GroupActivityType.SEER_RCA_STARTED:
+        return t('Seer started analyzing the root cause');
+      case GroupActivityType.SEER_RCA_COMPLETED:
+        return t('Seer completed root cause analysis');
+      case GroupActivityType.SEER_SOLUTION_STARTED:
+        return t('Seer started developing a solution');
+      case GroupActivityType.SEER_SOLUTION_COMPLETED:
+        return t('Seer completed developing a solution');
+      case GroupActivityType.SEER_CODING_STARTED:
+        return t('Seer started implementing a fix');
+      case GroupActivityType.SEER_CODING_COMPLETED:
+        return t('Seer completed implementing a fix');
+      case GroupActivityType.SEER_PR_CREATED: {
+        const {data: prData} = activity;
+        const pr = prData.pull_requests?.[0];
+        if (pr) {
+          return tct('Seer created a [link:pull request] in [repo]', {
+            link: <ExternalLink href={pr.pull_request.pr_url} />,
+            repo: pr.repo_name,
+          });
+        }
+        return t('Seer created a pull request');
+      }
       default:
         return ''; // should never hit (?)
     }

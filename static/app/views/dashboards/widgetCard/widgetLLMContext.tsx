@@ -11,7 +11,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
  */
 export function readableConditions(query: string): string {
   return Object.entries(OP_LABELS)
-    .filter(([key]) => key.includes('\uf00d'))
+    .filter(([key]) => key.includes('\uF00D'))
     .reduce((s, [key, label]) => s.replaceAll(key, ` ${label} `), query);
 }
 

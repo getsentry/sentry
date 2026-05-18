@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django import forms
 from django.db import router, transaction
 from rest_framework import serializers
@@ -20,7 +24,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
 
 
-class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
+class AlertRuleTriggerSerializer(CamelSnakeModelSerializer[AlertRuleTrigger]):
     """
     Serializer for creating/updating an alert rule trigger. Required context:
      - `alert_rule`: The alert_rule related to this trigger.
@@ -41,7 +45,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         fields = ["id", "label", "alert_threshold", "excluded_projects", "actions"]
         extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> AlertRuleTrigger:
         with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
             try:
                 actions = validated_data.pop("actions", None)
@@ -60,7 +64,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         self._handle_actions(alert_rule_trigger, actions)
         return alert_rule_trigger
 
-    def update(self, instance, validated_data):
+    def update(
+        self, instance: AlertRuleTrigger, validated_data: dict[str, Any]
+    ) -> AlertRuleTrigger:
         actions = validated_data.pop("actions")
         if "id" in validated_data:
             validated_data.pop("id")
@@ -74,7 +80,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
-    def _handle_actions(self, alert_rule_trigger, actions):
+    def _handle_actions(
+        self, alert_rule_trigger: AlertRuleTrigger, actions: list[dict[str, Any]] | None
+    ) -> None:
         channel_lookup_timeout_error = None
         if actions is not None:
             # Delete actions we don't have present in the updated data.

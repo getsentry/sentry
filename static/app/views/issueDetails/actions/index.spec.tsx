@@ -14,6 +14,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {
   CMDKCollection,
   CommandPaletteProvider,
@@ -21,10 +23,8 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
@@ -95,7 +95,6 @@ describe('GroupActions', () => {
 
   beforeEach(() => {
     ConfigStore.init();
-    MemberListStore.reset();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -489,13 +488,12 @@ describe('GroupActions', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
         method: 'GET',
-        body: [],
+        body: [
+          UserFixture({id: '1', name: 'Test User'}),
+          UserFixture({id: '2', name: 'Grace Hopper'}),
+          UserFixture({id: '7', name: 'Ada Lovelace'}),
+        ].map(user => ({user})),
       });
-      MemberListStore.loadInitialData([
-        UserFixture({id: '1', name: 'Test User'}),
-        UserFixture({id: '2', name: 'Grace Hopper'}),
-        UserFixture({id: '7', name: 'Ada Lovelace'}),
-      ]);
     });
 
     function renderWithCommandPalette(commandGroup: Group) {

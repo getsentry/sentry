@@ -1,19 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
-import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
+import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
 import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -93,8 +95,15 @@ export function IssueListTable({
         {tourProps => (
           <div {...tourProps}>
             <ContainerPanel>
-              <IssueSelectionProvider visibleGroupIds={groupIds}>
-                {(groupIds.length > 0 || issuesLoading) && (
+              <IssueListBulkCommandPaletteActions
+                query={query}
+                queryCount={queryCount}
+                selection={selection}
+                groupIds={groupIds}
+                onActionTaken={onActionTaken}
+              />
+              {(groupIds.length > 0 || issuesLoading) && (
+                <HoverOverlayGroupProvider>
                   <IssueListActions
                     selection={selection}
                     query={query}
@@ -107,7 +116,9 @@ export function IssueListTable({
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
                   />
-                )}
+                </HoverOverlayGroupProvider>
+              )}
+              <HoverOverlayGroupProvider>
                 <PanelBody>
                   <VisuallyCompleteWithData
                     hasData={groupIds.length > 0}
@@ -131,7 +142,7 @@ export function IssueListTable({
                     />
                   </VisuallyCompleteWithData>
                 </PanelBody>
-              </IssueSelectionProvider>
+              </HoverOverlayGroupProvider>
             </ContainerPanel>
           </div>
         )}

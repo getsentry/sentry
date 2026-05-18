@@ -163,6 +163,19 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         )
         assert resp.status_code == 400
 
+    def test_login_suspended_user(self) -> None:
+        self.user.update(is_suspended=True)
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+        )
+        assert resp.status_code == 200
+        assert b"Your account has been suspended." in resp.content
+        assert "_auth_user_id" not in self.client.session
+
     def test_login_valid_credentials_2fa_redirect(self) -> None:
         user = self.create_user("bar@example.com")
         RecoveryCodeInterface().enroll(user)

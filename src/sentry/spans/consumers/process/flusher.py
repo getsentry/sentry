@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import multiprocessing.context
+import multiprocessing.process
 import threading
 import time
 from collections.abc import Callable, Mapping
@@ -329,7 +330,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     continue
 
                 with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
-                    for flushed_segment in flushed_segments.values():
+                    for segment_key, flushed_segment in flushed_segments.items():
                         if not flushed_segment.spans:
                             continue
 
@@ -365,7 +366,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                     project_id=project_id,
                                     key_id=None,
                                     outcome=Outcome.INVALID,
-                                    reason="segment_too_large",
+                                    reason="failed_to_produce",
                                     category=DataCategory.SPAN_INDEXED,
                                     quantity=dropped,
                                 )
@@ -425,7 +426,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self.process_restarts[process_index] += 1
 
             try:
-                if isinstance(process, multiprocessing.Process):
+                if isinstance(process, multiprocessing.process.BaseProcess):
+                    if process.is_alive():
+                        metrics.incr("spans.buffer.flusher.killed_live_process")
                     process.kill()
             except (ValueError, AttributeError):
                 pass  # Process already closed, ignore
@@ -517,15 +520,15 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self.next_step.join(timeout)
 
-        # Wait for all processes to finish
+        # Wait for all processes to finish, then kill them
         for process_index, process in self.processes.items():
-            if deadline is not None:
-                remaining_time = deadline - time.time()
-                if remaining_time <= 0:
-                    break
-
             while process.is_alive() and (deadline is None or deadline > time.time()):
                 time.sleep(0.1)
 
-            if isinstance(process, multiprocessing.Process):
-                process.terminate()
+            if isinstance(process, multiprocessing.process.BaseProcess):
+                try:
+                    if process.is_alive():
+                        metrics.incr("spans.buffer.flusher.killed_live_process")
+                    process.kill()
+                except (ValueError, AttributeError):
+                    pass  # Process already closed, ignore

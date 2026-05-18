@@ -3,6 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -56,6 +57,7 @@ export function LogsTabSeerComboBox() {
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryContext();
   const {
     currentInputValueRef,
     query,
@@ -134,7 +136,7 @@ export function LogsTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) return;
       const {
         query: queryToUse,
@@ -242,17 +244,16 @@ export function LogsTabSeerComboBox() {
         mode,
       });
 
-      trackAnalytics('logs.ai_query_applied', {
-        organization,
-        query: queryToUse,
-        group_by_count: groupBys.length,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
         query: queryToUse,
         group_by_count: groupBys.length,
       });
+
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
 
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
@@ -265,6 +266,7 @@ export function LogsTabSeerComboBox() {
       organization,
       pageFilters.selection,
       queryParams.aggregateFields,
+      setRunId,
     ]
   );
 
@@ -322,7 +324,6 @@ export function LogsTabSeerComboBox() {
       strategy="Logs"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="logs"
       fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );

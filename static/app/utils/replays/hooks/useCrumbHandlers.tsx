@@ -23,7 +23,7 @@ type RecordType = {
 
 function getNodeIdAndLabel(record: RecordType) {
   if (!record.data || typeof record.data !== 'object') {
-    return undefined;
+    return;
   }
   const data = record.data;
   if (
@@ -42,7 +42,7 @@ function getNodeIdAndLabel(record: RecordType) {
   if ('nodeIds' in data) {
     return {nodeIds: data.nodeIds, annotation: record.data.label};
   }
-  return undefined;
+  return;
 }
 
 export function useCrumbHandlers() {

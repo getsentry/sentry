@@ -1,5 +1,6 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -10,9 +11,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {tn} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,7 +26,7 @@ import {
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
-import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
+import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
 export function useUptimeIssueDetectorId({
   groupId,
@@ -46,19 +45,17 @@ export function useUptimeIssueDetectorId({
 
   const hasUptimeDetector = detectorId && detectorType === 'uptime_monitor';
 
-  const {data: event} = useApiQuery<Event>(
-    getGroupEventQueryKey({
+  const {data: event} = useQuery({
+    ...groupEventApiOptions({
       orgSlug: organization.slug,
       groupId,
       eventId: user.options.defaultIssueEvent,
       environments: [],
     }),
-    {
-      staleTime: Infinity,
-      enabled: !hasUptimeDetector,
-      retry: false,
-    }
-  );
+    staleTime: Infinity,
+    enabled: !hasUptimeDetector,
+    retry: false,
+  });
 
   const evidenceDetectorId = event?.occurrence?.evidenceData.detectorId
     ? String(event?.occurrence?.evidenceData.detectorId)

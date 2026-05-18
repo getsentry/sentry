@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Literal
 
 import sentry_sdk
@@ -13,8 +14,8 @@ from sentry.analytics.events.ai_autofix_pr_events import (
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.utils import get_autofix_state_from_pr_id
-from sentry.seer.explorer.client_utils import get_explorer_state_from_pr_id
 from sentry.utils import metrics
 
 AnalyticAction = Literal["opened", "closed", "merged"]
@@ -23,6 +24,12 @@ ACTION_TO_EVENTS: dict[AnalyticAction, type[AiAutofixPrEvent]] = {
     "merged": AiAutofixPrMergedEvent,
     "closed": AiAutofixPrClosedEvent,
     "opened": AiAutofixPrOpenedEvent,
+}
+
+ACTION_TO_TIMESTAMP_FIELD: dict[AnalyticAction, str] = {
+    "opened": "created_at",
+    "merged": "merged_at",
+    "closed": "closed_at",
 }
 
 
@@ -58,6 +65,8 @@ def record_pr_action_analytic(
     if pull_request["merged"]:
         analytic_action = "merged"
 
+    sent_at = _get_pr_timestamp_ms(pull_request, analytic_action)
+
     autofix_state = get_autofix_state_from_pr_id("integrations:github", pull_request["id"])
     if autofix_state:
         analytics.record(
@@ -68,19 +77,18 @@ def record_pr_action_analytic(
                 group_id=autofix_state.request.issue["id"],
                 run_id=autofix_state.run_id,
                 github_app=github_app,
+                sent_at=sent_at,
             )
         )
 
         metrics.incr(f"ai.autofix.pr.{analytic_action}")
         return
 
-    explorer_state = get_explorer_state_from_pr_id(
-        org.id, "integrations:github", pull_request["id"]
-    )
-    if explorer_state:
-        group_id = explorer_state.metadata.get("group_id") if explorer_state.metadata else None
+    agent_state = get_agent_state_from_pr_id(org.id, "integrations:github", pull_request["id"])
+    if agent_state:
+        group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
         if group_id is None:
-            raise ValueError(f"Missing group id in explorer run {explorer_state.run_id}")
+            raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
         group = Group.objects.get(id=group_id, project__organization_id=org.id)
 
         analytics.record(
@@ -89,13 +97,20 @@ def record_pr_action_analytic(
                 integration=IntegrationProviderSlug.GITHUB.value,
                 project_id=group.project.id,
                 group_id=group.id,
-                run_id=explorer_state.run_id,
+                run_id=agent_state.run_id,
                 github_app=github_app,
-                referrer=explorer_state.metadata.get("referrer")
-                if explorer_state.metadata
-                else None,
+                sent_at=sent_at,
+                referrer=agent_state.metadata.get("referrer") if agent_state.metadata else None,
             )
         )
 
         metrics.incr(f"ai.autofix.pr.{analytic_action}", tags={"mode": "explorer"})
         return
+
+
+def _get_pr_timestamp_ms(pull_request: dict[str, Any], action: AnalyticAction) -> int:
+    ts_field = ACTION_TO_TIMESTAMP_FIELD[action]
+    ts_value = pull_request.get(ts_field)
+    if ts_value:
+        return int(datetime.fromisoformat(ts_value).timestamp() * 1000)
+    return int(datetime.fromisoformat(pull_request["updated_at"]).timestamp() * 1000)

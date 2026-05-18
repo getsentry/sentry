@@ -14,17 +14,34 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 interface AutofixEvidenceProps {
   evidenceButtonProps: EvidenceButtonProps;
+  groupId: string;
+  toolCall: ToolCall;
 }
 
-export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
+export function AutofixEvidence({
+  evidenceButtonProps,
+  groupId,
+  toolCall,
+}: AutofixEvidenceProps) {
+  const organization = useOrganization();
   const {label, icon, tooltip, ...rest} = evidenceButtonProps;
+
+  const handleClick = () => {
+    trackAnalytics('autofix.evidence.clicked', {
+      organization,
+      group_id: groupId,
+      tool_name: toolCall.function,
+    });
+  };
 
   if ('to' in rest && defined(rest.to)) {
     return (
@@ -32,6 +49,8 @@ export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
         icon={icon}
         size="zero"
         to={rest.to}
+        openInNewTab
+        onClick={handleClick}
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
         {label}
@@ -46,6 +65,7 @@ export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
         size="zero"
         href={rest.href}
         external
+        onClick={handleClick}
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
         {label}
@@ -91,7 +111,7 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -137,7 +157,7 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -172,7 +192,7 @@ function getIssueDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -199,7 +219,7 @@ function getReplayDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -226,7 +246,7 @@ function getProfileFlamegraphEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -255,17 +275,34 @@ function getCodeSearchEvidenceProps({
       return null;
     }
     const filename = extractFileName(path);
-    const {code_url} = toolLink?.params ?? {};
+    const {code_url, start_line, end_line} = toolLink?.params ?? {};
 
     if (!defined(filename) || !defined(code_url)) {
       return null;
     }
 
+    const lines =
+      start_line && end_line
+        ? start_line === end_line
+          ? `L${start_line}`
+          : `L${start_line}-L${end_line}`
+        : undefined;
+
     return {
-      href: code_url,
+      href: lines ? `${code_url}#${lines}` : code_url,
       icon: <IconFile />,
-      label: t('File: %s', truncateText(filename)),
-      tooltip: path,
+      label: t('File: %s%s', truncateText(filename), lines ? ` ${lines}` : ''),
+      tooltip: (
+        <Fragment>
+          {path}
+          {lines && (
+            <Fragment>
+              <br />
+              {lines}
+            </Fragment>
+          )}
+        </Fragment>
+      ),
     };
   }
 

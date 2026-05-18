@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,7 +15,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -42,9 +42,7 @@ type PaginationState = {
 };
 
 export function AttributeDistribution() {
-  const [searchQuery, setSearchQuery] = useQueryParamState({
-    fieldName: 'attributeBreakdownsSearch',
-  });
+  const [searchQuery, setSearchQuery] = useQueryState('attributeBreakdownsSearch');
 
   // Little unconventional, but the /trace-items/stats/ endpoint but recommends fetching
   // more data than we need to display the current page. We maintain a cursor to fetch the next page,

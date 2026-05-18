@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,6 +16,8 @@ import {
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
 export function TicketActionSettingsButton() {
+  const {openModal} = useModal();
+
   const {action, onUpdate} = useActionNodeContext();
   const {automation} = useAutomationFormContext();
 
@@ -31,7 +33,8 @@ export function TicketActionSettingsButton() {
         // Overwrite the choices because the user's pick is in this list.
         if (
           field.name in formData &&
-          fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+          fetchedFieldOptionsCache &&
+          Object.hasOwn(fetchedFieldOptionsCache, field.name)
         ) {
           field.choices = fetchedFieldOptionsCache[field.name];
         }
@@ -48,14 +51,14 @@ export function TicketActionSettingsButton() {
 
   // Find saved action data from the API response
   const savedActionData = useMemo(() => {
-    if (!automation) return undefined;
+    if (!automation) return;
 
     for (const af of automation.actionFilters) {
       const found = af.actions?.find(a => a.id === action.id);
       if (found) return found.data;
     }
 
-    return undefined;
+    return;
   }, [automation, action.id]);
 
   const additionalFields =

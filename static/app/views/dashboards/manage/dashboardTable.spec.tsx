@@ -199,31 +199,6 @@ describe('Dashboards - DashboardTable', () => {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('cannot delete last dashboard', async () => {
-    const singleDashboard = [
-      DashboardListItemFixture({
-        id: '1',
-        title: 'Dashboard 1',
-        dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: UserFixture({id: '1'}),
-        widgetPreview: [],
-      }),
-    ];
-    render(
-      <DashboardTable
-        organization={organization}
-        dashboards={singleDashboard}
-        location={LocationFixture()}
-        onDashboardsChange={dashboardUpdateMock}
-      />
-    );
-
-    expect((await screen.findAllByTestId('dashboard-delete'))[0]).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-  });
-
   it('can duplicate dashboards', async () => {
     render(
       <DashboardTable

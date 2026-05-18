@@ -256,6 +256,102 @@ describe('useLLMContext — data updates', () => {
   });
 });
 
+describe('registerLLMContext — trace node type', () => {
+  it('registers a trace node and includes trace metadata in snapshot', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    function DummyTrace() {
+      useLLMContext({
+        contextHint: 'Sentry trace detail page.',
+        traceId: 'abc123',
+        traceType: 'trace',
+        activeTab: 'waterfall',
+        shape: 'one_root',
+        durationMs: 1500,
+        nodeCount: 42,
+        errors: 2,
+        spanCount: 40,
+        webVitals: [
+          {type: 'lcp', label: 'LCP', value: 2500, unit: 'millisecond', poor: true},
+        ],
+        topLevelNodes: [
+          {
+            op: 'http.server',
+            description: 'GET /api/users',
+            durationMs: 1200,
+            projectSlug: 'backend',
+          },
+        ],
+      });
+      return <div>trace</div>;
+    }
+    const ContextTrace = registerLLMContext('trace', DummyTrace);
+
+    render(
+      <LLMContextProvider>
+        <ContextTrace />
+        <ContextCapture />
+      </LLMContextProvider>
+    );
+
+    await waitFor(() => {
+      const snapshot = getSnapshot();
+      expect(snapshot.nodes).toHaveLength(1);
+      expect(snapshot.nodes[0]?.nodeType).toBe('trace');
+      const data = snapshot.nodes[0]?.data as Record<string, unknown>;
+      expect(data.traceId).toBe('abc123');
+      expect(data.traceType).toBe('trace');
+      expect(data.activeTab).toBe('waterfall');
+      expect(data.shape).toBe('one_root');
+      expect(data.durationMs).toBe(1500);
+      expect(data.errors).toBe(2);
+      expect(data.webVitals).toHaveLength(1);
+      expect(data.topLevelNodes).toHaveLength(1);
+    });
+  });
+});
+
+describe('registerLLMContext — traces-explorer node type', () => {
+  it('registers a traces-explorer node with search and tab metadata', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    function DummyTracesExplorer() {
+      useLLMContext({
+        contextHint: 'Sentry traces explorer page.',
+        searchQuery: 'span.description is /api/users',
+        activeTab: 'span',
+        visualizes: ['count(spans)'],
+        groupBys: ['span.op'],
+        sortBys: ['-timestamp'],
+      });
+      return <div>traces explorer</div>;
+    }
+    const ContextTracesExplorer = registerLLMContext(
+      'traces-explorer',
+      DummyTracesExplorer
+    );
+
+    render(
+      <LLMContextProvider>
+        <ContextTracesExplorer />
+        <ContextCapture />
+      </LLMContextProvider>
+    );
+
+    await waitFor(() => {
+      const snapshot = getSnapshot();
+      expect(snapshot.nodes).toHaveLength(1);
+      expect(snapshot.nodes[0]?.nodeType).toBe('traces-explorer');
+      const data = snapshot.nodes[0]?.data as Record<string, unknown>;
+      expect(data.searchQuery).toBe('span.description is /api/users');
+      expect(data.activeTab).toBe('span');
+      expect(data.visualizes).toEqual(['count(spans)']);
+      expect(data.groupBys).toEqual(['span.op']);
+      expect(data.sortBys).toEqual(['-timestamp']);
+    });
+  });
+});
+
 describe('getLLMContext — full tree vs componentOnly', () => {
   it('getLLMContext() returns full tree including sibling branches', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();

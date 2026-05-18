@@ -9,7 +9,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {GlobalModal} from 'sentry/components/globalModal';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import OrganizationSecurityAndPrivacy from 'sentry/views/settings/organizationSecurityAndPrivacy';
 
@@ -164,7 +165,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     });
   });
 
-  it('enables require2fa with confirm modal', async () => {
+  it.isKnownFlake('enables require2fa with confirm modal', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',

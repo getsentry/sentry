@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -106,7 +106,7 @@ function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
         ]}
       />
       <ModalFooter>
-        <Button priority="danger" onClick={handleRemove}>
+        <Button variant="danger" onClick={handleRemove}>
           {REMOVE_BUTTON_LABEL[deleteType]}
         </Button>
         <Button onClick={closeModal}>{t('Cancel')}</Button>
@@ -116,6 +116,8 @@ function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
 }
 
 function AdminUserEdit() {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const {id} = useParams<{id: string}>();
   const userEndpoint = getApiUrl('/users/$userId/', {path: {userId: id}});
@@ -199,7 +201,7 @@ function AdminUserEdit() {
           <Button
             onClick={openDeleteModal}
             style={{marginLeft: theme.space.md}}
-            priority="danger"
+            variant="danger"
           >
             {t('Remove User')}
           </Button>

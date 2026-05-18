@@ -187,7 +187,7 @@ export function StatusCheckRules() {
               <Text>
                 {t('Connect at least one repository to get Size Analysis status checks')}
               </Text>
-              <LinkButton to={`/settings/${organization.slug}/repos/`} priority="primary">
+              <LinkButton to={`/settings/${organization.slug}/repos/`} variant="primary">
                 {t('Add Repo')}
               </LinkButton>
             </Stack>

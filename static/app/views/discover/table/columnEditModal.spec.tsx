@@ -10,7 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import {TagStore} from 'sentry/stores/tagStore';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -944,8 +945,8 @@ describe('Discover -> ColumnEditModal', () => {
           Body={stubEl()}
           organization={initialData.organization}
           columns={[columns[0]!]}
-          onApply={() => undefined}
-          closeModal={() => undefined}
+          onApply={() => {}}
+          closeModal={() => {}}
           measurementKeys={[]}
           customMeasurements={{
             'measurements.custom.kibibyte': {

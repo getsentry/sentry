@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from typing import TypedDict
 
@@ -17,6 +17,7 @@ from sentry.db.models import (
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.last_seen import try_bump_last_seen
 
 
 class ReleaseStages(str, Enum):
@@ -82,14 +83,15 @@ class ReleaseProjectEnvironment(Model):
 
         metrics_tags["created"] = "true" if created else "false"
 
-        # Same as releaseenvironment model. Minimizes last_seen updates to once a minute
-        if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            cls.objects.filter(
-                id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
-            ).update(last_seen=datetime)
-            instance.last_seen = datetime
-            cache.set(cache_key, instance, 3600)
-            metrics_tags["bumped"] = "true"
+        if not created:
+            try_bump_last_seen(
+                model_class=cls,
+                instance=instance,
+                datetime=datetime,
+                bump_key=f"releaseprojectenv_bump:{instance.id}",
+                cache_key=cache_key,
+                metrics_tags=metrics_tags,
+            )
         else:
             metrics_tags["bumped"] = "false"
 

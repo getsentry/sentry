@@ -2,39 +2,42 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import type {DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import type {
   CrossEvent,
   CrossEventType,
 } from 'sentry/views/explore/queryParams/crossEvent';
+import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 
 export function getCrossEventDropdownItems(
-  organization: Organization
+  availability: CrossEventDatasetAvailability
 ): DropdownMenuProps['items'] {
-  const items: DropdownMenuProps['items'] = [
-    {key: 'spans', label: t('Spans')},
-    {key: 'logs', label: t('Logs')},
-  ];
+  const items: DropdownMenuProps['items'] = [{key: 'spans', label: t('Spans')}];
 
-  if (canUseMetricsUI(organization)) {
-    items.push({key: 'metrics', label: t('Metrics')});
+  if (availability.logs) {
+    items.push({key: 'logs', label: t('Logs')});
+  }
+
+  if (availability.metrics) {
+    items.push({key: 'metrics', label: t('Application Metrics')});
   }
 
   return items;
 }
 
 export function getCrossEventDatasetOptions(
-  organization: Organization
+  availability: CrossEventDatasetAvailability
 ): Array<SelectOption<CrossEventType>> {
   const options: Array<SelectOption<CrossEventType>> = [
     {value: 'spans', label: t('Spans')},
-    {value: 'logs', label: t('Logs')},
   ];
 
-  if (canUseMetricsUI(organization)) {
-    options.push({value: 'metrics', label: t('Metrics')});
+  if (availability.logs) {
+    options.push({value: 'logs', label: t('Logs')});
+  }
+
+  if (availability.metrics) {
+    options.push({value: 'metrics', label: t('Application Metrics')});
   }
 
   return options;

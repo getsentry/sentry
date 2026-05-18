@@ -2,13 +2,14 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {Pagination} from 'sentry/components/pagination';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import type {Project} from 'sentry/types/project';
+import type {Project, ProjectSummaryWithOptions} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -62,7 +63,7 @@ const SPIKE_TABLE_CURSOR_KEY = 'spikeCursor';
 type ProjectDetailsProps = {
   dataCategoryInfo: DataCategoryInfo;
   loading: boolean;
-  project: Project;
+  project: ProjectSummaryWithOptions;
   reloadData: () => void;
   storedSpikes: SpikeDetails[];
 } & Pick<EnhancedUsageStatsOrganizationProps, 'spikeCursor'>;
@@ -260,14 +261,17 @@ function EnhancedUsageStatsOrganization({
   const projectWithSpikeProjectionOptionQueryEnabled = isSingleProject && !!project;
   // This endpoint refetches the specific project with an added query for the SP option
   const projectWithSpikeProjectionOption = useQuery({
-    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {
-        options: SPIKE_PROTECTION_OPTION_DISABLED,
-        query: `id:${project?.id}`,
-      },
-      staleTime: Infinity,
-    }),
+    ...apiOptions.as<ProjectSummaryWithOptions[]>()(
+      '/organizations/$organizationIdOrSlug/projects/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          options: SPIKE_PROTECTION_OPTION_DISABLED,
+          query: `id:${project?.id}`,
+        },
+        staleTime: Infinity,
+      }
+    ),
     retry: false,
     enabled: projectWithSpikeProjectionOptionQueryEnabled,
   });
@@ -351,13 +355,13 @@ function EnhancedUsageStatsOrganization({
           errorStatuses.push(spikeThresholds.error);
         }
 
-        const loading = loadingStatuses.some(status => status);
+        const loading = loadingStatuses.some(Boolean);
         const error = errorStatuses.find(defined) ?? null;
 
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
 
         const storedSpikes: SpikeDetails[] = [];
-        let newSpikeThresholds: SpikeThresholds | undefined = undefined;
+        let newSpikeThresholds: SpikeThresholds | undefined;
 
         if (isSingleProject) {
           if (hasAccurateSpikes) {
@@ -370,7 +374,7 @@ function EnhancedUsageStatsOrganization({
             }
             storedSpikes.push(
               ...getSpikeDetails({
-                loading: spikeDetailsLoading.some(status => status),
+                loading: spikeDetailsLoading.some(Boolean),
                 spikeThresholds: spikeThresholds.data,
                 spikesList: spikesList.data,
                 orgStats: usageStats.orgStats.data,

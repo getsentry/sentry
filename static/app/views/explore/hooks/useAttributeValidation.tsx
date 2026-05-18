@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {queryOptions, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
@@ -7,9 +7,7 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {PageFilters} from 'sentry/types/core';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -26,12 +24,6 @@ interface ValidateAttributesResponse {
 export interface AttributeValidationSelection {
   datetime: PageFilters['datetime'];
   projects?: PageFilters['projects'];
-}
-
-interface ValidateAttributesParams extends AttributeValidationSelection {
-  filterKeys: string[];
-  itemType: TraceItemDataset;
-  organizationSlug: string;
 }
 
 const EMPTY_KEYS: string[] = [];
@@ -54,38 +46,6 @@ function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
   return keySet.size > 0 ? [...keySet].sort() : EMPTY_KEYS;
 }
 
-function validateAttributesQueryOptions({
-  itemType,
-  filterKeys,
-  organizationSlug,
-  datetime,
-  projects,
-}: ValidateAttributesParams) {
-  return queryOptions({
-    queryKey: [
-      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/attributes/validate/', {
-        path: {organizationIdOrSlug: organizationSlug},
-      }),
-      {
-        method: 'POST' as const,
-        data: {attributes: filterKeys},
-        query: {
-          itemType,
-          ...Object.fromEntries(
-            Object.entries(normalizeDateTimeParams(datetime)).filter(
-              (entry): entry is [string, string | string[]] => entry[1] !== null
-            )
-          ),
-          ...(projects?.length ? {project: projects.map(String)} : {}),
-        },
-      },
-    ] satisfies ApiQueryKey,
-    queryFn: fetchDataQuery<ValidateAttributesResponse>,
-    staleTime: Infinity,
-    enabled: filterKeys.length > 0,
-  });
-}
-
 export function useAttributeValidation(
   itemType: TraceItemDataset,
   query: string,
@@ -104,12 +64,26 @@ export function useAttributeValidation(
   );
 
   const {data} = useQuery({
-    ...validateAttributesQueryOptions({
-      itemType,
-      filterKeys,
-      organizationSlug: organization.slug,
-      ...selection,
-    }),
+    ...apiOptions.as<ValidateAttributesResponse>()(
+      '/organizations/$organizationIdOrSlug/trace-items/attributes/validate/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        method: 'POST',
+        data: {attributes: filterKeys},
+        query: {
+          itemType,
+          ...Object.fromEntries(
+            Object.entries(normalizeDateTimeParams(selection.datetime)).filter(
+              (entry): entry is [string, string | string[]] => entry[1] !== null
+            )
+          ),
+          ...(selection.projects?.length
+            ? {project: selection.projects.map(String)}
+            : {}),
+        },
+        staleTime: Infinity,
+      }
+    ),
     enabled: hasValidation && filterKeys.length > 0,
   });
 
@@ -118,7 +92,7 @@ export function useAttributeValidation(
       return EMPTY_KEYS;
     }
 
-    return Object.entries(data[0]?.attributes ?? {})
+    return Object.entries(data.attributes ?? {})
       .filter(([, result]) => !result.valid)
       .map(([key]) => key);
   }, [data, hasValidation]);

@@ -276,7 +276,7 @@ class StoredSeerMetadataTest(TestCase):
             should_group=True,
         )
 
-        # Mock Seer responding with v1 even though we'd request v2
+        # Mock Seer responding with v1 even though we'd request v2.1
         with (
             patch(
                 "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
@@ -284,7 +284,7 @@ class StoredSeerMetadataTest(TestCase):
             ),
             patch(
                 "sentry.grouping.ingest.seer.get_grouping_model_version",
-                return_value=GroupingVersion.V2,
+                return_value=GroupingVersion.V2_1,
             ),
         ):
             new_event = save_new_event(get_event_data(dog="Maisey"), self.project)
@@ -296,7 +296,7 @@ class StoredSeerMetadataTest(TestCase):
             assert new_event_grouphash and new_event_grouphash.metadata
 
             # seer_model should be what Seer actually used (v1)
-            # seer_latest_training_model should be what we requested (v2)
+            # seer_latest_training_model should be what we requested (v2.1)
             self.assert_correct_seer_metadata(
                 new_event_grouphash,
                 new_event_grouphash.metadata.date_added,
@@ -304,7 +304,7 @@ class StoredSeerMetadataTest(TestCase):
                 GroupingVersion.V1.value,
                 existing_event_grouphash,
                 seer_result_data.stacktrace_distance,
-                expected_seer_latest_training_model=GroupingVersion.V2.value,
+                expected_seer_latest_training_model=GroupingVersion.V2_1.value,
             )
 
     def test_event_not_sent_to_seer(self) -> None:

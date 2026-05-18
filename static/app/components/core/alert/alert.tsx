@@ -256,7 +256,7 @@ export function Alert({
           <Flex align="center" alignSelf="flex-start">
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
               onClick={() => {
@@ -273,7 +273,7 @@ export function Alert({
               showIcon={!!showIcon}
               showTrailingItems={!!trailingItems}
             >
-              {Array.isArray(expand) ? expand.map(item => item) : expand}
+              {expand}
             </StyledExpandContainer>
           </Fragment>
         )}

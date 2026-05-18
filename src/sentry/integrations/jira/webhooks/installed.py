@@ -24,7 +24,7 @@ from sentry.utils import jwt
 
 @control_silo_endpoint
 class JiraSentryInstalledWebhook(JiraWebhookBase):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

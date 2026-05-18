@@ -20,7 +20,7 @@ const Z_INDEX_STICKY_HEADER = 2;
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
 
-export function Header(props: FlexProps<'div'>) {
+export function Header(props: FlexProps) {
   return <Flex justify="between" align="center" marginBottom="md" {...props} />;
 }
 
@@ -168,6 +168,10 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
     border-left-color: ${p =>
       p.isFirst ? 'transparent' : p.theme.tokens.border.primary};
     border-right-color: ${p => p.theme.tokens.border.primary};
+  }
+
+  svg {
+    min-width: 12px;
   }
 `;
 

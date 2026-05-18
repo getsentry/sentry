@@ -31,6 +31,7 @@ class ProjectCodeOwnersSerializer(Serializer):
         }
         for item in item_list:
             code_mapping = item.repository_project_path_config
+            repository = code_mapping.project_repository.repository
 
             integration = integrations[item.repository_project_path_config.integration_id]
             install = integration.get_installation(
@@ -42,7 +43,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             ):
                 try:
                     codeowners_response = install.get_codeowner_file(
-                        code_mapping.repository, ref=code_mapping.default_branch
+                        repository, ref=code_mapping.default_branch
                     )
                     if codeowners_response is not None:
                         codeowners_url = codeowners_response["html_url"]
@@ -85,6 +86,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             "raw": obj.raw,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
+            "dateSynced": obj.date_synced,
             "codeMappingId": str(obj.repository_project_path_config_id),
             "provider": attrs.get("provider", "unknown"),
         }

@@ -315,7 +315,7 @@ class TriggersChart extends PureComponent<Props, State> {
   renderChart({
     isLoading,
     isReloading,
-    timeseriesData = [],
+    timeseriesData,
     comparisonData,
     comparisonMarkLines,
     errorMessage,
@@ -447,7 +447,7 @@ class TriggersChart extends PureComponent<Props, State> {
               trigger={triggerProps => (
                 <OverlayTrigger.Button
                   {...triggerProps}
-                  priority="transparent"
+                  variant="transparent"
                   prefix={t('Display')}
                 />
               )}
@@ -579,7 +579,7 @@ class TriggersChart extends PureComponent<Props, State> {
               }
 
               return this.renderChart({
-                timeseriesData: timeseriesData as Series[],
+                timeseriesData: timeseriesData!,
                 isLoading: loading,
                 isReloading: reloading,
                 comparisonData: comparisonTimeseriesData,
@@ -723,7 +723,7 @@ class TriggersChart extends PureComponent<Props, State> {
             }
 
             return this.renderChart({
-              timeseriesData: timeseriesData as Series[],
+              timeseriesData: timeseriesData!,
               isLoading: loading,
               isReloading: reloading,
               comparisonData: comparisonTimeseriesData,

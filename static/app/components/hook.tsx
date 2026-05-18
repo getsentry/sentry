@@ -1,4 +1,4 @@
-import {Component, memo, type ComponentType} from 'react';
+import {memo, useEffect, useState, type ComponentType} from 'react';
 
 import {HookStore} from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
@@ -20,10 +20,6 @@ type Props<H extends ComponentHookName> = {
   children?: (opts: {hooks: Array<Hooks[H]>}) => React.ReactNode;
 } & Omit<Parameters<Hooks[H]>[0], 'name'>;
 
-type HookState<H extends HookName> = {
-  hooks: Array<Hooks[H]>;
-};
-
 /**
  * Instead of accessing the HookStore directly, use this.
  *
@@ -38,52 +34,35 @@ type HookState<H extends HookName> = {
  *     ))}
  *   </Hook>
  */
-function Hook<H extends ComponentHookName>({name, ...props}: Props<H>) {
-  class HookComponent extends Component<Record<string, unknown>, HookState<H>> {
-    static displayName = `Hook(${name})`;
+function Hook<H extends ComponentHookName>({name, children, ...props}: Props<H>) {
+  const [hookCallbacks, setHookCallbacks] = useState<Array<Hooks[H]>>(() =>
+    HookStore.get(name)
+  );
 
-    state = {
-      hooks: HookStore.get(name).map((HookComp, index) => (
-        <HookComp key={index} {...props} />
-      )),
-    };
+  useEffect(() => {
+    setHookCallbacks([...HookStore.get(name)]);
 
-    componentWillUnmount() {
-      this.unsubscribe();
-    }
-
-    handleHooks(hookName: HookName, hooks: Array<Hooks[H]>) {
-      // Make sure that the incoming hook update matches this component's hook name
-      if (hookName !== name) {
-        return;
+    const unsubscribe = HookStore.listen((hookName: HookName, hooks: Array<Hooks[H]>) => {
+      if (hookName === name) {
+        setHookCallbacks([...hooks]);
       }
+    }, undefined);
+    return () => unsubscribe();
+  }, [name]);
 
-      this.setState({
-        hooks: hooks.map((HookComp, index) => <HookComp key={index} {...props} />),
-      });
-    }
-
-    unsubscribe = HookStore.listen(
-      (hookName: HookName, hooks: Array<Hooks[H]>) => this.handleHooks(hookName, hooks),
-      undefined
-    );
-
-    render() {
-      const {children} = props;
-
-      if (!this.state.hooks?.length) {
-        return null;
-      }
-
-      if (typeof children === 'function') {
-        return children({hooks: this.state.hooks});
-      }
-
-      return this.state.hooks;
-    }
+  if (!hookCallbacks?.length) {
+    return null;
   }
 
-  return <HookComponent />;
+  const rendered = hookCallbacks.map((HookComp, index) => (
+    <HookComp key={index} {...props} />
+  ));
+
+  if (typeof children === 'function') {
+    return children({hooks: rendered});
+  }
+
+  return rendered;
 }
 
 export default memo(Hook) as <H extends ComponentHookName>(

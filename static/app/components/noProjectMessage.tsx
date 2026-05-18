@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps, Container} from '@sentry/scraps/layout';
 
 import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -48,7 +48,7 @@ export function NoProjectMessage({
         title: canJoinTeam ? undefined : t('You do not have permission to join a team.'),
       }}
       disabled={!canJoinTeam}
-      priority={orgHasProjects ? 'primary' : 'default'}
+      variant={orgHasProjects ? 'primary' : 'secondary'}
       to={`/settings/${organization.slug}/teams/`}
     >
       {t('Join a Team')}
@@ -63,7 +63,7 @@ export function NoProjectMessage({
           : t('You do not have permission to create a project.'),
       }}
       disabled={!canUserCreateProject}
-      priority={orgHasProjects ? 'default' : 'primary'}
+      variant={orgHasProjects ? 'secondary' : 'primary'}
       to={makeProjectsPathname({path: '/new/', organization})}
     >
       {t('Create project')}
@@ -90,7 +90,9 @@ export function NoProjectMessage({
 
       <Flex direction="column" justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
-        <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
+        <Container marginBottom="xl">
+          {t('You need at least one project to use this view')}
+        </Container>
         <Actions>
           {orgHasProjects ? (
             <Fragment>
@@ -109,10 +111,6 @@ export function NoProjectMessage({
 const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
   width: 100%;
   height: auto;
-`;
-
-const HelpMessage = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Actions = styled((props: GridProps) => (

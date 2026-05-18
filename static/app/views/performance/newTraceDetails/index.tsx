@@ -29,9 +29,16 @@ import {
   TraceLayoutTabKeys,
   useTraceLayoutTabs,
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
+import {
+  getTraceMetaErrorCount,
+  getTraceMetaPerformanceIssueCount,
+  getTraceMetaSpanCount,
+  useTraceMeta,
+} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
 import {
@@ -103,7 +110,7 @@ function useInitialLogsData(): OurLogsResponseItem[] | undefined {
   return initialDataRef.current;
 }
 
-function TraceViewImpl({traceSlug}: {traceSlug: string}) {
+function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
@@ -115,7 +122,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   });
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -145,6 +152,30 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     tree,
     logs: logsData,
     metrics: metricsData,
+  });
+
+  // Push trace metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'Sentry trace detail page. services lists the projects (services) involved in this trace. ' +
+      'You can get the trace waterfall or focus on a specific span, get event details or issue aggregate stats, ' +
+      'get log attributes or metric attributes by trace ID, view a profile flamegraph, ' +
+      'and search live telemetry for related spans/errors/logs/metrics.',
+    traceId: traceSlug,
+    activeTab: currentTab,
+    durationMs: tree.root.children[0]?.space?.[1],
+    nodeCount: tree.list.length,
+    services: Array.from(tree.projects.values()).map(p => p.slug),
+    errors: getTraceMetaErrorCount(meta.data),
+    performanceIssues: getTraceMetaPerformanceIssueCount(meta.data),
+    spanCount: getTraceMetaSpanCount(meta.data),
+    webVitals: tree.indicators.map(i => ({
+      type: i.type,
+      label: i.label,
+      value: i.measurement.value,
+      unit: i.measurement.unit,
+      poor: i.poor,
+    })),
   });
 
   return (
@@ -217,6 +248,8 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   );
 }
 
+const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
+
 // @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
 // When that feature is enabled, the footer is no longer rendered at the bottom of the page.
 const LayoutPageWithHiddenFooter = styled(Stack)`
@@ -225,7 +258,7 @@ const LayoutPageWithHiddenFooter = styled(Stack)`
   }
 `;
 
-function TraceInnerLayout(props: FlexProps<'div'>) {
+function TraceInnerLayout(props: FlexProps) {
   const hasPageFrame = useHasPageFrameFeature();
   return (
     <Flex

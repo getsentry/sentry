@@ -340,7 +340,7 @@ describe('useStagedCompactSelect', () => {
 
     function TestComponent() {
       const defaultValue = ['one'] as string[];
-      const [value, setValue] = useState<string[]>(defaultValue);
+      const [value, setValue] = useState(defaultValue);
       const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
       const options = useTestOptions(toggleOptionRef);
       const handleChange = (newValue: string[]) => {
@@ -686,7 +686,7 @@ describe('useStagedCompactSelect', () => {
       const onChange = jest.fn();
 
       function TestComponent() {
-        const [value, setValue] = useState<string[]>(['one', 'two', 'three']);
+        const [value, setValue] = useState(['one', 'two', 'three']);
         const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
         const options = useTestOptions(toggleOptionRef);
         const handleChange = (newValue: string[]) => {
@@ -1057,6 +1057,79 @@ describe('useStagedCompactSelect', () => {
       // Should select One (already staged) and Three (single-toggled), but NOT Two.
       // Without the fix the shift+click would range-select [one, two, three].
       expect(onChange).toHaveBeenLastCalledWith(['one', 'three']);
+    });
+
+    it('clears anchor after selection becomes empty so next shift+click is a single toggle', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          options,
+          onChange: handleChange,
+          multiple: true,
+        });
+        toggleOptionRef.current = stagedSelect.toggleOption;
+
+        return (
+          <CompactSelect
+            grid
+            multiple
+            search
+            {...stagedSelect.compactSelectProps}
+            menuFooter={
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
+                  <MenuComponents.ApplyButton
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
+                  />
+                </Flex>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Shift-click Option One — first shift-click acts as a single toggle, sets anchor to one
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Shift-click Option Three — range-selects [one, two, three], anchor now three
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Shift-click Option One — deselects range [one, two, three], staged selection is now empty
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Shift-click Option Two — since selection is empty, this must act as a single toggle.
+      // Without the fix the stale anchor would range-select [one, two].
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Apply the changes
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      expect(onChange).toHaveBeenLastCalledWith(['two']);
     });
 
     it('shift+click range in filtered list only selects visible options', async () => {

@@ -109,8 +109,6 @@ export enum IssueCategory {
 
   PREPROD = 'preprod',
 
-  INSTRUMENTATION = 'instrumentation',
-
   CONFIGURATION = 'configuration',
 }
 
@@ -148,9 +146,6 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
-  [IssueCategory.INSTRUMENTATION]: t(
-    'Improvements to your instrumentation and SDK usage.'
-  ),
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
   ),
@@ -238,7 +233,6 @@ export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
   IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
   IssueType.AI_DETECTED_SECURITY,
   IssueType.AI_DETECTED_CODE_HEALTH,
-  IssueType.AI_DETECTED_GENERAL,
 ]);
 
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
@@ -305,7 +299,7 @@ export enum IssueTitle {
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
 }
 
-export const ISSUE_TYPE_TO_ISSUE_TITLE = {
+const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -596,6 +590,7 @@ export enum GroupActivityType {
   SET_RESOLVED_BY_AGE = 'set_resolved_by_age',
   SET_RESOLVED_IN_RELEASE = 'set_resolved_in_release',
   SET_RESOLVED_IN_COMMIT = 'set_resolved_in_commit',
+  REFERENCED_IN_COMMIT = 'referenced_in_commit',
   SET_RESOLVED_IN_PULL_REQUEST = 'set_resolved_in_pull_request',
   SET_UNRESOLVED = 'set_unresolved',
   SET_IGNORED = 'set_ignored',
@@ -615,7 +610,24 @@ export enum GroupActivityType {
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
   DELETED_ATTACHMENT = 'deleted_attachment',
+  SEER_RCA_STARTED = 'seer_rca_started',
+  SEER_RCA_COMPLETED = 'seer_rca_completed',
+  SEER_SOLUTION_STARTED = 'seer_solution_started',
+  SEER_SOLUTION_COMPLETED = 'seer_solution_completed',
+  SEER_CODING_STARTED = 'seer_coding_started',
+  SEER_CODING_COMPLETED = 'seer_coding_completed',
+  SEER_PR_CREATED = 'seer_pr_created',
 }
+
+export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SEER_RCA_STARTED,
+  GroupActivityType.SEER_RCA_COMPLETED,
+  GroupActivityType.SEER_SOLUTION_STARTED,
+  GroupActivityType.SEER_SOLUTION_COMPLETED,
+  GroupActivityType.SEER_CODING_STARTED,
+  GroupActivityType.SEER_CODING_COMPLETED,
+  GroupActivityType.SEER_PR_CREATED,
+]);
 
 interface GroupActivityBase {
   dateCreated: string;
@@ -763,6 +775,13 @@ interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
+interface GroupActivityReferencedInCommit extends GroupActivityBase {
+  data: {
+    commit?: Commit;
+  };
+  type: GroupActivityType.REFERENCED_IN_COMMIT;
+}
+
 interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest;
@@ -887,6 +906,66 @@ interface GroupActivityDeletedAttachment extends GroupActivityBase {
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
+interface GroupActivitySeerRcaStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_RCA_STARTED;
+}
+
+interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
+  data: {
+    root_cause?: Record<string, any>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_RCA_COMPLETED;
+}
+
+interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_SOLUTION_STARTED;
+}
+
+interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+    solution?: Record<string, any>;
+  };
+  type: GroupActivityType.SEER_SOLUTION_COMPLETED;
+}
+
+interface GroupActivitySeerCodingStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_STARTED;
+}
+
+interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
+  data: {
+    changes?: Array<Record<string, any>>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_COMPLETED;
+}
+
+interface GroupActivitySeerPrCreated extends GroupActivityBase {
+  data: {
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_PR_CREATED;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -899,6 +978,7 @@ export type GroupActivity =
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
+  | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
   | GroupActivityMerge
@@ -915,7 +995,14 @@ export type GroupActivity =
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
   | GroupActivitySetPriority
-  | GroupActivityDeletedAttachment;
+  | GroupActivityDeletedAttachment
+  | GroupActivitySeerRcaStarted
+  | GroupActivitySeerRcaCompleted
+  | GroupActivitySeerSolutionStarted
+  | GroupActivitySeerSolutionCompleted
+  | GroupActivitySeerCodingStarted
+  | GroupActivitySeerCodingCompleted
+  | GroupActivitySeerPrCreated;
 
 export type Activity = GroupActivity;
 

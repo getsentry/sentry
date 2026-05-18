@@ -43,7 +43,11 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
@@ -76,6 +80,7 @@ import {
   getAlertTypeFromAggregateDataset,
   getTraceItemTypeForDatasetAndEventType,
 } from 'sentry/views/alerts/wizard/utils';
+import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -121,6 +126,7 @@ type RuleTaskResponse = {
 type HistoricalDataset = ReturnType<typeof formatStatsToHistoricalDataset>;
 
 type Props = {
+  addAlert: AddAlert;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -133,7 +139,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{projectId?: string; ruleId?: string}> & {
+} & RouteComponentProps & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & DeprecatedAsyncComponent['props'];
 
@@ -206,7 +212,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {organization} = this.props;
     const {project} = this.state;
     // SearchBar gets its tags from Reflux.
-    fetchOrganizationTags(this.api, organization.slug, [project.id]);
+    fetchOrganizationTags(this.api, organization.slug, [project.id], this.props.addAlert);
   }
 
   componentWillUnmount() {
@@ -613,9 +619,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         },
         () => {
           this.reloadData();
-          fetchOrganizationTags(this.api, this.props.organization.slug, [
-            this.state.project.id,
-          ]);
+          fetchOrganizationTags(
+            this.api,
+            this.props.organization.slug,
+            [this.state.project.id],
+            this.props.addAlert
+          );
         }
       );
     }
@@ -719,7 +728,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         !validRule && t('name'),
         !validRule && !validTriggers && t('and'),
         !validTriggers && t('critical threshold'),
-      ].filter(x => x);
+      ].filter(Boolean);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
       return false;
@@ -1114,7 +1123,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   timeWindowsAreConsistent() {
-    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const {currentData, historicalData, timeWindow} = this.state;
     const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
     const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
     return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
@@ -1260,7 +1269,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
-    let formattedAggregate = aggregate;
+    let formattedAggregate = stripEquationPrefix(aggregate);
 
     const func = parseFunction(aggregate);
     if (func && isEapAlertType(alertType)) {
@@ -1484,7 +1493,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                         this.handleDeleteRule();
                       }}
                     >
-                      <Button priority="danger">{t('Delete Rule')}</Button>
+                      <Button variant="danger">{t('Delete Rule')}</Button>
                     </Confirm>
                   ) : null
                 }
@@ -1667,4 +1676,11 @@ const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
-export default withProjects(RuleFormContainer);
+const RuleFormContainerWithProjects = withProjects(RuleFormContainer);
+
+export function RuleForm(
+  props: Omit<React.ComponentProps<typeof RuleFormContainerWithProjects>, 'addAlert'>
+) {
+  const {addAlert} = useGlobalAlerts();
+  return <RuleFormContainerWithProjects {...props} addAlert={addAlert} />;
+}

@@ -108,7 +108,7 @@ export function WidgetCardChartContainer({
     // non-chart widgets need to look at tableResults
     const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
     if (widgetFetchesOwnData(widgetType)) {
-      return undefined;
+      return;
     }
 
     return errorMessage

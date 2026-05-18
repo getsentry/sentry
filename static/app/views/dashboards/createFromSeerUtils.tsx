@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import type {Organization} from 'sentry/types/organization';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 import {
   assignDefaultLayout,

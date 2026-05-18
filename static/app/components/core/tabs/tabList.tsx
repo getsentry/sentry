@@ -5,7 +5,7 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import type {TabListStateOptions} from '@react-stately/tabs';
+import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
@@ -154,7 +154,13 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-function OverflowMenu({state, overflowMenuItems, disabled}: any) {
+interface OverflowMenuProps {
+  disabled: boolean | undefined;
+  overflowMenuItems: Array<SelectOption<string | number>>;
+  state: TabListState<TabListItemProps>;
+}
+
+function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
   return (
     <TabListOverflowWrap>
       <CompactSelect
@@ -168,7 +174,7 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
         trigger={triggerProps => (
           <OverflowMenuTrigger
             {...triggerProps}
-            priority="transparent"
+            variant="transparent"
             icon={<IconEllipsis />}
             aria-label={t('More tabs')}
           />
@@ -315,6 +321,7 @@ export function TabList({variant, ...props}: TabListProps) {
   const collection = useCollection(props, collectionFactory);
 
   const parsedItems: TabListItemProps[] = useMemo(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     () => [...collection].map(({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]
   );

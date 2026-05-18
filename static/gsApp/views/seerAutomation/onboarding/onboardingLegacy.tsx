@@ -8,13 +8,13 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -121,6 +121,8 @@ function ProjectRowWithUpdate({
   projectStates: ProjectStateMap;
   repositories: Repository[];
 }) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
@@ -167,6 +169,7 @@ function ProjectRowWithUpdate({
     project.slug,
     onSuccess,
     onUpdateProjectState,
+    openModal,
   ]);
 
   return <ProjectRow onClick={handleProjectClick} project={project} />;
@@ -184,7 +187,8 @@ function ProjectPreferenceLoader({
   ) => void;
   project: Project;
 }) {
-  const {preference, isPending, codeMappingRepos} = useProjectSeerPreferences(project);
+  const {data, isPending} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   useEffect(() => {
     onUpdate(project, preference, isPending, codeMappingRepos);
@@ -505,7 +509,7 @@ function AutoTriggerFixesButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableAutoTriggerFixes}
       disabled={fetching || projectsWithRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -579,7 +583,7 @@ function EnableIssueScansButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableIssueScans}
       disabled={fetching || projectsWithoutRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -794,7 +798,7 @@ export function SeerAutomationOnboarding() {
 
             <GuidedSteps.StepButtons>
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => navigate(`/settings/${organization.slug}/seer/`)}
                 size="sm"
               >

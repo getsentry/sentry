@@ -16,6 +16,7 @@ import {
 } from 'sentry/utils/fields';
 import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortKnownAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseVisualizeFieldsProps {
@@ -49,7 +50,7 @@ export function useVisualizeFields({
     const seen = new Set<string>();
     const unknownOptions = [unknownField]
       .filter(defined)
-      .filter(option => !tags.hasOwnProperty(option));
+      .filter(option => !Object.hasOwn(tags, option));
 
     return [
       ...unknownOptions.map(option => {
@@ -67,11 +68,7 @@ export function useVisualizeFields({
         seen.add(option.value);
         return true;
       })
-      .toSorted((a, b) => {
-        const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
-        const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
-        return aLabel.localeCompare(bLabel);
-      });
+      .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
   }, [tags, unknownField, traceItemType]);
 
   return fieldOptions;

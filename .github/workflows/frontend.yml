@@ -27,6 +27,7 @@ jobs:
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       typecheckable_rules_changed: ${{ steps.changes.outputs.typecheckable_rules_changed }}
+      mdx_typecheckable: ${{ steps.changes.outputs.mdx_typecheckable }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -49,7 +50,7 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      # Setup custom TypeScript matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
         run: |
           echo "::remove-matcher owner=masters::"
@@ -57,7 +58,22 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: pnpm exec tsc -p tsconfig.json
+        run: pnpm run typecheck
+
+  typescript-mdx:
+    if: needs.files-changed.outputs.mdx_typecheckable == 'true'
+    needs: files-changed
+    name: typescript (mdx)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: setup matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/tsc.json"
 
       - name: tsc (mdx)
         id: tsc-mdx
@@ -123,7 +139,7 @@ jobs:
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
 
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7]
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -162,7 +178,7 @@ jobs:
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
-          CI_NODE_TOTAL: 4
+          CI_NODE_TOTAL: 8
           CI_NODE_INDEX: ${{ matrix.instance }}
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just
@@ -205,7 +221,15 @@ jobs:
   # This check is the only required Github check
   frontend-required-check:
     needs:
-      [files-changed, frontend-jest-tests, typescript, eslint, knip, form-field-registry]
+      [
+        files-changed,
+        frontend-jest-tests,
+        typescript,
+        typescript-mdx,
+        eslint,
+        knip,
+        form-field-registry,
+      ]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()

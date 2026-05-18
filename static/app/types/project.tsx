@@ -7,6 +7,10 @@ import type {DynamicSamplingBias} from './sampling';
 
 export type SeerNightshiftTweaks = {
   enabled?: boolean;
+  extra_triage_instructions?: string;
+  intelligence_level?: 'low' | 'medium' | 'high';
+  max_candidates?: number;
+  reasoning_effort?: 'low' | 'medium' | 'high';
 };
 
 // Minimal project representation for use with avatars.
@@ -16,20 +20,25 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
-export type Project = {
+export type ProjectStats = TimeseriesValue[];
+
+/**
+ * Matches the response from `ProjectSummarySerializer` used by
+ * `GET /organizations/{org}/projects/`.
+ *
+ * This is what `ProjectsStore`, `useProjects`, and the bootstrap requests hold.
+ * Optional fields like `stats`, `transactionStats`, and `sessionStats` are only
+ * present when the corresponding query params (`statsPeriod`, etc.) are passed.
+ * `latestDeploys` is excluded when `collapse=latestDeploys` is sent.
+ */
+interface ProjectSummary extends AvatarProject {
   access: Scope[];
-  allowedDomains: string[];
   dateCreated: string;
-  digestsMaxDelay: number;
-  digestsMinDelay: number;
-  dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
-  groupingConfig: string;
   hasAccess: boolean;
-  hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasFlags: boolean;
   hasInsightsAgentMonitoring: boolean;
@@ -52,13 +61,53 @@ export type Project = {
   hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
-  isInternal: boolean;
   isMember: boolean;
   name: string;
+  platforms: PlatformKey[];
+  team: Team;
+  teams: Team[];
+  hasUserReports?: boolean;
+  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
+  latestRelease?: {version: string} | null;
+  organization?: Pick<Organization, 'id' | 'slug'>;
+  sessionStats?: {
+    currentCrashFreeRate: number | null;
+    hasHealthData: boolean;
+    previousCrashFreeRate: number | null;
+  };
+  stats?: ProjectStats;
+  transactionStats?: ProjectStats;
+}
+
+/**
+ * Matches `ProjectSummarySerializer` when callers request project option
+ * expansion from `GET /organizations/{org}/projects/` using one or more
+ * `options` query params.
+ *
+ * The `options` field is omitted unless requested and may still be empty when
+ * none of the requested options have been set for the project.
+ */
+export interface ProjectSummaryWithOptions extends ProjectSummary {
+  options?: Record<string, unknown>;
+}
+
+/**
+ * Matches the response from `DetailedProjectSerializer` used by
+ * `GET /projects/{org}/{project}/`.
+ *
+ * The `organization` field can be collapsed to `{id, slug}` with
+ * `collapse=organization`.
+ */
+export interface DetailedProject extends ProjectSummary {
+  allowedDomains: string[];
+  digestsMaxDelay: number;
+  digestsMinDelay: number;
+  dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  groupingConfig: string;
+  isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];
   processingIssues: number;
-  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];
@@ -67,23 +116,18 @@ export type Project = {
   sensitiveFields: string[];
   storeCrashReports: number | null;
   subjectTemplate: string;
-  team: Team;
-  teams: Team[];
   verifySSL: boolean;
   attachmentsRole?: string | null;
   autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
-  hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
     context: Record<string, string[]>;
     tags: string[];
   };
   highlightTags?: string[];
-  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
-  latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;
@@ -93,27 +137,28 @@ export type Project = {
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
   preprodSnapshotPrCommentsEnabled?: boolean;
+  preprodSnapshotPrCommentsPostOnAdded?: boolean;
+  preprodSnapshotPrCommentsPostOnChanged?: boolean;
+  preprodSnapshotPrCommentsPostOnRemoved?: boolean;
+  preprodSnapshotPrCommentsPostOnRenamed?: boolean;
   preprodSnapshotStatusChecksEnabled?: boolean;
   preprodSnapshotStatusChecksFailOnAdded?: boolean;
+  preprodSnapshotStatusChecksFailOnChanged?: boolean;
   preprodSnapshotStatusChecksFailOnRemoved?: boolean;
+  preprodSnapshotStatusChecksFailOnRenamed?: boolean;
   scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   seerNightshiftTweaks?: SeerNightshiftTweaks | null;
   seerScannerAutomation?: boolean;
-  sessionStats?: {
-    currentCrashFreeRate: number | null;
-    hasHealthData: boolean;
-    previousCrashFreeRate: number | null;
-  };
-  stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
   tempestFetchScreenshots?: boolean;
-  transactionStats?: TimeseriesValue[];
-} & AvatarProject;
+}
 
-export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
+export type Project = ProjectSummary;
+
+export type MinimalProject = Pick<ProjectSummary, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
@@ -168,9 +213,6 @@ export type Environment = {
   displayName: string;
   id: string;
   name: string;
-
-  // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
-  // urlRoutingName: string;
 };
 
 export interface TeamWithProjects extends Team {

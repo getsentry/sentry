@@ -47,7 +47,7 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -66,9 +66,7 @@ from sentry.models.counter import Counter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
     DashboardRevision,
-    DashboardTombstone,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -96,11 +94,12 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
+from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
@@ -513,13 +512,6 @@ class ExhaustiveFixtures(Fixtures):
             rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
         )
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=org,
-            disable_date=timezone.now(),
-            sent_initial_email_date=timezone.now(),
-            sent_final_email_date=timezone.now(),
-        )
 
         # Environment*
         self.create_environment(project=project)
@@ -551,11 +543,6 @@ class ExhaustiveFixtures(Fixtures):
             comment=f"hello {slug}",
             user_id=owner_id,
         )
-        IncidentTrigger.objects.create(
-            incident=incident,
-            alert_rule_trigger=trigger,
-            status=1,
-        )
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -572,11 +559,6 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard,
-            member=invited,
-            last_visited=timezone.now(),
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -607,7 +589,6 @@ class ExhaustiveFixtures(Fixtures):
             title=dashboard.title,
             snapshot_schema_version=1,
         )
-        DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
         # *Search
         RecentSearch.objects.create(
@@ -644,7 +625,12 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
         )
-        seer_project_repo = SeerProjectRepository.objects.create(project=project, repository=repo)
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        seer_project_repo = SeerProjectRepository.objects.create(project_repository=project_repo)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=seer_project_repo,
             tag_name="environment",

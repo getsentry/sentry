@@ -24,6 +24,14 @@ describe('ExternalIssueSidebarList', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     SentryAppComponentsStore.init();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
   });
 
   it('should allow unlinking integration external issues', async () => {

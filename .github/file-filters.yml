@@ -20,15 +20,24 @@ testable_rules_changed: &testable_rules_changed
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
 
-# Trigger whether to run tsc or not
+# Trigger whether to run TypeScript typechecking or not
 # There's no "rules_changed" for this, because we run it for all files always
-# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger tsc
+# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger typechecking
 typecheckable_rules_changed: &typecheckable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
   - added|deleted|modified: '**/tsconfig*.json'
   - added|deleted|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
   - added|deleted|modified: 'static/**/*.mdx'
+
+# Trigger whether to run MDX typechecking
+mdx_typecheckable: &mdx_typecheckable
+  - *sentry_frontend_workflow_file
+  - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: '**/tsconfig*.json'
+  - added|deleted|modified: 'static/**/*.mdx'
+  - added|deleted|modified: 'static/app/components/core/**/*.{ts,tsx}'
+  - added|deleted|modified: 'static/**/__stories__/**/*.{ts,tsx}'
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
@@ -107,6 +116,12 @@ acceptance: &acceptance
   - *backend_all
   - '.github/workflows/acceptance.yml'
   - '.github/actions/collect-test-data/**'
+
+# Used in `getsentry-dispatch.js` to decide whether to run getsentry's
+# acceptance suite against a sentry PR. Scoped to gsApp and gsAdmin
+# frontend changes (both have acceptance tests in getsentry).
+gsapp: &gsapp
+  - added|deleted|modified: 'static/{gsApp,gsAdmin}/**/*.{ts,tsx}'
 
 api_docs: &api_docs
   - *backend_all

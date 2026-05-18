@@ -42,6 +42,7 @@ class Author(AuthorOptional):
     email: str
     avatarUrl: str
     isActive: bool
+    isSuspended: bool
     hasPasswordAuth: bool
     isManaged: bool
     dateJoined: str

@@ -79,7 +79,10 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
   if (!hasMetrics) {
     disabledProducts[ProductSolution.METRICS] = {
       reason,
-      onClick: createClickHandler('organizations:tracemetrics-enabled', 'Metrics'),
+      onClick: createClickHandler(
+        'organizations:tracemetrics-enabled',
+        'Application Metrics'
+      ),
     };
   }
   return disabledProducts;
@@ -91,7 +94,7 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
 export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   dotnet: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -211,6 +214,7 @@ export const platformProductAvailability = {
   javascript: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-react': [
@@ -252,6 +256,7 @@ export const platformProductAvailability = {
   'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-svelte': [
@@ -550,7 +555,7 @@ function Product({
     >
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
-        priority={!!disabled || checked ? 'primary' : 'default'}
+        variant={!!disabled || checked ? 'primary' : 'secondary'}
         disabled={isDisabled}
         aria-label={label}
       >
@@ -687,7 +692,7 @@ export function ProductSelection({
       )}
       {products.includes(ProductSolution.METRICS) && (
         <Product
-          label={t('Metrics')}
+          label={t('Application Metrics')}
           description={t(
             'Custom metrics for tracking application performance and usage, automatically trace-connected.'
           )}

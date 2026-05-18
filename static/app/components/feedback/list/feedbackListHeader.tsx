@@ -12,26 +12,17 @@ import {useFeedbackHasNewItems} from 'sentry/components/feedback/useFeedbackHasN
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
-interface Props extends Pick<
-  ReturnType<typeof useListItemCheckboxContext>,
-  | 'countSelected'
-  | 'deselectAll'
-  | 'isAllSelected'
-  | 'isAnySelected'
-  | 'selectAll'
-  | 'selectedIds'
-> {}
-
-export function FeedbackListHeader({
-  countSelected,
-  deselectAll,
-  isAllSelected,
-  isAnySelected,
-  selectAll,
-  selectedIds,
-}: Props) {
+export function FeedbackListHeader() {
+  const {
+    countSelected,
+    deselectAll,
+    isAllSelected,
+    isAnySelected,
+    selectAll,
+    selectedIds,
+  } = useListItemCheckboxContext();
   const [mailbox, setMailbox] = useMailbox();
 
   const {listPrefetchApiOptions, resetListHeadTime} = useFeedbackApiOptions();
@@ -65,7 +56,7 @@ export function FeedbackListHeader({
       {hasNewItems ? (
         <Flex justify="center" align="center" flexGrow={1} padding="xs">
           <Button
-            priority="primary"
+            variant="primary"
             size="xs"
             icon={<IconRefresh />}
             onClick={() => {

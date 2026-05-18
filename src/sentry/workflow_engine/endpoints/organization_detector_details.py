@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -34,7 +35,6 @@ from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
@@ -152,7 +152,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
@@ -172,8 +172,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Return details on an individual monitor
         """
         _check_metric_detector_allowed(detector, organization)
@@ -203,8 +201,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Update an existing monitor
         """
         _check_metric_detector_allowed(detector, organization)
@@ -238,8 +234,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Delete a monitor
         """
         # Intentionally no _check_metric_detector_allowed gate here:

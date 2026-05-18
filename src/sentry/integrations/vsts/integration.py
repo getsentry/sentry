@@ -36,6 +36,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -192,6 +193,19 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
             org_integration_id=self.org_integration.id,
             identity_id=self.org_integration.default_auth_id,
         )
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        # VSTS's get_repositories wraps all ApiError/IdentityNotValid into
+        # IntegrationError, losing the original type. Check __context__ for
+        # HTTP 401/403/404 which indicate a terminally broken integration.
+        if isinstance(exc, IntegrationError):
+            cause = exc.__context__
+            if isinstance(cause, ApiError):
+                if cause.code in (401, 403):
+                    return "unauthorized"
+                if cause.code == 404:
+                    return "configuration_error"
+        return super().is_broken_integration_error(exc)
 
     # IntegrationInstallation methods
 

@@ -218,7 +218,7 @@ function getDetectorMetricsUrl({
  * Returns the appropriate destination based on the detector's dataset:
  * - SPANS/TRANSACTIONS: Open in Explore
  * - LOGS: Open in Logs
- * - METRICS: Open in Metrics
+ * - METRICS: Open in Application Metrics
  * - ERRORS: Open in Discover
  */
 export function getDetectorOpenInDestination(
@@ -240,7 +240,7 @@ export function getDetectorOpenInDestination(
       };
     case DetectorDataset.METRICS:
       return {
-        buttonText: t('Open in Metrics'),
+        buttonText: t('Open in Application Metrics'),
         to: getDetectorMetricsUrl(options),
       };
     case DetectorDataset.SPANS:

@@ -31,14 +31,14 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.backpressure-seconds": 10,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
-    "spans.buffer.flusher-cumulative-logger-enabled": False,
+    "spans.buffer.flusher.flush-lock-ttl": 0,
+    "spans.buffer.done-flush-conditional-zrem": True,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
     "spans.buffer.max-spans-per-evalsha": 0,
     "spans.buffer.evalsha-latency-threshold": 100,
-    "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
-    "spans.buffer.enforce-segment-size": False,
+    "spans.buffer.debug-traces": [],
     "spans.process-segments.schema-validation": 1.0,
 }
 
@@ -220,8 +220,6 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -289,8 +287,6 @@ def test_observability_metrics(
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -339,8 +335,6 @@ def test_duplicate_batch_is_idempotent(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -426,8 +420,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -507,8 +499,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -581,8 +571,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=2,
             spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
@@ -597,8 +585,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -666,16 +652,12 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=2,
             spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
         ),
         _segment_id(1, "a" * 32, "c" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -692,8 +674,6 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -731,8 +711,6 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[_output_segment(b"a" * 16, b"a" * 16, True)],
@@ -822,71 +800,6 @@ def test_compression_functionality(compression_level) -> None:
 
 
 @mock.patch("sentry.spans.buffer.Project")
-def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> None:
-    # Mock the project lookup to avoid database access
-    mock_project = mock.Mock()
-    mock_project.id = 1
-    mock_project.organization_id = 100
-    mock_project_model.objects.get_from_cache.return_value = mock_project
-
-    batch1 = [
-        Span(
-            payload=_payload("c" * 16),
-            trace_id="a" * 32,
-            span_id="c" * 16,
-            parent_span_id="b" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("b" * 16),
-            trace_id="a" * 32,
-            span_id="b" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-    ]
-    batch2 = [
-        Span(
-            payload=_payload("d" * 16),
-            trace_id="a" * 32,
-            span_id="d" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("e" * 16),
-            trace_id="a" * 32,
-            span_id="e" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("a" * 16),
-            trace_id="a" * 32,
-            span_id="a" * 16,
-            parent_span_id=None,
-            project_id=1,
-            segment_id=None,
-            is_segment_span=True,
-        ),
-    ]
-
-    with override_options({"spans.buffer.max-segment-bytes": 100}):
-        buffer.process_spans(batch1, now=0)
-        buffer.process_spans(batch2, now=0)
-        rv = buffer.flush_segments(now=11)
-
-    # The segment is kept even though it exceeds max_segment_bytes,
-    # because oversized segments are chunked at the message level.
-    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    assert len(segment.spans) == 5
-
-
-@mock.patch("sentry.spans.buffer.Project")
 def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: SpansBuffer) -> None:
     """When a segment's cumulative ingested bytes exceed max-segment-bytes, subsequent
     subsegments are written to a detached (salted) key so that overflow spans are not lost."""
@@ -930,9 +843,7 @@ def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: Spans
         ),
     ]
 
-    with override_options(
-        {"spans.buffer.max-segment-bytes": 70, "spans.buffer.enforce-segment-size": True}
-    ):
+    with override_options({"spans.buffer.max-segment-bytes": 70}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         buffer.process_spans(batch3, now=0)
@@ -988,7 +899,6 @@ def test_max_segment_bytes_under_limit_merges_normally(
     with override_options(
         {
             "spans.buffer.max-segment-bytes": 10 * 1024 * 1024,
-            "spans.buffer.enforce-segment-size": True,
         }
     ):
         buffer.process_spans(batch1, now=0)
@@ -1005,7 +915,8 @@ def test_max_segment_bytes_under_limit_merges_normally(
 
 @mock.patch("sentry.spans.buffer.Project")
 def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> None:
-    """Test that oversized segments are kept instead of dropped."""
+    """When cumulative bytes exceed max-segment-bytes, spans split across
+    segments but none are dropped."""
     mock_project = mock.Mock()
     mock_project.id = 1
     mock_project.organization_id = 100
@@ -1057,30 +968,18 @@ def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> No
         ),
     ]
 
+    # `now=61` is past the non-root timeout (60) so the parent segment also flushes.
     with override_options({"spans.buffer.max-segment-bytes": 100}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
-        rv = buffer.flush_segments(now=11)
+        rv = buffer.flush_segments(now=61)
 
-    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    assert len(segment.spans) == 5
-    _normalize_output(rv)
-    assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
-            queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
-            payload_keys=mock.ANY,
-            project_id=1,
-            spans=[
-                _output_segment(b"a" * 16, b"a" * 16, True),
-                _output_segment(b"b" * 16, b"a" * 16, False),
-                _output_segment(b"c" * 16, b"a" * 16, False),
-                _output_segment(b"d" * 16, b"a" * 16, False),
-                _output_segment(b"e" * 16, b"a" * 16, False),
-            ],
-        )
-    }
+    all_span_ids = {span.payload["span_id"] for seg in rv.values() for span in seg.spans}
+    assert all_span_ids == {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
+    assert sum(len(seg.spans) for seg in rv.values()) == 5
+    # Confirms the byte-limit detach actually triggered. Exact count depends on
+    # max-spans-per-evalsha chunking (2 segments for nochunk, 3 for chunk1).
+    assert len(rv) >= 2
 
 
 def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
@@ -1268,8 +1167,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -1343,79 +1240,10 @@ def test_partition_routing_stable_across_rebalance() -> None:
 
 
 @override_options(DEFAULT_OPTIONS)
-def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> None:
+def test_done_flush_cleans_up(buffer: SpansBuffer) -> None:
     """
-    Regression test: new spans arriving between flush_segments and
-    done_flush_segments must not be silently lost. done_flush_segments should
-    detect that the queue score changed (due to process_spans zadd) and skip
-    cleanup, preserving the new spans for the next flush cycle.
-    """
-    # Step 1: ingest initial spans
-    initial_spans = [
-        Span(
-            payload=_payload("a" * 16),
-            trace_id="a" * 32,
-            span_id="a" * 16,
-            parent_span_id="b" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("b" * 16),
-            trace_id="a" * 32,
-            span_id="b" * 16,
-            parent_span_id=None,
-            segment_id=None,
-            is_segment_span=True,
-            project_id=1,
-        ),
-    ]
-    process_spans(initial_spans, buffer, now=0)
-
-    # Step 2: flush_segments reads the data and captures the queue score
-    rv = buffer.flush_segments(now=11)
-    assert len(rv) == 1
-    segment_key = next(iter(rv))
-
-    # Step 3: simulate new spans arriving for the same segment (race window)
-    # This updates the queue score via zadd with a new deadline
-    new_spans = [
-        Span(
-            payload=_payload("c" * 16),
-            trace_id="a" * 32,
-            span_id="c" * 16,
-            parent_span_id="b" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-    ]
-    process_spans(new_spans, buffer, now=20)
-
-    # Step 4: done_flush_segments should detect score change and skip cleanup
-    buffer.done_flush_segments(rv)
-
-    # Step 5: the segment data should still be in Redis (not destroyed)
-    # A subsequent flush should pick up the spans (old + new)
-    rv2 = buffer.flush_segments(now=81)
-    assert len(rv2) == 1
-    _normalize_output(rv2)
-    flushed = rv2[segment_key]
-    span_ids = sorted(span.payload["span_id"] for span in flushed.spans)
-    # All three spans should be present (at-least-once: old spans re-flushed + new span)
-    assert "a" * 16 in span_ids
-    assert "b" * 16 in span_ids
-    assert "c" * 16 in span_ids
-
-    # Clean up
-    buffer.done_flush_segments(rv2)
-    assert_clean(buffer.client)
-
-
-@override_options(DEFAULT_OPTIONS)
-def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
-    """
-    When no new spans arrive between flush_segments and done_flush_segments,
-    cleanup should proceed normally (queue entry removed, set deleted, etc).
+    Test that done_flush_segments properly cleans up segment data
+    (queue entry removed, set deleted, etc).
     """
     spans = [
         Span(
@@ -1449,80 +1277,319 @@ def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
     assert_clean(buffer.client)
 
 
-@override_options(DEFAULT_OPTIONS)
-def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
+@pytest.mark.parametrize(
+    "flush_lock_ttl, expected_flushed_segments",
+    [
+        pytest.param(0, 2, id="lock-disabled-duplicate-flushes"),
+        pytest.param(10, 1, id="lock-enabled-flush-once"),
+    ],
+)
+def test_flush_lock(
+    buffer: SpansBuffer, flush_lock_ttl: int, expected_flushed_segments: int
+) -> None:
     """
-    Test Phase 2 safety: even if Phase 1 (conditional ZREM) succeeds because the
-    queue score hasn't been updated yet, Phase 2 (conditional data deletion)
-    catches the race by detecting that the ingested count changed.
-
-    This simulates the window where add-buffer.lua has run (adding spans and
-    incrementing ic) but the ZADD hasn't happened yet.
+    Tests the segment flush lock that prevents two buffers from flushing the same
+    segment concurrently and producing duplicated spans.
     """
-    initial_spans = [
-        Span(
-            payload=_payload("a" * 16),
-            trace_id="a" * 32,
-            span_id="a" * 16,
-            parent_span_id="b" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("b" * 16),
-            trace_id="a" * 32,
-            span_id="b" * 16,
-            parent_span_id=None,
-            segment_id=None,
-            is_segment_span=True,
-            project_id=1,
-        ),
-    ]
-    process_spans(initial_spans, buffer, now=0)
+    # First span comes in from partition 0, goes into shard 0's queue.
+    process_spans(
+        [
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+                partition=0,
+            ),
+        ],
+        buffer,
+        now=0,
+    )
+    # Second span comes in from partition 1, goes into shard 1's queue.
+    process_spans(
+        [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                partition=1,
+            ),
+        ],
+        buffer,
+        now=0,
+    )
 
-    rv = buffer.flush_segments(now=11)
-    assert len(rv) == 1
-    segment_key = next(iter(rv))
-    flushed_segment = rv[segment_key]
+    buffer_a = SpansBuffer(assigned_shards=[0], slice_id=buffer.slice_id)
+    buffer_b = SpansBuffer(assigned_shards=[1], slice_id=buffer.slice_id)
 
-    # Simulate the race: add new spans (changes ic and queue score)
-    new_spans = [
-        Span(
-            payload=_payload("c" * 16),
-            trace_id="a" * 32,
-            span_id="c" * 16,
-            parent_span_id="b" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-    ]
-    process_spans(new_spans, buffer, now=20)
+    with override_options({"spans.buffer.flusher.flush-lock-ttl": flush_lock_ttl}):
+        rv_a = buffer_a.flush_segments(now=11)
+        rv_b = buffer_b.flush_segments(now=11)
+        buffer_a.done_flush_segments(rv_a)
+        buffer_b.done_flush_segments(rv_b)
+        assert len(rv_a) + len(rv_b) == expected_flushed_segments
 
-    # Now reset the queue score back to the original value, simulating the
-    # window where add-buffer.lua ran but ZADD hasn't updated the score yet.
-    # This means Phase 1 (conditional ZREM) will succeed.
-    buffer.client.zadd(flushed_segment.queue_key, {segment_key: flushed_segment.score})
 
-    # done_flush_segments: Phase 1 ZREM succeeds (score matches), but
-    # Phase 2 should detect ic changed and skip data deletion.
-    buffer.done_flush_segments(rv)
+def test_flush_lock_released_after_done_flush(buffer: SpansBuffer) -> None:
+    process_spans(
+        [
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+            ),
+        ],
+        buffer,
+        now=0,
+    )
 
-    # The segment data should still be in Redis
-    # Restore the queue entry with a proper deadline so we can flush again
-    buffer.client.zadd(flushed_segment.queue_key, {segment_key: 80})
+    with override_options({"spans.buffer.flusher.flush-lock-ttl": 60}):
+        rv = buffer.flush_segments(now=11)
+        segment_key = next(iter(rv))
+        lock_key = buffer._get_flush_lock_key(segment_key)
+        assert buffer.client.exists(lock_key) == 1
 
-    rv2 = buffer.flush_segments(now=81)
-    assert len(rv2) == 1
-    _normalize_output(rv2)
-    flushed = rv2[segment_key]
-    span_ids = sorted(span.payload["span_id"] for span in flushed.spans)
-    assert "a" * 16 in span_ids
-    assert "b" * 16 in span_ids
-    assert "c" * 16 in span_ids
+        buffer.done_flush_segments(rv)
+        assert buffer.client.exists(lock_key) == 0
 
-    # Clean up
-    buffer.done_flush_segments(rv2)
     assert_clean(buffer.client)
+
+
+@pytest.mark.parametrize(
+    "flush_lock_ttl, expected_flushed_segments",
+    [
+        pytest.param(0, 8, id="lock-disabled-segments-double-flushed"),
+        pytest.param(10, 6, id="lock-enabled-contended-segments-flushed-once"),
+    ],
+)
+def test_flush_lock_mixed_contention(
+    buffer: SpansBuffer, flush_lock_ttl: int, expected_flushed_segments: int
+) -> None:
+    """
+    Two buffers with some segments of their own plus two segments that sit in both
+    queues. The lock should only prevent the contended segments from being flushed
+    twice, other segments must still be flushed normally.
+    """
+    contended_traces = ["a" * 32, "b" * 32]
+    shard_0_only_traces = ["c" * 32]
+    shard_1_only_traces = ["d" * 32, "e" * 32, "f" * 32]
+    root_span_id = "1" * 16
+    child_span_id = "2" * 16
+
+    for trace_id in shard_0_only_traces + shard_1_only_traces:
+        partition = 0 if trace_id in shard_0_only_traces else 1
+        process_spans(
+            [
+                Span(
+                    payload=_payload(root_span_id),
+                    trace_id=trace_id,
+                    span_id=root_span_id,
+                    parent_span_id=None,
+                    segment_id=None,
+                    is_segment_span=True,
+                    project_id=1,
+                    partition=partition,
+                ),
+            ],
+            buffer,
+            now=0,
+        )
+
+    for trace_id in contended_traces:
+        process_spans(
+            [
+                Span(
+                    payload=_payload(root_span_id),
+                    trace_id=trace_id,
+                    span_id=root_span_id,
+                    parent_span_id=None,
+                    segment_id=None,
+                    is_segment_span=True,
+                    project_id=1,
+                    partition=0,
+                ),
+            ],
+            buffer,
+            now=0,
+        )
+        process_spans(
+            [
+                Span(
+                    payload=_payload(child_span_id),
+                    trace_id=trace_id,
+                    span_id=child_span_id,
+                    parent_span_id=root_span_id,
+                    segment_id=None,
+                    project_id=1,
+                    partition=1,
+                ),
+            ],
+            buffer,
+            now=0,
+        )
+
+    buffer_a = SpansBuffer(assigned_shards=[0], slice_id=buffer.slice_id)
+    buffer_b = SpansBuffer(assigned_shards=[1], slice_id=buffer.slice_id)
+
+    with override_options({"spans.buffer.flusher.flush-lock-ttl": flush_lock_ttl}):
+        rv_a = buffer_a.flush_segments(now=11)
+        rv_b = buffer_b.flush_segments(now=11)
+        buffer_a.done_flush_segments(rv_a)
+        buffer_b.done_flush_segments(rv_b)
+        assert len(rv_a) + len(rv_b) == expected_flushed_segments
+
+
+@mock.patch("sentry.spans.buffer.Project")
+def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer) -> None:
+    """
+    Tests that a span that arrives while a segment is being flushed detaches
+    to a new segment rather than merge into the locked segment.
+    """
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    root_span = Span(
+        payload=_payload("b" * 16),
+        trace_id="a" * 32,
+        span_id="b" * 16,
+        parent_span_id=None,
+        segment_id=None,
+        is_segment_span=True,
+        project_id=1,
+    )
+    concurrent_span = Span(
+        payload=_payload("c" * 16),
+        trace_id="a" * 32,
+        span_id="c" * 16,
+        parent_span_id="b" * 16,
+        segment_id=None,
+        project_id=1,
+    )
+
+    normal_key = _segment_id(1, "a" * 32, "b" * 16)
+
+    with override_options(
+        {
+            "spans.buffer.flusher.flush-lock-ttl": 20,
+        }
+    ):
+        buffer.process_spans([root_span], now=0)
+        rv = buffer.flush_segments(now=11)
+        buffer.process_spans([concurrent_span], now=12)
+        buffer.done_flush_segments(rv)
+        rv2 = buffer.flush_segments(now=120)
+
+    detached_keys = [k for k in rv2 if k != normal_key]
+    assert len(detached_keys) == 1
+    detached_segment = rv2[detached_keys[0]]
+    assert len(detached_segment.spans) == 1
+    assert detached_segment.spans[0].payload["span_id"] == "c" * 16
+
+    buffer.done_flush_segments(rv2)
+
+
+@mock.patch("sentry.spans.buffer.Project")
+def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
+    mock_project_model, buffer: SpansBuffer
+) -> None:
+    """
+    Regression test for the double-flush bug caused by interaction between
+    flush locks (https://github.com/getsentry/sentry/pull/113850) and
+    conditional cleanup (https://github.com/getsentry/sentry/pull/110462)
+
+    Scenario:
+    1. Buffer flushes segment, captures queue score $OLD, acquires lock
+    2. Lock expires (simulated by deleting the key)
+    3. New spans arrive, there is no lock, so they MERGE (not detach), updating queue score
+    4. Buffer calls done_flush_segments with the $OLD captured score, so in the end nothing is deleted.
+    5. Flusher iterates again, and flushes the same segment again.
+
+    The fix is to remove conditional cleanup from https://github.com/getsentry/sentry/pull/110462 entirely.
+    """
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+
+    # Step 1: Create initial segment
+    process_spans(
+        [
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+                partition=0,
+            ),
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                partition=0,
+            ),
+        ],
+        buffer,
+        now=0,
+    )
+
+    with override_options({"spans.buffer.flusher.flush-lock-ttl": 60}):
+        # Step 2: Buffer flushes segment, captures score, acquires lock
+        rv = buffer.flush_segments(now=11)
+        assert len(rv) == 1
+        assert segment_key in rv
+        assert len(rv[segment_key].spans) == 2
+
+        # Step 3: Simulate lock expiration by deleting it
+        buffer.client.delete(buffer._get_flush_lock_key(segment_key))
+
+        # Step 4: New spans arrive while "producing to Kafka"
+        # Lock is gone, so they MERGE into segment (not detach)
+        # This updates the queue score via ZADD (new deadline based on now=50)
+        process_spans(
+            [
+                Span(
+                    payload=_payload("c" * 16),
+                    trace_id="a" * 32,
+                    span_id="c" * 16,
+                    parent_span_id="b" * 16,
+                    segment_id=None,
+                    project_id=1,
+                    partition=0,
+                ),
+            ],
+            buffer,
+            now=50,
+        )
+
+        # Step 5: Buffer calls done_flush_segments with OLD captured score
+        # score mismatch (11 vs 60) -> cleanup skipped (iff
+        # https://github.com/getsentry/sentry/pull/110462 is still applied)
+        buffer.done_flush_segments(rv)
+
+        rv2 = buffer.flush_segments(now=120)
+
+        # Assert that the lock actually prevents double-flushing.
+        assert not rv2
 
 
 # --- Distributed payload keys tests ---
@@ -1636,10 +1703,15 @@ def test_distributed_payload_keys_populated(distributed_buffer: SpansBuffer) -> 
     buf = distributed_buffer
     process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
 
-    dist_key = b"span-buf:s:{1:" + b"a" * 32 + b":" + b"b" * 16 + b"}:" + b"b" * 16
     mk_key = b"span-buf:mk:{1:" + b"a" * 32 + b"}:" + b"b" * 16
-    assert buf.client.scard(dist_key) > 0
     assert buf.client.scard(mk_key) > 0
+
+    # Payload keys are salt-keyed (one per subsegment), tracked via mk.
+    salts = buf.client.smembers(mk_key)
+    assert salts
+    for salt in salts:
+        dist_key = b"span-buf:s:{1:" + b"a" * 32 + b":" + salt + b"}:" + salt
+        assert buf.client.scard(dist_key) > 0
 
     rv = buf.flush_segments(now=11)
     set_key = _segment_id(1, "a" * 32, "b" * 16)

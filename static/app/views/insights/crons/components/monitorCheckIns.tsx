@@ -1,8 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {LoadingError} from 'sentry/components/loadingError';
-import {Pagination} from 'sentry/components/pagination';
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';

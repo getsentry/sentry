@@ -1,13 +1,13 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -34,10 +34,10 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
@@ -110,11 +110,8 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
-  const cursorHandler = useCallback<CursorHandler>(
-    (cursor, path, q) =>
-      navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}}),
-    [navigate]
-  );
+  const cursorHandler: CursorHandler = (cursor, path, q) =>
+    navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}});
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
