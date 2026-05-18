@@ -72,7 +72,7 @@ export async function initializeLocale(config: Config) {
     } else {
       const [translations] = await Promise.all([
         getTranslations(languageCode),
-        import(`moment/locale/${languageCode}`),
+        import(`moment/locale/${languageCode}`).catch(() => null),
       ]);
       setLocale(translations);
       moment.locale(languageCode);
