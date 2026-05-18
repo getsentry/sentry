@@ -86,6 +86,10 @@ describe('groupDetails', () => {
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });

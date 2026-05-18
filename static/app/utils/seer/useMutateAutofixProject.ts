@@ -7,7 +7,7 @@ import {
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Repository} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
@@ -19,7 +19,7 @@ import {
 import type {UserFacingStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type TData = [Project, SeerPreferencesResponse];
+type TData = [DetailedProject, SeerPreferencesResponse];
 type TVariables = {
   agent: PreferredAgent;
   project: Project;
@@ -70,7 +70,7 @@ export function useMutateAutofixProject() {
         });
 
       return Promise.all([
-        fetchMutation<Project>({
+        fetchMutation<DetailedProject>({
           method: 'PUT',
           url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
             path: {
@@ -103,10 +103,8 @@ export function useMutateAutofixProject() {
       const {project, stoppingPoint} = variables;
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
-      ProjectsStore.onUpdateSuccess({
-        ...project,
-        autofixAutomationTuning: tuning,
-      });
+      const updatedProject = {...project, autofixAutomationTuning: tuning};
+      ProjectsStore.onUpdateSuccess(updatedProject);
     },
     onSettled: (_data, _error, variables, _context) => {
       const {project} = variables;

@@ -15,7 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.event_search import QueryToken, SearchConfig, SearchFilter
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
@@ -342,7 +342,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (ProjectEventPermission,)
+    permission_classes = (ProjectPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
         return Response(serialize_project(project))

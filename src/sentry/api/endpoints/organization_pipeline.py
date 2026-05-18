@@ -61,7 +61,7 @@ def _get_api_pipeline(
 
 @control_silo_endpoint
 class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,

@@ -3,7 +3,6 @@ from django.urls import reverse
 from sentry.constants import ObjectStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models import AutofixHandoffPoint
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
 
 
@@ -95,8 +94,8 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         """reposCount should reflect active SeerProjectRepository rows."""
         repo1 = self.create_repo(project=self.project, name="owner/repo-1")
         repo2 = self.create_repo(project=self.project, name="owner/repo-2")
-        SeerProjectRepository.objects.create(project=self.project, repository=repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo2)
+        self.create_seer_project_repository(project=self.project, repository=repo1)
+        self.create_seer_project_repository(project=self.project, repository=repo2)
 
         response = self.client.get(self.url)
 
@@ -109,8 +108,8 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         disabled_repo = self.create_repo(project=self.project, name="owner/deleted")
         disabled_repo.status = ObjectStatus.DISABLED
         disabled_repo.save()
-        SeerProjectRepository.objects.create(project=self.project, repository=active_repo)
-        SeerProjectRepository.objects.create(project=self.project, repository=disabled_repo)
+        self.create_seer_project_repository(project=self.project, repository=active_repo)
+        self.create_seer_project_repository(project=self.project, repository=disabled_repo)
 
         response = self.client.get(self.url)
 
@@ -283,8 +282,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         """reposCount should reflect the number of active SeerProjectRepository rows."""
         repo1 = self.create_repo(project=self.project, name="owner/repo-1")
         repo2 = self.create_repo(project=self.project, name="owner/repo-2")
-        SeerProjectRepository.objects.create(project=self.project, repository=repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo2)
+        self.create_seer_project_repository(project=self.project, repository=repo1)
+        self.create_seer_project_repository(project=self.project, repository=repo2)
 
         response = self.client.get(self.url)
 
@@ -297,8 +296,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         disabled_repo = self.create_repo(project=self.project, name="owner/deleted")
         disabled_repo.status = ObjectStatus.DISABLED
         disabled_repo.save()
-        SeerProjectRepository.objects.create(project=self.project, repository=active_repo)
-        SeerProjectRepository.objects.create(project=self.project, repository=disabled_repo)
+        self.create_seer_project_repository(project=self.project, repository=active_repo)
+        self.create_seer_project_repository(project=self.project, repository=disabled_repo)
 
         response = self.client.get(self.url)
 
@@ -356,7 +355,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         project1 = self.create_project(organization=self.organization)
         for i in range(2):
             repo = self.create_repo(project=project1, name=f"owner/repo-{i}")
-            SeerProjectRepository.objects.create(project=project1, repository=repo)
+            self.create_seer_project_repository(project=project1, repository=repo)
         project2 = self.create_project(organization=self.organization)
 
         response = self.client.get(self.url, {"sortBy": "reposCount"})
@@ -466,7 +465,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         project1 = self.create_project(organization=self.organization)
         for i in range(2):
             repo = self.create_repo(project=project1, name=f"owner/filter-repo-{i}")
-            SeerProjectRepository.objects.create(project=project1, repository=repo)
+            self.create_seer_project_repository(project=project1, repository=repo)
         project2 = self.create_project(organization=self.organization)
 
         response = self.client.get(self.url, {"query": "reposCount:>0"})
@@ -540,7 +539,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         project1 = self.create_project(organization=self.organization)
         project1.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
         repo = self.create_repo(project=project1, name="owner/repo-1")
-        SeerProjectRepository.objects.create(project=project1, repository=repo)
+        self.create_seer_project_repository(project=project1, repository=repo)
 
         project2 = self.create_project(organization=self.organization)
         project2.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")

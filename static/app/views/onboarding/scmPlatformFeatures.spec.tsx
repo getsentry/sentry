@@ -4,7 +4,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -113,8 +119,9 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    expect(await screen.findByText('Next.js')).toBeInTheDocument();
-    expect(screen.getByText('Django')).toBeInTheDocument();
+    const radioGroup = await screen.findByRole('radiogroup');
+    expect(within(radioGroup).getByText('Next.js')).toBeInTheDocument();
+    expect(within(radioGroup).getByText('Django')).toBeInTheDocument();
   });
 
   it('auto-selects first detected platform', async () => {
@@ -147,8 +154,112 @@ describe('ScmPlatformFeatures', () => {
     );
 
     expect(
-      await screen.findByText('What do you want to instrument?')
+      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'})
     ).toBeInTheDocument();
+  });
+
+  describe('feature card variants', () => {
+    it('renders informational cards for wizard-driven platforms (no toggles)', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {platforms: [DetectedPlatformFixture()]},
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      expect(
+        await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('Error monitoring')).toBeInTheDocument();
+      expect(screen.getByText('Tracing')).toBeInTheDocument();
+      expect(screen.getByText('Session replay')).toBeInTheDocument();
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('What do you want to instrument?')
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders toggleable cards for curated platforms', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [DetectedPlatformFixture({platform: 'python', language: 'Python'})],
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      expect(
+        await screen.findByText('What do you want to instrument?')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {level: 3, name: /^Available with /})
+      ).not.toBeInTheDocument();
+    });
+
+    it('skips the feature-cards block for platforms in neither map', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {platforms: []},
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+            selectedPlatform: {
+              key: 'nintendo-switch',
+              name: 'Nintendo Switch',
+              language: 'nintendo-switch',
+              type: 'console',
+              link: null,
+              category: 'all',
+            },
+          }),
+        }
+      );
+
+      await screen.findByRole('button', {name: 'Continue'});
+
+      expect(
+        screen.queryByRole('heading', {level: 3, name: /^Available with /})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('What do you want to instrument?')
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/unlimited volume for 14 days/)).not.toBeInTheDocument();
+    });
   });
 
   it('clicking "Change platform" shows manual picker', async () => {
@@ -569,7 +680,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('What do you want to instrument?');
+      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'});
 
       const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
         ([event, params]) =>

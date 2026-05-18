@@ -52,10 +52,9 @@ import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
 import {IntegrationItem} from './integrationItem';
-import {IntegrationRepos} from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-const TABS = ['repos', 'codeMappings', 'userMappings', 'teamMappings'] as const;
+const TABS = ['settings', 'codeMappings', 'userMappings', 'teamMappings'] as const;
 type Tab = (typeof TABS)[number];
 
 const makeIntegrationQuery = (
@@ -86,7 +85,7 @@ function ConfigureIntegration() {
   const organization = useOrganization();
   const hasPageFrame = useHasPageFrameFeature();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
+  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'settings';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;
@@ -436,10 +435,6 @@ function ConfigureIntegration() {
 
         {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
 
-        {provider.features.includes('commits') && (
-          <IntegrationRepos integration={integration} />
-        )}
-
         {provider.features.includes('serverless') && (
           <IntegrationServerlessFunctions integration={integration} />
         )}
@@ -454,7 +449,7 @@ function ConfigureIntegration() {
     switch (tab) {
       case 'codeMappings':
         return <IntegrationCodeMappings integration={integration} />;
-      case 'repos':
+      case 'settings':
         return renderMainTab();
       case 'userMappings':
         return <IntegrationExternalUserMappings integration={integration} />;
@@ -476,7 +471,7 @@ function ConfigureIntegration() {
     const tabs: Array<[Tab, string]> = [];
     const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
       ? [
-          ['repos', t('Repositories')],
+          ['settings', t('Settings')],
           ['codeMappings', t('Code Mappings')],
         ]
       : [];
@@ -492,7 +487,7 @@ function ConfigureIntegration() {
     // and code owners, so only render the main settings tab and user mappings.
     const userMappingTabs: Array<[Tab, string]> = hasUserMapping
       ? [
-          ['repos', t('Settings')],
+          ['settings', t('Settings')],
           ['userMappings', t('User Mappings')],
         ]
       : [];

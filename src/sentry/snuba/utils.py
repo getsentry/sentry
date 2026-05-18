@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -172,7 +173,7 @@ def build_query_strings(
     )
 
 
-def dataset_split_decision_inferred_from_query(columns, query):
+def dataset_split_decision_inferred_from_query(columns: Sequence[str], query: str) -> int | None:
     """
     Infers split decision based on fields we know exclusively belong to one
     dataset or the other. Biases towards Errors dataset.

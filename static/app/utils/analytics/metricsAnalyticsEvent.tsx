@@ -30,6 +30,7 @@ export type MetricsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
+    ai_query_run_id?: number;
     panel_index?: number;
   };
   'metrics.explorer.setup_button_clicked': {

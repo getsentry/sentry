@@ -1,10 +1,9 @@
-import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -20,8 +19,9 @@ import {
 import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -113,14 +113,14 @@ export function GroupList({
   useFilteredStats = true,
   useTintRow = true,
 }: Props) {
-  const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [memberList, setMemberList] = useState<
-    ReturnType<typeof indexMembersByProject> | undefined
-  >(undefined);
+  const {data: memberList} = useQuery({
+    ...useProjectMembersQueryOptions(),
+    select: resp => indexMembersByProject(resp.json),
+  });
 
   const getQueryParams = useCallback(() => {
     const queryParamsFromLocation = {...location.query};
@@ -163,12 +163,6 @@ export function GroupList({
     },
     [navigate]
   );
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug]);
 
   const parsedQuery = useMemo(
     () => parseSearch(String(computedQueryParams.query ?? '')),

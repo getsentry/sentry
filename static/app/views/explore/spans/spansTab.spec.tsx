@@ -19,7 +19,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import * as spanTagsModule from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import * as spanTagsModule from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -57,7 +57,7 @@ const datePageFilterProps: DatePageFilterProps = {
 describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['gen-ai-features', 'traces-page-cross-event-querying'],
+      features: ['gen-ai-features'],
     },
   });
 

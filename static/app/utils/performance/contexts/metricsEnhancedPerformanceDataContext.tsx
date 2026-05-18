@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useState} from 'react';
+import {createContext, useCallback, useContext, useState} from 'react';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -8,7 +8,6 @@ import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/wi
 
 import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
 import {useOnDemandControl} from './onDemandControl';
-import {createDefinedContext} from './utils';
 
 export type MetricsResultsMetaMapKey = Widget;
 type ExtractedDataMap = Map<string, boolean | undefined>;
@@ -18,10 +17,19 @@ export interface MetricsEnhancedPerformanceDataContext {
   isMetricsData?: boolean;
 }
 
-const [_MEPDataProvider, _useMEPDataContext, _Context] =
-  createDefinedContext<MetricsEnhancedPerformanceDataContext>({
-    name: 'MetricsEnhancedPerformanceDataContext',
-  });
+const MEPDataContext = createContext<MetricsEnhancedPerformanceDataContext | undefined>(
+  undefined
+);
+
+export function useMEPDataContext(): MetricsEnhancedPerformanceDataContext {
+  const context = useContext(MEPDataContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "MetricsEnhancedPerformanceDataContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 export function MEPDataProvider({
   children,
@@ -50,18 +58,16 @@ export function MEPDataProvider({
   );
 
   return (
-    <_MEPDataProvider
+    <MEPDataContext
       value={{
         isMetricsData,
         setIsMetricsData,
       }}
     >
       {children}
-    </_MEPDataProvider>
+    </MEPDataContext>
   );
 }
-
-export const useMEPDataContext = _useMEPDataContext;
 
 // A provider for handling all metas on the page, should be used if your queries and components aren't
 // co-located since a local provider doesn't work in that case.
@@ -70,12 +76,13 @@ interface PerformanceDataMultipleMetaContext {
   setIsMetricsExtractedData: (mapKey: MetricsResultsMetaMapKey, value?: boolean) => void;
 }
 
-const [_MetricsResultsMetaProvider, _useMetricsResultsMeta] =
-  createDefinedContext<PerformanceDataMultipleMetaContext>({
-    name: 'PerformanceDataMultipleMetaContext',
-    strict: false,
-  });
-export const useMetricsResultsMeta = _useMetricsResultsMeta;
+const MetricsResultsMetaContext = createContext<
+  PerformanceDataMultipleMetaContext | undefined
+>(undefined);
+
+export function useMetricsResultsMeta(): PerformanceDataMultipleMetaContext | undefined {
+  return useContext(MetricsResultsMetaContext);
+}
 
 export function MetricsResultsMetaProvider({children}: {children: ReactNode}) {
   const [metricsExtractedDataMap, _setMetricsExtractedDataMap] = useState(new Map());
@@ -90,11 +97,11 @@ export function MetricsResultsMetaProvider({children}: {children: ReactNode}) {
   );
 
   return (
-    <_MetricsResultsMetaProvider
+    <MetricsResultsMetaContext
       value={{setIsMetricsExtractedData, metricsExtractedDataMap}}
     >
       {children}
-    </_MetricsResultsMetaProvider>
+    </MetricsResultsMetaContext>
   );
 }
 
