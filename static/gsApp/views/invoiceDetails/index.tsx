@@ -2,15 +2,18 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text, Heading} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconSentry} from 'sentry/icons';
+import {IconCheckmark, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -20,8 +23,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {InvoiceStatus} from 'getsentry/types';
-import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
+import type {
+  BillingDetails,
+  Invoice,
+  InvoiceBase,
+  InvoiceItem,
+  InvoiceItemType,
+} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -129,69 +137,94 @@ function InvoiceDetails() {
           />
         }
       />
-      <Panel>
+      <Flex justify="center" padding="3xl">
         {isInvoiceLoading || isBillingDetailsLoading ? (
           <PanelBody withPadding>
             <LoadingIndicator />
           </PanelBody>
         ) : (
-          <PanelBody withPadding>
-            <SenderContainer>
-              <div>
-                <SenderName>
-                  <IconSentry size="lg" /> {invoice.sender.name}
-                </SenderName>
-                <StyledAddress>
-                  {invoice.sender.address.map((line, idx) => (
-                    <div key={idx}>{line}</div>
-                  ))}
-                </StyledAddress>
-                {invoice.sentryTaxIds && (
-                  <div>
-                    {invoice.sentryTaxIds.taxIdName}: {invoice.sentryTaxIds.taxId}
-                  </div>
-                )}
-                {invoice.sentryTaxIds?.region && (
-                  <div>
-                    {invoice.sentryTaxIds.region.taxIdName}:{' '}
-                    {invoice.sentryTaxIds.region.taxId}
-                  </div>
-                )}
-              </div>
-              {invoice && (
-                <InvoiceDetailsActions
-                  organization={organization}
-                  invoice={invoice}
-                  reloadInvoice={invoiceRefetch}
-                />
-              )}
-            </SenderContainer>
-            <hr />
+          <Stack maxWidth="720px" border="primary" radius="xl">
+            <Stack padding="2xl" gap="2xl">
+              <Flex justify="between">
+                <Stack gap="lg" align="start">
+                  <LogoSentry height="24px" />
+                  <Stack>
+                    <Text size="sm" variant="secondary">
+                      {invoice.sender.address.join(', ')}
+                    </Text>
+                    {invoice.sentryTaxIds && (
+                      <Text size="sm" variant="secondary">
+                        {invoice.sentryTaxIds.taxIdName}: {invoice.sentryTaxIds.taxId}
+                      </Text>
+                    )}
+                    {invoice.sentryTaxIds?.region && (
+                      <Text>
+                        {invoice.sentryTaxIds.region.taxIdName}:{' '}
+                        {invoice.sentryTaxIds.region.taxId}
+                      </Text>
+                    )}
+                  </Stack>
+                </Stack>
+                <Stack align="end" gap="sm">
+                  <Text size="sm" variant="muted" monospace>
+                    {invoice.id}
+                  </Text>
+                  {invoice.isPaid ? (
+                    <Tag variant="success" icon={<IconCheckmark />}>
+                      {t('Paid in full')}
+                    </Tag>
+                  ) : (
+                    <Tag variant="warning" icon={<IconTimer />}>
+                      {t('Waiting for payment')}
+                    </Tag>
+                  )}
+                </Stack>
+              </Flex>
+              <Stack>
+                <Heading as="h2" size="3xl">
+                  {displayPriceWithCents({cents: invoice.amountBilled ?? 0})} USD
+                </Heading>
+                <Text size="md" variant="secondary">
+                  {t('Charged')} <DateTime date={invoice.dateCreated} dateOnly year />.
+                </Text>
+              </Stack>
+            </Stack>
+
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
-            <FinePrint>
-              {tct(
-                'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
-                {
-                  budgetTerm:
-                    'planDetails' in invoice.customer
-                      ? invoice.customer.planDetails.budgetTerm
-                      : 'pay-as-you-go',
-                  period:
-                    'billingInterval' in invoice.customer &&
-                    invoice.customer.billingInterval === 'annual'
-                      ? 'year'
-                      : 'month',
-                  here: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/billing/cancel/`}
-                    />
-                  ),
-                }
-              )}
-            </FinePrint>
-          </PanelBody>
+
+            {invoice && (
+              <InvoiceDetailsActions
+                organization={organization}
+                invoice={invoice}
+                reloadInvoice={invoiceRefetch}
+              />
+            )}
+            <Stack padding="xl 2xl" borderTop="primary">
+              <Text size="xs" variant="secondary">
+                {tct(
+                  'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
+                  {
+                    budgetTerm:
+                      'planDetails' in invoice.customer
+                        ? invoice.customer.planDetails.budgetTerm
+                        : 'pay-as-you-go',
+                    period:
+                      'billingInterval' in invoice.customer &&
+                      invoice.customer.billingInterval === 'annual'
+                        ? 'year'
+                        : 'month',
+                    here: (
+                      <ExternalLink
+                        href={`/settings/${organization.slug}/billing/cancel/`}
+                      />
+                    ),
+                  }
+                )}
+              </Text>
+            </Stack>
+          </Stack>
         )}
-      </Panel>
+      </Flex>
     </SubscriptionPageContainer>
   );
 }
@@ -202,14 +235,6 @@ type AttributeProps = {
 };
 
 function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
-  let paymentStatus = InvoiceStatus.CLOSED;
-
-  if (invoice.isPaid) {
-    paymentStatus = InvoiceStatus.PAID;
-  } else if (!invoice.isClosed) {
-    paymentStatus = InvoiceStatus.AWAITING_PAYMENT;
-  }
-
   const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
   const companyName = billingDetails?.companyName;
   const billingEmail = billingDetails?.billingEmail;
@@ -218,40 +243,36 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 
   return (
-    <AttributeGroup>
-      <Attributes>
-        <dt>{t('Account:')}</dt>
-        <dd>
-          {invoice.customer?.name && <div>{invoice.customer.name}</div>}
-          {billingEmail}
-        </dd>
-        {companyName || contactInfo ? (
-          <Fragment>
-            <dt>{t('Details:')}</dt>
-            <dd>
-              {!!companyName && <div>{companyName}</div>}
-              {!!contactInfo && <div>{contactInfo}</div>}
-            </dd>
-          </Fragment>
-        ) : null}
-        {!!taxNumber && (
-          <Fragment>
-            <dt>{taxNumberName}</dt>
-            <dd>{taxNumber}</dd>
-          </Fragment>
-        )}
-      </Attributes>
-      <Attributes>
-        <dt>{t('Invoice ID:')}</dt>
-        <dd>{invoice.id}</dd>
-        <dt>{t('Status:')}</dt>
-        <dd>{paymentStatus.toUpperCase()}</dd>
-        <dt>{t('Date:')}</dt>
-        <dd>
-          <DateTime date={invoice.dateCreated} dateOnly year />
-        </dd>
-      </Attributes>
-    </AttributeGroup>
+    <Grid columns="1fr 1fr" gap="3xl" padding="2xl" borderTop="primary">
+      {(companyName || contactInfo || taxNumber) && (
+        <Stack gap="lg">
+          <Text bold>{t('Billed to')}</Text>
+          <Stack gap="sm">
+            {!!companyName && <Text>{companyName}</Text>}
+            {!!contactInfo && (
+              <Text size="sm" variant="secondary">
+                {contactInfo}
+              </Text>
+            )}
+            {!!taxNumber && (
+              <Text size="sm" variant="secondary">
+                {taxNumberName}: {taxNumber}
+              </Text>
+            )}
+          </Stack>
+        </Stack>
+      )}
+
+      <Stack gap="lg">
+        <Text bold>{t('Account')}</Text>
+        <Stack gap="sm">
+          {invoice.customer?.name && <Text>{invoice.customer.name}</Text>}
+          <Text size="sm" variant="secondary">
+            {billingEmail}
+          </Text>
+        </Stack>
+      </Stack>
+    </Grid>
   );
 }
 
@@ -260,35 +281,260 @@ type ContentsProps = {
   billingDetails?: BillingDetails;
 };
 
+type ItemBucket = 'subscription' | 'usage' | 'adjustment';
+
+function bucketFor(type: InvoiceItemType): ItemBucket {
+  if (type === 'subscription' || type.startsWith('reserved_')) {
+    return 'subscription';
+  }
+  if (type.startsWith('ondemand_') || type === 'ondemand') {
+    return 'usage';
+  }
+  return 'adjustment';
+}
+
+function groupItems(items: InvoiceItem[]): Record<ItemBucket, InvoiceItem[]> {
+  const groups: Record<ItemBucket, InvoiceItem[]> = {
+    subscription: [],
+    usage: [],
+    adjustment: [],
+  };
+  for (const item of items) {
+    groups[bucketFor(item.type)].push(item);
+  }
+  return groups;
+}
+
+function sectionPeriod(items: InvoiceItem[]) {
+  const starts = items.map(i => i.periodStart).filter(Boolean);
+  const ends = items.map(i => i.periodEnd).filter(Boolean);
+  if (!starts.length || !ends.length) {
+    return null;
+  }
+  return {
+    start: starts.reduce((a, b) => (a < b ? a : b)),
+    end: ends.reduce((a, b) => (a > b ? a : b)),
+  };
+}
+
+function sumAmounts(items: InvoiceItem[]) {
+  return items.reduce((sum, item) => sum + item.amount, 0);
+}
+
 function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
-  // If an Invoice has 'isReverseCharge: true', it should be noted in
-  // the last row of the table with "VAT" in the left column and "Reverse Charge"
-  // on the right underneath the totals and (if included) refunds
+  const groups = groupItems(invoice.items);
+  const subtotal = sumAmounts([...groups.subscription, ...groups.usage]);
+
   return (
     <Fragment>
       <InvoiceAttributes invoice={invoice} billingDetails={billingDetails} />
 
+      {groups.subscription.length > 0 && (
+        <InvoiceItemSection
+          title={t('Subscription')}
+          description={t('Recurring charges for your plan and reserved volume.')}
+          period={sectionPeriod(groups.subscription)}
+          items={groups.subscription}
+          showQuantityAndRate
+        />
+      )}
+
+      {groups.usage.length > 0 && (
+        <InvoiceItemSection
+          title={t('Additional usage')}
+          description={t(
+            'Volume from the previous billing cycle that exceeded your reserved limits, billed now that the period has closed.'
+          )}
+          period={sectionPeriod(groups.usage)}
+          items={groups.usage}
+        />
+      )}
+
+      <Stack borderTop="primary" background="secondary" padding="2xl 2xl 0 2xl">
+        <SubtotalItems>
+          <tbody>
+            <tr>
+              <td>
+                <Text bold>{t('Subtotal')}</Text>
+              </td>
+              <td>{displayPriceWithCents({cents: subtotal})}</td>
+            </tr>
+            {groups.adjustment.map((item, i) => {
+              const isCredit = item.amount < 0;
+              return (
+                <tr key={i}>
+                  <td>
+                    <Text>{item.description}</Text>
+                  </td>
+                  <td>
+                    <Text variant={isCredit ? 'success' : undefined}>
+                      {displayPriceWithCents({cents: item.amount})}
+                    </Text>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </SubtotalItems>
+      </Stack>
+      <Stack background="secondary" padding="0 2xl">
+        <InvoiceTotals invoice={invoice} />
+      </Stack>
+    </Fragment>
+  );
+}
+
+type SectionProps = {
+  description: string;
+  items: InvoiceItem[];
+  period: {end: string; start: string} | null;
+  title: string;
+  showQuantityAndRate?: boolean;
+};
+
+function parseQuantity(raw: unknown): number | null {
+  if (raw === null || raw === undefined) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Strip a leading number (and optional unit like "GB") from descriptions like
+// "50,000 reserved errors" or "1 GB reserved attachments" — the number lives
+// in the Qty column, so repeating it is noisy.
+function stripLeadingQuantity(description: string): string {
+  const stripped = description.replace(/^[\d,]+(?:\.\d+)?\s*(?:GB|MB|KB|TB)?\s+/i, '');
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
+function InvoiceItemSection({
+  title,
+  description,
+  period,
+  items,
+  showQuantityAndRate,
+}: SectionProps) {
+  return (
+    <Stack borderTop="primary">
+      <Flex justify="between" padding="2xl" gap="3xl">
+        <Stack gap="sm">
+          <Heading as="h3" size="md">
+            {title}
+          </Heading>
+          <Text variant="secondary">{description}</Text>
+        </Stack>
+        {period && (
+          <Text size="sm" variant="secondary" wrap="nowrap">
+            <DateTime date={period.start} dateOnly year /> –{' '}
+            <DateTime date={period.end} dateOnly year />
+          </Text>
+        )}
+      </Flex>
+      <Stack padding="0 2xl">
+        <InvoiceItems>
+          <thead>
+            <tr>
+              <th>
+                <Text size="sm" variant="secondary" uppercase bold>
+                  {t('Item')}
+                </Text>
+              </th>
+              {showQuantityAndRate && (
+                <th>
+                  <Text size="sm" variant="secondary" uppercase bold>
+                    {t('Qty')}
+                  </Text>
+                </th>
+              )}
+              {showQuantityAndRate && (
+                <th>
+                  <Text size="sm" variant="secondary" uppercase bold>
+                    {t('Rate')}
+                  </Text>
+                </th>
+              )}
+              <th>
+                <Text size="sm" variant="secondary" uppercase bold>
+                  {t('Amount (USD)')}
+                </Text>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => {
+              const quantity = parseQuantity(item.data?.quantity);
+              return (
+                <tr key={i}>
+                  <td>
+                    {item.type === 'subscription'
+                      ? tct('[description] Plan', {
+                          description: item.description.replace(
+                            /^Subscription to\s+/i,
+                            ''
+                          ),
+                        })
+                      : showQuantityAndRate
+                        ? stripLeadingQuantity(item.description)
+                        : item.description}
+                  </td>
+                  {showQuantityAndRate && (
+                    <td>{quantity === null ? '—' : quantity.toLocaleString()}</td>
+                  )}
+                  {showQuantityAndRate && (
+                    <td>
+                      <Text variant="secondary">
+                        {item.amount === 0 && quantity !== null && quantity > 0
+                          ? t('Included')
+                          : quantity !== null && quantity > 0
+                            ? displayPriceWithCents({
+                                cents: item.amount / quantity,
+                                maximumFractionDigits: 5,
+                              })
+                            : '—'}
+                      </Text>
+                    </td>
+                  )}
+                  <td>{displayPriceWithCents({cents: item.amount})}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </InvoiceItems>
+      </Stack>
+    </Stack>
+  );
+}
+
+function InvoiceTotals({invoice}: {invoice: Invoice}) {
+  // If an Invoice has 'isReverseCharge: true', it should be noted in
+  // the last row of the table with "VAT" in the left column and "Reverse Charge"
+  // on the right underneath the totals and (if included) refunds
+  return (
+    <Stack borderTop="primary">
       <InvoiceItems data-test-id="invoice-items">
-        <colgroup>
-          <col />
-          <col style={{width: '150px'}} />
-        </colgroup>
-        <thead>
+        <tbody>
           <tr>
-            <th>{t('Item')}</th>
-            <th>{t('Price')}</th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <th>{t('Total')}</th>
-            <td>{displayPriceWithCents({cents: invoice.amountBilled ?? 0})} USD</td>
+            <th>
+              <Text size="xl" bold>
+                {t('Total')}
+              </Text>
+            </th>
+            <td>
+              <Text size="xl" bold>
+                {displayPriceWithCents({cents: invoice.amountBilled ?? 0})}
+              </Text>
+            </td>
           </tr>
           {invoice.isRefunded && (
-            <RefundRow>
-              <th>{t('Refunds')}</th>
-              <td>{displayPriceWithCents({cents: invoice.amountRefunded})} USD</td>
-            </RefundRow>
+            <tr>
+              <td>
+                <Text bold>{t('Refunds')}</Text>
+              </td>
+              <td>
+                <Text variant="success">
+                  -{displayPriceWithCents({cents: invoice.amountRefunded})}
+                </Text>
+              </td>
+            </tr>
           )}
           {invoice.isReverseCharge && (
             <tr>
@@ -296,128 +542,49 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
               <td>{t('Reverse Charge')}</td>
             </tr>
           )}
-        </tfoot>
-        <tbody>
-          {invoice.items.map((item, i) => {
-            if (item.type === 'subscription') {
-              return (
-                <tr key={i}>
-                  <td>
-                    {tct('[description] Plan', {description: item.description})}
-                    <small>
-                      {tct('[start] to [end]', {
-                        start: <DateTime date={item.periodStart} dateOnly year />,
-                        end: <DateTime date={item.periodEnd} dateOnly year />,
-                      })}
-                    </small>
-                  </td>
-                  <td>{displayPriceWithCents({cents: item.amount})} USD</td>
-                </tr>
-              );
-            }
-            return (
-              <tr key={i}>
-                <td>{item.description}</td>
-                <td>{displayPriceWithCents({cents: item.amount})} USD</td>
-              </tr>
-            );
-          })}
         </tbody>
       </InvoiceItems>
-    </Fragment>
+    </Stack>
   );
 }
 
 export default InvoiceDetails;
 
-const SenderName = styled('h3')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const SenderContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: ${p => p.theme.space.xl};
-
-  padding-left: ${p => p.theme.space.md};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
-`;
-
-const AttributeGroup = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
-`;
-
-const Attributes = styled('dl')`
-  overflow: hidden;
-
-  dt {
-    font-weight: bold;
-    margin: 0 0 ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-  }
-  dd {
-    background: ${p => p.theme.tokens.background.secondary};
-    padding: ${p => p.theme.space.md};
-    margin-bottom: ${p => p.theme.space.xl};
-  }
-`;
-
-const StyledAddress = styled('address')`
-  margin-bottom: 0px;
-  line-height: 1.5;
-  font-style: normal;
-`;
-
 const InvoiceItems = styled('table')`
   width: 100%;
+  padding: ${p => p.theme.space['2xl']};
 
-  tr th,
-  tr td {
-    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
-  }
-  thead tr:first-child th,
-  thead tr:first-child td {
-    border-top: none;
+  thead {
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
-  th:last-child,
-  td:last-child {
+  th:not(:first-child),
+  td:not(:first-child) {
     font-variant-numeric: tabular-nums;
     text-align: right;
   }
 
-  td small {
-    display: block;
-    margin-top: ${p => p.theme.space.xs};
-  }
-`;
-
-const RefundRow = styled('tr')`
   td,
   th {
-    background: ${p => p.theme.colors.yellow100};
+    padding: ${p => p.theme.space.lg} 0;
+  }
+
+  td {
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  tfoot th,
+  tfoot td {
+    text-align: right;
   }
 `;
 
-const FinePrint = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.colors.gray400};
+const SubtotalItems = styled(InvoiceItems)`
+  td,
+  th {
+    padding: ${p => p.theme.space.sm} 0;
+    border-top: none;
+  }
 `;
 
 // Strip the default top margin from Pagination so it sits cleanly in the
