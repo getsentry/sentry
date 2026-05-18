@@ -280,6 +280,7 @@ function SortActions({
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
+    IssueSortOptions.RECOMMENDED,
   ];
 
   return (
@@ -288,7 +289,16 @@ function SortActions({
         label: t('Sort by: %s', getSortLabel(sort)),
         icon: <IconSort />,
       }}
-      keywords={['order', 'arrange', 'last seen', 'age', 'events', 'users', 'trends']}
+      keywords={[
+        'order',
+        'arrange',
+        'last seen',
+        'age',
+        'events',
+        'users',
+        'trends',
+        'recommended',
+      ]}
     >
       {sortKeys.map(key => (
         <CMDKAction
