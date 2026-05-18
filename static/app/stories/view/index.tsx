@@ -71,7 +71,9 @@ function StoryDetail() {
 
     while (queue.length > 0) {
       const node = queue.pop();
-      if (!node) break;
+      if (!node) {
+        break;
+      }
 
       if (node.filesystemPath === location.query.name) {
         storyNode = node;
@@ -176,7 +178,9 @@ function getStoryFromParams(
 
   while (queue.length > 0) {
     const node = queue.pop();
-    if (!node) break;
+    if (!node) {
+      break;
+    }
 
     if (node.category === context.category && node.slug === context.slug) {
       return node;

@@ -141,8 +141,12 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
 function StoryTabList() {
   const {story} = useStory();
 
-  if (!isMDXStory(story)) return null;
-  if (story.exports.frontmatter?.layout === 'document') return null;
+  if (!isMDXStory(story)) {
+    return null;
+  }
+  if (story.exports.frontmatter?.layout === 'document') {
+    return null;
+  }
 
   return (
     <TabList>
@@ -296,7 +300,9 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
 function StoryModuleExports(props: {
   exports: TypeLoader.TypeLoaderResult['exports'] | undefined;
 }) {
-  if (!props.exports) return null;
+  if (!props.exports) {
+    return null;
+  }
   return <Storybook.ModuleExports exports={props.exports} />;
 }
 

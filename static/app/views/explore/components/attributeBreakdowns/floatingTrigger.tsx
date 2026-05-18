@@ -22,7 +22,9 @@ export function FloatingTrigger({chartIndex, params}: Props) {
   const {selectionState, setSelectionState, clearSelection} = params;
 
   const handleZoomIn = useCallback(() => {
-    if (!selectionState) return;
+    if (!selectionState) {
+      return;
+    }
 
     trackAnalytics('explore.floating_trigger.zoom_in', {organization});
 
@@ -55,7 +57,9 @@ export function FloatingTrigger({chartIndex, params}: Props) {
   }, [clearSelection, selectionState, location, navigate, organization]);
 
   const handleFindAttributeBreakdowns = useCallback(() => {
-    if (!selectionState) return;
+    if (!selectionState) {
+      return;
+    }
 
     trackAnalytics('explore.floating_trigger.compare_attribute_breakdowns', {
       organization,

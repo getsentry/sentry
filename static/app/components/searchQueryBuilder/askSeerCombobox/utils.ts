@@ -85,12 +85,16 @@ function formatToken(token: string): string {
 }
 
 export function formatQueryToNaturalLanguage(query: string): string {
-  if (!query.trim()) return '';
+  if (!query.trim()) {
+    return '';
+  }
   const tokens = query.match(/(?:[^\s"]|"[^"]*")+/g) || [];
   const formattedTokens = tokens.map(formatToken);
 
   const formattedQuery = formattedTokens.reduce((result, token, index) => {
-    if (index === 0) return token;
+    if (index === 0) {
+      return token;
+    }
 
     const currentOriginalToken = tokens[index] || '';
     const prevOriginalToken = tokens[index - 1] || '';

@@ -48,14 +48,17 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
     startTime = totalStartAndEndTime.startTime;
     endTime = totalStartAndEndTime.endTime;
   } else {
-    if (!node.startTimestamp || !node.endTimestamp)
+    if (!node.startTimestamp || !node.endTimestamp) {
       return {startTime: 0, endTime: 0, duration: 0};
+    }
 
     startTime = node.startTimestamp;
     endTime = node.endTimestamp;
   }
 
-  if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
+  if (endTime === 0) {
+    return {startTime: 0, endTime: 0, duration: 0};
+  }
 
   return {
     startTime,
@@ -379,7 +382,9 @@ function calculateRelativeTiming(
   traceBounds: TraceBounds,
   compressedStartByNodeId?: Map<string, number>
 ): {leftPercent: number; widthPercent: number} {
-  if (!node.value) return {leftPercent: 0, widthPercent: 0};
+  if (!node.value) {
+    return {leftPercent: 0, widthPercent: 0};
+  }
 
   let startTime: number, endTime: number;
 
@@ -390,7 +395,9 @@ function calculateRelativeTiming(
     return {leftPercent: 0, widthPercent: 0};
   }
 
-  if (traceBounds.duration === 0) return {leftPercent: 0, widthPercent: 0};
+  if (traceBounds.duration === 0) {
+    return {leftPercent: 0, widthPercent: 0};
+  }
 
   // Look up the pre-computed compressed start time for this node.
   // The span duration stays the same - only gaps between spans are compressed.

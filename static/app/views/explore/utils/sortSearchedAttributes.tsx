@@ -93,7 +93,9 @@ export function sortKnownAttributes<Value extends SelectOption<string>>(
     getFieldDefinition(a.value, getFieldDefinitionType(traceItemType)) !== null;
   const bKnown =
     getFieldDefinition(b.value, getFieldDefinitionType(traceItemType)) !== null;
-  if (aKnown !== bKnown) return aKnown ? -1 : 1;
+  if (aKnown !== bKnown) {
+    return aKnown ? -1 : 1;
+  }
   const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
   const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
   return aLabel.localeCompare(bLabel);

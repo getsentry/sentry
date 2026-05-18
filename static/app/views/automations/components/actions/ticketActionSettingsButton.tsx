@@ -51,11 +51,15 @@ export function TicketActionSettingsButton() {
 
   // Find saved action data from the API response
   const savedActionData = useMemo(() => {
-    if (!automation) return;
+    if (!automation) {
+      return;
+    }
 
     for (const af of automation.actionFilters) {
       const found = af.actions?.find(a => a.id === action.id);
-      if (found) return found.data;
+      if (found) {
+        return found.data;
+      }
     }
 
     return;

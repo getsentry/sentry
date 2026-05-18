@@ -106,7 +106,9 @@ export function InsightSourcesFooter({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newInsightText.trim()) return;
+    if (!newInsightText.trim()) {
+      return;
+    }
 
     updateInsight({
       message: newInsightText,

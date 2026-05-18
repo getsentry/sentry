@@ -24,7 +24,9 @@ import {usePreviewCheckResult} from './previewCheckContext';
 export function mapPreviewCheckErrorToMessage(
   error: PreviewCheckError | null
 ): string | null {
-  if (!error) return null;
+  if (!error) {
+    return null;
+  }
 
   return error.assertion.error === PreviewCheckErrorKind.COMPILATION_ERROR
     ? t('Assertion Compilation Error')
@@ -112,7 +114,9 @@ export function mapPreviewCheckResultToMessage(
   response: PreviewCheckResult
 ): string | null {
   const result = response.check_result;
-  if (!result) return null;
+  if (!result) {
+    return null;
+  }
 
   if (result.assertion_failure_data) {
     return t('Assertion Failure');
@@ -137,14 +141,18 @@ function matchAssertionFailureDataLeafOp(
     (assertionOp.op === UptimeOpType.AND || assertionOp.op === UptimeOpType.OR)
   ) {
     const [failingChild] = failureDataOp.children;
-    if (!failingChild) return null;
+    if (!failingChild) {
+      return null;
+    }
     // For leaves, also match by value to distinguish siblings of the same op type.
     const match = assertionOp.children.find(
       c =>
         c.op === failingChild.op &&
         (isLeafOp(failingChild) ? leafOpsMatchByValue(failingChild, c) : true)
     );
-    if (!match) return null;
+    if (!match) {
+      return null;
+    }
     return matchAssertionFailureDataLeafOp(failingChild, match);
   }
 
@@ -174,12 +182,16 @@ function resolveErroredOpFromAssertPath(
 
   for (const segment of assertPath.slice(1)) {
     const index = Number.parseInt(segment, 10);
-    if (isNaN(index)) return null;
+    if (isNaN(index)) {
+      return null;
+    }
 
     if (current.op === UptimeOpType.AND || current.op === UptimeOpType.OR) {
       // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
       const next: UptimeOp | undefined = current.children[index];
-      if (!next) return null;
+      if (!next) {
+        return null;
+      }
       current = next;
     } else if (current.op === UptimeOpType.NOT) {
       current = current.operand;
@@ -200,12 +212,16 @@ export function resolveErroredAssertionOp(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>,
   rootOp: UptimeAndOp
 ): UptimeOp | null {
-  if (!previewCheckResult) return null;
+  if (!previewCheckResult) {
+    return null;
+  }
   const {data, error} = previewCheckResult;
 
   if (data) {
     const result = data.check_result;
-    if (!result) return null;
+    if (!result) {
+      return null;
+    }
 
     if (result.assertion_failure_data) {
       return resolveErroredOpFromAssertionFailureData(
@@ -246,12 +262,16 @@ const ASSERTION_ERROR_TYPE_LABELS: Partial<Record<string, string>> = {
 function getFormAssertionErrorMessage(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>
 ): string | null {
-  if (!previewCheckResult) return null;
+  if (!previewCheckResult) {
+    return null;
+  }
   const {data, error} = previewCheckResult;
 
   if (data) {
     const result = data.check_result;
-    if (!result) return null;
+    if (!result) {
+      return null;
+    }
 
     if (result.assertion_failure_data) {
       return t('Assertion Failed');

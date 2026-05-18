@@ -69,7 +69,9 @@ export function Chart({
   useLayoutEffect(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
 
-    if (!chartInstance) return;
+    if (!chartInstance) {
+      return;
+    }
 
     const width = chartInstance.getDom().offsetWidth;
 

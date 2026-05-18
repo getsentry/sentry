@@ -187,10 +187,15 @@ export function Attributes({
   // a JSON-encoded array. NOTE: This happens a lot because EAP doesn't support
   // array values, so SDKs often store array values as JSON-encoded strings.
   sortedAndFilteredAttributes.forEach(attribute => {
-    if (Object.hasOwn(customRenderers, attribute.name)) return;
-    if (attribute.type !== 'str') return;
-    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value))
+    if (Object.hasOwn(customRenderers, attribute.name)) {
       return;
+    }
+    if (attribute.type !== 'str') {
+      return;
+    }
+    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value)) {
+      return;
+    }
 
     customRenderers[attribute.name] = jsonRenderer;
   });

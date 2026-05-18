@@ -260,7 +260,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
               canSort={column.sortable ?? false}
               title={<StyledTooltip title={tooltipTitle}>{name}</StyledTooltip>}
               onClick={e => {
-                if (!onChangeSort) return;
+                if (!onChangeSort) {
+                  return;
+                }
                 e.preventDefault();
                 const nextDirection = direction === 'desc' ? 'asc' : 'desc';
                 onChangeSort({
@@ -383,7 +385,9 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
       resizable={false}
       grid={{
         renderHeadCell: (_tableColumn, columnIndex) => {
-          if (!columns) return null;
+          if (!columns) {
+            return null;
+          }
           const column = columns[columnIndex]!;
           const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
           const hasAlias = !!aliases?.[column.key];

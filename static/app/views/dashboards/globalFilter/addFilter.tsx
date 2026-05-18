@@ -160,7 +160,9 @@ export function AddFilter({
                   <MenuComponents.ApplyButton
                     disabled={!selectedFilterKey}
                     onClick={() => {
-                      if (!selectedFilterKey || !selectedDataset) return;
+                      if (!selectedFilterKey || !selectedDataset) {
+                        return;
+                      }
 
                       let defaultFilterValue = '';
                       const fieldDefinition =

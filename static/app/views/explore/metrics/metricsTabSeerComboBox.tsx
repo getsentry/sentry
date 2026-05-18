@@ -171,7 +171,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery, runId?: number) => {
-      if (!result) return;
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         groupBys,

@@ -228,7 +228,9 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     onInputChange: setSearchQuery,
     defaultFilter: () => true,
     onSelectionChange(key) {
-      if (typeof key !== 'string') return;
+      if (typeof key !== 'string') {
+        return;
+      }
 
       if (key === 'none-of-these') {
         trackAnalytics('ai_query.rejected', {

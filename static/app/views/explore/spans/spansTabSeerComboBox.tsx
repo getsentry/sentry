@@ -191,7 +191,9 @@ export function SpansTabSeerComboBox() {
 
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery, runId?: number) => {
-      if (!result) return;
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         visualizations,

@@ -1152,7 +1152,9 @@ export function useSeerExplorerDeepLink({
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
     if (!paramValue || typeof paramValue !== 'string') {

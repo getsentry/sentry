@@ -18,12 +18,20 @@ export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
     return {
       CallExpression(node) {
         const callee = node.callee;
-        if (callee?.type !== 'Identifier') return;
-        if (!DYNAMIC_TRANSLATION_FNS.includes(callee.name)) return;
-        if (node.arguments.length === 0) return;
+        if (callee?.type !== 'Identifier') {
+          return;
+        }
+        if (!DYNAMIC_TRANSLATION_FNS.includes(callee.name)) {
+          return;
+        }
+        if (node.arguments.length === 0) {
+          return;
+        }
 
         const translationArg = node.arguments?.[0];
-        if (!translationArg) return;
+        if (!translationArg) {
+          return;
+        }
 
         // Check if it's ATTRIBUTE_METADATA[...].brief
         if (translationArg.type === 'MemberExpression') {

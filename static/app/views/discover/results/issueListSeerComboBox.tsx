@@ -180,7 +180,9 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery, runId?: number) => {
-      if (!result) return;
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         sort,

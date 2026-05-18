@@ -282,7 +282,9 @@ export function GlobalCommandPaletteActions() {
     })
       .flatMap(section =>
         section.items.filter(navItem => {
-          if (navItem.show === undefined) return true;
+          if (navItem.show === undefined) {
+            return true;
+          }
           return typeof navItem.show === 'function'
             ? navItem.show({...context, ...section})
             : navItem.show;

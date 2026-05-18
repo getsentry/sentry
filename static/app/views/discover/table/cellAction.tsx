@@ -156,7 +156,9 @@ export function excludeFromFilter(
  */
 export function copyToClipboard(value: string | number | string[]) {
   function stringifyValue(val: string | number | string[]): string {
-    if (!val) return '';
+    if (!val) {
+      return '';
+    }
     if (typeof val !== 'object') {
       return val.toString();
     }
@@ -252,7 +254,9 @@ function makeCellActions({
     addMenuItem(Actions.OPEN_ROW_IN_EXPLORE, t('View span samples'));
   }
 
-  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
+  if (value) {
+    addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
+  }
 
   if (allowActions) {
     addMenuItem(Actions.COPY_LINK, t('Copy link'));

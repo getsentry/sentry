@@ -133,9 +133,15 @@ describe('useChartXRangeSelection', () => {
           }),
         }),
         convertToPixel: jest.fn((_config, value) => {
-          if (value === 100) return 500;
-          if (value === 90) return 450;
-          if (value === 10) return 50;
+          if (value === 100) {
+            return 500;
+          }
+          if (value === 90) {
+            return 450;
+          }
+          if (value === 10) {
+            return 50;
+          }
           return 0;
         }),
       } as any;
@@ -380,8 +386,12 @@ describe('useChartXRangeSelection', () => {
           }),
         }),
         convertToPixel: jest.fn((_config, value) => {
-          if (value === 100) return 500; // xMax
-          if (value === 90) return 480; // Above 60% threshold
+          if (value === 100) {
+            return 500;
+          } // xMax
+          if (value === 90) {
+            return 480;
+          } // Above 60% threshold
           return 0;
         }),
       } as any;
@@ -694,10 +704,18 @@ describe('useChartXRangeSelection', () => {
         convertToPixel: jest.fn((_config, value) => {
           // Selection range pixels: xMin=50, xMax=150
           // yMin pixel = 200
-          if (value === 100) return 200; // xMax extent
-          if (value === 0) return 200; // yMin extent
-          if (value === 10) return 50; // selection xMin
-          if (value === 90) return 150; // selection xMax
+          if (value === 100) {
+            return 200;
+          } // xMax extent
+          if (value === 0) {
+            return 200;
+          } // yMin extent
+          if (value === 10) {
+            return 50;
+          } // selection xMin
+          if (value === 90) {
+            return 150;
+          } // selection xMax
           return 100;
         }),
         getDom: jest.fn().mockReturnValue({
@@ -775,10 +793,18 @@ describe('useChartXRangeSelection', () => {
         convertToPixel: jest.fn((_config, value) => {
           // Selection range pixels: xMin=50, xMax=150
           // yMin pixel = 200
-          if (value === 100) return 200; // xMax extent
-          if (value === 0) return 200; // yMin extent
-          if (value === 10) return 50; // selection xMin
-          if (value === 90) return 150; // selection xMax
+          if (value === 100) {
+            return 200;
+          } // xMax extent
+          if (value === 0) {
+            return 200;
+          } // yMin extent
+          if (value === 10) {
+            return 50;
+          } // selection xMin
+          if (value === 90) {
+            return 150;
+          } // selection xMax
           return 100;
         }),
         getDom: jest.fn().mockReturnValue({
@@ -854,10 +880,18 @@ describe('useChartXRangeSelection', () => {
           }),
         }),
         convertToPixel: jest.fn((_config, value) => {
-          if (value === 100) return 200;
-          if (value === 0) return 200;
-          if (value === 10) return 50;
-          if (value === 90) return 150;
+          if (value === 100) {
+            return 200;
+          }
+          if (value === 0) {
+            return 200;
+          }
+          if (value === 10) {
+            return 50;
+          }
+          if (value === 90) {
+            return 150;
+          }
           return 100;
         }),
         getDom: jest.fn().mockReturnValue({

@@ -31,8 +31,12 @@ import type {
 export function getSearchConfig<Value extends SelectKey>(
   search: boolean | SearchConfig<Value> | undefined
 ): SearchConfig<Value> | undefined {
-  if (!search) return undefined;
-  if (search === true) return {};
+  if (!search) {
+    return undefined;
+  }
+  if (search === true) {
+    return {};
+  }
   return search;
 }
 
@@ -471,7 +475,9 @@ export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
 
       optionCount += 1;
       const key = String(item.key);
-      if (duplicates.has(key)) continue;
+      if (duplicates.has(key)) {
+        continue;
+      }
 
       if (seen.has(key)) {
         duplicates.add(key);
