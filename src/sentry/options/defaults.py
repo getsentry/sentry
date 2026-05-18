@@ -776,6 +776,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
+    type=Float,
+    default=0.1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
