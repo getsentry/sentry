@@ -7,7 +7,7 @@ import {
   DOCS_URLS,
   EventProcessingErrors,
 } from 'sentry/components/events/eventProcessingErrors';
-import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/errorMessages';
 
 jest.mock(
   'sentry/components/events/interfaces/crashContent/exception/useActionableItems',

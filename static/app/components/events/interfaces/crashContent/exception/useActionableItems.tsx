@@ -1,11 +1,11 @@
 import {
-  getErrorMessage,
-  type ErrorMessage,
-} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
-import {
   shouldErrorBeShown,
   useFetchProguardMappingFiles,
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
+import {
+  getErrorMessage,
+  type ErrorMessage,
+} from 'sentry/components/events/interfaces/crashContent/exception/errorMessages';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

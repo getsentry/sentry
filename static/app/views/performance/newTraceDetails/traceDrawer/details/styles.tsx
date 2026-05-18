@@ -17,9 +17,9 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
+import {DataSection} from 'sentry/components/events/dataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
-import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   CardPanel,

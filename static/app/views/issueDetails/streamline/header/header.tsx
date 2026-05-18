@@ -14,7 +14,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/getBadgeProperties';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';

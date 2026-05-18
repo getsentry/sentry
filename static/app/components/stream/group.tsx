@@ -15,7 +15,7 @@ import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
-import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/getBadgeProperties';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';

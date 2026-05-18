@@ -25,8 +25,12 @@ import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+<<<<<<< HEAD
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ResolutionReason} from 'sentry/components/resolutionBox';
+=======
+import {ResolutionReason} from 'sentry/components/resolutionReason';
+>>>>>>> 03c57a84afa (ref(ui): Rename files to match remaining exports)
 import {
   IconCheckmark,
   IconClock,

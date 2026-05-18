@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {AvatarList} from '@sentry/scraps/avatar';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-import {DataSection} from 'sentry/components/events/styles';
+import {DataSection} from 'sentry/components/events/dataSection';
 import {Panel} from 'sentry/components/panels/panel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';

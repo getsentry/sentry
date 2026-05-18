@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/errorMessages';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
