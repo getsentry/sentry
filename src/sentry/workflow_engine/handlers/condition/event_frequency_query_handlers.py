@@ -233,9 +233,9 @@ class BaseEventFrequencyQueryHandler(ABC):
             if condition["match"] not in (MatchType.IS_SET, MatchType.NOT_SET)
             else None
         )
-        if attribute in ("error.handled", "error.unhandled") and condition["match"] not in (
-            MatchType.IS_SET,
-            MatchType.NOT_SET,
+        if attribute in ("error.handled", "error.unhandled") and condition["match"] in (
+            MatchType.EQUAL,
+            MatchType.NOT_EQUAL,
         ):
             # The stored value may be a string ("true"/"false"), bool, or int.
             # Normalize to 1/0 for the Snuba condition (UInt8 column).
