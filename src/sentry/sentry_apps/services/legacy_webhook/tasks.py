@@ -32,7 +32,14 @@ logger = logging.getLogger("sentry.legacy_webhook")
     silo_mode=SiloMode.CELL,
 )
 def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: Any) -> None:
-    group = Group.objects.get(id=int(payload["id"]))
+    try:
+        group = Group.objects.get(id=int(payload["id"]))
+    except Group.DoesNotExist:
+        logger.warning(
+            "legacy_webhook.group_not_found",
+            extra={"group_id": payload["id"], "url": url},
+        )
+        return
     organization = group.project.organization
 
     if features.has("organizations:legacy-webhook-dry-run", organization):
