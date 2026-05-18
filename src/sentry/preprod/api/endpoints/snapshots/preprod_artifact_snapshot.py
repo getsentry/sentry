@@ -152,13 +152,11 @@ def validate_preprod_snapshot_post_schema(
 def _format_validation_error(e: jsonschema.ValidationError) -> str:
     path = list(e.absolute_path)
 
-    if len(path) >= 3 and path[0] == "images":
-        image_key = path[1]
-        field_path = ".".join(str(p) for p in path[2:])
-        return f'Validation error in image "{image_key}", field "{field_path}": {e.message}'
-
     if len(path) >= 2 and path[0] == "images":
         image_key = path[1]
+        if rest := path[2:]:
+            field_path = ".".join(str(p) for p in rest)
+            return f'Validation error in image "{image_key}", field "{field_path}": {e.message}'
         return f'Validation error in image "{image_key}": {e.message}'
 
     if path:
