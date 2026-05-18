@@ -2527,10 +2527,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
-      path: 'instrumentation/',
-      component: make(() => import('sentry/views/issueList/pages/instrumentation')),
-    },
-    {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
