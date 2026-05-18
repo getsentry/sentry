@@ -829,6 +829,68 @@ describe('ScmPlatformFeatures', () => {
       });
     });
 
+    it('links selected repository to project after creation', async () => {
+      const onComplete = jest.fn();
+      const createdProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${mockRepository.id}/platforms/`,
+        body: [],
+      });
+
+      const repoLinkRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+        method: 'POST',
+        body: {
+          id: '1',
+          projectId: createdProject.id,
+          repositoryId: mockRepository.id,
+          source: 'scm_onboarding',
+          created: true,
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedPlatform: nextJsPlatform,
+            selectedRepository: mockRepository,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }),
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalled();
+      });
+
+      expect(repoLinkRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {repositoryId: mockRepository.id},
+        })
+      );
+    });
+
     it('reuses the existing project when the platform is unchanged', async () => {
       const onComplete = jest.fn();
       const existingProject = ProjectFixture({
@@ -943,6 +1005,11 @@ describe('ScmPlatformFeatures', () => {
         url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
         method: 'POST',
         body: createdProject,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+        method: 'POST',
+        body: {},
       });
 
       render(

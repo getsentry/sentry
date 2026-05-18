@@ -29,6 +29,7 @@ import type {Team} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -433,6 +434,19 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           firstTeamSlug: firstAdminTeam?.slug,
         });
         setCreatedProjectSlug(project.slug);
+
+        if (selectedRepository?.id) {
+          try {
+            await fetchMutation({
+              url: `/projects/${organization.slug}/${project.slug}/repo/`,
+              method: 'POST',
+              data: {repositoryId: selectedRepository.id},
+            });
+          } catch (error) {
+            Sentry.captureException(error);
+          }
+        }
+
         onComplete(platform, {product: currentFeatures});
       } catch (error) {
         addErrorMessage(t('Failed to create project'));
