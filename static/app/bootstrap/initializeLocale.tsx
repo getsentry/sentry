@@ -66,12 +66,15 @@ export async function initializeLocale(config: Config) {
     queryStringLang || config.user?.options?.language || config.languageCode || 'en';
 
   try {
-    const translations = await getTranslations(languageCode);
-    setLocale(translations);
-
-    // No need to import english
-    if (languageCode !== 'en') {
-      await import(`moment/locale/${languageCode}`);
+    if (languageCode === 'en') {
+      const translations = await getTranslations(languageCode);
+      setLocale(translations);
+    } else {
+      const [translations] = await Promise.all([
+        getTranslations(languageCode),
+        import(`moment/locale/${languageCode}`),
+      ]);
+      setLocale(translations);
       moment.locale(languageCode);
     }
   } catch (err) {
