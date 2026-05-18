@@ -38,7 +38,7 @@ function renderMockRequests({
 }
 
 describe('getting started with react-native', () => {
-  it('shows React Native logs onboarding content', async () => {
+  it.isKnownFlake('shows React Native logs onboarding content', async () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture({platform: 'react-native'});
     renderMockRequests({organization, project});

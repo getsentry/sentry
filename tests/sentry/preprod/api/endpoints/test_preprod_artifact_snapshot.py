@@ -4,7 +4,7 @@ import orjson
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
 
@@ -305,8 +305,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
         response = self._post_selective()
         assert response.status_code == 200
 
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.compare_snapshots")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
     def test_base_upload_triggers_comparison_for_waiting_head(
         self, mock_compare_snapshots, mock_get_session
     ) -> None:
@@ -448,7 +448,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_session.get.return_value = mock_result
         return mock_session
 
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_details(self, mock_get_session):
         artifact, _, manifest_key, manifest_json, images = self._create_artifact_with_manifest()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
@@ -467,7 +467,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["images"][0]["image_file_name"] == "img1"
         assert response.data["images"][1]["key"] == "img2"
 
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_details_with_vcs_info(self, mock_get_session):
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.org.id,
@@ -496,7 +496,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert vcs_info["head_ref"] == "chore/cleanup"
         assert vcs_info["pr_number"] == 123
 
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_details_returns_all_images(self, mock_get_session):
         images = {
             f"img{i:03d}": {
@@ -553,7 +553,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "Feature not enabled"
 
-    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_objectstore_error(self, mock_get_session):
         artifact, _, _, _, _ = self._create_artifact_with_manifest()
         mock_session = MagicMock()
@@ -596,6 +596,116 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
             response = self.client.get(url)
 
         assert response.status_code == 404
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_flat_fields_solo_no_approval(self, mock_get_session):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["comparison_state"] is None
+        assert response.data["approval_status"] is None
+        assert response.data["comparison_error_message"] is None
+        assert response.data["approvers"] == []
+        assert response.data["comparison_type"] == "solo"
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_flat_fields_pending_comparison(self, mock_get_session):
+        artifact, snapshot_metrics, _, manifest_json, _ = self._create_artifact_with_manifest(
+            commit_comparison=CommitComparison.objects.create(
+                organization_id=self.org.id,
+                head_sha="a" * 40,
+                base_sha="b" * 40,
+                provider="github",
+                head_repo_name="org/repo",
+                head_ref="feature",
+            ),
+        )
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.app",
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            image_count=1,
+            extras={"manifest_key": "base-key"},
+        )
+        self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=snapshot_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.PENDING,
+        )
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["comparison_state"] == "pending"
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_flat_fields_with_approval(self, mock_get_session):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            approved_by_id=self.user.id,
+        )
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["approval_status"] == "approved"
+        assert len(response.data["approvers"]) == 1
+        assert response.data["approvers"][0]["source"] == "sentry"
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_flat_fields_auto_approved(self, mock_get_session):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras={"auto_approval": True},
+        )
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["approval_status"] == "auto_approved"
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_flat_fields_waiting_for_base(self, mock_get_session):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest(
+            commit_comparison=CommitComparison.objects.create(
+                organization_id=self.org.id,
+                head_sha="a" * 40,
+                base_sha="b" * 40,
+                provider="github",
+                head_repo_name="org/repo",
+                head_ref="feature",
+            ),
+        )
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["comparison_state"] == "waiting_for_base"
+        assert response.data["comparison_type"] == "waiting_for_base"
 
 
 class ProjectPreprodSnapshotDeleteTest(APITestCase):

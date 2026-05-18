@@ -27,19 +27,28 @@ from sentry.utils.kafka_config import get_topic_definition
 logger = logging.getLogger(__name__)
 
 
-def _check_span_duplicates(spans: list[CompatibleSpan]) -> None:
+def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     """
-    Check for duplicate spans using Redis SETNX. Emits a metric for
-    duplicates detected but does not filter them out.
+    Check for and optionally filter duplicate spans using Redis SETNX.
+
+    Uses atomic set-if-not-exists to both check and mark spans as seen in one operation.
+    This provides at-most-once delivery: if the consumer crashes after SETNX but before
+    producing to Kafka, the span is lost. This is preferred over the alternative (marking
+    after produce) which allows duplicates through race conditions.
+
+    When dedupe-filter-enable is True: filters out duplicates and returns only new spans.
+    When dedupe-filter-enable is False: emits metrics only, returns all spans.
     """
     if not spans:
-        return
+        return spans
+
+    dedupe_ttl = options.get("spans.process-segments.dedupe-ttl")
+    if dedupe_ttl <= 0:
+        return spans
+
+    filter_duplicates = options.get("spans.process-segments.dedupe-filter-enable")
 
     try:
-        dedupe_ttl = options.get("spans.process-segments.dedupe-ttl")
-        if dedupe_ttl <= 0:
-            return
-
         client = redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
         with client.pipeline(transaction=False) as p:
             for span in spans:
@@ -47,11 +56,15 @@ def _check_span_duplicates(spans: list[CompatibleSpan]) -> None:
                 p.set(dedupe_key, b"1", ex=dedupe_ttl, nx=True)
             results = p.execute()
 
-        duplicates = sum(1 for is_new in results if not is_new)
+        filtered = [span for span, is_new in zip(spans, results) if is_new]
+        duplicates = len(spans) - len(filtered)
         if duplicates:
             metrics.incr("spans.process-segments.duplicate_span", amount=duplicates)
+
+        return filtered if filter_duplicates else spans
     except Exception:
         logger.exception("Failed to check span duplicates")
+        return spans
 
 
 # An amortized ceiling of spans per segment used to compute the size of the
@@ -140,8 +153,6 @@ def _process_message(
     if not options.get("spans.process-segments.consumer.enable"):
         return []
 
-    use_semantic_partitioning = options.get("spans.process-segments.semantic-partitioning")
-
     assert isinstance(message.value, BrokerValue)
 
     try:
@@ -151,31 +162,21 @@ def _process_message(
         processed = process_segment(
             segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
         )
-        _check_span_duplicates(processed)
-        return [
-            _serialize_payload(span, message.timestamp, use_semantic_partitioning)
-            for span in processed
-        ]
+        processed = _check_span_duplicates(processed)
+        return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
         logger.exception("segments.invalid-message")
         raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _serialize_payload(
-    span: CompatibleSpan, timestamp: datetime | None, use_semantic_partitioning: bool
-) -> Value[KafkaPayload]:
+def _serialize_payload(span: CompatibleSpan, timestamp: datetime | None) -> Value[KafkaPayload]:
     item = convert_span_to_item(span)
-
-    if use_semantic_partitioning:
-        key = f"{span['project_id']}:{span['trace_id']}:{span['span_id']}".encode()
-    else:
-        key = None
 
     return Value(
         KafkaPayload(
-            key=key,
-            value=item.SerializeToString(),
-            headers=[
+            None,
+            item.SerializeToString(),
+            [
                 ("item_type", str(item.item_type).encode("ascii")),
                 ("project_id", str(span["project_id"]).encode("ascii")),
             ],

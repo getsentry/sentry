@@ -222,10 +222,6 @@ from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRule
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
-from sentry.incidents.endpoints.team_alerts_triggered import (
-    TeamAlertsTriggeredIndexEndpoint,
-    TeamAlertsTriggeredTotalsEndpoint,
-)
 from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
@@ -755,6 +751,7 @@ from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansPerformanceEndpoint,
     OrganizationEventsSpansStatsEndpoint,
 )
+from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_trace import (
@@ -1729,6 +1726,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events/$",
         OrganizationEventsEndpoint.as_view(),
         name="sentry-api-0-organization-events",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/events-sql/$",
+        OrganizationEventsSqlEndpoint.as_view(),
+        name="sentry-api-0-organization-events-sql",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events/(?P<project_id_or_slug>[^/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -3416,16 +3418,6 @@ TEAM_URLS = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/unresolved-issue-age/$",
         TeamUnresolvedIssueAgeEndpoint.as_view(),
         name="sentry-api-0-team-unresolved-issue-age",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/alerts-triggered/$",
-        TeamAlertsTriggeredTotalsEndpoint.as_view(),
-        name="sentry-api-0-team-alerts-triggered",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/alerts-triggered-index/$",
-        TeamAlertsTriggeredIndexEndpoint.as_view(),
-        name="sentry-api-0-team-alerts-triggered-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/issue-breakdown/$",

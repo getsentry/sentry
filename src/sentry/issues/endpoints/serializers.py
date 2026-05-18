@@ -95,9 +95,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
         ):
             raise serializers.ValidationError("This code mapping is already in use.")
 
+        project = self.context["project"]
         try:
             return RepositoryProjectPathConfig.objects.get(
-                id=code_mapping_id, project=self.context["project"]
+                id=code_mapping_id, project_repository__project=project
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise serializers.ValidationError("This code mapping does not exist.")

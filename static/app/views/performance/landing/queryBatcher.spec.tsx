@@ -4,7 +4,7 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
@@ -31,7 +31,7 @@ function WrappedComponent({data, ...rest}: any) {
   return (
     <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
-        <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
+        <PerformanceDisplayContext value={{performanceType: ProjectPerformanceType.ANY}}>
           <WidgetContainer
             chartHeight={100}
             allowedCharts={[
@@ -44,7 +44,7 @@ function WrappedComponent({data, ...rest}: any) {
             {...data}
             {...rest}
           />
-        </PerformanceDisplayProvider>
+        </PerformanceDisplayContext>
       </MEPSettingProvider>
     </OrganizationContext>
   );

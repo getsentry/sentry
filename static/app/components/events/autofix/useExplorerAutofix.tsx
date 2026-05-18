@@ -580,7 +580,7 @@ export function useExplorerAutofix(
       setWaitingForResponse(true);
 
       try {
-        const data: Record<string, any> = {step};
+        const data: Record<string, any> = {step, referrer: 'api.web'};
 
         if (defined(startStepOptions?.insertIndex)) {
           data.insert_index = startStepOptions.insertIndex;
@@ -640,6 +640,7 @@ export function useExplorerAutofix(
         const data: Record<string, any> = {
           step: 'open_pr',
           run_id: runId,
+          referrer: 'api.web',
         };
         if (repoName) {
           data.repo_name = repoName;
@@ -699,6 +700,7 @@ export function useExplorerAutofix(
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
         run_id: runId,
+        referrer: 'api.web',
       };
 
       if (integration.id === null) {

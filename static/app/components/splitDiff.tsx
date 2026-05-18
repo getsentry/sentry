@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Change} from 'diff';
 import {diffChars, diffLines, diffWords} from 'diff';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO(jonasbadalic): This used to be defined on the theme, but is component specific and lacks dark mode.
@@ -110,7 +112,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
   );
 
   return (
-    <SplitDiffContainer className={className} data-test-id="split-diff">
+    <Container width="100%" className={className} data-test-id="split-diff">
       <SplitBody>
         {displayRows.map((row, j) => {
           return (
@@ -152,13 +154,9 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
           );
         })}
       </SplitBody>
-    </SplitDiffContainer>
+    </Container>
   );
 }
-
-const SplitDiffContainer = styled('div')`
-  width: 100%;
-`;
 
 const SplitBody = styled('div')`
   font-family: ${p => p.theme.font.family.mono};

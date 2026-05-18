@@ -93,7 +93,7 @@ function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
     }
 
     function onBlur() {
-      if (el!.hasAttribute('disabled')) {
+      if (el?.hasAttribute('disabled')) {
         hadFocusRef.current = true;
       }
     }

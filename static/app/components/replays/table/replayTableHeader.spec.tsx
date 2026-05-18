@@ -30,7 +30,7 @@ function baseListCheckboxState(overrides: Partial<ListItemCheckboxState>) {
     isAnySelected: false,
     isSelected: () => false,
     knownIds: ['a', 'b'],
-    queryKeyRef: {current: undefined},
+    endpointOptionsRef: {current: undefined},
     selectAll: jest.fn(),
     selectedIds: [],
     toggleSelected: jest.fn(),

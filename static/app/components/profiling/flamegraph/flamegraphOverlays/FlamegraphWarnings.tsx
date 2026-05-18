@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {t, tct} from 'sentry/locale';
@@ -33,8 +34,9 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
 
   if (props.requestState.type === 'errored') {
     return (
-      <Overlay data-test-id="flamegraph-warning-overlay">
-        <p>{props.requestState.error || t('Failed to load profile')}</p>
+      <Overlay data-test-id="flamegraph-warning-overlay" role="alert">
+        <Text bold>{t('Error loading flamegraph')}</Text>
+        <Text>{props.requestState.error || t('Failed to load profile')}</Text>
       </Overlay>
     );
   }
@@ -102,6 +104,7 @@ const Overlay = styled('div')`
   height: 100%;
   display: grid;
   grid: auto/50%;
+  gap: ${p => p.theme.space.md};
   place-content: center;
   z-index: ${p => p.theme.zIndex.initial};
   text-align: center;

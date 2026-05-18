@@ -10,6 +10,7 @@ from sentry.api.bases.organization import OrganizationAlertRulePermission
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.base import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -24,12 +25,11 @@ from sentry.seer.anomaly_detection.get_historical_anomalies import (
     get_historical_anomaly_data_from_seer_preview,
 )
 from sentry.seer.anomaly_detection.types import DetectAnomaliesResponse, TimeSeriesPoint
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 @cell_silo_endpoint
 class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }

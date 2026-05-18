@@ -10,6 +10,10 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/pageFilters/persistence';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  AiQueryProvider,
+  useAiQueryContext,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -38,6 +42,7 @@ function Homepage() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const {getRunIdForAnalytics} = useAiQueryContext();
   const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
     makeDiscoverHomepageQueryKey(organization),
     {
@@ -116,6 +121,7 @@ function Homepage() {
 
   return (
     <Results
+      getAiQueryRunId={getRunIdForAnalytics}
       api={api}
       loading={isLoading}
       location={location}
@@ -132,7 +138,9 @@ function Homepage() {
 export default function HomepageContainer() {
   return (
     <PageFiltersContainer skipInitializeUrlParams>
-      <Homepage />
+      <AiQueryProvider>
+        <Homepage />
+      </AiQueryProvider>
     </PageFiltersContainer>
   );
 }

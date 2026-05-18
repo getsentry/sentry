@@ -59,6 +59,7 @@ class LLMIssueDetectionTest(TestCase):
         mock_get_transactions.assert_called_once_with(
             self.project.id,
             limit=TRANSACTION_BATCH_SIZE,
+            sample_multiplier=1,
             start_time_delta_minutes=START_TIME_DELTA_MINUTES,
         )
         mock_seer_request.assert_not_called()

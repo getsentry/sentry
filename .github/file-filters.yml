@@ -20,9 +20,9 @@ testable_rules_changed: &testable_rules_changed
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
 
-# Trigger whether to run tsc or not
+# Trigger whether to run TypeScript typechecking or not
 # There's no "rules_changed" for this, because we run it for all files always
-# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger tsc
+# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger typechecking
 typecheckable_rules_changed: &typecheckable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'

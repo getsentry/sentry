@@ -17,6 +17,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
@@ -34,7 +35,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution

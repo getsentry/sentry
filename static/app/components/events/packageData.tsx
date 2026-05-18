@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type Props = {
   event: Event;
@@ -59,14 +59,14 @@ export function EventPackageData({event}: Props) {
   }
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey={SectionKey.PACKAGES}
       title={title}
-      type={SectionKey.PACKAGES}
       ref={containerRef}
       initialCollapse
     >
       <ColumnsContainer columnCount={columnCount}>{columns}</ColumnsContainer>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

@@ -38,6 +38,11 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  AiQueryProvider,
+  useAiQueryContext,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -115,6 +120,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
+  getAiQueryRunId?: () => number | null;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -358,7 +364,7 @@ export class Results extends Component<Props, State> {
   };
 
   async fetchTotalCount() {
-    const {api, organization, location} = this.props;
+    const {api, organization, location, getAiQueryRunId} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
     if (!confirmedQuery || !eventView.isValid()) {
@@ -372,6 +378,18 @@ export class Results extends Component<Props, State> {
         eventView.getEventsAPIPayload(location)
       );
       this.setState({totalValues: totals});
+
+      const aiQueryRunId = getAiQueryRunId?.() ?? null;
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'errors',
+          mode: eventView.hasAggregateField() ? 'aggregate' : 'samples',
+          referrer: 'errors',
+          resultCount: totals,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+        });
+      }
     } catch (err) {
       Sentry.captureException(err);
     }
@@ -1422,6 +1440,7 @@ const TipContainer = styled(MarkedText)`
 function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
   const queryClient = useQueryClient();
   const {organization, location} = props;
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
@@ -1461,6 +1480,7 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   return (
     <Results
       {...props}
+      getAiQueryRunId={getRunIdForAnalytics}
       savedQuery={
         hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
       }
@@ -1498,13 +1518,15 @@ export default function ResultsContainer() {
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <SavedQueryAPI
-        api={api}
-        organization={organization}
-        selection={selection}
-        location={location}
-        navigate={navigate}
-      />
+      <AiQueryProvider>
+        <SavedQueryAPI
+          api={api}
+          organization={organization}
+          selection={selection}
+          location={location}
+          navigate={navigate}
+        />
+      </AiQueryProvider>
     </PageFiltersContainer>
   );
 }

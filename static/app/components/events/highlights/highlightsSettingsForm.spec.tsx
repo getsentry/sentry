@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +13,7 @@ describe('HighlightsSettingForm', () => {
     user: ['email'],
     browser: ['name', 'version'],
   };
-  const project = ProjectFixture({highlightContext, highlightTags});
+  const project = DetailedProjectFixture({highlightContext, highlightTags});
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {

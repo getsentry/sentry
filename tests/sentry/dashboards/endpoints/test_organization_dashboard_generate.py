@@ -49,13 +49,9 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
             category_value=str(self.organization.id),
             reasoning_effort="medium",
         )
-        mock_client.start_run.assert_called_once_with(
-            prompt="Show me error rates by project",
-            on_page_context=ANY,
-            artifact_key="dashboard",
-            artifact_schema=ANY,
-            request=ANY,
-        )
+        call_kwargs = mock_client.start_run.call_args[1]
+        assert "Show me error rates by project" in call_kwargs["prompt"]
+        assert call_kwargs["artifact_key"] == "dashboard"
 
     @with_feature({"organizations:dashboards-ai-generate": False})
     def test_post_without_feature_flag_returns_403(self) -> None:

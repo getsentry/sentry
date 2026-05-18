@@ -132,7 +132,7 @@ class RelocationRetryEndpoint(Endpoint):
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
 
-        uploading_start.delay(new_relocation.uuid, None, None)
+        uploading_start.delay(str(new_relocation.uuid), None, None)
         try:
             analytics.record(
                 RelocationCreatedEvent(

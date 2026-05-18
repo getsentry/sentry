@@ -47,7 +47,7 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -94,6 +94,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
@@ -542,11 +543,6 @@ class ExhaustiveFixtures(Fixtures):
             comment=f"hello {slug}",
             user_id=owner_id,
         )
-        IncidentTrigger.objects.create(
-            incident=incident,
-            alert_rule_trigger=trigger,
-            status=1,
-        )
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -629,7 +625,14 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
         )
-        seer_project_repo = SeerProjectRepository.objects.create(project=project, repository=repo)
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        seer_project_repo = SeerProjectRepository.objects.create(
+            project=project, repository=repo, project_repository=project_repo
+        )
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=seer_project_repo,
             tag_name="environment",
