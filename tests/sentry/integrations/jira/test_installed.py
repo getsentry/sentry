@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import jwt
 import responses
 from jwt import DecodeError, ExpiredSignatureError, InvalidSignatureError
+from requests.exceptions import ReadTimeout
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
@@ -14,6 +15,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectFailureReason,
+    AtlassianConnectNetworkError,
     AtlassianConnectValidationError,
     get_query_hash,
 )
@@ -88,19 +91,23 @@ class JiraInstalledTest(APITestCase):
             ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
         )
 
+    @responses.activate
     def test_missing_token(self) -> None:
-        self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
+        self.get_error_response(**self.body(), status_code=status.HTTP_400_BAD_REQUEST)
 
+    @responses.activate
     def test_invalid_token(self) -> None:
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     @patch(
-        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
-        side_effect=AtlassianConnectValidationError(),
+        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
+        side_effect=AtlassianConnectValidationError(
+            AtlassianConnectFailureReason.FAILED_TO_FETCH_KEY_ID
+        ),
     )
     @responses.activate
     def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
@@ -109,11 +116,11 @@ class JiraInstalledTest(APITestCase):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     @patch(
-        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
         side_effect=ExpiredSignatureError(),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -131,15 +138,15 @@ class JiraInstalledTest(APITestCase):
         # SLO metric asserts
         # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (failure) -> GET_CONTROL_RESPONSE (success)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_failure_metric(
+        assert_halt_metric(
             mock_record_event,
-            ExpiredSignatureError(),
+            AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN,
         )
 
     @patch(
-        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
         side_effect=InvalidSignatureError(),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -161,11 +168,11 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "JWT contained invalid signature",
+            AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN,
         )
 
     @patch(
-        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
         side_effect=DecodeError(),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -187,7 +194,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "Could not decode JWT token",
+            AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT,
         )
 
     @patch("sentry_sdk.set_tag")
@@ -220,7 +227,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "Missing key_id (kid)",
+            AtlassianConnectFailureReason.MISSING_KEY_ID,
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -249,5 +256,28 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "JWT contained invalid key_id (kid)",
+            AtlassianConnectFailureReason.INVALID_KEY_ID,
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_raises_500_error_on_network_error(self, mock_record_event: MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"https://connect-install-keys.atlassian.com/{self.kid}",
+            body=ReadTimeout("timed out"),
+        )
+
+        response = self.client.post(
+            self.path,
+            data=self.body(),
+            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+        )
+        assert response.status_code == 500
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_failure_metric(
+            mock_record_event,
+            AtlassianConnectNetworkError(),
         )
