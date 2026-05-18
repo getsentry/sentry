@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal, NotRequired, TypedDict
@@ -736,72 +736,117 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     scannerAutomation: bool
 
 
-def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpdate) -> None:
-    """Apply high-level Seer settings to a project. Only update a setting if it's present in data."""
+def _get_seer_project_options_to_update(
+    data: SeerProjectSettingsUpdate,
+) -> tuple[dict[str, Any], list[str]]:
+    """Return (options_to_set, options_to_clear) for the given Seer project settings update.
+    Clear the option if it's the default; otherwise, set it."""
+    options_to_set: dict[str, Any] = {}
+    options_to_clear: list[str] = []
 
-    def _set_if_not_default(key: str, value: Any, default: Any) -> None:
-        """If we're trying to set a default, delete the option. Otherwise, set it."""
+    def _set_or_clear(key: str, value: Any, default: Any) -> None:
         if value == default:
-            project.delete_option(key)
+            options_to_clear.append(key)
         else:
-            project.update_option(key, value)
+            options_to_set[key] = value
+
+    if "agent" in data:
+        agent = data["agent"]
+        if agent == AutomationCodingAgent.SEER:
+            options_to_clear += [
+                "sentry:seer_automation_handoff_point",
+                "sentry:seer_automation_handoff_target",
+                "sentry:seer_automation_handoff_integration_id",
+            ]
+        else:
+            integration_id = data.get("integrationId")
+            if integration_id is None:
+                raise ValueError("integrationId is required for external coding agents")
+            options_to_set["sentry:seer_automation_handoff_point"] = AutofixHandoffPoint.ROOT_CAUSE
+            options_to_set["sentry:seer_automation_handoff_target"] = agent
+            options_to_set["sentry:seer_automation_handoff_integration_id"] = integration_id
+
+    stopping_point: str | None = data.get("stoppingPoint")
+    if stopping_point is not None:
+        if stopping_point == "off":
+            # Turn off tuning and leave stopping point and handoff_auto_create_pr unchanged
+            # so that reenabling restores the prior state.
+            _set_or_clear(
+                "sentry:autofix_automation_tuning",
+                AutofixAutomationTuningSettings.OFF,
+                default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+            )
+        else:
+            _set_or_clear(
+                "sentry:autofix_automation_tuning",
+                AutofixAutomationTuningSettings.MEDIUM,
+                default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+            )
+            _set_or_clear(
+                "sentry:seer_automated_run_stopping_point",
+                stopping_point,
+                default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+            )
+            if stopping_point == AutofixStoppingPoint.OPEN_PR:
+                options_to_set["sentry:seer_automation_handoff_auto_create_pr"] = True
+            else:
+                options_to_clear.append("sentry:seer_automation_handoff_auto_create_pr")
+
+    if "scannerAutomation" in data:
+        _set_or_clear("sentry:seer_scanner_automation", data["scannerAutomation"], default=True)
+
+    return options_to_set, options_to_clear
+
+
+def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpdate) -> None:
+    """Apply high-level Seer settings to a single project."""
+    options_to_set, options_to_delete = _get_seer_project_options_to_update(data)
 
     with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        # Lock project rows to serialize concurrent writes.
         list(Project.objects.select_for_update().filter(id=project.id))
 
-        stopping_point: str | None = data.get("stoppingPoint")
+        for key in options_to_delete:
+            project.delete_option(key)
+        for key, value in options_to_set.items():
+            project.update_option(key, value)
 
-        if "agent" in data:
-            agent: str = data["agent"]
-            if agent == AutomationCodingAgent.SEER:
-                project.delete_option("sentry:seer_automation_handoff_point")
-                project.delete_option("sentry:seer_automation_handoff_target")
-                project.delete_option("sentry:seer_automation_handoff_integration_id")
-            else:
-                integration_id = data.get("integrationId")
-                if integration_id is None:
-                    raise ValueError("integrationId is required for external coding agents")
 
-                project.update_option(
-                    "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
-                )
-                project.update_option("sentry:seer_automation_handoff_target", agent)
-                project.update_option(
-                    "sentry:seer_automation_handoff_integration_id", integration_id
-                )
+def bulk_update_seer_project_settings(
+    projects: Sequence[Project], data: SeerProjectSettingsUpdate
+) -> None:
+    """Apply high-level Seer settings to multiple projects in bulk."""
+    if not projects:
+        return
 
-        if stopping_point is not None:
-            if stopping_point == "off":
-                # Turn off tuning and leave stopping point and handoff_auto_create_pr unchanged
-                # so that reenabling restores the prior state.
-                _set_if_not_default(
-                    "sentry:autofix_automation_tuning",
-                    AutofixAutomationTuningSettings.OFF,
-                    default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-                )
-            else:
-                _set_if_not_default(
-                    "sentry:autofix_automation_tuning",
-                    AutofixAutomationTuningSettings.MEDIUM,
-                    default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-                )
-                _set_if_not_default(
-                    "sentry:seer_automated_run_stopping_point",
-                    stopping_point,
-                    default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-                )
+    options_to_set, options_to_delete = _get_seer_project_options_to_update(data)
+    project_ids = [p.id for p in projects]
 
-                if stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    # Safe to set even if no external handoff is configured
-                    # since we'll only read it if the other handoff options are all non-null.
-                    project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-                else:
-                    project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+    with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        # Lock project rows to serialize concurrent writes.
+        list(Project.objects.select_for_update().filter(id__in=project_ids))
 
-        if "scannerAutomation" in data:
-            _set_if_not_default(
-                "sentry:seer_scanner_automation", data["scannerAutomation"], default=True
+        if options_to_delete:
+            ProjectOption.objects.filter(
+                project_id__in=project_ids, key__in=options_to_delete
+            ).delete()
+
+        if options_to_set:
+            ProjectOption.objects.bulk_create(
+                [
+                    ProjectOption(project_id=pid, key=key, value=value)
+                    for pid in project_ids
+                    for key, value in options_to_set.items()
+                ],
+                update_conflicts=True,
+                unique_fields=["project_id", "key"],
+                update_fields=["value"],
             )
+
+    # For all projects, manually reload cache and invalidate Relay config
+    # since bulk ProjectOption operations bypass post_save/post_delete signals.
+    for project_id in project_ids:
+        ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:

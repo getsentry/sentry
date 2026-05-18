@@ -37,6 +37,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
     build_automation_handoff,
+    bulk_update_seer_project_settings,
     get_valid_automated_run_stopping_points,
     update_seer_project_settings,
 )
@@ -172,8 +173,8 @@ def serialize_project(project: Project) -> SeerProjectSettingsResponse:
 
 
 def serialize_projects(projects: list[Project]) -> list[SeerProjectSettingsResponse]:
-    settings_by_project = _bulk_get_project_settings(projects)
-    return [_serialize(p, settings_by_project[p.id]) for p in projects]
+    settings_by_project_id = _bulk_get_project_settings(projects)
+    return [_serialize(p, settings_by_project_id[p.id]) for p in projects]
 
 
 def _annotate_queryset(queryset):
@@ -334,7 +335,7 @@ class ProjectSettingsUpdateSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"agent": "Required when integrationId is provided."}
                 )
-            if data["agent"] == "seer":
+            elif data["agent"] == "seer":
                 raise serializers.ValidationError(
                     {"agent": "Must be an external coding agent when integrationId is provided."}
                 )
@@ -447,8 +448,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
                 return Response({"detail": "Invalid search query"}, status=400)
 
         projects = list(queryset)
-        for project in projects:
-            update_seer_project_settings(project, data)
+        bulk_update_seer_project_settings(projects, data)
 
         self.create_audit_entry(
             request=request,
