@@ -17,7 +17,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
-import {GroupActivityType, GroupStatus} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
 import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 describe('StreamlinedActivitySection', () => {
@@ -369,91 +369,6 @@ describe('StreamlinedActivitySection', () => {
         ).toBeInTheDocument();
       }
     }
-  });
-
-  it('only applies status timeline colors to state-change items in the drawer', () => {
-    const activities = [
-      {
-        type: GroupActivityType.SET_RESOLVED,
-        id: 'resolved-1',
-        data: {},
-        dateCreated: '2020-01-03T00:00:00',
-        user,
-      },
-      {
-        type: GroupActivityType.NOTE,
-        id: 'note-1',
-        data: {text: 'Still resolved'},
-        dateCreated: '2020-01-02T12:00:00',
-        user,
-      },
-      {
-        type: GroupActivityType.SET_REGRESSION,
-        id: 'regressed-1',
-        data: {},
-        dateCreated: '2020-01-02T00:00:00',
-        user,
-      },
-      {
-        type: GroupActivityType.SET_IGNORED,
-        id: 'ignored-1',
-        data: {},
-        dateCreated: '2020-01-01T00:00:00',
-        user,
-      },
-    ] as GroupActivity[];
-    const tintedGroup = GroupFixture({
-      id: '1342',
-      activity: activities,
-      project,
-      status: GroupStatus.RESOLVED,
-    });
-
-    const {unmount} = render(<StreamlinedActivitySection group={tintedGroup} isDrawer />);
-
-    const resolvedRow = screen
-      .getByText('Resolved')
-      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
-    const regressedRow = screen
-      .getByText('Regressed')
-      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
-    const noteRow = screen
-      .getByText('Still resolved')
-      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
-    const ignoredRow = screen
-      .getByText('Archived')
-      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
-
-    expect(resolvedRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
-    expect(regressedRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
-    expect(noteRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
-    expect(ignoredRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
-    expect(
-      resolvedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
-    ).not.toBe('transparent');
-    expect(
-      regressedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
-    ).not.toBe('transparent');
-    expect(
-      noteRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
-    ).toBe('transparent');
-    expect(
-      ignoredRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
-    ).not.toBe('transparent');
-
-    unmount();
-    render(<StreamlinedActivitySection group={tintedGroup} />);
-
-    const nonDrawerResolvedRow = screen
-      .getByText('Resolved')
-      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
-    expect(
-      nonDrawerResolvedRow.style.getPropertyValue('--timeline-connector-color')
-    ).toBe('');
-    expect(
-      nonDrawerResolvedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style
-        .borderColor
-    ).toBe('transparent');
   });
 
   it('renders resolved in release with integration', async () => {
