@@ -25,10 +25,8 @@ describe('ReleaseIssues', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues-count/?end=2020-03-24T02%3A04%3A59Z&query=first-release%3A%221.0.0%22%20is%3Aunresolved&query=release%3A%221.0.0%22%20is%3Aunresolved&query=error.handled%3A0%20release%3A%221.0.0%22%20is%3Aunresolved&query=regressed_in_release%3A%221.0.0%22&start=2020-03-23T01%3A02%3A00Z`,
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues-count/?query=first-release%3A%221.0.0%22%20is%3Aunresolved&query=release%3A%221.0.0%22%20is%3Aunresolved&query=error.handled%3A0%20release%3A%221.0.0%22%20is%3Aunresolved&query=regressed_in_release%3A%221.0.0%22&statsPeriod=24h`,
+      url: `/organizations/${organization.slug}/issues-count/`,
+      body: {},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/1.0.0/resolved/`,
