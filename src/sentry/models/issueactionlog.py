@@ -35,6 +35,8 @@ class IssueActionLog(Model):
 
     # References sentry.Group. No FK constraint — this table will live on a separate DB.
     group_id = BoundedBigIntegerField()
+    # The project the group belonged to when this entry was logged.
+    project_id = BoundedBigIntegerField()
     # An IssueActionType value.
     type = BoundedPositiveIntegerField(
         choices=[(t.value, t.name) for t in IssueActionType],

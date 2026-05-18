@@ -7,6 +7,7 @@ from sentry.models.issueactionlog import IssueActionLog
 def record(
     *,
     group_id: int,
+    project_id: int,
     action: IssueAction,
     user_id: int | None = None,
 ) -> bool:
@@ -28,6 +29,7 @@ def record(
     """
     IssueActionLog.objects.create(
         group_id=group_id,
+        project_id=project_id,
         type=action.get_type().value,
         user_id=user_id,
         data=action.dict(),

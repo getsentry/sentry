@@ -76,17 +76,18 @@ class OrganizationIssueActionLogDebugEndpoint(OrganizationEndpoint):
         events = serializer.validated_data["events"]
 
         # Validate all events before recording any.
-        parsed: list[tuple[int, IssueAction, int | None]] = []
+        parsed: list[tuple[Group, IssueAction, int | None]] = []
         errors: list[dict[str, Any]] = []
 
-        # Collect and validate group IDs belong to this org.
+        # Fetch groups and validate they belong to this org.
         group_ids = {e["group_id"] for e in events}
-        valid_group_ids = set(
-            Group.objects.filter(
+        groups_by_id = {
+            g.id: g
+            for g in Group.objects.filter(
                 id__in=group_ids,
                 project__organization_id=organization.id,
-            ).values_list("id", flat=True)
-        )
+            )
+        }
 
         for i, event in enumerate(events):
             action_name = event["action"]
@@ -94,7 +95,8 @@ class OrganizationIssueActionLogDebugEndpoint(OrganizationEndpoint):
                 errors.append({"index": i, "detail": f"Unknown action: {action_name!r}"})
                 continue
 
-            if event["group_id"] not in valid_group_ids:
+            group = groups_by_id.get(event["group_id"])
+            if group is None:
                 errors.append({"index": i, "detail": "Group not found in this organization"})
                 continue
 
@@ -105,18 +107,12 @@ class OrganizationIssueActionLogDebugEndpoint(OrganizationEndpoint):
                 errors.append({"index": i, "detail": str(e)})
                 continue
 
-            parsed.append(
-                (
-                    event["group_id"],
-                    action,
-                    event["user_id"],
-                )
-            )
+            parsed.append((group, action, event["user_id"]))
 
         if errors:
             return Response({"detail": errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        for group_id, action, user_id in parsed:
-            record(group_id=group_id, action=action, user_id=user_id)
+        for group, action, user_id in parsed:
+            record(group_id=group.id, project_id=group.project_id, action=action, user_id=user_id)
 
         return Response({"recorded": len(parsed)}, status=status.HTTP_201_CREATED)

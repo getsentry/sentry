@@ -48,10 +48,11 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=SetResolvedAction(resolution_type="in_next_release"),
             user_id=user.id,
         )
@@ -71,11 +72,11 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         first_cursor = derived.cursor_id
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         assert derived.cursor_id > first_cursor
 
@@ -83,7 +84,7 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         old_updated = derived.date_updated
 
@@ -96,13 +97,19 @@ class ProcessGroupLogTest(TestCase):
         user = self.user
 
         # record() processes inline, so both get derived data immediately.
-        record(group_id=group_a.id, action=ViewAction(), user_id=user.id)
-        record(group_id=group_b.id, action=ViewAction(), user_id=user.id)
+        record(
+            group_id=group_a.id, project_id=group_a.project_id, action=ViewAction(), user_id=user.id
+        )
+        record(
+            group_id=group_b.id, project_id=group_b.project_id, action=ViewAction(), user_id=user.id
+        )
 
         cursor_b = GroupDerivedData.objects.get(group_id=group_b.id).cursor_id
 
         # New entry only for group_a, processed via explicit call.
-        IssueActionLog.objects.create(group_id=group_a.id, type=0, data={})
+        IssueActionLog.objects.create(
+            group_id=group_a.id, project_id=group_a.project_id, type=0, data={}
+        )
         process_group_log(group_a.id)
 
         # group_b's cursor should be unchanged.
@@ -116,12 +123,13 @@ class ProcessGroupLogTest(TestCase):
         # Insert an old entry directly to avoid inline processing at the wrong time.
         IssueActionLog.objects.create(
             group_id=group.id,
+            project_id=group.project_id,
             type=0,
             user_id=user.id,
             data={},
             date_added=now - timedelta(hours=1),
         )
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         latest_entry = IssueActionLog.objects.filter(group_id=group.id).order_by("-id")[0]
 
         # Reprocess from scratch so both entries are seen in order.
@@ -133,8 +141,18 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=CommentAction(message="hello"), user_id=user.id)
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=CommentAction(message="hello"),
+            user_id=user.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
 
         derived = process_group_log(group.id)
         assert derived.last_seen is None
@@ -143,12 +161,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         assert derived.last_seen is not None
         first_seen = derived.last_seen
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         assert derived.last_seen is not None
         assert derived.last_seen > first_seen
@@ -158,7 +176,9 @@ class ProcessGroupLogTest(TestCase):
         user = self.user
 
         for _ in range(5):
-            record(group_id=group.id, action=ViewAction(), user_id=user.id)
+            record(
+                group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id
+            )
 
         # Process in batches of 2 — should take 3 batches (2+2+1)
         derived = process_group_log(group.id, batch_size=2)
@@ -170,7 +190,11 @@ class ProcessGroupLogTest(TestCase):
     def test_system_action_no_user(self) -> None:
         group = self.create_group()
 
-        record(group_id=group.id, action=SetResolvedAction(resolution_type="auto"))
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(resolution_type="auto"),
+        )
 
         entry = IssueActionLog.objects.get(group_id=group.id)
         assert entry.user_id is None
@@ -178,7 +202,12 @@ class ProcessGroupLogTest(TestCase):
     def test_status_starts_open(self) -> None:
         group = self.create_group()
 
-        record(group_id=group.id, action=ViewAction(), user_id=self.user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=ViewAction(),
+            user_id=self.user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "open"
 
@@ -186,7 +215,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
@@ -194,8 +228,18 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
-        record(group_id=group.id, action=SetUnresolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetUnresolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "open"
 
@@ -203,8 +247,18 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
@@ -212,7 +266,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=SetUnresolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetUnresolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "open"
 
@@ -220,9 +279,24 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
-        record(group_id=group.id, action=SetUnresolvedAction(), user_id=user.id)
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetUnresolvedAction(),
+            user_id=user.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
@@ -230,7 +304,7 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         viewers = derived.data["recent_viewers"]
         assert str(user.id) in viewers
@@ -240,8 +314,12 @@ class ProcessGroupLogTest(TestCase):
         user_a = self.user
         user_b = self.create_user()
 
-        record(group_id=group.id, action=ViewAction(), user_id=user_a.id)
-        record(group_id=group.id, action=ViewAction(), user_id=user_b.id)
+        record(
+            group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user_a.id
+        )
+        record(
+            group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user_b.id
+        )
         derived = process_group_log(group.id)
         viewers = derived.data["recent_viewers"]
         assert str(user_a.id) in viewers
@@ -251,8 +329,8 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         viewers = derived.data["recent_viewers"]
         assert len(viewers) == 1
@@ -267,12 +345,15 @@ class ProcessGroupLogTest(TestCase):
         # Insert the old entry directly to avoid inline processing at the wrong timestamp.
         IssueActionLog.objects.create(
             group_id=group.id,
+            project_id=group.project_id,
             type=0,
             user_id=user_old.id,
             data={},
             date_added=now - timedelta(days=60),
         )
-        record(group_id=group.id, action=ViewAction(), user_id=user_new.id)
+        record(
+            group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user_new.id
+        )
 
         # Reprocess from scratch to pick up the backdated entry.
         GroupDerivedData.objects.filter(group_id=group.id).delete()
@@ -284,7 +365,7 @@ class ProcessGroupLogTest(TestCase):
     def test_recent_viewers_ignores_no_user(self) -> None:
         group = self.create_group()
 
-        record(group_id=group.id, action=ViewAction())
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction())
         derived = process_group_log(group.id)
         assert derived.data["recent_viewers"] == {}
 
@@ -294,7 +375,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=FetchAction(tool="claude"),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         fetched = derived.data["recent_fetched"]
         assert str(user.id) in fetched
@@ -308,12 +394,18 @@ class ProcessGroupLogTest(TestCase):
 
         IssueActionLog.objects.create(
             group_id=group.id,
+            project_id=group.project_id,
             type=3,
             user_id=user_old.id,
             data={"tool": "curl"},
             date_added=now - timedelta(days=60),
         )
-        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user_new.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=FetchAction(tool="claude"),
+            user_id=user_new.id,
+        )
 
         GroupDerivedData.objects.filter(group_id=group.id).delete()
         derived = process_group_log(group.id)
@@ -324,7 +416,7 @@ class ProcessGroupLogTest(TestCase):
     def test_recent_fetched_ignores_no_user(self) -> None:
         group = self.create_group()
 
-        record(group_id=group.id, action=FetchAction(tool="claude"))
+        record(group_id=group.id, project_id=group.project_id, action=FetchAction(tool="claude"))
         derived = process_group_log(group.id)
         assert derived.data["recent_fetched"] == {}
 
@@ -334,7 +426,7 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         working = derived.data["working_on"]
         assert str(user.id) in working
@@ -344,7 +436,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=FetchAction(tool="claude"),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         working = derived.data["working_on"]
         assert str(user.id) in working
@@ -354,8 +451,13 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
-        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=FetchAction(tool="claude"),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         working = derived.data["working_on"]
         assert len(working) == 1
@@ -365,8 +467,13 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["working_on"] == {}
 
@@ -375,11 +482,31 @@ class ProcessGroupLogTest(TestCase):
         user_before = self.user
         user_after = self.create_user()
 
-        record(group_id=group.id, action=ViewAction(), user_id=user_before.id)
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user_before.id)
-        record(group_id=group.id, action=SetUnresolvedAction(), user_id=user_before.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=ViewAction(),
+            user_id=user_before.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user_before.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetUnresolvedAction(),
+            user_id=user_before.id,
+        )
         # Only user_after views after reopen
-        record(group_id=group.id, action=ViewAction(), user_id=user_after.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=ViewAction(),
+            user_id=user_after.id,
+        )
         derived = process_group_log(group.id)
         working = derived.data["working_on"]
         assert str(user_after.id) in working
@@ -389,12 +516,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         first_since = derived.data["working_on"][str(user.id)]["since"]
 
         # Second view shouldn't move "since" forward
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         derived = process_group_log(group.id)
         assert derived.data["working_on"][str(user.id)]["since"] == first_since
 
@@ -406,6 +533,7 @@ class ProcessGroupLogTest(TestCase):
 
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=ResolvedInPullRequestAction(pr_id="PR-1"),
             user_id=user.id,
         )
@@ -417,6 +545,7 @@ class ProcessGroupLogTest(TestCase):
 
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
         )
         derived = process_group_log(group.id)
@@ -428,10 +557,12 @@ class ProcessGroupLogTest(TestCase):
 
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
         )
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=ResolvedInPullRequestAction(pr_id="PR-1"),
             user_id=user.id,
         )
@@ -444,10 +575,12 @@ class ProcessGroupLogTest(TestCase):
 
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
         )
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=ResolvedInPullRequestAction(pr_id="PR-99"),
             user_id=user.id,
         )
@@ -460,9 +593,15 @@ class ProcessGroupLogTest(TestCase):
 
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
         )
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["was_autofixed"] is False
 
@@ -472,14 +611,21 @@ class ProcessGroupLogTest(TestCase):
 
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
         )
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=ResolvedInPullRequestAction(pr_id="PR-1"),
             user_id=user.id,
         )
-        record(group_id=group.id, action=SetUnresolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetUnresolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
         assert derived.data["was_autofixed"] is True
 
@@ -489,12 +635,19 @@ class ProcessGroupLogTest(TestCase):
 
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
         )
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
         # Issue is already closed; this RESOLVED_IN_PULL_REQUEST is a no-op on status
         record(
             group_id=group.id,
+            project_id=group.project_id,
             action=ResolvedInPullRequestAction(pr_id="PR-1"),
             user_id=user.id,
         )
@@ -555,9 +708,19 @@ class GroupDerivedDataStoreTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
-        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user.id)
-        record(group_id=group.id, action=SetResolvedAction(), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=FetchAction(tool="claude"),
+            user_id=user.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
+            action=SetResolvedAction(),
+            user_id=user.id,
+        )
         derived = process_group_log(group.id)
 
         state = GroupDerivedDataStore.load(pipeline, derived)
@@ -579,10 +742,16 @@ class GroupDerivedDataStoreTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        record(group_id=group.id, action=ViewAction(), user_id=user.id)
-        record(group_id=group.id, action=FetchAction(tool="claude"), user_id=user.id)
+        record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
         record(
             group_id=group.id,
+            project_id=group.project_id,
+            action=FetchAction(tool="claude"),
+            user_id=user.id,
+        )
+        record(
+            group_id=group.id,
+            project_id=group.project_id,
             action=AutofixPrCreatedAction(pr_id="PR-1", agent="seer"),
         )
         derived = process_group_log(group.id)
