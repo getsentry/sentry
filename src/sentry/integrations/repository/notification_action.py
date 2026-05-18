@@ -48,33 +48,11 @@ class NotificationActionNotificationMessageValidationError(NotificationMessageVa
     pass
 
 
-class ActionAndGroupActionValidationError(NotificationActionNotificationMessageValidationError):
-    message = "both action and group need to exist together with a reference"
-
-
-@dataclass
+@dataclass(kw_only=True)
 class NewNotificationActionNotificationMessage(BaseNewNotificationMessage):
-    action_id: int | None = None
-    group_id: int | None = None
+    action_id: int
+    group_id: int
     open_period_start: datetime | None = None
-
-    def get_validation_error(self) -> Exception | None:
-        error = super().get_validation_error()
-        if error is not None:
-            return error
-
-        if self.message_identifier is not None:
-            # If a message_identifier exists, that means a successful notification happened for a rule action and fire
-            # This means that neither of them can be empty
-            if self.action_id is None or self.group_id is None:
-                return ActionAndGroupActionValidationError()
-
-        # We can create a NotificationMessage if it has both, or neither, of action and group.
-        # The following is an XNOR check for action and group
-        if (self.action_id is not None) != (self.group_id is not None):
-            return ActionAndGroupActionValidationError()
-
-        return None
 
 
 class NotificationActionNotificationMessageRepository:
