@@ -100,13 +100,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
   }, [isStreaming, elements]);
 
   return (
-    <Stack
-      ref={containerRef}
-      gap="lg"
-      flex={1}
-      maxWidth="72ch"
-      style={{overflowWrap: 'break-word'}}
-    >
+    <Stack ref={containerRef} gap="lg" flex={1} style={{overflowWrap: 'break-word'}}>
       {isStreaming && <Global styles={streamingAnimationStyles} />}
       {elements}
     </Stack>
