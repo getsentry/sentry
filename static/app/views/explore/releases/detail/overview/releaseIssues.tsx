@@ -187,7 +187,7 @@ export function ReleaseIssues({
   const location = useLocation();
   const organization = useOrganization();
 
-  const [pageLinks, setPageLinks] = useState<string | undefined>();
+  const [pageLinks, setPageLinks] = useState<string | null>(null);
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
   const [issuesType, setIssuesType] = useQueryState(
@@ -246,10 +246,11 @@ export function ReleaseIssues({
     }),
   });
 
-  const handleFetchSuccess = useCallback((groupListState: any, cursorFn: any) => {
-    setPageLinks(groupListState.pageLinks);
-    setOnCursor(() => cursorFn);
-  }, []);
+  const handleFetchSuccess: React.ComponentProps<typeof GroupList>['onFetchSuccess'] =
+    useCallback((groupListState, cursorFn) => {
+      setPageLinks(groupListState.pageLinks);
+      setOnCursor(() => cursorFn);
+    }, []);
 
   const renderEmptyMessage = useCallback(() => {
     const isEntireReleasePeriod =
