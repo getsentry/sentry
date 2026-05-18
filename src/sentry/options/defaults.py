@@ -4159,30 +4159,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organization slug allowlist to enable Autopilot for specific organizations.
-register(
-    "autopilot.organization-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable missing SDK integration detector for specific projects.
-register(
-    "autopilot.missing-sdk-integration.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable trace instrumentation detector for specific projects.
-register(
-    "autopilot.trace-instrumentation.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Global flag to enable API token async flush
 register(
     "api-token-async-flush",

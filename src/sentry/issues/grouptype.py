@@ -76,11 +76,7 @@ class GroupCategory(IntEnum):
     """
     PREPROD = 17
 
-    """
-    Issues detected by autopilot instrumentation analysis suggesting
-    improvements to product usage and observability coverage.
-    """
-    INSTRUMENTATION = 18
+    # 18 was INSTRUMENTATION (autopilot project, deprecated and removed)
 
     """
     Issues detected from SDK/tooling configuration problems,
