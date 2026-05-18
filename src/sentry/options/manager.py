@@ -292,45 +292,55 @@ class OptionsManager:
         """
         # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
         # values change. This case is unlikely, but good to cover our bases.
-        opt = self.lookup_key(key)
+        from sentry.utils import metrics
 
-        # First check if the option should exist on disk, and if it actually
-        # has a value set, let's use that one instead without even attempting
-        # to fetch from network storage.
-        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
-            try:
-                result = settings.SENTRY_OPTIONS[key]
-            except KeyError:
-                pass
-            else:
+        with metrics.timer(
+            "options.store.get",
+            tags={"key": key, "region": settings.SENTRY_OPTIONS.get("system.region", "unknown")},
+            sample_rate=0.01,
+        ) as tags:
+            opt = self.lookup_key(key)
+
+            # First check if the option should exist on disk, and if it actually
+            # has a value set, let's use that one instead without even attempting
+            # to fetch from network storage.
+            if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
+                try:
+                    result = settings.SENTRY_OPTIONS[key]
+                except KeyError:
+                    pass
+                else:
+                    if result is not None:
+                        tags["source"] = "disk"
+                        record_option(key, result)
+                        return result
+
+            if not (opt.flags & FLAG_NOSTORE):
+                result = self.store.get(opt, silent=silent)
                 if result is not None:
+                    tags["source"] = "store"
                     record_option(key, result)
                     return result
 
-        if not (opt.flags & FLAG_NOSTORE):
-            result = self.store.get(opt, silent=silent)
-            if result is not None:
-                record_option(key, result)
-                return result
-
-        # Some values we don't want to allow them to be configured through
-        # config files and should only exist in the datastore
-        if opt.has_any_flag({FLAG_STOREONLY}):
-            optval = opt.default()
-        else:
-            try:
-                # default to the hardcoded local configuration for this key
-                optval = settings.SENTRY_OPTIONS[key]
-            except KeyError:
+            # Some values we don't want to allow them to be configured through
+            # config files and should only exist in the datastore
+            if opt.has_any_flag({FLAG_STOREONLY}):
+                optval = opt.default()
+            else:
                 try:
-                    optval = settings.SENTRY_DEFAULT_OPTIONS[key]
+                    # default to the hardcoded local configuration for this key
+                    optval = settings.SENTRY_OPTIONS[key]
                 except KeyError:
-                    optval = opt.default()
-        # options already present in store are cached by store
-        # caching here to avoid database queries
-        self.store.set_cache(opt, optval)
-        record_option(key, optval)
-        return optval
+                    try:
+                        optval = settings.SENTRY_DEFAULT_OPTIONS[key]
+                    except KeyError:
+                        optval = opt.default()
+            # options already present in store are cached by store
+            # caching here to avoid database queries
+            self.store.set_cache(opt, optval)
+            tags["source"] = "default"
+            record_option(key, optval)
+            return optval
 
     def delete(self, key: str):
         """
