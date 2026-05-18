@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {IconCopy, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -79,7 +79,7 @@ function BlockActionBar() {
   }
 
   return (
-    <ActionBarWrapper gap="xs">
+    <ActionBarWrapper>
       <FeedbackButton
         type="positive"
         disabled={feedbackSubmitted}
@@ -94,7 +94,6 @@ function BlockActionBar() {
         <Button
           aria-label={t('Copy block content')}
           icon={<IconCopy />}
-          variant="transparent"
           size="xs"
           tooltipProps={{title: t('Copy to clipboard')}}
           onClick={e => {
@@ -123,10 +122,9 @@ function FeedbackButton({
       aria-label={
         type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')
       }
+      size="xs"
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       disabled={disabled}
-      variant="transparent"
-      size="xs"
       tooltipProps={{
         title: disabled
           ? t('Feedback submitted')
@@ -144,13 +142,10 @@ function FeedbackButton({
   );
 }
 
-const ActionBarWrapper = styled(Flex)`
+const ActionBarWrapper = styled(ButtonBar)`
   position: absolute;
   bottom: ${p => p.theme.space['2xs']};
   right: ${p => p.theme.space.md};
-  white-space: nowrap;
-  font-size: ${p => p.theme.font.size.sm};
-  background: ${p => p.theme.tokens.background.primary};
   visibility: hidden;
 
   ${BlockWrapper}:hover &,
