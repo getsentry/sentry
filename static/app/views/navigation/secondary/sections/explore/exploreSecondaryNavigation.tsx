@@ -127,7 +127,7 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  trailingItems={<FeatureBadge type="beta" />}
                 >
                   {t('Conversations')}
                 </SecondaryNavigation.Link>
