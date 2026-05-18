@@ -328,8 +328,16 @@ class ProjectSettingsUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"integrationId": "Required when agent is an external coding agent."}
             )
-        if "integrationId" in data and "agent" not in data:
-            raise serializers.ValidationError({"agent": "Required when integrationId is provided."})
+
+        if "integrationId" in data:
+            if "agent" not in data:
+                raise serializers.ValidationError(
+                    {"agent": "Required when integrationId is provided."}
+                )
+            if data["agent"] == "seer":
+                raise serializers.ValidationError(
+                    {"agent": "Must be an external coding agent when integrationId is provided."}
+                )
 
         has_update = any(k in data for k in ("agent", "stoppingPoint", "scannerAutomation"))
         if not has_update:
@@ -364,7 +372,13 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={"project_id": project.id, **serializer.validated_data},
+            data={
+                "project_id": project.id,
+                "agent": serializer.validated_data.get("agent"),
+                "integration_id": serializer.validated_data.get("integrationId"),
+                "stopping_point": serializer.validated_data.get("stoppingPoint"),
+                "scanner_automation": serializer.validated_data.get("scannerAutomation"),
+            },
         )
 
         return Response(serialize_project(project))

@@ -130,6 +130,40 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         assert "scannerAutomation" in response.data
         assert "reposCount" in response.data
 
+    def test_put_external_agent_with_valid_integration(self) -> None:
+        """Valid external agent + integrationId should succeed and reflect in response."""
+        integration = self.create_integration(
+            organization=self.organization, external_id="ext", provider="github"
+        )
+        response = self.client.put(
+            self.url,
+            data={"agent": "cursor_background_agent", "integrationId": integration.id},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data["agent"] == "cursor_background_agent"
+        assert response.data["integrationId"] == str(integration.id)
+
+    def test_put_scanner_automation(self) -> None:
+        """PUT scannerAutomation should update and return the new value."""
+        response = self.client.put(self.url, data={"scannerAutomation": False}, format="json")
+
+        assert response.status_code == 200
+        assert response.data["scannerAutomation"] is False
+
+    def test_put_stopping_point_off(self) -> None:
+        """PUT stoppingPoint=off should disable automation."""
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+
+        response = self.client.put(self.url, data={"stoppingPoint": "off"}, format="json")
+
+        assert response.status_code == 200
+        assert response.data["stoppingPoint"] == "off"
+
     def test_put_requires_at_least_one_update_field(self) -> None:
         """Sending no update fields should return 400."""
         response = self.client.put(self.url, data={}, format="json")
@@ -139,6 +173,24 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         """External agent without integrationId should return 400."""
         response = self.client.put(
             self.url, data={"agent": "cursor_background_agent"}, format="json"
+        )
+        assert response.status_code == 400
+
+    def test_put_rejects_integration_id_without_agent(self) -> None:
+        """integrationId without agent should return 400."""
+        integration = self.create_integration(
+            organization=self.organization, external_id="valid", provider="github"
+        )
+        response = self.client.put(self.url, data={"integrationId": integration.id}, format="json")
+        assert response.status_code == 400
+
+    def test_put_rejects_integration_id_with_seer_agent(self) -> None:
+        """integrationId with agent=seer should return 400."""
+        integration = self.create_integration(
+            organization=self.organization, external_id="valid", provider="github"
+        )
+        response = self.client.put(
+            self.url, data={"agent": "seer", "integrationId": integration.id}, format="json"
         )
         assert response.status_code == 400
 
