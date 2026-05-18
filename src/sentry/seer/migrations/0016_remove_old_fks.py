@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0014_add_new_unique_constraints"),
+        ("seer", "0015_add_seer_run_fks"),
         ("sentry", "1098_remove_old_fks"),
     ]
 
