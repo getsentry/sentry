@@ -127,13 +127,18 @@ export function LogsAggregateTable({
                 canSort
                 direction={direction}
                 generateSortLink={() => {
+                  const nextSort = (() => {
+                    switch (direction) {
+                      case 'asc':
+                        return {field: allFields[0]!, kind: 'desc' as const};
+                      case 'desc':
+                        return {field: column.key, kind: 'asc' as const};
+                      default:
+                        return {field: column.key, kind: 'desc' as const};
+                    }
+                  })();
                   return getTargetWithReadableQueryParams(location, {
-                    aggregateSortBys: [
-                      {
-                        field: column.key,
-                        kind: direction === 'desc' ? 'asc' : 'desc',
-                      },
-                    ],
+                    aggregateSortBys: [nextSort],
                   });
                 }}
                 title={title}

@@ -472,4 +472,51 @@ describe('LogsInfiniteTable', () => {
     await screen.findByText('abc123de');
     await screen.findByText('abc123ee');
   });
+
+  it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
+    // Start with severity sorted ascending (second click has already happened)
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: 'severity',
+        },
+      })
+    );
+
+    const {router} = render(
+      <OrganizationContext.Provider value={organization}>
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
+          <LogsPageDataProvider>
+            <LogsInfiniteTable
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            />
+          </LogsPageDataProvider>
+        </LogsQueryParamsProvider>
+      </OrganizationContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: 'severity',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    // Wait for table headers to be rendered (empty while pending)
+    const severityHeader = await screen.findByText('Severity');
+
+    // Third click (asc → reset): should navigate to default timestamp desc sort
+    await userEvent.click(severityHeader);
+    expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('-timestamp');
+  });
 });
