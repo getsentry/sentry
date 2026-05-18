@@ -597,6 +597,7 @@ class SeerAgentClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
+        query: str | None = ...,
     ) -> list[AgentRunWithPrs]: ...
 
     @overload
@@ -611,6 +612,7 @@ class SeerAgentClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
+        query: str | None = ...,
     ) -> list[AgentRun]: ...
 
     def get_runs(
