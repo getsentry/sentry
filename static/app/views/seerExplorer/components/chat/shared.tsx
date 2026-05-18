@@ -1,7 +1,9 @@
+import type {ComponentType, ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InlineCode} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
@@ -81,28 +83,41 @@ export function hasValidContent(content: string | null | undefined): content is 
 const ISSUE_SHORT_ID_PATTERN =
   /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
 
-function IssueIdText({children}: {children: string}) {
+function LinkifyIssueShortIds(props: {
+  children: string;
+  wrapper?: ComponentType<{children: string}>;
+}): ReactNode {
+  const {children, wrapper: Wrapper = Fragment} = props;
   const parts = children.split(ISSUE_SHORT_ID_PATTERN);
   if (parts.length === 1) {
-    return children;
+    return <Wrapper>{children}</Wrapper>;
   }
   return (
     <Fragment>
-      {parts.map((part, i) =>
-        i % 2 === 1 ? (
-          <Link key={i} to={`/issues/${part}/`}>
-            {part}
-          </Link>
-        ) : (
-          part
-        )
-      )}
+      {parts.map((part, i) => {
+        if (!part) return null;
+        if (i % 2 === 1) {
+          return (
+            <Link key={i} to={`/issues/${part}/`}>
+              <Wrapper>{part}</Wrapper>
+            </Link>
+          );
+        }
+        return <Wrapper key={i}>{part}</Wrapper>;
+      })}
     </Fragment>
   );
 }
 
+function NeutralInlineCode({children}: {children: string}) {
+  return <InlineCode variant="neutral">{children}</InlineCode>;
+}
+
 const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
-  Text: IssueIdText,
+  Text: ({children}) => <LinkifyIssueShortIds>{children}</LinkifyIssueShortIds>,
+  InlineCode: ({children}) => (
+    <LinkifyIssueShortIds wrapper={NeutralInlineCode}>{children}</LinkifyIssueShortIds>
+  ),
   Heading: ({children, level}) => (
     <Heading as={`h${level}`} size="lg">
       {children}
