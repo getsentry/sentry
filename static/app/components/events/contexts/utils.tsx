@@ -20,6 +20,7 @@ import {getCultureContextData} from 'sentry/components/events/contexts/knownCont
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
+import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
@@ -271,6 +272,8 @@ export function getContextTitle({
     case 'culture':
     case 'Current Culture':
       return t('Culture');
+    case 'missing_instrumentation':
+      return t('Missing OTEL Instrumentation');
     case 'unity':
       return 'Unity';
     case 'memory_info': // Current value for memory info
@@ -432,6 +435,8 @@ export function getFormattedContextData({
     case 'culture':
     case 'Current Culture':
       return getCultureContextData({data: contextValue, meta});
+    case 'missing_instrumentation':
+      return getMissingInstrumentationContextData({data: contextValue, meta});
     default:
       return getContextKeys({data: contextValue}).map(ctxKey => ({
         key: ctxKey,
