@@ -14,6 +14,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import type {ContentVariant} from 'sentry/utils/theme/types';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -340,6 +341,14 @@ function MetadataInfoButton({
   );
 }
 
+const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'> = {
+  [DiffStatus.CHANGED]: 'accent',
+  [DiffStatus.ADDED]: 'success',
+  [DiffStatus.REMOVED]: 'danger',
+  [DiffStatus.RENAMED]: 'warning',
+  [DiffStatus.UNCHANGED]: 'secondary',
+};
+
 const StatusBadge = memo(function StatusBadge({
   status,
   diffPercent,
@@ -353,7 +362,7 @@ const StatusBadge = memo(function StatusBadge({
       label =
         diffPercent === null || diffPercent === undefined
           ? t('Changed')
-          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 4));
+          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3));
       break;
     case DiffStatus.ADDED:
       label = t('Added');
@@ -368,7 +377,11 @@ const StatusBadge = memo(function StatusBadge({
       label = t('Unchanged');
   }
 
-  return <StatusBadgeContainer status={status}>{label}</StatusBadgeContainer>;
+  return (
+    <Text size="sm" bold variant={STATUS_VARIANT[status]}>
+      {label}
+    </Text>
+  );
 });
 
 function IconButton({
@@ -442,43 +455,4 @@ const MetadataHint = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   padding-bottom: ${p => p.theme.space.xs};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const StatusBadgeContainer = styled('span')<{status: DiffStatus}>`
-  display: inline-flex;
-  align-items: center;
-  padding: 2px ${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.font.size.xs};
-  white-space: nowrap;
-  background: ${p => {
-    switch (p.status) {
-      case DiffStatus.CHANGED:
-        return p.theme.tokens.background.transparent.accent.muted;
-      case DiffStatus.ADDED:
-        return p.theme.tokens.background.transparent.success.muted;
-      case DiffStatus.REMOVED:
-        return p.theme.tokens.background.transparent.danger.muted;
-      case DiffStatus.RENAMED:
-        return p.theme.tokens.background.transparent.warning.muted;
-      case DiffStatus.UNCHANGED:
-      default:
-        return p.theme.tokens.background.secondary;
-    }
-  }};
-  color: ${p => {
-    switch (p.status) {
-      case DiffStatus.CHANGED:
-        return p.theme.tokens.content.accent;
-      case DiffStatus.ADDED:
-        return p.theme.tokens.content.success;
-      case DiffStatus.REMOVED:
-        return p.theme.tokens.content.danger;
-      case DiffStatus.RENAMED:
-        return p.theme.tokens.content.warning;
-      case DiffStatus.UNCHANGED:
-      default:
-        return p.theme.tokens.content.secondary;
-    }
-  }};
 `;
