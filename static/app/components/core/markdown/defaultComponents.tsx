@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import React, {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
@@ -148,6 +148,10 @@ export function DefaultTaskListItem({
 
 export function DefaultHorizontalRule() {
   return <Separator orientation="horizontal" />;
+}
+
+export function DefaultText({children}: {children: string}) {
+  return <React.Fragment>{children}</React.Fragment>;
 }
 
 export function DefaultLineBreak() {
