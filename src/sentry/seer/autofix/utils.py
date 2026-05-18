@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal, NotRequired, TypedDict
@@ -814,7 +814,7 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
 
 
 def bulk_update_seer_project_settings(
-    projects: Sequence[Project], data: SeerProjectSettingsUpdate
+    projects: list[Project], data: SeerProjectSettingsUpdate
 ) -> None:
     """Apply high-level Seer settings to multiple projects in bulk."""
     if not projects:
@@ -828,9 +828,10 @@ def bulk_update_seer_project_settings(
         list(Project.objects.select_for_update().filter(id__in=project_ids))
 
         if options_to_delete:
+            # Use _raw_delete to skip ProjectOptionManager post_delete signals (each row triggers reload_cache).
             ProjectOption.objects.filter(
                 project_id__in=project_ids, key__in=options_to_delete
-            ).delete()
+            )._raw_delete(using=router.db_for_write(ProjectOption))
 
         if options_to_set:
             ProjectOption.objects.bulk_create(
@@ -844,8 +845,8 @@ def bulk_update_seer_project_settings(
                 update_fields=["value"],
             )
 
-    # For all projects, manually reload cache and invalidate Relay config
-    # since bulk ProjectOption operations bypass update_option/delete_option.
+    # Manually reload each project's cache, since _raw_delete and bulk_create
+    # bypass the cache reloading in update_option and delete_option.
     for project_id in project_ids:
         ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
 
