@@ -330,14 +330,14 @@ def test_project_config_with_all_biases_enabled(
         "version": 2,
         "rules": [
             {
-                "samplingValue": {"type": "sampleRate", "value": 0.02},
-                "type": "transaction",
+                "samplingValue": {"type": "sampleRate", "value": 0.1 / 3},
+                "type": "trace",
                 "condition": {
                     "op": "or",
                     "inner": [
                         {
                             "op": "glob",
-                            "name": "event.transaction",
+                            "name": "trace.transaction",
                             "value": HEALTH_CHECK_GLOBS,
                         }
                     ],
