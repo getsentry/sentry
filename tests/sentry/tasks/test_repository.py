@@ -48,8 +48,6 @@ class RepositoryCascadeDeleteOnHideTest(TestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
-            project=project,
-            repository=repo,
             stack_root="",
             source_root="src/packages/store",
             default_branch="main",
