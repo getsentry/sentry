@@ -27,6 +27,33 @@ describe('ReleaseIssues', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues-count/`,
       body: {},
+      match: [
+        MockApiClient.matchQuery({
+          start: '2020-03-23T01:02:00Z',
+          end: '2020-03-24T02:04:59Z',
+          query: [
+            'first-release:"1.0.0" is:unresolved',
+            'release:"1.0.0" is:unresolved',
+            'error.handled:0 release:"1.0.0" is:unresolved',
+            'regressed_in_release:"1.0.0"',
+          ],
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/`,
+      body: {},
+      match: [
+        MockApiClient.matchQuery({
+          statsPeriod: '24h',
+          query: [
+            'first-release:"1.0.0" is:unresolved',
+            'release:"1.0.0" is:unresolved',
+            'error.handled:0 release:"1.0.0" is:unresolved',
+            'regressed_in_release:"1.0.0"',
+          ],
+        }),
+      ],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/1.0.0/resolved/`,
