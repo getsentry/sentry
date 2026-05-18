@@ -110,11 +110,12 @@ def _bulk_get_project_settings(projects: list[Project]) -> dict[int, SeerProject
 
     repo_counts: dict[int, int] = dict(
         SeerProjectRepository.objects.filter(
-            project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
+            project_repository__project_id__in=project_ids,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
         )
-        .values_list("project_id")
+        .values_list("project_repository__project_id")
         .annotate(count=Count("id"))
-        .values_list("project_id", "count")
+        .values_list("project_repository__project_id", "count")
     )
 
     settings_by_project_id: dict[int, SeerProjectSettings] = {}
@@ -190,8 +191,8 @@ def _annotate_queryset(queryset):
 
     return queryset.annotate(
         repos_count=Count(
-            "seerprojectrepository",
-            filter=Q(seerprojectrepository__repository__status=ObjectStatus.ACTIVE),
+            "projectrepository__seerprojectrepository",
+            filter=Q(projectrepository__repository__status=ObjectStatus.ACTIVE),
         ),
         _tuning=Coalesce(
             _project_option_subquery("sentry:autofix_automation_tuning"),
@@ -458,6 +459,10 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             data={
                 "project_count": len(projects),
                 "project_ids": [p.id for p in projects],
+                "agent": data.get("agent"),
+                "integration_id": data.get("integrationId"),
+                "stopping_point": data.get("stoppingPoint"),
+                "scanner_automation": data.get("scannerAutomation"),
             },
         )
 

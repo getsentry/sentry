@@ -785,6 +785,8 @@ def _get_seer_project_options_to_update(
                 default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
             )
             if stopping_point == AutofixStoppingPoint.OPEN_PR:
+                # Safe to set even if no external handoff is configured
+                # since we'll only read it if the other handoff options are all non-null.
                 options_to_set["sentry:seer_automation_handoff_auto_create_pr"] = True
             else:
                 options_to_clear.append("sentry:seer_automation_handoff_auto_create_pr")
