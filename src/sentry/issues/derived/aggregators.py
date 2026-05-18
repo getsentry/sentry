@@ -1,7 +1,7 @@
 """
 Aggregator definitions.
 
-Each aggregator processes one IssueActionLog entry at a time, reading from
+Each aggregator processes one IssueActionLogEntry at a time, reading from
 declared dep fields and writing to declared output fields.
 """
 
@@ -22,13 +22,13 @@ from sentry.issues.derived.fields import (
 )
 from sentry.issues.derived.lib import Aggregator, AggregatorResult, StateView, aggregator, emit
 from sentry.issues.derived.types import IssueActionType
-from sentry.models.issueactionlog import IssueActionLog
+from sentry.models.issueactionlogentry import IssueActionLogEntry
 
 RECENT_EXPIRY_SECONDS = 30 * 24 * 60 * 60  # 1 month
 
 
 @aggregator(outputs=(LAST_SEEN, VIEW_COUNT), scope=(IssueActionType.VIEW,))
-def track_views(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def track_views(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     ts = entry.date_added.timestamp()
     current = state[LAST_SEEN]
     if current is None or ts > current:
@@ -44,7 +44,7 @@ def track_views(state: StateView, entry: IssueActionLog) -> AggregatorResult:
         IssueActionType.RESOLVED_IN_PULL_REQUEST,
     ),
 )
-def track_status(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def track_status(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     current = state[STATUS]
     resolves = (IssueActionType.SET_RESOLVED.value, IssueActionType.RESOLVED_IN_PULL_REQUEST.value)
     if entry.type in resolves and current == IssueStatus.OPEN:
@@ -62,12 +62,12 @@ def track_status(state: StateView, entry: IssueActionLog) -> AggregatorResult:
     outputs=(LAST_OPENED,),
     scope=(IssueActionType.SET_UNRESOLVED,),
 )
-def track_last_opened(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def track_last_opened(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     return emit(LAST_OPENED.value(entry.date_added.timestamp()))
 
 
 @aggregator(outputs=(RECENT_VIEWERS,), scope=(IssueActionType.VIEW,))
-def track_recent_viewers(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def track_recent_viewers(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     if entry.user_id is None:
         return None
 
@@ -82,7 +82,7 @@ def track_recent_viewers(state: StateView, entry: IssueActionLog) -> AggregatorR
 
 
 @aggregator(outputs=(RECENT_FETCHED,), scope=(IssueActionType.FETCH,))
-def track_recent_fetched(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def track_recent_fetched(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     if entry.user_id is None:
         return None
 
@@ -100,7 +100,7 @@ def track_recent_fetched(state: StateView, entry: IssueActionLog) -> AggregatorR
     deps=(STATUS, LAST_OPENED, RECENT_VIEWERS, RECENT_FETCHED),
     outputs=(WORKING_ON,),
 )
-def compute_working_on(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def compute_working_on(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     current = state[WORKING_ON]
 
     if state[STATUS] != IssueStatus.OPEN:
@@ -142,7 +142,7 @@ def compute_working_on(state: StateView, entry: IssueActionLog) -> AggregatorRes
     outputs=(AUTOFIX_PRS,),
     scope=(IssueActionType.AUTOFIX_PR_CREATED,),
 )
-def track_autofix_prs(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def track_autofix_prs(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     pr_id = entry.data.get("pr_id")
     if not pr_id:
         return None
@@ -156,7 +156,7 @@ def track_autofix_prs(state: StateView, entry: IssueActionLog) -> AggregatorResu
     deps=(CLOSING_PRS, AUTOFIX_PRS),
     outputs=(WAS_AUTOFIXED,),
 )
-def compute_was_autofixed(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def compute_was_autofixed(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     if state[WAS_AUTOFIXED]:
         return None  # already true, stays true
     autofix_prs = state[AUTOFIX_PRS]

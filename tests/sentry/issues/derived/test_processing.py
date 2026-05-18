@@ -27,7 +27,7 @@ from sentry.issues.derived.types import (
 )
 from sentry.models.group import Group
 from sentry.models.groupderiveddata import GroupDerivedData
-from sentry.models.issueactionlog import IssueActionLog
+from sentry.models.issueactionlogentry import IssueActionLogEntry
 from sentry.testutils.cases import APITestCase, TestCase
 
 
@@ -57,7 +57,7 @@ class ProcessGroupLogTest(TestCase):
             user_id=user.id,
         )
 
-        entries = list(IssueActionLog.objects.filter(group_id=group.id).order_by("id"))
+        entries = list(IssueActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert len(entries) == 3
         assert entries[0].type == 0  # VIEW
         assert entries[2].type == 4  # SET_RESOLVED
@@ -107,7 +107,7 @@ class ProcessGroupLogTest(TestCase):
         cursor_b = GroupDerivedData.objects.get(group_id=group_b.id).cursor_id
 
         # New entry only for group_a, processed via explicit call.
-        IssueActionLog.objects.create(
+        IssueActionLogEntry.objects.create(
             group_id=group_a.id, project_id=group_a.project_id, type=0, data={}
         )
         process_group_log(group_a.id)
@@ -121,7 +121,7 @@ class ProcessGroupLogTest(TestCase):
         now = timezone.now()
 
         # Insert an old entry directly to avoid inline processing at the wrong time.
-        IssueActionLog.objects.create(
+        IssueActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
             type=0,
@@ -130,7 +130,7 @@ class ProcessGroupLogTest(TestCase):
             date_added=now - timedelta(hours=1),
         )
         record(group_id=group.id, project_id=group.project_id, action=ViewAction(), user_id=user.id)
-        latest_entry = IssueActionLog.objects.filter(group_id=group.id).order_by("-id")[0]
+        latest_entry = IssueActionLogEntry.objects.filter(group_id=group.id).order_by("-id")[0]
 
         # Reprocess from scratch so both entries are seen in order.
         GroupDerivedData.objects.filter(group_id=group.id).delete()
@@ -183,7 +183,7 @@ class ProcessGroupLogTest(TestCase):
         # Process in batches of 2 — should take 3 batches (2+2+1)
         derived = process_group_log(group.id, batch_size=2)
 
-        entries = list(IssueActionLog.objects.filter(group_id=group.id).order_by("id"))
+        entries = list(IssueActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert derived.cursor_id == entries[-1].id
         assert len(entries) == 5
 
@@ -196,7 +196,7 @@ class ProcessGroupLogTest(TestCase):
             action=SetResolvedAction(resolution_type="auto"),
         )
 
-        entry = IssueActionLog.objects.get(group_id=group.id)
+        entry = IssueActionLogEntry.objects.get(group_id=group.id)
         assert entry.user_id is None
 
     def test_status_starts_open(self) -> None:
@@ -343,7 +343,7 @@ class ProcessGroupLogTest(TestCase):
         now = timezone.now()
 
         # Insert the old entry directly to avoid inline processing at the wrong timestamp.
-        IssueActionLog.objects.create(
+        IssueActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
             type=0,
@@ -392,7 +392,7 @@ class ProcessGroupLogTest(TestCase):
         user_new = self.create_user()
         now = timezone.now()
 
-        IssueActionLog.objects.create(
+        IssueActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
             type=3,
@@ -769,7 +769,7 @@ class GroupDerivedDataStoreTest(TestCase):
         assert isinstance(state2[AUTOFIX_PRS], frozenset)
 
 
-class IssueActionLogDebugEndpointTest(APITestCase):
+class IssueActionLogEntryDebugEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-issue-action-log-debug"
     method = "post"
 

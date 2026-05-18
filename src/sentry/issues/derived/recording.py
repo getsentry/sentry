@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.issues.derived.types import IssueAction, IssueActionType  # noqa: F401 — re-exported
-from sentry.models.issueactionlog import IssueActionLog
+from sentry.models.issueactionlogentry import IssueActionLogEntry
 
 
 def record(
@@ -12,7 +12,7 @@ def record(
     user_id: int | None = None,
 ) -> bool:
     """
-    Record an action to IssueActionLog and process derived data inline.
+    Record an action to the issue action log and process derived data inline.
 
     The action's pydantic fields are the sole source of the data payload.
     All data must be expressed as fields on the IssueAction subclass so it is
@@ -27,7 +27,7 @@ def record(
 
     Actor is identified by user_id (nullable for system-initiated actions).
     """
-    IssueActionLog.objects.create(
+    IssueActionLogEntry.objects.create(
         group_id=group_id,
         project_id=project_id,
         type=action.get_type().value,

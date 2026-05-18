@@ -17,7 +17,7 @@ from sentry.issues.derived.types import IssueActionType
 
 
 @cell_silo_model
-class IssueActionLog(Model):
+class IssueActionLogEntry(Model):
     """
     Append-only log of actions taken on an issue (Group).
 
@@ -37,6 +37,9 @@ class IssueActionLog(Model):
     group_id = BoundedBigIntegerField()
     # The project the group belonged to when this entry was logged.
     project_id = BoundedBigIntegerField()
+    # When a group is merged into another, this records the original group ID.
+    original_group_id = BoundedBigIntegerField(null=True)
+
     # An IssueActionType value.
     type = BoundedPositiveIntegerField(
         choices=[(t.value, t.name) for t in IssueActionType],
@@ -51,9 +54,6 @@ class IssueActionLog(Model):
     # Backfill code can pass an explicit value to place entries chronologically.
     date_added = models.DateTimeField(db_default=Now())
 
-    # When a group is merged into another, this records the original group ID.
-    original_group_id = BoundedBigIntegerField(null=True)
-
     # Optional idempotency key for deduplicating events from external sources
     # (e.g., a webhook delivery ID, a PR merge event ID). When set, the partial
     # unique index on (group, idempotency_key) prevents the same external event
@@ -63,14 +63,14 @@ class IssueActionLog(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_issueactionlog"
+        db_table = "sentry_issueactionlogentry"
         indexes = [
             models.Index(fields=["group_id", "date_added", "id"]),
         ]
         constraints = [
             models.UniqueConstraint(
                 fields=["group_id", "idempotency_key"],
-                name="uniq_issueactionlog_group_idempotency_key",
+                name="uniq_issueactionlogentry_group_idempotency_key",
                 condition=models.Q(idempotency_key__isnull=False),
             ),
         ]

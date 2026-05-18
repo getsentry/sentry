@@ -22,7 +22,7 @@ EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 @cell_silo_model
 class GroupDerivedData(DefaultFieldsModel):
     """
-    One storage backend for derived state computed from IssueActionLog entries.
+    One storage backend for derived state computed from IssueActionLogEntry entries.
 
     This is not the only place derived data could live — the pipeline's
     output is a plain dict that could be written to Redis, a separate
@@ -39,7 +39,7 @@ class GroupDerivedData(DefaultFieldsModel):
     for new groups. At most one row per group should be primary. Readers
     filter on `primary=True` and don't need to reason about versions.
 
-    The cursor (cursor_date, cursor_id) tracks the last IssueActionLog entry
+    The cursor (cursor_date, cursor_id) tracks the last IssueActionLogEntry
     processed under this version. Entries are ordered by (date_added, id).
     """
 

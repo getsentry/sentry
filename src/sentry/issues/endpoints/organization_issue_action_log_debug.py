@@ -1,5 +1,5 @@
 """
-Debug-only endpoint for posting IssueActionLog events.
+Debug-only endpoint for posting IssueActionLogEntry events.
 
 NOT a production API. In production, events are recorded by internal code paths
 (e.g., post-process hooks, integration callbacks) that call record() directly.
@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import ValidationError
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -103,7 +104,7 @@ class OrganizationIssueActionLogDebugEndpoint(OrganizationEndpoint):
             action_cls = ACTION_CLASSES[action_name]
             try:
                 action = action_cls(**event["action_data"])
-            except Exception as e:
+            except ValidationError as e:
                 errors.append({"index": i, "detail": str(e)})
                 continue
 

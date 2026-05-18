@@ -4,7 +4,7 @@
 
 ### The Action Log
 
-`IssueActionLog` is a sequential, immutable, factual record of actions taken on issues. Each entry records who did what, when, with a validated payload. The log is append-only — entries are never modified or reordered.
+`IssueActionLogEntry` is a sequential, immutable, factual record of actions taken on issues. Each entry records who did what, when, with a validated payload. The log is append-only — entries are never modified or reordered.
 
 The log is a general-purpose foundation. Anything with read access can maintain a cursor into the log and process entries incrementally, the same way a Kafka consumer works over a topic.
 
@@ -29,7 +29,7 @@ The existing IssueAction types, Features, and Aggregators in this codebase are *
 ## Architecture
 
 ```
-record() → IssueActionLog (append-only)
+record() → IssueActionLogEntry (append-only)
                 ↓
         process (inline batch + background task fallback)
                 ↓
@@ -48,7 +48,7 @@ record() → IssueActionLog (append-only)
 
 - **No DB constraint on type values** — avoids migration churn when adding types. The constraint is at the `record()` boundary: it only accepts `Action` subclasses, each mapping to exactly one `IssueActionType`.
 - **Enum values must never be reused** — gaps are fine, but a value once assigned to an action kind is permanent.
-- **IssueAction is the sole source of the data schema** — `record()` has no backdoor for injecting unvalidated data. Everything in `IssueActionLog.data` comes from the IssueAction's features.
+- **IssueAction is the sole source of the data schema** — `record()` has no backdoor for injecting unvalidated data. Everything in `IssueActionLogEntry.data` comes from the IssueAction's features.
 - **`record()` processes inline** — writes the log entry, then runs a small batch of derived-data processing synchronously. Falls back to a background task if there's a backlog.
 - **Actor attribution** uses `user_id` (nullable for system-initiated actions). Future: likely `actor_type` enum + `actor_id` for richer attribution (Sentry system actions, Seer on behalf of a user, external integrations).
 
@@ -76,7 +76,7 @@ An aggregator is a function decorated with `@aggregator` that declares:
 
 ```python
 @aggregator(outputs=(LAST_SEEN, VIEW_COUNT), scope=(IssueActionType.VIEW,))
-def track_views(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def track_views(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     ts = entry.date_added.timestamp()
     current = state[LAST_SEEN]
     if current is None or ts > current:
@@ -162,7 +162,7 @@ Use `deps=` to declare fields your aggregator reads from other aggregators:
 
 ```python
 @aggregator(deps=(STATUS, LAST_OPENED), outputs=(MY_FEATURE,))
-def compute_my_field(state: StateView, entry: IssueActionLog) -> AggregatorResult:
+def compute_my_field(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
     if state[STATUS] == IssueStatus.OPEN:
         return emit(MY_FEATURE.value(...))
     return None
@@ -180,7 +180,7 @@ The pipeline topologically sorts so dependencies run first. Cycles are detected 
 
 ## Design Properties
 
-- **Sequential, immutable log**: IssueActionLog is append-only. Entries are never modified or reordered.
+- **Sequential, immutable log**: IssueActionLogEntry is append-only. Entries are never modified or reordered.
 - **Aggregators are pure folds**: The state at cursor N fully captures entries 1..N. This makes truncation, snapshotting, and reprocessing safe.
 - **Versioned pipelines**: Pipeline changes bump the version. Old and new version rows coexist. Readers filter `primary=True`; writers control the primary flag.
 - **Inline + async processing**: `record()` processes synchronously when possible (small batch), falls back to a background task for backlogs.
@@ -192,7 +192,7 @@ The pipeline topologically sorts so dependencies run first. Cycles are detected 
 
 ## Planned: Log Truncation & Snapshots
 
-The IssueActionLog is append-only and grows without bound. Truncation deletes old entries while preserving the ability to recompute derived data from scratch.
+The IssueActionLogEntry is append-only and grows without bound. Truncation deletes old entries while preserving the ability to recompute derived data from scratch.
 
 ### Core idea
 
@@ -202,7 +202,7 @@ Because aggregators are pure folds, the derived state at cursor N is a complete 
 
 ```
 group_id            FK to Group
-cursor              The IssueActionLog.id this snapshot summarizes through
+cursor              The IssueActionLogEntry.id this snapshot summarizes through
 pipeline_version    Which pipeline produced this snapshot
 data                JSON — the serialized state at that cursor
 date_added          When the snapshot was created
@@ -214,14 +214,14 @@ One snapshot per (group, pipeline_version). The snapshot is on the **log side**,
 
 - **`create_snapshot(group_id, at_cursor, version)`** — processes entries up to `at_cursor` (or uses existing derived data if its cursor ≥ `at_cursor`) and stores the result as a snapshot.
 
-- **`truncate_group_log(group_id, before_cursor, force=False)`** — deletes IssueActionLog entries with `id < before_cursor`. Safety check: refuses unless a snapshot exists at or past `before_cursor` for all active pipeline versions (determined from code config, not per-row state). `force=True` skips the check.
+- **`truncate_group_log(group_id, before_cursor, force=False)`** — deletes IssueActionLogEntry entries with `id < before_cursor`. Safety check: refuses unless a snapshot exists at or past `before_cursor` for all active pipeline versions (determined from code config, not per-row state). `force=True` skips the check.
 
 - **Update to `process_group_log`** — when starting from cursor=0, check for a snapshot and load it as initial state instead of feature defaults. Entries before the snapshot's cursor are skipped (they may not exist).
 
 ### Truncation workflow (operational)
 
-1. Identify groups with large logs (e.g., `IssueActionLog.objects.filter(group_id=X).count()`)
-2. Pick a truncation point (e.g., `IssueActionLog.objects.filter(group_id=X, date_added__lt=cutoff).order_by("-id").first().id`)
+1. Identify groups with large logs (e.g., `IssueActionLogEntry.objects.filter(group_id=X).count()`)
+2. Pick a truncation point (e.g., `IssueActionLogEntry.objects.filter(group_id=X, date_added__lt=cutoff).order_by("-id").first().id`)
 3. `create_snapshot(group_id, at_cursor=truncation_point, version=pipeline.version)`
 4. `truncate_group_log(group_id, before_cursor=truncation_point)`
 5. GroupDerivedData is unaffected — it already has state past the truncation point
@@ -255,7 +255,7 @@ Which pipeline versions are "active" is determined by code config (the set of Pi
 
 - **Feature flag gating** — gate `record()` behind an `organizations:issue-action-log` flag before wiring into production paths
 - **More realistic action events** — the current actions are demonstrative; define the canonical set based on product requirements
-- **Actions derived from existing Activity types** — dual-write from Activity to IssueActionLog for action types that map to existing ActivityType values, keeping existing consumers working during transition
+- **Actions derived from existing Activity types** — dual-write from Activity to IssueActionLogEntry for action types that map to existing ActivityType values, keeping existing consumers working during transition
 - **Richer actor model** — `actor_type` enum + `actor_id` to support Sentry system actions, Seer on behalf of a user, external integrations
 - **Consider retroactive events** — we may learn about events from 3rd parties slightly after the fact (e.g., a PR merge notification arrives after the merge happened). Currently entries are ordered by insertion (auto-increment id), not by when the action occurred. If retroactive events matter, aggregators may need to handle out-of-order `date_added` values, or we need a mechanism to insert at the correct logical position.
 - **Invalidated flag on GroupDerivedData** — when out-of-order entries are inserted (e.g., backfill, retroactive 3rd-party events), mark the derived data as invalidated so it can be reprocessed from scratch

@@ -27,7 +27,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupderiveddata import GroupDerivedData
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.models.issueactionlog import IssueActionLog
+from sentry.models.issueactionlogentry import IssueActionLogEntry
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.seer.models.night_shift import SeerNightShiftRunResult
@@ -100,7 +100,7 @@ ADDITIONAL_GROUP_RELATED_MODELS = (
     SeerNightShiftRunResult,
     RuleFireHistory,
     GroupDerivedData,
-    IssueActionLog,
+    IssueActionLogEntry,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 

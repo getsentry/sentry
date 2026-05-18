@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 
 from django.db.models import Q
 
@@ -7,7 +8,7 @@ from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.lib import Pipeline
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.models.groupderiveddata import EPOCH, GroupDerivedData
-from sentry.models.issueactionlog import IssueActionLog
+from sentry.models.issueactionlogentry import IssueActionLogEntry
 
 logger = logging.getLogger(__name__)
 
@@ -54,17 +55,17 @@ def _ensure_derived(group_id: int, version: int) -> tuple[GroupDerivedData, bool
 
 
 def _entries_after_cursor(
-    group_id: int, cursor_date: object, cursor_id: int, batch_size: int
-) -> list[IssueActionLog]:
+    group_id: int, cursor_date: datetime, cursor_id: int, batch_size: int
+) -> list[IssueActionLogEntry]:
     return list(
-        IssueActionLog.objects.filter(
+        IssueActionLogEntry.objects.filter(
             Q(group_id=group_id)
             & (Q(date_added__gt=cursor_date) | Q(date_added=cursor_date, id__gt=cursor_id))
         ).order_by("date_added", "id")[:batch_size]
     )
 
 
-def _cursor_lte(cursor_date: object, cursor_id: int) -> Q:
+def _cursor_lte(cursor_date: datetime, cursor_id: int) -> Q:
     return Q(cursor_date__lt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__lte=cursor_id)
 
 
