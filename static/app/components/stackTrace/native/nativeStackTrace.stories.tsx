@@ -38,6 +38,10 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
 import {NativeDisplayOptions} from './nativeDisplayOptions';
+import {
+  getNativeDisplayOptionDefaults,
+  useNativeDisplayOptionsStorage,
+} from './nativeDisplayOptionsPersistence';
 import {NativeStackTraceFrames} from './nativeStackTraceFrames';
 import {NativeStackTraceProvider} from './nativeStackTraceProvider';
 import {RawDownloadAction} from './rawDownloadAction';
@@ -45,6 +49,9 @@ import {RawDownloadAction} from './rawDownloadAction';
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
 };
+
+const DISPLAY_OPTIONS_STORAGE_KEY =
+  'issue-details-stracktrace-display-org-slug-project-slug';
 
 function makeFrame(overrides: Partial<Frame>): Frame {
   return {
@@ -166,9 +173,23 @@ function StoryProvider({
   event: Event;
   stacktrace: StacktraceType;
 }) {
+  const [persistedOptions] = useNativeDisplayOptionsStorage(DISPLAY_OPTIONS_STORAGE_KEY);
+  const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
+    hasMinifiedStacktrace: false,
+    persistedOptions,
+  });
+
   return (
-    <StackTraceViewStateProvider platform={event.platform}>
-      <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
+    <StackTraceViewStateProvider
+      platform={event.platform}
+      defaultView={defaultView}
+      defaultIsMinified={defaultIsMinified}
+    >
+      <NativeStackTraceProvider
+        event={event}
+        stacktrace={stacktrace}
+        displayOptionsStorageKey={DISPLAY_OPTIONS_STORAGE_KEY}
+      >
         {children}
       </NativeStackTraceProvider>
     </StackTraceViewStateProvider>
@@ -592,6 +613,11 @@ function ActiveThreadFrames({event, thread}: {event: Event; thread: NamedThread}
 function NativeIssueStackTraceStory() {
   const {event, threads} = useMemo(() => makeMultiThreadData(), []);
   const [activeThread, setActiveThread] = useState(threads[0]!);
+  const [persistedOptions] = useNativeDisplayOptionsStorage(DISPLAY_OPTIONS_STORAGE_KEY);
+  const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
+    hasMinifiedStacktrace: false,
+    persistedOptions,
+  });
 
   const handleChange = (direction: 'previous' | 'next') => {
     const currentIndex = threads.findIndex(thread => thread.id === activeThread.id);
@@ -622,6 +648,7 @@ function NativeIssueStackTraceStory() {
         organization={{slug: 'org-slug'} as Organization}
         projectSlug="project-slug"
         eventId={event.eventID}
+        threadId={activeThread.id}
       />
       <NativeDisplayOptions />
       <CopyAsDropdown size="xs" items={copyItems} />
@@ -641,8 +668,17 @@ function NativeIssueStackTraceStory() {
   return (
     // Re-key on the active thread so view state (app/full/raw) resets per thread
     // and the provider sees the correct default platform.
-    <StackTraceViewStateProvider key={activeThread.id} platform={activeThread.platform}>
-      <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
+    <StackTraceViewStateProvider
+      key={activeThread.id}
+      platform={activeThread.platform}
+      defaultView={defaultView}
+      defaultIsMinified={defaultIsMinified}
+    >
+      <NativeStackTraceProvider
+        event={event}
+        stacktrace={stacktrace}
+        displayOptionsStorageKey={DISPLAY_OPTIONS_STORAGE_KEY}
+      >
         <InterimSection
           type={SectionKey.EXCEPTION}
           title={t('Stack Trace')}

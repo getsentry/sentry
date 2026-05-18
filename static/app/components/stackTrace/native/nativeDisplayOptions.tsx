@@ -5,6 +5,7 @@ import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceCon
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
+import {NATIVE_DISPLAY_OPTION} from './nativeDisplayOptionsPersistence';
 import {useNativeStackTraceContext} from './nativeStackTraceContext';
 
 const VIEW_OPTION_VALUES = [
@@ -13,9 +14,6 @@ const VIEW_OPTION_VALUES = [
   'raw-stack-trace',
 ] as const;
 const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
-const ABSOLUTE_ADDRESSES = 'absolute-addresses';
-const ABSOLUTE_FILE_PATHS = 'absolute-file-paths';
-const VERBOSE_FUNCTION_NAMES = 'verbose-function-names';
 
 /**
  * Native flavor of the Display dropdown. Drop-in replacement for the generic
@@ -42,6 +40,7 @@ export function NativeDisplayOptions() {
     hasAbsoluteAddresses,
     hasAbsoluteFilePaths,
     hasVerboseFunctionNames,
+    persistDisplayOptions,
     setAbsoluteAddresses,
     setAbsoluteFilePaths,
     setVerboseFunctionNames,
@@ -62,14 +61,21 @@ export function NativeDisplayOptions() {
         ? 'full-stack-trace'
         : 'most-relevant';
   const currentSortVal = isNewestFirst ? 'newest' : 'oldest';
+  const isRawView = view === 'raw';
 
   const value = [
     currentViewVal,
     currentSortVal,
-    ...(isMinified ? ['minified'] : []),
-    ...(absoluteAddresses && hasAbsoluteAddresses ? [ABSOLUTE_ADDRESSES] : []),
-    ...(absoluteFilePaths && hasAbsoluteFilePaths ? [ABSOLUTE_FILE_PATHS] : []),
-    ...(verboseFunctionNames && hasVerboseFunctionNames ? [VERBOSE_FUNCTION_NAMES] : []),
+    ...(isMinified ? [NATIVE_DISPLAY_OPTION.MINIFIED] : []),
+    ...(absoluteAddresses && hasAbsoluteAddresses && !isRawView
+      ? [NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES]
+      : []),
+    ...(absoluteFilePaths && hasAbsoluteFilePaths && !isRawView
+      ? [NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS]
+      : []),
+    ...(verboseFunctionNames && hasVerboseFunctionNames && !isRawView
+      ? [NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES]
+      : []),
   ];
 
   function handleChange(opts: Array<{value: string}>) {
@@ -81,13 +87,14 @@ export function NativeDisplayOptions() {
     );
     const newViewVal =
       newViewVals.find(v => v !== currentViewVal) ?? newViewVals[0] ?? currentViewVal;
-    if (newViewVal === 'raw-stack-trace') {
-      setView('raw');
-    } else if (newViewVal === 'full-stack-trace') {
-      setView('full');
-    } else {
-      setView('app');
-    }
+    const nextView =
+      newViewVal === 'raw-stack-trace'
+        ? ('raw' as const)
+        : newViewVal === 'full-stack-trace'
+          ? ('full' as const)
+          : ('app' as const);
+
+    setView(nextView);
 
     // Mutually exclusive sort selection.
     const newSortVals = vals.filter(v =>
@@ -97,10 +104,30 @@ export function NativeDisplayOptions() {
       newSortVals.find(v => v !== currentSortVal) ?? newSortVals[0] ?? currentSortVal;
     setIsNewestFirst(newSortVal === 'newest');
 
-    setIsMinified(vals.includes('minified'));
-    setAbsoluteAddresses(vals.includes(ABSOLUTE_ADDRESSES));
-    setAbsoluteFilePaths(vals.includes(ABSOLUTE_FILE_PATHS));
-    setVerboseFunctionNames(vals.includes(VERBOSE_FUNCTION_NAMES));
+    const nextIsMinified = vals.includes(NATIVE_DISPLAY_OPTION.MINIFIED);
+    let nextAbsoluteAddresses = absoluteAddresses;
+    let nextAbsoluteFilePaths = absoluteFilePaths;
+    let nextVerboseFunctionNames = verboseFunctionNames;
+
+    setIsMinified(nextIsMinified);
+    if (!isRawView && nextView !== 'raw') {
+      nextAbsoluteAddresses = vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES);
+      nextAbsoluteFilePaths = vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS);
+      nextVerboseFunctionNames = vals.includes(
+        NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
+      );
+      setAbsoluteAddresses(nextAbsoluteAddresses);
+      setAbsoluteFilePaths(nextAbsoluteFilePaths);
+      setVerboseFunctionNames(nextVerboseFunctionNames);
+    }
+
+    persistDisplayOptions({
+      absoluteAddresses: nextAbsoluteAddresses,
+      absoluteFilePaths: nextAbsoluteFilePaths,
+      isMinified: nextIsMinified,
+      verboseFunctionNames: nextVerboseFunctionNames,
+      view: nextView,
+    });
   }
 
   return (
@@ -140,7 +167,7 @@ export function NativeDisplayOptions() {
           options: [
             {
               label: minifiedLabel,
-              value: 'minified',
+              value: NATIVE_DISPLAY_OPTION.MINIFIED,
               disabled: !hasMinifiedStacktrace,
               tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
             },
@@ -151,29 +178,35 @@ export function NativeDisplayOptions() {
           options: [
             {
               label: t('Absolute Addresses'),
-              value: ABSOLUTE_ADDRESSES,
-              disabled: !hasAbsoluteAddresses,
-              tooltip: hasAbsoluteAddresses
-                ? undefined
-                : t('No frames have an instruction address'),
+              value: NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES,
+              disabled: isRawView || !hasAbsoluteAddresses,
+              tooltip: isRawView
+                ? t('Not available on raw stack trace')
+                : hasAbsoluteAddresses
+                  ? undefined
+                  : t('No frames have an instruction address'),
             },
             {
               label: t('Absolute File Paths'),
-              value: ABSOLUTE_FILE_PATHS,
-              disabled: !hasAbsoluteFilePaths,
-              tooltip: hasAbsoluteFilePaths
-                ? undefined
-                : t('No frames have an absolute path that differs from the filename'),
+              value: NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS,
+              disabled: isRawView || !hasAbsoluteFilePaths,
+              tooltip: isRawView
+                ? t('Not available on raw stack trace')
+                : hasAbsoluteFilePaths
+                  ? undefined
+                  : t('No frames have an absolute path that differs from the filename'),
             },
             {
               label: t('Verbose Function Names'),
-              value: VERBOSE_FUNCTION_NAMES,
-              disabled: !hasVerboseFunctionNames,
-              tooltip: hasVerboseFunctionNames
-                ? undefined
-                : t(
-                    'No frames have a mangled symbol that differs from the demangled name'
-                  ),
+              value: NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES,
+              disabled: isRawView || !hasVerboseFunctionNames,
+              tooltip: isRawView
+                ? t('Not available on raw stack trace')
+                : hasVerboseFunctionNames
+                  ? undefined
+                  : t(
+                      'No frames have a mangled symbol that differs from the demangled name'
+                    ),
             },
           ],
         },

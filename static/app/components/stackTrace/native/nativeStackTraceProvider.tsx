@@ -1,11 +1,15 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {
   findImageForAddress,
   parseAddress,
 } from 'sentry/components/events/interfaces/utils';
+import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceProviderProps} from 'sentry/components/stackTrace/types';
+import type {
+  StackTraceProviderProps,
+  StackTraceView,
+} from 'sentry/components/stackTrace/types';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 
 import {
@@ -13,24 +17,45 @@ import {
   hasStatusIcon,
 } from './frame/actions/getSymbolicatorStatus';
 import {
+  getNativeDisplayOptionDefaults,
+  getNativeDisplayOptions,
+  useNativeDisplayOptionsStorage,
+} from './nativeDisplayOptionsPersistence';
+import {
   NativeStackTraceContext,
   type NativeStackTraceContextValue,
 } from './nativeStackTraceContext';
 
 interface NativeStackTraceProviderProps extends StackTraceProviderProps {
+  displayOptionsStorageKey?: string;
   isHoverPreviewed?: boolean;
 }
 
 export function NativeStackTraceProvider({
   children,
+  displayOptionsStorageKey,
   isHoverPreviewed = false,
   ...stackTraceProps
 }: NativeStackTraceProviderProps) {
   const {event, stacktrace} = stackTraceProps;
+  const {hasMinifiedStacktrace, isMinified, view} = useStackTraceViewState();
+  const [persistedOptions, setPersistedOptions] = useNativeDisplayOptionsStorage(
+    displayOptionsStorageKey
+  );
+  const {
+    defaultAbsoluteAddresses,
+    defaultAbsoluteFilePaths,
+    defaultVerboseFunctionNames,
+  } = getNativeDisplayOptionDefaults({
+    hasMinifiedStacktrace,
+    persistedOptions,
+  });
 
-  const [absoluteAddresses, setAbsoluteAddresses] = useState(false);
-  const [absoluteFilePaths, setAbsoluteFilePaths] = useState(false);
-  const [verboseFunctionNames, setVerboseFunctionNames] = useState(false);
+  const [absoluteAddresses, setAbsoluteAddresses] = useState(defaultAbsoluteAddresses);
+  const [absoluteFilePaths, setAbsoluteFilePaths] = useState(defaultAbsoluteFilePaths);
+  const [verboseFunctionNames, setVerboseFunctionNames] = useState(
+    defaultVerboseFunctionNames
+  );
 
   const {
     imageByFrameIndex,
@@ -100,6 +125,41 @@ export function NativeStackTraceProvider({
     };
   }, [event, stacktrace.frames]);
 
+  const persistDisplayOptions = useCallback(
+    (
+      options: Partial<{
+        absoluteAddresses: boolean;
+        absoluteFilePaths: boolean;
+        isMinified: boolean;
+        verboseFunctionNames: boolean;
+        view: StackTraceView;
+      }>
+    ) => {
+      if (!displayOptionsStorageKey) {
+        return;
+      }
+
+      setPersistedOptions(
+        getNativeDisplayOptions({
+          absoluteAddresses: options.absoluteAddresses ?? absoluteAddresses,
+          absoluteFilePaths: options.absoluteFilePaths ?? absoluteFilePaths,
+          isMinified: options.isMinified ?? isMinified,
+          verboseFunctionNames: options.verboseFunctionNames ?? verboseFunctionNames,
+          view: options.view ?? view,
+        })
+      );
+    },
+    [
+      absoluteAddresses,
+      absoluteFilePaths,
+      displayOptionsStorageKey,
+      isMinified,
+      setPersistedOptions,
+      verboseFunctionNames,
+      view,
+    ]
+  );
+
   const value = useMemo<NativeStackTraceContextValue>(
     () => ({
       absoluteAddresses,
@@ -111,6 +171,7 @@ export function NativeStackTraceProvider({
       imageByFrameIndex,
       isHoverPreviewed,
       maxLengthOfRelativeAddress,
+      persistDisplayOptions,
       setAbsoluteAddresses,
       setAbsoluteFilePaths,
       setVerboseFunctionNames,
@@ -126,6 +187,10 @@ export function NativeStackTraceProvider({
       imageByFrameIndex,
       isHoverPreviewed,
       maxLengthOfRelativeAddress,
+      persistDisplayOptions,
+      setAbsoluteAddresses,
+      setAbsoluteFilePaths,
+      setVerboseFunctionNames,
       verboseFunctionNames,
     ]
   );

@@ -1,6 +1,15 @@
 import {createContext, useContext} from 'react';
 
+import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
+
+interface NativeDisplayOptionState {
+  absoluteAddresses: boolean;
+  absoluteFilePaths: boolean;
+  isMinified: boolean;
+  verboseFunctionNames: boolean;
+  view: StackTraceView;
+}
 
 export interface NativeStackTraceContextValue {
   /**
@@ -51,6 +60,7 @@ export interface NativeStackTraceContextValue {
    * up across all rows. Computed once over every frame in the stacktrace.
    */
   maxLengthOfRelativeAddress: number;
+  persistDisplayOptions: (options: Partial<NativeDisplayOptionState>) => void;
   setAbsoluteAddresses: (value: boolean) => void;
   setAbsoluteFilePaths: (value: boolean) => void;
   setVerboseFunctionNames: (value: boolean) => void;

@@ -11,6 +11,7 @@ interface RawDownloadActionProps {
   eventId: string;
   organization: Organization;
   projectSlug: string;
+  threadId?: number;
 }
 
 /**
@@ -22,6 +23,7 @@ export function RawDownloadAction({
   eventId,
   organization,
   projectSlug,
+  threadId,
 }: RawDownloadActionProps) {
   const api = useApi();
   const {view, isMinified, platform} = useStackTraceViewState();
@@ -30,7 +32,8 @@ export function RawDownloadAction({
     return null;
   }
 
-  const href = `${api.baseUrl}/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${isMinified}&download=1`;
+  const threadIdQuery = threadId === undefined ? '' : `&thread_id=${threadId}`;
+  const href = `${api.baseUrl}/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${isMinified}${threadIdQuery}&download=1`;
 
   return (
     <LinkButton
