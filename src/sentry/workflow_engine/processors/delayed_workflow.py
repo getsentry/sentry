@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -581,14 +581,22 @@ class DelayedWorkflowEvaluationResult:
     # Condition-level detail is omitted; all conditions not in if_dcg_passed are assumed failed.
     if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]]
 
-    def to_log_dict(self) -> dict[str, Any]:
+    def iter_per_workflow_log_dicts(self) -> Iterator[dict[str, Any]]:
+        """Yield one log-ready dict per workflow, keeping each entry bounded in size."""
+        for workflow_id in sorted(self.workflow_ids):
+            yield {
+                "workflow_id": workflow_id,
+                "if_dcg_passed": self.if_dcg_passed.get(workflow_id, {}),
+                "if_dcg_failed": self.if_dcg_failed.get(workflow_id, {}),
+                "when_failed_untainted": self.when_failed_untainted.get(workflow_id, []),
+                "when_failed_tainted": self.when_failed_tainted.get(workflow_id, []),
+                "when_dcg_missing": self.when_dcg_missing.get(workflow_id, []),
+            }
+
+    def summary_log_dict(self) -> dict[str, Any]:
+        """Return bounded aggregate stats for a single summary log entry."""
         return {
-            "workflow_ids": sorted(self.workflow_ids),
-            "if_dcg_passed": self.if_dcg_passed,
-            "if_dcg_failed": self.if_dcg_failed,
-            "when_failed_untainted": self.when_failed_untainted,
-            "when_failed_tainted": self.when_failed_tainted,
-            "when_dcg_missing": self.when_dcg_missing,
+            "workflows": sorted(self.workflow_ids),
             "tainted_conditions": self.stats.tainted,
             "untainted_conditions": self.stats.untainted,
         }
@@ -995,10 +1003,11 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
 
     fire_actions_for_groups(project.organization, evaluation.groups_to_fire, group_to_groupevent)
 
-    logger.debug(
-        "workflow_engine.process_workflows.delayed_workflow.evaluation_result",
-        extra=evaluation.to_log_dict(),
-    )
+    for workflow_log in evaluation.iter_per_workflow_log_dicts():
+        logger.debug(
+            "workflow_engine.delayed_workflow.evaluation_result",
+            extra=workflow_log,
+        )
 
 
 @sentry_sdk.trace
