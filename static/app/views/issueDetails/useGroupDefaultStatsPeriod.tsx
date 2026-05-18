@@ -77,7 +77,7 @@ export function useGroupDefaultStatsPeriod(
  */
 export function getFirstSeenDuration(firstSeen: string): string {
   const duration = moment.duration(moment().diff(firstSeen));
-  const days = Math.round(duration.asDays());
+  const days = Math.floor(duration.asDays());
 
   if (days >= 1) {
     return `${days}d`;
