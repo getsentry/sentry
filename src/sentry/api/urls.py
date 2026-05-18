@@ -550,7 +550,10 @@ from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeer
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
-from sentry.seer.endpoints.project_seer_settings import ProjectSeerSettingsEndpoint
+from sentry.seer.endpoints.project_seer_settings import (
+    OrganizationSeerProjectSettingsEndpoint,
+    ProjectSeerSettingsEndpoint,
+)
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -2469,6 +2472,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
         OrganizationAutofixAutomationSettingsEndpoint.as_view(),
         name="sentry-api-0-organization-autofix-automation-settings",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/$",
+        OrganizationSeerProjectSettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-project-settings",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
