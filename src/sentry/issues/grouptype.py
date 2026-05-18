@@ -76,6 +76,8 @@ class GroupCategory(IntEnum):
     """
     PREPROD = 17
 
+    # 18 was INSTRUMENTATION (autopilot project, deprecated and removed)
+
     """
     Issues detected from SDK/tooling configuration problems,
     such as missing or broken source maps.
