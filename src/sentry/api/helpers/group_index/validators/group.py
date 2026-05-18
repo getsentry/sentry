@@ -8,7 +8,6 @@ from sentry.api.fields.actor import ActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group
-from sentry.models.organizationmember import OrganizationMember
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
@@ -88,14 +87,6 @@ class GroupValidator(serializers.Serializer[Group]):
             return value
 
         organization = self.context.get("organization")
-
-        if value.is_user and organization:
-            if OrganizationMember.objects.filter(
-                organization=organization,
-                user_id=value.id,
-                user_is_active=False,
-            ).exists():
-                raise serializers.ValidationError("Cannot assign to a deactivated member")
 
         if organization and organization.flags.allow_joinleave:
             return value
