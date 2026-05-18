@@ -387,7 +387,6 @@ module = [
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
-    "sentry.search.snuba.executors",
     "sentry.services.eventstore.models",
     "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
