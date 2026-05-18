@@ -7,7 +7,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
+from sentry.snuba.models import QuerySubscription, QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -51,6 +51,7 @@ class TestDetectorSerializer(TestCase):
             "ruleId": None,
             "latestGroup": None,
             "openIssues": 0,
+            "hasDataSourceError": False,
         }
 
     def test_serialize_full(self) -> None:
@@ -143,6 +144,10 @@ class TestDetectorSerializer(TestCase):
                         "status": 1,
                         "subscription": None,
                     },
+                    "health": {
+                        "isHealthy": True,
+                        "message": None,
+                    },
                 }
             ],
             "conditionGroup": {
@@ -184,6 +189,7 @@ class TestDetectorSerializer(TestCase):
             "ruleId": None,
             "latestGroup": mock.ANY,
             "openIssues": 1,
+            "hasDataSourceError": False,
         }
 
     def test_serialize_latest_group(self) -> None:
@@ -244,3 +250,33 @@ class TestDetectorSerializer(TestCase):
 
         assert len(result) == 2
         assert all(d["name"] in ["Test Detector 0", "Test Detector 1"] for d in result)
+
+    def test_serialize_has_data_source_error(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Broken Detector", type=MetricIssue.slug
+        )
+        snuba_query = create_snuba_query(
+            SnubaQuery.Type.ERROR,
+            Dataset.Events,
+            "hello",
+            "count()",
+            timedelta(minutes=1),
+            timedelta(minutes=1),
+            None,
+        )
+        subscription = create_snuba_subscription(
+            self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
+        )
+        subscription.update(status=QuerySubscription.Status.BROKEN.value)
+
+        type_name = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
+        data_source = self.create_data_source(
+            organization=self.organization,
+            type=type_name,
+            source_id=str(subscription.id),
+        )
+        data_source.detectors.set([detector])
+
+        result = serialize(detector)
+        assert result["hasDataSourceError"] is True
+        assert result["dataSources"][0]["health"]["isHealthy"] is False

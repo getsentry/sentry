@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
+SUBSCRIPTION_BROKEN_MAX_AGE = timedelta(hours=1)
 
 
 class SubscriptionError(Exception):
@@ -338,20 +339,41 @@ def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: Entit
 )
 def subscription_checker(**kwargs: Any) -> None:
     """
-    Checks for subscriptions stuck in a transition status and attempts to repair them
+    Checks for subscriptions stuck in a transition status and attempts to repair them.
+    Subscriptions stuck in CREATING or UPDATING for longer than SUBSCRIPTION_BROKEN_MAX_AGE
+    are marked as BROKEN so they stop retrying and can surface errors to users.
     """
     count = 0
+    broken_count = 0
+    now = timezone.now()
+    broken_cutoff = now - SUBSCRIPTION_BROKEN_MAX_AGE
+    repair_cutoff = now - SUBSCRIPTION_STATUS_MAX_AGE
+
     for subscription in QuerySubscription.objects.filter(
         status__in=(
             QuerySubscription.Status.CREATING.value,
             QuerySubscription.Status.UPDATING.value,
             QuerySubscription.Status.DELETING.value,
         ),
-        date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
+        date_updated__lt=repair_cutoff,
     ):
         with sentry_sdk.start_span(op="repair_subscription") as span:
             span.set_data("subscription_id", subscription.id)
             span.set_data("status", subscription.status)
+
+            if (
+                subscription.status
+                in (
+                    QuerySubscription.Status.CREATING.value,
+                    QuerySubscription.Status.UPDATING.value,
+                )
+                and subscription.date_updated is not None
+                and subscription.date_updated < broken_cutoff
+            ):
+                subscription.update(status=QuerySubscription.Status.BROKEN.value)
+                broken_count += 1
+                continue
+
             count += 1
             if subscription.status == QuerySubscription.Status.CREATING.value:
                 create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
@@ -361,3 +383,4 @@ def subscription_checker(**kwargs: Any) -> None:
                 delete_subscription_from_snuba.delay(query_subscription_id=subscription.id)
 
     metrics.incr("snuba.subscriptions.repair", amount=count)
+    metrics.incr("snuba.subscriptions.marked_broken", amount=broken_count)

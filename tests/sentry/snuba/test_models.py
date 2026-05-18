@@ -10,6 +10,7 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.types import DataSourceHealth
 
 
 class SnubaQueryEventTypesTest(TestCase):
@@ -139,3 +140,22 @@ class QuerySubscriptionDataSourceHandlerTest(TestCase):
 
         # Count should still be 3 as it only counts for the given org
         assert QuerySubscriptionDataSourceHandler.get_current_instance_count(new_org) == 3
+
+    def test_bulk_get_health_active(self) -> None:
+        result = QuerySubscriptionDataSourceHandler.bulk_get_health([self.data_source])
+        assert result[self.data_source.id] == DataSourceHealth(is_healthy=True)
+
+    def test_bulk_get_health_broken(self) -> None:
+        self.subscription.update(status=QuerySubscription.Status.BROKEN.value)
+        result = QuerySubscriptionDataSourceHandler.bulk_get_health([self.data_source])
+        assert result[self.data_source.id] == DataSourceHealth(is_healthy=False)
+
+    def test_bulk_get_health_missing_subscription(self) -> None:
+        ds_missing = self.create_data_source(
+            type="snuba_query_subscription",
+            source_id="999999",
+        )
+        result = QuerySubscriptionDataSourceHandler.bulk_get_health([ds_missing])
+        assert result[ds_missing.id] == DataSourceHealth(
+            is_healthy=False, message="Subscription not found"
+        )

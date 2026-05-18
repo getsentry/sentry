@@ -75,6 +75,10 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
                             "extrapolation_mode": "unknown",
                         },
                     },
+                    "health": {
+                        "is_healthy": True,
+                        "message": None,
+                    },
                 }
             ],
         }

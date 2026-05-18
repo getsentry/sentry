@@ -70,6 +70,10 @@ class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
                     "queryObj": serialize(
                         self.monitor, user=self.user, serializer=MonitorSerializer()
                     ),
+                    "health": {
+                        "isHealthy": True,
+                        "message": None,
+                    },
                 }
             ],
             "conditionGroup": detector_data["conditionGroup"],
@@ -79,6 +83,7 @@ class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
             "ruleId": None,
             "latestGroup": None,
             "openIssues": 0,
+            "hasDataSourceError": False,
         }
 
 
