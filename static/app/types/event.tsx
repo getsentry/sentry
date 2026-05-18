@@ -2,7 +2,6 @@ import type {CloudResourceContext} from '@sentry/core';
 
 import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
-import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
   RawSpanType,
@@ -651,7 +650,6 @@ export type EventContexts = {
   flags?: Flags;
   memory_info?: MemoryInfoContext;
   metric_alert?: MetricAlertContextType;
-  missing_instrumentation?: MissingInstrumentationContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here
