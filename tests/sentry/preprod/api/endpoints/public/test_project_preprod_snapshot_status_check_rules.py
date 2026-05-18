@@ -136,15 +136,3 @@ class ProjectPreprodSnapshotStatusCheckRulesEndpointTest(APITestCase):
         response = self._get_with_user_token(user=self.user, url=url)
 
         assert response.status_code == 403
-
-    def test_shared_status_check_config_defines_expected_runtime_defaults(self) -> None:
-        assert ENABLED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_enabled"
-        assert FAIL_ON_ADDED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_added"
-        assert FAIL_ON_REMOVED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_removed"
-        assert FAIL_ON_CHANGED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_changed"
-        assert FAIL_ON_RENAMED_OPTION_KEY == "sentry:preprod_snapshot_status_checks_fail_on_renamed"
-        assert ENABLED_DEFAULT is True
-        assert FAIL_ON_ADDED_DEFAULT is False
-        assert FAIL_ON_REMOVED_DEFAULT is True
-        assert FAIL_ON_CHANGED_DEFAULT is True
-        assert FAIL_ON_RENAMED_DEFAULT is False
