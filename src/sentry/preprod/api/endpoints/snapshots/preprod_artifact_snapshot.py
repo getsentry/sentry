@@ -150,7 +150,6 @@ def validate_preprod_snapshot_post_schema(
 
 
 def _format_validation_error(e: jsonschema.ValidationError) -> str:
-    # absolute_path includes full context even when best_match selects a nested error
     path = list(e.absolute_path)
 
     if len(path) >= 3 and path[0] == "images":
