@@ -88,6 +88,24 @@ def test_error_handled_unrecognized_value_returns_none(attribute: str) -> None:
     assert cond is None
 
 
+@pytest.mark.parametrize(
+    ("attribute", "match"),
+    [
+        ("error.handled", "is"),
+        ("error.handled", "ns"),
+        ("error.unhandled", "is"),
+        ("error.unhandled", "ns"),
+    ],
+)
+def test_error_handled_is_set_not_set_skips_normalization(attribute: str, match: str) -> None:
+    # IS_SET / NOT_SET filters omit "value" from the condition dict; the normalization
+    # block must not run for these match types or it will KeyError.
+    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+        {"attribute": attribute, "match": match}, TSDBModel.group
+    )
+    assert cond is not None
+
+
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
     handler = EventFrequencyQueryHandler
 

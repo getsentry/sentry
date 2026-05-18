@@ -233,16 +233,18 @@ class BaseEventFrequencyQueryHandler(ABC):
             if condition["match"] not in (MatchType.IS_SET, MatchType.NOT_SET)
             else None
         )
-        if attribute in ("error.handled", "error.unhandled"):
+        if attribute in ("error.handled", "error.unhandled") and condition["match"] not in (
+            MatchType.IS_SET,
+            MatchType.NOT_SET,
+        ):
             # The stored value may be a string ("true"/"false"), bool, or int.
             # Normalize to 1/0 for the Snuba condition (UInt8 column).
             # We can get stricter here once we clean existing data and validate within the API.
             raw = condition["value"]
-            if isinstance(raw, str):
-                raw = raw.lower()
-            if raw in _HANDLED_TRUE_VALUES:
+            comparable = raw.lower() if isinstance(raw, str) else raw
+            if comparable in _HANDLED_TRUE_VALUES:
                 int_value = 1
-            elif raw in _HANDLED_FALSE_VALUES:
+            elif comparable in _HANDLED_FALSE_VALUES:
                 int_value = 0
             else:
                 logger.error(
