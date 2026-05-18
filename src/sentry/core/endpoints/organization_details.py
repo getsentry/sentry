@@ -55,7 +55,6 @@ from sentry.constants import (
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
-    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -254,12 +253,6 @@ ORG_OPTIONS = (
         DEFAULT_CODE_REVIEW_TRIGGERS,
     ),
     (
-        "ingestThroughTrustedRelaysOnly",
-        "sentry:ingest-through-trusted-relays-only",
-        str,
-        INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
-    ),
-    (
         "enabledConsolePlatforms",
         "sentry:enabled_console_platforms",
         list,
@@ -363,9 +356,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_empty=True,
         help_text="The default code review triggers for new repositories.",
     )
-    ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
-        choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
-    )
     hasGranularReplayPermissions = serializers.BooleanField(required=False)
     replayAccessMembers = serializers.ListField(
         child=serializers.IntegerField(),
@@ -454,18 +444,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     raise serializers.ValidationError(f"Duplicated key in Trusted Relays: '{key}'")
                 public_keys.add(key)
 
-        return value
-
-    def validate_ingestThroughTrustedRelaysOnly(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:ingest-through-trusted-relays-only", organization, actor=request.user
-        ):
-            # NOTE (vgrozdanic): For now allow access to this setting only to orgs with the feature flag enabled
-            raise serializers.ValidationError(
-                "Organization does not have the ingest through trusted relays only feature enabled."
-            )
         return value
 
     def validate_enabledConsolePlatforms(self, value):
@@ -882,7 +860,6 @@ def create_console_platform_audit_log(
         "autoOpenPrs",
         "autoEnableCodeReview",
         "defaultCodeReviewTriggers",
-        "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
         "consoleSdkInviteQuota",
     ]
