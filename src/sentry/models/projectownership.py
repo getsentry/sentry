@@ -318,7 +318,7 @@ class ProjectOwnership(Model):
                 return
             logging_extra["resolved_owner"] = owner
 
-            if isinstance(owner, User) and owner.is_active is False:
+            if isinstance(owner, RpcUser) and owner.is_active is False:
                 return
 
             activity_details = {}
