@@ -804,6 +804,107 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
             )
 
 
+class BranchOverrideData(TypedDict):
+    tag_name: str
+    tag_value: str
+    branch_name: str
+
+
+def _write_branch_overrides(
+    project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
+) -> None:
+    """Replace all branch overrides for the given project repo."""
+    SeerProjectRepositoryBranchOverride.objects.filter(
+        seer_project_repository=project_repo
+    ).delete()
+    if branch_overrides:
+        SeerProjectRepositoryBranchOverride.objects.bulk_create(
+            [
+                SeerProjectRepositoryBranchOverride(
+                    seer_project_repository=project_repo,
+                    tag_name=override["tag_name"],
+                    tag_value=override["tag_value"],
+                    branch_name=override["branch_name"],
+                )
+                for override in branch_overrides
+            ]
+        )
+
+
+class ProjectRepoCreateData(TypedDict, total=False):
+    repository_id: int
+    branch_name: str | None
+    instructions: str | None
+    branch_overrides: list[BranchOverrideData]
+
+
+def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
+    """Connect repos to the given project. Raises ValueError if any repo is already connected."""
+    repo_ids = [d["repository_id"] for d in repos_data]
+
+    connected_ids = set(
+        SeerProjectRepository.objects.filter(
+            project=project, repository_id__in=repo_ids
+        ).values_list("repository_id", flat=True)
+    )
+    if connected_ids:
+        raise ValueError(connected_ids)
+
+    created_ids = []
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        list(Project.objects.select_for_update().filter(id=project.id))
+
+        for data in repos_data:
+            project_repo = SeerProjectRepository.objects.create(
+                project=project,
+                repository_id=data["repository_id"],
+                branch_name=data.get("branch_name"),
+                instructions=data.get("instructions"),
+            )
+            _write_branch_overrides(project_repo, data.get("branch_overrides", []))
+            created_ids.append(project_repo.id)
+
+    return created_ids
+
+
+def replace_all_seer_project_repos(
+    project: Project, repos_data: list[ProjectRepoCreateData]
+) -> None:
+    """Replace all repos for the given project."""
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        list(Project.objects.select_for_update().filter(id=project.id))
+        SeerProjectRepository.objects.filter(project=project).delete()
+        for data in repos_data:
+            project_repo = SeerProjectRepository.objects.create(
+                project=project,
+                repository_id=data["repository_id"],
+                branch_name=data.get("branch_name"),
+                instructions=data.get("instructions"),
+            )
+            _write_branch_overrides(project_repo, data.get("branch_overrides", []))
+
+
+class ProjectRepoUpdateData(TypedDict, total=False):
+    branch_name: str | None
+    instructions: str | None
+    branch_overrides: list[BranchOverrideData]
+
+
+def update_seer_project_repo(
+    project_repo: SeerProjectRepository, data: ProjectRepoUpdateData
+) -> None:
+    """Update a given project repo. Raises DatabaseError if the row doesn't exist by the time we save."""
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        list(Project.objects.select_for_update().filter(id=project_repo.project_id))
+        if "branch_name" in data:
+            project_repo.branch_name = data["branch_name"]
+        if "instructions" in data:
+            project_repo.instructions = data["instructions"]
+        project_repo.save(force_update=True)
+        if "branch_overrides" in data:
+            _write_branch_overrides(project_repo, data["branch_overrides"])
+
+
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
     return SeerProjectRepository.objects.filter(

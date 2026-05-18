@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 
 import orjson
 import pytest
+from django.db import DatabaseError
 
 from sentry.constants import (
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -23,6 +24,7 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     CodingAgentProviderType,
     CodingAgentStatus,
+    add_seer_project_repos,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
     clear_preference_automation_handoff,
@@ -34,6 +36,8 @@ from sentry.seer.autofix.utils import (
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     read_preference_from_sentry_db,
+    replace_all_seer_project_repos,
+    update_seer_project_repo,
     update_seer_project_settings,
     write_preference_to_sentry_db,
 )
@@ -1766,3 +1770,241 @@ class TestUpdateSeerProjectSettings(TestCase):
         assert not ProjectOption.objects.filter(
             project=self.project, key="sentry:seer_scanner_automation"
         ).exists()
+
+
+class TestAddSeerProjectRepos(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        self.repo1 = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="111",
+        )
+        self.repo2 = self.create_repo(
+            project=self.project,
+            name="getsentry/relay",
+            provider="integrations:github",
+            external_id="222",
+        )
+
+    def test_creates_project_repos(self):
+        ids = add_seer_project_repos(
+            self.project,
+            [
+                {"repository_id": self.repo1.id, "branch_name": "main", "instructions": "hello"},
+                {"repository_id": self.repo2.id},
+            ],
+        )
+        assert len(ids) == 2
+        pr1 = SeerProjectRepository.objects.get(project=self.project, repository=self.repo1)
+        assert pr1.branch_name == "main"
+        assert pr1.instructions == "hello"
+        pr2 = SeerProjectRepository.objects.get(project=self.project, repository=self.repo2)
+        assert pr2.branch_name is None
+
+    def test_creates_branch_overrides(self):
+        add_seer_project_repos(
+            self.project,
+            [
+                {
+                    "repository_id": self.repo1.id,
+                    "branch_overrides": [
+                        {"tag_name": "environment", "tag_value": "prod", "branch_name": "release"},
+                    ],
+                },
+            ],
+        )
+        project_repo = SeerProjectRepository.objects.get(
+            project=self.project, repository=self.repo1
+        )
+        overrides = list(project_repo.branch_overrides.all())
+        assert len(overrides) == 1
+        assert overrides[0].tag_name == "environment"
+        assert overrides[0].tag_value == "prod"
+        assert overrides[0].branch_name == "release"
+
+    def test_raises_if_already_connected(self):
+        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+
+        with pytest.raises(ValueError) as exc_info:
+            add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
+        assert self.repo1.id in exc_info.value.args[0]
+
+    def test_returns_created_ids(self):
+        created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
+        assert created_ids == list(
+            SeerProjectRepository.objects.filter(project=self.project).values_list("id", flat=True)
+        )
+
+
+class TestReplaceAllSeerProjectRepos(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        self.repo1 = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="111",
+        )
+        self.repo2 = self.create_repo(
+            project=self.project,
+            name="getsentry/relay",
+            provider="integrations:github",
+            external_id="222",
+        )
+
+    def test_replaces_existing_repos(self):
+        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+
+        replace_all_seer_project_repos(
+            self.project, [{"repository_id": self.repo2.id, "branch_name": "develop"}]
+        )
+
+        assert not SeerProjectRepository.objects.filter(
+            project=self.project, repository=self.repo1
+        ).exists()
+        pr2 = SeerProjectRepository.objects.get(project=self.project, repository=self.repo2)
+        assert pr2.branch_name == "develop"
+
+    def test_clears_all_when_empty(self):
+        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+
+        replace_all_seer_project_repos(self.project, [])
+
+        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+
+    def test_creates_branch_overrides(self):
+        replace_all_seer_project_repos(
+            self.project,
+            [
+                {
+                    "repository_id": self.repo1.id,
+                    "branch_overrides": [
+                        {"tag_name": "env", "tag_value": "staging", "branch_name": "staging"},
+                    ],
+                },
+            ],
+        )
+        project_repo = SeerProjectRepository.objects.get(
+            project=self.project, repository=self.repo1
+        )
+        assert project_repo.branch_overrides.count() == 1
+
+    def test_clears_old_branch_overrides(self):
+        project_repo = SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo1
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="old",
+        )
+
+        replace_all_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
+
+        project_repo = SeerProjectRepository.objects.get(
+            project=self.project, repository=self.repo1
+        )
+        assert project_repo.branch_overrides.count() == 0
+
+
+class TestUpdateSeerProjectRepo(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="111",
+        )
+
+    def test_updates_branch_name(self):
+        project_repo = SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo, branch_name="main"
+        )
+
+        update_seer_project_repo(project_repo, {"branch_name": "develop"})
+
+        project_repo.refresh_from_db()
+        assert project_repo.branch_name == "develop"
+
+    def test_updates_instructions(self):
+        project_repo = SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo
+        )
+
+        update_seer_project_repo(project_repo, {"instructions": "new instructions"})
+
+        project_repo.refresh_from_db()
+        assert project_repo.instructions == "new instructions"
+
+    def test_partial_update_preserves_other_fields(self):
+        project_repo = SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=self.repo,
+            branch_name="main",
+            instructions="original",
+        )
+
+        update_seer_project_repo(project_repo, {"branch_name": "develop"})
+
+        project_repo.refresh_from_db()
+        assert project_repo.branch_name == "develop"
+        assert project_repo.instructions == "original"
+
+    def test_replaces_branch_overrides(self):
+        project_repo = SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo, branch_name="main"
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="old",
+        )
+
+        update_seer_project_repo(
+            project_repo,
+            {
+                "branch_overrides": [
+                    {"tag_name": "env", "tag_value": "staging", "branch_name": "new"},
+                ]
+            },
+        )
+
+        branch_overrides = list(project_repo.branch_overrides.all())
+        assert len(branch_overrides) == 1
+        assert branch_overrides[0].tag_value == "staging"
+
+        project_repo.refresh_from_db()
+        assert project_repo.branch_name == "main"
+
+    def test_clears_branch_overrides(self):
+        project_repo = SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="old",
+        )
+
+        update_seer_project_repo(project_repo, {"branch_overrides": []})
+
+        project_repo.refresh_from_db()
+        assert project_repo.branch_overrides.count() == 0
+
+    def test_raises_database_error_if_row_deleted(self):
+        project_repo = SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo
+        )
+        SeerProjectRepository.objects.filter(id=project_repo.id).delete()
+
+        with pytest.raises(DatabaseError):
+            update_seer_project_repo(project_repo, {"branch_name": "develop"})
