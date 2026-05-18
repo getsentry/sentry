@@ -930,6 +930,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
+    "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
