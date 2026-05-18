@@ -90,7 +90,8 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=build_automation_handoff(project.get_option),
         repos_count=SeerProjectRepository.objects.filter(
-            project=project, repository__status=ObjectStatus.ACTIVE
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
         ).count(),
     )
 
@@ -327,6 +328,8 @@ class ProjectSettingsUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"integrationId": "Required when agent is an external coding agent."}
             )
+        if "integrationId" in data and "agent" not in data:
+            raise serializers.ValidationError({"agent": "Required when integrationId is provided."})
 
         has_update = any(k in data for k in ("agent", "stoppingPoint", "scannerAutomation"))
         if not has_update:
@@ -361,7 +364,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={"project_id": project.id},
+            data={"project_id": project.id, **serializer.validated_data},
         )
 
         return Response(serialize_project(project))
