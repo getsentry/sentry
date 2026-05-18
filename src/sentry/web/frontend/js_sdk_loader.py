@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from typing import NotRequired, TypedDict
 
@@ -22,6 +23,8 @@ from sentry.web.helpers import render_to_response
 CACHE_CONTROL = (
     "public, max-age=3600, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000"
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SdkConfig(TypedDict):
@@ -261,7 +264,20 @@ class JavaScriptSdkLoader(View):
         except ProjectKey.DoesNotExist:
             pass
         else:
-            key.project = Project.objects.get_from_cache(id=key.project_id)
+            try:
+                key.project = Project.objects.get_from_cache(id=key.project_id)
+            except Project.DoesNotExist:
+                # Orphaned ProjectKey: the underlying Project has been deleted
+                # but the key row still exists. Degrade gracefully to the
+                # no-op loader rather than returning a 500.
+                metrics.incr(
+                    "js-sdk-loader.orphaned_project_key", skip_internal=False
+                )
+                logger.warning(
+                    "js-sdk-loader.orphaned_project_key",
+                    extra={"public_key": public_key, "project_id": key.project_id},
+                )
+                key = None
 
         sdk_version = get_browser_sdk_version(key) if key else None
         loader_config = self._get_loader_config(key, sdk_version)
