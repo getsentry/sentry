@@ -76,13 +76,12 @@ export function useGroupDefaultStatsPeriod(
  * Returns a short-form duration string (e.g. "19d", "3h") without converting to larger units like weeks, matching the sidebar's TimeSince display.
  */
 export function getFirstSeenDuration(firstSeen: string): string {
-  const MS_PER_HOUR = 60 * 60 * 1000;
-  const MS_PER_DAY = 24 * MS_PER_HOUR;
-  const ms = Date.now() - new Date(firstSeen).getTime();
-  const days = Math.round(ms / MS_PER_DAY);
-
-  if (days >= 1) {
-    return `${days}d`;
-  }
-  return `${Math.max(1, Math.round(ms / MS_PER_HOUR))}h`;
+	const duration = moment.duration(moment().diff(firstSeen));
+	const days = Math.round(duration.asDays());
+	
+	if (days >= 1) {
+	  return `${days}d`;
+	}
+	
+	return `${Math.max(1, Math.round(duration.asHours()))}h`;
 }
