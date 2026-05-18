@@ -714,6 +714,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/jobs/delete/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/jobs/delete/$jobId/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-link/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/reprocessing/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rule-actions/'
