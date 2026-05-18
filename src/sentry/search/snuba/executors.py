@@ -4,13 +4,13 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from hashlib import md5
 from math import floor
-from typing import Any, Callable, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.utils import timezone
