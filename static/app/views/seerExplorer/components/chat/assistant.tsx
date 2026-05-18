@@ -120,7 +120,9 @@ function FeedbackButton({
 }) {
   return (
     <Button
-      aria-label={type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')}
+      aria-label={
+        type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')
+      }
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       disabled={disabled}
       variant="transparent"
