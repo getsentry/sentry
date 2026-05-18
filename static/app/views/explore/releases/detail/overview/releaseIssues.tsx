@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
+import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
@@ -16,7 +17,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
@@ -52,12 +52,9 @@ interface Props {
   withChart?: boolean;
 }
 
-function getActiveIssuesType(location: ReturnType<typeof useLocation>): IssuesType {
-  const query = (location.query?.issuesType as string) ?? '';
-  return Object.values<string>(IssuesType).includes(query)
-    ? (query as IssuesType)
-    : IssuesType.NEW;
-}
+const parseAsIssuesType = parseAsStringEnum(Object.values(IssuesType)).withDefault(
+  IssuesType.NEW
+);
 
 function getIssuesEndpoint(
   version: string,
@@ -188,13 +185,15 @@ export function ReleaseIssues({
   withChart = false,
 }: Props) {
   const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
 
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
-  const issuesType = getActiveIssuesType(location);
+  const [issuesType, setIssuesType] = useQueryState(
+    'issuesType',
+    parseAsIssuesType.withOptions({history: 'replace'})
+  );
   const {endpoint, queryParams} = getIssuesEndpoint(
     version,
     location,
@@ -246,19 +245,6 @@ export function ReleaseIssues({
       },
     }),
   });
-
-  function handleIssuesTypeSelection(newIssuesType: IssuesType) {
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          issuesType: newIssuesType,
-        },
-      },
-      {replace: true}
-    );
-  }
 
   const handleFetchSuccess = useCallback((groupListState: any, cursorFn: any) => {
     setPageLinks(groupListState.pageLinks);
@@ -352,7 +338,7 @@ export function ReleaseIssues({
                 aria-label={t('Issue type')}
                 size="xs"
                 value={issuesType}
-                onChange={key => handleIssuesTypeSelection(key)}
+                onChange={setIssuesType}
               >
                 {issuesTypes.map(({value, label, issueCount}) => (
                   <SegmentedControl.Item key={value} textValue={label}>
