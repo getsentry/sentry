@@ -26,7 +26,8 @@
     "overrides": {
       "lodash": ">=4.17.23",
       "form-data": ">=4.0.2",
-      "glob>minimatch": "5.1.9"
+      "glob>minimatch": "5.1.9",
+      "picomatch": "2.3.2"
     }
   }
 }
