@@ -6,7 +6,9 @@ from typing import Any
 from requests.exceptions import ConnectionError, ReadTimeout, RequestException
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.exceptions import RestrictedIPAddress
+from sentry.models.organization import Organization
 from sentry.sentry_apps.services.legacy_webhook.client import LegacyWebhookClient
 from sentry.sentry_apps.services.legacy_webhook.service import LegacyWebhookPayload
 from sentry.shared_integrations.exceptions import ApiError
@@ -28,6 +30,24 @@ logger = logging.getLogger("sentry.legacy_webhook")
     ),
     silo_mode=SiloMode.CELL,
 )
-def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: Any) -> None:
+def send_legacy_webhook_task(
+    url: str, payload: LegacyWebhookPayload, organization_id: int, **kwargs: Any
+) -> None:
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return
+
+    if features.has("organizations:legacy-webhook-dry-run", organization):
+        logger.info(
+            "legacy_webhook.dry_run",
+            extra={
+                "organization_id": organization_id,
+                "url": url,
+                "payload_keys": list(payload.keys()),
+            },
+        )
+        return
+
     client = LegacyWebhookClient(payload)
     client.request(url)

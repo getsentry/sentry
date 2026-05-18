@@ -3,7 +3,6 @@ from unittest import mock
 from sentry.models.options.project_option import ProjectOption
 from sentry.sentry_apps.services.legacy_webhook.service import (
     build_legacy_webhook_payload,
-    log_legacy_webhook_dry_run,
     send_legacy_webhooks_for_project,
     split_urls,
 )
@@ -70,6 +69,8 @@ class TestSendLegacyWebhooksForProject(TestCase):
         assert mock_task.delay.call_count == 2
         urls_called = {call.kwargs["url"] for call in mock_task.delay.call_args_list}
         assert urls_called == {"http://a.com", "http://b.com"}
+        for call in mock_task.delay.call_args_list:
+            assert call.kwargs["organization_id"] == self.project.organization_id
 
     @mock.patch(
         "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
@@ -84,23 +85,3 @@ class TestSendLegacyWebhooksForProject(TestCase):
         send_legacy_webhooks_for_project(self.project, group, event, ["rule1"])
 
         assert mock_task.delay.call_count == 0
-
-
-class TestLogLegacyWebhookDryRun(TestCase):
-    @mock.patch("sentry.sentry_apps.services.legacy_webhook.service.logger")
-    def test_dry_run_logs_without_sending(self, mock_logger: mock.MagicMock) -> None:
-        event = self.store_event(
-            data={"message": "test", "level": "error"}, project_id=self.project.id
-        )
-        group = event.group
-        assert group is not None
-
-        ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://example.com")
-
-        log_legacy_webhook_dry_run(self.project, group, event, ["rule1"])
-
-        mock_logger.info.assert_called_once()
-        call_args = mock_logger.info.call_args
-        assert call_args[0][0] == "legacy_webhook.dry_run"
-        assert call_args[1]["extra"]["project_id"] == self.project.id
-        assert call_args[1]["extra"]["urls"] == ["http://example.com"]
