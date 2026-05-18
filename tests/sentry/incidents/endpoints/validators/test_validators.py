@@ -699,7 +699,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
     @with_feature(
         {
             "organizations:performance-view": False,
-            "organizations:tracemetrics-alerts": False,
             "organizations:tracemetrics-enabled": False,
         }
     )
@@ -717,7 +716,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         [
             "organizations:incidents",
             "organizations:performance-view",
-            "organizations:tracemetrics-alerts",
             "organizations:tracemetrics-enabled",
         ]
     )
@@ -739,7 +737,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         [
             "organizations:incidents",
             "organizations:performance-view",
-            "organizations:tracemetrics-alerts",
             "organizations:tracemetrics-enabled",
         ]
     )

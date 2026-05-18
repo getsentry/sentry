@@ -494,7 +494,6 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
 
     @with_feature(
         [
-            "organizations:tracemetrics-alerts",
             "organizations:tracemetrics-enabled",
         ]
     )
