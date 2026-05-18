@@ -537,6 +537,7 @@ def _run_autofix_for_candidates(
                 intelligence_level=options["intelligence_level"],
                 reasoning_effort=options["reasoning_effort"],
                 user_context=user_context,
+                code_review_enabled=True,
             )
         except Exception:
             logger.exception(

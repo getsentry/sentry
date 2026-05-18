@@ -133,7 +133,12 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
+def build_step_prompt(
+    step: AutofixStep,
+    group: Group,
+    user_context: str | None = None,
+    code_review_enabled: bool = False,
+) -> str:
     """
     Build the prompt for a step using issue details.
 
@@ -153,6 +158,12 @@ def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None 
     )
 
     parts = [prompt]
+
+    if code_review_enabled and step == AutofixStep.CODE_CHANGES:
+        parts.append(
+            "When your edits are complete, call review_code_changes to check for bugs. "
+            "If it reports issues, fix them and call it again until no issues remain."
+        )
 
     user_context = user_context or ""
     user_context = user_context.strip()
@@ -187,6 +198,7 @@ def get_autofix_agent_client(
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
+    code_review_enabled: bool = False,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -202,6 +214,7 @@ def get_autofix_agent_client(
         reasoning_effort=reasoning_effort,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
+        code_review_enabled=code_review_enabled,
     )
 
 
@@ -231,6 +244,7 @@ def trigger_autofix_agent(
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
+    code_review_enabled: bool = False,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -262,6 +276,7 @@ def trigger_autofix_agent(
             config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
         ),
         enable_coding=config.enable_coding,
+        code_review_enabled=code_review_enabled,
     )
     if run_id is not None:
         _get_group_run_state(client, group, run_id)
@@ -276,7 +291,7 @@ def trigger_autofix_agent(
             )
         )
 
-    prompt = build_step_prompt(step, group, user_context)
+    prompt = build_step_prompt(step, group, user_context, code_review_enabled)
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,

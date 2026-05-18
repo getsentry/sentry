@@ -224,6 +224,7 @@ class SeerAgentClient:
         is_interactive: bool = False,
         enable_coding: bool = False,
         enable_code_mode_tools: str = "off",
+        code_review_enabled: bool = False,
         max_iterations: int | None = None,
     ):
         self.organization = organization
@@ -237,6 +238,7 @@ class SeerAgentClient:
         self.category_value = category_value
         self.is_interactive = is_interactive
         self.enable_code_mode_tools = enable_code_mode_tools
+        self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
@@ -311,6 +313,7 @@ class SeerAgentClient:
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,
+            code_review_enabled=self.code_review_enabled,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
