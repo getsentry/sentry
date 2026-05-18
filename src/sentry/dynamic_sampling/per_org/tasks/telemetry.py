@@ -121,7 +121,7 @@ def track_dynamic_sampling(func: F) -> F:
                 raise
             except SnubaRPCError as exc:
                 sentry_sdk.capture_exception(exc)
-                emit_status(status_metric, TelemetryStatus.SNUBA_ERROR)
+                emit_status(status_metric, DynamicSamplingStatus.SNUBA_ERROR)
                 raise
             except Exception as exc:
                 sentry_sdk.capture_exception(exc)
