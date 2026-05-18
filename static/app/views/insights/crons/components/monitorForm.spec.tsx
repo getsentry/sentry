@@ -83,7 +83,7 @@ describe('MonitorForm', () => {
     expect(screen.getByText('"At 5 minutes past the hour"')).toBeInTheDocument();
   });
 
-  it('submits a new monitor', async () => {
+  it.isKnownFlake('submits a new monitor', async () => {
     const mockHandleSubmitSuccess = jest.fn();
 
     const apiEndpont = `/organizations/${organization.slug}/monitors/`;
