@@ -16,14 +16,10 @@ export interface ReactRouter3Navigate {
 }
 
 /**
- * @deprecated Please do not use this. Use `import { useNavigate } from 'react-router-dom'` instead.
- *
  * Returns an imperative method for changing the location. Used by `<Link>`s, but
  * may also be used by other elements to change the location.
  *
  * @see https://reactrouter.com/hooks/use-navigate
- *
- * See https://github.com/getsentry/frontend-tsc/issues/78
  */
 export function useNavigate(): ReactRouter3Navigate {
   const router6Navigate = useReactRouter6Navigate();
