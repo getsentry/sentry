@@ -597,6 +597,7 @@ class SeerAgentClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
+        query: str | None = ...,
     ) -> list[AgentRunWithPrs]: ...
 
     @overload
@@ -611,6 +612,7 @@ class SeerAgentClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
+        query: str | None = ...,
     ) -> list[AgentRun]: ...
 
     def get_runs(
@@ -624,6 +626,7 @@ class SeerAgentClient:
         only_current_user: bool = True,
         start: datetime | None = None,
         end: datetime | None = None,
+        query: str | None = None,
     ) -> list[AgentRunWithPrs] | list[AgentRun]:
         """
         Get a list of Seer Agent runs for the organization with optional filters.
@@ -671,6 +674,8 @@ class SeerAgentClient:
             runs_body["start"] = start
         if end is not None:
             runs_body["end"] = end
+        if query is not None:
+            runs_body["query"] = query
 
         response = make_agent_runs_request(runs_body, viewer_context=self.viewer_context)
 
