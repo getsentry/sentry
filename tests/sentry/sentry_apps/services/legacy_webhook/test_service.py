@@ -54,9 +54,9 @@ class TestBuildLegacyWebhookPayload(TestCase):
 
 class TestSendLegacyWebhooksForProject(TestCase):
     @mock.patch(
-        "sentry.sentry_apps.services.legacy_webhook.service.send_legacy_webhook_task",
+        "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
     )
-    def test_dispatches_task_per_url(self, mock_task) -> None:
+    def test_dispatches_task_per_url(self, mock_task: mock.MagicMock) -> None:
         event = self.store_event(
             data={"message": "test", "level": "error"}, project_id=self.project.id
         )
@@ -72,9 +72,9 @@ class TestSendLegacyWebhooksForProject(TestCase):
         assert urls_called == {"http://a.com", "http://b.com"}
 
     @mock.patch(
-        "sentry.sentry_apps.services.legacy_webhook.service.send_legacy_webhook_task",
+        "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
     )
-    def test_no_urls_configured_is_noop(self, mock_task) -> None:
+    def test_no_urls_configured_is_noop(self, mock_task: mock.MagicMock) -> None:
         event = self.store_event(
             data={"message": "test", "level": "error"}, project_id=self.project.id
         )
@@ -88,7 +88,7 @@ class TestSendLegacyWebhooksForProject(TestCase):
 
 class TestLogLegacyWebhookDryRun(TestCase):
     @mock.patch("sentry.sentry_apps.services.legacy_webhook.service.logger")
-    def test_dry_run_logs_without_sending(self, mock_logger) -> None:
+    def test_dry_run_logs_without_sending(self, mock_logger: mock.MagicMock) -> None:
         event = self.store_event(
             data={"message": "test", "level": "error"}, project_id=self.project.id
         )

@@ -7,6 +7,8 @@ from requests.exceptions import ConnectionError, ReadTimeout, RequestException
 from taskbroker_client.retry import Retry
 
 from sentry.exceptions import RestrictedIPAddress
+from sentry.sentry_apps.services.legacy_webhook.client import LegacyWebhookClient
+from sentry.sentry_apps.services.legacy_webhook.service import LegacyWebhookPayload
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -26,8 +28,6 @@ logger = logging.getLogger("sentry.legacy_webhook")
     ),
     silo_mode=SiloMode.CELL,
 )
-def send_legacy_webhook_task(url: str, payload: dict[str, Any], **kwargs: Any) -> None:
-    from .client import LegacyWebhookClient
-
+def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: Any) -> None:
     client = LegacyWebhookClient(payload)
     client.request(url)
