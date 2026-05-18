@@ -15,7 +15,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -606,23 +605,6 @@ function ManageDashboards() {
                   </Layout.HeaderContent>
                   {hasPageFrameFeature ? (
                     <Fragment>
-                      <TopBar.Slot name="actions">
-                        <Feature features="dashboards-import">
-                          <Button
-                            onClick={() => {
-                              openImportDashboardFromFileModal({
-                                organization,
-                                api,
-                                location,
-                              });
-                            }}
-                            variant="primary"
-                            icon={<IconAdd />}
-                          >
-                            {t('Import Dashboard from JSON')}
-                          </Button>
-                        </Feature>
-                      </TopBar.Slot>
                       <TopBar.Slot name="feedback">
                         <FeedbackButton
                           aria-label={t('Give Feedback')}
@@ -716,22 +698,6 @@ function ManageDashboards() {
                               </DashboardCreateLimitWrapper>
                             )
                           }
-                        </Feature>
-                        <Feature features="dashboards-import">
-                          <Button
-                            onClick={() => {
-                              openImportDashboardFromFileModal({
-                                organization,
-                                api,
-                                location,
-                              });
-                            }}
-                            size="sm"
-                            variant="primary"
-                            icon={<IconAdd />}
-                          >
-                            {t('Import Dashboard from JSON')}
-                          </Button>
                         </Feature>
                       </Grid>
                     </Layout.HeaderActions>
