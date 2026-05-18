@@ -3,7 +3,6 @@ from django.urls import reverse
 from sentry.constants import ObjectStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models import AutofixHandoffPoint
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
 
 
@@ -95,8 +94,8 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         """reposCount should reflect active SeerProjectRepository rows."""
         repo1 = self.create_repo(project=self.project, name="owner/repo-1")
         repo2 = self.create_repo(project=self.project, name="owner/repo-2")
-        SeerProjectRepository.objects.create(project=self.project, repository=repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=repo2)
+        self.create_seer_project_repository(project=self.project, repository=repo1)
+        self.create_seer_project_repository(project=self.project, repository=repo2)
 
         response = self.client.get(self.url)
 
@@ -109,8 +108,8 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         disabled_repo = self.create_repo(project=self.project, name="owner/deleted")
         disabled_repo.status = ObjectStatus.DISABLED
         disabled_repo.save()
-        SeerProjectRepository.objects.create(project=self.project, repository=active_repo)
-        SeerProjectRepository.objects.create(project=self.project, repository=disabled_repo)
+        self.create_seer_project_repository(project=self.project, repository=active_repo)
+        self.create_seer_project_repository(project=self.project, repository=disabled_repo)
 
         response = self.client.get(self.url)
 
