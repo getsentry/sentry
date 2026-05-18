@@ -1,9 +1,13 @@
 import {useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
@@ -18,6 +22,10 @@ export function LogsDownSamplingAlert({
   tableResult,
   timeseriesResult,
 }: LogsDownSamplingAlertProps) {
+  const organization = useOrganization();
+  const {isDismissed, dismiss} = useDismissAlert({
+    key: `${organization.slug}:logs-downsampling-alert`,
+  });
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const isTopEvents = defined(topEventsLimit);
 
@@ -49,6 +57,7 @@ export function LogsDownSamplingAlert({
     // is here to educate the user that the results they're seeing may be a
     // little strange as there is more data in the table than the chart leads
     // one to believe.
+    !isDismissed &&
     timeseriesDataScanned === 'partial' &&
     tableDataScanned === 'full' &&
     // If the number of samples in the timeseries is greater than or equals to
@@ -58,7 +67,18 @@ export function LogsDownSamplingAlert({
   ) {
     return (
       <Alert.Container>
-        <Alert variant="warning">
+        <Alert
+          variant="warning"
+          trailingItems={
+            <Button
+              size="zero"
+              variant="link"
+              icon={<IconClose />}
+              onClick={dismiss}
+              aria-label={t('Dismiss Alert')}
+            />
+          }
+        >
           {t(
             'The volume of logs in this time range is too large for us to do a full scan for the chart. Try reducing the date range or number of projects to attempt scanning all logs.'
           )}
