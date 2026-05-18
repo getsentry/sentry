@@ -181,6 +181,7 @@ class OptionsManager:
     def __init__(self, store: OptionsStore):
         self.store = store
         self.registry: dict[str, Key] = {}
+        self._seen: set[str] = set()
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -281,6 +282,13 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
+    def _record_seen(self, key: str) -> None:
+        """Emit one log line per key per process lifetime so reads can be
+        audited in GCP. Logs before adding to _seen so a logging failure
+        doesn't permanently suppress the event."""
+        logger.info("option.seen", extra={"option_key": key})
+        self._seen.add(key)
+
     def get(self, key: str, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
@@ -293,6 +301,12 @@ class OptionsManager:
         # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
         # values change. This case is unlikely, but good to cover our bases.
         opt = self.lookup_key(key)
+        if key not in self._seen:
+            try:
+                self._record_seen(key)
+            except Exception:
+                # Tracking is best-effort. Never let it affect option reads.
+                pass
 
         # First check if the option should exist on disk, and if it actually
         # has a value set, let's use that one instead without even attempting
