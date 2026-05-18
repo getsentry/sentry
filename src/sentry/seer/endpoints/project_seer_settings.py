@@ -51,7 +51,8 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=build_automation_handoff(project.get_option),
         repos_count=SeerProjectRepository.objects.filter(
-            project=project, repository__status=ObjectStatus.ACTIVE
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
         ).count(),
     )
 
