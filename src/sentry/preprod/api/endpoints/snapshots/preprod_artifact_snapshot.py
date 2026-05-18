@@ -145,27 +145,13 @@ def validate_preprod_snapshot_post_schema(
         jsonschema.validate(data, SNAPSHOT_POST_REQUEST_SCHEMA)
         return data, None
     except jsonschema.ValidationError as e:
-        return {}, _format_validation_error(e)
+        error_message = e.message
+        if e.path:
+            if field := e.path[0]:
+                error_message = SNAPSHOT_POST_REQUEST_ERROR_MESSAGES.get(str(field), error_message)
+        return {}, error_message
     except (orjson.JSONDecodeError, TypeError):
         return {}, "Invalid json body"
-
-
-def _format_validation_error(e: jsonschema.ValidationError) -> str:
-    path = list(e.absolute_path)
-
-    if len(path) >= 2 and path[0] == "images":
-        image_key = path[1]
-        if rest := path[2:]:
-            field_path = ".".join(str(p) for p in rest)
-            return f'Validation error in image "{image_key}", field "{field_path}": {e.message}'
-        return f'Validation error in image "{image_key}": {e.message}'
-
-    if path:
-        field = str(path[0])
-        if friendly := SNAPSHOT_POST_REQUEST_ERROR_MESSAGES.get(field):
-            return friendly
-
-    return e.message
 
 
 @cell_silo_endpoint
