@@ -15,7 +15,7 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-spans-fields-stats"]
+            features = []
 
         if query and "type" not in query.keys():
             query["type"] = "string"
@@ -60,10 +60,6 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == {"attributeDistributions": []}
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features=[])
-        assert response.status_code == 404, response.data
 
     def test_invalid_params(self) -> None:
         self._generate_one_span()
