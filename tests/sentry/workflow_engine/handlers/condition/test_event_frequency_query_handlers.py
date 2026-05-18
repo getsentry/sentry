@@ -26,13 +26,17 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
         (True, 1),
         (1, 1),
         ("true", 1),
+        ("True", 1),
         ("1", 1),
         ("yes", 1),
+        ("Yes", 1),
         (False, 0),
         (0, 0),
         ("false", 0),
+        ("False", 0),
         ("0", 0),
         ("no", 0),
+        ("No", 0),
     ],
 )
 def test_error_handled_normalizes_value(value: bool | int | str, expected_rhs: int) -> None:
@@ -51,14 +55,18 @@ def test_error_handled_normalizes_value(value: bool | int | str, expected_rhs: i
         (True, 0),
         (1, 0),
         ("true", 0),
+        ("True", 0),
         ("1", 0),
         ("yes", 0),
+        ("Yes", 0),
         # "unhandled = false" →  handled = 1
         (False, 1),
         (0, 1),
         ("false", 1),
+        ("False", 1),
         ("0", 1),
         ("no", 1),
+        ("No", 1),
     ],
 )
 def test_error_unhandled_normalizes_and_flips_value(

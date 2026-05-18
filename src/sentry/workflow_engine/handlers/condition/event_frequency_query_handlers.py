@@ -238,6 +238,8 @@ class BaseEventFrequencyQueryHandler(ABC):
             # Normalize to 1/0 for the Snuba condition (UInt8 column).
             # We can get stricter here once we clean existing data and validate within the API.
             raw = condition["value"]
+            if isinstance(raw, str):
+                raw = raw.lower()
             if raw in _HANDLED_TRUE_VALUES:
                 int_value = 1
             elif raw in _HANDLED_FALSE_VALUES:
