@@ -108,7 +108,7 @@ export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useQueryState(
     'tab',
-    parseAsStringLiteral(tabs).withDefault('overview')
+    parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
   );
   const navigate = useNavigate();
   const location = useLocation();

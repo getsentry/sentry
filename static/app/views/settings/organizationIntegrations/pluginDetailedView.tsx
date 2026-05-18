@@ -61,7 +61,7 @@ function PluginDetailedView() {
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
   const [activeTab, setActiveTab] = useQueryState(
     'tab',
-    parseAsStringLiteral(tabs).withDefault('overview')
+    parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
   );
 
   const organization = useOrganization();
