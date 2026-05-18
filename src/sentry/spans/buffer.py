@@ -100,7 +100,6 @@ from __future__ import annotations
 import itertools
 import logging
 import math
-import time
 import uuid
 from collections.abc import Generator, MutableMapping, Sequence
 from hashlib import blake2b
@@ -120,8 +119,6 @@ from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_me
 from sentry.spans.buffer_logger import (
     BufferLogger,
     EvalshaData,
-    FlusherLogEntry,
-    FlusherLogger,
     emit_observability_metrics,
 )
 from sentry.spans.consumers.process_segments.types import attribute_value
@@ -247,12 +244,10 @@ class SpansBuffer:
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
-        self._last_decompress_latency_ms = 0
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
         self._buffer_logger = BufferLogger()
-        self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
@@ -641,10 +636,8 @@ class SpansBuffer:
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
         max_flush_segments = options.get("spans.buffer.max-flush-segments")
-        flusher_logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
         max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
-        ids_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
@@ -655,7 +648,6 @@ class SpansBuffer:
                     queue_keys.append(key)
 
                 result = p.execute()
-        load_ids_latency_ms = int((time.monotonic() - ids_start) * 1000)
 
         segment_keys: list[tuple[int, QueueKey, SegmentKey, float]] = []
         for shard, queue_key, keys_with_scores in zip(self.assigned_shards, queue_keys, result):
@@ -665,7 +657,6 @@ class SpansBuffer:
         acquired_locks = self._acquire_flush_locks([k for _, _, k, _ in segment_keys])
         segment_keys = [entry for entry in segment_keys if entry[2] in acquired_locks]
 
-        data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             # Pass queue mapping to enable TTL expiration detection
             segment_to_queue = {
@@ -676,12 +667,10 @@ class SpansBuffer:
                 segment_to_queue,
                 now,
             )
-        load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
         num_has_root_spans = 0
         any_shard_at_limit = False
-        flusher_log_entries: list[FlusherLogEntry] = []
 
         for shard, queue_key, segment_key, score in segment_keys:
             segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
@@ -740,25 +729,6 @@ class SpansBuffer:
             except Exception:
                 logger.exception("flush_segments: Failed to log debug trace flush info")
 
-            if flusher_logger_enabled and segment:
-                project_id, trace_id, _ = parse_segment_key(segment_key)
-                project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
-                flusher_log_entries.append(
-                    FlusherLogEntry(
-                        project_and_trace,
-                        len(segment),
-                        sum(len(s) for s in segment),
-                    )
-                )
-
-        if flusher_logger_enabled and flusher_log_entries:
-            self._flusher_logger.log(
-                flusher_log_entries,
-                load_ids_latency_ms,
-                load_data_latency_ms,
-                self._last_decompress_latency_ms,
-            )
-
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
 
@@ -785,8 +755,6 @@ class SpansBuffer:
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         payload_keys_map: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
-        self._last_decompress_latency_ms = 0
-        decompress_latency_ms = 0.0
 
         # Maps each payload key back to the segment it belongs to.
         # Multiple distributed payload keys map to one segment.
@@ -817,11 +785,7 @@ class SpansBuffer:
             """
             Decompress and add spans to the segment.
             """
-            nonlocal decompress_latency_ms
-
-            decompress_start = time.monotonic()
             decompressed = self._decompress_batch(raw_data)
-            decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
             payloads[key].extend(decompressed)
 
         while cursors:
@@ -927,8 +891,6 @@ class SpansBuffer:
                 # over each other. The consequence is duplicated segments,
                 # worst-case.
                 metrics.incr("spans.buffer.empty_segments")
-
-        self._last_decompress_latency_ms = int(decompress_latency_ms)
 
         return payloads, payload_keys_map
 
