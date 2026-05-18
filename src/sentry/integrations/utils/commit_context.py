@@ -64,6 +64,11 @@ def find_commit_context_for_event_all_frames(
         )
     )
 
+    metrics.distribution(
+        "process_commit_context.frames_count",
+        len(valid_frames),
+    )
+
     (
         integration_to_files_mapping,
         num_successfully_mapped_frames,
@@ -74,6 +79,11 @@ def find_commit_context_for_event_all_frames(
         sdk_name=sdk_name,
         extra=extra,
         organization=Organization.objects.get(id=organization_id),
+    )
+
+    metrics.distribution(
+        "process_commit_context.mapped_frames_count",
+        num_successfully_mapped_frames,
     )
 
     file_blames, integration_to_install_mapping = _get_blames_from_all_integrations(
@@ -403,6 +413,12 @@ def _record_commit_context_all_frames_analytics(
         ),
         None,
     )
+
+    if selected_frame_index is not None:
+        metrics.distribution(
+            "process_commit_context.selected_frame_index",
+            selected_frame_index,
+        )
 
     analytics.record(
         IntegrationsSuccessfullyFetchedCommitContextAllFrames(
