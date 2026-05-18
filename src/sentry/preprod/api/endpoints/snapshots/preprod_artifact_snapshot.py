@@ -5,6 +5,7 @@ from typing import Any
 
 import jsonschema
 import orjson
+import pydantic
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
@@ -82,7 +83,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "app_id": {"type": "string", "maxLength": 255},
         "images": {
             "type": "object",
-            "additionalProperties": ImageMetadata.schema(),
+            "additionalProperties": True,
             "maxProperties": 50000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
@@ -570,6 +571,21 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     status=400,
                 )
 
+        # Validate before entering the transaction so invalid data never creates
+        # orphaned DB records.
+        try:
+            manifest = SnapshotManifest(
+                images=images,
+                diff_threshold=diff_threshold,
+                selective=selective,
+                all_image_file_names=all_image_file_names,
+            )
+        except pydantic.ValidationError as e:
+            return Response(
+                {"detail": f"Invalid image metadata: {e.errors()[0]['msg']}"},
+                status=400,
+            )
+
         # has_vcs tag differentiates transactions that include a CommitComparison
         # lookup from those that skip it, so we can isolate their latency on dashboards.
         with (
@@ -618,12 +634,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest = SnapshotManifest(
-                images=images,
-                diff_threshold=diff_threshold,
-                selective=selective,
-                all_image_file_names=all_image_file_names,
-            )
             manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 
