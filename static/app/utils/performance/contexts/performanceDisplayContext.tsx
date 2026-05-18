@@ -1,18 +1,21 @@
-import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
+import {createContext, useContext} from 'react';
 
-import {createDefinedContext} from './utils';
+import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 type UseCurrentPerformanceView = {
   performanceType: ProjectPerformanceType;
 };
 
-const [PerformanceDisplayProvider, _usePerformanceDisplayType] =
-  createDefinedContext<UseCurrentPerformanceView>({
-    name: 'CurrentPerformanceViewContext',
-  });
-
-export {PerformanceDisplayProvider};
+export const PerformanceDisplayContext = createContext<
+  UseCurrentPerformanceView | undefined
+>(undefined);
 
 export function usePerformanceDisplayType(): ProjectPerformanceType {
-  return _usePerformanceDisplayType().performanceType;
+  const context = useContext(PerformanceDisplayContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "CurrentPerformanceViewContext" must be inside a Provider with a value'
+    );
+  }
+  return context.performanceType;
 }

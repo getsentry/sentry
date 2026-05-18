@@ -162,8 +162,8 @@ export function getTraceItemTagCollection(
     // EAP spans contain tags with illegal characters
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
-      !/^[\w.:-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:-]+,(number|boolean)\]$/.test(attribute.key)
+      !/^[\w.:@-]+$/.test(attribute.key) &&
+      !/^tags\[[\w.:@-]+,(number|boolean)\]$/.test(attribute.key)
     ) {
       continue;
     }

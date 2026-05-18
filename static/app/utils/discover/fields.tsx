@@ -735,6 +735,12 @@ export function formatTagKey(key: string): string {
   if (key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(key)) {
     return `tags[${key}]`;
   }
+
+  // Reserved keywords that conflict with discover search query
+  if (['project_id', 'project.name'].includes(key)) {
+    return `tags[${key}]`;
+  }
+
   return key;
 }
 
@@ -1163,7 +1169,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
-  const parameters = value.function.slice(1).filter(i => i);
+  const parameters = value.function.slice(1).filter(Boolean);
   return `${aggregation}(${parameters.join(',')})`;
 }
 

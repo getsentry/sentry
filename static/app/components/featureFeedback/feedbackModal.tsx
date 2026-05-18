@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Event} from '@sentry/core';
 import {
   BrowserClient,
@@ -13,7 +12,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -217,12 +216,14 @@ export function FeedbackModal<T extends Data>({
       return (
         <Footer>
           {secondaryAction && (
-            <SecondaryActionWrapper>{secondaryAction}</SecondaryActionWrapper>
+            <Container flex="1" alignSelf="center">
+              {secondaryAction}
+            </Container>
           )}
           {onBack && (
-            <BackButtonWrapper>
+            <Container marginRight="md" width="100%">
               <Button onClick={onBack}>{t('Back')}</Button>
-            </BackButtonWrapper>
+            </Container>
           )}
           <Grid flow="column" align="center" gap="md">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
@@ -349,14 +350,4 @@ export function FeedbackModal<T extends Data>({
 export const modalCss = css`
   width: 100%;
   max-width: 680px;
-`;
-
-const BackButtonWrapper = styled('div')`
-  margin-right: ${p => p.theme.space.md};
-  width: 100%;
-`;
-
-const SecondaryActionWrapper = styled('div')`
-  flex: 1;
-  align-self: center;
 `;

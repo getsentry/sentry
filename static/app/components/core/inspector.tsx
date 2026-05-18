@@ -530,7 +530,9 @@ function MenuItem(props: {
     <Fragment>
       <ProfilingContextMenuItemButton
         {...props.contextMenu.getMenuItemProps({
-          ref: el => (triggerRef.current = el),
+          ref: el => {
+            triggerRef.current = el;
+          },
           onClick: () => {
             setIsOpen(true);
           },

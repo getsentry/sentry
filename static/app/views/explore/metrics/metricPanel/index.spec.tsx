@@ -1,17 +1,22 @@
 import type {ReactNode} from 'react';
+import qs from 'query-string';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  TraceMetricKnownFieldKey,
+  type TraceMetricEventsResponseItem,
+} from 'sentry/views/explore/metrics/types';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -240,5 +245,97 @@ describe('MetricPanel', () => {
 
     expect(await screen.findByText(project.slug)).toBeInTheDocument();
     expect(screen.getAllByText(/ago$/).length).toBeGreaterThan(0);
+  });
+
+  it('links embedded metric names to span samples with a metrics cross-event query', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+
+    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    const samplesTable = await screen.findByRole('table');
+    const metricNameCell = within(samplesTable)
+      .getByText(row[TraceMetricKnownFieldKey.METRIC_NAME])
+      .closest('[role="cell"]')!;
+    await userEvent.click(
+      within(metricNameCell as HTMLElement).getByRole('button', {name: 'Actions'})
+    );
+
+    const link = (await screen.findByText('Explore similar spans')).closest('a')!;
+    for (const label of ['Copy to clipboard', 'Add to filter', 'Exclude from filter']) {
+      const menuItem = await screen.findByText(label);
+      expect(menuItem.compareDocumentPosition(link)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+      );
+    }
+
+    const href = link.getAttribute('href')!;
+    expect(href.startsWith(`/organizations/${organization.slug}/explore/traces/?`)).toBe(
+      true
+    );
+
+    const parsedQuery = qs.parse(href.split('?')[1]!);
+    expect(parsedQuery).toEqual(
+      expect.objectContaining({
+        mode: 'samples',
+        project: project.id,
+        referrer: 'trace-metrics-samples-table-similar-spans',
+        statsPeriod: '24h',
+      })
+    );
+    expect(parsedQuery.table).toBeUndefined();
+    expect(JSON.parse(parsedQuery.crossEvents as string)).toEqual([
+      {
+        type: 'metrics',
+        query: '',
+        metric: {
+          name: row[TraceMetricKnownFieldKey.METRIC_NAME],
+          type: row[TraceMetricKnownFieldKey.METRIC_TYPE],
+          unit: row[TraceMetricKnownFieldKey.METRIC_UNIT],
+        },
+      },
+    ]);
+  });
+
+  it('does not add the similar spans action to non-embedded samples', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+
+    render(
+      <MetricsSamplesTable overrideTableData={[metricFixtures.detailedFixtures[0]!]} />,
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
+    );
+
+    const samplesTable = await screen.findByRole('table');
+    await userEvent.click(within(samplesTable).getByRole('button', {name: 'Actions'}));
+
+    expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+    expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
+  });
+
+  it('does not add the similar spans action without a complete metric identity', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = {
+      ...metricFixtures.detailedFixtures[0]!,
+      [TraceMetricKnownFieldKey.METRIC_TYPE]: '',
+    } as TraceMetricEventsResponseItem;
+
+    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    const samplesTable = await screen.findByRole('table');
+    const metricNameCell = within(samplesTable)
+      .getByText(row[TraceMetricKnownFieldKey.METRIC_NAME])
+      .closest('[role="cell"]')!;
+    await userEvent.click(
+      within(metricNameCell as HTMLElement).getByRole('button', {name: 'Actions'})
+    );
+
+    expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+    expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
   });
 });

@@ -45,6 +45,10 @@ describe('StreamlinedSidebar', () => {
     GroupStore.init();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       method: 'GET',
       body: group,

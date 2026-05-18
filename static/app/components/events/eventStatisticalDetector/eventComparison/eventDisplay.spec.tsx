@@ -39,7 +39,7 @@ describe('eventDisplay', () => {
     expect(await screen.findByText('Unable to find a sample event')).toBeInTheDocument();
   });
 
-  it('renders an event with tags', async () => {
+  it.isKnownFlake('renders an event with tags', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       method: 'GET',

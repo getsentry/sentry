@@ -26,7 +26,7 @@ from sentry.utils.audit import create_audit_entry
 
 @control_silo_endpoint
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

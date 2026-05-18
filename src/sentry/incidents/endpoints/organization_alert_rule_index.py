@@ -10,6 +10,7 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Q,
+    QuerySet,
     Subquery,
     Value,
     When,
@@ -39,6 +40,7 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -100,7 +102,6 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import (
     Detector,
@@ -398,7 +399,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         projects: Sequence[Project],
-        teams_query: BaseQuerySet[Team] | None,
+        teams_query: QuerySet[Team] | None,
         unassigned: bool | None,
         name: str | None,
         datasets: list[str],
@@ -913,8 +914,8 @@ Metric alert rule trigger actions follow the following structure:
 class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAlertRulePermission,)
     workflow_engine_method_flags = {
@@ -1127,9 +1128,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            alert_rules = AlertRule.objects.fetch_for_organization(organization=organization)
             # filter out alert rules without any projects
-            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
+            alert_count = alert_rules.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
                 log_alerting_quota_hit(

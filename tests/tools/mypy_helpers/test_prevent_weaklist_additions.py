@@ -129,11 +129,11 @@ disallow_untyped_defs = false
     assert "'d.e.f'" not in out
 
 
-def test_other_overrides_ignored(tmp_path) -> None:
+def test_unrelated_overrides_ignored(tmp_path) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
-disable_error_code = ["misc"]
+disallow_any_generics = false
 
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -141,8 +141,8 @@ disallow_untyped_defs = false
 """
     updated = """\
 [[tool.mypy.overrides]]
-module = ["a.b.c", "new.module.added.to.allowlist"]
-disable_error_code = ["misc"]
+module = ["a.b.c", "new.module"]
+disallow_any_generics = false
 
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -154,6 +154,125 @@ disallow_untyped_defs = false
 
     with contextlib.chdir(tmp_path):
         assert main(("pyproject.toml",)) == 0
+
+
+def test_module_ignores_addition_fails(tmp_path, capsys) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disable_error_code = ["misc"]
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c", "x.y.z"]
+disable_error_code = ["misc"]
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 1
+
+    expected = (
+        "pyproject.toml: 'x.y.z' was added to the mypy module ignores list — "
+        "do not add new modules; fix the type errors instead.\n"
+    )
+    assert capsys.readouterr().out == expected
+
+
+def test_module_ignores_removal_passes(tmp_path) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c", "d.e.f"]
+disable_error_code = ["misc"]
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disable_error_code = ["misc"]
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 0
+
+
+def test_module_ignores_multiple_additions_reported_sorted(tmp_path, capsys) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disable_error_code = ["misc"]
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c", "x.y.z", "p.q.r"]
+disable_error_code = ["misc"]
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 1
+
+    out = capsys.readouterr().out
+    assert "'p.q.r'" in out
+    assert "'x.y.z'" in out
+    assert out.index("'p.q.r'") < out.index("'x.y.z'")
+
+
+def test_addition_to_both_sections_reports_all(tmp_path, capsys) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disallow_untyped_defs = false
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c", "x.y.z"]
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = ["a.b.c", "p.q.r"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 1
+
+    out = capsys.readouterr().out
+    assert "'x.y.z'" in out
+    assert "module ignores list" in out
+    assert "'p.q.r'" in out
+    assert "weaklist" in out
+
+
+def test_multiple_module_ignores_sections_fails_loudly(tmp_path) -> None:
+    src = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = ["d.e.f"]
+disable_error_code = ["attr-defined"]
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, src)
+
+    with contextlib.chdir(tmp_path):
+        with pytest.raises(SystemExit, match="multiple"):
+            main(("pyproject.toml",))
 
 
 def test_new_file_passes(tmp_path) -> None:

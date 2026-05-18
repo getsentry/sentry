@@ -18,7 +18,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import type {BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
@@ -52,7 +52,7 @@ export function EventBreakpointChart({event}: EventBreakpointChartProps) {
     ? toArray(location.query.environment)
     : [];
   const parsedProjects = toArray(location.query.project ?? '-1')
-    .map(project => Number(project))
+    .map(Number)
     .filter(project => !Number.isNaN(project));
   const projects = parsedProjects.length > 0 ? parsedProjects : [-1];
   const exploreTarget =
@@ -96,8 +96,8 @@ export function EventBreakpointChart({event}: EventBreakpointChartProps) {
   });
 
   return (
-    <InterimSection
-      type={SectionKey.REGRESSION_BREAKPOINT_CHART}
+    <FoldSection
+      sectionKey={SectionKey.REGRESSION_BREAKPOINT_CHART}
       title={t('Regression Breakpoint Chart')}
       actions={
         exploreTarget ? (
@@ -117,6 +117,6 @@ export function EventBreakpointChart({event}: EventBreakpointChartProps) {
           chartType={ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION}
         />
       </TransitionChart>
-    </InterimSection>
+    </FoldSection>
   );
 }

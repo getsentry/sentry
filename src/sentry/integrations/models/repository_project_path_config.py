@@ -17,6 +17,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    project_repository = FlexibleForeignKey("sentry.ProjectRepository", on_delete=models.CASCADE)
 
     organization_integration_id = HybridCloudForeignKey(
         "sentry.OrganizationIntegration", on_delete="CASCADE"
@@ -38,6 +39,12 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root", "source_root"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project_repository", "stack_root", "source_root"],
+                name="sentry_repositoryproject_project_repository_id_st_b55e4224_uniq",
+            ),
+        ]
 
     def __repr__(self) -> str:
         return (

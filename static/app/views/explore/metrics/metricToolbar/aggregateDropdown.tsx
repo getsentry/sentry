@@ -27,13 +27,16 @@ const MULTI_SELECT_GROUP_KEYS = new Set(['percentiles', 'stats']);
 export function AggregateDropdown({
   traceMetric,
   singleSelect = false,
+  disabledReason,
 }: {
   traceMetric: TraceMetric;
+  disabledReason?: string;
   singleSelect?: boolean;
 }) {
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
+  const isDisabled = disabledReason !== undefined;
 
   const groups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
   const selectedNames = new Set(
@@ -66,7 +69,7 @@ export function AggregateDropdown({
 
   return (
     <CompositeSelect
-      disabled={groups.length === 0}
+      disabled={isDisabled || groups.length === 0}
       menuHeaderTrailingItems={
         isDefaultSelection
           ? undefined
@@ -76,6 +79,7 @@ export function AggregateDropdown({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          tooltipProps={{title: disabledReason}}
           prefix={t('Agg')}
           style={{width: '100%'}}
         >

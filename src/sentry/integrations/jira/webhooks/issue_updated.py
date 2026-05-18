@@ -30,7 +30,7 @@ PAYLOAD_LOGGING_FEATURE = "organizations:jira-issue-updated-payload-logging"
 
 @cell_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
