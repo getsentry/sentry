@@ -109,10 +109,6 @@ export function ChartVisualization({
     );
   }
 
-  // Always render TimeSeriesWidgetVisualization in the same tree position
-  // (under StyledTransparentLoadingMask) so React never unmounts the chart
-  // during loading transitions. Unmounting while echarts has a queued update
-  // in flight causes "getAttribute: e is null" because this.ele becomes null.
   return (
     <StyledTransparentLoadingMask visible={isLoading}>
       <TimeSeriesWidgetVisualization
