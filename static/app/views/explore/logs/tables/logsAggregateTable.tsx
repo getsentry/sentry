@@ -130,7 +130,10 @@ export function LogsAggregateTable({
                   const nextSort = (() => {
                     switch (direction) {
                       case 'asc':
-                        return {field: allFields[0]!, kind: 'desc' as const};
+                        return {
+                          field: visualizes[0]?.yAxis ?? allFields[0]!,
+                          kind: 'desc' as const,
+                        };
                       case 'desc':
                         return {field: column.key, kind: 'asc' as const};
                       default:
