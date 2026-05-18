@@ -79,7 +79,7 @@ function BlockActionBar() {
   }
 
   return (
-    <ActionBarWrapper>
+    <ActionBarWrapper size="xs">
       <FeedbackButton
         type="positive"
         disabled={feedbackSubmitted}
@@ -94,7 +94,6 @@ function BlockActionBar() {
         <Button
           aria-label={t('Copy block content')}
           icon={<IconCopy />}
-          size="xs"
           tooltipProps={{title: t('Copy to clipboard')}}
           onClick={e => {
             e.stopPropagation();
@@ -122,7 +121,6 @@ function FeedbackButton({
       aria-label={
         type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')
       }
-      size="xs"
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       disabled={disabled}
       tooltipProps={{
