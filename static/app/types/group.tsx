@@ -626,7 +626,6 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_SOLUTION_COMPLETED,
   GroupActivityType.SEER_CODING_STARTED,
   GroupActivityType.SEER_CODING_COMPLETED,
-  GroupActivityType.SEER_PR_CREATED,
 ]);
 
 interface GroupActivityBase {
