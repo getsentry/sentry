@@ -19,7 +19,10 @@ const POLL_INTERVAL = 500; // Poll every 500ms, matching Seer Explorer
 /**
  * Generate the query key for polling the search agent state.
  */
-const makeAskSeerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey | null => {
+const makeAskSeerQueryKey = (
+  orgSlug: string,
+  runId?: number | string
+): ApiQueryKey | null => {
   if (!runId) {
     return null;
   }
@@ -79,7 +82,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
-  const [runId, setRunId] = useState<number | null>(null);
+  const [runId, setRunId] = useState<number | string | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
   const inFlightQueryRef = useRef<string | null>(null);
@@ -128,10 +131,14 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
           }
         )) as AskSeerStartResponse;
 
-        setRunId(response.run_id);
+        const newRunId = response.sentry_run_id ?? response.run_id;
+        if (!newRunId) {
+          throw new Error('Search agent start response missing run ID');
+        }
+        setRunId(newRunId);
 
         // Invalidate to start polling
-        const newQueryKey = makeAskSeerQueryKey(orgSlug, response.run_id);
+        const newQueryKey = makeAskSeerQueryKey(orgSlug, newRunId);
         if (newQueryKey) {
           queryClient.invalidateQueries({
             queryKey: newQueryKey,
