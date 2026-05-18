@@ -1,3 +1,4 @@
+import {useId} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -26,12 +27,16 @@ export function Button({
 }: ButtonProps) {
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
+  const tooltipLabelId = useId();
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,
     disabled,
     busy,
   });
+
+  const tooltipTitle = tooltipProps?.title;
+  const hasTooltipLabel = !hasChildren && typeof tooltipTitle === 'string';
 
   return (
     <Tooltip
@@ -49,10 +54,14 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
+        aria-labelledby={hasTooltipLabel ? tooltipLabelId : undefined}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
         role="button"
       >
+        {hasTooltipLabel && (
+          <TooltipLabel id={tooltipLabelId}>{tooltipTitle}</TooltipLabel>
+        )}
         <Flex
           as="span"
           align="center"
@@ -94,6 +103,10 @@ export function Button({
     </Tooltip>
   );
 }
+
+const TooltipLabel = styled('span')`
+  ${p => p.theme.visuallyHidden}
+`;
 
 const StyledButton = styled('button')<
   Omit<ButtonProps, 'size'> & {

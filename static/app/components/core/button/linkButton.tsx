@@ -1,3 +1,4 @@
+import {useId} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -27,10 +28,14 @@ export function LinkButton({
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
+  const tooltipLabelId = useId();
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,
   });
+
+  const tooltipTitle = tooltipProps?.title;
+  const hasTooltipLabel = !hasChildren && typeof tooltipTitle === 'string';
 
   return (
     <Tooltip
@@ -45,6 +50,7 @@ export function LinkButton({
         disabled={disabled}
         size={size}
         {...props}
+        aria-labelledby={hasTooltipLabel ? tooltipLabelId : undefined}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         href={disabled ? undefined : 'href' in props ? props.href : undefined}
         to={
@@ -60,6 +66,9 @@ export function LinkButton({
         }
         onClick={handleClick}
       >
+        {hasTooltipLabel && (
+          <TooltipLabel id={tooltipLabelId}>{tooltipTitle}</TooltipLabel>
+        )}
         <Flex
           as="span"
           align="center"
@@ -88,6 +97,10 @@ export function LinkButton({
     </Tooltip>
   );
 }
+
+const TooltipLabel = styled('span')`
+  ${p => p.theme.visuallyHidden}
+`;
 
 const StyledLinkButton = styled(
   ({

@@ -2,6 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
+import {IconAdd} from 'sentry/icons';
+
 describe('Button', () => {
   it('renders', () => {
     render(<Button variant="primary">Button</Button>);
@@ -56,6 +58,30 @@ describe('Button', () => {
 
     const spinner = button.querySelector('[aria-hidden="true"]');
     expect(spinner).not.toBeInTheDocument();
+  });
+
+  it('uses aria-labelledby from tooltip title for icon-only buttons', () => {
+    render(
+      <Button
+        icon={<IconAdd />}
+        aria-label="Add item"
+        tooltipProps={{title: 'Add item'}}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: 'Add item'});
+    expect(button).toHaveAttribute('aria-labelledby');
+  });
+
+  it('does not use tooltip title as label when button has children', () => {
+    render(
+      <Button icon={<IconAdd />} tooltipProps={{title: 'More info'}}>
+        Add
+      </Button>
+    );
+
+    const button = screen.getByRole('button', {name: 'Add'});
+    expect(button).not.toHaveAttribute('aria-labelledby');
   });
 });
 
