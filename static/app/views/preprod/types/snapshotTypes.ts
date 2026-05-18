@@ -11,6 +11,7 @@ export interface SnapshotImage {
   group?: string | null;
   height: number;
   key: string;
+  tags: Record<string, string> | null;
   width: number;
 }
 

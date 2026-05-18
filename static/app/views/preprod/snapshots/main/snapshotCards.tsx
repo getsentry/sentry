@@ -2,13 +2,14 @@ import {Fragment, memo, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
+import {IconFile, IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -136,6 +137,7 @@ export const PairCard = memo(function PairCard({
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
+          tags={image.tags}
           status={DiffStatus.CHANGED}
           diffPercent={pair.diff}
           isDark={isDark}
@@ -211,6 +213,7 @@ export const ImageCard = memo(function ImageCard({
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
+          tags={image.tags}
           status={status}
           isDark={isDark}
           onToggleDark={() => setIsDark(v => !v)}
@@ -232,6 +235,7 @@ export const ImageCard = memo(function ImageCard({
 export const CardHeader = memo(function CardHeader({
   displayName,
   fileName,
+  tags,
   status,
   diffPercent,
   isDark,
@@ -255,45 +259,56 @@ export const CardHeader = memo(function CardHeader({
   onDoubleClick?: () => void;
   showBottomBorder?: boolean;
   status?: DiffStatus | null;
+  tags?: Record<string, string> | null;
 }) {
   const {copy} = useCopyToClipboard();
+  // TODO: remove fake tags once backend sends real data
+  const displayTags = tags ?? {lang: 'en', dir: 'ltr', theme: 'light'};
   return (
     <CardHeaderRow onDoubleClick={onDoubleClick} $showBottomBorder={showBottomBorder}>
-      <Stack gap="xs" minWidth="0" flex="1">
-        {displayName ? (
-          <Fragment>
+      <Flex align="center" justify="space-between" gap="md">
+        {displayName && (
+          <Flex align="center" width="fit-content" maxWidth="100%" minWidth="0">
             <Text size="md" bold ellipsis>
               {displayName}
             </Text>
-            <Text size="xs" variant="muted" monospace ellipsis>
-              {fileName}
-            </Text>
-          </Fragment>
-        ) : (
-          <Text size="md" bold monospace ellipsis>
-            {fileName}
-          </Text>
+            <IconButton
+              aria-label={t('Copy file name')}
+              tooltip={fileName}
+              icon={<IconFile size="xs" />}
+              onClick={() => copy(fileName, {successMessage: t('Copied file name')})}
+            />
+          </Flex>
         )}
-      </Stack>
-      <Flex align="center" gap="sm" onClick={e => e.stopPropagation()}>
-        {status && <StatusBadge status={status} diffPercent={diffPercent} />}
-        <IconButton
-          aria-label={isDark ? t('Light preview') : t('Dark preview')}
-          tooltip={isDark ? t('Light preview') : t('Dark preview')}
-          icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
-          onClick={onToggleDark}
-        />
-        <IconButton
-          aria-label={t('Copy link to this snapshot')}
-          tooltip={t('Copy link')}
-          icon={<IconLink size="sm" />}
-          onClick={() => {
-            copy(copyUrl, {successMessage: t('Copied link to this snapshot')});
-            onCopyLink?.();
-          }}
-        />
-        <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
+        <Flex align="center" gap="sm" shrink="0" onClick={e => e.stopPropagation()}>
+          {status && <StatusBadge status={status} diffPercent={diffPercent} />}
+          <IconButton
+            aria-label={isDark ? t('Light preview') : t('Dark preview')}
+            tooltip={isDark ? t('Light preview') : t('Dark preview')}
+            icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
+            onClick={onToggleDark}
+          />
+          <IconButton
+            aria-label={t('Copy link to this snapshot')}
+            tooltip={t('Copy link')}
+            icon={<IconLink size="sm" />}
+            onClick={() => {
+              copy(copyUrl, {successMessage: t('Copied link to this snapshot')});
+              onCopyLink?.();
+            }}
+          />
+          <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
+        </Flex>
       </Flex>
+      {Object.keys(displayTags).length > 0 && (
+        <Flex gap="xs" wrap="wrap">
+          {Object.entries(displayTags).map(([key, value]) => (
+            <Badge key={key} variant="muted">
+              {key}={value}
+            </Badge>
+          ))}
+        </Flex>
+      )}
     </CardHeaderRow>
   );
 });
@@ -418,9 +433,8 @@ const CardHeaderRow = styled('div')<{
   $showBottomBorder?: boolean;
 }>`
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
+  flex-direction: column;
+  gap: ${p => p.theme.space.xxs};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-bottom: ${p =>
     p.$showBottomBorder ? `1px solid ${p.theme.tokens.border.secondary}` : 0};
