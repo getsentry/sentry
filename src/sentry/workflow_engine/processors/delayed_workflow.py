@@ -921,7 +921,8 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         project,
     )
 
-    fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
+    if groups_to_dcgs and group_to_groupevent:
+        fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
 
 
 @sentry_sdk.trace
