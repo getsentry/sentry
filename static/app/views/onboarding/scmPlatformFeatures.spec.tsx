@@ -14,14 +14,11 @@ import {
 
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  OnboardingContextProvider,
-  type OnboardingSessionState,
-} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {Repository} from 'sentry/types/integrations';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 
@@ -59,13 +56,24 @@ jest.mock('sentry/data/platforms', () => {
   };
 });
 
-function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
-  return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
-    return (
-      <OnboardingContextProvider initialValue={initialState}>
-        {children}
-      </OnboardingContextProvider>
-    );
+interface StateOverrides {
+  createdProjectSlug?: string;
+  selectedFeatures?: ProductSolution[];
+  selectedPlatform?: OnboardingSelectedSDK;
+  selectedRepository?: Repository;
+}
+
+function defaultProps(state: StateOverrides = {}) {
+  return {
+    selectedRepository: state.selectedRepository,
+    selectedPlatform: state.selectedPlatform,
+    selectedFeatures: state.selectedFeatures,
+    createdProjectSlug: state.createdProjectSlug,
+    onPlatformChange: jest.fn(),
+    onFeaturesChange: jest.fn(),
+    onClearProjectDetailsForm: jest.fn(),
+    onProjectCreated: jest.fn(),
+    onComplete: jest.fn(),
   };
 }
 
@@ -81,7 +89,6 @@ describe('ScmPlatformFeatures', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    sessionStorageWrapper.clear();
     ProjectsStore.loadInitialData([]);
     TeamStore.loadInitialData([]);
   });
@@ -106,17 +113,8 @@ describe('ScmPlatformFeatures', () => {
     });
 
     render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-        }),
-      }
+      <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+      {organization}
     );
 
     const radioGroup = await screen.findByRole('radiogroup');
@@ -140,17 +138,8 @@ describe('ScmPlatformFeatures', () => {
     });
 
     render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-        }),
-      }
+      <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+      {organization}
     );
 
     expect(
@@ -166,17 +155,8 @@ describe('ScmPlatformFeatures', () => {
       });
 
       render(
-        <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedRepository: mockRepository,
-          }),
-        }
+        <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+        {organization}
       );
 
       expect(
@@ -200,17 +180,8 @@ describe('ScmPlatformFeatures', () => {
       });
 
       render(
-        <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedRepository: mockRepository,
-          }),
-        }
+        <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+        {organization}
       );
 
       expect(
@@ -230,13 +201,7 @@ describe('ScmPlatformFeatures', () => {
 
       render(
         <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
+          {...defaultProps({
             selectedRepository: mockRepository,
             selectedPlatform: {
               key: 'nintendo-switch',
@@ -246,8 +211,9 @@ describe('ScmPlatformFeatures', () => {
               link: null,
               category: 'all',
             },
-          }),
-        }
+          })}
+        />,
+        {organization}
       );
 
       await screen.findByRole('button', {name: 'Continue'});
@@ -278,17 +244,8 @@ describe('ScmPlatformFeatures', () => {
     });
 
     render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-        }),
-      }
+      <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+      {organization}
     );
 
     const changeButton = await screen.findByRole('button', {
@@ -307,17 +264,8 @@ describe('ScmPlatformFeatures', () => {
     });
 
     render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-        }),
-      }
+      <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+      {organization}
     );
 
     expect(await screen.findByText('Select a platform')).toBeInTheDocument();
@@ -327,17 +275,7 @@ describe('ScmPlatformFeatures', () => {
   });
 
   it('renders manual picker when no repository in context', async () => {
-    render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper(),
-      }
-    );
+    render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
     expect(await screen.findByText('Select a platform')).toBeInTheDocument();
     expect(
@@ -346,17 +284,7 @@ describe('ScmPlatformFeatures', () => {
   });
 
   it('continue button is disabled when no platform selected', async () => {
-    render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper(),
-      }
-    );
+    render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
     // Wait for the component to fully settle (CompactSelect triggers async popper updates)
     await screen.findByText('Select a platform');
@@ -373,17 +301,8 @@ describe('ScmPlatformFeatures', () => {
     });
 
     render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-        }),
-      }
+      <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+      {organization}
     );
 
     // Wait for auto-select of first detected platform
@@ -403,49 +322,31 @@ describe('ScmPlatformFeatures', () => {
       body: {platforms: [pythonPlatform]},
     });
 
-    render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-          selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        }),
-      }
-    );
+    const props = defaultProps({
+      selectedRepository: mockRepository,
+      selectedFeatures: [ProductSolution.ERROR_MONITORING],
+    });
+    render(<ScmPlatformFeatures {...props} />, {organization});
 
     // Wait for feature cards to appear
     await screen.findByText('What do you want to instrument?');
 
-    // Neither profiling nor tracing should be checked initially
-    expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
-    expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
-
-    // Enable profiling — tracing should auto-enable
+    // Enable profiling — onFeaturesChange should be called with tracing also enabled
     await userEvent.click(screen.getByRole('checkbox', {name: /Profiling/}));
 
-    expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
+    expect(props.onFeaturesChange).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PROFILING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ])
+    );
   });
 
   it('shows framework suggestion modal when selecting a base language', async () => {
     const mockOpenModal = openModal as jest.Mock;
 
-    render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper(),
-      }
-    );
+    render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
     await screen.findByText('Select a platform');
 
@@ -461,20 +362,12 @@ describe('ScmPlatformFeatures', () => {
   it('opens console modal when selecting a disabled gaming platform', async () => {
     const mockOpenConsoleModal = openConsoleModal as jest.Mock;
 
-    render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        // No enabledConsolePlatforms — all console platforms are blocked
-        organization: OrganizationFixture({
-          features: ['performance-view', 'session-replay', 'profiling-view'],
-        }),
-        additionalWrapper: makeOnboardingWrapper(),
-      }
-    );
+    render(<ScmPlatformFeatures {...defaultProps()} />, {
+      // No enabledConsolePlatforms — all console platforms are blocked
+      organization: OrganizationFixture({
+        features: ['performance-view', 'session-replay', 'profiling-view'],
+      }),
+    });
 
     await screen.findByText('Select a platform');
 
@@ -498,45 +391,36 @@ describe('ScmPlatformFeatures', () => {
       body: {platforms: [pythonPlatform]},
     });
 
-    render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-          selectedPlatform: {
-            key: 'python',
-            name: 'Python',
-            language: 'python',
-            type: 'language',
-            link: 'https://docs.sentry.io/platforms/python/',
-            category: 'popular',
-          },
-          selectedFeatures: [
-            ProductSolution.ERROR_MONITORING,
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.PROFILING,
-          ],
-        }),
-      }
-    );
+    const props = defaultProps({
+      selectedRepository: mockRepository,
+      selectedPlatform: {
+        key: 'python',
+        name: 'Python',
+        language: 'python',
+        type: 'language',
+        link: 'https://docs.sentry.io/platforms/python/',
+        category: 'popular',
+      },
+      selectedFeatures: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+      ],
+    });
+    render(<ScmPlatformFeatures {...props} />, {organization});
 
     // Wait for feature cards to appear
     await screen.findByText('What do you want to instrument?');
 
-    // Both should be checked initially
-    expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeChecked();
-
-    // Disable tracing — profiling should auto-disable
+    // Disable tracing — onFeaturesChange should drop both tracing and profiling
     await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
 
-    expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
-    expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
+    expect(props.onFeaturesChange).toHaveBeenCalledWith(
+      expect.not.arrayContaining([
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+      ])
+    );
   });
 
   it('clears persisted project details form when detected platform changes', async () => {
@@ -554,31 +438,15 @@ describe('ScmPlatformFeatures', () => {
       },
     });
 
-    render(
-      <ScmPlatformFeatures
-        onComplete={jest.fn()}
-        stepIndex={2}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: mockRepository,
-          projectDetailsForm: {
-            projectName: 'stale-name',
-            teamSlug: 'stale-team',
-          },
-        }),
-      }
-    );
+    // The component is stateless w.r.t. the form, so we just verify it calls
+    // the clear callback when the user changes the detected platform.
+    const props = defaultProps({selectedRepository: mockRepository});
+    render(<ScmPlatformFeatures {...props} />, {organization});
 
     const djangoCard = await screen.findByRole('radio', {name: /Django/});
     await userEvent.click(djangoCard);
 
-    await waitFor(() => {
-      const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
-      expect(stored.projectDetailsForm).toBeUndefined();
-    });
+    expect(props.onClearProjectDetailsForm).toHaveBeenCalled();
   });
 
   describe('analytics', () => {
@@ -589,17 +457,7 @@ describe('ScmPlatformFeatures', () => {
     });
 
     it('fires step viewed event on mount', async () => {
-      render(
-        <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper(),
-        }
-      );
+      render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
       await screen.findByText('Select a platform');
 
@@ -625,17 +483,8 @@ describe('ScmPlatformFeatures', () => {
       });
 
       render(
-        <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedRepository: mockRepository,
-          }),
-        }
+        <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+        {organization}
       );
 
       // Wait for detected platforms, then click the second one
@@ -667,17 +516,8 @@ describe('ScmPlatformFeatures', () => {
       });
 
       render(
-        <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedRepository: mockRepository,
-          }),
-        }
+        <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+        {organization}
       );
 
       await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'});
@@ -701,17 +541,12 @@ describe('ScmPlatformFeatures', () => {
 
       render(
         <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
+          {...defaultProps({
             selectedRepository: mockRepository,
             selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          }),
-        }
+          })}
+        />,
+        {organization}
       );
 
       await screen.findByText('What do you want to instrument?');
@@ -735,17 +570,8 @@ describe('ScmPlatformFeatures', () => {
       });
 
       render(
-        <ScmPlatformFeatures
-          onComplete={jest.fn()}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedRepository: mockRepository,
-          }),
-        }
+        <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+        {organization}
       );
 
       const changeButton = await screen.findByRole('button', {
@@ -788,7 +614,6 @@ describe('ScmPlatformFeatures', () => {
     });
 
     it('auto-creates the project on Continue and forwards selected features', async () => {
-      const onComplete = jest.fn();
       const createdProject = ProjectFixture({
         slug: 'javascript-nextjs',
         platform: 'javascript-nextjs',
@@ -799,20 +624,11 @@ describe('ScmPlatformFeatures', () => {
         body: createdProject,
       });
 
-      render(
-        <ScmPlatformFeatures
-          onComplete={onComplete}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedPlatform: nextJsPlatform,
-            selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          }),
-        }
-      );
+      const props = defaultProps({
+        selectedPlatform: nextJsPlatform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+      });
+      render(<ScmPlatformFeatures {...props} />, {organization});
 
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
@@ -832,13 +648,13 @@ describe('ScmPlatformFeatures', () => {
           })
         );
       });
-      expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+      expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
+      expect(props.onProjectCreated).toHaveBeenCalledWith(createdProject.slug);
     });
 
     it('reuses the existing project when the platform is unchanged', async () => {
-      const onComplete = jest.fn();
       const existingProject = ProjectFixture({
         slug: 'javascript-nextjs',
         platform: 'javascript-nextjs',
@@ -850,21 +666,12 @@ describe('ScmPlatformFeatures', () => {
         body: existingProject,
       });
 
-      render(
-        <ScmPlatformFeatures
-          onComplete={onComplete}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedPlatform: nextJsPlatform,
-            selectedFeatures: [ProductSolution.ERROR_MONITORING],
-            createdProjectSlug: existingProject.slug,
-          }),
-        }
-      );
+      const props = defaultProps({
+        selectedPlatform: nextJsPlatform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProjectSlug: existingProject.slug,
+      });
+      render(<ScmPlatformFeatures {...props} />, {organization});
 
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
@@ -872,7 +679,7 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
-        expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+        expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
           product: [ProductSolution.ERROR_MONITORING],
         });
       });
@@ -880,7 +687,6 @@ describe('ScmPlatformFeatures', () => {
     });
 
     it('creates a new project when the platform changed from the existing one', async () => {
-      const onComplete = jest.fn();
       const stalePythonProject = ProjectFixture({
         slug: 'python',
         platform: 'python',
@@ -896,21 +702,12 @@ describe('ScmPlatformFeatures', () => {
         body: newProject,
       });
 
-      render(
-        <ScmPlatformFeatures
-          onComplete={onComplete}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedPlatform: nextJsPlatform,
-            selectedFeatures: [ProductSolution.ERROR_MONITORING],
-            createdProjectSlug: stalePythonProject.slug,
-          }),
-        }
-      );
+      const props = defaultProps({
+        selectedPlatform: nextJsPlatform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProjectSlug: stalePythonProject.slug,
+      });
+      render(<ScmPlatformFeatures {...props} />, {organization});
 
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
@@ -920,7 +717,7 @@ describe('ScmPlatformFeatures', () => {
       await waitFor(() => {
         expect(createRequest).toHaveBeenCalled();
       });
-      expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+      expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
     });
@@ -931,7 +728,6 @@ describe('ScmPlatformFeatures', () => {
       // currentPlatformKey falls back to the detected key. Passing undefined
       // to onComplete here would trip goNextStep's SETUP_DOCS guard because
       // the captured closure still sees selectedPlatform as undefined.
-      const onComplete = jest.fn();
       const createdProject = ProjectFixture({
         slug: 'javascript-nextjs',
         platform: 'javascript-nextjs',
@@ -953,19 +749,8 @@ describe('ScmPlatformFeatures', () => {
         body: createdProject,
       });
 
-      render(
-        <ScmPlatformFeatures
-          onComplete={onComplete}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedRepository: mockRepository,
-          }),
-        }
-      );
+      const props = defaultProps({selectedRepository: mockRepository});
+      render(<ScmPlatformFeatures {...props} />, {organization});
 
       await screen.findByRole('radio', {name: /Next.js/});
       await waitFor(() => {
@@ -974,7 +759,7 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
-        expect(onComplete).toHaveBeenCalledWith(
+        expect(props.onComplete).toHaveBeenCalledWith(
           expect.objectContaining({key: 'javascript-nextjs'}),
           {product: [ProductSolution.ERROR_MONITORING]}
         );
@@ -1001,27 +786,19 @@ describe('ScmPlatformFeatures', () => {
     };
 
     it('advances without creating a project on Continue', async () => {
-      const onComplete = jest.fn();
       const createRequest = MockApiClient.addMockResponse({
         url: `/teams/${experimentOrganization.slug}/team-slug/projects/`,
         method: 'POST',
         body: ProjectFixture(),
       });
 
-      render(
-        <ScmPlatformFeatures
-          onComplete={onComplete}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization: experimentOrganization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedPlatform: nextJsPlatform,
-            selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          }),
-        }
-      );
+      const props = defaultProps({
+        selectedPlatform: nextJsPlatform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+      });
+      render(<ScmPlatformFeatures {...props} />, {
+        organization: experimentOrganization,
+      });
 
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
@@ -1029,7 +806,7 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
-        expect(onComplete).toHaveBeenCalledWith();
+        expect(props.onComplete).toHaveBeenCalledWith();
       });
       expect(createRequest).not.toHaveBeenCalled();
     });
