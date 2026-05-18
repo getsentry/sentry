@@ -30,9 +30,9 @@ describe('ContinuousProfileProvider', () => {
     render(<ContinuosProfileProvider />, {
       organization,
       initialRouterConfig: {
-        route: '/explore/profiling/profile/:projectId/:eventId/',
+        route: '/explore/profiles/profile/:projectId/:eventId/',
         location: {
-          pathname: `/explore/profiling/profile/${project.slug}/1/`,
+          pathname: `/explore/profiles/profile/${project.slug}/1/`,
           query: {
             start: new Date().toISOString(),
             end: new Date().toISOString(),
@@ -62,9 +62,9 @@ describe('ContinuousProfileProvider', () => {
       render(<ContinuosProfileProvider />, {
         organization,
         initialRouterConfig: {
-          route: '/explore/profiling/profile/:projectId/:eventId/',
+          route: '/explore/profiles/profile/:projectId/:eventId/',
           location: {
-            pathname: `/explore/profiling/profile/${project.slug}/1/`,
+            pathname: `/explore/profiles/profile/${project.slug}/1/`,
             query: {
               start: start ?? '',
               end: end ?? '',

@@ -446,7 +446,7 @@ export function getDefaultExploreRoute(organization: Organization) {
   }
 
   if (organization.features.includes('performance-profiling')) {
-    return 'profiling';
+    return 'profiles';
   }
 
   if (organization.features.includes('session-replay-ui')) {
