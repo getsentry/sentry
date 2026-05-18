@@ -57,6 +57,11 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
 }
 
+SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS: set[SentryAppEventType] = {
+    *SEER_EVENT_TO_ACTIVITY_TYPE.keys(),
+    SentryAppEventType.SEER_PR_CREATED,
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -761,7 +766,7 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
             lifecycle.record_halt(halt_reason="skipped")
             return
 
