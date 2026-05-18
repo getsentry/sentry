@@ -278,7 +278,10 @@ export function StreamlinedActivitySection({
     if (UNRESOLVED_ACTIVITY_TYPES.has(item.type)) {
       return theme.tokens.border.danger.vibrant;
     }
-    return theme.tokens.border.primary;
+    if (item.type === GroupActivityType.SET_IGNORED) {
+      return theme.tokens.border.secondary;
+    }
+    return;
   };
 
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
