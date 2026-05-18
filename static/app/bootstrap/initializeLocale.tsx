@@ -70,14 +70,21 @@ export async function initializeLocale(config: Config) {
       const translations = await getTranslations(languageCode);
       setLocale(translations);
     } else {
-      const [translations] = await Promise.all([
+      await Promise.all([
         getTranslations(languageCode),
-        import(`moment/locale/${languageCode}`).catch(() => null),
-      ]);
-      setLocale(translations);
-      moment.locale(languageCode);
+        import(`moment/locale/${languageCode}`),
+      ])
+        .then(([translations]) => {
+          setLocale(translations);
+          moment.locale(languageCode);
+        })
+        .catch(err => {
+          Sentry.captureException(err);
+          setLocale(DEFAULT_LOCALE_DATA);
+        });
     }
   } catch (err) {
     Sentry.captureException(err);
+    setLocale(DEFAULT_LOCALE_DATA);
   }
 }
