@@ -20,64 +20,23 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-@pytest.mark.parametrize(
-    ("value", "expected_rhs"),
-    [
-        (True, 1),
-        (1, 1),
-        ("true", 1),
-        ("True", 1),
-        ("1", 1),
-        ("yes", 1),
-        ("Yes", 1),
-        (False, 0),
-        (0, 0),
-        ("false", 0),
-        ("False", 0),
-        ("0", 0),
-        ("no", 0),
-        ("No", 0),
-    ],
-)
-def test_error_handled_normalizes_value(value: bool | int | str, expected_rhs: int) -> None:
+_TRUTHY_VALUES: list[bool | int | str] = [True, 1, "true", "True", "1", "yes", "Yes"]
+_FALSY_VALUES: list[bool | int | str] = [False, 0, "false", "False", "0", "no", "No"]
+
+
+@pytest.mark.parametrize("attribute", ["error.handled", "error.unhandled"])
+@pytest.mark.parametrize("value", _TRUTHY_VALUES + _FALSY_VALUES)
+def test_error_handled_normalizes_value(attribute: str, value: bool | int | str) -> None:
     cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
-        {"attribute": "error.handled", "match": "eq", "value": value}, TSDBModel.group
+        {"attribute": attribute, "match": "eq", "value": value}, TSDBModel.group
     )
     assert cond is not None
     _, _, rhs = cond
-    assert rhs == expected_rhs
 
-
-@pytest.mark.parametrize(
-    ("value", "expected_rhs"),
-    [
-        # "unhandled = true"  →  handled = 0
-        (True, 0),
-        (1, 0),
-        ("true", 0),
-        ("True", 0),
-        ("1", 0),
-        ("yes", 0),
-        ("Yes", 0),
-        # "unhandled = false" →  handled = 1
-        (False, 1),
-        (0, 1),
-        ("false", 1),
-        ("False", 1),
-        ("0", 1),
-        ("no", 1),
-        ("No", 1),
-    ],
-)
-def test_error_unhandled_normalizes_and_flips_value(
-    value: bool | int | str, expected_rhs: int
-) -> None:
-    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
-        {"attribute": "error.unhandled", "match": "eq", "value": value}, TSDBModel.group
-    )
-    assert cond is not None
-    _, _, rhs = cond
-    assert rhs == expected_rhs
+    is_truthy = value in _TRUTHY_VALUES
+    if attribute == "error.unhandled":
+        is_truthy = not is_truthy
+    assert rhs == (1 if is_truthy else 0)
 
 
 @pytest.mark.parametrize("attribute", ["error.handled", "error.unhandled"])

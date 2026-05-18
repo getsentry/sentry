@@ -240,8 +240,7 @@ class BaseEventFrequencyQueryHandler(ABC):
             # The stored value may be a string ("true"/"false"), bool, or int.
             # Normalize to 1/0 for the Snuba condition (UInt8 column).
             # We can get stricter here once we clean existing data and validate within the API.
-            raw = condition["value"]
-            comparable = raw.lower() if isinstance(raw, str) else raw
+            comparable = rhs.lower() if isinstance(rhs, str) else rhs
             if comparable in _HANDLED_TRUE_VALUES:
                 int_value = 1
             elif comparable in _HANDLED_FALSE_VALUES:
@@ -249,7 +248,7 @@ class BaseEventFrequencyQueryHandler(ABC):
             else:
                 logger.error(
                     "workflow_engine.unrecognized_handled_filter_value",
-                    extra={"attribute": attribute, "value": raw},
+                    extra={"attribute": attribute, "value": rhs},
                 )
                 return None
             if attribute == "error.unhandled":
