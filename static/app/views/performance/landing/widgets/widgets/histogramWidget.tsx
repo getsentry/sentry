@@ -46,7 +46,7 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
         transform: transformHistogramQuery,
       },
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [props.chartSetting, mepSetting.memoizationKey, location]);
 
   const onFilterChange = () => {};

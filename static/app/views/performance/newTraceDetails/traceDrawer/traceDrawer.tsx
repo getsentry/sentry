@@ -181,7 +181,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         initialSize,
         ref: drawerRef,
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line @eslint-react/exhaustive-deps
     }, [props.traceGridRef, traceState.preferences.layout, drawerRef, isDrawerMinimized]);
 
   const resizableDrawerOptions: UsePassiveResizableDrawerOptions = useMemo(() => {
@@ -301,7 +301,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       }
       initializedRef.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [props.traceGridRef, minimizedBottomDrawerSize]);
 
   // Syncs the height of the tabs with the trace indicators

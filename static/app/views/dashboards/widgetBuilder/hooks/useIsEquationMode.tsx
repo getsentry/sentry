@@ -50,7 +50,7 @@ export function useIsEquationMode(): [boolean, (next: boolean) => void] {
     }
     // We only run this effect when the dataset changes to tracemetrics to
     // detect if we show the tracemetrics equations UI when restoring dataset state
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [state.dataset]);
 
   return [isEquationMode, setIsEquationMode];

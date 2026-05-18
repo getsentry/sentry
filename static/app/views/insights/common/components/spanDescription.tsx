@@ -106,7 +106,7 @@ export function DatabaseSpanDescription({
     );
     // Skip the `location` dependency because it will cause this effect to trigger infinitely, since
     // `navigate` will update the location within this effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [navigate]);
 
   const system = indexedSpan?.['db.system'];

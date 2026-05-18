@@ -848,7 +848,7 @@ export function Cart({
     },
     // NOTE: We add `billingDetails` to the dependencies since it affects tax calculations
     // on the preview endpoint
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [
       api,
       formDataForPreview,

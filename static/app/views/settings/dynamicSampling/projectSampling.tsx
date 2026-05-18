@@ -101,7 +101,7 @@ export function ProjectSampling() {
   useEffect(() => {
     form.reset({projectRates});
     setSavedProjectRates(projectRates);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [projectRates]);
 
   const initialTargetRate = useMemo(() => {

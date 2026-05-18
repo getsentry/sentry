@@ -129,7 +129,7 @@ export function PageFiltersContainer({
     }
 
     doInitialization();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [projectsLoaded]);
 
   // Handle dynamic maxPickableDays changes (e.g., switching between pages with different limits).
@@ -243,7 +243,7 @@ export function PageFiltersContainer({
     }
 
     lastQuery.current = location.query;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [location.query]);
 
   // Wait for global selection to be ready before rendering children

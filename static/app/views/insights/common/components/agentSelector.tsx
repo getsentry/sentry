@@ -59,7 +59,7 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
         setQueryStates({[AGENT_URL_PARAM]: storedAgents});
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   // Reset when project changes
@@ -81,7 +81,7 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line @eslint-react/exhaustive-deps
   const debouncedSetSearch = useCallback(
     debounce(newSearch => {
       setSearchQuery(newSearch);

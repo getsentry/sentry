@@ -13,6 +13,6 @@ export function useRouteAnalyticsParams(params: Record<string, any>) {
     setRouteAnalyticsParams(params);
     // use the object values and keys as dependencies to re-trigger rendering
     // if the underlying parameters change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [jsonParams, previousUrl]);
 }

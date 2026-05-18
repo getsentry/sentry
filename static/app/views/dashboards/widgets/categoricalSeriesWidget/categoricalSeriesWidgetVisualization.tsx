@@ -159,7 +159,7 @@ export function CategoricalSeriesWidgetVisualization(
         truncationFormatter(trimmed[i]!, truncateLength, false),
       ])
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [allCategories.join(','), props.truncateCategoryLabels]);
 
   // Configure the X axis (category axis)

@@ -387,7 +387,7 @@ export function Control({
     }
 
     updateOverlay?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [menuBody, hideOptions]);
 
   const wasRefAvailable = useRef(false);

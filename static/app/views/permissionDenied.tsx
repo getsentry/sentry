@@ -21,7 +21,7 @@ export function PermissionDenied() {
       message: `${ERROR_NAME}${route ? ` : ${route}` : ''}`,
       level: 'error',
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   return (

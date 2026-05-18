@@ -99,7 +99,7 @@ export function Provider({
     // This component receives referentially new selectedTeams and selectedProjects
     // on many renders. Ideally fetchTeamKeyTransactions should be refactored to use
     // `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [api, organization.slug, refetchKey]);
 
   useEffect(() => {

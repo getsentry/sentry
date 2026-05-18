@@ -83,7 +83,7 @@ export function RouteError({error, disableLogSentry, disableReport}: RouteErrorP
     return function cleanup() {
       window.clearTimeout(reportDialogTimeout);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [error, disableLogSentry]);
 
   // Remove the report dialog on unmount

@@ -58,7 +58,7 @@ export function DataExport({
     // call and would have immediately turned off the value giving users no feedback on their click action.
     // An alternative way to handle this would have probably been to key the component by payload/queryType,
     // but that seems like it can be a complex object so tracking changes could result in very brittle behavior.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [payload.queryType, payload.queryInfo]);
 
   // Tracking unmounting of the component to prevent setState call on unmounted component

@@ -145,7 +145,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 
   useEffect(() => {
     debouncedFetchApiData(relevantRuleData, null, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [JSON.stringify(relevantRuleData), debouncedFetchApiData]);
 
   useEffect(() => {

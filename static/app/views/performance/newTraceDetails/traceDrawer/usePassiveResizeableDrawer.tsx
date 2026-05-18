@@ -29,7 +29,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
   useLayoutEffect(() => {
     sizeRef.current = initialSize;
     onResize(initialSize, options.min, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [initialSize, direction, onResize]);
 
   const onMouseMove = useCallback(

@@ -651,7 +651,7 @@ function Flamegraph(): ReactElement {
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [flamegraph, flamegraphCanvas, flamegraphTheme, profileOffsetFromTransaction]
   );
 

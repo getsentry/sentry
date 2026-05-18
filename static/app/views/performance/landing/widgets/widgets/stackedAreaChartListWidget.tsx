@@ -115,7 +115,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       },
       transform: transformDiscoverToList,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
@@ -178,7 +178,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
         transform: transformEventsRequestToStackedArea,
       };
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
   );
 

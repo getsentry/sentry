@@ -258,7 +258,7 @@ export function LogsInfiniteTable({
       terms.push(localOnlyItemFilters.filterText);
     }
     return terms;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
   const isContainedVirtualizer = expanded !== undefined;

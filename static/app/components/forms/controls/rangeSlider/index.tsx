@@ -106,7 +106,7 @@ export function RangeSlider({
 
   useEffect(() => {
     updateSliderValue();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [value]);
 
   function updateSliderValue() {

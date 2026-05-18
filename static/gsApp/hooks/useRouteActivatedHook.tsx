@@ -97,7 +97,7 @@ export function useRouteActivatedHook({location, matches}: Props) {
     setEventName(undefined);
     setMountTime(Date.now());
     // this hook should only fire when the route changes and nothing else
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [currentRoute]);
 
   // This hook is in charge of sending analytics after DELAY_TIME_MS has passed

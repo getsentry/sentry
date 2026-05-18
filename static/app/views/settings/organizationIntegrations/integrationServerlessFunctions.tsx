@@ -47,7 +47,7 @@ export function IntegrationServerlessFunctions({
         organization,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [isSuccess]);
 
   return (

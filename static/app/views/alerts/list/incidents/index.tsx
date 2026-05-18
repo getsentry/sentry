@@ -302,7 +302,7 @@ export default function IncidentsListContainer() {
     trackAnalytics('alert_stream.viewed', {
       organization,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const renderDisabled = () => (

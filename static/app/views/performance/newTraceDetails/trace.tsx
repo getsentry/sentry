@@ -314,7 +314,7 @@ export function Trace({
       );
     },
     // we add forceRerender as a "unnecessary" dependency to trigger the virtualized list rerender
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [
       onNodeExpand,
       onNodeZoomIn,

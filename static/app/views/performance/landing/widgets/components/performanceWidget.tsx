@@ -43,7 +43,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [allWidgetData, setWidgetData]
   );
   const removeWidgetDataForKey = useCallback(
@@ -54,7 +54,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     [allWidgetData, setWidgetData]
   );
   const widgetProps = {widgetData, setWidgetDataForKey, removeWidgetDataForKey};

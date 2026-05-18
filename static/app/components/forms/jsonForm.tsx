@@ -93,7 +93,7 @@ function JsonForm({
   useEffect(() => {
     const hash = location?.hash;
     scrollToHash(hash);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [location?.hash]);
 
   const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {

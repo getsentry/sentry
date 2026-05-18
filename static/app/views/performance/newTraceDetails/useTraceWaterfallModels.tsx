@@ -24,7 +24,7 @@ export function useTraceWaterfallModels() {
       theme
     );
     // We only care about initial state when we initialize the view manager
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   return {traceView, traceScheduler, viewManager};

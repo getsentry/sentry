@@ -62,7 +62,7 @@ export function WidgetTemplatesList({
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function WidgetTemplatesList({
       organization,
     });
     // We only want to track this once when the component is mounted
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   const handleSave = async (widget: Widget) => {

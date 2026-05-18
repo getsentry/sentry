@@ -136,7 +136,7 @@ export function SearchBar(props: SearchBarProps) {
     }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line @eslint-react/exhaustive-deps
   const getSuggestedTransactions = useCallback(
     debounce(
       async query => {
