@@ -37,6 +37,5 @@ export const instrumentationConfig: IssueCategoryConfigMapping = {
     },
     discover: {enabled: false},
     groupingInfo: {enabled: false},
-    instrumentationFixSection: {enabled: true},
   },
 };
