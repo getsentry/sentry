@@ -328,14 +328,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        # Check if we've reached the stopping point
-        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
-        if stopping_step and current_step == stopping_step:
-            # We've reached the stopping point
-            return
-
-        # Check if we should trigger coding agent handoff instead of continuing
-        handoff_config = cls._get_handoff_config_if_applicable(stopping_point, current_step, group)
+        # Check if we should trigger coding agent handoff before evaluating
+        # the stopping point. Handoff replaces the rest of the pipeline, so it
+        # must take precedence over the stopping_point early-return — matching
+        # the legacy seer-side order in
+        # seer/automation/autofix/steps/root_cause_step.py, where
+        # _check_and_trigger_coding_agent_handoff runs before
+        # _should_auto_run_solution_step.
+        handoff_config = cls._get_handoff_config_if_applicable(current_step, group)
         if handoff_config:
             cls._trigger_coding_agent_handoff(
                 organization,
@@ -344,6 +344,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 handoff_config,
                 referrer or AutofixReferrer.ON_COMPLETION_HOOK,
             )
+            return
+
+        # Check if we've reached the stopping point
+        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
+        if stopping_step and current_step == stopping_step:
+            # We've reached the stopping point
             return
 
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
@@ -449,7 +455,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     @classmethod
     def _get_handoff_config_if_applicable(
         cls,
-        stopping_point: AutofixStoppingPoint,
         current_step: AutofixStep | None,
         group: Group,
     ) -> SeerAutomationHandoffConfiguration | None:
@@ -458,19 +463,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         Handoff is triggered when:
         - current_step is ROOT_CAUSE
-        - stopping_point is SOLUTION, CODE_CHANGES, or OPEN_PR
         - automation_handoff is configured with handoff_point = ROOT_CAUSE
-        """
-        # Only trigger handoff after root cause is completed
-        if current_step != AutofixStep.ROOT_CAUSE:
-            return None
 
-        # Only trigger handoff when continuing beyond root cause
-        if stopping_point not in [
-            AutofixStoppingPoint.SOLUTION,
-            AutofixStoppingPoint.CODE_CHANGES,
-            AutofixStoppingPoint.OPEN_PR,
-        ]:
+        The legacy seer-side gate
+        (seer/automation/autofix/steps/root_cause_step.py
+        _check_and_trigger_coding_agent_handoff) does not look at the run's
+        stopping_point. "Stop seer at root cause, then hand off to an external
+        coding agent" is a coherent configuration that must trigger handoff.
+        """
+        if current_step != AutofixStep.ROOT_CAUSE:
             return None
 
         return read_preference_from_sentry_db(group.project).automation_handoff
