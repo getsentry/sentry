@@ -165,7 +165,13 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={"project_id": project.id, **serializer.validated_data},
+            data={
+                "project_id": project.id,
+                "agent": serializer.validated_data.get("agent"),
+                "integration_id": serializer.validated_data.get("integrationId"),
+                "stopping_point": serializer.validated_data.get("stoppingPoint"),
+                "scanner_automation": serializer.validated_data.get("scannerAutomation"),
+            },
         )
 
         return Response(serialize_project(project))
