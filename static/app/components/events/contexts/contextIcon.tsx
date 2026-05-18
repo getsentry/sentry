@@ -3,7 +3,7 @@ import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
-const LOGO_MAPPING = {
+const LOGO_MAPPING: Readonly<Record<string, string>> = {
   'android-phone': 'android-phone',
   'android-tablet': 'android-tablet',
   'google-chrome': 'chrome',
@@ -63,56 +63,34 @@ const LOGO_MAPPING = {
   watchos: 'apple-watch',
   windows: 'windows',
   xbox: 'xbox',
-} as const;
+};
 
 /** @internal used in stories **/
 export const NAMES = Object.keys(LOGO_MAPPING);
 
-const SUPPORTED_PLATFORM_ICONS = new Set(platforms);
+const PLATFORM_ICONS = new Set<string>(platforms);
 
-function getPlatformIconName(name: string) {
-  if (name in LOGO_MAPPING) {
-    return LOGO_MAPPING[name as keyof typeof LOGO_MAPPING];
-  }
-
-  if (name.startsWith('amd-')) {
-    return 'amd';
-  }
-
-  if (name.startsWith('nvidia-')) {
-    return 'nvidia';
-  }
-
-  if (name.startsWith('nintendo-')) {
-    return 'nintendo-switch';
-  }
-
-  if (name.startsWith('chrome-')) {
-    return 'chrome';
-  }
-
-  if (name.startsWith('firefox-')) {
-    return 'firefox';
-  }
-
-  return name;
-}
-
-function supportsPlatformIcon(name: string) {
-  if (SUPPORTED_PLATFORM_ICONS.has(name)) {
-    return true;
-  }
-
-  if (!name.includes('-')) {
-    return false;
-  }
-
-  return SUPPORTED_PLATFORM_ICONS.has(name.split('-')[0]!);
-}
+const PREFIX_ALIASES: ReadonlyArray<readonly [string, string]> = [
+  ['amd-', 'amd'],
+  ['nvidia-', 'nvidia'],
+  ['nintendo-', 'nintendo-switch'],
+  ['chrome-', 'chrome'],
+  ['firefox-', 'firefox'],
+];
 
 export function getLogoImage(name: string) {
-  const platformIconName = getPlatformIconName(name);
-  return supportsPlatformIcon(platformIconName) ? platformIconName : logoUnknown;
+  const mapped = LOGO_MAPPING[name];
+  const prefixed = PREFIX_ALIASES.find(([prefix]) => name.startsWith(prefix))?.[1];
+  const icon = mapped ?? prefixed ?? name;
+
+  if (PLATFORM_ICONS.has(icon)) {
+    return icon;
+  }
+  const dash = icon.indexOf('-');
+  if (dash > 0 && PLATFORM_ICONS.has(icon.slice(0, dash))) {
+    return icon;
+  }
+  return logoUnknown;
 }
 
 export interface ContextIconProps {
