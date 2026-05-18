@@ -172,7 +172,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 ],
             },
             "SENTRY_AUTH_TOKEN": {
-                "type": "encrypted",
+                "type": "sensitive",
                 "value": sentry_auth_token,
                 "target": ["production", "preview"],
             },
@@ -254,7 +254,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         req_params = orjson.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
+        assert req_params["type"] == "sensitive"
 
         req_params = orjson.loads(responses.calls[9].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
@@ -318,7 +318,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 ],
             },
             "SENTRY_AUTH_TOKEN": {
-                "type": "encrypted",
+                "type": "sensitive",
                 "value": sentry_auth_token,
                 "target": ["production", "preview"],
             },
@@ -414,7 +414,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         req_params = orjson.loads(responses.calls[14].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
+        assert req_params["type"] == "sensitive"
 
         req_params = orjson.loads(responses.calls[17].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"

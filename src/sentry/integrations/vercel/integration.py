@@ -182,7 +182,7 @@ class VercelEnvVarMapBuilder:
                 ],
             },
             "SENTRY_AUTH_TOKEN": {
-                "type": "encrypted",
+                "type": "sensitive",
                 "value": self._auth_token,
                 "target": ["production", "preview"],
             },
