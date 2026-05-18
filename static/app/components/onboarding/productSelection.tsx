@@ -138,6 +138,11 @@ export const platformProductAvailability = {
   ],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
   dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  elixir: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -489,16 +494,24 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'ruby-rack': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'ruby-rails': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  rust: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   unity: [ProductSolution.LOGS, ProductSolution.METRICS],
   unreal: [ProductSolution.LOGS],
