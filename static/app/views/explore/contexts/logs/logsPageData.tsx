@@ -46,7 +46,7 @@ export function LogsPageDataProvider({
     staleTime,
   });
   const totalPayloadBytes = useLogsTotalPayload({
-    enabled: !!(allowHighFidelity && highFidelity && feature),
+    enabled: !!(allowHighFidelity && highFidelity && feature && !disabled),
   });
   const value = useMemo(() => {
     return {
