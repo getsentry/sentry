@@ -41,6 +41,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -249,6 +250,7 @@ function AutofixEmptyState({
   project,
   referrer,
 }: AutofixEmptyStateProps) {
+  const organization = useOrganization();
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -260,6 +262,12 @@ function AutofixEmptyState({
 
   const [startingRun, setStartingRun] = useState(false);
   const handleStartRootCause = async () => {
+    trackAnalytics('autofix.start_fix_clicked', {
+      organization,
+      group_id: group.id,
+      mode: 'explorer',
+      referrer,
+    });
     setStartingRun(true);
     try {
       await startStep('root_cause');
@@ -304,9 +312,21 @@ function AutofixEmptyState({
         aria-label={t('Start Analysis')}
         variant="primary"
         onClick={handleStartRootCause}
-        analyticsEventKey="autofix.start_fix_clicked"
-        analyticsEventName="Autofix: Start Fix Clicked"
-        analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
+        analyticsEventKey="issue_details.seer_opened"
+        analyticsEventName="Issue Details: Seer Opened"
+        analyticsParams={{
+          group_id: group.id,
+          has_streamlined_ui: true,
+          autofix_exists: false,
+          autofix_step_type: null,
+          has_summary: false,
+          has_root_cause: false,
+          has_solution: false,
+          has_coded_solution: false,
+          has_pr: false,
+          mode: 'explorer',
+          referrer,
+        }}
         disabled={startingRun}
       >
         {t('Start Analysis')}
