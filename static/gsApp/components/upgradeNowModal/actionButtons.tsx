@@ -12,6 +12,7 @@ import {
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -45,6 +46,7 @@ export function ActionButtons({
   surface,
 }: Props) {
   const api = useApi();
+  const navigate = useNavigate();
 
   const onUpdatePlan = async () => {
     try {
@@ -79,7 +81,7 @@ export function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(organization);
+      redirectToManage(navigate, organization);
     }
   };
 
@@ -104,7 +106,7 @@ export function ActionButtons({
         });
       },
       onError: () => {
-        redirectToManage(organization);
+        redirectToManage(navigate, organization);
       },
     });
   };

@@ -13,6 +13,7 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   openAM2UpsellModal,
@@ -39,6 +40,7 @@ function ReplayOnboardingCTAUpsell({
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   const api = useApi();
+  const navigate = useNavigate();
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${organization.id}:dismiss-replay-update-plan-button`,
     expirationDays: 14,
@@ -96,7 +98,7 @@ function ReplayOnboardingCTAUpsell({
       if (hasBillingAccess) {
         // Redirect the user to the subscriptions page, where they will find important information.
         // If they wish to update their plan, we ask them to contact our sales/support team.
-        redirectToManage(organization);
+        redirectToManage(navigate, organization);
       }
       return;
     }
@@ -141,6 +143,7 @@ function ReplayOnboardingCTAUpsell({
     didClickOpenModal,
     hasBillingAccess,
     isDismissed,
+    navigate,
     organization,
     previewData,
     subscription,

@@ -12,6 +12,7 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Plan, Subscription} from 'getsentry/types';
@@ -42,6 +43,7 @@ function UpgradeNowModal({
   useLogUpgradeNowViewed({organization, subscription, surface, hasPriceChange: false});
 
   const api = useApi();
+  const navigate = useNavigate();
 
   const onUpdatePlan = async () => {
     try {
@@ -74,7 +76,7 @@ function UpgradeNowModal({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(organization);
+      redirectToManage(navigate, organization);
       addErrorMessage(
         t(
           'Oops! Unable to update Subscription automatically. Click through to update manually.'
