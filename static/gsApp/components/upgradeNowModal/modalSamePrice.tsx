@@ -11,6 +11,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -21,7 +22,6 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import type {Reservations} from './types';
 import {useLogUpgradeNowViewed} from './useLogUpgradeNowViewed';
-import {redirectToManage} from './utils';
 
 type Props = ModalRenderProps & {
   organization: Organization;
@@ -76,7 +76,13 @@ function UpgradeNowModal({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(navigate, organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'replay_same_price_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
       addErrorMessage(
         t(
           'Oops! Unable to update Subscription automatically. Click through to update manually.'

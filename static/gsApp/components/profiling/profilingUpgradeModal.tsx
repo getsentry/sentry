@@ -21,13 +21,13 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PlanTable} from 'getsentry/components/upgradeNowModal/planTable';
 import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import {useUpgradeNowParams} from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
-import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -47,7 +47,13 @@ function UpsellModal(props: Props) {
 
   useEffect(() => {
     if (error && hasBillingAccess) {
-      redirectToManage(navigate, organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'profiling_upgrade_modal-preview_error'},
+        }),
+        {replace: true}
+      );
     }
   }, [error, hasBillingAccess, navigate, organization]);
 
@@ -223,7 +229,13 @@ function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(navigate, organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'profiling_upgrade_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
     }
   };
 

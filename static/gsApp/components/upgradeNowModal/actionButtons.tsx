@@ -11,6 +11,7 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -22,7 +23,6 @@ import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import type {Reservations} from './types';
-import {redirectToManage} from './utils';
 
 type Props = {
   organization: Organization;
@@ -81,7 +81,13 @@ export function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(navigate, organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'replay_upgrade_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
     }
   };
 
@@ -106,7 +112,13 @@ export function ActionButtons({
         });
       },
       onError: () => {
-        redirectToManage(navigate, organization);
+        navigate(
+          normalizeUrl({
+            pathname: `/checkout/${organization.slug}/`,
+            query: {referrer: 'replay_upgrade_modal-email_owner-error'},
+          }),
+          {replace: true}
+        );
       },
     });
   };
