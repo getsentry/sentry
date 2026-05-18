@@ -9,8 +9,9 @@ from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
-from sentry.models.organizationmember import OrganizationMember
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
@@ -401,9 +402,9 @@ class GroupAssigneeTestCase(TestCase):
             ).exists()
 
     def test_assign_deactivated_user_is_noop(self) -> None:
-        OrganizationMember.objects.filter(
-            organization=self.organization, user_id=self.user.id
-        ).update(user_is_active=False)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.is_active = False
+            self.user.save()
 
         result = GroupAssignee.objects.assign(self.group, self.user)
         assert result == {"new_assignment": False, "updated_assignment": False}

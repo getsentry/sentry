@@ -26,7 +26,6 @@ from sentry.issues.ownership.grammar import (
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
-from sentry.models.organizationmember import OrganizationMember
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
@@ -319,14 +318,8 @@ class ProjectOwnership(Model):
                 return
             logging_extra["resolved_owner"] = owner
 
-            if isinstance(owner, RpcUser):
-                if OrganizationMember.objects.filter(
-                    organization_id=group.project.organization_id,
-                    user_id=owner.id,
-                    user_is_active=False,
-                ).exists():
-                    logger.info("handle_auto_assignment.skip_deactivated_user", extra=logging_extra)
-                    return
+            if isinstance(owner, User) and owner.is_active is False:
+                return
 
             activity_details = {}
             if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value:

@@ -87,7 +87,6 @@ class GroupValidator(serializers.Serializer[Group]):
             return value
 
         organization = self.context.get("organization")
-
         if organization and organization.flags.allow_joinleave:
             return value
 

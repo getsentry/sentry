@@ -8,12 +8,12 @@ from sentry.models.groupowner import (
     GroupOwnerType,
     OwnerRuleType,
 )
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user_avatar import UserAvatar
@@ -952,21 +952,14 @@ class ProjectOwnershipTestCase(TestCase):
         assert isinstance(version, float)
 
     def test_handle_auto_assignment_skips_deactivated_user(self) -> None:
-        self.ownership = ProjectOwnership.objects.create(
-            project_id=self.project.id,
-            fallthrough=False,
-            auto_assignment=True,
-            suspect_committer_auto_assignment=True,
-        )
-
-        self.event = self.store_event(
+        event = self.store_event(
             data=self.python_event_data(),
             project_id=self.project.id,
         )
-        assert self.event.group is not None
+        assert event.group is not None
 
         GroupOwner.objects.create(
-            group=self.event.group,
+            group=event.group,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             user_id=self.user.id,
             team_id=None,
@@ -975,12 +968,12 @@ class ProjectOwnershipTestCase(TestCase):
             context={"commitId": 1},
         )
 
-        OrganizationMember.objects.filter(
-            organization=self.organization, user_id=self.user.id
-        ).update(user_is_active=False)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.is_active = False
+            self.user.save()
 
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
-        assert not GroupAssignee.objects.filter(group=self.event.group).exists()
+        ProjectOwnership.handle_auto_assignment(self.project.id, event)
+        assert not GroupAssignee.objects.filter(group=event.group).exists()
 
 
 class ResolveActorsTestCase(TestCase):
