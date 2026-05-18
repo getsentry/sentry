@@ -30,9 +30,17 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name="seerprojectrepository",
-            unique_together=set(),
+        # The old unique_together on (project, repository) was already dropped at the
+        # DB level by 0014 (AlterField with unique=True rebuilds constraints).
+        # State-only to sync Django's migration state.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name="seerprojectrepository",
+                    unique_together=set(),
+                ),
+            ],
+            database_operations=[],
         ),
         migrations.AlterField(
             model_name="seerprojectrepository",

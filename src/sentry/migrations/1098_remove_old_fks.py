@@ -29,17 +29,9 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        # The old unique_together on (project, stack_root, source_root) is being dropped.
-        # The replacement constraint was added in 1097 and stays in the model's Meta.constraints.
-        # State-only: the old DB constraint drops with the columns.
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterUniqueTogether(
-                    name="repositoryprojectpathconfig",
-                    unique_together=set(),
-                ),
-            ],
-            database_operations=[],
+        migrations.AlterUniqueTogether(
+            name="repositoryprojectpathconfig",
+            unique_together=set(),
         ),
         migrations.AlterField(
             model_name="repositoryprojectpathconfig",
