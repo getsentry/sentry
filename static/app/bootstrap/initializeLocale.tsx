@@ -85,6 +85,5 @@ export async function initializeLocale(config: Config) {
     }
   } catch (err) {
     Sentry.captureException(err);
-    setLocale(DEFAULT_LOCALE_DATA);
   }
 }
