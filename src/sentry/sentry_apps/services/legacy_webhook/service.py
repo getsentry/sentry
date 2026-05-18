@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
+from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.types import ActionInvocation
@@ -41,6 +42,8 @@ def _get_triggering_rule_name(invocation: ActionInvocation) -> str:
 def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookPayload:
     group = invocation.event_data.group
     event = invocation.event_data.event
+    if not isinstance(event, GroupEvent):
+        raise TypeError(f"Legacy webhook payload requires a GroupEvent, got {type(event).__name__}")
     triggering_rules = [_get_triggering_rule_name(invocation)]
     event_data = dict(event.data or {})
     data: LegacyWebhookPayload = {
