@@ -118,8 +118,6 @@ function FeedbackButton({
   onClick: (type: 'positive' | 'negative') => void;
   type: 'positive' | 'negative';
 }) {
-  const ariaLabel =
-    type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down');
   return (
     <Button
       aria-label={type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')}
