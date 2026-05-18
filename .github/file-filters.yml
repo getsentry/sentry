@@ -37,6 +37,7 @@ mdx_typecheckable: &mdx_typecheckable
   - added|deleted|modified: '**/tsconfig*.json'
   - added|deleted|modified: 'static/**/*.mdx'
   - added|deleted|modified: 'static/app/components/core/**/*.{ts,tsx}'
+  - added|deleted|modified: 'static/**/__stories__/**/*.{ts,tsx}'
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
