@@ -7,7 +7,9 @@ from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
+from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+    BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
     PercentSessionsQueryHandler,
@@ -16,6 +18,60 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import EventFrequ
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_rhs"),
+    [
+        (True, 1),
+        (1, 1),
+        ("true", 1),
+        ("1", 1),
+        (False, 0),
+        (0, 0),
+        ("false", 0),
+        ("0", 0),
+    ],
+)
+def test_error_handled_normalizes_value(value, expected_rhs):
+    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+        {"attribute": "error.handled", "match": "eq", "value": value}, TSDBModel.group
+    )
+    assert cond is not None
+    _, _, rhs = cond
+    assert rhs == expected_rhs
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_rhs"),
+    [
+        # "unhandled = true"  →  handled = 0
+        (True, 0),
+        (1, 0),
+        ("true", 0),
+        ("1", 0),
+        # "unhandled = false" →  handled = 1
+        (False, 1),
+        (0, 1),
+        ("false", 1),
+        ("0", 1),
+    ],
+)
+def test_error_unhandled_normalizes_and_flips_value(value, expected_rhs):
+    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+        {"attribute": "error.unhandled", "match": "eq", "value": value}, TSDBModel.group
+    )
+    assert cond is not None
+    _, _, rhs = cond
+    assert rhs == expected_rhs
+
+
+@pytest.mark.parametrize("attribute", ["error.handled", "error.unhandled"])
+def test_error_handled_unrecognized_value_returns_none(attribute):
+    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+        {"attribute": attribute, "match": "eq", "value": "garbage"}, TSDBModel.group
+    )
+    assert cond is None
 
 
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
