@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from enum import Enum, auto
 from hashlib import md5
 from math import floor
-from typing import Any, TypedDict, cast
+from typing import Any, Callable, TypedDict, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -179,7 +179,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def aggregation_defs(self) -> Mapping[str, Any]:
+    def aggregation_defs(self) -> Mapping[str, Sequence[str] | Callable]:
         """This method should return a dict of key:value
         where key is a field name for your aggregation
         and value is the aggregation function"""
