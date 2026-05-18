@@ -110,4 +110,49 @@ describe('SentryAppExternalFormNew', () => {
     expect(screen.getByText('board R')).toBeInTheDocument();
     expect(screen.getByText('Bug')).toBeInTheDocument();
   });
+
+  it('renders multi-select field and allows selecting multiple options', async () => {
+    const config: ComponentProps<typeof SentryAppExternalFormNew>['config'] = {
+      uri: '/integrations/sentry/issues/create',
+      required_fields: [
+        {
+          type: 'text',
+          name: 'title',
+          label: 'Title',
+          default: 'issue.title',
+        },
+      ],
+      optional_fields: [
+        {
+          type: 'select',
+          name: 'labelId',
+          label: 'Labels',
+          multiple: true,
+          choices: [
+            ['bug', 'Bug'],
+            ['feature', 'Feature'],
+            ['improvement', 'Improvement'],
+          ],
+        },
+      ],
+    };
+
+    render(
+      <SentryAppExternalFormNew
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
+        appName={sentryApp.name}
+        config={config}
+        action="create"
+        element="issue-link"
+        onSubmitSuccess={jest.fn()}
+      />
+    );
+
+    const labelsField = screen.getByRole('textbox', {name: 'Labels'});
+    await selectEvent.select(labelsField, 'Bug');
+    await selectEvent.select(labelsField, 'Feature');
+
+    const removeButtons = screen.getAllByRole('img', {name: 'Remove item'});
+    expect(removeButtons).toHaveLength(2);
+  });
 });

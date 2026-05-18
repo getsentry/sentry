@@ -24,6 +24,7 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   choices?: Array<[any, string]>;
   default?: 'issue.title' | 'issue.description';
   depends_on?: string[];
+  multiple?: boolean;
   skip_load_on_open?: boolean;
   uri?: string;
 };
@@ -376,6 +377,7 @@ class SentryAppExternalForm extends Component<Props, State> {
         filterOption: createFilter({}),
         allowClear: !required,
         placeholder: 'Type to search',
+        multiple: field.multiple,
       } as Field;
       if (field.depends_on) {
         // check if this is dependent on other fields which haven't been set yet
