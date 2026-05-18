@@ -21,6 +21,8 @@ interface NativeStackTraceFramesProps {
   borderless?: boolean;
   /** Replace the default trailing actions for each frame row. */
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
+  /** Replace the default expanded frame context. */
+  frameContextComponent?: ComponentType;
 }
 
 function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
@@ -37,6 +39,7 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 export function NativeStackTraceFrames({
   borderless = false,
   frameActionsComponent: FrameActionsComponent,
+  frameContextComponent: FrameContextComponent = FrameContent,
 }: NativeStackTraceFramesProps) {
   const {rows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();
@@ -80,7 +83,7 @@ export function NativeStackTraceFrames({
                   : undefined
               }
             />
-            <FrameContent />
+            <FrameContextComponent />
           </StackTraceFrameRow>
         );
       })}

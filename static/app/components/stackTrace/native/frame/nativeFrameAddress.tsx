@@ -1,4 +1,5 @@
-import {Text} from '@sentry/scraps/text';
+import styled from '@emotion/styled';
+
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
@@ -8,6 +9,7 @@ import {
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
+import type {Image} from 'sentry/types/debugImage';
 import type {Frame} from 'sentry/types/event';
 
 import {useGoToImagesLoaded} from './actions/goToImagesLoadedAction';
@@ -41,7 +43,47 @@ function getAddressTooltip({
   if (foundByStackScanning) {
     return t('Found by stack scanning');
   }
-  return undefined;
+}
+
+function getRelativeAddress({
+  frame,
+  image,
+  maxLengthOfRelativeAddress,
+}: {
+  frame: Frame;
+  image: Image | null;
+  maxLengthOfRelativeAddress: number;
+}) {
+  if (!image?.image_addr || !frame.instructionAddr) {
+    return '';
+  }
+
+  const relativeAddress = formatAddress(
+    parseAddress(frame.instructionAddr) - parseAddress(image.image_addr),
+    maxLengthOfRelativeAddress
+  );
+
+  return `+${relativeAddress}`;
+}
+
+function getDisplayAddress({
+  absoluteAddresses,
+  frame,
+  image,
+  maxLengthOfRelativeAddress,
+}: {
+  absoluteAddresses: boolean;
+  frame: Frame;
+  image: Image | null;
+  maxLengthOfRelativeAddress: number;
+}) {
+  const relativeAddress = getRelativeAddress({frame, image, maxLengthOfRelativeAddress});
+
+  if (absoluteAddresses || !relativeAddress) {
+    return frame.instructionAddr ?? '';
+  }
+
+  return relativeAddress;
 }
 
 export function NativeFrameAddress() {
@@ -57,24 +99,17 @@ export function NativeFrameAddress() {
   const inlineFrame = isInlineFrame(frame, prevFrame, platform);
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
 
-  const startingAddress = image?.image_addr ?? null;
-  const relative = startingAddress
-    ? `+${formatAddress(
-        parseAddress(frame.instructionAddr) - parseAddress(startingAddress),
-        maxLengthOfRelativeAddress
-      )}`
-    : '';
-
-  const display =
-    !relative || absoluteAddresses ? (frame.instructionAddr ?? '') : relative;
+  const displayAddress = getDisplayAddress({
+    absoluteAddresses,
+    frame,
+    image,
+    maxLengthOfRelativeAddress,
+  });
   const tooltip = getAddressTooltip({inlineFrame, foundByStackScanning});
 
   const cell = (
-    <Text
-      as="span"
-      monospace
-      size="xs"
-      variant={isClickable ? 'accent' : undefined}
+    <AddressText
+      isClickable={isClickable}
       onClick={
         isClickable
           ? e => {
@@ -84,8 +119,8 @@ export function NativeFrameAddress() {
           : undefined
       }
     >
-      {display}
-    </Text>
+      {displayAddress}
+    </AddressText>
   );
 
   if (!tooltip) {
@@ -94,3 +129,11 @@ export function NativeFrameAddress() {
 
   return <Tooltip title={tooltip}>{cell}</Tooltip>;
 }
+
+const AddressText = styled('span')<{isClickable: boolean}>`
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.xs};
+  font-style: inherit;
+  color: ${p =>
+    p.isClickable ? p.theme.tokens.interactive.link.accent.rest : 'inherit'};
+`;

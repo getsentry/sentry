@@ -34,7 +34,7 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
 import {NativeDisplayOptions} from './nativeDisplayOptions';
@@ -206,7 +206,7 @@ function NativeStoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Copy file path')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy file path')}
             icon={<IconCopy size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -215,7 +215,7 @@ function NativeStoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Open this line in GitHub')}
             icon={<IconGithub size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -679,9 +679,9 @@ function NativeIssueStackTraceStory() {
         stacktrace={stacktrace}
         displayOptionsStorageKey={DISPLAY_OPTIONS_STORAGE_KEY}
       >
-        <InterimSection
-          type={SectionKey.EXCEPTION}
+        <FoldSection
           title={t('Stack Trace')}
+          sectionKey={SectionKey.EXCEPTION}
           actions={sectionActions}
         >
           <Flex direction="column" gap="lg">
@@ -731,7 +731,7 @@ function NativeIssueStackTraceStory() {
             </Flex>
             <ActiveThreadFrames event={event} thread={activeThread} />
           </Flex>
-        </InterimSection>
+        </FoldSection>
       </NativeStackTraceProvider>
     </StackTraceViewStateProvider>
   );

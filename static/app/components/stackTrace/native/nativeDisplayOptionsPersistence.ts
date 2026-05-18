@@ -22,11 +22,13 @@ export function useNativeDisplayOptionsStorage(storageKey: string | undefined) {
 }
 
 export function getNativeDisplayOptionDefaults({
+  defaultView = 'app',
   hasMinifiedStacktrace,
   persistedOptions,
 }: {
   hasMinifiedStacktrace: boolean;
   persistedOptions: NativePersistedDisplayOption[];
+  defaultView?: StackTraceView;
 }) {
   return {
     defaultAbsoluteAddresses: persistedOptions.includes(
@@ -42,7 +44,7 @@ export function getNativeDisplayOptionDefaults({
     ),
     defaultView: persistedOptions.includes(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
       ? ('raw' as const)
-      : ('app' as const),
+      : defaultView,
   };
 }
 

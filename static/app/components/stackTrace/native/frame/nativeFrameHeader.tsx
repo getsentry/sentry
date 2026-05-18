@@ -61,6 +61,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
     <HeaderGrid
       data-test-id="native-stack-trace-frame-title"
       isExpandable={isExpandable}
+      isInAppFrame={frame.inApp}
       hasStatusColumn={hasAnyStatusIcons}
       aria-expanded={isExpandable ? isExpanded : undefined}
       aria-controls={isExpandable ? frameContextId : undefined}
@@ -133,12 +134,10 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
             isHoverable
           >
             <FileName>
-              <Text as="span" variant="muted" size="xs" monospace>
-                {'('}
-                {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
-                {frame.lineNo ? `:${frame.lineNo}` : ''}
-                {')'}
-              </Text>
+              {'('}
+              {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
+              {frame.lineNo ? `:${frame.lineNo}` : ''}
+              {')'}
             </FileName>
           </Tooltip>
         ) : null}
@@ -152,20 +151,29 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
 const HeaderGrid = styled('div')<{
   hasStatusColumn: boolean;
   isExpandable: boolean;
+  isInAppFrame: boolean;
 }>`
   display: grid;
   grid-template-columns: ${p =>
     p.hasStatusColumn
-      ? '16px minmax(100px, 140px) minmax(64px, 88px) minmax(0, 1fr) auto'
-      : 'minmax(100px, 140px) minmax(64px, 88px) minmax(0, 1fr) auto'};
+      ? '16px 150px 120px minmax(0, 1fr) minmax(168px, auto)'
+      : '150px 120px minmax(0, 1fr) minmax(168px, auto)'};
   align-items: center;
-  gap: ${p => p.theme.space.sm};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.sm};
+  padding: ${p =>
+    `${p.theme.space.sm} ${p.theme.space.md} ${p.theme.space.sm} ${
+      p.hasStatusColumn
+        ? p.theme.space.md
+        : `calc(${p.theme.space.md} + 16px + ${p.theme.space.md})`
+    }`};
   min-height: 36px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   background: ${p => p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.primary};
+  color: ${p =>
+    p.isInAppFrame ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+  font-style: ${p => (p.isInAppFrame ? 'normal' : 'italic')};
   text-align: left;
 
   &:hover {
@@ -259,16 +267,20 @@ const FunctionName = styled('span')`
 `;
 
 const FileName = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const ActionsCell = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: ${p => p.theme.space.xs};
+  min-width: 168px;
   margin-left: auto;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: actions;
+    min-width: 0;
   }
 `;
