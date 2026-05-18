@@ -20,7 +20,7 @@ class TestSendLegacyWebhookTask(TestCase):
         send_legacy_webhook_task(
             url="http://example.com/hook",
             payload=payload,
-            organization_id=self.organization.id,
+            project_id=self.project.id,
         )
 
         assert len(responses.calls) == 1
@@ -40,12 +40,13 @@ class TestSendLegacyWebhookTask(TestCase):
         send_legacy_webhook_task(
             url="http://example.com/hook",
             payload=payload,
-            organization_id=self.organization.id,
+            project_id=self.project.id,
         )
 
         assert len(responses.calls) == 0
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
         assert call_args[0][0] == "legacy_webhook.dry_run"
-        assert call_args[1]["extra"]["organization_id"] == self.organization.id
+        assert call_args[1]["extra"]["project_id"] == self.project.id
         assert call_args[1]["extra"]["url"] == "http://example.com/hook"
+        assert call_args[1]["extra"]["payload"] == payload

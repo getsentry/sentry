@@ -62,7 +62,8 @@ def send_legacy_webhooks_for_project(
     event: GroupEvent | Event,
     triggering_rules: list[str],
 ) -> None:
-    from .tasks import send_legacy_webhook_task
+    # Delayed import to avoid circular dependency (tasks imports LegacyWebhookPayload from here)
+    from sentry.sentry_apps.services.legacy_webhook.tasks import send_legacy_webhook_task
 
     urls_raw = ProjectOption.objects.get_value(project, "webhooks:urls", default="")
     urls = split_urls(urls_raw)
@@ -71,6 +72,4 @@ def send_legacy_webhooks_for_project(
 
     payload = build_legacy_webhook_payload(group, event, triggering_rules)
     for url in urls:
-        send_legacy_webhook_task.delay(
-            url=url, payload=payload, organization_id=project.organization_id
-        )
+        send_legacy_webhook_task.delay(url=url, payload=payload, project_id=project.id)
