@@ -229,6 +229,73 @@ describe('ScmProjectDetails', () => {
     });
   });
 
+  it('links selected repository to project after creation', async () => {
+    const onComplete = jest.fn();
+    const createdProject = ProjectFixture({
+      slug: 'javascript-nextjs',
+      name: 'javascript-nextjs',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: createdProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${createdProject.slug}/repo-link/`,
+      method: 'POST',
+      body: {
+        id: '1',
+        projectId: createdProject.id,
+        repositoryId: mockRepository.id,
+        source: 'scm_onboarding',
+        created: true,
+      },
+    });
+
+    render(
+      <ScmProjectDetails
+        onComplete={onComplete}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+          selectedRepository: mockRepository,
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalled();
+    });
+
+    expect(repoLinkRequest).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${createdProject.slug}/repo-link/`,
+      expect.objectContaining({
+        method: 'POST',
+        data: {repositoryId: mockRepository.id},
+      })
+    );
+  });
+
   it('defaults team selector to first admin team', async () => {
     render(
       <ScmProjectDetails
