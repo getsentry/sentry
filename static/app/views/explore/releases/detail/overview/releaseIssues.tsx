@@ -230,18 +230,15 @@ export function ReleaseIssues({
     combine: ([issueCountResult, resolvedResult]) => ({
       data: {
         new:
-          issueCountResult.data?.[`${issuesQuery.new}:"${version}" is:unresolved`] ??
-          null,
+          issueCountResult.data?.[`${issuesQuery.new}:"${version}" is:unresolved`] || 0,
         all:
-          issueCountResult.data?.[`${issuesQuery.all}:"${version}" is:unresolved`] ??
-          null,
-        resolved: resolvedResult.data?.length ?? null,
+          issueCountResult.data?.[`${issuesQuery.all}:"${version}" is:unresolved`] || 0,
+        resolved: resolvedResult.data?.length ?? 0,
         unhandled:
           issueCountResult.data?.[
             `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
-          ] ?? null,
-        regressed:
-          issueCountResult.data?.[`${issuesQuery.regressed}:"${version}"`] ?? null,
+          ] || 0,
+        regressed: issueCountResult.data?.[`${issuesQuery.regressed}:"${version}"`] || 0,
       },
     }),
   });
