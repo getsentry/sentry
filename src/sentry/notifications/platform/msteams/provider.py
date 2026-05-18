@@ -21,6 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
     NotificationBodyTextBlockType,
+    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -129,6 +130,16 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         NotificationTargetResourceType.CHANNEL,
         NotificationTargetResourceType.DIRECT_MESSAGE,
     ]
+
+    @classmethod
+    def get_renderer(
+        cls, *, data: NotificationData, category: NotificationCategory
+    ) -> type[NotificationRenderer[MSTeamsRenderable]]:
+        from sentry.notifications.platform.msteams.renderers.issue import IssueMSTeamsRenderer
+
+        if category == NotificationCategory.ISSUE:
+            return IssueMSTeamsRenderer
+        return cls.default_renderer
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
