@@ -935,7 +935,6 @@ export default typescript.config([
       'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
       'react-you-might-not-need-an-effect/no-initialize-state': 'off',
       'react-you-might-not-need-an-effect/no-manage-parent': 'off',
-      'react-you-might-not-need-an-effect/no-empty-effect': 'off',
     },
   },
   {
