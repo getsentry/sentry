@@ -109,8 +109,6 @@ export enum IssueCategory {
 
   PREPROD = 'preprod',
 
-  INSTRUMENTATION = 'instrumentation',
-
   CONFIGURATION = 'configuration',
 }
 
@@ -148,9 +146,6 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
-  [IssueCategory.INSTRUMENTATION]: t(
-    'Improvements to your instrumentation and SDK usage.'
-  ),
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
   ),
