@@ -28,19 +28,6 @@ function getStatusEntries(currentStatus: GroupStatus, activity: GroupActivity[])
   return Object.fromEntries(getIssueActivityTimelineStatuses(currentStatus, activity));
 }
 
-function getConnectorStatusEntries(
-  currentStatus: GroupStatus,
-  activity: GroupActivity[]
-) {
-  const statuses = getIssueActivityTimelineStatuses(currentStatus, activity);
-  return Object.fromEntries(
-    activity.map((item, index) => {
-      const nextItem = activity[index + 1];
-      return [item.id, nextItem ? statuses.get(nextItem.id) : statuses.get(item.id)];
-    })
-  );
-}
-
 describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
@@ -222,14 +209,9 @@ describe('StreamlinedActivitySection', () => {
       'initial-note': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
       'first-seen': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
     });
-    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
-      regressed: ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
-      'initial-note': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
-      'first-seen': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
-    });
   });
 
-  it('colors the connector from archived to unresolved as unresolved', () => {
+  it('infers archived to unresolved activity statuses', () => {
     const activities = [
       {
         type: GroupActivityType.SET_IGNORED,
@@ -251,13 +233,9 @@ describe('StreamlinedActivitySection', () => {
       ignored: GroupStatus.IGNORED,
       ongoing: GroupStatus.UNRESOLVED,
     });
-    expect(getConnectorStatusEntries(GroupStatus.IGNORED, activities)).toEqual({
-      ignored: GroupStatus.UNRESOLVED,
-      ongoing: GroupStatus.UNRESOLVED,
-    });
   });
 
-  it('keeps the connector from unresolved to archived neutral', () => {
+  it('infers unresolved to archived activity statuses', () => {
     const activities = [
       {
         type: GroupActivityType.AUTO_SET_ONGOING,
@@ -277,10 +255,6 @@ describe('StreamlinedActivitySection', () => {
 
     expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
       ongoing: GroupStatus.UNRESOLVED,
-      ignored: GroupStatus.IGNORED,
-    });
-    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
-      ongoing: GroupStatus.IGNORED,
       ignored: GroupStatus.IGNORED,
     });
   });
@@ -343,7 +317,7 @@ describe('StreamlinedActivitySection', () => {
     });
   });
 
-  it('uses unresolved connectors between consecutive regression actions', () => {
+  it('infers unresolved statuses between consecutive regression actions', () => {
     const activities = [
       {
         type: GroupActivityType.SET_REGRESSION,
@@ -384,15 +358,15 @@ describe('StreamlinedActivitySection', () => {
       },
     ] as GroupActivity[];
 
-    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+    expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
       'regressed-3': GroupStatus.UNRESOLVED,
       'regressed-2': GroupStatus.UNRESOLVED,
-      'regressed-1': GroupStatus.RESOLVED,
+      'regressed-1': GroupStatus.UNRESOLVED,
       'resolved-by-age': GroupStatus.RESOLVED,
     });
   });
 
-  it('colors connectors by the status during the interval between state changes', () => {
+  it('infers statuses during the interval between state changes', () => {
     const activities = [
       {
         type: GroupActivityType.AUTO_SET_ONGOING,
@@ -420,11 +394,6 @@ describe('StreamlinedActivitySection', () => {
     expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
       ongoing: GroupStatus.UNRESOLVED,
       resolved: GroupStatus.RESOLVED,
-      regressed: GroupStatus.UNRESOLVED,
-    });
-    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
-      ongoing: GroupStatus.RESOLVED,
-      resolved: GroupStatus.UNRESOLVED,
       regressed: GroupStatus.UNRESOLVED,
     });
   });
@@ -745,13 +714,20 @@ describe('StreamlinedActivitySection', () => {
     }
   });
 
-  it('only applies status timeline colors in the drawer', () => {
+  it('only applies status timeline colors to state-change items in the drawer', () => {
     const activities = [
       {
         type: GroupActivityType.SET_RESOLVED,
         id: 'resolved-1',
         data: {},
         dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.NOTE,
+        id: 'note-1',
+        data: {text: 'Still resolved'},
+        dateCreated: '2020-01-02T12:00:00',
         user,
       },
       {
@@ -784,12 +760,16 @@ describe('StreamlinedActivitySection', () => {
     const regressedRow = screen
       .getByText('Regressed')
       .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
+    const noteRow = screen
+      .getByText('Still resolved')
+      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
     const ignoredRow = screen
       .getByText('Archived')
       .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
 
-    expect(resolvedRow.style.getPropertyValue('--timeline-connector-color')).not.toBe('');
+    expect(resolvedRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
     expect(regressedRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
+    expect(noteRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
     expect(ignoredRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
     expect(
       resolvedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
@@ -797,6 +777,9 @@ describe('StreamlinedActivitySection', () => {
     expect(
       regressedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
     ).not.toBe('transparent');
+    expect(
+      noteRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
+    ).toBe('transparent');
     expect(
       ignoredRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
     ).not.toBe('transparent');

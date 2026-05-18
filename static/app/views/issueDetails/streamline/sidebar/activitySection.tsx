@@ -60,6 +60,12 @@ const UNRESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.AUTO_SET_ONGOING,
 ]);
 
+const STATUS_CHANGE_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  ...RESOLVED_ACTIVITY_TYPES,
+  ...UNRESOLVED_ACTIVITY_TYPES,
+  GroupActivityType.SET_IGNORED,
+]);
+
 function getInitialTimelineStatus(status: GroupStatus): IssueActivityTimelineStatus {
   if (status === GroupStatus.RESOLVED || status === GroupStatus.IGNORED) {
     return status;
@@ -140,7 +146,6 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
-  timelineConnectorColor,
   timelineIconBorderColor,
   isDrawer,
 }: {
@@ -150,7 +155,6 @@ function TimelineItem({
   item: GroupActivity;
   teams: Team[];
   isDrawer?: boolean;
-  timelineConnectorColor?: string;
   timelineIconBorderColor?: string;
 }) {
   const organization = useOrganization();
@@ -191,7 +195,6 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
-      connectorColor={timelineConnectorColor}
       icon={
         Icon && (
           <Icon
@@ -363,27 +366,11 @@ export function StreamlinedActivitySection({
   };
 
   const getTimelineIconBorderColor = (item: GroupActivity) => {
-    if (!timelineStatuses) {
+    if (!timelineStatuses || !STATUS_CHANGE_ACTIVITY_TYPES.has(item.type)) {
       return;
     }
-    const status =
-      item.type === GroupActivityType.FIRST_SEEN
-        ? undefined
-        : timelineStatuses.get(item.id);
+    const status = timelineStatuses.get(item.id);
     return getStatusColor(status) ?? theme.tokens.border.secondary;
-  };
-
-  const getTimelineConnectorColor = (
-    item: GroupActivity,
-    nextItem: GroupActivity | undefined
-  ) => {
-    if (!timelineStatuses) {
-      return;
-    }
-    const status = nextItem
-      ? timelineStatuses.get(nextItem.id)
-      : timelineStatuses.get(item.id);
-    return getStatusColor(status);
   };
 
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
@@ -406,7 +393,7 @@ export function StreamlinedActivitySection({
       />
       {visibleActivities
         .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
-        .map((item, index, displayedActivity) => {
+        .map(item => {
           return (
             <TimelineItem
               item={item}
@@ -415,10 +402,6 @@ export function StreamlinedActivitySection({
               group={group}
               teams={teams}
               key={item.id}
-              timelineConnectorColor={getTimelineConnectorColor(
-                item,
-                displayedActivity[index + 1]
-              )}
               timelineIconBorderColor={getTimelineIconBorderColor(item)}
               isDrawer={isDrawer}
             />
