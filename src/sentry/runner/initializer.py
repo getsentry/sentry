@@ -337,6 +337,10 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     monkeypatch_drf_listfield_serializer_errors()
 
+    from sentry.utils.proto_loader import install as install_proto_loader
+
+    install_proto_loader()
+
     import django
 
     django.setup()

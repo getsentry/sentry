@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+#
+# Sync proto files from a sentry-protos checkout into this repo's proto/ directory.
+#
+# Usage:
+#   bin/sync-protos [SENTRY_PROTOS_DIR] [DOMAIN...]
+#
+# Examples:
+#   # Sync billing protos from default location (../sentry-protos)
+#   bin/sync-protos
+#
+#   # Sync billing protos from a specific checkout
+#   bin/sync-protos /path/to/sentry-protos billing
+#
+#   # Sync multiple domains
+#   bin/sync-protos /path/to/sentry-protos billing snuba
+#
+#   # Sync ALL domains
+#   bin/sync-protos /path/to/sentry-protos --all
+#
+#   # Compile after syncing (for prod use or to verify)
+#   bin/sync-protos --compile
+#
+# After syncing, the proto_loader will auto-compile these on next import.
+# No restart needed — just import as usual.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROTO_DIR="$REPO_ROOT/proto"
+CACHE_DIR="$REPO_ROOT/.proto_cache"
+
+# Default sentry-protos location (sibling directory)
+DEFAULT_PROTOS_DIR="$(cd "$REPO_ROOT/.." && pwd)/sentry-protos"
+
+usage() {
+    echo "Usage: bin/sync-protos [OPTIONS] [SENTRY_PROTOS_DIR] [DOMAIN...]"
+    echo ""
+    echo "Sync proto files from a sentry-protos checkout into proto/."
+    echo ""
+    echo "Arguments:"
+    echo "  SENTRY_PROTOS_DIR  Path to sentry-protos repo (default: ../sentry-protos)"
+    echo "  DOMAIN             Proto domain to sync: billing, snuba, seer, etc."
+    echo "                     Default: billing"
+    echo ""
+    echo "Options:"
+    echo "  --all              Sync all domains"
+    echo "  --compile          Compile protos after syncing"
+    echo "  --clear            Clear compiled cache before syncing"
+    echo "  --status           Show which protos are in-repo vs pip"
+    echo "  --help             Show this help"
+    exit 0
+}
+
+do_compile=false
+do_clear=false
+do_status=false
+do_all=false
+protos_dir=""
+domains=()
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help|-h)
+            usage
+            ;;
+        --compile)
+            do_compile=true
+            shift
+            ;;
+        --clear)
+            do_clear=true
+            shift
+            ;;
+        --status)
+            do_status=true
+            shift
+            ;;
+        --all)
+            do_all=true
+            shift
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$protos_dir" ]] && [[ -d "$1/proto/sentry_protos" ]]; then
+                protos_dir="$1"
+            elif [[ -z "$protos_dir" ]] && [[ -d "$1" ]]; then
+                protos_dir="$1"
+            else
+                domains+=("$1")
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Resolve sentry-protos directory
+if [[ -z "$protos_dir" ]]; then
+    protos_dir="$DEFAULT_PROTOS_DIR"
+fi
+
+# The proto source root within sentry-protos
+if [[ -d "$protos_dir/proto/sentry_protos" ]]; then
+    protos_source="$protos_dir/proto"
+elif [[ -d "$protos_dir/sentry_protos" ]]; then
+    protos_source="$protos_dir"
+else
+    echo "Error: Cannot find sentry_protos directory in $protos_dir" >&2
+    echo "Expected: $protos_dir/proto/sentry_protos/ or $protos_dir/sentry_protos/" >&2
+    exit 1
+fi
+
+# Handle --status
+if $do_status; then
+    echo "Proto override status:"
+    echo "  Repo proto dir:    $PROTO_DIR"
+    echo "  Compiled cache:    $CACHE_DIR"
+    echo "  sentry-protos:     $protos_source"
+    echo ""
+
+    if [[ -d "$PROTO_DIR/sentry_protos" ]]; then
+        echo "In-repo domains:"
+        for d in "$PROTO_DIR/sentry_protos"/*/; do
+            [[ -d "$d" ]] && echo "  - $(basename "$d")"
+        done
+    else
+        echo "No in-repo protos (proto/sentry_protos/ does not exist)"
+    fi
+    echo ""
+
+    if [[ -d "$CACHE_DIR" ]]; then
+        count=$(find "$CACHE_DIR" -name "*_pb2.py" 2>/dev/null | wc -l | tr -d ' ')
+        echo "Compiled cache: $count _pb2.py files"
+    else
+        echo "Compiled cache: empty"
+    fi
+    exit 0
+fi
+
+# Handle --clear
+if $do_clear; then
+    echo "Clearing compiled cache..."
+    rm -rf "$CACHE_DIR"
+    echo "Done."
+    if ! $do_compile && [[ ${#domains[@]} -eq 0 ]] && ! $do_all; then
+        exit 0
+    fi
+fi
+
+# Default to billing if no domains specified
+if [[ ${#domains[@]} -eq 0 ]] && ! $do_all; then
+    domains=("billing")
+fi
+
+# Determine domains to sync
+if $do_all; then
+    domains=()
+    for d in "$protos_source/sentry_protos"/*/; do
+        [[ -d "$d" ]] && domains+=("$(basename "$d")")
+    done
+fi
+
+# Sync each domain
+for domain in "${domains[@]}"; do
+    src="$protos_source/sentry_protos/$domain"
+    dst="$PROTO_DIR/sentry_protos/$domain"
+
+    if [[ ! -d "$src" ]]; then
+        echo "Warning: Domain '$domain' not found at $src, skipping." >&2
+        continue
+    fi
+
+    echo "Syncing $domain..."
+    mkdir -p "$(dirname "$dst")"
+
+    # Use rsync for clean sync (delete files removed from source)
+    rsync -a --delete \
+        --include='*.proto' \
+        --include='*/' \
+        --exclude='*' \
+        "$src/" "$dst/"
+
+    proto_count=$(find "$dst" -name "*.proto" | wc -l | tr -d ' ')
+    echo "  $proto_count proto files synced to proto/sentry_protos/$domain/"
+done
+
+# Handle --compile
+if $do_compile; then
+    echo ""
+    echo "Compiling protos..."
+    "$REPO_ROOT/.venv/bin/python" -m sentry.utils.proto_compiler compile \
+        --source "$PROTO_DIR" \
+        --output "$CACHE_DIR"
+fi
+
+echo ""
+echo "Done. Proto overrides are active — imports will use in-repo protos."

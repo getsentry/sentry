@@ -67,6 +67,7 @@ yarn.lock
 .claude/plans
 .claude/worktrees
 .warden/
+.proto_cache/
 # Auto-updated agent skill dependencies — ignore to avoid dirty state
 .agents/.gitignore
 agents.lock

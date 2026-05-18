@@ -128,6 +128,10 @@ runs:
         cd "$WORKDIR"
         # We need to install editable otherwise things like check migration will fail.
         python3 -m tools.fast_editable --path .
+        # Pre-compile proto overrides so xdist workers don't race to compile.
+        if [ -d proto/sentry_protos ]; then
+          python3 -m sentry.utils.proto_compiler compile --source proto --output .proto_cache
+        fi
 
     - name: Start new devservices
       if: ${{ inputs.skip-devservices != 'true' }}
