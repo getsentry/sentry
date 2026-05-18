@@ -33,7 +33,12 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
+import {
+  getTraceMetaErrorCount,
+  getTraceMetaPerformanceIssueCount,
+  getTraceMetaSpanCount,
+  useTraceMeta,
+} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
 import {
@@ -117,7 +122,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   });
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -153,21 +158,17 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   useLLMContext({
     contextHint:
       'Sentry trace detail page. services lists the projects (services) involved in this trace. ' +
-      'Tools: get_trace_waterfall(trace_id, span_id?) for full waterfall or specific span; ' +
-      'get_event_details(event_id?, issue_id?) for error event details; ' +
-      'get_issue_details(issue_id) for issue aggregate stats; ' +
-      'get_log_attributes(trace_id, log_message_substring) for log entries in this trace; ' +
-      'get_metric_attributes(trace_id, metric_name) for metric samples in this trace; ' +
-      'get_profile_flamegraph(profile_id, trace_id?) for CPU/memory flamegraph; ' +
-      'telemetry_live_search(dataset, question, project_slugs) for related spans/errors/logs/metrics.',
+      'You can get the trace waterfall or focus on a specific span, get event details or issue aggregate stats, ' +
+      'get log attributes or metric attributes by trace ID, view a profile flamegraph, ' +
+      'and search live telemetry for related spans/errors/logs/metrics.',
     traceId: traceSlug,
     activeTab: currentTab,
     durationMs: tree.root.children[0]?.space?.[1],
     nodeCount: tree.list.length,
     services: Array.from(tree.projects.values()).map(p => p.slug),
-    errors: meta.data?.errors,
-    performanceIssues: meta.data?.performance_issues,
-    spanCount: meta.data?.span_count,
+    errors: getTraceMetaErrorCount(meta.data),
+    performanceIssues: getTraceMetaPerformanceIssueCount(meta.data),
+    spanCount: getTraceMetaSpanCount(meta.data),
     webVitals: tree.indicators.map(i => ({
       type: i.type,
       label: i.label,

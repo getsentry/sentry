@@ -44,10 +44,10 @@ interface InputSectionProps {
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  canSendMessage?: boolean;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
-  isMinimized?: boolean;
-  isVisible?: boolean;
+  isTimedOut?: boolean;
   questionActions?: QuestionActions;
 }
 
@@ -55,9 +55,9 @@ export function InputSection({
   blocks,
   enabled,
   inputValue,
-  isMinimized = false,
+  canSendMessage = true,
   interruptState = 'disabled',
-  isVisible = false,
+  isTimedOut = false,
   onCreatePR,
   onInputChange,
   onInputClick,
@@ -78,7 +78,7 @@ export function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
+    if (!enabled || !fileApprovalActions) {
       return;
     }
 
@@ -102,11 +102,11 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, fileApprovalActions, isVisible, isMinimized]);
+  }, [enabled, fileApprovalActions]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!enabled || !questionActions || !isVisible || isMinimized) {
+    if (!enabled || !questionActions) {
       return;
     }
 
@@ -142,7 +142,7 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, questionActions, isVisible, isMinimized]);
+  }, [enabled, questionActions]);
 
   // Render disabled input element if not enabled
   if (!enabled) {
@@ -258,7 +258,9 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup isWarning={interruptState === 'completed'}>
+        <StyledInputGroup
+          isWarningPlaceholder={interruptState === 'completed' || isTimedOut}
+        >
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
@@ -266,9 +268,11 @@ export function InputSection({
             onKeyDown={onKeyDown}
             onClick={onInputClick}
             placeholder={
-              interruptState === 'completed'
-                ? t('Interrupted. What should Seer do instead?')
-                : t('Ask Seer a question, or press / for commands.')
+              isTimedOut
+                ? t('Response timed out. Please try again.')
+                : interruptState === 'completed'
+                  ? t('Interrupted. What should Seer do instead?')
+                  : t('Ask Seer a question, or press / for commands.')
             }
             rows={1}
             maxRows={5}
@@ -296,7 +300,7 @@ export function InputSection({
             onClick={onSend}
             size="md"
             variant="secondary"
-            disabled={!inputValue.trim()}
+            disabled={!canSendMessage}
             aria-label={t('Send message')}
           />
         )}
@@ -329,14 +333,15 @@ const InputRow = styled('div')`
   margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{isWarning?: boolean}>`
+const StyledInputGroup = styled(InputGroup)<{isWarningPlaceholder?: boolean}>`
   flex: 1;
 
   textarea {
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.isWarning ? p.theme.tokens.content.warning : undefined)};
+      color: ${p =>
+        p.isWarningPlaceholder ? p.theme.tokens.content.warning : undefined};
     }
   }
 

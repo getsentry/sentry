@@ -76,7 +76,7 @@ function TransactionOverview() {
 function CardinalityLoadingWrapper() {
   const mepCardinalityContext = useMetricsCardinalityContext();
 
-  if (mepCardinalityContext.isLoading) {
+  if (mepCardinalityContext?.isLoading) {
     return <LoadingContainer isLoading />;
   }
 
@@ -86,7 +86,7 @@ function CardinalityLoadingWrapper() {
 function EAPCardinalityLoadingWrapper() {
   const mepCardinalityContext = useMetricsCardinalityContext();
 
-  if (mepCardinalityContext.isLoading) {
+  if (mepCardinalityContext?.isLoading) {
     return <LoadingContainer isLoading />;
   }
 

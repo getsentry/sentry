@@ -12,7 +12,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
+import {IconChevron, IconDownload, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseApiError} from 'sentry/utils/parseApiError';
@@ -22,6 +22,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
+import {downloadSizeCompareItemsAsCsv} from 'sentry/views/preprod/buildComparison/main/downloadSizeCompareItemsAsCsv';
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
@@ -317,12 +318,7 @@ export function SizeCompareMainContent() {
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
           <Flex align="center" justify="between" padding="xl">
-            <Flex align="center" gap="sm">
-              <Heading as="h2">
-                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
-              </Heading>
-            </Flex>
-            <Flex align="center" gap="sm">
+            <Flex align="center">
               <Button
                 variant="transparent"
                 size="sm"
@@ -337,19 +333,29 @@ export function SizeCompareMainContent() {
                   }}
                 />
               </Button>
+              <Heading as="h2">
+                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
+              </Heading>
             </Flex>
+            <Button
+              size="sm"
+              icon={<IconDownload />}
+              disabled={filteredDiffItems.length === 0}
+              onClick={() =>
+                downloadSizeCompareItemsAsCsv(
+                  filteredDiffItems,
+                  t('Size Compare Items Changed')
+                )
+              }
+              aria-label={t('Download CSV')}
+            >
+              {t('Download CSV')}
+            </Button>
           </Flex>
           {isFilesExpanded && (
             <Stack>
-              <Flex
-                align="center"
-                gap="xl"
-                paddingLeft="xl"
-                paddingRight="xl"
-                paddingBottom="xl"
-                wrap="wrap"
-              >
-                <InputGroup style={{width: '100%', minWidth: '200px'}}>
+              <Stack gap="md" paddingLeft="xl" paddingRight="xl" paddingBottom="xl">
+                <InputGroup>
                   <InputGroup.LeadingItems>
                     <IconSearch />
                   </InputGroup.LeadingItems>
@@ -371,7 +377,7 @@ export function SizeCompareMainContent() {
                     }
                   />
                 </Flex>
-              </Flex>
+              </Stack>
               <SizeCompareItemDiffTable
                 diffItems={filteredDiffItems}
                 originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}

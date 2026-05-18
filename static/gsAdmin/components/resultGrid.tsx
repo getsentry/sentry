@@ -6,7 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -487,7 +487,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
     return (
-      <ResultGridContainer data-test-id="result-grid">
+      <Container data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
           {needsRegion && (
             <CompactSelect
@@ -564,12 +564,10 @@ class ResultGrid extends Component<ResultGridProps, State> {
             onCursor={useQueryString ? undefined : this.onCursor}
           />
         )}
-      </ResultGridContainer>
+      </Container>
     );
   }
 }
-
-const ResultGridContainer = styled('div')``;
 
 const SortSearchForm = styled('form')`
   display: flex;

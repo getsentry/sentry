@@ -16,10 +16,10 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   useUpdateBulkAutofixAutomationSettings,
@@ -32,9 +32,9 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   getFilteredCodingAgentName,
@@ -145,7 +145,7 @@ export function SeerProjectTable() {
             ProjectsStore.onUpdateSuccess({
               id: projectId,
               autofixAutomationTuning: updates.autofixAutomationTuning ?? undefined,
-            });
+            } as Partial<DetailedProject>);
           }
         }
       },
@@ -165,11 +165,6 @@ export function SeerProjectTable() {
     'sort',
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
-
-  const queryKey = [
-    'seer-projects',
-    {query: {query: searchTerm, sort, agent: agentFilter}},
-  ] as unknown as ApiQueryKey;
 
   const sortedProjects = useMemo(() => {
     return projects.toSorted((a, b) => {
@@ -273,7 +268,9 @@ export function SeerProjectTable() {
     <ListItemCheckboxProvider
       hits={filteredProjects.length}
       knownIds={filteredProjects.map(project => project.id)}
-      queryKey={queryKey}
+      endpointOptions={{
+        query: {query: searchTerm, sort, agent: agentFilter},
+      }}
     >
       <Stack gap="lg">
         <Flex gap="md">
@@ -368,6 +365,8 @@ const SimpleTableWithColumns = styled(SimpleTable)`
 `;
 
 function AddProjectButton() {
+  const {openModal} = useModal();
+
   const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   return (

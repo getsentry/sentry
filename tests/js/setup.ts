@@ -76,6 +76,12 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 
+jest.mock('@sentry-internal/global-search', () => ({
+  SentryGlobalSearch: jest.fn().mockImplementation(() => ({
+    query: jest.fn().mockResolvedValue([]),
+  })),
+}));
+
 jest.mock('@stripe/stripe-js', () => ({
   loadStripe: jest.fn(() =>
     Promise.resolve({

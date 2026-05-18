@@ -53,7 +53,7 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.FOUNDATIONS
 
     def get(
         self,

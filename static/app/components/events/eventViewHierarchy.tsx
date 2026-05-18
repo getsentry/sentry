@@ -16,7 +16,7 @@ import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import type {ViewHierarchyData} from './viewHierarchy';
 import {ViewHierarchy} from './viewHierarchy';
@@ -96,9 +96,9 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
   const platformViewConfig = getPlatformViewConfig(platform);
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey={SectionKey.VIEW_HIERARCHY}
       title={platformViewConfig.title}
-      type={SectionKey.VIEW_HIERARCHY}
       disableCollapsePersistence={disableCollapsePersistence}
     >
       <ErrorBoundary mini>
@@ -110,7 +110,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
           nodeField={platformViewConfig.nodeField}
         />
       </ErrorBoundary>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

@@ -14,10 +14,10 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.models.apikey import ApiKey
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class ApiKeySerializer(serializers.ModelSerializer):
@@ -36,7 +36,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
 
 @control_silo_endpoint
 class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.FOUNDATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

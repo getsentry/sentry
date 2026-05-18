@@ -160,7 +160,7 @@ class PushEventWebhook(BitbucketWebhook):
 
 @cell_silo_endpoint
 class BitbucketWebhookEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

@@ -12,7 +12,7 @@ from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     run_calculations_per_org_task,
     schedule_per_org_calculations,
 )
-from sentry.dynamic_sampling.per_org.tasks.telemetry import TelemetryStatus
+from sentry.dynamic_sampling.per_org.tasks.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -147,7 +147,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result == TelemetryStatus.NO_ORG_VOLUME
+        assert result == DynamicSamplingStatus.NO_ORG_VOLUME
         _assert_called_once_with_config(get_volume, org.id)
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         get_project_volumes.assert_not_called()
@@ -199,7 +199,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result == TelemetryStatus.NO_PROJECT_VOLUMES
+        assert result == DynamicSamplingStatus.NO_PROJECT_VOLUMES
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         _assert_called_once_with_config(get_volume, org.id)
         _assert_called_once_with_config(get_project_volumes, org.id)
@@ -279,7 +279,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result == TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
+        assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
         get_blended_sample_rate.assert_not_called()
         get_volume.assert_not_called()
         get_project_volumes.assert_not_called()
@@ -325,7 +325,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result == TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
+        assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         get_volume.assert_not_called()
 
@@ -344,7 +344,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result == TelemetryStatus.NO_SUBSCRIPTION
+        assert result == DynamicSamplingStatus.NO_SUBSCRIPTION
         get_volume.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -354,7 +354,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ) as get_volume:
             result = run_calculations_per_org_task(99999999)
 
-        assert result == TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
+        assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
         get_volume.assert_not_called()
 
 

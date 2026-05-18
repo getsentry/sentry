@@ -41,7 +41,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {usePreprodItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {

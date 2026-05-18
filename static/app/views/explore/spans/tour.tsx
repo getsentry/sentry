@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import exploreSpansTourSvg from 'sentry-images/spot/explore-spans-tour.svg';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
@@ -40,6 +41,8 @@ function useExploreSpansTour(): TourContextType<ExploreSpansTour> {
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useExploreSpansTourModal() {
+  const {openModal} = useModal();
+
   const hasOpenedTourModal = useRef(false);
   const {isRegistered, startTour, endTour} = useExploreSpansTour();
   const {data: assistantData} = useAssistant({
@@ -108,6 +111,7 @@ export function useExploreSpansTourModal() {
     mutateAssistant,
     endTour,
     isNavTourActive,
+    openModal,
   ]);
 }
 

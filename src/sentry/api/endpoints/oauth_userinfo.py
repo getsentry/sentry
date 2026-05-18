@@ -65,7 +65,7 @@ class OAuthUserInfoEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     authentication_classes = ()
     permission_classes = ()
 

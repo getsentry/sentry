@@ -1,30 +1,37 @@
 import type {ReactNode} from 'react';
-import {useState} from 'react';
-
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import {createContext, useContext, useState} from 'react';
 
 interface DashboardsMEPContextInterface {
   setIsMetricsData: (value?: boolean) => void;
   isMetricsData?: boolean;
 }
 
-const [_DashboardsMEPProvider, useDashboardsMEPContext, DashboardsMEPContext] =
-  createDefinedContext<DashboardsMEPContextInterface>({
-    name: 'DashboardsMEPContext',
-  });
+const DashboardsMEPContext = createContext<DashboardsMEPContextInterface | undefined>(
+  undefined
+);
+
+function useDashboardsMEPContext(): DashboardsMEPContextInterface {
+  const context = useContext(DashboardsMEPContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "DashboardsMEPContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 function DashboardsMEPProvider({children}: {children: ReactNode}) {
   const [isMetricsData, setIsMetricsData] = useState<boolean | undefined>(undefined); // undefined means not initialized
 
   return (
-    <_DashboardsMEPProvider
+    <DashboardsMEPContext
       value={{
         isMetricsData,
         setIsMetricsData,
       }}
     >
       {children}
-    </_DashboardsMEPProvider>
+    </DashboardsMEPContext>
   );
 }
 

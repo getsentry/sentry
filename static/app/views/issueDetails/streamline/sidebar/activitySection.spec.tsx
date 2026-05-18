@@ -1,5 +1,6 @@
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
@@ -14,7 +15,6 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -48,7 +48,10 @@ describe('StreamlinedActivitySection', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
-    MemberListStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     localStorage.clear();
   });
 
@@ -112,7 +115,10 @@ describe('StreamlinedActivitySection', () => {
 
   it('uses loaded members for mentions in the drawer comment input', async () => {
     const mentionedUser = UserFixture({id: '42', name: 'Jane Doe'});
-    MemberListStore.loadInitialData([mentionedUser]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: mentionedUser}],
+    });
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
       method: 'POST',
@@ -299,7 +305,7 @@ describe('StreamlinedActivitySection', () => {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', () => {
+  it('does not collapse activity when rendered in the drawer', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -319,14 +325,14 @@ describe('StreamlinedActivitySection', () => {
 
     for (const activity of activities) {
       expect(
-        screen.getByText((activity.data as {text: string}).text)
+        await screen.findByText((activity.data as {text: string}).text)
       ).toBeInTheDocument();
     }
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('filters comments correctly', () => {
+  it('filters comments correctly', async () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -359,7 +365,7 @@ describe('StreamlinedActivitySection', () => {
         expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
       } else {
         expect(
-          screen.getByText((activity.data as {text: string}).text)
+          await screen.findByText((activity.data as {text: string}).text)
         ).toBeInTheDocument();
       }
     }
@@ -435,5 +441,87 @@ describe('StreamlinedActivitySection', () => {
     render(<StreamlinedActivitySection group={referencedGroup} />);
     expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
+  });
+
+  it('renders Seer activity when feature flag is enabled', async () => {
+    const seerGroup = GroupFixture({
+      id: '1342',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerGroup} />, {organization: org});
+    expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
+  });
+
+  it('hides Seer activity when feature flag is disabled', () => {
+    const seerGroup = GroupFixture({
+      id: '1343',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={seerGroup} />);
+    expect(screen.queryByText('Root Cause Analysis')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer completed root cause analysis')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders Seer PR created activity with link', async () => {
+    const seerPrGroup = GroupFixture({
+      id: '1344',
+      activity: [
+        {
+          type: GroupActivityType.SEER_PR_CREATED,
+          id: 'seer-pr-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            run_id: 456,
+            pull_requests: [
+              {
+                provider: 'github',
+                pull_request: {
+                  pr_number: 42,
+                  pr_url: 'https://github.com/org/repo/pull/42',
+                },
+                repo_name: 'org/repo',
+              },
+            ],
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerPrGroup} />, {organization: org});
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repo/pull/42'
+    );
+    expect(screen.getByText(/org\/repo/)).toBeInTheDocument();
   });
 });
