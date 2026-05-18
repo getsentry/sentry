@@ -21,7 +21,7 @@ class OrganizationIntegrationRepoSyncEndpoint(OrganizationIntegrationBaseEndpoin
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
 
     def post(
         self,

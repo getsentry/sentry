@@ -37,7 +37,7 @@ class RepositorySerializer(serializers.Serializer):
 
 @cell_silo_endpoint
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

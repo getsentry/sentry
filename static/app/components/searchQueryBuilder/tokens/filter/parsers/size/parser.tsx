@@ -1,4 +1,4 @@
-import {parse} from './grammar.pegjs';
+import {parse} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/grammar.pegjs';
 
 type SizeTokenValue = {
   value: string;
@@ -14,7 +14,7 @@ type SizeTokenValue = {
  */
 export function parseFilterValueSize(query: string): SizeTokenValue | null {
   try {
-    return parse(query);
+    return parse(query, {startRule: 'size'});
   } catch (e) {
     return null;
   }

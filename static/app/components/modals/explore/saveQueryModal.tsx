@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {
@@ -90,7 +90,7 @@ function SaveQueryModal({
         <h4>{defined(initialName) ? t('Rename Query') : t('New Query')}</h4>
       </Header>
       <Body>
-        <Wrapper>
+        <Container marginBottom="xl">
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
             autoFocus
@@ -107,7 +107,7 @@ function SaveQueryModal({
                 : t('Enter a name for your new query')
             }
           />
-        </Wrapper>
+        </Container>
         {initialName === undefined && (
           <StarredWrapper>
             <Switch
@@ -137,10 +137,6 @@ function SaveQueryModal({
 }
 
 export default SaveQueryModal;
-
-const Wrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const StarredWrapper = styled('div')`
   display: flex;

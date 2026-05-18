@@ -1393,4 +1393,12 @@ export default typescript.config([
       'boundaries/dependencies': 'off',
     },
   },
+  {
+    name: 'files/scraps',
+    files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+    ignores: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'error',
+    },
+  },
 ]);

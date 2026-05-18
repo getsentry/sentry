@@ -17,7 +17,7 @@ import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
@@ -48,7 +48,7 @@ interface EventTagTreeRowConfig {
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
-  project: Project;
+  project: DetailedProject;
   tagKey: string;
   config?: EventTagTreeRowConfig;
   isLast?: boolean;
