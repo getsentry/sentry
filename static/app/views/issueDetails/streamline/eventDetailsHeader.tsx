@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -38,7 +38,10 @@ import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/iss
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
-import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+import {
+  getFirstSeenDuration,
+  useGroupDefaultStatsPeriod,
+} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -148,7 +151,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                               ? {
                                   [defaultStatsPeriod.statsPeriod]: t(
                                     '%s (since first seen)',
-                                    getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                                    getRelativeSummary(
+                                      getFirstSeenDuration(group.firstSeen)
+                                    )
                                   ),
                                 }
                               : {}),
@@ -181,7 +186,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             {period === defaultStatsPeriod &&
                             !defaultStatsPeriod.isMaxRetention &&
                             shouldShowSinceFirstSeenOption
-                              ? t('Since First Seen')
+                              ? tct('Since First Seen ([period])', {
+                                  period: getFirstSeenDuration(group.firstSeen),
+                                })
                               : triggerProps.children}
                           </TimeRangeSelectTrigger>
                         )}

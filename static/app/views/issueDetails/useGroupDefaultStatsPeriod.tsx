@@ -71,3 +71,17 @@ export function useGroupDefaultStatsPeriod(
 
   return {statsPeriod: `${clampedRetentionDays}d`, isMaxRetention};
 }
+
+/**
+ * Returns a short-form duration string (e.g. "19d", "3h") without converting to larger units like weeks, matching the sidebar's TimeSince display.
+ */
+export function getFirstSeenDuration(firstSeen: string): string {
+  const duration = moment.duration(moment().diff(firstSeen));
+  const days = Math.floor(duration.asDays());
+
+  if (days >= 1) {
+    return `${days}d`;
+  }
+
+  return `${Math.max(1, Math.round(duration.asHours()))}h`;
+}
