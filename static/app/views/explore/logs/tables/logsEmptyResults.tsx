@@ -9,7 +9,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableStatus} from 'sentry/views/explore/components/table';
-import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
+import {
+  LOGS_INSTRUCTIONS_URL,
+  LOGS_LARGE_SEARCH_TOTAL_THRESHOLD_BYTES,
+} from 'sentry/views/explore/logs/constants';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 interface LogsEmptyResultsProps {
@@ -17,6 +20,7 @@ interface LogsEmptyResultsProps {
   bytesScanned?: number;
   canResumeAutoFetch?: boolean;
   resumeAutoFetch?: () => void;
+  totalPayloadBytes?: number;
 }
 
 export function LogsEmptyResults({
@@ -24,8 +28,17 @@ export function LogsEmptyResults({
   canResumeAutoFetch,
   analyticsPageSource,
   resumeAutoFetch,
+  totalPayloadBytes,
 }: LogsEmptyResultsProps) {
   const organization = useOrganization();
+
+  const displayTotalPayloadBytes =
+    totalPayloadBytes !== undefined &&
+    totalPayloadBytes >= LOGS_LARGE_SEARCH_TOTAL_THRESHOLD_BYTES &&
+    bytesScanned !== undefined &&
+    bytesScanned <= totalPayloadBytes
+      ? totalPayloadBytes
+      : undefined;
 
   if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
     return (
@@ -33,10 +46,20 @@ export function LogsEmptyResults({
         <EmptyStateWarning withIcon variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
-            {tct(
-              'We scanned [bytesScanned] so far but have not found anything matching your filters',
-              {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
-            )}
+            {displayTotalPayloadBytes
+              ? tct(
+                  'We scanned [bytesScanned] of ~[totalPayloadBytes] so far but have not found anything matching your filters',
+                  {
+                    bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                    totalPayloadBytes: (
+                      <FileSize bytes={displayTotalPayloadBytes} base={2} />
+                    ),
+                  }
+                )
+              : tct(
+                  'We scanned [bytesScanned] so far but have not found anything matching your filters',
+                  {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
+                )}
           </EmptyStateText>
           <EmptyStateText size="md">
             {t('We can keep digging or you can narrow down your search.')}
