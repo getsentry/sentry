@@ -15,9 +15,9 @@ def delete_old_rows_metric_alerts(apps: StateApps, schema_editor: BaseDatabaseSc
 
     while True:
         ids = list(
-            NotificationMessage.objects.filter(
-                incident__isnull=False, trigger_action__isnull=False
-            ).values_list("id", flat=True)[:1000]
+            NotificationMessage.objects.filter(action__isnull=True).values_list("id", flat=True)[
+                :1000
+            ]
         )
         if not ids:
             break
