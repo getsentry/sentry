@@ -777,7 +777,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "backfill_github_external_actor.gh_api_fetch_interval_s",
+    "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
     type=Float,
     default=0.1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
