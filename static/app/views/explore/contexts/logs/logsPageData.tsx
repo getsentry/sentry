@@ -7,9 +7,11 @@ import {
   useInfiniteLogsQuery,
   useLogsQueryHighFidelity,
 } from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsTotalPayload} from 'sentry/views/explore/logs/useLogsTotalPayload';
 
 interface LogsPageData {
   infiniteLogsQueryResult: UseInfiniteLogsQueryResult;
+  totalPayloadBytes: number | undefined;
 }
 
 const LogsPageDataContext = createContext<LogsPageData | undefined>(undefined);
@@ -43,15 +45,22 @@ export function LogsPageDataProvider({
     highFidelity: allowHighFidelity && highFidelity,
     staleTime,
   });
+  const totalPayloadBytes = useLogsTotalPayload({
+    enabled: !!(allowHighFidelity && highFidelity && feature),
+  });
   const value = useMemo(() => {
     return {
       infiniteLogsQueryResult,
+      totalPayloadBytes,
     };
-  }, [infiniteLogsQueryResult]);
+  }, [infiniteLogsQueryResult, totalPayloadBytes]);
   return <LogsPageDataContext value={value}>{children}</LogsPageDataContext>;
 }
 
 export function useLogsPageDataQueryResult() {
   const pageData = useLogsPageData();
-  return pageData.infiniteLogsQueryResult;
+  return {
+    ...pageData.infiniteLogsQueryResult,
+    totalPayloadBytes: pageData.totalPayloadBytes,
+  };
 }
