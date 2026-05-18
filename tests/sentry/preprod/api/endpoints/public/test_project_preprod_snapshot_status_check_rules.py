@@ -2,15 +2,10 @@ from django.urls import reverse
 
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.vcs.status_checks.snapshots.config import (
-    ENABLED_DEFAULT,
     ENABLED_OPTION_KEY,
-    FAIL_ON_ADDED_DEFAULT,
     FAIL_ON_ADDED_OPTION_KEY,
-    FAIL_ON_CHANGED_DEFAULT,
     FAIL_ON_CHANGED_OPTION_KEY,
-    FAIL_ON_REMOVED_DEFAULT,
     FAIL_ON_REMOVED_OPTION_KEY,
-    FAIL_ON_RENAMED_DEFAULT,
     FAIL_ON_RENAMED_OPTION_KEY,
 )
 from sentry.silo.base import SiloMode
