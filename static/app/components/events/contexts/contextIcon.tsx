@@ -26,7 +26,7 @@ const LOGO_MAPPING: Readonly<Record<string, string>> = {
   arm: 'arm',
   chrome: 'chrome',
   chromium: 'chromium',
-  cloudflare: 'cloudflare',
+  cloudflare: 'cloudflare-workers',
   cpython: 'python',
   crystal: 'crystal',
   darwin: 'apple',
