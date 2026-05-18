@@ -352,6 +352,13 @@ def compare_snapshots(
         },
     )
 
+    create_preprod_snapshot_status_check_task.apply_async(
+        kwargs={
+            "preprod_artifact_id": head_artifact_id,
+            "caller": "compare_start",
+        },
+    )
+
     try:
         head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
             id=head_artifact_id,
@@ -368,6 +375,18 @@ def compare_snapshots(
             "Snapshot comparison artifact not found",
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
+        create_preprod_snapshot_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
         return
 
     try:
@@ -379,6 +398,18 @@ def compare_snapshots(
             extra={
                 "head_artifact_id": head_artifact_id,
                 "base_artifact_id": base_artifact_id,
+            },
+        )
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
+            },
+        )
+        create_preprod_snapshot_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": head_artifact_id,
+                "caller": "compare_failure",
             },
         )
         return
@@ -472,6 +503,18 @@ def compare_snapshots(
             comparison.state = PreprodSnapshotComparison.State.FAILED
             comparison.error_code = PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR
             comparison.save(update_fields=["state", "error_code", "date_updated"])
+            create_preprod_snapshot_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": head_artifact_id,
+                    "caller": "compare_failure",
+                },
+            )
+            create_preprod_snapshot_pr_comment_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": head_artifact_id,
+                    "caller": "compare_failure",
+                },
+            )
             return
 
         diff_threshold = head_manifest.diff_threshold

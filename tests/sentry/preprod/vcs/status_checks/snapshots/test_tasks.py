@@ -388,6 +388,67 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
         mock_get_provider.return_value = None
         self._call_task()
 
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_skips_stale_in_progress_when_comparison_succeeded(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        head_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=self.artifact, image_count=10
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_changed=0,
+            images_unchanged=10,
+        )
+
+        self._call_task(status=StatusCheckStatus.IN_PROGRESS.value)
+
+        mock_provider.create_status_check.assert_not_called()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_allows_in_progress_when_comparison_still_pending(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_456"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        head_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=self.artifact, image_count=10
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.PROCESSING,
+            images_changed=0,
+            images_unchanged=10,
+        )
+
+        self._call_task(status=StatusCheckStatus.IN_PROGRESS.value)
+
+        mock_provider.create_status_check.assert_called_once()
+
 
 @cell_silo_test
 class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
