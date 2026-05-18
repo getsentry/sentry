@@ -13,7 +13,6 @@ export interface TimelineItemProps {
     iconBorder: string;
     title: string;
   };
-  connectorColor?: string;
   /**
    * Used by tanstack virtualizer to track the index of the item.
    */
@@ -36,28 +35,22 @@ function Item({
   children,
   icon,
   colorConfig,
-  connectorColor,
   iconBorderColor,
   timestamp,
   isActive = false,
   titleTrailingItems,
   ref,
-  style,
   ...props
 }: TimelineItemProps) {
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
-  const rowStyle = {
-    ...style,
-    ...(connectorColor ? {'--timeline-connector-color': connectorColor} : {}),
-  } as CSSProperties;
   const iconWrapperStyle = {
     borderColor: iconBorderColor ?? (isActive ? config.iconBorder : 'transparent'),
     color: config.icon,
   };
 
   return (
-    <Row ref={ref} style={rowStyle} {...props}>
+    <Row ref={ref} {...props}>
       {icon ? (
         <IconWrapper style={iconWrapperStyle} className="timeline-icon-wrapper">
           {icon}
@@ -100,18 +93,6 @@ const Row = styled('div')<{showLastLine?: boolean}>`
     /* Show/hide connecting line from the last element of the timeline */
     background: ${p =>
       p.showLastLine ? 'transparent' : p.theme.tokens.background.primary};
-    &::before {
-      display: ${p => (p.showLastLine ? 'block' : 'none')};
-    }
-  }
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    width: 1px;
-    top: 11px;
-    bottom: calc(-1 * ${p => p.theme.space.md});
-    background: var(--timeline-connector-color, transparent);
   }
 `;
 

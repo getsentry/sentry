@@ -18,7 +18,7 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
-import {GroupActivityType, GroupStatus, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
+import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,19 +50,6 @@ const UNRESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.AUTO_SET_ONGOING,
 ]);
 
-function getActivityStatusChange(item: GroupActivity): GroupStatus | undefined {
-  if (RESOLVED_ACTIVITY_TYPES.has(item.type)) {
-    return GroupStatus.RESOLVED;
-  }
-  if (item.type === GroupActivityType.SET_IGNORED) {
-    return GroupStatus.IGNORED;
-  }
-  if (UNRESOLVED_ACTIVITY_TYPES.has(item.type)) {
-    return GroupStatus.UNRESOLVED;
-  }
-  return undefined;
-}
-
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
     return item.sentry_app.name;
@@ -79,7 +66,7 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
-  timelineIconBorderColor,
+  iconBorderColor,
   isDrawer,
 }: {
   group: Group;
@@ -87,8 +74,8 @@ function TimelineItem({
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
   item: GroupActivity;
   teams: Team[];
+  iconBorderColor?: string;
   isDrawer?: boolean;
-  timelineIconBorderColor?: string;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -137,7 +124,7 @@ function TimelineItem({
           />
         )
       }
-      iconBorderColor={timelineIconBorderColor}
+      iconBorderColor={iconBorderColor}
     >
       {item.type === GroupActivityType.NOTE && editing ? (
         <NoteInputWithStorage
@@ -281,27 +268,17 @@ export function StreamlinedActivitySection({
     },
   };
 
-  const getStatusColor = (status: GroupStatus | undefined) => {
-    switch (status) {
-      case GroupStatus.RESOLVED:
-        return theme.tokens.border.success.vibrant;
-      case GroupStatus.UNRESOLVED:
-        return theme.tokens.border.danger.vibrant;
-      case GroupStatus.IGNORED:
-      default:
-        return;
-    }
-  };
-
   const getTimelineIconBorderColor = (item: GroupActivity) => {
     if (!isDrawer) {
       return;
     }
-    const status = getActivityStatusChange(item);
-    if (!status) {
-      return;
+    if (RESOLVED_ACTIVITY_TYPES.has(item.type)) {
+      return theme.tokens.border.success.vibrant;
     }
-    return getStatusColor(status) ?? theme.tokens.border.secondary;
+    if (UNRESOLVED_ACTIVITY_TYPES.has(item.type)) {
+      return theme.tokens.border.danger.vibrant;
+    }
+    return theme.tokens.border.primary;
   };
 
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
@@ -333,7 +310,7 @@ export function StreamlinedActivitySection({
               group={group}
               teams={teams}
               key={item.id}
-              timelineIconBorderColor={getTimelineIconBorderColor(item)}
+              iconBorderColor={getTimelineIconBorderColor(item)}
               isDrawer={isDrawer}
             />
           );
