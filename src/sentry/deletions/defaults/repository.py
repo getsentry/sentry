@@ -33,7 +33,10 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
 
     def get_child_relations(self, instance: Repository) -> list[BaseRelation]:
         from sentry.models.projectrepository import ProjectRepository
-        from sentry.seer.models.project_repository import SeerProjectRepository
+        from sentry.seer.models.project_repository import (
+            SeerProjectRepository,
+            SeerProjectRepositoryBranchOverride,
+        )
 
         return _get_repository_child_relations(instance) + [
             # Only delete ProjectRepository and SeerProjectRepository when the
@@ -41,11 +44,19 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
             # (repository_cascade_delete_on_hide). Seer preferences and
             # project-repo links should survive a hide so they're restored
             # if the repo is re-enabled.
-            ModelRelation(ProjectRepository, {"repository_id": instance.id}),
+            #
+            # Order matters: branch overrides → SPR → ProjectRepository.
+            # BulkModelDeletionTask does raw SQL DELETE which bypasses Django
+            # CASCADE, so children must be deleted before parents.
+            ModelRelation(
+                SeerProjectRepositoryBranchOverride,
+                {"seer_project_repository__project_repository__repository_id": instance.id},
+            ),
             ModelRelation(
                 SeerProjectRepository,
                 {"project_repository__repository_id": instance.id},
             ),
+            ModelRelation(ProjectRepository, {"repository_id": instance.id}),
         ]
 
     def delete_instance(self, instance: Repository) -> None:

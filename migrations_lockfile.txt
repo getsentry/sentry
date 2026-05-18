@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0016_remove_old_fks
+seer: 0017_drop_old_fk_columns
 
-sentry: 1098_remove_old_fks
+sentry: 1099_drop_old_fk_columns
 
 social_auth: 0003_social_auth_json_field
 
