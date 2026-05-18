@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -43,7 +44,6 @@ import type {
   IntegrationTab,
 } from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -101,14 +101,15 @@ function makeIntegrationQueryKey({
   ];
 }
 
-const tabs = ['overview', 'configurations', 'features'] as const;
+const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
 
 export default function IntegrationDetailedView() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
-    initialTab: 'overview',
-  });
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(tabs).withDefault('overview')
+  );
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
