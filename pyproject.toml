@@ -1019,7 +1019,6 @@ module = [
     "sentry.issues.endpoints.organization_group_search_view_details_starred",
     "sentry.issues.endpoints.organization_group_search_view_starred_order",
     "sentry.issues.endpoints.organization_group_search_views_starred",
-    "sentry.issues.endpoints.organization_group_suspect_tags",
     "sentry.issues.endpoints.organization_issue_metrics",
     "sentry.issues.endpoints.organization_issue_timeseries",
     "sentry.issues.endpoints.organization_issues_count",

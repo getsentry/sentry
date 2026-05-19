@@ -360,9 +360,6 @@ from sentry.issues.endpoints.organization_event_details import OrganizationEvent
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
-from sentry.issues.endpoints.organization_group_suspect_tags import (
-    OrganizationGroupSuspectTagsEndpoint,
-)
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.issues.endpoints.organization_issue_timeseries import (
     OrganizationIssueTimeSeriesEndpoint,
@@ -942,11 +939,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/tags/(?P<key>[^/]+)/values/$",
             GroupTagKeyValuesEndpoint.as_view(),
             name=f"{name_prefix}-group-tag-key-values",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/suspect/tags/$",
-            OrganizationGroupSuspectTagsEndpoint.as_view(),
-            name=f"{name_prefix}-suspect-tags",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/(?:user-feedback|user-reports)/$",
