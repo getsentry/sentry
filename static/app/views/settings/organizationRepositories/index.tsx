@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 import uniq from 'lodash/uniq';
 
 import {Input} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -259,18 +259,7 @@ export default function OrganizationRepositories() {
   return (
     <AnalyticsArea name="repositories-v2">
       <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
-      <SettingsPageHeader
-        title={t('Repositories')}
-        subtitle={pageDescription}
-        action={
-          scmIntegrations.length > 0 ? (
-            <ConnectProviderDropdown
-              providers={scmProviders.filter(p => p.canAdd)}
-              onAddIntegration={handleAddIntegration}
-            />
-          ) : null
-        }
-      />
+      <SettingsPageHeader title={t('Repositories')} subtitle={pageDescription} />
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
@@ -283,12 +272,21 @@ export default function OrganizationRepositories() {
         />
       ) : (
         <Stack gap="xl">
-          <Input
-            type="search"
-            placeholder={t('Search repositories')}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+          {scmIntegrations.length > 0 ? (
+            <Flex gap="lg">
+              <Input
+                type="search"
+                placeholder={t('Search repositories')}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <ConnectProviderDropdown
+                providers={scmProviders.filter(p => p.canAdd)}
+                onAddIntegration={handleAddIntegration}
+              />
+            </Flex>
+          ) : null}
+
           {!integrationsQuery.isPending && scmIntegrations.length === 0 ? (
             <NoIntegrationsEmptyState
               providers={scmProviders}

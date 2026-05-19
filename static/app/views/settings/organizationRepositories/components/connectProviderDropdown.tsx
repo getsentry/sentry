@@ -56,7 +56,7 @@ export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
   return (
     <DropdownMenu
       items={items}
-      triggerLabel={t('Connect new provider')}
+      triggerLabel={t('Add Integration')}
       menuFooter={
         hasSeerCompatible ? (
           <Flex align="center" gap="sm" padding="md lg">
