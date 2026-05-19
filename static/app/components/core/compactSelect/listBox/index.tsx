@@ -142,6 +142,7 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
+  hasSearch,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
@@ -281,7 +282,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!searchable && hiddenOptions.size > 0 && (
+            {!searchable && !hasSearch && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>
