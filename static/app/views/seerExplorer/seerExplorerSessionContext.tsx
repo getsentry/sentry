@@ -1,23 +1,25 @@
 import {createContext, useContext} from 'react';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
-function useSeerExplorerSessionsQuery({
+export function useSeerExplorerSessionsQuery({
   limit = 20,
   enabled = true,
+  query: searchQuery,
 }: {
   enabled?: boolean;
   limit?: number;
+  query?: string;
 }) {
   const organization = useOrganization({allowNull: true});
   const isEnabled = enabled && isSeerExplorerEnabled(organization);
 
-  return useQuery(
-    apiOptions.as<{data: ExplorerSession[]}>()(
+  return useQuery({
+    ...apiOptions.as<{data: ExplorerSession[]}>()(
       '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
       {
         path:
@@ -26,11 +28,13 @@ function useSeerExplorerSessionsQuery({
             : skipToken,
         query: {
           per_page: limit,
+          ...(searchQuery ? {query: searchQuery} : {}),
         },
         staleTime: 0,
       }
-    )
-  );
+    ),
+    placeholderData: keepPreviousData,
+  });
 }
 
 type SeerExplorerSessionsContextValue = ReturnType<typeof useSeerExplorerSessionsQuery>;
