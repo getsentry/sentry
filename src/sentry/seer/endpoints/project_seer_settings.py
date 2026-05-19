@@ -244,8 +244,8 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
         value = f.value.value
 
         if key == "id":
-            if op in (">", "<", ">=", "<="):
-                raise InvalidSearchQuery("id does not support range operators.")
+            if op not in ("=", "!=", "IN", "NOT IN"):
+                raise InvalidSearchQuery(f"id does not support the {op} operator.")
             if op == "IN":
                 queryset = queryset.filter(id__in=[int(v) for v in value])
             elif op == "NOT IN":
@@ -256,14 +256,16 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
                 queryset = queryset.exclude(id=int(value))
 
         elif key == "name":
+            if op not in ("=", "!="):
+                raise InvalidSearchQuery(f"name does not support the {op} operator.")
             if op == "=":
                 queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
             elif op == "!=":
                 queryset = queryset.exclude(Q(name__icontains=value) | Q(slug__icontains=value))
 
         elif key == "reposCount":
-            if op in ("IN", "NOT IN"):
-                raise InvalidSearchQuery("reposCount does not support IN/NOT IN operators.")
+            if op not in ("=", "!=", ">", "<", ">=", "<="):
+                raise InvalidSearchQuery(f"reposCount does not support the {op} operator.")
             count = int(value)
             if op == "=":
                 queryset = queryset.filter(repos_count=count)
@@ -279,6 +281,8 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
                 queryset = queryset.filter(repos_count__lte=count)
 
         elif key == "stoppingPoint":
+            if op not in ("=", "!=", "IN", "NOT IN"):
+                raise InvalidSearchQuery(f"stoppingPoint does not support the {op} operator.")
             if op == "IN":
                 queryset = queryset.filter(stopping_point__in=value)
             elif op == "NOT IN":
@@ -289,6 +293,8 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
                 queryset = queryset.exclude(stopping_point=value)
 
         elif key == "agent":
+            if op not in ("=", "!=", "IN", "NOT IN"):
+                raise InvalidSearchQuery(f"agent does not support the {op} operator.")
             if op == "IN":
                 queryset = queryset.filter(agent__in=value)
             elif op == "NOT IN":
