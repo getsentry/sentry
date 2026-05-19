@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
@@ -14,7 +15,7 @@ import {
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 type Props = {
   feedbackItem: Group;
@@ -107,14 +108,21 @@ export function FeedbackActivitySection(props: Props) {
   );
 
   return (
-    <ActivitySection
-      group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
-      onDelete={handleDelete}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
-      placeholderText={t(
-        'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'
-      )}
-    />
+    <ActivitySectionContainer>
+      <StreamlinedActivitySection
+        group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
+        onDelete={handleDelete}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        variant="inline"
+        placeholder={t(
+          'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'
+        )}
+      />
+    </ActivitySectionContainer>
   );
 }
+
+const ActivitySectionContainer = styled('div')`
+  padding-bottom: ${p => p.theme.space.xl};
+`;
