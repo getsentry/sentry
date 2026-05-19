@@ -153,7 +153,8 @@ export function Meta(props: MetaProps) {
               : getRootDuration(repEvent)
             : '\u2014'}
         </MetaSection>
-      ) : hasLogs ? (
+      ) : null}
+      {hasLogs ? (
         <MetaSection rightAlignBody headingText={t('Logs')}>
           {logsCount}
         </MetaSection>
