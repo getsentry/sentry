@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {CreateSampleEventButton} from 'sentry/views/onboarding/createSampleEventButton';
 
 jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
@@ -42,30 +42,20 @@ describe('CreateSampleEventButton', () => {
       body: {groupID},
     });
 
-    const sampleButton = await screen.findByRole('button', {name: createSampleText});
-    await userEvent.click(sampleButton, {delay: null});
-
-    // The button should be disabled while creating the event
-    expect(sampleButton).toBeDisabled();
-
-    // We have to await the API calls. We could normally do this using tick(),
-    // however since we have enabled fake timers to handle the spin-wait on the
-    // event creation, we cannot use tick.
-    await Promise.resolve();
-    expect(createRequest).toHaveBeenCalled();
-
     const latestIssueRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       body: {},
     });
 
-    // There is a timeout before we check for the existence of the latest
-    // event. Wait for it then wait for the request to complete
-    jest.runAllTimers();
+    const sampleButton = await screen.findByRole('button', {name: createSampleText});
+    await userEvent.click(sampleButton, {delay: null});
+
+    expect(sampleButton).toBeDisabled();
+
+    await waitFor(() => expect(createRequest).toHaveBeenCalled());
     await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
-    // Wait for the api request and latestEventAvailable to resolve
-    expect(sampleButton).toBeEnabled();
+    await waitFor(() => expect(sampleButton).toBeEnabled());
 
     expect(router.location).toEqual(
       expect.objectContaining({
@@ -84,6 +74,10 @@ describe('CreateSampleEventButton', () => {
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
       body: {groupID},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
+      body: {},
     });
 
     await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
@@ -116,6 +110,10 @@ describe('CreateSampleEventButton', () => {
       method: 'POST',
       body: {groupID},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
+      body: {},
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
       delay: null,
@@ -139,33 +137,31 @@ describe('CreateSampleEventButton', () => {
       body: {groupID},
     });
 
-    await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
-      delay: null,
-    });
-
-    await waitFor(() => expect(createRequest).toHaveBeenCalled());
-
-    // Start with no latest event
-    let latestIssueRequest = MockApiClient.addMockResponse({
+    // The first request will 404 — useQuery fires immediately after groupID is set
+    const latestIssueRequest404 = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 404,
       body: {},
     });
 
-    // Wait for the timeout once, the first request will 404
-    jest.runAllTimers();
-    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
+    await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
+      delay: null,
+    });
 
-    // Second request will be successful
+    await waitFor(() => expect(createRequest).toHaveBeenCalled());
+    await waitFor(() => expect(latestIssueRequest404).toHaveBeenCalled());
+
+    // Set up 200 response for the retry
     MockApiClient.clearMockResponses();
-    latestIssueRequest = MockApiClient.addMockResponse({
+    const latestIssueRequest200 = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 200,
       body: {},
     });
 
-    jest.runAllTimers();
-    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
+    // Advance past the retryDelay so useQuery retries
+    jest.advanceTimersByTime(EVENT_POLL_INTERVAL);
+    await waitFor(() => expect(latestIssueRequest200).toHaveBeenCalled());
 
     expect(router.location).toEqual(
       expect.objectContaining({
@@ -192,3 +188,5 @@ describe('CreateSampleEventButton', () => {
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 });
+
+const EVENT_POLL_INTERVAL = 1000;
