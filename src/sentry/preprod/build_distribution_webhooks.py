@@ -40,7 +40,7 @@ def build_webhook_payload(
     except PreprodArtifact.DoesNotExist:
         logger.warning(
             "preprod.build_distribution.webhook.artifact_not_found",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return None
 
@@ -49,7 +49,7 @@ def build_webhook_payload(
     except BuildDistributionSummaryBuildError:
         logger.exception(
             "preprod.build_distribution.webhook.build_error",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return None
 
@@ -69,7 +69,7 @@ def send_build_distribution_webhook(
         if payload is None:
             logger.info(
                 "preprod.build_distribution.webhook.no_payload",
-                extra={"artifact_id": artifact.id},
+                extra={"preprod_artifact_id": artifact.id},
             )
             return
 
@@ -83,7 +83,7 @@ def send_build_distribution_webhook(
         logger.exception(
             "preprod.build_distribution.webhook.failed",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "organization_id": organization_id,
             },
         )

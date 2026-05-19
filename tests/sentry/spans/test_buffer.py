@@ -32,15 +32,13 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
     "spans.buffer.flusher.flush-lock-ttl": 0,
-    "spans.buffer.flusher-cumulative-logger-enabled": False,
-    "spans.buffer.flusher.log-flushed-segments": False,
     "spans.buffer.done-flush-conditional-zrem": True,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
     "spans.buffer.max-spans-per-evalsha": 0,
     "spans.buffer.evalsha-latency-threshold": 100,
-    "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
+    "spans.buffer.debug-traces": [],
     "spans.process-segments.schema-validation": 1.0,
 }
 

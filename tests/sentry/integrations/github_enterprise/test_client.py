@@ -60,6 +60,18 @@ class GitHubEnterpriseCloudApiClientTest(TestCase):
         client = self._make_client("github.example.org")
         assert client.build_url("/graphql") == "https://github.example.org/api/graphql"
 
+    def test_github_com_base_url(self) -> None:
+        client = self._make_client("github.com")
+        assert client.base_url == "https://api.github.com"
+
+    def test_github_com_build_url_no_api_v3_prefix(self) -> None:
+        client = self._make_client("github.com")
+        assert client.build_url("/repos/org/repo") == "https://api.github.com/repos/org/repo"
+
+    def test_github_com_build_url_graphql(self) -> None:
+        client = self._make_client("github.com")
+        assert client.build_url("/graphql") == "https://api.github.com/graphql"
+
 
 class GitHubEnterpriseApiClientTest(TestCase):
     base_url = "https://github.example.org/api/v3"
@@ -182,7 +194,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
             body="docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
         )
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert (
             responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"

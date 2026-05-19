@@ -73,10 +73,6 @@ describe('TeamStatsIssues', () => {
       body: TeamIssuesBreakdownFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
       body: TeamResolutionTimeFixture(),
     });

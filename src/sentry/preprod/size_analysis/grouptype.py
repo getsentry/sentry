@@ -56,7 +56,7 @@ def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
     if artifact.artifact_type is not None:
         tags["artifact_type"] = PreprodArtifactModel.ArtifactType(artifact.artifact_type).to_str()
 
-    tags["artifact_id"] = str(artifact.id)
+    tags["preprod_artifact_id"] = str(artifact.id)
 
     return tags
 

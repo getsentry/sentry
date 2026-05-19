@@ -27,6 +27,7 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface MetricToolbarProps {
   queryLabel: string;
@@ -58,6 +59,10 @@ export function MetricToolbar({
     setVisualize(visualize.replace({visible: !visualize.visible}));
   }, [setVisualize, visualize]);
   const setTraceMetric = useSetTraceMetric();
+  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+  const disabledReason = isHeatmap
+    ? t('Not configurable for Heat Map visualizations')
+    : undefined;
 
   // We need at least one metric visualized, but equations should always
   // be removable.
@@ -121,10 +126,16 @@ export function MetricToolbar({
             </Flex>
             <Flex gap="md" minWidth={0}>
               <Flex flex="2 1 0" minWidth={0}>
-                <AggregateDropdown traceMetric={traceMetric} />
+                <AggregateDropdown
+                  traceMetric={traceMetric}
+                  disabledReason={disabledReason}
+                />
               </Flex>
               <Flex flex="3 1 0" minWidth={0}>
-                <GroupBySelector traceMetric={traceMetric} />
+                <GroupBySelector
+                  traceMetric={traceMetric}
+                  disabledReason={disabledReason}
+                />
               </Flex>
             </Flex>
             {!isNarrow && (

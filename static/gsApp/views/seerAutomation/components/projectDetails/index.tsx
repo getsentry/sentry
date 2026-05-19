@@ -11,7 +11,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -25,7 +25,7 @@ const DEFAULT_PREFERENCE: ProjectSeerPreferences = {
   automation_handoff: undefined,
 };
 
-export function SeerProjectDetails({project}: {project: Project}) {
+export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();
   const {data, isPending, isError} = useProjectSeerPreferences(project);
   const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};

@@ -9,7 +9,6 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
@@ -202,7 +201,7 @@ class CollectUserOrgContextTest(TestCase):
             integration_id=999,
             external_id="ext-1",
         )
-        SeerProjectRepository.objects.create(project=self.project1, repository=repo1)
+        self.create_seer_project_repository(project=self.project1, repository=repo1)
         repo2 = self.create_repo(
             project=self.project2,
             name="acme/project-2-repo",
@@ -210,7 +209,7 @@ class CollectUserOrgContextTest(TestCase):
             integration_id=999,
             external_id="ext-2",
         )
-        SeerProjectRepository.objects.create(project=self.project2, repository=repo2)
+        self.create_seer_project_repository(project=self.project2, repository=repo2)
 
         context = collect_user_org_context(self.user, self.organization)
 

@@ -1,7 +1,6 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 
 import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
@@ -102,20 +101,22 @@ export function CustomerHistory({orgId, ...props}: Props) {
                 .map(({category, reserved}) => (
                   <div key={category}>
                     {formatReservedWithUnits(reserved, category)}
-                    <DisplayName>
+                    <Container as="span" marginLeft="xs">
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
                         ...displayOptions,
                       })}
-                    </DisplayName>
+                    </Container>
                   </div>
                 ))}
               {reservedBudgets.map(budget => {
                 return (
                   <div key={budget.id}>
                     {displayPriceWithCents({cents: budget.reservedBudget})} for
-                    <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
+                    <Container as="span" marginLeft="xs">
+                      {reservedBudgetNameMapping[budget.id]!}
+                    </Container>
                   </div>
                 );
               })}
@@ -130,20 +131,22 @@ export function CustomerHistory({orgId, ...props}: Props) {
                     {formatReservedWithUnits(free, category, {
                       isGifted: true,
                     })}
-                    <DisplayName>
+                    <Container as="span" marginLeft="xs">
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
                         ...displayOptions,
                       })}
-                    </DisplayName>
+                    </Container>
                   </div>
                 ))}
               {reservedBudgets.map(budget => {
                 return (
                   <div key={budget.id}>
                     {displayPriceWithCents({cents: budget.freeBudget})} for
-                    <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
+                    <Container as="span" marginLeft="xs">
+                      {reservedBudgetNameMapping[budget.id]!}
+                    </Container>
                   </div>
                 );
               })}
@@ -156,13 +159,13 @@ export function CustomerHistory({orgId, ...props}: Props) {
                   {formatUsageWithUnits(usage, category, {
                     useUnitScaling: true,
                   })}
-                  <DisplayName>
+                  <Container as="span" marginLeft="xs">
                     {getPlanCategoryName({
                       plan: row.planDetails,
                       category,
                       ...displayOptions,
                     })}
-                  </DisplayName>
+                  </Container>
                   {reservedBudgetMetricHistories[category] && (
                     <span>
                       {' ('}
@@ -182,7 +185,3 @@ export function CustomerHistory({orgId, ...props}: Props) {
     />
   );
 }
-
-const DisplayName = styled('span')`
-  margin-left: ${p => p.theme.space.xs};
-`;
