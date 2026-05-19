@@ -1,5 +1,11 @@
 FOREVER_CACHE = "max-age=315360000"
 
+# For content-hashed build assets (chunks/, assets/) whose URLs change when
+# content changes. Long max-age avoids revalidation on every page load;
+# stale-while-revalidate lets the browser serve instantly from cache while
+# refreshing in the background, so a misclassified file self-corrects.
+IMMUTABLE_CACHE = "max-age=604800, stale-while-revalidate=300"
+
 # See
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#requiring_revalidation
 # This means that clients *CAN* cache the resource, but they must revalidate

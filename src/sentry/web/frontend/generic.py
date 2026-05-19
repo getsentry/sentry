@@ -1,5 +1,6 @@
 import os
 import posixpath
+import re
 from urllib.parse import unquote
 
 from django.conf import settings
@@ -7,7 +8,7 @@ from django.contrib.staticfiles import finders
 from django.http import Http404, HttpResponseNotFound
 from django.views import static
 
-from sentry.web.constants import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
+from sentry.web.constants import FOREVER_CACHE, IMMUTABLE_CACHE, NEVER_CACHE, NO_CACHE
 from sentry.web.frontend.base import all_silo_view
 
 
@@ -33,13 +34,18 @@ def resolve(path):
     return os.path.split(absolute_path)
 
 
+_CONTENT_HASHED_ASSET_RE = re.compile(r"\.[0-9a-f]{16,}\.\w+(?:\.gz)?$")
+_CACHEABLE_DIST_DIRS = ("chunks/", "assets/")
+
+
 @all_silo_view
 def frontend_app_static_media(request, **kwargs):
     """
-    Serve static files that should not have any versioned paths/filenames.
-    These assets will have cache headers to say that it can be cached by a
-    client, but it *must* be validated against the origin server before the
-    cached asset can be used.
+    Serve static files from the frontend build output (/_static/dist/).
+
+    Files in chunks/ and assets/ whose filenames contain a content hash
+    are immutable and cached forever. Everything else (entrypoints like
+    app.js, sentry.css) must be revalidated on each request.
     """
 
     path = kwargs.get("path", "")
@@ -48,9 +54,18 @@ def frontend_app_static_media(request, **kwargs):
     response = static_media(request, **kwargs)
 
     if not settings.DEBUG:
-        response["Cache-Control"] = NO_CACHE
+        if _is_content_hashed_asset(path):
+            response["Cache-Control"] = IMMUTABLE_CACHE
+        else:
+            response["Cache-Control"] = NO_CACHE
 
     return response
+
+
+def _is_content_hashed_asset(path: str) -> bool:
+    return path.startswith(_CACHEABLE_DIST_DIRS) and bool(
+        _CONTENT_HASHED_ASSET_RE.search(os.path.basename(path))
+    )
 
 
 @all_silo_view

@@ -5,7 +5,7 @@ from django.test.utils import override_settings
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.utils.assets import get_frontend_app_asset_url
-from sentry.web.constants import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
+from sentry.web.constants import FOREVER_CACHE, IMMUTABLE_CACHE, NEVER_CACHE, NO_CACHE
 
 
 class StaticMediaTest(TestCase):
@@ -85,6 +85,80 @@ class StaticMediaTest(TestCase):
                 os.unlink(os.path.join(dist_path, "test.js"))
             except Exception:
                 pass
+
+    @override_settings(DEBUG=False)
+    def test_frontend_app_content_hashed_assets_cached_forever(self) -> None:
+        """
+        Content-hashed files in chunks/ and assets/ under /_static/dist/
+        are immutable and should be cached forever.
+        """
+        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist")
+        cases = [
+            ("assets", "rubik-regular.fad64911e39b541f.woff2"),
+            ("chunks", "1016.d44eb37649c6e092.js"),
+            ("chunks/locale", "zh-cn.4ddebd56c0630d59.js"),
+        ]
+
+        created: list[str] = []
+        try:
+            for subdir, filename in cases:
+                dirpath = os.path.join(dist_path, subdir)
+                os.makedirs(dirpath, exist_ok=True)
+                filepath = os.path.join(dirpath, filename)
+                with open(filepath, "a"):
+                    pass
+                created.append(filepath)
+
+                url = f"/_static/dist/sentry/{subdir}/{filename}"
+                response = self.client.get(url)
+                close_streaming_response(response)
+                assert response.status_code == 200, f"{url} returned {response.status_code}"
+                assert response["Cache-Control"] == IMMUTABLE_CACHE, (
+                    f"{url} got {response['Cache-Control']}, expected FOREVER_CACHE"
+                )
+        finally:
+            for fp in created:
+                try:
+                    os.unlink(fp)
+                except Exception:
+                    pass
+
+    @override_settings(DEBUG=False)
+    def test_frontend_app_unhashed_assets_not_cached_forever(self) -> None:
+        """
+        Files without a content hash or in entrypoints/ should NOT get
+        FOREVER_CACHE, even if they happen to be in chunks/ or assets/.
+        """
+        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist")
+        cases = [
+            ("entrypoints", "app.js"),
+            ("assets", "no-hash.svg"),
+            ("chunks", "no-hash.js"),
+        ]
+
+        created: list[str] = []
+        try:
+            for subdir, filename in cases:
+                dirpath = os.path.join(dist_path, subdir)
+                os.makedirs(dirpath, exist_ok=True)
+                filepath = os.path.join(dirpath, filename)
+                with open(filepath, "a"):
+                    pass
+                created.append(filepath)
+
+                url = f"/_static/dist/sentry/{subdir}/{filename}"
+                response = self.client.get(url)
+                close_streaming_response(response)
+                assert response.status_code == 200, f"{url} returned {response.status_code}"
+                assert response["Cache-Control"] == NO_CACHE, (
+                    f"{url} got {response['Cache-Control']}, expected NO_CACHE"
+                )
+        finally:
+            for fp in created:
+                try:
+                    os.unlink(fp)
+                except Exception:
+                    pass
 
     @override_settings(DEBUG=False)
     def test_no_cors(self) -> None:
