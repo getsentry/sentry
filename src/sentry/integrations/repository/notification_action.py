@@ -10,7 +10,6 @@ from django.db.models import Q
 from sentry.integrations.repository.base import (
     BaseNewNotificationMessage,
     BaseNotificationMessage,
-    NotificationMessageValidationError,
 )
 from sentry.models.group import Group
 from sentry.notifications.models.notificationmessage import NotificationMessage
@@ -42,10 +41,6 @@ class NotificationActionNotificationMessage(BaseNotificationMessage):
             open_period_start=instance.open_period_start,
             date_added=instance.date_added,
         )
-
-
-class NotificationActionNotificationMessageValidationError(NotificationMessageValidationError):
-    pass
 
 
 @dataclass(kw_only=True)
