@@ -665,6 +665,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/members/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/checkins/'
