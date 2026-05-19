@@ -20,8 +20,7 @@ def calculate_recalibration_factor(
     config: BaseDynamicSamplingConfiguration,
     org_volume: OrganizationDataVolume | None,
 ) -> float | None:
-    sample_rate = config.org_recalibration_sample_rate
-    if not config.needs_recalibration or sample_rate is None:
+    if not config.needs_recalibration or config.sample_rate is None:
         return None
 
     if org_volume is None or not org_volume.is_valid_for_recalibration():
@@ -35,7 +34,7 @@ def calculate_recalibration_factor(
     adjusted_factor = legacy_recalibration_cache.compute_adjusted_factor(
         new_pipeline_factor,
         effective_sample_rate,
-        sample_rate,
+        config.sample_rate,
     )
     logger.info(
         "dynamic_sampling.per_org.recalibration_factor_discrepancy",

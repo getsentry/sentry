@@ -66,10 +66,6 @@ class BaseDynamicSamplingConfiguration(ABC):
     def needs_recalibration(self) -> bool:
         return False
 
-    @property
-    def org_recalibration_sample_rate(self) -> float | None:
-        return None
-
     def _get_sampling_measure(self) -> SamplingMeasure:
         if options.get("dynamic-sampling.check_span_feature_flag") and self.organization.id in (
             options.get("dynamic-sampling.measure.spans") or []
@@ -108,10 +104,6 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def needs_recalibration(self) -> bool:
         return True
 
-    @property
-    def org_recalibration_sample_rate(self) -> float | None:
-        return self.sample_rate
-
 
 class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):
     sample_rate: TargetSampleRate
@@ -131,10 +123,6 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     @property
     def needs_recalibration(self) -> bool:
         return True
-
-    @property
-    def org_recalibration_sample_rate(self) -> float | None:
-        return self.sample_rate
 
 
 class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration):
