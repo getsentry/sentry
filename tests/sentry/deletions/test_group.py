@@ -25,6 +25,7 @@ from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
+from sentry.models.issueactionlogentry import ActorType, IssueActionLogEntry
 from sentry.models.userreport import UserReport
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -70,6 +71,14 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         Activity.objects.create(
             group=event.group, project=self.project, type=ActivityType.SET_RESOLVED.value
         )
+        IssueActionLogEntry.objects.create(
+            group_id=event.group.id,
+            project_id=event.project_id,
+            type=0,
+            actor_type=ActorType.SYSTEM,
+            actor_id=0,
+            data={},
+        )
 
         return event
 
@@ -97,6 +106,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not Activity.objects.filter(group_id=event.group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=event.group.id).exists()
         assert not GroupHash.objects.filter(group_id=event.group.id).exists()
+        assert not IssueActionLogEntry.objects.filter(group_id=event.group.id).exists()
         assert not Group.objects.filter(id=event.group.id).exists()
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(event2))
