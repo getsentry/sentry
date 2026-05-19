@@ -11,9 +11,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -45,9 +45,11 @@ import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
 import {UsageStatsOrganization as UsageStatsOrg} from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
-const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
-const HookOrgStatsProfilingBanner = HookOrDefault({
-  hookName: 'component:org-stats-profiling-banner',
+const OverrideStatsBanner = OverrideOrDefault({
+  overrideName: 'component:org-stats-banner',
+});
+const OverrideOrgStatsProfilingBanner = OverrideOrDefault({
+  overrideName: 'component:org-stats-profiling-banner',
 });
 
 export const PAGE_QUERY_PARAMS = [
@@ -369,11 +371,11 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
             )}
             <div>
               <Layout.Main width="full">
-                <HookHeader organization={organization} />
+                <OverrideStatsBanner organization={organization} />
                 <Flex justify="between" align="center" marginBottom="xl" gap="xs">
                   {this.renderProjectPageControl()}
                 </Flex>
-                {showProfilingBanner && <HookOrgStatsProfilingBanner />}
+                {showProfilingBanner && <OverrideOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>
@@ -400,8 +402,8 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
   }
 }
 
-const HookOrgStats = HookOrDefault({
-  hookName: 'component:enhanced-org-stats',
+const OverrideOrgStats = OverrideOrDefault({
+  overrideName: 'component:enhanced-org-stats',
   defaultComponent: OrganizationStatsInner,
 });
 
@@ -411,7 +413,7 @@ export default function OrganizationStats() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   return (
-    <HookOrgStats
+    <OverrideOrgStats
       location={location}
       navigate={navigate}
       organization={organization}

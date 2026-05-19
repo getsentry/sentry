@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -53,10 +53,12 @@ function TimelineItem({
   group,
   teams,
   isDrawer,
+  inputVariant,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
+  inputVariant: 'compact' | 'full';
   item: GroupActivity;
   teams: Team[];
   isDrawer?: boolean;
@@ -109,10 +111,11 @@ function TimelineItem({
       }
     >
       {item.type === GroupActivityType.NOTE && editing ? (
-        <NoteInputWithStorage
+        <ActivityNoteInput
           itemKey={item.id}
           storageKey={`groupinput:${item.id}`}
-          source="issue-details"
+          minHeight={96}
+          variant={inputVariant}
           text={item.data.text}
           noteId={item.id}
           onUpdate={n => {
@@ -132,23 +135,45 @@ function TimelineItem({
   );
 }
 
+function ActivityNoteInput(props: React.ComponentProps<typeof NoteInputWithStorage>) {
+  return (
+    <ActivityInputFrame data-test-id="activity-input-frame">
+      <NoteInputWithStorage {...props} />
+    </ActivityInputFrame>
+  );
+}
+
 interface StreamlinedActivitySectionProps {
   group: Group;
   /**
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
+  minHeight?: number;
+  onCreate?: (n: NoteType, me: User) => void;
+  onDelete?: (item: GroupActivity) => void;
+  onUpdate?: (item: GroupActivity, n: NoteType) => void;
+  placeholder?: string;
   /**
-   * Whether the activity section is being rendered in the activity drawer.
-   * Disables collapse feature, and hides headers
+   * Controls layout and input style.
+   * - `sidebar` (default): fold section, compact input, collapses at 5 items
+   * - `drawer`: full input, no collapse, larger text
+   * - `inline`: full input, no collapse
+   * TODO: Revisit whether `drawer` and `inline` should be one variant with
+   * an explicit density/text-size option after the feedback activity split.
    */
-  isDrawer?: boolean;
+  variant?: 'sidebar' | 'drawer' | 'inline';
 }
 
 export function StreamlinedActivitySection({
   group,
-  isDrawer,
   filterComments,
+  onCreate: onCreateProp,
+  onDelete: onDeleteProp,
+  onUpdate: onUpdateProp,
+  variant = 'sidebar',
+  minHeight = 96,
+  placeholder = t('Add a comment\u2026'),
 }: StreamlinedActivitySectionProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -160,10 +185,10 @@ export function StreamlinedActivitySection({
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
-    minHeight: 140,
+    minHeight,
     group,
     projectSlugs,
-    placeholder: t('Add a comment\u2026'),
+    placeholder,
   };
 
   const mutators = useMutateActivity({
@@ -173,6 +198,11 @@ export function StreamlinedActivitySection({
 
   const handleDelete = useCallback(
     (item: GroupActivity) => {
+      if (onDeleteProp) {
+        onDeleteProp(item);
+        return;
+      }
+
       const restore = group.activity.find(activity => activity.id === item.id);
       const index = GroupStore.removeActivity(group.id, item.id);
 
@@ -198,11 +228,16 @@ export function StreamlinedActivitySection({
         }
       );
     },
-    [group.activity, mutators, group.id, organization]
+    [onDeleteProp, group.activity, mutators, group.id, organization]
   );
 
   const handleUpdate = useCallback(
     (item: GroupActivity, n: NoteType) => {
+      if (onUpdateProp) {
+        onUpdateProp(item, n);
+        return;
+      }
+
       mutators.handleUpdate(n, item.id, group.activity, {
         onError: () => {
           addErrorMessage(t('Unable to update comment'));
@@ -219,10 +254,15 @@ export function StreamlinedActivitySection({
         },
       });
     },
-    [group.activity, mutators, group.id, organization]
+    [onUpdateProp, group.activity, mutators, group.id, organization]
   );
 
-  const handleCreate = (n: NoteType, _me: User) => {
+  const handleCreate = (n: NoteType, me: User) => {
+    if (onCreateProp) {
+      onCreateProp(n, me);
+      return;
+    }
+
     mutators.handleCreate(n, group.activity, {
       onError: err => {
         const errMessage = err.responseJSON?.detail
@@ -255,36 +295,55 @@ export function StreamlinedActivitySection({
     ? group.activity
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
-  return isDrawer ? (
-    <Timeline.Container>
-      <NoteInputWithStorage
-        key={inputId}
-        storageKey="groupinput:latest"
-        itemKey={group.id}
-        onCreate={n => {
-          handleCreate(n, activeUser);
-          setInputId(uniqueId());
-        }}
-        source="issue-details"
-        {...noteProps}
-      />
-      {visibleActivities
-        .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
-        .map(item => {
-          return (
-            <TimelineItem
-              item={item}
-              handleDelete={handleDelete}
-              handleUpdate={handleUpdate}
-              group={group}
-              teams={teams}
-              key={item.id}
-              isDrawer={isDrawer}
-            />
-          );
-        })}
+  const filteredActivities = visibleActivities.filter(
+    item => !filterComments || item.type === GroupActivityType.NOTE
+  );
+  const isDrawer = variant === 'drawer';
+  const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
+
+  const renderActivityItem = (item: GroupActivity) => (
+    <TimelineItem
+      item={item}
+      handleDelete={handleDelete}
+      handleUpdate={handleUpdate}
+      group={group}
+      teams={teams}
+      key={item.id}
+      isDrawer={isDrawer}
+      inputVariant={inputVariant}
+    />
+  );
+
+  const noteInput = (
+    <ActivityNoteInput
+      key={inputId}
+      storageKey="groupinput:latest"
+      itemKey={group.id}
+      onCreate={n => {
+        handleCreate(n, activeUser);
+        setInputId(uniqueId());
+      }}
+      variant={inputVariant}
+      {...noteProps}
+    />
+  );
+
+  const timeline = (
+    <Timeline.Container data-test-id="activity-timeline">
+      {filteredActivities.map(renderActivityItem)}
     </Timeline.Container>
-  ) : (
+  );
+
+  if (variant !== 'sidebar') {
+    return (
+      <Grid gap="xl">
+        {noteInput}
+        {timeline}
+      </Grid>
+    );
+  }
+
+  return (
     <SidebarFoldSection
       title={
         <SidebarSectionTitle style={{gap: theme.space.sm, margin: 0}}>
@@ -293,71 +352,37 @@ export function StreamlinedActivitySection({
       }
       sectionKey={SectionKey.ACTIVITY}
     >
-      <Timeline.Container>
-        <NoteInputWithStorage
-          key={inputId}
-          storageKey="groupinput:latest"
-          itemKey={group.id}
-          onCreate={n => {
-            handleCreate(n, activeUser);
-            setInputId(uniqueId());
-          }}
-          source="issue-details"
-          {...noteProps}
-        />
-        {visibleActivities.length < 5 ? (
-          visibleActivities
-            .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
-            .map(item => {
-              return (
-                <TimelineItem
-                  item={item}
-                  handleDelete={handleDelete}
-                  handleUpdate={handleUpdate}
-                  group={group}
-                  teams={teams}
-                  key={item.id}
-                  isDrawer={isDrawer}
-                />
-              );
-            })
-        ) : (
-          <Fragment>
-            {visibleActivities.slice(0, 3).map(item => {
-              return (
-                <TimelineItem
-                  item={item}
-                  handleDelete={handleDelete}
-                  handleUpdate={handleUpdate}
-                  group={group}
-                  teams={teams}
-                  key={item.id}
-                  isDrawer={isDrawer}
-                />
-              );
-            })}
-            <ActivityTimelineItem
-              title={
-                <LinkButton
-                  aria-label={t('View all activity')}
-                  to={activityLink}
-                  size="xs"
-                  replace
-                  preventScrollReset
-                  analyticsEventKey="issue_details.activity_expanded"
-                  analyticsEventName="Issue Details: Activity Expanded"
-                  analyticsParams={{
-                    num_activities_hidden: visibleActivities.length - 3,
-                  }}
-                >
-                  {t('View %s more', visibleActivities.length - 3)}
-                </LinkButton>
-              }
-              icon={<RotatedEllipsisIcon direction="up" />}
-            />
-          </Fragment>
-        )}
-      </Timeline.Container>
+      <Grid gap="lg">
+        {noteInput}
+        <Timeline.Container data-test-id="activity-timeline">
+          {filteredActivities.length < 5 ? (
+            filteredActivities.map(renderActivityItem)
+          ) : (
+            <Fragment>
+              {filteredActivities.slice(0, 3).map(renderActivityItem)}
+              <ActivityTimelineItem
+                title={
+                  <LinkButton
+                    aria-label={t('View all activity')}
+                    to={activityLink}
+                    size="xs"
+                    replace
+                    preventScrollReset
+                    analyticsEventKey="issue_details.activity_expanded"
+                    analyticsEventName="Issue Details: Activity Expanded"
+                    analyticsParams={{
+                      num_activities_hidden: filteredActivities.length - 3,
+                    }}
+                  >
+                    {t('View %s more', filteredActivities.length - 3)}
+                  </LinkButton>
+                }
+                icon={<RotatedEllipsisIcon direction="up" />}
+              />
+            </Fragment>
+          )}
+        </Timeline.Container>
+      </Grid>
     </SidebarFoldSection>
   );
 }
@@ -394,4 +419,8 @@ const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
 
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
   font-size: ${p => (p.isDrawer ? p.theme.font.size.md : p.theme.font.size.sm)};
+`;
+
+const ActivityInputFrame = styled('div')`
+  color: ${p => p.theme.tokens.content.primary};
 `;

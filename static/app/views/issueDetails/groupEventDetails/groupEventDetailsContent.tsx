@@ -36,6 +36,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
@@ -132,7 +133,7 @@ export function EventDetailsContent({
   }
 
   return (
-    <Fragment>
+    <DebugMetaSearchProvider key={event.id}>
       <ErrorBoundary mini>
         <HighlightsIconSummary event={event} group={group} />
       </ErrorBoundary>
@@ -411,7 +412,7 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
-    </Fragment>
+    </DebugMetaSearchProvider>
   );
 }
 

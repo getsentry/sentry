@@ -3,11 +3,11 @@ import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
-import {getHook} from 'sentry/hookRegistry';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import type {HookName} from 'sentry/types/hooks';
+import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
@@ -45,8 +45,8 @@ import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper'
 
 import {type SentryRouteObject} from './types';
 
-const routeHook = (name: HookName): SentryRouteObject => {
-  return getHook(name)?.() ?? {};
+const routeHook = (name: OverrideName): SentryRouteObject => {
+  return getOverride(name)?.() ?? {};
 };
 
 function buildRoutes(): RouteObject[] {

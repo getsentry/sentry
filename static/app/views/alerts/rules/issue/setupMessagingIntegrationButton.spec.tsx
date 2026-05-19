@@ -9,7 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {registerHook} from 'sentry/hookRegistry';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
@@ -116,7 +116,7 @@ describe('SetupAlertIntegrationButton', () => {
       })
     );
 
-    registerHook('integrations:feature-gates', () => {
+    registerOverride('integrations:feature-gates', () => {
       return {
         IntegrationFeatures: p =>
           p.children({

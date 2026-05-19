@@ -550,7 +550,10 @@ from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeer
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
-from sentry.seer.endpoints.project_seer_settings import ProjectSeerSettingsEndpoint
+from sentry.seer.endpoints.project_seer_settings import (
+    OrganizationSeerProjectSettingsEndpoint,
+    ProjectSeerSettingsEndpoint,
+)
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -829,7 +832,7 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
 )
-from .endpoints.project_repo_link import ProjectRepoLinkEndpoint
+from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
@@ -2472,6 +2475,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-autofix-automation-settings",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/$",
+        OrganizationSeerProjectSettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-project-settings",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
         OrganizationSeerRpcEndpoint.as_view(),
         name="sentry-api-0-organization-seer-rpc",
@@ -3279,9 +3287,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-stacktrace-source-context",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-link/$",
-        ProjectRepoLinkEndpoint.as_view(),
-        name="sentry-api-0-project-repo-link",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo/$",
+        ProjectRepoEndpoint.as_view(),
+        name="sentry-api-0-project-repo",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-path-parsing/$",

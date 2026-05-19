@@ -87,6 +87,31 @@ class StaticMediaTest(TestCase):
                 pass
 
     @override_settings(DEBUG=False)
+    def test_frontend_app_content_hashed_assets_get_no_cache(self) -> None:
+        """
+        Content-hashed files under /_static/dist/ (chunks, assets) currently
+        receive NO_CACHE even though their filenames are immutable.
+        """
+        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist", "assets")
+        os.makedirs(dist_path, exist_ok=True)
+
+        hashed_filename = "rubik-regular.fad64911e39b541f.woff2"
+        filepath = os.path.join(dist_path, hashed_filename)
+        try:
+            with open(filepath, "a"):
+                url = f"/_static/dist/sentry/assets/{hashed_filename}"
+                response = self.client.get(url)
+                close_streaming_response(response)
+                assert response.status_code == 200, response
+                assert response["Cache-Control"] == NO_CACHE
+                assert response["Vary"] == "Accept-Encoding"
+        finally:
+            try:
+                os.unlink(filepath)
+            except Exception:
+                pass
+
+    @override_settings(DEBUG=False)
     def test_no_cors(self) -> None:
         url = "/_static/sentry/images/favicon.ico"
         response = self.client.get(url)

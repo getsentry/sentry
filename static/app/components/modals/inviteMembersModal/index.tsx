@@ -16,8 +16,8 @@ import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types'
 import {useInviteModal} from 'sentry/components/modals/inviteMembersModal/useInviteModal';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {ORG_ROLES} from 'sentry/constants';
-import {getHook} from 'sentry/hookRegistry';
 import {t} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -70,7 +70,7 @@ function InviteMembersModal({
   }
 
   const defaultOrgRoles =
-    getHook('member-invite-modal:organization-roles')?.(organization) ?? ORG_ROLES;
+    getOverride('member-invite-modal:organization-roles')?.(organization) ?? ORG_ROLES;
 
   return (
     <ErrorBoundary>

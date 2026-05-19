@@ -1,5 +1,6 @@
-import {memo, useEffect, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
@@ -53,6 +54,13 @@ const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
   [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
 };
 
+type VirtualRow =
+  | {meta: {color: PillColor; label: string}; sectionType: DiffStatus; type: 'header'}
+  | {group: SidebarGroup; indented: boolean; type: 'item'};
+
+const ITEM_HEIGHT = 36;
+const SECTION_HEADER_HEIGHT = 28;
+
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
   onSearchChange: (query: string) => void;
@@ -77,42 +85,77 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   const hasActiveFilter = activeStatuses.size > 0;
   const isStatusActive = (status: DiffStatus) =>
     !hasActiveFilter || activeStatuses.has(status);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = listRef.current;
-    if (!container || !activeItemKey) {
-      return;
-    }
-    const el = container.querySelector<HTMLElement>(
-      `[data-item-key="${CSS.escape(activeItemKey)}"]`
-    );
-    if (!el) {
-      return;
-    }
-    const cRect = container.getBoundingClientRect();
-    const eRect = el.getBoundingClientRect();
-    if (eRect.top < cRect.top) {
-      container.scrollTop -= cRect.top - eRect.top;
-    } else if (eRect.bottom > cRect.bottom) {
-      container.scrollTop += eRect.bottom - cRect.bottom;
-    }
-  }, [activeItemKey]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [collapsed, setCollapsed] = useState<Set<DiffStatus>>(() => new Set());
-  const toggleSection = (type: DiffStatus, expanded: boolean) => {
+  const toggleSection = useCallback((type: DiffStatus) => {
     setCollapsed(prev => {
       const next = new Set(prev);
-      if (expanded) {
+      if (next.has(type)) {
         next.delete(type);
       } else {
         next.add(type);
       }
       return next;
     });
-  };
+  }, []);
+
+  const showSectionHeaders = useMemo(
+    () => sections.filter(s => s.groups.length > 0).length > 1,
+    [sections]
+  );
+
+  const virtualRows = useMemo(() => {
+    const rows: VirtualRow[] = [];
+    for (const section of sections) {
+      if (section.groups.length === 0) {
+        continue;
+      }
+      const sectionType = section.type;
+      const meta = sectionType ? STATUS_META[sectionType] : null;
+      const showHeader = !!sectionType && !!meta && showSectionHeaders;
+      if (showHeader) {
+        rows.push({type: 'header', sectionType, meta});
+        if (!collapsed.has(sectionType)) {
+          for (const group of section.groups) {
+            rows.push({type: 'item', group, indented: true});
+          }
+        }
+      } else {
+        for (const group of section.groups) {
+          rows.push({type: 'item', group, indented: false});
+        }
+      }
+    }
+    return rows;
+  }, [sections, collapsed, showSectionHeaders]);
+
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: i =>
+      virtualRows[i]!.type === 'header' ? SECTION_HEADER_HEIGHT : ITEM_HEIGHT,
+    overscan: 25,
+    initialRect: {width: 0, height: 500},
+  });
+
+  const prevActiveItemKeyRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!activeItemKey || activeItemKey === prevActiveItemKeyRef.current) {
+      prevActiveItemKeyRef.current = activeItemKey;
+      return;
+    }
+    prevActiveItemKeyRef.current = activeItemKey;
+    const idx = virtualRows.findIndex(
+      r => r.type === 'item' && r.group.key === activeItemKey
+    );
+    if (idx !== -1) {
+      virtualizer.scrollToIndex(idx, {align: 'auto'});
+    }
+  }, [activeItemKey, virtualRows, virtualizer]);
 
   const hasGroups = sections.some(s => s.groups.length > 0);
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <Stack height="100%" width="100%">
@@ -154,70 +197,43 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
-      <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        {sections.map(section => {
-          if (section.groups.length === 0) {
-            return null;
-          }
-          const sectionType = section.type;
-          const meta = sectionType ? STATUS_META[sectionType] : null;
-          const isCollapsed = !!sectionType && collapsed.has(sectionType);
-          const showHeader = !!meta && !!sectionType && sections.length > 1;
-          const items = section.groups.map(group => {
-            const isActive = group.key === activeItemKey;
-            return (
-              <SidebarItemRow
-                key={group.key}
-                data-item-key={group.key}
-                isSelected={isActive}
-                indented={showHeader}
-                onClick={e => {
-                  e.stopPropagation();
-                  onSelectItem(group.key);
-                }}
-              >
-                <Flex align="center" gap="sm" flex="1" minWidth="0">
-                  <Text
-                    size="md"
-                    variant={isActive ? 'accent' : 'muted'}
-                    bold={isActive}
-                    ellipsis
-                    onPointerEnter={setTitleOnOverflow}
-                  >
-                    {group.displayName}
-                  </Text>
-                </Flex>
-                <CountBadge>
-                  <Text variant="muted" size="xs">
-                    {group.count}
-                  </Text>
-                </CountBadge>
-              </SidebarItemRow>
-            );
-          });
-          if (!showHeader) {
-            return <Stack key={sectionType ?? 'solo'}>{items}</Stack>;
-          }
-          return (
-            <SectionDisclosure
-              key={sectionType}
-              size="xs"
-              expanded={!isCollapsed}
-              onExpandedChange={expanded => toggleSection(sectionType, expanded)}
-            >
-              <Disclosure.Title>
-                <Flex align="center" gap="sm">
-                  <Dot pillColor={meta.color} active />
-                  <Text size="sm" bold>
-                    {meta.label}
-                  </Text>
-                </Flex>
-              </Disclosure.Title>
-              {!isCollapsed && items}
-            </SectionDisclosure>
-          );
-        })}
-        {!hasGroups && (
+      <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
+        {hasGroups ? (
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              position: 'relative',
+              width: '100%',
+            }}
+          >
+            {virtualItems.map(vi => {
+              const row = virtualRows[vi.index]!;
+              return (
+                <VirtualRowPositioner
+                  key={vi.key}
+                  ref={virtualizer.measureElement}
+                  data-index={vi.index}
+                  style={{transform: `translateY(${vi.start}px)`}}
+                >
+                  {row.type === 'header' ? (
+                    <SectionHeaderRow
+                      row={row}
+                      expanded={!collapsed.has(row.sectionType)}
+                      onToggle={toggleSection}
+                    />
+                  ) : (
+                    <SidebarItem
+                      group={row.group}
+                      indented={row.indented}
+                      isActive={row.group.key === activeItemKey}
+                      onSelect={onSelectItem}
+                    />
+                  )}
+                </VirtualRowPositioner>
+              );
+            })}
+          </div>
+        ) : (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No components found.')}
@@ -226,6 +242,74 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
         )}
       </Stack>
     </Stack>
+  );
+});
+
+const SectionHeaderRow = memo(function SectionHeaderRow({
+  row,
+  expanded,
+  onToggle,
+}: {
+  expanded: boolean;
+  onToggle: (type: DiffStatus) => void;
+  row: Extract<VirtualRow, {type: 'header'}>;
+}) {
+  return (
+    <SectionDisclosure
+      size="xs"
+      expanded={expanded}
+      onExpandedChange={() => onToggle(row.sectionType)}
+    >
+      <Disclosure.Title>
+        <Flex align="center" gap="sm">
+          <Dot pillColor={row.meta.color} active />
+          <Text size="sm" bold>
+            {row.meta.label}
+          </Text>
+        </Flex>
+      </Disclosure.Title>
+    </SectionDisclosure>
+  );
+});
+
+const SidebarItem = memo(function SidebarItem({
+  group,
+  indented,
+  isActive,
+  onSelect,
+}: {
+  group: SidebarGroup;
+  indented: boolean;
+  isActive: boolean;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <SidebarItemRow
+      data-item-key={group.key}
+      isSelected={isActive}
+      indented={indented}
+      onClick={e => {
+        e.stopPropagation();
+        onSelect(group.key);
+      }}
+    >
+      <Flex align="center" gap="sm" flex="1" minWidth="0">
+        <Text
+          size="md"
+          variant={isActive ? 'accent' : 'muted'}
+          bold={isActive}
+          ellipsis
+          onPointerEnter={setTitleOnOverflow}
+        >
+          {group.displayName}
+        </Text>
+      </Flex>
+      <CountBadge>
+        <Text variant="muted" size="xs">
+          {group.count}
+        </Text>
+      </CountBadge>
+    </SidebarItemRow>
   );
 });
 
@@ -307,20 +391,6 @@ const CountBadge = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
-const SectionDisclosure = styled(Disclosure)`
-  width: 100%;
-  align-items: stretch;
-
-  > :first-child {
-    padding-right: 0;
-    border-radius: 0;
-
-    > button {
-      border-radius: 0;
-    }
-  }
-`;
-
 const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   display: flex;
   align-items: center;
@@ -339,4 +409,25 @@ const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
+
+const SectionDisclosure = styled(Disclosure)`
+  width: 100%;
+  align-items: stretch;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
+  }
+`;
+
+const VirtualRowPositioner = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
 `;

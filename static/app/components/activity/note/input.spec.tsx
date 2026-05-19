@@ -51,7 +51,7 @@ describe('NoteInput', () => {
 
     it('handles errors', async () => {
       const errorJSON = {detail: {message: 'Note is bad', code: 401, extra: ''}};
-      render(<NoteInput error={!!errorJSON} errorJSON={errorJSON} />);
+      render(<NoteInput errorJSON={errorJSON} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{enter}');
       expect(screen.getByText('Note is bad')).toBeInTheDocument();
@@ -60,7 +60,9 @@ describe('NoteInput', () => {
     it('has a disabled submit button when no text is entered', async () => {
       render(<NoteInput />);
 
-      expect(screen.getByRole('button', {name: 'Post Comment'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Comment'})).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('textbox'));
+      expect(screen.getByRole('button', {name: 'Comment'})).toBeDisabled();
       await waitFor(() => expect(membersRequest).toHaveBeenCalled());
     });
 
@@ -68,7 +70,7 @@ describe('NoteInput', () => {
       render(<NoteInput />);
       await userEvent.type(screen.getByRole('textbox'), 'something');
 
-      expect(screen.getByRole('button', {name: 'Post Comment'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Comment'})).toBeEnabled();
     });
 
     it('can mention a team', async () => {
@@ -78,7 +80,7 @@ describe('NoteInput', () => {
       await userEvent.type(screen.getByRole('textbox'), '#team');
       await userEvent.click(screen.getByRole('option', {name: '# team -slug'}));
       expect(screen.getByRole('textbox')).toHaveTextContent('#team-slug');
-      await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
       expect(onCreate).toHaveBeenCalledWith({
         text: '**#team-slug** ',
         mentions: ['team:1'],
@@ -91,7 +93,7 @@ describe('NoteInput', () => {
       await userEvent.type(screen.getByRole('textbox'), '@foo');
       await userEvent.click(screen.getByRole('option', {name: 'Foo Bar'}));
       expect(screen.getByRole('textbox')).toHaveTextContent('@Foo Bar');
-      await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
       expect(onCreate).toHaveBeenCalledWith({
         text: '**@Foo Bar** ',
         mentions: ['user:1'],
@@ -110,12 +112,12 @@ describe('NoteInput', () => {
       render(<NoteInput {...props} onUpdate={onUpdate} />);
 
       // Switch to preview
-      await userEvent.click(screen.getByRole('tab', {name: 'Preview'}));
+      await userEvent.click(screen.getByRole('radio', {name: 'Preview'}));
 
       expect(screen.getByText('an existing item')).toBeInTheDocument();
 
       // Switch to edit
-      await userEvent.click(screen.getByRole('tab', {name: 'Edit'}));
+      await userEvent.click(screen.getByRole('radio', {name: 'Edit'}));
 
       expect(screen.getByRole('textbox')).toHaveTextContent('an existing item');
 
@@ -129,13 +131,13 @@ describe('NoteInput', () => {
     });
 
     it('canels editing and moves to preview mode', async () => {
-      const onEditFinish = jest.fn();
-      render(<NoteInput {...props} onEditFinish={onEditFinish} />);
+      const onCancel = jest.fn();
+      render(<NoteInput {...props} onCancel={onCancel} />);
 
       await userEvent.type(screen.getByRole('textbox'), ' new content');
 
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-      expect(onEditFinish).toHaveBeenCalled();
+      expect(onCancel).toHaveBeenCalled();
     });
   });
 });
