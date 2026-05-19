@@ -5,6 +5,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -185,9 +186,7 @@ export function ExplorerDrawerContent({
     return getConversationsUrlForExternalUse('sentry', runId, {
       start: minTs === Infinity ? undefined : new Date(minTs).toISOString(),
       end: maxTs === -Infinity ? undefined : new Date(maxTs).toISOString(),
-      // sentry.io seer-agents project — scopes the conversation lookup
-      // to the project that hosts the Seer Explorer's tracing data.
-      project: 6178942,
+      project: SEER_AGENTS_PROJECT_ID,
     });
   }, [runId, blocks]);
 
