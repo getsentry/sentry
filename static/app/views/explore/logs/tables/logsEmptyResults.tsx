@@ -3,13 +3,13 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {FileSize} from 'sentry/components/fileSize';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableStatus} from 'sentry/views/explore/components/table';
 import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
+import {LogsBytesScanned} from 'sentry/views/explore/logs/logsPayloadBytesDisplay';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 interface LogsEmptyResultsProps {
@@ -17,6 +17,7 @@ interface LogsEmptyResultsProps {
   bytesScanned?: number;
   canResumeAutoFetch?: boolean;
   resumeAutoFetch?: () => void;
+  totalPayloadBytes?: number;
 }
 
 export function LogsEmptyResults({
@@ -24,6 +25,7 @@ export function LogsEmptyResults({
   canResumeAutoFetch,
   analyticsPageSource,
   resumeAutoFetch,
+  totalPayloadBytes,
 }: LogsEmptyResultsProps) {
   const organization = useOrganization();
 
@@ -34,8 +36,15 @@ export function LogsEmptyResults({
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
             {tct(
-              'We scanned [bytesScanned] so far but have not found anything matching your filters',
-              {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
+              'We scanned [bytes] so far but have not found anything matching your filters',
+              {
+                bytes: (
+                  <LogsBytesScanned
+                    bytesScanned={bytesScanned}
+                    totalPayloadBytes={totalPayloadBytes}
+                  />
+                ),
+              }
             )}
           </EmptyStateText>
           <EmptyStateText size="md">

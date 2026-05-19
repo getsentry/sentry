@@ -18,7 +18,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
@@ -45,6 +44,7 @@ import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
+import {LogsBytesScanned} from 'sentry/views/explore/logs/logsPayloadBytesDisplay';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -150,6 +150,7 @@ export function LogsInfiniteTable({
     bytesScanned,
     canResumeAutoFetch,
     resumeAutoFetch,
+    totalPayloadBytes,
   } = useLogsPageDataQueryResult();
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
@@ -524,7 +525,12 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
+          {!hasReplay && isPending && (
+            <LoadingRenderer
+              bytesScanned={bytesScanned}
+              totalPayloadBytes={totalPayloadBytes}
+            />
+          )}
           {!hasReplay && isError && <ErrorRenderer />}
           {!hasReplay &&
             isEmpty &&
@@ -534,6 +540,7 @@ export function LogsInfiniteTable({
               <LogsEmptyResults
                 analyticsPageSource={analyticsPageSource}
                 bytesScanned={bytesScanned}
+                totalPayloadBytes={totalPayloadBytes}
                 canResumeAutoFetch={canResumeAutoFetch}
                 resumeAutoFetch={resumeAutoFetch}
               />
@@ -702,7 +709,13 @@ function ErrorRenderer() {
   );
 }
 
-export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
+export function LoadingRenderer({
+  bytesScanned,
+  totalPayloadBytes,
+}: {
+  bytesScanned?: number;
+  totalPayloadBytes?: number;
+}) {
   return (
     <TableStatus>
       <Stack align="center">
@@ -713,8 +726,13 @@ export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
               {t('Searching for a needle in a haystack. This could take a while.')}
               <br />
               <span>
-                {tct('[bytesScanned] scanned', {
-                  bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                {tct('[bytes] scanned', {
+                  bytes: (
+                    <LogsBytesScanned
+                      bytesScanned={bytesScanned}
+                      totalPayloadBytes={totalPayloadBytes}
+                    />
+                  ),
                 })}
               </span>
             </Fragment>

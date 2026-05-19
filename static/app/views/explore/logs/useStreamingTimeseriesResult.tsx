@@ -12,10 +12,10 @@ import type {
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   getLogRowTimestampMillis,
   getLogTimestampBucketIndex,
@@ -77,7 +77,7 @@ type BufferedTimeseriesGroup = {
  */
 
 export function useStreamingTimeseriesResult(
-  tableData: ReturnType<typeof useLogsPageDataQueryResult>,
+  tableData: UseInfiniteLogsQueryResult,
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
   timeseriesIngestDelay: bigint
 ): ReturnType<typeof useSortedTimeSeries> {
