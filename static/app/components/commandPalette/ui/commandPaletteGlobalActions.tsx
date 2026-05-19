@@ -56,7 +56,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
-import type {AvatarProject} from 'sentry/types/project';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -882,6 +882,36 @@ export function GlobalCommandPaletteActions() {
                 },
                 keywords: [team.name, team.slug],
                 to: `/settings/${organization.slug}/teams/${team.slug}/members/`,
+              })),
+          });
+        }}
+      >
+        {data => data.map((item, i) => renderAsyncResult(item, i))}
+      </CMDKAction>
+
+      <CMDKAction
+        display={{label: t('Projects'), icon: <IconAllProjects />}}
+        prompt={t('Search for a project...')}
+        limit={4}
+        resource={query => {
+          return cmdkQueryOptions({
+            ...apiOptions.as<Project[]>()(
+              '/organizations/$organizationIdOrSlug/projects/',
+              {
+                path: {organizationIdOrSlug: organization.slug},
+                query: {query},
+                staleTime: 30_000,
+              }
+            ),
+            enabled: query.length >= 1,
+            select: data =>
+              data.json.map(project => ({
+                display: {
+                  label: project.slug,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                },
+                keywords: [project.name, project.slug],
+                to: `/organizations/${organization.slug}/projects/${project.slug}/`,
               })),
           });
         }}
