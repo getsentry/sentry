@@ -4,9 +4,14 @@ import logging
 
 from sentry.dynamic_sampling.per_org.tasks import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.tasks.diagnostics import should_log
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.helpers import (
     recalibrate_orgs as legacy_recalibration_cache,
+)
+
+RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION = (
+    "dynamic_sampling.per_org.recalibration_factor_discrepancy"
 )
 
 logger = logging.getLogger(__name__)
@@ -36,11 +41,12 @@ def calculate_recalibration_factor(
         effective_sample_rate,
         config.sample_rate,
     )
-    logger.info(
-        "dynamic_sampling.per_org.recalibration_factor_discrepancy",
-        extra={
-            "org_id": config.organization.id,
-            "discrepancy": new_pipeline_factor - old_pipeline_factor,
-        },
-    )
+    if should_log(RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION):
+        logger.info(
+            RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION,
+            extra={
+                "org_id": config.organization.id,
+                "discrepancy": new_pipeline_factor - old_pipeline_factor,
+            },
+        )
     return adjusted_factor

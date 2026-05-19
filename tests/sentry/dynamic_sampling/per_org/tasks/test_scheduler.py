@@ -6,6 +6,11 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.per_org.tasks import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.tasks.diagnostics import (
+    LOGGING_LOCATIONS_OPTION,
+    LOGGING_SAMPLE_RATE_OPTION,
+    should_log,
+)
 from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     BUCKET_COUNT,
     BUCKET_CURSOR_KEY,
@@ -58,6 +63,39 @@ class PerOrgRecalibrationCacheTest(TestCase):
         redis.set(per_org_key, 3.5)
         assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 3.5
         assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+
+
+class PerOrgDiagnosticsTest(TestCase):
+    location = "dynamic_sampling.per_org.recalibration_factor_discrepancy"
+
+    @override_options({LOGGING_LOCATIONS_OPTION: [], LOGGING_SAMPLE_RATE_OPTION: 1.0})
+    def test_does_not_log_when_location_is_not_enabled(self) -> None:
+        assert should_log(self.location) is False
+
+    @override_options({LOGGING_LOCATIONS_OPTION: [location], LOGGING_SAMPLE_RATE_OPTION: 0.0})
+    def test_does_not_log_when_sample_rate_is_zero(self) -> None:
+        assert should_log(self.location) is False
+
+    @override_options({LOGGING_LOCATIONS_OPTION: [location], LOGGING_SAMPLE_RATE_OPTION: 1.0})
+    def test_logs_when_location_enabled_and_sample_rate_is_one(self) -> None:
+        with patch("sentry.dynamic_sampling.per_org.tasks.diagnostics.random.random") as random:
+            assert should_log(self.location) is True
+
+        random.assert_not_called()
+
+    @override_options({LOGGING_LOCATIONS_OPTION: [location], LOGGING_SAMPLE_RATE_OPTION: 0.5})
+    def test_uses_random_sample_rate_for_enabled_location(self) -> None:
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.diagnostics.random.random",
+            return_value=0.49,
+        ):
+            assert should_log(self.location) is True
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.diagnostics.random.random",
+            return_value=0.5,
+        ):
+            assert should_log(self.location) is False
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
