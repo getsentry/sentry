@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import styled from '@emotion/styled';
 
 import type {ActivityAuthorType} from 'sentry/components/activity/item';
 import {ActivityItem} from 'sentry/components/activity/item';
@@ -50,6 +51,7 @@ type Props = {
    * this component's props.
    */
   activity?: ActivityType;
+  editBodyPadding?: boolean;
   /**
    * pass through to ActivityItem. Hides the date/timestamp in header
    */
@@ -66,6 +68,7 @@ function Note(props: Props) {
     dateCreated,
     text,
     authorName,
+    editBodyPadding,
     hideDate,
     minHeight,
     showTime,
@@ -87,17 +90,21 @@ function Note(props: Props) {
   };
 
   if (editing) {
+    const noteInput = (
+      <NoteInput
+        {...{noteId, minHeight, text, projectSlugs}}
+        onCancel={() => setEditing(false)}
+        onUpdate={note => {
+          onUpdate(note, props);
+          setEditing(false);
+        }}
+        onCreate={note => onCreate?.(note)}
+      />
+    );
+
     return (
       <ActivityItem noPadding {...activityItemProps}>
-        <NoteInput
-          {...{noteId, minHeight, text, projectSlugs}}
-          onCancel={() => setEditing(false)}
-          onUpdate={note => {
-            onUpdate(note, props);
-            setEditing(false);
-          }}
-          onCreate={note => onCreate?.(note)}
-        />
+        {editBodyPadding ? <EditBody>{noteInput}</EditBody> : noteInput}
       </ActivityItem>
     );
   }
@@ -117,5 +124,9 @@ function Note(props: Props) {
     </ActivityItem>
   );
 }
+
+const EditBody = styled('div')`
+  padding: ${p => p.theme.space.lg};
+`;
 
 export {Note};

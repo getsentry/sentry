@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
@@ -36,7 +38,7 @@ export function ActivitySection(props: Props) {
   const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
-    minHeight: 140,
+    minHeight: 112,
     group,
     projectSlugs,
     placeholder: placeholderText,
@@ -44,21 +46,23 @@ export function ActivitySection(props: Props) {
 
   return (
     <Fragment>
-      <NoteInputWithStorage
-        key={inputId}
-        storageKey="groupinput:latest"
-        itemKey={group.id}
-        onCreate={n => {
-          onCreate(n, me);
-          trackAnalytics('issue_details.comment_created', {
-            organization,
-            org_streamline_only: organization.streamlineOnly ?? undefined,
-            streamline: false,
-          });
-          setInputId(uniqueId());
-        }}
-        {...noteProps}
-      />
+      <Flex marginBottom="xl">
+        <NoteInputWithStorage
+          key={inputId}
+          storageKey="groupinput:latest"
+          itemKey={group.id}
+          onCreate={n => {
+            onCreate(n, me);
+            trackAnalytics('issue_details.comment_created', {
+              organization,
+              org_streamline_only: organization.streamlineOnly ?? undefined,
+              streamline: false,
+            });
+            setInputId(uniqueId());
+          }}
+          {...noteProps}
+        />
+      </Flex>
 
       {visibleActivities.map(item => {
         const authorName = item.user ? item.user.name : 'Sentry';
@@ -67,6 +71,7 @@ export function ActivitySection(props: Props) {
           return (
             <ErrorBoundary mini key={`note-${item.id}`}>
               <Note
+                editBodyPadding
                 showTime={false}
                 text={item.data.text}
                 noteId={item.id}
