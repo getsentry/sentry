@@ -288,6 +288,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     integration_id=integration_id,
                     provider=provider,
                     user_id=request.user.id if request.user else None,
+                    auto_create_pr=True,
                 )
             except SeerPermissionError as e:
                 if _is_unknown_run_id_error(e):
