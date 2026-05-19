@@ -31,42 +31,42 @@ import type {User} from './user';
 
 // XXX(epurkhiser): A Note about `_`.
 //
-// We add the `_: any` type int our hooks list to stop
+// We add the `_: any` type int our overrides list to stop
 // typescript from doing too much type tightening. We should absolutely revisit
 // this in the future because all callbacks _should_ be allowed to be
 // functions, but doing so causes some unexpected issues and makes typescript
-// not happy. We still get a huge advantage of typing just by having each hook
+// not happy. We still get a huge advantage of typing just by having each override
 // type here however.
 
 /**
- * The Hooks type mapping is the master interface for all external Hooks into
+ * The Overrides type mapping is the master interface for all external Overrides into
  * the sentry frontend application.
  */
-export interface Hooks
+export interface Overrides
   extends
-    RouteHooks,
-    ComponentHooks,
-    CustomizationHooks,
-    AnalyticsHooks,
-    FeatureDisabledHooks,
-    InterfaceChromeHooks,
-    OnboardingHooks,
-    FeatureSpecificHooks,
-    ReactHooks,
-    CallbackHooks {
+    RouteOverrides,
+    ComponentOverrides,
+    CustomizationOverrides,
+    AnalyticsOverrides,
+    FeatureDisabledOverrides,
+    InterfaceChromeOverrides,
+    OnboardingOverrides,
+    FeatureSpecificOverrides,
+    ReactHookOverrides,
+    CallbackOverrides {
   _: any;
 }
 
-export type HookName = keyof Hooks;
+export type OverrideName = keyof Overrides;
 
 /**
- * Route hooks.
+ * Route Overrides.
  */
-type RouteHooks = {
-  'routes:legacy-organization-redirects': RouteObjectHook;
-  'routes:org-settings': RouteObjectHook;
-  'routes:root': RouteObjectHook;
-  'routes:subscription-settings': RouteObjectHook;
+type RouteOverrides = {
+  'routes:legacy-organization-redirects': RouteObjectOverride;
+  'routes:org-settings': RouteObjectOverride;
+  'routes:root': RouteObjectOverride;
+  'routes:subscription-settings': RouteObjectOverride;
 };
 
 type AiSetupConfigrationProps = {
@@ -80,7 +80,7 @@ type AiSetupDataConsentProps = {
 };
 
 /**
- * Component specific hooks for DateRange and SelectorItems
+ * Component specific overrides for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
@@ -188,9 +188,9 @@ type DashboardLimitProviderProps = {
 };
 
 /**
- * Component wrapping hooks
+ * Component wrapping overrides
  */
-type ComponentHooks = {
+type ComponentOverrides = {
   'component:ai-configure-seer-quota-sidebar': () => React.ComponentType<AutofixContentProps>;
   'component:ai-setup-configuration': () => React.ComponentType<AiSetupConfigrationProps>;
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
@@ -238,100 +238,100 @@ type ComponentHooks = {
 };
 
 /**
- * Customization hooks are advanced hooks that return render-prop style
+ * Customization overrides are advanced overrides that return render-prop style
  * components the allow for specific customizations of components.
  *
- * These are very similar to the component wrapping hooks
+ * These are very similar to the component wrapping overrides
  */
-type CustomizationHooks = {
-  'integrations:feature-gates': IntegrationsFeatureGatesHook;
-  'member-invite-button:customization': InviteButtonCustomizationHook;
-  'member-invite-modal:customization': InviteModalCustomizationHook;
+type CustomizationOverrides = {
+  'integrations:feature-gates': IntegrationsFeatureGatesOverride;
+  'member-invite-button:customization': InviteButtonCustomizationOverride;
+  'member-invite-modal:customization': InviteModalCustomizationOverride;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
 };
 
 /**
- * Analytics / tracking / and operational metrics backend hooks.
+ * Analytics / tracking / and operational metrics backend overrides.
  */
-type AnalyticsHooks = {
+type AnalyticsOverrides = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 
 /**
- * feature-disabled:<feature-flag> hooks return components that will be
+ * feature-disabled:<feature-flag> overrides return components that will be
  * rendered in place for Feature components when the feature is not enabled.
  */
-export type FeatureDisabledHooks = {
-  'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
-  'feature-disabled:alerts-page': FeatureDisabledHook;
-  'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
-  'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
-  'feature-disabled:dashboards-edit': FeatureDisabledHook;
-  'feature-disabled:dashboards-page': FeatureDisabledHook;
-  'feature-disabled:dashboards-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:data-forwarding': FeatureDisabledHook;
-  'feature-disabled:discard-groups': FeatureDisabledHook;
-  'feature-disabled:discover-saved-query-create': FeatureDisabledHook;
-  'feature-disabled:discover2-page': FeatureDisabledHook;
-  'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:grid-editable-actions': FeatureDisabledHook;
-  'feature-disabled:issue-views': FeatureDisabledHook;
-  'feature-disabled:open-discover': FeatureDisabledHook;
-  'feature-disabled:open-in-discover': FeatureDisabledHook;
-  'feature-disabled:performance-new-project': FeatureDisabledHook;
-  'feature-disabled:performance-page': FeatureDisabledHook;
-  'feature-disabled:profiling-page': FeatureDisabledHook;
-  'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:project-performance-score-card': FeatureDisabledHook;
-  'feature-disabled:rate-limits': FeatureDisabledHook;
-  'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:sso-basic': FeatureDisabledHook;
-  'feature-disabled:sso-saml2': FeatureDisabledHook;
+export type FeatureDisabledOverrides = {
+  'feature-disabled:alert-wizard-performance': FeatureDisabledOverride;
+  'feature-disabled:alerts-page': FeatureDisabledOverride;
+  'feature-disabled:codecov-integration-setting': FeatureDisabledOverride;
+  'feature-disabled:custom-inbound-filters': FeatureDisabledOverride;
+  'feature-disabled:dashboards-edit': FeatureDisabledOverride;
+  'feature-disabled:dashboards-page': FeatureDisabledOverride;
+  'feature-disabled:dashboards-sidebar-item': FeatureDisabledOverride;
+  'feature-disabled:data-forwarding': FeatureDisabledOverride;
+  'feature-disabled:discard-groups': FeatureDisabledOverride;
+  'feature-disabled:discover-saved-query-create': FeatureDisabledOverride;
+  'feature-disabled:discover2-page': FeatureDisabledOverride;
+  'feature-disabled:discover2-sidebar-item': FeatureDisabledOverride;
+  'feature-disabled:grid-editable-actions': FeatureDisabledOverride;
+  'feature-disabled:issue-views': FeatureDisabledOverride;
+  'feature-disabled:open-discover': FeatureDisabledOverride;
+  'feature-disabled:open-in-discover': FeatureDisabledOverride;
+  'feature-disabled:performance-new-project': FeatureDisabledOverride;
+  'feature-disabled:performance-page': FeatureDisabledOverride;
+  'feature-disabled:profiling-page': FeatureDisabledOverride;
+  'feature-disabled:profiling-sidebar-item': FeatureDisabledOverride;
+  'feature-disabled:project-performance-score-card': FeatureDisabledOverride;
+  'feature-disabled:rate-limits': FeatureDisabledOverride;
+  'feature-disabled:replay-sidebar-item': FeatureDisabledOverride;
+  'feature-disabled:sso-basic': FeatureDisabledOverride;
+  'feature-disabled:sso-saml2': FeatureDisabledOverride;
 };
 
 /**
- * Interface chrome hooks.
+ * Interface chrome overrides.
  */
-type InterfaceChromeHooks = {
-  'cmdk:global-settings-actions': GenericComponentHook;
-  footer: GenericComponentHook;
-  'help-modal:footer': HelpModalFooterHook;
-  'sidebar:billing-status': GenericOrganizationComponentHook;
-  'sidebar:help-menu': GenericOrganizationComponentHook;
-  'sidebar:item-label': SidebarItemLabelHook;
-  'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
-  'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
-  'sidebar:seer-config-reminder': GenericOrganizationComponentHook;
-  'sidebar:try-business': SidebarTryBusinessHook;
+type InterfaceChromeOverrides = {
+  'cmdk:global-settings-actions': GenericComponentOverride;
+  footer: GenericComponentOverride;
+  'help-modal:footer': HelpModalFooterOverride;
+  'sidebar:billing-status': GenericOrganizationComponentOverride;
+  'sidebar:help-menu': GenericOrganizationComponentOverride;
+  'sidebar:item-label': SidebarItemLabelOverride;
+  'sidebar:organization-dropdown-menu': GenericOrganizationComponentOverride;
+  'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentOverride;
+  'sidebar:seer-config-reminder': GenericOrganizationComponentOverride;
+  'sidebar:try-business': SidebarTryBusinessOverride;
 };
 
 /**
- * Onboarding experience hooks
+ * Onboarding experience overrides
  */
-type OnboardingHooks = {
+type OnboardingOverrides = {
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
 /**
- * Feature Specific Hooks
+ * Feature Specific overrides
  */
-interface FeatureSpecificHooks extends SpendVisibilityHooks {}
+interface FeatureSpecificOverrides extends SpendVisibilityOverrides {}
 
 /**
- * Hooks related to Spend Visibitlity
+ * Overrides related to Spend Visibitlity
  * (i.e. Per-Project Spike Protection + Spend Allocations)
  */
-type SpendVisibilityHooks = {
-  'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
+type SpendVisibilityOverrides = {
+  'spend-visibility:spike-protection-project-settings': GenericProjectComponentOverride;
 };
 
 /**
- * Hooks that are actually React Hooks as well
+ * Overrides that are actually React overrides as well
  */
-type ReactHooks = {
+type ReactHookOverrides = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
@@ -359,11 +359,11 @@ type ReactHooks = {
 };
 
 /**
- * Callback hooks.
- * These hooks just call a function that has no return value
+ * Callback overrides.
+ * These overrides just call a function that has no return value
  * and perform some sort of callback logic
  */
-type CallbackHooks = {
+type CallbackOverrides = {
   'callback:on-guide-update': GuideUpdateCallback;
   'callback:on-monitor-created': MonitorCreatedCallback;
 };
@@ -371,36 +371,38 @@ type CallbackHooks = {
 /**
  * Renders a React node with no props
  */
-type GenericComponentHook = () => React.ReactNode;
+type GenericComponentOverride = () => React.ReactNode;
 
 /**
- * A route hook provides an injection point for a list of routes.
+ * A route override provides an injection point for a list of routes.
  */
-type RouteObjectHook = () => SentryRouteObject;
+type RouteObjectOverride = () => SentryRouteObject;
 
 /**
  * Receives an organization object and should return a React node.
  */
-type GenericOrganizationComponentHook = (opts: {
+type GenericOrganizationComponentOverride = (opts: {
   organization: Organization;
 }) => React.ReactNode;
 
 /**
  * Receives a project object and should return a React node.
  */
-type GenericProjectComponentHook = (opts: {project: DetailedProject}) => React.ReactNode;
+type GenericProjectComponentOverride = (opts: {
+  project: DetailedProject;
+}) => React.ReactNode;
 
 /**
- * A FeatureDisabledHook returns a react element when a feature is not enabled.
+ * A FeatureDisabledOverride returns a react element when a feature is not enabled.
  */
-type FeatureDisabledHook = (opts: {
+type FeatureDisabledOverride = (opts: {
   /**
    * Children can either be a node, or a function that accepts a renderDisabled prop containing
    * a function/component to render when the feature is not enabled.
    */
   children: React.ReactNode | ChildrenRenderFn;
   /**
-   * The list of features that are controlled by this hook.
+   * The list of features that are controlled by this override.
    */
   features: string[];
   /**
@@ -430,7 +432,7 @@ type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 type AnalyticsInitUser = (user: User) => void;
 
 /**
- * Trigger analytics tracking in the hook registry.
+ * Trigger analytics tracking in the override registry.
  */
 type AnalyticsRawTrackEvent = (
   data: {
@@ -473,7 +475,7 @@ type AnalyticsRawTrackEvent = (
 ) => void;
 
 /**
- * Trigger recording a metric in the hook registry.
+ * Trigger recording a metric in the override registry.
  */
 type MetricsEvent = (
   /**
@@ -491,17 +493,17 @@ type MetricsEvent = (
 ) => void;
 
 /**
- * Each sidebar label is wrapped with this hook, to allow sidebar item
+ * Each sidebar label is wrapped with this override, to allow sidebar item
  * augmentation.
  */
-type SidebarItemLabelHook = () => React.ComponentType<{
+type SidebarItemLabelOverride = () => React.ComponentType<{
   /**
    * The item label being wrapped
    */
   children: React.ReactNode;
   /**
    * The key of the item label currently being rendered. If no id is provided
-   * the hook will have no effect.
+   * the override will have no effect.
    */
   id?: string;
 }>;
@@ -509,12 +511,12 @@ type SidebarItemLabelHook = () => React.ComponentType<{
 /**
  * Returns an additional list of sidebar items.
  */
-type SidebarTryBusinessHook = (opts: {organization: Organization}) => React.ReactNode;
+type SidebarTryBusinessOverride = (opts: {organization: Organization}) => React.ReactNode;
 
 /**
  * Provides augmentation of the help modal footer
  */
-type HelpModalFooterHook = (opts: {
+type HelpModalFooterOverride = (opts: {
   closeModal: () => void;
   organization: Organization;
 }) => React.ReactNode;
@@ -584,10 +586,10 @@ type IntegrationFeatureListProps = FeatureGateSharedProps & {
 };
 
 /**
- * The integration features gate hook provides components to customize
+ * The integration features gate override provides components to customize
  * integration feature lists.
  */
-type IntegrationsFeatureGatesHook = () => {
+type IntegrationsFeatureGatesOverride = () => {
   /**
    * This component renders the list of integration features.
    */
@@ -604,7 +606,7 @@ type IntegrationsFeatureGatesHook = () => {
  * Invite Button customization allows for a render-props component to replace
  * or intercept props of the button element.
  */
-type InviteButtonCustomizationHook = () => React.ComponentType<{
+type InviteButtonCustomizationOverride = () => React.ComponentType<{
   children: (opts: {
     /**
      * Whether the Invite Members button is active or not
@@ -623,7 +625,7 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.
  */
-type InviteModalCustomizationHook = () => React.ComponentType<{
+type InviteModalCustomizationOverride = () => React.ComponentType<{
   children: (opts: {
     /**
      * Indicates that the modal's send invites button should be enabled and

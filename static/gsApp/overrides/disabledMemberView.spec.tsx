@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
+import DisabledMemberView from 'getsentry/overrides/disabledMemberView';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledMemberView', () => {

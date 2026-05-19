@@ -7,7 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -105,7 +105,7 @@ function BaseFooter({className}: Props) {
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
       </RightLinks>
-      <Hook name="footer" />
+      <Override name="footer" />
     </Container>
   );
 }

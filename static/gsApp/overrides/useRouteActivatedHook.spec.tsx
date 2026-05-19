@@ -9,7 +9,7 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import {
   DELAY_TIME_MS,
   useRouteActivatedHook,
-} from 'getsentry/hooks/useRouteActivatedHook';
+} from 'getsentry/overrides/useRouteActivatedHook';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 

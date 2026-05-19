@@ -1,8 +1,8 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {getHook} from 'sentry/hookRegistry';
-import type {Hooks} from 'sentry/types/hooks';
+import {getOverride} from 'sentry/overrideRegistry';
+import type {Overrides} from 'sentry/types/overrides';
 import {
   alertsEventMap,
   type AlertsEventParameters,
@@ -224,7 +224,7 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-type RecordMetric = Hooks['metrics:event'] & {
+type RecordMetric = Overrides['metrics:event'] & {
   endSpan: (opts: {
     /**
      * Name of the transaction to end
@@ -289,7 +289,7 @@ const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
  * Record metrics.
  */
 export const metric: RecordMetric = (name, value, tags) =>
-  getHook('metrics:event')?.(name, value, tags);
+  getOverride('metrics:event')?.(name, value, tags);
 
 // JSDOM implements window.performance but not window.performance.mark
 export const CAN_MARK =

@@ -99,7 +99,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
         </Flex>
         <Feature
           features={DATA_FORWARDING_FEATURES}
-          hookName="feature-disabled:data-forwarding"
+          overrideName="feature-disabled:data-forwarding"
         >
           {({hasFeature, features}) => (
             <Fragment>

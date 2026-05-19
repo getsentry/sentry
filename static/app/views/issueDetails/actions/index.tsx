@@ -341,7 +341,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     return (
       <Feature
         features="projects:discard-groups"
-        hookName="feature-disabled:discard-groups"
+        overrideName="feature-disabled:discard-groups"
         organization={organization}
         project={project}
         renderDisabled={renderDiscardDisabled}

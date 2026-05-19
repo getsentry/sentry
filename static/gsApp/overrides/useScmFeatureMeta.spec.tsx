@@ -5,7 +5,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import {useScmFeatureMeta} from 'getsentry/hooks/useScmFeatureMeta';
+import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {PlanTier} from 'getsentry/types';
 
 describe('useScmFeatureMeta', () => {

@@ -10,8 +10,8 @@ import {
 } from 'sentry/components/pipeline/pipelineIntegrationGitHub';
 import {IconLightning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/overrides';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';

@@ -1,6 +1,5 @@
 import * as qs from 'query-string';
 
-import {getHook} from 'sentry/hookRegistry';
 import {
   IconAsana,
   IconBitbucket,
@@ -15,7 +14,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {Hooks} from 'sentry/types/hooks';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {
   AppOrProviderOrPlugin,
   CodeOwner,
@@ -32,6 +31,7 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {Overrides} from 'sentry/types/overrides';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
@@ -63,14 +63,15 @@ const generateIntegrationFeatures = (p: any) =>
     gatedFeatureGroups: [],
   });
 
-const defaultFeatureGateComponents: ReturnType<Hooks['integrations:feature-gates']> = {
-  IntegrationFeatures: generateIntegrationFeatures,
-  FeatureList: generateFeaturesList,
-};
+const defaultFeatureGateComponents: ReturnType<Overrides['integrations:feature-gates']> =
+  {
+    IntegrationFeatures: generateIntegrationFeatures,
+    FeatureList: generateFeaturesList,
+  };
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
-  const featureHook = getHook('integrations:feature-gates') || defaultHook;
+  const featureHook = getOverride('integrations:feature-gates') || defaultHook;
   return featureHook();
 };
 

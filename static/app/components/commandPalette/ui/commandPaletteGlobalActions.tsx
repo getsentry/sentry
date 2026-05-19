@@ -16,7 +16,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
@@ -544,7 +544,7 @@ export function GlobalCommandPaletteActions() {
                 to={item.path}
               />
             ))}
-          <Hook name="cmdk:global-settings-actions" />
+          <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
 
         <CMDKAction

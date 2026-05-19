@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
-import {getHook} from 'sentry/hookRegistry';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {FeatureDisabledOverrides} from 'sentry/types/overrides';
 import type {Project} from 'sentry/types/project';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
@@ -33,17 +33,17 @@ type Props = {
    * The following properties will be set by the HoCs
    */
   organization: Organization;
+  organizationAllowNull?: undefined | true;
   /**
-   * Specify the key to use for hook registry functionality.
+   * Specify the key to use for override registry functionality.
    *
-   * The hookName should be prefixed with `feature-disabled`.
+   * The overrideName should be prefixed with `feature-disabled`.
    *
-   * When specified, the hookstore will be checked if the feature is
-   * disabled, and the first available hook will be used as the render
+   * When specified, the override registry will be checked if the feature is
+   * disabled, and the registered override will be used as the render
    * function.
    */
-  hookName?: keyof FeatureDisabledHooks;
-  organizationAllowNull?: undefined | true;
+  overrideName?: keyof FeatureDisabledOverrides;
   project?: Project;
   /**
    * Custom renderer function for when the feature is not enabled.
@@ -132,7 +132,7 @@ const hasFeature = (
 function Feature({
   children,
   features: featuresProp,
-  hookName,
+  overrideName,
   organization,
   project,
   renderDisabled = false,
@@ -171,13 +171,13 @@ function Feature({
         ? renderDisabled
         : renderComingSoon;
 
-  // Override the renderDisabled function with a hook registry function if there
-  // is one registered for the feature.
-  if (hookName) {
-    const hook = getHook(hookName);
+  // Override the renderDisabled function with an override registry function if
+  // there is one registered for the feature.
+  if (overrideName) {
+    const override = getOverride(overrideName);
 
-    if (hook) {
-      customDisabledRender = hook;
+    if (override) {
+      customDisabledRender = override;
     }
   }
   const renderProps = {

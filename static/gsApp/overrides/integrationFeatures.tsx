@@ -5,9 +5,9 @@ import partition from 'lodash/partition';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Hooks} from 'sentry/types/hooks';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {Overrides} from 'sentry/types/overrides';
 import {getIntegrationType} from 'sentry/utils/integrationUtil';
 
 import {UpsellButton} from 'getsentry/components/upsellButton';
@@ -332,7 +332,7 @@ const FeatureDescription = styled('li')`
  * - FeatureList
  *   Renders a list of integration features grouped by plan.
  */
-export const hookIntegrationFeatures: Hooks['integrations:feature-gates'] = () => ({
+export const hookIntegrationFeatures: Overrides['integrations:feature-gates'] = () => ({
   IntegrationFeatures,
   FeatureList,
 });

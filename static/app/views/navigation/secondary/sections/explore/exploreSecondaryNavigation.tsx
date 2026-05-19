@@ -76,7 +76,7 @@ export function ExploreSecondaryNavigation() {
             </Feature>
             <Feature
               features="discover-basic"
-              hookName="feature-disabled:discover2-sidebar-item"
+              overrideName="feature-disabled:discover2-sidebar-item"
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
@@ -90,7 +90,7 @@ export function ExploreSecondaryNavigation() {
             </Feature>
             <Feature
               features="profiling"
-              hookName="feature-disabled:profiling-sidebar-item"
+              overrideName="feature-disabled:profiling-sidebar-item"
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
@@ -103,7 +103,7 @@ export function ExploreSecondaryNavigation() {
             </Feature>
             <Feature
               features="session-replay-ui"
-              hookName="feature-disabled:replay-sidebar-item"
+              overrideName="feature-disabled:replay-sidebar-item"
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link

@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
+import {getOrgRoles} from 'getsentry/overrides/organizationRoles';
 
 describe('OrganizationRoles', () => {
   it('includes admin if org does not have team-roles', () => {
