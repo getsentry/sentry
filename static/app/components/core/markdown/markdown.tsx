@@ -34,10 +34,12 @@ export type MarkdownComponents = Partial<{
   Strong: ComponentType<WithDefault<{children: ReactNode}>>;
   Table: ComponentType<WithDefault<{children: ReactNode}>>;
   TableBody: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableCell: ComponentType<WithDefault<{children: ReactNode; align?: string | null}>>;
+  TableCell: ComponentType<
+    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
+  >;
   TableHead: ComponentType<WithDefault<{children: ReactNode}>>;
   TableHeaderCell: ComponentType<
-    WithDefault<{children: ReactNode; align?: string | null}>
+    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
   >;
   TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
   TaskList: ComponentType<WithDefault<{children: ReactNode}>>;
