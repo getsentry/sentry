@@ -1,4 +1,4 @@
-import {HookStore} from 'sentry/stores/hookStore';
+import {getHook} from 'sentry/hookRegistry';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 
@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
  * rawTrackAnalyticsEvent.
  */
 const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
-  HookStore.get('analytics:raw-track-event')?.(data, options);
+  getHook('analytics:raw-track-event')?.(data, options);
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 

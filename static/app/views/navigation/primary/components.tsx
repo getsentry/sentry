@@ -28,10 +28,10 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import Hook from 'sentry/components/hook';
 import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
+import {getHook} from 'sentry/hookRegistry';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -83,7 +83,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')?.(organization);
+    !getHook('component:superuser-warning-excluded')?.(organization);
 
   const hasPageFrame = useHasPageFrameFeature();
 

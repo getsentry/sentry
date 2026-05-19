@@ -2,15 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {registerHook} from 'sentry/hookRegistry';
 
 import {HookOrDefault} from './hookOrDefault';
 
 describe('HookOrDefault', () => {
-  beforeEach(() => {
-    HookStore.init();
-  });
-
   it('should render default', () => {
     const Component = HookOrDefault({
       hookName: 'component:replay-onboarding-cta',
@@ -25,7 +21,7 @@ describe('HookOrDefault', () => {
   });
 
   it('should render from HookStore', () => {
-    HookStore.set(
+    registerHook(
       'component:replay-onboarding-cta',
       () =>
         function ({organization}) {

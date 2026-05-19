@@ -51,7 +51,6 @@ export interface Hooks
     FeatureDisabledHooks,
     InterfaceChromeHooks,
     OnboardingHooks,
-    SettingsHooks,
     FeatureSpecificHooks,
     ReactHooks,
     CallbackHooks {
@@ -317,14 +316,6 @@ type OnboardingHooks = {
 };
 
 /**
- * Settings navigation hooks.
- */
-type SettingsHooks = {
-  'settings:organization-navigation': OrganizationSettingsHook;
-  'settings:organization-navigation-config': SettingsConfigHook;
-};
-
-/**
  * Feature Specific Hooks
  */
 interface FeatureSpecificHooks extends SpendVisibilityHooks {}
@@ -344,6 +335,7 @@ type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:use-billing-navigation-config': () => NavigationSection | null;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
@@ -438,7 +430,7 @@ type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 type AnalyticsInitUser = (user: User) => void;
 
 /**
- * Trigger analytics tracking in the hook store.
+ * Trigger analytics tracking in the hook registry.
  */
 type AnalyticsRawTrackEvent = (
   data: {
@@ -481,7 +473,7 @@ type AnalyticsRawTrackEvent = (
 ) => void;
 
 /**
- * Trigger recording a metric in the hook store.
+ * Trigger recording a metric in the hook registry.
  */
 type MetricsEvent = (
   /**
@@ -497,16 +489,6 @@ type MetricsEvent = (
    */
   tags?: Record<PropertyKey, unknown>
 ) => void;
-
-/**
- * Provides additional navigation components
- */
-type OrganizationSettingsHook = (organization: Organization) => React.ReactElement;
-
-/**
- * Provides additional setting configurations
- */
-type SettingsConfigHook = (organization: Organization) => NavigationSection;
 
 /**
  * Each sidebar label is wrapped with this hook, to allow sidebar item
