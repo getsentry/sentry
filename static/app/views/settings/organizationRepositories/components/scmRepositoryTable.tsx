@@ -489,7 +489,7 @@ function VirtualizedRepoList({
 
   if (visibleRepos.length === 0) {
     return (
-      <Flex padding="xl xl" justify="center" borderTop="primary">
+      <Flex padding="xl" justify="center" borderTop="primary">
         {renderEmptyMessage()}
       </Flex>
     );
