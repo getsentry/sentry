@@ -8,6 +8,7 @@ from django.db.models import F
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
+from sentry.dynamic_sampling.per_org.tasks.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.tasks.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
@@ -18,6 +19,10 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
+from sentry.dynamic_sampling.tasks.common import (
+    ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
+    ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+)
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -101,8 +106,16 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.is_enabled:
         return DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
 
-    org_volume = get_eap_organization_volume(config)
-    if org_volume is None:
+    org_volume_5_minutes = get_eap_organization_volume(
+        config, time_interval=ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
+    )
+
+    org_volume_1_hour = get_eap_organization_volume(
+        config, time_interval=ACTIVE_ORGS_DEFAULT_TIME_INTERVAL
+    )
+    if org_volume_1_hour is None:
         return DynamicSamplingStatus.NO_VOLUME
+
+    calculate_recalibration_factor(config, org_volume_5_minutes)
 
     return None

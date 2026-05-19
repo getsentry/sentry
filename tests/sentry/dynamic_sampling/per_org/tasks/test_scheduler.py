@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.dynamic_sampling.per_org.tasks import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     BUCKET_COUNT,
@@ -15,23 +16,48 @@ from sentry.dynamic_sampling.per_org.tasks.scheduler import (
 from sentry.dynamic_sampling.per_org.tasks.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.tasks.helpers import (
+    recalibrate_orgs as legacy_recalibration_cache,
+)
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 
 
-def _assert_called_once_with_config(mock, organization_id: int) -> None:
-    mock.assert_called_once()
-    config = mock.call_args.args[0]
-    assert isinstance(config, BaseDynamicSamplingConfiguration)
-    assert config.organization.id == organization_id
+def _assert_called_with_config(mock, organization_id: int, count: int) -> None:
+    assert mock.call_count == count
+    for call_args in mock.call_args_list:
+        config = call_args.args[0]
+        assert isinstance(config, BaseDynamicSamplingConfiguration)
+        assert config.organization.id == organization_id
 
 
 def _drain_dispatched_org_ids(burst) -> list[int]:
     ids = [args[0] for _task, args, _kwargs in burst.queue]
     burst.queue.clear()
     return ids
+
+
+class PerOrgRecalibrationCacheTest(TestCase):
+    def test_per_org_cache_does_not_cross_pollinate_with_legacy_cache(self) -> None:
+        org = self.create_organization()
+        redis = get_redis_client_for_ds()
+        legacy_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        per_org_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        self.addCleanup(redis.delete, legacy_key, per_org_key)
+        redis.delete(legacy_key, per_org_key)
+
+        assert legacy_key != per_org_key
+
+        redis.set(legacy_key, 2.5)
+        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 2.5
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+
+        redis.delete(legacy_key)
+        redis.set(per_org_key, 3.5)
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 3.5
+        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
@@ -136,16 +162,25 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
                 return_value=None,
             ) as get_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.calculations.legacy_recalibration_cache.get_adjusted_factor",
+            ) as get_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.calculations.per_org_recalibration_cache.get_adjusted_factor",
+            ) as get_per_org_factor,
         ):
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.NO_VOLUME
-        _assert_called_once_with_config(get_volume, org.id)
+        _assert_called_with_config(get_volume, org.id, 2)
+        get_factor.assert_not_called()
+        get_per_org_factor.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_continues_with_traffic(self) -> None:
         org = self.create_organization()
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        org_volume_5_minutes = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        org_volume_1_hour = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
 
         with (
             patch(
@@ -154,13 +189,53 @@ class SchedulePerOrgCalculationsTest(TestCase):
             ),
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
+                side_effect=[org_volume_5_minutes, org_volume_1_hour],
             ) as get_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.calculations.legacy_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ) as get_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.calculations.per_org_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ) as get_per_org_factor,
         ):
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
-        _assert_called_once_with_config(get_volume, org.id)
+        _assert_called_with_config(get_volume, org.id, 2)
+        get_factor.assert_called_once_with(org.id)
+        get_per_org_factor.assert_called_once_with(org.id)
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_run_calculations_per_org_skips_recalibration_without_valid_5_minute_volume(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        org_volume_1_hour = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                side_effect=[None, org_volume_1_hour],
+            ) as get_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.calculations.legacy_recalibration_cache.get_adjusted_factor",
+            ) as get_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.calculations.per_org_recalibration_cache.get_adjusted_factor",
+            ) as get_per_org_factor,
+        ):
+            result = run_calculations_per_org_task(org.id)
+
+        assert result is None
+        _assert_called_with_config(get_volume, org.id, 2)
+        get_factor.assert_not_called()
+        get_per_org_factor.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_dynamic_sampling(self) -> None:
