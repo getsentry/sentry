@@ -598,7 +598,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <Feature
         organization={organization}
         features="discover-query"
-        hookName="feature-disabled:discover-saved-query-create"
+        overrideName="feature-disabled:discover-saved-query-create"
         renderDisabled={renderDisabled}
       >
         {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}

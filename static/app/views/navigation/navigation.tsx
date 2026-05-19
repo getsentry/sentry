@@ -14,7 +14,7 @@ import {
   useCommandPaletteDispatch,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {IconSearch} from 'sentry/icons';
 import {
   IconCompass,
@@ -198,7 +198,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
       <Feature
         features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
-        hookName="feature-disabled:dashboards-sidebar-item"
+        overrideName="feature-disabled:dashboards-sidebar-item"
         requireAll={false}
       >
         <NavigationTourElement
@@ -343,13 +343,13 @@ export function PrimaryNavigationFooterItems() {
         <PrimaryNavigationOnboarding />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:try-business" organization={organization} />
+        <Override name="sidebar:try-business" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        <Override name="sidebar:seer-config-reminder" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:billing-status" organization={organization} />
+        <Override name="sidebar:billing-status" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationServiceIncidents />

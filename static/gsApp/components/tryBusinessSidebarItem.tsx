@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {Overrides} from 'sentry/types/overrides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
@@ -15,7 +15,7 @@ import {hasPerformance, isBizPlanFamily} from 'getsentry/utils/billing';
 
 const AUTO_OPEN_HASH = '#try-business';
 
-type Props = Parameters<Hooks['sidebar:try-business']>[0] & {
+type Props = Parameters<Overrides['sidebar:try-business']>[0] & {
   organization: Organization;
   subscription: Subscription;
 };

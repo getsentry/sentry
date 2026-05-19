@@ -11,9 +11,9 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
-import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -72,6 +72,7 @@ type Props = {
 
 export function SuperuserWarning({organization, className}: Props) {
   const hasPageFrame = useHasPageFrameFeature();
+  const {addAlert} = useGlobalAlerts();
   const isExcludedOrg = shouldExcludeOrg(organization);
 
   const stripRef = useRef<HTMLDivElement>(null);
@@ -99,7 +100,7 @@ export function SuperuserWarning({organization, className}: Props) {
 
   useEffect(() => {
     if (!isExcludedOrg) {
-      AlertStore.addAlert({
+      addAlert({
         id: 'superuser-warning',
         message: (
           <Fragment>
@@ -112,7 +113,7 @@ export function SuperuserWarning({organization, className}: Props) {
         noDuplicates: true,
       });
     }
-  }, [hasPageFrame, isExcludedOrg]);
+  }, [hasPageFrame, isExcludedOrg, addAlert]);
 
   if (isExcludedOrg) {
     return null;

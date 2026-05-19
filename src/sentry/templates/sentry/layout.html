@@ -33,6 +33,8 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
+  <link rel="preload" href="{% frontend_app_asset_url "sentry" "entrypoints/app.js" %}" as="script" crossorigin="anonymous" />
+
   <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
 
   <title>{% block title %}Sentry{% endblock %}</title>

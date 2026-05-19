@@ -1,0 +1,125 @@
+import {createMemoryRouter, RouterProvider} from 'react-router-dom';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {ProjectFixture} from 'getsentry-test/fixtures/project';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import type {ButtonProps} from '@sentry/scraps/button';
+
+import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import {useButtonTracking} from 'getsentry/overrides/useButtonTracking';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
+
+jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
+
+describe('buttonTracking', () => {
+  const organization = OrganizationFixture();
+
+  const project = ProjectFixture({organization});
+
+  const wrapper = ({children}: ButtonProps) => (
+    <OrganizationContext value={organization}>
+      <RouterProvider
+        router={createMemoryRouter(
+          [
+            {
+              path: '/',
+              handle: {path: '/'},
+              children: [
+                {
+                  path: 'settings/',
+                  handle: {path: '/settings/'},
+                  children: [
+                    {
+                      path: ':orgId/',
+                      handle: {path: ':orgId/'},
+                      children: [
+                        {
+                          path: ':projectId/',
+                          handle: {path: 'projects/:projectId/'},
+                          element: children,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
+        )}
+        future={{v7_startTransition: true}}
+      />
+    </OrganizationContext>
+  );
+
+  afterEach(() => {
+    (rawTrackAnalyticsEvent as jest.Mock).mockClear();
+  });
+
+  it('calls rawTrackAnalyticsEvent with default values', () => {
+    const {result} = renderHook(useButtonTracking, {
+      initialProps: {'aria-label': 'Create Alert'},
+      wrapper,
+    });
+
+    result.current();
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
+      eventName: null,
+      eventKey: 'button_click.settings.:org_id.projects.:project_id',
+      organization: expect.objectContaining(organization),
+      parameterized_path: 'settings.:org_id.projects.:project_id',
+      text: 'Create Alert',
+    });
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls rawTrackAnalyticsEvent with data', () => {
+    const {result} = renderHook(useButtonTracking, {
+      initialProps: {
+        'aria-label': 'Create Alert',
+        analyticsEventKey: 'settings.create_alert',
+        analyticsEventName: 'Settings: Create Alert',
+        analyticsParams: {priority: 'primary', href: 'sentry.io/settings/create_alert'},
+      },
+      wrapper,
+    });
+
+    result.current();
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
+      eventName: 'Settings: Create Alert',
+      eventKey: 'settings.create_alert',
+      organization: expect.objectContaining(organization),
+      parameterized_path: 'settings.:org_id.projects.:project_id',
+      text: 'Create Alert',
+      priority: 'primary',
+      href: 'sentry.io/settings/create_alert',
+    });
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls rawTrackAnalyticsEvent with new event names', () => {
+    const {result} = renderHook(useButtonTracking, {
+      initialProps: {
+        'aria-label': 'Create Alert',
+        analyticsEventKey: 'settings.create_alert',
+        analyticsEventName: 'Settings: Create Alert',
+      },
+      wrapper,
+    });
+
+    result.current();
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
+      eventName: 'Settings: Create Alert',
+      eventKey: 'settings.create_alert',
+      organization: expect.objectContaining(organization),
+      parameterized_path: 'settings.:org_id.projects.:project_id',
+      text: 'Create Alert',
+    });
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+});
