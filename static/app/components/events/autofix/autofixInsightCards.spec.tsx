@@ -18,8 +18,8 @@ const sampleInsights: AutofixInsight[] = [
 ];
 
 beforeEach(() => {
-  (addLoadingMessage as jest.Mock).mockClear();
-  (addErrorMessage as jest.Mock).mockClear();
+  jest.mocked(addLoadingMessage).mockClear();
+  jest.mocked(addErrorMessage).mockClear();
   MockApiClient.clearMockResponses();
 });
 
