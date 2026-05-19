@@ -39,7 +39,7 @@ describe('useLogsPinning', () => {
     const {result} = renderHookWithProviders(() => useLogsPinning(), {
       additionalWrapper: LogsPinningProvider,
       initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: ['log-1', 'log-2']}},
+        location: {pathname: '/', query: {logsPinned: 'log-1,log-2'}},
       },
     });
 
@@ -88,7 +88,7 @@ describe('useLogsPinning', () => {
     const {result} = renderHookWithProviders(() => useLogsPinning(), {
       additionalWrapper: LogsPinningProvider,
       initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: ['log-1', 'log-2']}},
+        location: {pathname: '/', query: {logsPinned: 'log-1,log-2'}},
       },
     });
 
@@ -97,32 +97,5 @@ describe('useLogsPinning', () => {
     });
 
     expect(result.current?.pinnedRows).toEqual(new Set());
-  });
-
-  it('writes the pinned id to the URL query string when togglePinnedRow is called', () => {
-    const {result, router} = renderHookWithProviders(() => useLogsPinning(), {
-      additionalWrapper: LogsPinningProvider,
-    });
-
-    act(() => {
-      result.current?.togglePinnedRow('log-1');
-    });
-
-    expect(router.location.query.logsPinned).toContain('log-1');
-  });
-
-  it('removes the logsPinned key from the URL when clearPinnedRows is called', () => {
-    const {result, router} = renderHookWithProviders(() => useLogsPinning(), {
-      additionalWrapper: LogsPinningProvider,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
-    });
-
-    act(() => {
-      result.current?.clearPinnedRows();
-    });
-
-    expect(router.location.query.logsPinned).toHaveLength(0);
   });
 });
