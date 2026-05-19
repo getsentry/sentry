@@ -164,9 +164,32 @@ export function ExplorerDrawerContent({
   }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl = runId
-    ? getConversationsUrlForExternalUse('sentry', runId)
-    : undefined;
+  const conversationsUrl = useMemo(() => {
+    if (runId === null) {
+      return;
+    }
+    let minTs = Infinity;
+    let maxTs = -Infinity;
+    for (const block of blocks) {
+      const ts = Date.parse(block.timestamp);
+      if (Number.isNaN(ts)) {
+        continue;
+      }
+      if (ts < minTs) {
+        minTs = ts;
+      }
+      if (ts > maxTs) {
+        maxTs = ts;
+      }
+    }
+    return getConversationsUrlForExternalUse('sentry', runId, {
+      start: minTs === Infinity ? undefined : new Date(minTs).toISOString(),
+      end: maxTs === -Infinity ? undefined : new Date(maxTs).toISOString(),
+      // sentry.io seer-agents project — scopes the conversation lookup
+      // to the project that hosts the Seer Explorer's tracing data.
+      project: 6178942,
+    });
+  }, [runId, blocks]);
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
