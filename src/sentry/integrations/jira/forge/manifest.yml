@@ -43,11 +43,15 @@ connectModules:
     - event: jira:issue_updated
       url: /extensions/jira/issue-updated/
       excludeBody: false
-      key: webhook-1
+      key: sentry-issue-updated-webhook
 permissions:
   scopes:
     - read:connect-jira
     - write:connect-jira
     - act-as-user:connect-jira
+    # The Connect descriptor conditionally includes this scope based on
+    # JIRA_USE_EMAIL_SCOPE. This Forge manifest is only used for the
+    # sentry.io Marketplace listing where that setting is enabled;
+    # self-hosted installs use their own Connect descriptor.
     - access-email-addresses:connect-jira
 modules: {}
