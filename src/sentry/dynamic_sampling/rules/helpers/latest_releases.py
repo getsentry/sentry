@@ -137,7 +137,7 @@ class ProjectBoostedReleases:
     def __init__(self, project: Project):
         self.redis_client = get_redis_client_for_ds()
         self.project_id = project.id
-        self.project_platform = project.platform
+        self.project_platform = Platform(project.platform)
 
     @property
     def has_boosted_releases(self) -> bool:
