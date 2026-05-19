@@ -23,7 +23,6 @@ import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
@@ -100,7 +99,6 @@ function TokenList({
 function OrganizationAuthTokensIndex() {
   const organization = useOrganization();
   const api = useApi();
-  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
 
   const {
@@ -153,7 +151,7 @@ function OrganizationAuthTokensIndex() {
   const createNewToken = (
     <LinkButton
       variant="primary"
-      size={hasPageFrame ? 'md' : 'sm'}
+      size="md"
       icon={<IconAdd />}
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"
@@ -172,28 +170,8 @@ function OrganizationAuthTokensIndex() {
           />
           <SettingsPageHeader
             title={t('Organization Tokens')}
-            action={hasPageFrame ? undefined : createNewToken}
             subtitle={
-              hasPageFrame ? (
-                <Flex justify="between" align="center" gap="md">
-                  <Stack gap="md">
-                    <div>
-                      {t(
-                        'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-                      )}
-                    </div>
-                    <div>
-                      {tct(
-                        'For more information on how to use the web API, see our [link:documentation].',
-                        {
-                          link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                        }
-                      )}
-                    </div>
-                  </Stack>
-                  {createNewToken}
-                </Flex>
-              ) : (
+              <Flex justify="between" align="center" gap="md">
                 <Stack gap="md">
                   <div>
                     {t(
@@ -209,7 +187,8 @@ function OrganizationAuthTokensIndex() {
                     )}
                   </div>
                 </Stack>
-              )
+                {createNewToken}
+              </Flex>
             }
           />
 

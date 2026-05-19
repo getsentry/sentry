@@ -21,7 +21,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -42,8 +41,6 @@ export function RelayWrapper() {
   const organization = useOrganization();
   const api = useApi();
   const [relays, setRelays] = useState(organization.trustedRelays);
-  const hasPageFrame = useHasPageFrameFeature();
-
   const disabled = !organization.access.includes('org:write');
 
   const handleOpenAddDialog = () => {
@@ -67,7 +64,7 @@ export function RelayWrapper() {
         title: disabled ? t('You do not have permission to register keys') : undefined,
       }}
       variant="primary"
-      size={hasPageFrame ? 'md' : 'sm'}
+      size="md"
       icon={<IconAdd />}
       onClick={handleOpenAddDialog}
       disabled={disabled}
@@ -81,24 +78,16 @@ export function RelayWrapper() {
       <SettingsPageHeader
         title={t('Relay')}
         subtitle={
-          hasPageFrame ? (
-            <Flex justify="between" align="center" gap="md">
-              <span>
-                {tct(
-                  'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-                  {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-                )}
-              </span>
-              {registerKeyAction}
-            </Flex>
-          ) : (
-            tct(
-              'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-              {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-            )
-          )
+          <Flex justify="between" align="center" gap="md">
+            <span>
+              {tct(
+                'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+                {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+              )}
+            </span>
+            {registerKeyAction}
+          </Flex>
         }
-        action={hasPageFrame ? undefined : registerKeyAction}
       />
       <OrganizationPermissionAlert />
       {organization.features.includes('ingest-through-trusted-relays-only') && (
