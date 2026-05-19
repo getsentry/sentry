@@ -31,12 +31,6 @@ class TestSelectSchemaValidation(unittest.TestCase):
 
         validate_component(self.schema)
 
-    @invalid_schema
-    def test_invalid_schema_missing_uri_and_options(self) -> None:
-        del self.schema["options"]
-
-        validate_component(self.schema)
-
     def test_valid_schema_with_multiple_and_options(self) -> None:
         self.schema["multiple"] = True
 
@@ -46,6 +40,12 @@ class TestSelectSchemaValidation(unittest.TestCase):
         del self.schema["options"]
         self.schema["uri"] = "/foo"
         self.schema["multiple"] = True
+
+        validate_component(self.schema)
+
+    @invalid_schema
+    def test_invalid_schema_missing_uri_and_options(self) -> None:
+        del self.schema["options"]
 
         validate_component(self.schema)
 
