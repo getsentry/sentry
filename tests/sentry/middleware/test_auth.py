@@ -2,6 +2,7 @@ from functools import cached_property
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory
+from rest_framework.request import Request
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.auth import AuthenticationMiddleware
@@ -30,12 +31,12 @@ class AuthenticationMiddlewareTestCase(TestCase):
         return rv
 
     def test_process_request_anon(self) -> None:
-        self.middleware.process_request(self.request)
+        self.middleware.process_request(Request(self.request))
         assert self.request.user.is_anonymous
         assert self.request.auth is None
 
     def test_process_request_user(self) -> None:
-        request = self.request
+        request = Request(self.request)
         with assume_test_silo_mode(SiloMode.MONOLITH):
             assert login(request, self.user)
         with outbox_runner():
@@ -52,7 +53,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert "_nonce" not in request.session
 
     def test_process_request_good_nonce(self) -> None:
-        request = self.request
+        request = Request(self.request)
         user = self.user
         user.session_nonce = "xxx"
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -64,7 +65,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.session["_nonce"] == "xxx"
 
     def test_process_request_missing_nonce(self) -> None:
-        request = self.request
+        request = Request(self.request)
         user = self.user
         user.session_nonce = "xxx"
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -88,7 +89,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
     def test_process_request_valid_authtoken(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
-        request = self.make_request(method="GET")
+        request = Request(self.make_request(method="GET"))
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token.token}"
         self.middleware.process_request(request)
         self.assert_user_equals(request)
@@ -98,7 +99,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
             )
 
     def test_process_request_invalid_authtoken(self) -> None:
-        request = self.make_request(method="GET")
+        request = Request(self.make_request(method="GET"))
         request.META["HTTP_AUTHORIZATION"] = "Bearer absadadafdf"
         self.middleware.process_request(request)
         # Should swallow errors and pass on
@@ -110,7 +111,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
             apikey = ApiKey.objects.create(
                 organization_id=self.organization.id, allowed_origins="*"
             )
-            request = self.make_request(method="GET")
+            request = Request(self.make_request(method="GET"))
             request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         self.middleware.process_request(request)
@@ -119,7 +120,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(apikey)
 
     def test_process_request_invalid_apikey(self) -> None:
-        request = self.make_request(method="GET")
+        request = Request(self.make_request(method="GET"))
         request.META["HTTP_AUTHORIZATION"] = b"Basic adfasdfasdfsadfsaf"
 
         self.middleware.process_request(request)
@@ -128,8 +129,10 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.auth is None
 
     def test_process_request_rpc_path_ignored(self) -> None:
-        request = self.make_request(
-            method="GET", path="/api/0/internal/rpc/organization/get_organization_by_id"
+        request = Request(
+            self.make_request(
+                method="GET", path="/api/0/internal/rpc/organization/get_organization_by_id"
+            )
         )
         request.META["HTTP_AUTHORIZATION"] = b"Rpcsignature not-a-checksum"
 
@@ -145,7 +148,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
             "region": "CA",
             "subdivision": "San Francisco",
         }
-        request = self.request
+        request = Request(self.request)
         request.META["REMOTE_ADDR"] = "8.8.8.8"
         with assume_test_silo_mode(SiloMode.MONOLITH):
             assert login(request, self.user)

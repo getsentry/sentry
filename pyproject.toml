@@ -389,7 +389,6 @@ ignore_missing_imports = true
 module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.db.postgres.base",
-    "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
