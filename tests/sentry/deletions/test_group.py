@@ -14,6 +14,7 @@ from sentry.deletions.defaults.group import (
     update_group_hash_metadata_in_batches,
 )
 from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.issues.derived.types import ActorType
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
@@ -25,7 +26,7 @@ from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
-from sentry.models.issueactionlogentry import ActorType, IssueActionLogEntry
+from sentry.models.issueactionlogentry import IssueActionLogEntry
 from sentry.models.userreport import UserReport
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey

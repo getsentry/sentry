@@ -1,27 +1,48 @@
 """
-IssueAction type enum and IssueAction model hierarchy for IssueActionLogEntry.
-
-This module has no Django model dependencies so it can be imported by both
-the IssueActionLogEntry model (for choices) and recording code (for record()).
+Types for the issue action log. No Django dependencies — safe to import anywhere.
 """
 
 from __future__ import annotations
 
 import abc
+import dataclasses
 from enum import IntEnum
+from typing import ClassVar
 
 from pydantic import BaseModel
 
 
+class ActorType(IntEnum):
+    SYSTEM = 0
+    USER = 1
+
+
+@dataclasses.dataclass(frozen=True)
+class ActionActor:
+    """
+    Use ActionActor.user(id) for user-initiated actions,
+    or ActionActor.SYSTEM for system-initiated actions.
+    """
+
+    actor_type: ActorType
+    actor_id: int
+
+    SYSTEM: ClassVar[ActionActor]
+
+    @classmethod
+    def user(cls, user_id: int) -> ActionActor:
+        return cls(actor_type=ActorType.USER, actor_id=user_id)
+
+
+ActionActor.SYSTEM = ActionActor(actor_type=ActorType.SYSTEM, actor_id=0)
+
+
 class IssueActionType(IntEnum):
     """
-    The set of action kinds that can be recorded in IssueActionLogEntry.
+    Action kinds stored in IssueActionLogEntry.type.
 
-    Each value is an integer stored in IssueActionLogEntry.type. This enum is
-    the source of truth for what kinds of actions exist. Adding a new kind
-    starts here, then requires a corresponding IssueAction subclass below.
-
-    Values are not contiguous — gaps are fine.
+    To add a new kind: add a value here, then add a corresponding
+    IssueAction subclass below. Values need not be contiguous.
     """
 
     VIEW = 0
@@ -29,15 +50,8 @@ class IssueActionType(IntEnum):
 
 class IssueAction(BaseModel, abc.ABC):
     """
-    Base class for action payloads recorded to IssueActionLogEntry.
-
-    Subclasses define the typed, validated payload for a specific action kind.
-    Each subclass must implement get_type() to map to its IssueActionType.
-
-    Actions are frozen Pydantic models — immutable after construction.
-    Their fields are serialized to the IssueActionLogEntry.data JSON column
-    via record(). The IssueAction is the sole source of the data schema;
-    there is no way to inject unvalidated data into the log.
+    Typed payload for an IssueActionLogEntry. Subclasses define the schema
+    for a specific action kind's ``data`` column. Frozen after construction.
     """
 
     class Config:

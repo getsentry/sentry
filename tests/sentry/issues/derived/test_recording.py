@@ -1,6 +1,6 @@
 from sentry.issues.derived.recording import record
-from sentry.issues.derived.types import IssueActionType, ViewAction
-from sentry.models.issueactionlogentry import ActorType, IssueActionLogEntry
+from sentry.issues.derived.types import ActionActor, ActorType, IssueActionType, ViewAction
+from sentry.models.issueactionlogentry import IssueActionLogEntry
 from sentry.testutils.cases import TestCase
 
 
@@ -12,7 +12,7 @@ class RecordTest(TestCase):
             group_id=group.id,
             project_id=group.project_id,
             action=ViewAction(),
-            user_id=self.user.id,
+            actor=ActionActor.user(self.user.id),
         )
 
         assert entry.group_id == group.id
@@ -30,7 +30,7 @@ class RecordTest(TestCase):
             group_id=group.id,
             project_id=group.project_id,
             action=ViewAction(),
-            user_id=None,
+            actor=ActionActor.SYSTEM,
         )
 
         assert entry.actor_type == ActorType.SYSTEM
@@ -44,7 +44,7 @@ class RecordTest(TestCase):
                 group_id=group.id,
                 project_id=group.project_id,
                 action=ViewAction(),
-                user_id=self.user.id,
+                actor=ActionActor.user(self.user.id),
             )
 
         entries = list(
