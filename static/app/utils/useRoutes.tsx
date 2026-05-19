@@ -4,8 +4,7 @@ import {useMatches} from 'react-router-dom';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 /**
- * @deprecated Please do not use this. Use a specific hook instead. Including
- * use{Location,Params,Routes,Navigate}.
+ * @deprecated Please do not use this. Switch to useMatches() from 'react-router-dom'
  *
  * See https://github.com/getsentry/frontend-tsc/issues/78
  */
