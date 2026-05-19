@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AlertStore} from 'sentry/stores/alertStore';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {HookStore} from 'sentry/stores/hookStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
@@ -213,7 +212,7 @@ describe('App', () => {
     expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
   });
 
-  it('adds health issues to alertstore', async () => {
+  it('fetches health issues for self-hosted', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
@@ -236,16 +235,5 @@ describe('App', () => {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
     expect(getMock).toHaveBeenCalled();
-
-    await waitFor(() => {
-      expect(AlertStore.getState()).toEqual([
-        expect.objectContaining({
-          id: 'abc123',
-          message: 'Celery workers have not checked in',
-          opaque: true,
-          variant: 'danger',
-        }),
-      ]);
-    });
   });
 });

@@ -599,6 +599,7 @@ export type CodeOwner = {
    */
   codeOwnersUrl: string | 'unknown';
   dateCreated: string;
+  dateSynced: string | null;
   dateUpdated: string;
   errors: {
     missing_external_teams: string[];

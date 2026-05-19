@@ -12,7 +12,7 @@ import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
 import type {EventExtraDataType, EventExtraData as TEventExtraData} from './types';
@@ -42,8 +42,8 @@ export function EventExtraData({event}: Props) {
   }
 
   return (
-    <InterimSection
-      type={SectionKey.EXTRA}
+    <FoldSection
+      sectionKey={SectionKey.EXTRA}
       title={t('Additional Data')}
       actions={
         <SegmentedControl
@@ -58,6 +58,6 @@ export function EventExtraData({event}: Props) {
       }
     >
       {contextBlock}
-    </InterimSection>
+    </FoldSection>
   );
 }

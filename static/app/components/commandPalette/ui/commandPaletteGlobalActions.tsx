@@ -324,12 +324,6 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('User Feedback')}}
             to={`${prefix}/issues/feedback/`}
           />
-          {organization.features.includes('seer-autopilot') && (
-            <CMDKAction
-              display={{label: t('Instrumentation')}}
-              to={`${prefix}/issues/instrumentation/`}
-            />
-          )}
           <CMDKAction display={{label: t('All Views')}} to={`${prefix}/issues/views/`} />
           {starredViews.map(starredView => (
             <CMDKAction
@@ -998,6 +992,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction display={{label: t('Change Color Theme'), icon: <IconSettings />}}>
           <CMDKAction
             display={{label: t('System')}}
+            keywords={['default theme', 'system theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
@@ -1006,6 +1001,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Light')}}
+            keywords={['light mode', 'light theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
@@ -1014,6 +1010,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Dark')}}
+            keywords={['dark mode', 'dark theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});

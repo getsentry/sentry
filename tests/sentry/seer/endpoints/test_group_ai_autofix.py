@@ -7,7 +7,6 @@ from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
 from sentry.seer.models import SeerPermissionError, SeerRepoDefinition
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -119,7 +118,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 self.integration_id = 42
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo(), default_branch="main"),
+            Mock(project_repository=Mock(repository=TestRepo()), default_branch="main"),
         ]
 
         self.login_as(user=self.user)
@@ -183,8 +182,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         repo2 = TestRepo("id456", "repo2", "gitlab", "example.com/repo2", 43)
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=repo1, default_branch="main"),
-            Mock(repository=repo2, default_branch="master"),
+            Mock(project_repository=Mock(repository=repo1), default_branch="main"),
+            Mock(project_repository=Mock(repository=repo2), default_branch="master"),
         ]
 
         self.login_as(user=self.user)
@@ -258,7 +257,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         # Create a repo with a different external_id than what's in the codebase
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo("different_id"), default_branch="main"),
+            Mock(
+                project_repository=Mock(repository=TestRepo("different_id")), default_branch="main"
+            ),
         ]
 
         self.login_as(user=self.user)
@@ -301,7 +302,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 self.integration_id = 42
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo(), default_branch="main"),
+            Mock(project_repository=Mock(repository=TestRepo()), default_branch="main"),
         ]
 
         self.login_as(user=self.user)
@@ -337,7 +338,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             external_id="123",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -496,7 +497,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             external_id="123",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -584,7 +585,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             external_id="123",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -1094,6 +1095,9 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 404, f"Failed for {flag}: {response.data}"
             mock_handoff.assert_called_once()
+            assert (
+                mock_handoff.call_args.kwargs["referrer"] == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
+            )
 
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")

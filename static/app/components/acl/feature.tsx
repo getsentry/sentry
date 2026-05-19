@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {HookStore} from 'sentry/stores/hookStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {Config} from 'sentry/types/system';
-import {withConfig} from 'sentry/utils/withConfig';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {ComingSoon} from './comingSoon';
@@ -21,7 +21,6 @@ type Props = {
    * all the required feature.
    */
   children: React.ReactNode | ChildrenRenderFn;
-  config: Config;
   /**
    * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
    * On the backend end, feature tags have a scope prefix string that is stripped out on the
@@ -132,7 +131,6 @@ const hasFeature = (
  */
 function Feature({
   children,
-  config,
   features: featuresProp,
   hookName,
   organization,
@@ -140,6 +138,8 @@ function Feature({
   renderDisabled = false,
   requireAll = true,
 }: Props) {
+  const config = useLegacyStore(ConfigStore);
+
   const features = useMemo(
     () => (Array.isArray(featuresProp) ? featuresProp : [featuresProp]),
     [featuresProp]
@@ -198,4 +198,4 @@ function Feature({
   return hasFeatureEnabled && children ? children : null;
 }
 
-export default withOrganization(withConfig(Feature));
+export default withOrganization(Feature);

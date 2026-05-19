@@ -15,10 +15,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {withOrganizations} from 'sentry/utils/withOrganizations';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
   NOTIFICATION_FEATURE_MAP,
@@ -39,11 +39,8 @@ const notificationSchema = z.object({
 
 type NotificationFields = z.infer<typeof notificationSchema>;
 
-interface NotificationSettingsProps {
-  organizations: Organization[];
-}
-
-function NotificationSettings({organizations}: NotificationSettingsProps) {
+export function NotificationSettings() {
+  const {organizations} = useLegacyStore(OrganizationsStore);
   const queryClient = useQueryClient();
   const checkFeatureFlag = (flag: string) => {
     return organizations.some(org => org.features?.includes(flag));
@@ -177,7 +174,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     </Fragment>
   );
 }
-export default withOrganizations(NotificationSettings);
 
 const FieldLabel = styled('div')`
   font-size: ${p => p.theme.font.size.md};

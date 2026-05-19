@@ -37,7 +37,7 @@ export function createPlottableFromTimeSeriesAndWidget(
   name?: string,
   color?: string
 ): Plottable | null {
-  const shouldStack = widget.queries[0]?.columns.length! > 0;
+  const shouldStack = (widget.queries[0]?.columns.length ?? 0) > 0;
 
   return createPlottableFromTimeSeries(widget.displayType, timeSeries, {
     alias,

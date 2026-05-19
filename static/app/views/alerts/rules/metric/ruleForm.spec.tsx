@@ -17,7 +17,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {FormModel} from 'sentry/components/forms/model';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
-import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
+import {RuleForm as RuleFormContainer} from 'sentry/views/alerts/rules/metric/ruleForm';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,

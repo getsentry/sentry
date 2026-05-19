@@ -64,12 +64,6 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
         if not (isinstance(lower, int) and isinstance(version, int)):
             raise TypeError("Expected processing data to be a tuple of (int, int)")
         result = lower, version
-    metrics.gauge(
-        "backfill_outboxes.low_bound",
-        result[0],
-        tags=dict(table_name=table_name, version=result[1]),
-        sample_rate=1.0,
-    )
     return result
 
 
@@ -122,6 +116,12 @@ def _chunk_processing_batch(
         .order_by("id")[: batch_size + 1]
         .aggregate(Max("id"))["id__max"]
         or 0
+    )
+    metrics.gauge(
+        "backfill_outboxes.low_bound",
+        lower,
+        tags=dict(table_name=model._meta.db_table, version=version),
+        sample_rate=1.0,
     )
 
     return BackfillBatch(low=lower, up=upper, version=version, has_more=upper > lower)

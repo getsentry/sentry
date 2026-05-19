@@ -435,7 +435,7 @@ TEMPLATES = [
 
 SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
-    "REGION": ["sentry.CellOutbox"],
+    "CELL": ["sentry.CellOutbox"],
 }
 
 # Do not modify reordering
@@ -795,7 +795,7 @@ SCM_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
-    LAUNCHPAD_RPC_SHARED_SECRET = [val]
+    LAUNCHPAD_RPC_SHARED_SECRET = [s.strip() for s in val.split(",") if s.strip()]
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -930,6 +930,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
+    "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
@@ -1127,18 +1128,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
-    "autopilot-run-sdk-update-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "autopilot-run-missing-sdk-integration-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": crontab("0", "*/4", "*", "*", "*"),
-    },
-    "autopilot-run-trace-instrumentation-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
-    },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
@@ -1173,8 +1162,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "context-engine-index": {
         "task": "seer:sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
-        # Offset by 30 minutes from seer-explorer-index to spread load
-        "schedule": crontab("30", "*/1", "*", "*", "*"),
+        # Run Sunday, Wednesday. Offset by 30 minutes from seer-explorer-index to spread load
+        "schedule": crontab("30", "*/1", "0,3", "*", "*"),
     },
     "index-sentry-knowledge": {
         "task": "seer:sentry.tasks.seer.context_engine_index.index_sentry_knowledge",
@@ -1336,7 +1325,6 @@ LOGGING: LoggingConfig = {
         },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
-        "sentry.autopilot.tasks.missing_sdk_integration": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
@@ -2239,7 +2227,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.4.2"
+SELF_HOSTED_STABLE_VERSION = "26.5.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3334,3 +3322,6 @@ CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "c
 SYNAPSE_HMAC_SECRET: list[str] | None = None
 if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:
     SYNAPSE_HMAC_SECRET = [val]
+
+if SILO_DEVSERVER or IS_DEV:
+    SYNAPSE_HMAC_SECRET = ["synapse-dev-secret"]

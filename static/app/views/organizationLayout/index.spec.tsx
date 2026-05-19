@@ -1,15 +1,22 @@
+import {Fragment, useEffect} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {AlertStore} from 'sentry/stores/alertStore';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {type GlobalAlert, useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {OrganizationLayout} from 'sentry/views/organizationLayout';
+
+function AlertSeeder({alert}: {alert: GlobalAlert}) {
+  const {addAlert} = useGlobalAlerts();
+  useEffect(() => addAlert(alert), [addAlert, alert]);
+  return null;
+}
 
 describe('OrganizationLayout', () => {
   beforeEach(() => {
@@ -128,14 +135,19 @@ describe('OrganizationLayout', () => {
   it('displays system alerts', async () => {
     OrganizationStore.onUpdate(OrganizationFixture());
 
-    AlertStore.addAlert({
-      id: 'abc123',
-      message: 'Celery workers have not checked in',
-      variant: 'danger',
-      url: '/internal/health/',
-    });
-
-    render(<OrganizationLayout />);
+    render(
+      <Fragment>
+        <AlertSeeder
+          alert={{
+            id: 'abc123',
+            message: 'Celery workers have not checked in',
+            variant: 'danger',
+            url: '/internal/health/',
+          }}
+        />
+        <OrganizationLayout />
+      </Fragment>
+    );
 
     expect(
       await screen.findByText(/Celery workers have not checked in/)

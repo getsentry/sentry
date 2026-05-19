@@ -36,7 +36,7 @@ export function LaunchpadAdminPage() {
       const ids = rerunArtifactId
         .split(',')
         .map(id => id.trim())
-        .filter(id => id);
+        .filter(Boolean);
       return fetchMutation({
         url: '/internal/preprod-artifact/batch-rerun-analysis/',
         method: 'POST',
@@ -124,7 +124,7 @@ export function LaunchpadAdminPage() {
           preprod_artifact_ids: batchDeleteArtifactIds
             .split(',')
             .map(id => id.trim())
-            .filter(id => id),
+            .filter(Boolean),
         },
         options: {
           host: region?.url,
@@ -242,7 +242,7 @@ export function LaunchpadAdminPage() {
     const artifactIds = batchDeleteArtifactIds
       .split(',')
       .map(id => id.trim())
-      .filter(id => id);
+      .filter(Boolean);
     const artifactCount = artifactIds.length;
 
     openAdminConfirmModal({
@@ -383,8 +383,8 @@ export function LaunchpadAdminPage() {
               <Flex direction="column" gap="md">
                 <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
-                  Rerun analysis for one or more preprod artifacts using comma-separated
-                  IDs.
+                  Rerun all enabled analyses (size, snapshots, etc.) for one or more
+                  preprod artifacts using comma-separated IDs.
                 </Text>
                 <label htmlFor="rerunArtifactId">
                   <Text bold>Preprod Artifact ID (comma-separated):</Text>

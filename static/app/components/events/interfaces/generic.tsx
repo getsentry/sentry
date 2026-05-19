@@ -5,7 +5,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 function getView({
   data,
@@ -49,8 +49,8 @@ type View = 'report' | 'raw';
 export function Generic({type, data, meta}: Props) {
   const [view, setView] = useState<View>('report');
   return (
-    <InterimSection
-      type={type}
+    <FoldSection
+      sectionKey={type}
       title={t('Report')}
       actions={
         <SegmentedControl
@@ -65,6 +65,6 @@ export function Generic({type, data, meta}: Props) {
       }
     >
       {getView({view, data, meta})}
-    </InterimSection>
+    </FoldSection>
   );
 }
