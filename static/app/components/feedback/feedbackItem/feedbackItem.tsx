@@ -195,12 +195,11 @@ function FeedbackItemContexts({
   );
 }
 
-// 0 padding-bottom because <ActivitySection> has space(2) built-in.
 const OverflowPanelItem = styled(PanelItem)`
   overflow: auto;
 
   flex-direction: column;
   flex-grow: 1;
   gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
 `;

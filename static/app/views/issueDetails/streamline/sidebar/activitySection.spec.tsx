@@ -131,7 +131,7 @@ describe('StreamlinedActivitySection', () => {
       },
     });
 
-    render(<StreamlinedActivitySection group={group} variant="drawer" />);
+    render(<StreamlinedActivitySection group={group} variant="standalone" size="md" />);
 
     await userEvent.type(screen.getByPlaceholderText('Add a comment…'), '@jane');
     await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
@@ -321,7 +321,13 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={updatedActivityGroup} variant="drawer" />);
+    render(
+      <StreamlinedActivitySection
+        group={updatedActivityGroup}
+        variant="standalone"
+        size="md"
+      />
+    );
 
     for (const activity of activities) {
       expect(
@@ -359,7 +365,8 @@ describe('StreamlinedActivitySection', () => {
     render(
       <StreamlinedActivitySection
         group={updatedActivityGroup}
-        variant="drawer"
+        variant="standalone"
+        size="md"
         filterComments
       />
     );
