@@ -1188,6 +1188,15 @@ urlpatterns += [
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
                 ),
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/explore/profiling/(?P<rest>.*)$",
+                    RedirectView.as_view(
+                        url="/organizations/%(organization_slug)s/explore/profiles/%(rest)s",
+                        permanent=False,
+                        query_string=True,
+                    ),
+                    name="sentry-organization-explore-profiling-redirect",
+                ),
                 # need to force these to React and ensure organization_slug is captured
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/",
