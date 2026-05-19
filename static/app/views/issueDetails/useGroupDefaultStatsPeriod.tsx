@@ -78,16 +78,16 @@ export function useGroupDefaultStatsPeriod(
 export function getFirstSeenDuration(firstSeen: string): string {
   const duration = moment.duration(moment().diff(firstSeen));
 
-  const months = Math.round(duration.asMonths());
+  const months = duration.asMonths();
 
   if (months >= 1) {
-    return `${months}mo`;
+    return `${Math.round(months)}mo`;
   }
 
-  const days = Math.round(duration.asDays());
+  const days = duration.asDays();
 
   if (days >= 1) {
-    return `${days}d`;
+    return `${Math.round(days)}d`;
   }
 
   return `${Math.max(1, Math.round(duration.asHours()))}h`;
