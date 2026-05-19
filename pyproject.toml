@@ -1505,7 +1505,6 @@ module = [
     "sentry.testutils.factories",
     "sentry.testutils.fixtures",
     "sentry.testutils.helpers",
-    "sentry.testutils.helpers.alert_rule",
     "sentry.testutils.helpers.analytics",
     "sentry.testutils.helpers.apigateway",
     "sentry.testutils.helpers.auth_header",
