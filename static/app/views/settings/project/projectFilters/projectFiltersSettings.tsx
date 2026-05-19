@@ -309,82 +309,6 @@ const customFiltersSchema = z.object({
   'filters:trace_metric_names': z.string(),
 });
 
-function LegacyBrowserFilter({
-  filter,
-  filtersEndpoint,
-  hasAccess,
-  organization,
-  project,
-  onUpdate,
-}: {
-  filter: Filter;
-  filtersEndpoint: string;
-  hasAccess: boolean;
-  onUpdate: (filterId: string, active: boolean | string[]) => boolean | string[];
-  organization: Organization;
-  project: DetailedProject;
-}) {
-  return (
-    <AutoSaveForm
-      name="legacy-browsers"
-      schema={legacyBrowserSchema}
-      initialValue={getInitialSubfilters(filter.active)}
-      mutationOptions={{
-        mutationFn: (data: {'legacy-browsers': string[]}) => {
-          const newSubfilters = data['legacy-browsers'];
-          trackAnalytics('settings.inbound_filter_updated', {
-            organization,
-            project_id: parseInt(project.id, 10),
-            filter: filter.id,
-            new_state: [...newSubfilters].sort().join(','),
-          });
-          return fetchMutation({
-            url: `${filtersEndpoint}${filter.id}/`,
-            method: 'PUT',
-            data: {subfilters: newSubfilters},
-          });
-        },
-        onMutate: data => ({
-          previousActive: onUpdate(filter.id, data['legacy-browsers']),
-        }),
-        onError: (_error, _data, context) => {
-          if (context) {
-            onUpdate(filter.id, context.previousActive);
-          }
-        },
-      }}
-    >
-      {field => (
-        <field.Base disabled={!hasAccess}>
-          {(baseProps, {indicator}) => {
-            return (
-              <LegacyBrowserFilterRow
-                subfilters={field.state.value}
-                disabled={baseProps.disabled}
-                hintText={
-                  <field.Meta.HintText>
-                    {t(
-                      'The browser versions filtered out will be periodically evaluated and updated.'
-                    )}
-                  </field.Meta.HintText>
-                }
-                indicator={indicator}
-                label={
-                  <field.Meta.Label>{t('Filter out legacy browsers')}</field.Meta.Label>
-                }
-                onToggle={newSubfilters => {
-                  field.handleChange(newSubfilters);
-                  baseProps.onBlur();
-                }}
-              />
-            );
-          }}
-        </field.Base>
-      )}
-    </AutoSaveForm>
-  );
-}
-
 const newLineHelpText = t('Separate multiple entries with a newline.');
 const globHelpText = tct('Allows [link:glob pattern matching].', {
   link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
@@ -831,15 +755,67 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
               {filterList.map(filter => {
                 if (filter.id === 'legacy-browsers') {
                   return (
-                    <LegacyBrowserFilter
+                    <AutoSaveForm
                       key={filter.id}
-                      filter={filter}
-                      filtersEndpoint={filtersEndpoint}
-                      hasAccess={hasAccess}
-                      organization={organization}
-                      project={project}
-                      onUpdate={updateFilterCache}
-                    />
+                      name="legacy-browsers"
+                      schema={legacyBrowserSchema}
+                      initialValue={getInitialSubfilters(filter.active)}
+                      mutationOptions={{
+                        mutationFn: (data: {'legacy-browsers': string[]}) => {
+                          const newSubfilters = data['legacy-browsers'];
+                          trackAnalytics('settings.inbound_filter_updated', {
+                            organization,
+                            project_id: parseInt(project.id, 10),
+                            filter: filter.id,
+                            new_state: [...newSubfilters].sort().join(','),
+                          });
+                          return fetchMutation({
+                            url: `${filtersEndpoint}${filter.id}/`,
+                            method: 'PUT',
+                            data: {subfilters: newSubfilters},
+                          });
+                        },
+                        onMutate: data => ({
+                          previousActive: updateFilterCache(
+                            filter.id,
+                            data['legacy-browsers']
+                          ),
+                        }),
+                        onError: (_error, _data, context) => {
+                          if (context) {
+                            updateFilterCache(filter.id, context.previousActive);
+                          }
+                        },
+                      }}
+                    >
+                      {field => (
+                        <field.Base disabled={!hasAccess}>
+                          {(baseProps, {indicator}) => (
+                            <LegacyBrowserFilterRow
+                              subfilters={field.state.value}
+                              disabled={baseProps.disabled}
+                              hintText={
+                                <field.Meta.HintText>
+                                  {t(
+                                    'The browser versions filtered out will be periodically evaluated and updated.'
+                                  )}
+                                </field.Meta.HintText>
+                              }
+                              indicator={indicator}
+                              label={
+                                <field.Meta.Label>
+                                  {t('Filter out legacy browsers')}
+                                </field.Meta.Label>
+                              }
+                              onToggle={newSubfilters => {
+                                field.handleChange(newSubfilters);
+                                baseProps.onBlur();
+                              }}
+                            />
+                          )}
+                        </field.Base>
+                      )}
+                    </AutoSaveForm>
                   );
                 }
 
