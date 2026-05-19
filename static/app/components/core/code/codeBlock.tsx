@@ -216,12 +216,14 @@ export function CodeBlock({
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
+  overflow: hidden;
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
     height: 100%;
+    overflow-x: auto;
   }
 
   &[data-render-inline='true'] pre {
