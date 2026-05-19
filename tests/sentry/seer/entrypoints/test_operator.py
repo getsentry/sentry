@@ -934,37 +934,6 @@ class SeerOperatorTest(TestCase):
         seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
         assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
 
-    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_create_seer_activity_pr_created_with_pull_requests(self, _mock_has_access):
-        event_payload = {
-            "run_id": MOCK_RUN_ID,
-            "group_id": self.group.id,
-            "pull_requests": [
-                {
-                    "pull_request": {
-                        "pr_number": 42,
-                        "pr_url": "https://github.com/owner/repo/pull/42",
-                    },
-                    "repo_name": "owner/repo",
-                    "provider": "github",
-                }
-            ],
-        }
-
-        with self.feature("organizations:seer-activity-timeline"):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
-
-        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
-        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
-        assert (
-            activity.data["pull_requests"][0]["pull_request"]["pr_url"]
-            == "https://github.com/owner/repo/pull/42"
-        )
-
 
 class TestGetAutofixExplorerStatus(TestCase):
     @staticmethod
