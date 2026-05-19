@@ -1,5 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {NotificationSettings} from 'sentry/views/settings/account/notifications/notificationSettings';
 
@@ -37,5 +38,19 @@ describe('NotificationSettings', () => {
       ).toBeInTheDocument();
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
+  });
+
+  it('hides quota notifications on self-hosted', async () => {
+    ConfigStore.set('isSelfHosted', true);
+    renderMockRequests();
+
+    render(<NotificationSettings />);
+
+    expect(
+      await screen.findByText(String(NOTIFICATION_SETTING_FIELDS.alerts.label))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(String(NOTIFICATION_SETTING_FIELDS.quota.label))
+    ).not.toBeInTheDocument();
   });
 });

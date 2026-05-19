@@ -15,6 +15,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
@@ -38,6 +39,11 @@ type NotificationFields = z.infer<typeof notificationSchema>;
 
 export function NotificationSettings() {
   const queryClient = useQueryClient();
+
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(
+    type => !(type === 'quota' && isSelfHosted)
+  );
 
   const renderOneSetting = (type: NotificationSettingsType) => {
     const field = NOTIFICATION_SETTING_FIELDS[type];
@@ -104,7 +110,7 @@ export function NotificationSettings() {
         {isError && <LoadingError onRetry={refetch} />}
         <Panel>
           <PanelHeader>{t('Notification')}</PanelHeader>
-          <PanelBody>{NOTIFICATION_SETTINGS_TYPES.map(renderOneSetting)}</PanelBody>
+          <PanelBody>{notificationFields.map(renderOneSetting)}</PanelBody>
         </Panel>
         {isPending && <LoadingIndicator />}
         {initialData && (
