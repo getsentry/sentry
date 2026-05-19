@@ -23,7 +23,9 @@ interface HighlightsSettingsFormProps {
 }
 
 const highlightTagsSchema = z.object({
-  highlightTags: z.string(),
+  highlightTags: z.string().refine(value => value === '' || value.trim() !== '', {
+    message: t('Enter at least one tag key or leave the field empty.'),
+  }),
 });
 
 const highlightContextSchema = z.object({
@@ -34,8 +36,12 @@ const highlightContextSchema = z.object({
       }
 
       try {
-        JSON.parse(value);
-        return true;
+        const parsedValue = JSON.parse(value);
+        return (
+          parsedValue !== null &&
+          typeof parsedValue === 'object' &&
+          !Array.isArray(parsedValue)
+        );
       } catch {
         return false;
       }
@@ -47,7 +53,7 @@ const highlightContextSchema = z.object({
 function serializeHighlightContext(
   highlightContext: DetailedProject['highlightContext']
 ) {
-  if (!highlightContext || Object.keys(highlightContext).length === 0) {
+  if (!highlightContext) {
     return '';
   }
 
@@ -79,8 +85,6 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
-  const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
-
   const handleSubmitSuccess = (updatedProject: DetailedProject) => {
     queryClient.setQueryData(projectQueryKey, prev => {
       const previous = prev?.json;
@@ -91,25 +95,30 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
     addSuccessMessage(`Successfully updated highlights for '${project.name}'`);
   };
 
-  const highlightTagsMutationOptions = mutationOptions({
-    mutationFn: (data: {highlightTags: string}) =>
-      fetchMutation<DetailedProject>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data: {highlightTags: extractMultilineFields(data.highlightTags)},
-      }),
-    onSuccess: handleSubmitSuccess,
-  });
+  const createProjectUpdateMutationOptions = <TData,>(
+    getData: (data: TData) => Partial<DetailedProject>
+  ) =>
+    mutationOptions({
+      mutationFn: (data: TData) =>
+        fetchMutation<DetailedProject>({
+          url: `/projects/${organization.slug}/${projectSlug}/`,
+          method: 'PUT',
+          data: getData(data),
+        }),
+      onSuccess: handleSubmitSuccess,
+    });
 
-  const highlightContextMutationOptions = mutationOptions({
-    mutationFn: (data: {highlightContext: string}) =>
-      fetchMutation<DetailedProject>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data: {highlightContext: parseHighlightContext(data.highlightContext)},
-      }),
-    onSuccess: handleSubmitSuccess,
-  });
+  const highlightTagsMutationOptions = createProjectUpdateMutationOptions(
+    (data: {highlightTags: string}) => ({
+      highlightTags: extractMultilineFields(data.highlightTags),
+    })
+  );
+
+  const highlightContextMutationOptions = createProjectUpdateMutationOptions(
+    (data: {highlightContext: string}) => ({
+      highlightContext: parseHighlightContext(data.highlightContext),
+    })
+  );
 
   return (
     <FieldGroup title={t('Highlights')}>
@@ -120,7 +129,7 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
         mutationOptions={highlightTagsMutationOptions}
       >
         {field => (
-          <field.Layout.Stack
+          <field.Layout.Row
             label={t('Highlighted Tags')}
             hintText={t('Separate tag keys with a newline.')}
           >
@@ -133,7 +142,7 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
               placeholder={t('environment, release, my-tag')}
               disabled={!hasAccess}
             />
-          </field.Layout.Stack>
+          </field.Layout.Row>
         )}
       </AutoSaveForm>
 
@@ -144,7 +153,7 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
         mutationOptions={highlightContextMutationOptions}
       >
         {field => (
-          <field.Layout.Stack
+          <field.Layout.Row
             label={t('Highlighted Context')}
             hintText={tct(
               'Enter a valid JSON entry for mapping [Structured Context] types, to their keys. E.g. [example]',
@@ -163,7 +172,7 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
               placeholder={t('{"browser": ["name"], "my-ctx": ["my-key"]}')}
               disabled={!hasAccess}
             />
-          </field.Layout.Stack>
+          </field.Layout.Row>
         )}
       </AutoSaveForm>
     </FieldGroup>

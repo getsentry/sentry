@@ -67,6 +67,68 @@ describe('HighlightsSettingForm', () => {
     );
   });
 
+  it('should not allow whitespace-only Highlight Tags', async () => {
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
+    const url = `/projects/${organization.slug}/${project.slug}/`;
+    const updateProjectMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: {...project, highlightTags: [], highlightContext},
+    });
+
+    const tagInput = screen.getByRole('textbox', {name: 'Highlighted Tags'});
+
+    await userEvent.clear(tagInput);
+    await userEvent.paste('     ');
+    await userEvent.click(screen.getByText('Highlights'));
+
+    expect(
+      await screen.findByText('Enter at least one tag key or leave the field empty.')
+    ).toBeInTheDocument();
+    expect(updateProjectMock).not.toHaveBeenCalled();
+  });
+
+  it('should render empty Highlight Context as JSON', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: {...project, highlightContext: {}},
+    });
+
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
+    expect(screen.getByRole('textbox', {name: 'Highlighted Context'})).toHaveValue('{}');
+  });
+
+  it('should allow Highlight Context to be saved as an empty object', async () => {
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
+    const url = `/projects/${organization.slug}/${project.slug}/`;
+    const updateProjectMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: {...project, highlightTags, highlightContext: {}},
+    });
+
+    const contextInput = screen.getByRole('textbox', {name: 'Highlighted Context'});
+
+    await userEvent.clear(contextInput);
+    await userEvent.paste('{}');
+    await userEvent.click(screen.getByText('Highlights'));
+
+    await waitFor(() => {
+      expect(updateProjectMock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {highlightContext: {}},
+        })
+      );
+    });
+  });
+
   it('should allow the Highlight Context field to mutate highlights', async () => {
     render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
     await screen.findByText('Highlights');
