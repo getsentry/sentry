@@ -110,6 +110,10 @@ export function AssigneeSelector({
     enabled: memberList === undefined,
   });
   const currentMemberList = memberList ?? defaultMemberList;
+  const assignedUser =
+    group.assignedTo?.type === 'user'
+      ? currentMemberList.find(user => user.id === group.assignedTo?.id)
+      : undefined;
 
   return (
     <AssigneeSelectorDropdown
@@ -130,6 +134,7 @@ export function AssigneeSelector({
         >
           <AssigneeBadge
             assignedTo={group.assignedTo ?? undefined}
+            assignedUser={assignedUser}
             assignmentReason={
               group.owners?.find(owner => {
                 const [_ownershipType, ownerId] = owner.owner.split(':');

@@ -2,8 +2,8 @@ import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {PageHeader} from 'admin/components/pageHeader';
@@ -25,6 +25,8 @@ const getRow = (row: any) => [
 ];
 
 export function Policies() {
+  const {openModal} = useModal();
+
   const hasPermission = ConfigStore.get('user').permissions.has('policies.admin');
 
   return (

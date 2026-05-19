@@ -11,7 +11,7 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/se
 
 import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';
 
-export type HeatMapPlottingOptions = {
+type HeatMapPlottingOptions = {
   theme: Theme;
   /**
    * The Z-axis scale type. `'log'` applies `Math.log1p` to Z values so the

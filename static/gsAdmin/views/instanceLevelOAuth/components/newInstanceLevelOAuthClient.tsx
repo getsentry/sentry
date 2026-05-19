@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
@@ -21,6 +22,8 @@ const fieldProps = {
 } as const;
 
 export function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
+  const {openModal} = useModal();
+
   const systemFeatures = ConfigStore.get('features');
   const formModel = new InstanceLevelOAuthClientModel();
 

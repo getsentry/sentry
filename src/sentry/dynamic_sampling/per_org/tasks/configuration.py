@@ -9,7 +9,7 @@ from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     DynamicSamplingException,
-    TelemetryStatus,
+    DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
@@ -90,7 +90,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
                 organization_id=organization.id
             )
         except ObjectDoesNotExist as exc:
-            raise DynamicSamplingException(TelemetryStatus.NO_SUBSCRIPTION) from exc
+            raise DynamicSamplingException(DynamicSamplingStatus.NO_SUBSCRIPTION) from exc
 
     @property
     def is_enabled(self) -> bool:

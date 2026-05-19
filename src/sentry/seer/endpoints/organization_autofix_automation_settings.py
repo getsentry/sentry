@@ -30,8 +30,8 @@ from sentry.seer.autofix.utils import (
     deduplicate_repositories,
     default_seer_project_preference,
 )
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.utils import filter_repo_by_provider
 
 
@@ -66,10 +66,11 @@ class RepositorySerializer(CamelSnakeSerializer):
     provider_raw = serializers.CharField(required=False, allow_null=True)
 
     def validate_provider(self, value):
-        if value not in SEER_SUPPORTED_SCM_PROVIDERS:
-            supported = ", ".join(sorted(SEER_SUPPORTED_SCM_PROVIDERS))
+        supported = get_supported_scm_providers(self.context.get("organization"))
+        if value not in supported:
+            supported_str = ", ".join(sorted(supported))
             raise serializers.ValidationError(
-                f'"{value}" is not a supported Seer provider. Supported providers: {supported}'
+                f'"{value}" is not a supported Seer provider. Supported providers: {supported_str}'
             )
         return value
 
@@ -110,7 +111,7 @@ class ProjectRepoMappingField(serializers.Field):
 
             serialized_repos = []
             for repo_data in repos_data:
-                repo_serializer = RepositorySerializer(data=repo_data)
+                repo_serializer = RepositorySerializer(data=repo_data, context=self.context)
                 if not repo_serializer.is_valid():
                     raise serializers.ValidationError(
                         {f"project_{project_id_str}": repo_serializer.errors}

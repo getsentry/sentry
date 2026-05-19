@@ -7,7 +7,7 @@ import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithSto
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
+import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
@@ -28,6 +28,10 @@ export function ActivitySection(props: Props) {
   const organization = useOrganization();
 
   const [inputId, setInputId] = useState(uniqueId());
+
+  const visibleActivities = organization.features.includes('seer-activity-timeline')
+    ? group.activity
+    : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
   const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -59,7 +63,7 @@ export function ActivitySection(props: Props) {
         />
       </ActivityItem>
 
-      {group.activity.map(item => {
+      {visibleActivities.map(item => {
         const authorName = item.user ? item.user.name : 'Sentry';
 
         if (item.type === GroupActivityType.NOTE) {

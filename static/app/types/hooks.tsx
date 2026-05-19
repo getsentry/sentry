@@ -10,7 +10,7 @@ import type {SentryRouteObject} from 'sentry/router/types';
 import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
@@ -396,7 +396,7 @@ type GenericOrganizationComponentHook = (opts: {
 /**
  * Receives a project object and should return a React node.
  */
-type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
+type GenericProjectComponentHook = (opts: {project: DetailedProject}) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.

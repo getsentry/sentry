@@ -100,7 +100,7 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
 
 export function hasDisplayMetricUnit(
   hasMetricUnitsUI: boolean,
-  metricUnit?: string
+  metricUnit?: string | null
 ): metricUnit is string {
   return (
     hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
@@ -302,7 +302,7 @@ const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
  * responses, so the frontend must do this mapping based on the selected
  * metric's unit.
  */
-export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
+export function mapMetricUnitToFieldType(metricUnit: string | null | undefined): {
   fieldType: ColumnType;
   unit: string | undefined;
 } {

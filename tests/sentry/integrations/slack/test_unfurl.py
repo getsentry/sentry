@@ -438,9 +438,7 @@ class UnfurlTest(TestCase):
         )
         incident.update(identifier=123)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         links = [
             UnfurlableUrl(
@@ -477,9 +475,7 @@ class UnfurlTest(TestCase):
         )
         incident.update(identifier=123)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
@@ -587,9 +583,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         self._wire_workflow_engine_for_incident(alert_rule, incident)
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"

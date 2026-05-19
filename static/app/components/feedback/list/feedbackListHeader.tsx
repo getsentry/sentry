@@ -12,26 +12,17 @@ import {useFeedbackHasNewItems} from 'sentry/components/feedback/useFeedbackHasN
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
+import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
-interface Props extends Pick<
-  ListItemCheckboxState,
-  | 'countSelected'
-  | 'deselectAll'
-  | 'isAllSelected'
-  | 'isAnySelected'
-  | 'selectAll'
-  | 'selectedIds'
-> {}
-
-export function FeedbackListHeader({
-  countSelected,
-  deselectAll,
-  isAllSelected,
-  isAnySelected,
-  selectAll,
-  selectedIds,
-}: Props) {
+export function FeedbackListHeader() {
+  const {
+    countSelected,
+    deselectAll,
+    isAllSelected,
+    isAnySelected,
+    selectAll,
+    selectedIds,
+  } = useListItemCheckboxContext();
   const [mailbox, setMailbox] = useMailbox();
 
   const {listPrefetchApiOptions, resetListHeadTime} = useFeedbackApiOptions();

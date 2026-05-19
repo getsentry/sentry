@@ -3,7 +3,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -54,7 +53,7 @@ export interface NavButtonRefs {
 interface SnapshotMainContentProps {
   canNavigateNext: boolean;
   canNavigatePrev: boolean;
-  comparisonType: 'diff' | 'solo' | undefined;
+  comparisonType: 'diff' | 'solo' | 'waiting_for_base' | undefined;
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   hasDiffComparison: boolean;
@@ -185,14 +184,9 @@ export function SnapshotMainContent({
       <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
     </Fragment>
   ) : null;
-  let soloDiffToggle: React.ReactNode = null;
-  if (hasDiffComparison) {
-    soloDiffToggle = (
-      <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
-    );
-  } else if (comparisonType === 'solo') {
-    soloDiffToggle = <Tag variant="promotion">{t('Base')}</Tag>;
-  }
+  const soloDiffToggle = hasDiffComparison ? (
+    <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
+  ) : null;
 
   if (viewMode === 'list') {
     return (

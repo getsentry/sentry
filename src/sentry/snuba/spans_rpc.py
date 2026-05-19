@@ -141,7 +141,7 @@ class Spans(rpc_dataset_common.RPCBase):
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
 
         @sentry_sdk.tracing.trace
-        def process_item_groups(item_groups):
+        def process_item_groups(item_groups: Any) -> None:
             for item_group in item_groups:
                 for span_item in item_group.items:
                     span: dict[str, Any] = {
