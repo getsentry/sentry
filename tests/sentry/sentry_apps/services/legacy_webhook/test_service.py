@@ -117,3 +117,19 @@ class TestSendLegacyWebhooksForInvocation(BaseWorkflowTest):
 
         payload = mock_task.delay.call_args.kwargs["payload"]
         assert payload["triggering_rules"] == [self.workflow.name]
+
+    @mock.patch(
+        "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
+    )
+    def test_triggering_rules_prefers_legacy_rule_label(self, mock_task: mock.MagicMock) -> None:
+        rule = self.create_project_rule(project=self.project)
+        rule.label = "My Custom Rule Name"
+        rule.save()
+        self.create_alert_rule_workflow(rule_id=rule.id, workflow=self.workflow)
+
+        ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://a.com")
+
+        send_legacy_webhooks_for_invocation(self.invocation)
+
+        payload = mock_task.delay.call_args.kwargs["payload"]
+        assert payload["triggering_rules"] == ["My Custom Rule Name"]

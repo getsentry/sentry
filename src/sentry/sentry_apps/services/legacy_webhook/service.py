@@ -5,7 +5,8 @@ from typing import Any, TypedDict
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
-from sentry.workflow_engine.models import Workflow
+from sentry.models.rule import Rule
+from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger("sentry.legacy_webhook")
@@ -34,9 +35,24 @@ def split_urls(value: str) -> list[str]:
 def _get_triggering_rule_name(invocation: ActionInvocation) -> str:
     try:
         workflow = Workflow.objects.get(id=invocation.workflow_id)
-        return workflow.name
+        label = workflow.name
     except Workflow.DoesNotExist:
         return invocation.detector.name
+
+    alert_rule_workflow = AlertRuleWorkflow.objects.filter(
+        workflow_id=workflow.id,
+        rule_id__isnull=False,
+    ).first()
+    if alert_rule_workflow:
+        try:
+            label = Rule.objects.get(id=alert_rule_workflow.rule_id).label
+        except Rule.DoesNotExist:
+            logger.exception(
+                "Rule not found when querying for AlertRuleWorkflow",
+                extra={"rule_id": alert_rule_workflow.rule_id},
+            )
+
+    return label
 
 
 def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookPayload:
