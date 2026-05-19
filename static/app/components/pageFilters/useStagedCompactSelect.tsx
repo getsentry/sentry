@@ -7,7 +7,6 @@ import type {
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
-  SelectSection,
 } from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -157,7 +156,6 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   hasExternalChanges?: boolean;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
-  onSectionToggle?: (section: SelectSection<SelectKey>) => void;
   onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
 }
@@ -168,7 +166,6 @@ interface UseStagedCompactSelectReturn<Value extends SelectKey> {
     MultipleSelectProps<Value>,
     | 'value'
     | 'onChange'
-    | 'onSectionToggle'
     | 'onInteractOutside'
     | 'onOpenChange'
     | 'onKeyDown'
@@ -194,7 +191,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   onToggle,
   filterOptionsOnSearch,
   onReplace,
-  onSectionToggle,
   multiple,
   disableCommit,
   hasExternalChanges = false,
@@ -302,13 +298,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   );
 
   const sectionToggleWasPressed = useRef(false);
-  const handleSectionToggle = useCallback(
-    (section: SelectSection<SelectKey>) => {
-      onSectionToggle?.(section);
-      sectionToggleWasPressed.current = true;
-    },
-    [onSectionToggle]
-  );
 
   const handleChange = useCallback(
     (selectedOptions: Array<SelectOption<Value>>) => {
@@ -454,7 +443,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       value: stagedValue,
       closeOnSelect: !modifierActive,
       onChange: handleChange,
-      onSectionToggle: handleSectionToggle,
       onInteractOutside: commitStagedChanges,
       onKeyDown: handleKeyDown,
       onOpenChange: (open: boolean) => {

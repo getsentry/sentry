@@ -904,7 +904,6 @@ describe('CompactSelect', () => {
         return (
           <CompactSelect
             multiple
-            onSectionToggle={mock}
             value={state}
             onChange={selection => {
               mock(selection);
@@ -1338,7 +1337,6 @@ describe('CompactSelect', () => {
           <CompactSelect
             grid
             multiple
-            onSectionToggle={mock}
             value={state}
             onChange={selection => {
               mock(selection);
