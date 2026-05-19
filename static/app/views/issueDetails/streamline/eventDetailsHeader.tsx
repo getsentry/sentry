@@ -11,7 +11,7 @@ import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
 } from 'sentry/components/timeRangeSelector';
-import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
+import {getRelativeDate} from 'sentry/components/timeSince';
 import {TourElement} from 'sentry/components/tours/components';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -138,6 +138,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       />
                       <TimeRangeSelector
                         menuTitle={t('Filter Time Range')}
+                        menuWidth={
+                          shouldShowSinceFirstSeenOption ? 'fit-content' : undefined
+                        }
                         start={period?.start}
                         end={period?.end}
                         utc={location.query.utc === 'true'}
@@ -150,10 +153,10 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             shouldShowSinceFirstSeenOption
                               ? {
                                   [defaultStatsPeriod.statsPeriod]: t(
-                                    '%s (since first seen)',
-                                    getRelativeSummary(
-                                      getFirstSeenDuration(group.firstSeen)
-                                    )
+                                    'Last %s (since first seen)',
+                                    getRelativeDate(group.firstSeen)
+                                      .replace(/^a /, '1 ')
+                                      .replace(/^an /, '1 ')
                                   ),
                                 }
                               : {}),
