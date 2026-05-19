@@ -34,6 +34,8 @@ interface PreprodSearchBarProps {
   searchSource?: string;
 }
 
+const FREEFORM_SEARCH_KEYS = new Set(['install_groups']);
+
 function filterToAllowedKeys(
   attributes: TagCollection,
   allowedKeys: string[]
@@ -44,6 +46,15 @@ function filterToAllowedKeys(
     if (allowedSet.has(key) && attributes[key]) {
       result[key] = attributes[key];
     }
+  }
+  return result;
+}
+
+function markFreeformKeys(attributes: TagCollection): TagCollection {
+  const result: TagCollection = {};
+  for (const key in attributes) {
+    const tag = attributes[key]!;
+    result[key] = FREEFORM_SEARCH_KEYS.has(key) ? {...tag, predefined: true} : tag;
   }
   return result;
 }
@@ -80,9 +91,11 @@ export function PreprodSearchBar({
 
   const stringAttributes = useMemo(
     () =>
-      allowedKeys
-        ? filterToAllowedKeys(rawStringAttributes, allowedKeys)
-        : rawStringAttributes,
+      markFreeformKeys(
+        allowedKeys
+          ? filterToAllowedKeys(rawStringAttributes, allowedKeys)
+          : rawStringAttributes
+      ),
     [allowedKeys, rawStringAttributes]
   );
 
