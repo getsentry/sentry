@@ -18,6 +18,7 @@ export interface TimelineItemProps {
    */
   'data-index'?: number;
   icon?: React.ReactNode;
+  iconBorderColor?: string;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
@@ -34,6 +35,7 @@ function Item({
   children,
   icon,
   colorConfig,
+  iconBorderColor,
   timestamp,
   isActive = false,
   titleTrailingItems,
@@ -42,21 +44,19 @@ function Item({
 }: TimelineItemProps) {
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
+  const iconWrapperStyle = {
+    borderColor: iconBorderColor ?? (isActive ? config.iconBorder : 'transparent'),
+    color: config.icon,
+  };
 
   return (
     <Row ref={ref} {...props}>
       {icon ? (
-        <IconWrapper
-          style={{
-            borderColor: isActive ? config.iconBorder : 'transparent',
-            color: config.icon,
-          }}
-          className="timeline-icon-wrapper"
-        >
+        <IconWrapper style={iconWrapperStyle} className="timeline-icon-wrapper">
           {icon}
         </IconWrapper>
       ) : (
-        <IconWrapper className="timeline-icon-wrapper" />
+        <IconWrapper style={iconWrapperStyle} className="timeline-icon-wrapper" />
       )}
       <Flex align="center" gap="xs" wrap="wrap">
         <Title style={{color: config.title}}>{title}</Title>

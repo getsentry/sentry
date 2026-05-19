@@ -36,6 +36,20 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+const RESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SET_RESOLVED,
+  GroupActivityType.SET_RESOLVED_BY_AGE,
+  GroupActivityType.SET_RESOLVED_IN_RELEASE,
+  GroupActivityType.SET_RESOLVED_IN_COMMIT,
+]);
+
+const UNRESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SET_UNRESOLVED,
+  GroupActivityType.SET_REGRESSION,
+  GroupActivityType.SET_ESCALATING,
+  GroupActivityType.AUTO_SET_ONGOING,
+]);
+
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
     return item.sentry_app.name;
@@ -52,6 +66,7 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
+  iconBorderColor,
   isDrawer,
 }: {
   group: Group;
@@ -59,6 +74,7 @@ function TimelineItem({
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
   item: GroupActivity;
   teams: Team[];
+  iconBorderColor?: string;
   isDrawer?: boolean;
 }) {
   const organization = useOrganization();
@@ -83,6 +99,7 @@ function TimelineItem({
 
   return (
     <ActivityTimelineItem
+      data-test-id="activity-timeline-row"
       title={
         <Flex gap="xs" align="center" justify="start">
           <TitleTooltip title={title} showOnlyOnOverflow>
@@ -107,6 +124,7 @@ function TimelineItem({
           />
         )
       }
+      iconBorderColor={iconBorderColor}
     >
       {item.type === GroupActivityType.NOTE && editing ? (
         <NoteInputWithStorage
@@ -250,6 +268,22 @@ export function StreamlinedActivitySection({
     },
   };
 
+  const getTimelineIconBorderColor = (item: GroupActivity) => {
+    if (!isDrawer) {
+      return;
+    }
+    if (RESOLVED_ACTIVITY_TYPES.has(item.type)) {
+      return theme.tokens.border.success.vibrant;
+    }
+    if (UNRESOLVED_ACTIVITY_TYPES.has(item.type)) {
+      return theme.tokens.border.danger.vibrant;
+    }
+    if (item.type === GroupActivityType.SET_IGNORED) {
+      return theme.tokens.border.secondary;
+    }
+    return;
+  };
+
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
   const visibleActivities = showSeerActivities
     ? group.activity
@@ -279,6 +313,7 @@ export function StreamlinedActivitySection({
               group={group}
               teams={teams}
               key={item.id}
+              iconBorderColor={getTimelineIconBorderColor(item)}
               isDrawer={isDrawer}
             />
           );
