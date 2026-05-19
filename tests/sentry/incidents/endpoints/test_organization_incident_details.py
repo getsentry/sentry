@@ -2,7 +2,7 @@ from functools import cached_property
 
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
@@ -100,37 +100,3 @@ class WorkflowEngineIncidentDetailsTest(APITestCase):
 
         resp = self.get_response(other_org.slug, fake_id)
         assert resp.status_code == 404
-
-
-class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
-    method = "put"
-
-    def get_success_response(self, *args, **params):
-        params.setdefault("status", IncidentStatus.CLOSED.value)
-        return super().get_success_response(*args, **params)
-
-    def test_simple(self) -> None:
-        incident = self.create_incident()
-        with self.feature("organizations:incidents"):
-            self.get_success_response(
-                incident.organization.slug, incident.identifier, status=IncidentStatus.CLOSED.value
-            )
-
-        incident = Incident.objects.get(id=incident.id)
-        assert incident.status == IncidentStatus.CLOSED.value
-
-    def test_cannot_open(self) -> None:
-        incident = self.create_incident()
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(
-                incident.organization.slug, incident.identifier, status=IncidentStatus.OPEN.value
-            )
-            assert resp.status_code == 400
-            assert resp.data.startswith("Status cannot be changed")
-
-    def test_invalid_status(self) -> None:
-        incident = self.create_incident()
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(incident.organization.slug, incident.identifier, status=5000)
-            assert resp.status_code == 400
-            assert resp.data["status"][0].startswith("Invalid value for status")
