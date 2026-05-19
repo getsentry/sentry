@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -78,8 +79,8 @@ export function OrganizationAccessRequests({
                       team: <strong>#{team.slug}</strong>,
                     })}
               </div>
-              <div>
-                <StyledButton
+              <Flex gap="md">
+                <Button
                   variant="primary"
                   size="sm"
                   onClick={e => {
@@ -89,7 +90,7 @@ export function OrganizationAccessRequests({
                   busy={isBusy}
                 >
                   {t('Approve')}
-                </StyledButton>
+                </Button>
                 <Button
                   busy={isBusy}
                   onClick={e => {
@@ -100,7 +101,7 @@ export function OrganizationAccessRequests({
                 >
                   {t('Deny')}
                 </Button>
-              </div>
+              </Flex>
             </StyledPanelItem>
           );
         })}
@@ -114,8 +115,4 @@ const StyledPanelItem = styled(PanelItem)`
   grid-template-columns: auto max-content;
   gap: ${p => p.theme.space.xl};
   align-items: center;
-`;
-
-const StyledButton = styled(Button)`
-  margin-right: ${p => p.theme.space.md};
 `;
