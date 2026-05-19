@@ -2280,10 +2280,6 @@ function buildRoutes(): RouteObject[] {
       children: profilingChildren,
     },
     {
-      path: 'profiling/*',
-      component: make(() => import('sentry/views/explore/profiling/profilingRedirect')),
-    },
-    {
       path: 'traces/',
       component: make(() => import('sentry/views/traces')),
       children: tracesChildren,
