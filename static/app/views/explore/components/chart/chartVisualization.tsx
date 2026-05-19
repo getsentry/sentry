@@ -110,7 +110,7 @@ export function ChartVisualization({
   }
 
   return (
-    <StyledTransparentLoadingMask opaque visible={!isLoading}>
+    <StyledTransparentLoadingMask opaque visible>
       <TimeSeriesWidgetVisualization
         ref={chartRef}
         plottables={activePlottables}
