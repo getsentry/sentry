@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';
 import * as analytics from 'sentry/utils/analytics';
@@ -53,16 +53,80 @@ describe('HighlightsSettingForm', () => {
 
     await userEvent.type(tagInput, `\n${newTag}`);
     await userEvent.click(screen.getByText('Highlights'));
-    expect(updateProjectMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        data: {highlightTags: [...highlightTags, newTag]},
-      })
-    );
+    await waitFor(() => {
+      expect(updateProjectMock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {highlightTags: [...highlightTags, newTag]},
+        })
+      );
+    });
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.project_settings.updated_manually',
       expect.anything()
     );
+  });
+
+  it('should not allow whitespace-only Highlight Tags', async () => {
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
+    const url = `/projects/${organization.slug}/${project.slug}/`;
+    const updateProjectMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: {...project, highlightTags: [], highlightContext},
+    });
+
+    const tagInput = screen.getByRole('textbox', {name: 'Highlighted Tags'});
+
+    await userEvent.clear(tagInput);
+    await userEvent.paste('     ');
+    await userEvent.click(screen.getByText('Highlights'));
+
+    expect(
+      await screen.findByText('Enter at least one tag key or leave the field empty.')
+    ).toBeInTheDocument();
+    expect(updateProjectMock).not.toHaveBeenCalled();
+  });
+
+  it('should render empty Highlight Context as JSON', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: {...project, highlightContext: {}},
+    });
+
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
+    expect(screen.getByRole('textbox', {name: 'Highlighted Context'})).toHaveValue('{}');
+  });
+
+  it('should allow Highlight Context to be saved as an empty object', async () => {
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
+    const url = `/projects/${organization.slug}/${project.slug}/`;
+    const updateProjectMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: {...project, highlightTags, highlightContext: {}},
+    });
+
+    const contextInput = screen.getByRole('textbox', {name: 'Highlighted Context'});
+
+    await userEvent.clear(contextInput);
+    await userEvent.paste('{}');
+    await userEvent.click(screen.getByText('Highlights'));
+
+    await waitFor(() => {
+      expect(updateProjectMock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {highlightContext: {}},
+        })
+      );
+    });
   });
 
   it('should allow the Highlight Context field to mutate highlights', async () => {
@@ -84,11 +148,13 @@ describe('HighlightsSettingForm', () => {
     await userEvent.paste(JSON.stringify(newContext));
     await userEvent.click(screen.getByText('Highlights'));
 
-    expect(updateProjectMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        data: {highlightContext: newContext},
-      })
-    );
+    await waitFor(() => {
+      expect(updateProjectMock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {highlightContext: newContext},
+        })
+      );
+    });
   });
 });
