@@ -44,6 +44,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:event-attachments": True,
         # Enable incidents feature
         "organizations:incidents": False,
+        # Enable the rendering of @sentry/toolbar inside the sentry app. See `useInitSentryToolbar()`
+        "organizations:init-sentry-toolbar": False,
         # Enable integration functionality to work with alert rules
         "organizations:integrations-alert-rule": True,
         # Enable integration functionality to work with alert rules (specifically chat integrations)
