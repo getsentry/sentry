@@ -157,10 +157,11 @@ export function getLogoImage(name: string) {
 
 export interface ContextIconProps {
   name: string;
+  alt?: string;
   size?: SVGIconProps['size'];
 }
 
-export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
+export function ContextIcon({name, alt, size: providedSize = 'xl'}: ContextIconProps) {
   const size = SvgIcon.ICON_SIZES[providedSize];
 
   // Apply darkmode CSS to icon when in darkmode
@@ -168,5 +169,5 @@ export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps)
   const imageName = getLogoImage(name);
   const extraCass = isDarkmode && INVERT_IN_DARKMODE.has(imageName) ? darkCss : null;
 
-  return <img height={size} width={size} css={extraCass} src={imageName} />;
+  return <img height={size} width={size} css={extraCass} src={imageName} alt={alt ?? name} />;
 }
