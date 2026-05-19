@@ -23,7 +23,7 @@ from sentry.notifications.platform.types import (
 
 @control_silo_endpoint
 class InternalRegisteredTemplatesEndpoint(Endpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.NOTIFICATIONS
     permission_classes = (SentryIsAuthenticated,)
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 

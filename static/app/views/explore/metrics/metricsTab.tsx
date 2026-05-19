@@ -10,6 +10,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -222,17 +223,19 @@ function SortableMetricPanelSection({
                 setTraceMetric={metricQuery.setTraceMetric}
                 removeMetric={metricQuery.removeMetric}
               >
-                <SortableMetricPanel
-                  referencedMetricLabels={referencedMetricLabels}
-                  onEquationLabelsChange={onEquationLabelsChange}
-                  sortableId={id}
-                  traceMetric={metricQuery.metric}
-                  queryIndex={index}
-                  queryLabel={metricQuery.label ?? ''}
-                  referenceMap={referenceMap}
-                  isAnyDragging={isAnyDragging}
-                  canDrag={sortableItems.length > 1}
-                />
+                <AiQueryProvider>
+                  <SortableMetricPanel
+                    referencedMetricLabels={referencedMetricLabels}
+                    onEquationLabelsChange={onEquationLabelsChange}
+                    sortableId={id}
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    queryLabel={metricQuery.label ?? ''}
+                    referenceMap={referenceMap}
+                    isAnyDragging={isAnyDragging}
+                    canDrag={sortableItems.length > 1}
+                  />
+                </AiQueryProvider>
               </MetricsQueryParamsProvider>
             );
           })}

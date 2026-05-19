@@ -43,14 +43,14 @@ def create_preprod_pr_comment_task(
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.pr_comments.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id, "caller": caller},
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not artifact.commit_comparison:
         logger.info(
             "preprod.pr_comments.create.no_commit_comparison",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return
 
@@ -63,7 +63,7 @@ def create_preprod_pr_comment_task(
         logger.info(
             "preprod.pr_comments.create.no_pr_info",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "pr_number": commit_comparison.pr_number,
                 "head_repo_name": commit_comparison.head_repo_name,
             },
@@ -75,7 +75,7 @@ def create_preprod_pr_comment_task(
     ):
         logger.info(
             "preprod.pr_comments.create.project_disabled",
-            extra={"artifact_id": artifact.id, "project_id": artifact.project.id},
+            extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
         )
         return
 
@@ -83,7 +83,7 @@ def create_preprod_pr_comment_task(
     if not features.has("organizations:preprod-build-distribution-pr-comments", organization):
         logger.info(
             "preprod.pr_comments.create.feature_disabled",
-            extra={"artifact_id": artifact.id, "organization_id": organization.id},
+            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
         )
         return
 
@@ -93,7 +93,7 @@ def create_preprod_pr_comment_task(
     if not client:
         logger.info(
             "preprod.pr_comments.create.no_client",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return
 
@@ -130,7 +130,7 @@ def create_preprod_pr_comment_task(
             logger.info(
                 "preprod.pr_comments.create.no_installable_artifacts",
                 extra={
-                    "artifact_id": artifact.id,
+                    "preprod_artifact_id": artifact.id,
                     "project_id": artifact.project.id,
                     "sibling_count": len(siblings),
                 },
@@ -151,7 +151,7 @@ def create_preprod_pr_comment_task(
                 comment_id = existing_comment_id
                 logger.info(
                     "preprod.pr_comments.create.updated",
-                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
+                    extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
                 )
             else:
                 resp = client.create_comment(
@@ -162,11 +162,11 @@ def create_preprod_pr_comment_task(
                 comment_id = str(resp["id"])
                 logger.info(
                     "preprod.pr_comments.create.created",
-                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
+                    extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
                 )
         except Exception as e:
             extra: dict[str, Any] = {
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "organization_id": organization.id,
                 "error_type": type(e).__name__,
             }

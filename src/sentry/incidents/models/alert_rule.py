@@ -26,7 +26,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.incidents.models.incident import IncidentTrigger
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -305,9 +304,6 @@ class AlertRuleTrigger(Model):
     threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
     resolve_threshold = models.FloatField(null=True)
-    triggered_incidents = models.ManyToManyField(
-        "sentry.Incident", related_name="triggers", through=IncidentTrigger
-    )
     date_added = models.DateTimeField(default=timezone.now)
 
     objects: ClassVar[AlertRuleTriggerManager] = AlertRuleTriggerManager()

@@ -139,7 +139,7 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
         )
 
         path = ".bitbucket/CODEOWNERS"
-        url = f"https://api.bitbucket.org/2.0/repositories/{self.config.repository.name}/src/{self.config.default_branch}/{path}"
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.config.project_repository.repository.name}/src/{self.config.default_branch}/{path}"
 
         responses.add(
             method=responses.HEAD,
@@ -154,6 +154,6 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
         )
 
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert result == BITBUCKET_CODEOWNERS

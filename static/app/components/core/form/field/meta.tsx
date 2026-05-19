@@ -75,7 +75,7 @@ function FieldStatus({disabled, error}: {disabled?: boolean | string; error?: st
     error ??
     (field.state.meta.isValid
       ? undefined
-      : field.state.meta.errors.map(e => e?.message).join(','));
+      : field.state.meta.errors.map((e: Error | undefined) => e?.message).join(','));
 
   if (errorMessage) {
     return (

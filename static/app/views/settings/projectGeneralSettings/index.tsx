@@ -34,7 +34,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {DetailedProject, PlatformKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
@@ -50,7 +50,7 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 type Props = {
   onChangeSlug: (slug: string) => void;
-  project: Project;
+  project: DetailedProject;
 };
 
 function isPlatformAllowed({

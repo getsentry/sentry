@@ -38,6 +38,7 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
       span_count_map: {},
     },
     errors: [],
+    isLoading: false,
     status: 'success',
   },
   rootEventResults: {
@@ -202,6 +203,7 @@ describe('TraceMetaDataHeader', () => {
               metaResults: {
                 data: undefined,
                 errors: [],
+                isLoading: true,
                 status: 'pending',
               },
             } as TraceMetadataHeaderProps)}

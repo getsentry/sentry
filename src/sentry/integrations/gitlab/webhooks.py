@@ -423,7 +423,7 @@ class PushEventWebhook(GitlabWebhook):
 
 @cell_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

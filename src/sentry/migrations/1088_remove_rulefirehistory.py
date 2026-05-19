@@ -26,6 +26,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1087_add_projectrepository"),
+        ("notifications", "0006_drop_issue_alert_columns_notificationmessage"),
     ]
 
     operations = [
