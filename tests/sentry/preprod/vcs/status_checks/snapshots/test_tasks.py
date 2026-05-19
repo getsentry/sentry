@@ -388,6 +388,67 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
         mock_get_provider.return_value = None
         self._call_task()
 
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_skips_stale_in_progress_when_comparison_succeeded(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        head_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=self.artifact, image_count=10
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_changed=0,
+            images_unchanged=10,
+        )
+
+        self._call_task(status=StatusCheckStatus.IN_PROGRESS.value)
+
+        mock_provider.create_status_check.assert_not_called()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_allows_in_progress_when_comparison_still_pending(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_456"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        head_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=self.artifact, image_count=10
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.PROCESSING,
+            images_changed=0,
+            images_unchanged=10,
+        )
+
+        self._call_task(status=StatusCheckStatus.IN_PROGRESS.value)
+
+        mock_provider.create_status_check.assert_called_once()
+
 
 @cell_silo_test
 class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
@@ -423,12 +484,10 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
     @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
     @patch(f"{TASK_MODULE}.get_status_check_provider")
     @patch(f"{TASK_MODULE}.get_status_check_client")
-    @patch(f"{TASK_MODULE}.create_preprod_snapshot_pr_comment_task")
-    @patch(f"{TASK_MODULE}.create_preprod_snapshot_status_check_task.apply_async")
+    @patch(f"{TASK_MODULE}.update_preprod_snapshot_vcs")
     def test_missing_base_first_attempt_posts_in_progress(
         self,
-        mock_status_apply_async,
-        mock_pr_comment_task,
+        mock_update_vcs,
         mock_get_client,
         mock_get_provider,
         mock_post_task,
@@ -447,18 +506,12 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
         call_kwargs = mock_post_task.delay.call_args[1]
         assert call_kwargs["status"] == StatusCheckStatus.IN_PROGRESS.value
 
-        mock_status_apply_async.assert_called_once()
-        status_kwargs = mock_status_apply_async.call_args[1]
-        assert status_kwargs["kwargs"]["is_timeout_check"] is True
-        assert status_kwargs["kwargs"]["preprod_artifact_id"] == artifact.id
-        assert status_kwargs["countdown"] == 600
-
-        mock_pr_comment_task.apply_async.assert_called_once()
-        pr_kwargs = mock_pr_comment_task.apply_async.call_args[1]
-        assert pr_kwargs["kwargs"]["is_timeout_check"] is True
-        assert pr_kwargs["kwargs"]["preprod_artifact_id"] == artifact.id
-        assert pr_kwargs["kwargs"]["caller"] == "missing_base_timeout"
-        assert pr_kwargs["countdown"] == 600
+        mock_update_vcs.assert_called_once_with(
+            preprod_artifact_id=artifact.id,
+            caller="missing_base_timeout",
+            is_timeout_check=True,
+            countdown=600,
+        )
 
     @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
     @patch(f"{TASK_MODULE}.get_status_check_provider")

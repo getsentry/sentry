@@ -66,10 +66,7 @@ from sentry.preprod.snapshots.utils import (
     find_head_snapshot_artifacts_awaiting_base,
 )
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
-from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    create_preprod_snapshot_status_check_task,
-)
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -711,19 +708,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             except Exception:
                 logger.exception("Failed to record bundles_per_commit metric")
 
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "upload_completion",
-            },
-        )
-        create_preprod_snapshot_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "upload_completion",
-            },
-        )
-
+        comparison_starting = False
         if base_sha and base_repo_name:
             try:
                 base_artifact = find_base_snapshot_artifact(
@@ -766,6 +751,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                             "base_artifact_id": base_artifact.id,
                         },
                     )
+                    comparison_starting = True
 
                 else:
                     logger.info(
@@ -785,6 +771,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         "base_sha": base_sha,
                     },
                 )
+
+        # When a comparison starts, compare_snapshots owns the status-check
+        # lifecycle; posting one here too would race with it.
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=artifact.id,
+            caller="upload_completion",
+            update_status_check=not comparison_starting,
+        )
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
