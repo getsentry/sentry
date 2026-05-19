@@ -103,7 +103,6 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
-  tableExpando: boolean;
 };
 
 interface LogsSearchBarProps {
@@ -247,7 +246,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   );
 });
 
-function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) {
+function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const {openModal} = useModal();
 
   const pageFilters = usePageFilters();
@@ -451,10 +450,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedPage
-        constrained={tableExpando && mode === Mode.SAMPLES}
-        hideFooter={tableExpando}
-      >
+      <ViewportConstrainedPage constrained={mode === Mode.SAMPLES} hideFooter>
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}
@@ -543,7 +539,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  expanded={tableExpando}
+                  expanded
                   booleanAttributes={booleanAttributes}
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
