@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
@@ -46,7 +46,7 @@ export function ActivitySection(props: Props) {
 
   return (
     <Fragment>
-      <Flex marginBottom="xl">
+      <Container marginBottom="xl">
         <NoteInputWithStorage
           key={inputId}
           storageKey="groupinput:latest"
@@ -62,7 +62,7 @@ export function ActivitySection(props: Props) {
           }}
           {...noteProps}
         />
-      </Flex>
+      </Container>
 
       {visibleActivities.map(item => {
         const authorName = item.user ? item.user.name : 'Sentry';
