@@ -414,6 +414,10 @@ def compare_snapshots(
                     "base_artifact_id": base_artifact_id,
                 },
             )
+            update_preprod_snapshot_vcs(
+                preprod_artifact_id=head_artifact_id,
+                caller="compare_failure",
+            )
             return
         created = False
 
