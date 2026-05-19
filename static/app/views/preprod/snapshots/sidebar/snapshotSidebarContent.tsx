@@ -58,7 +58,7 @@ type VirtualRow =
   | {group: SidebarGroup; indented: boolean; type: 'item'};
 
 const ITEM_HEIGHT = 36;
-const SECTION_HEADER_HEIGHT = 36;
+const SECTION_HEADER_HEIGHT = 28;
 
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
@@ -424,12 +424,15 @@ const VirtualRowPositioner = styled('div')`
 const SectionHeaderButton = styled('button')`
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.xs};
   width: 100%;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  height: ${p => p.theme.form.xs.height};
+  padding: ${p => p.theme.form.xs.paddingTop}px ${p => p.theme.form.xs.paddingRight}px
+    ${p => p.theme.form.xs.paddingBottom}px ${p => p.theme.space.xs};
   background: transparent;
   border: none;
   cursor: pointer;
+  font-size: ${p => p.theme.form.xs.fontSize};
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
