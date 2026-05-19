@@ -136,3 +136,21 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
 
         mock_new_path.assert_not_called()
         mock_old_path.assert_called_once_with(invocation)
+
+    @responses.activate
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.execute_via_group_type_registry",
+        side_effect=Exception("legacy path error"),
+    )
+    def test_old_path_exception_does_not_block_new_path(
+        self, mock_old_path: mock.MagicMock
+    ) -> None:
+        responses.add(responses.POST, "http://example.com/hook")
+
+        with self.tasks(), self.feature("organizations:legacy-webhook-new-path"):
+            WebhookActionHandler.execute(self.invocation)
+
+        mock_old_path.assert_called_once()
+        assert len(responses.calls) == 1
+        body = json.loads(responses.calls[0].request.body)
+        assert body["id"] == str(self.group.id)
