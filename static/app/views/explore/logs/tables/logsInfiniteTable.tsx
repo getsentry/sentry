@@ -466,6 +466,39 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const renderRow = useCallback(
+    (dataRow: LogTableRowItem) => {
+      const pinnedId = dataRow[OurLogKnownFieldKey.ID];
+      const pinnedExpandKey = `pinned-${pinnedId}`;
+      return (
+        <LogRowContent
+          dataRow={dataRow}
+          meta={meta}
+          highlightTerms={highlightTerms}
+          embedded={false}
+          sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+          expansionKey={pinnedExpandKey}
+          onExpand={handleExpand}
+          onCollapse={handleCollapse}
+          isExpanded={expandedLogRows.has(pinnedExpandKey)}
+          onExpandHeight={handleExpandHeight}
+          logStart={logStart}
+          logEnd={logEnd}
+        />
+      );
+    },
+    [
+      expandedLogRows,
+      handleCollapse,
+      handleExpand,
+      handleExpandHeight,
+      highlightTerms,
+      logEnd,
+      logStart,
+      meta,
+    ]
+  );
+
   // For replay context, render empty states outside the table for proper centering
   if (hasReplay && (isPending || isError || isEmpty)) {
     return (
@@ -513,31 +546,7 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
-        {!isPending && (
-          <PinnedLogs
-            allRows={data}
-            renderRow={dataRow => {
-              const pinnedId = dataRow[OurLogKnownFieldKey.ID];
-              const pinnedExpandKey = `pinned-${pinnedId}`;
-              return (
-                <LogRowContent
-                  dataRow={dataRow}
-                  meta={meta}
-                  highlightTerms={highlightTerms}
-                  embedded={false}
-                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                  expansionKey={pinnedExpandKey}
-                  onExpand={handleExpand}
-                  onCollapse={handleCollapse}
-                  isExpanded={expandedLogRows.has(pinnedExpandKey)}
-                  onExpandHeight={handleExpandHeight}
-                  logStart={logStart}
-                  logEnd={logEnd}
-                />
-              );
-            }}
-          />
-        )}
+        {!isPending && <PinnedLogs allRows={data} renderRow={renderRow} />}
         <LogTableBody
           showHeader={!embedded}
           ref={tableBodyRef}
