@@ -711,7 +711,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   padding: 0;
   line-height: normal;
   text-transform: none;
-  overflow: visible;
+  overflow: hidden;
 
   > * {
     min-width: 0;
