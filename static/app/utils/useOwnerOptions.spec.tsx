@@ -4,6 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import type {Team} from 'sentry/types/organization';
+
 import {useOwnerOptions} from './useOwnerOptions';
 
 describe('useOwnerOptions', () => {
@@ -80,6 +82,47 @@ describe('useOwnerOptions', () => {
         ],
       },
       {label: 'Disabled Teams', options: []},
+    ]);
+  });
+
+  it('does not crash when teams lack the projects property', () => {
+    const teamsWithoutProjects: Team[] = [
+      TeamFixture({id: '1', slug: 'my-team'}),
+      TeamFixture({id: '2', slug: 'other-team', isMember: false}),
+    ].map(({projects: _projects, ...team}) => team);
+
+    const {result} = renderHook(useOwnerOptions, {
+      initialProps: {
+        memberOfProjectSlugs: ['some-project'],
+        teams: teamsWithoutProjects,
+      },
+    });
+
+    expect(result.current).toEqual([
+      {label: 'My Teams', options: []},
+      {label: 'Members', options: []},
+      {label: 'Other Teams', options: []},
+      {
+        label: 'Disabled Teams',
+        options: [
+          {
+            label: '#my-team',
+            value: 'team:1',
+            leadingItems: expect.anything(),
+            disabled: true,
+            tooltip: '#my-team is not a member of the selected projects',
+            tooltipOptions: {position: 'left'},
+          },
+          {
+            label: '#other-team',
+            value: 'team:2',
+            leadingItems: expect.anything(),
+            disabled: true,
+            tooltip: '#other-team is not a member of the selected projects',
+            tooltipOptions: {position: 'left'},
+          },
+        ],
+      },
     ]);
   });
 

@@ -60,11 +60,13 @@ export function useOwnerOptions({
   });
 
   const {disabledTeams, memberTeams, otherTeams} = groupBy(
-    teams as DetailedTeam[],
+    teams ?? [],
     team => {
       if (
         memberOfProjectSlugs &&
-        !team.projects.some(({slug}) => memberOfProjectSlugs.includes(slug))
+        !(team as Partial<DetailedTeam>).projects?.some(({slug}) =>
+          memberOfProjectSlugs.includes(slug)
+        )
       ) {
         return 'disabledTeams';
       }
