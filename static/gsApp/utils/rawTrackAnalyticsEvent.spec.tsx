@@ -25,7 +25,7 @@ describe('rawTrackAnalyticsEvent', () => {
   const org_id = Number(organization.id);
 
   beforeEach(() => {
-    (uniqueId as jest.MockedFunction<typeof uniqueId>).mockReturnValue('345');
+    jest.mocked(uniqueId).mockReturnValue('345');
   });
 
   afterEach(() => {
