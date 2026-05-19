@@ -138,7 +138,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
     initialRect: {width: 0, height: 500},
   });
 
-  const prevActiveItemKeyRef = useRef(activeItemKey);
+  const prevActiveItemKeyRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (!activeItemKey || activeItemKey === prevActiveItemKeyRef.current) {
       prevActiveItemKeyRef.current = activeItemKey;
