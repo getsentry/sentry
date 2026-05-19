@@ -116,11 +116,7 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
-from sentry.spans.buffer_logger import (
-    BufferLogger,
-    EvalshaData,
-    emit_observability_metrics,
-)
+from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import (
@@ -742,8 +738,7 @@ class SpansBuffer:
         now: int,
     ) -> tuple[dict[SegmentKey, list[bytes]], dict[SegmentKey, list[PayloadKey]]]:
         """
-        Loads the segments from Redis, given a list of segment keys. Segments
-        exceeding a certain size are skipped, and an error is logged.
+        Loads the segments from Redis, given a list of segment keys.
 
         :param segment_keys: List of segment keys to load.
         :param segment_to_queue: Mapping of segment keys to their queue keys for TTL checking.
@@ -779,8 +774,6 @@ class SpansBuffer:
                 cursors[payload_key] = 0
             payload_keys_map[key] = segment_payload_keys
 
-        dropped_segments: set[SegmentKey] = set()
-
         def _add_spans(key: SegmentKey, raw_data: bytes):
             """
             Decompress and add spans to the segment.
@@ -799,10 +792,6 @@ class SpansBuffer:
 
             for key, (cursor, scan_values) in zip(current_keys, scan_results):
                 segment_key = scan_key_to_segment[key]
-                if segment_key in dropped_segments:
-                    cursors.pop(key, None)
-                    continue
-
                 for scan_value in scan_values:
                     if segment_key in payloads:
                         _add_spans(segment_key, scan_value)
