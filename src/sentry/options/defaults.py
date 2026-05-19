@@ -776,6 +776,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
+    type=Float,
+    default=0.1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1131,7 +1137,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 
 # Killswitch for issue priority
 register(
@@ -3292,19 +3297,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# When True, done_flush_segments uses Lua scripts to conditionally clean up
-# segments only if their state hasn't changed since the flush started: Phase 1
-# ZREMs the queue entry only if the score is unchanged, and Phase 2 deletes the
-# per-segment data keys (hrs, ic, ibc) only if the ingested count is unchanged.
-# When False, both phases unconditionally remove queue entries and delete data
-# keys for every flushed segment.
-register(
-    "spans.buffer.done-flush-conditional-zrem",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
@@ -3337,16 +3329,6 @@ register(
 )
 register(
     "spans.buffer.evalsha-cumulative-logger-enabled",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.flusher-cumulative-logger-enabled",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.flusher.log-flushed-segments",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

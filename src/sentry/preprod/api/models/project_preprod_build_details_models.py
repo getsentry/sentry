@@ -6,6 +6,12 @@ from typing import Annotated, Any, Literal
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
+from sentry.preprod.api.models.snapshots.snapshot_status import (
+    ApprovalStatusLiteral,
+    ComparisonStateLiteral,
+    SnapshotStatusInput,
+    derive_snapshot_status,
+)
 from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
@@ -94,16 +100,13 @@ class PostedStatusChecks(BaseModel):
 
 class SnapshotComparisonInfo(BaseModel):
     image_count: int
-    comparison_state: (
-        Literal["pending", "processing", "success", "failed", "waiting_for_base", "no_base_build"]
-        | None
-    ) = None
+    comparison_state: ComparisonStateLiteral | None = None
     comparison_error_message: str | None = None
     images_added: int = 0
     images_removed: int = 0
     images_changed: int = 0
     images_unchanged: int = 0
-    approval_status: Literal["approved", "auto_approved", "requires_approval"] | None = None
+    approval_status: ApprovalStatusLiteral | None = None
 
 
 class SizeInfoSizeMetric(BaseModel):
@@ -292,29 +295,23 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
     except PreprodSnapshotMetrics.DoesNotExist:
         return None
 
-    comparison_state = None
-    comparison_error_message = None
-    images_added = 0
-    images_removed = 0
-    images_changed = 0
-    images_unchanged = 0
-
     comparisons = sorted(
         snapshot_metrics.snapshot_comparisons_head_metrics.all(),
         key=lambda c: c.id,
         reverse=True,
     )
     comparison = comparisons[0] if comparisons else None
-    if not comparison:
-        cc = head_artifact.commit_comparison
-        if cc and cc.base_sha:
-            grace_period_expired = (
-                timezone.now() - head_artifact.date_added
-            ).total_seconds() > MISSING_BASE_GRACE_PERIOD_SECONDS
 
-            if (
-                grace_period_expired
-                and find_base_snapshot_artifact(
+    cc = head_artifact.commit_comparison
+    has_base_sha = bool(cc and cc.base_sha)
+    artifact_age_seconds = (timezone.now() - head_artifact.date_added).total_seconds()
+
+    base_artifact_exists: bool | None = None
+    if comparison is None and has_base_sha and cc is not None:
+        if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
+            assert cc.base_sha is not None
+            base_artifact_exists = (
+                find_base_snapshot_artifact(
                     organization_id=cc.organization_id,
                     base_sha=cc.base_sha,
                     base_repo_name=cc.base_repo_name or cc.head_repo_name,
@@ -323,47 +320,45 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
                     artifact_type=head_artifact.artifact_type,
                     build_configuration=head_artifact.build_configuration,
                 )
-                is None
-            ):
-                comparison_state = "no_base_build"
-            else:
-                comparison_state = "waiting_for_base"
-    elif comparison:
-        comparison_state = PreprodSnapshotComparison.State(comparison.state).name.lower()
-        if comparison.state == PreprodSnapshotComparison.State.SUCCESS:
-            images_added = comparison.images_added
-            images_removed = comparison.images_removed
-            images_changed = comparison.images_changed
-            images_unchanged = comparison.images_unchanged
-        elif comparison.state == PreprodSnapshotComparison.State.FAILED:
-            comparison_error_message = comparison.error_message
+                is not None
+            )
 
-    approval_status = None
-    # REJECTED is no longer used; all non-APPROVED statuses are treated as requires_approval
     approvals = [
         a
         for a in head_artifact.preprodcomparisonapproval_set.all()
         if a.preprod_feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS
     ]
     approvals.sort(key=lambda a: a.id, reverse=True)
-    if approvals:
-        if approvals[0].approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED:
-            if (approvals[0].extras or {}).get("auto_approval") is True:
-                approval_status = "auto_approved"
-            else:
-                approval_status = "approved"
-        else:
-            approval_status = "requires_approval"
+
+    derived = derive_snapshot_status(
+        SnapshotStatusInput(
+            latest_comparison=comparison,
+            latest_approval=approvals[0] if approvals else None,
+            has_base_sha=has_base_sha,
+            artifact_age_seconds=artifact_age_seconds,
+            base_artifact_exists=base_artifact_exists,
+        )
+    )
+
+    images_added = 0
+    images_removed = 0
+    images_changed = 0
+    images_unchanged = 0
+    if comparison is not None and comparison.state == PreprodSnapshotComparison.State.SUCCESS:
+        images_added = comparison.images_added
+        images_removed = comparison.images_removed
+        images_changed = comparison.images_changed
+        images_unchanged = comparison.images_unchanged
 
     return SnapshotComparisonInfo(
         image_count=snapshot_metrics.image_count,
-        comparison_state=comparison_state,
-        comparison_error_message=comparison_error_message,
+        comparison_state=derived.comparison_state,
+        comparison_error_message=derived.comparison_error_message,
         images_added=images_added,
         images_removed=images_removed,
         images_changed=images_changed,
         images_unchanged=images_unchanged,
-        approval_status=approval_status,
+        approval_status=derived.approval_status,
     )
 
 

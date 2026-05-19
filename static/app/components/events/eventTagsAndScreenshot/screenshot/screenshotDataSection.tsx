@@ -1,12 +1,12 @@
 import {useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import {
   modalCss,
@@ -36,6 +36,8 @@ export function ScreenshotDataSection({
   isShare,
   ...props
 }: ScreenshotDataSectionProps) {
+  const {openModal} = useModal();
+
   const location = useLocation();
   const organization = useOrganization();
   const {data: attachments} = useFetchEventAttachments(

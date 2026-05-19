@@ -29,7 +29,7 @@ class OrganizationConfigIntegrationsEndpointResponse(TypedDict):
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

@@ -78,6 +78,34 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
+    def test_get_prebuilt_visible_without_project_access(self) -> None:
+        # Prebuilt queries are product-level content; any org member must be able to open them
+        # even when Open Membership is disabled and they have no project access.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        prebuilt = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=None,
+            name="Prebuilt query",
+            query={"query": [{"fields": ["span.op"], "mode": "samples"}]},
+            prebuilt_id=1,
+            prebuilt_version=1,
+        )
+
+        outsider = self.create_user()
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[])
+        self.login_as(outsider)
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, prebuilt.id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(prebuilt.id)
+
     def test_get_starred(self) -> None:
         ExploreSavedQueryStarred.objects.create(
             organization=self.org,

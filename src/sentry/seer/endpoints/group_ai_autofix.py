@@ -490,8 +490,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             if project:
                 code_mappings = get_sorted_code_mapping_configs(project=project)
                 for mapping in code_mappings:
-                    if mapping.repository.external_id:
-                        repo_code_mappings[mapping.repository.external_id] = mapping
+                    repo = mapping.project_repository.repository
+                    if repo.external_id:
+                        repo_code_mappings[repo.external_id] = mapping
 
             for repo_external_id, repo_state in autofix_codebase_state.items():
                 retrieved_mapping: RepositoryProjectPathConfig | None = repo_code_mappings.get(
@@ -501,7 +502,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 if not retrieved_mapping:
                     continue
 
-                mapping_repo: Repository = retrieved_mapping.repository
+                mapping_repo: Repository = retrieved_mapping.project_repository.repository
 
                 repositories.append(
                     {

@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {IconEdit, IconStack} from 'sentry/icons';
 
 import {EditAdminOptionModal} from 'admin/components/editAdminOptionModal';
@@ -35,6 +35,8 @@ function EditableOption({
   path: string;
   row: SerializedOption;
 }) {
+  const {openModal} = useModal();
+
   if (row.groupingInfo && row.groupingInfo.order !== 0) {
     return null;
   }

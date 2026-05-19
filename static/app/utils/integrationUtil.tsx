@@ -1,5 +1,6 @@
 import * as qs from 'query-string';
 
+import {getHook} from 'sentry/hookRegistry';
 import {
   IconAsana,
   IconBitbucket,
@@ -14,7 +15,6 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {
   AppOrProviderOrPlugin,
@@ -70,7 +70,7 @@ const defaultFeatureGateComponents: ReturnType<Hooks['integrations:feature-gates
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
-  const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
+  const featureHook = getHook('integrations:feature-gates') || defaultHook;
   return featureHook();
 };
 

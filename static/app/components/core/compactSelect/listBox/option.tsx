@@ -69,7 +69,7 @@ export function ListBoxOption({
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
-    const leading =
+    const leading: React.ReactNode =
       typeof leadingItems === 'function'
         ? leadingItems({disabled: isDisabled, isFocused, isSelected})
         : leadingItems;
