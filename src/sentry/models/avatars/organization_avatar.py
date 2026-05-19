@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+from urllib.parse import urljoin
 
 from django.db import models
+from django.urls import reverse
 
 from sentry.db.models import FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.organization import Organization
+from sentry.types.cell import get_local_cell, get_locality_name_for_cell
 
 from . import AvatarBase
 
@@ -58,3 +62,12 @@ class OrganizationAvatar(AvatarBase, ReplicatedCellModel):
         control_replica_service.delete_organization_avatar_replica(
             organization_id=shard_identifier,
         )
+
+    def absolute_url(self) -> str:
+        from sentry.api.utils import generate_locality_url
+
+        organization = Organization.objects.get_from_cache(id=self.organization_id)
+        cell_name = get_local_cell().name
+        locality_url = generate_locality_url(get_locality_name_for_cell(cell_name))
+        path = reverse("sentry-organization-avatar-url", args=[organization.slug, self.ident])
+        return urljoin(locality_url, path)

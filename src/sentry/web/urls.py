@@ -1188,6 +1188,11 @@ urlpatterns += [
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
                 ),
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/avatar/(?P<avatar_id>[^/]+)$",
+                    OrganizationAvatarPhotoView.as_view(),
+                    name="sentry-organization-avatar-url",
+                ),
                 # need to force these to React and ensure organization_slug is captured
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/",
@@ -1217,7 +1222,7 @@ urlpatterns += [
     re_path(
         r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
-        name="sentry-organization-avatar-url",
+        name="sentry-organization-avatar-url-deprecated",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",
