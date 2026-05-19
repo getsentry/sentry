@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from functools import partial
 from typing import TypedDict
 
-from django.db import DatabaseError, router, transaction
+from django.db import router, transaction
 from django.db.models import Value
 from django.db.models.functions import Replace
 from rest_framework import serializers
@@ -33,8 +33,8 @@ from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models.project_repository import SeerProjectRepository
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
-    "name": "repository__name",
-    "-name": "-repository__name",
+    "name": "project_repository__repository__name",
+    "-name": "-project_repository__repository__name",
     "provider": "provider_normalized",
     "-provider": "-provider_normalized",
 }
@@ -52,6 +52,7 @@ class BranchOverrideResponse(TypedDict):
 
 
 class ProjectRepoResponse(TypedDict):
+    id: str
     repositoryId: str
     provider: str
     owner: str
@@ -64,12 +65,13 @@ class ProjectRepoResponse(TypedDict):
 
 
 def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoResponse:
-    repo = project_repo.repository
+    repo = project_repo.project_repository.repository
     name_parts = repo.name.split("/", 1)
     owner = name_parts[0] if len(name_parts) > 1 else ""
     name = name_parts[1] if len(name_parts) > 1 else repo.name
 
     return ProjectRepoResponse(
+        id=str(project_repo.id),
         repositoryId=str(repo.id),
         provider=repo.provider or "",
         owner=owner,
@@ -99,16 +101,20 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
         value = f.value.value
 
         if key == "name":
+            if op not in ("=", "!=", "IN", "NOT IN"):
+                raise InvalidSearchQuery(f"name does not support the {op} operator.")
             if op == "=":
-                queryset = queryset.filter(repository__name__icontains=value)
+                queryset = queryset.filter(project_repository__repository__name__icontains=value)
             elif op == "!=":
-                queryset = queryset.exclude(repository__name__icontains=value)
+                queryset = queryset.exclude(project_repository__repository__name__icontains=value)
             elif op == "IN":
-                queryset = queryset.filter(repository__name__in=value)
+                queryset = queryset.filter(project_repository__repository__name__in=value)
             elif op == "NOT IN":
-                queryset = queryset.exclude(repository__name__in=value)
+                queryset = queryset.exclude(project_repository__repository__name__in=value)
 
         elif key == "provider":
+            if op not in ("=", "!=", "IN", "NOT IN"):
+                raise InvalidSearchQuery(f"provider does not support the {op} operator.")
             normalize = lambda v: v.removeprefix("integrations:")
             if op == "=":
                 queryset = queryset.filter(provider_normalized=normalize(value))
@@ -137,9 +143,10 @@ def _get_valid_repo_ids(repo_ids: list[int], organization: Organization) -> set[
 def _get_project_repos_queryset(project: Project):
     return (
         SeerProjectRepository.objects.filter(
-            project=project, repository__status=ObjectStatus.ACTIVE
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
         )
-        .select_related("repository")
+        .select_related("project_repository", "project_repository__repository")
         .prefetch_related("branch_overrides")
     )
 
@@ -204,7 +211,9 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
 
         queryset = _get_project_repos_queryset(project).annotate(
             # Strip the provider prefix if present, so we can order by it.
-            provider_normalized=Replace("repository__provider", Value("integrations:"), Value(""))
+            provider_normalized=Replace(
+                "project_repository__repository__provider", Value("integrations:"), Value("")
+            )
         )
 
         search_query = request.GET.get("query", "")
@@ -247,17 +256,9 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
                 {"detail": f"Invalid repository IDs: {sorted(invalid_repo_ids)}"}, status=400
             )
 
-        try:
-            created_ids = add_seer_project_repos(project, repos_data)
-        except ValueError as e:
-            connected_ids = e.args[0]
-            return Response(
-                {"detail": f"Repositories already connected: {sorted(connected_ids)}"},
-                status=409,
-            )
+        add_seer_project_repos(project, repos_data)
 
-        result = _get_project_repos_queryset(project).filter(id__in=created_ids)
-        return Response([_serialize_project_repo(r) for r in result], status=201)
+        return Response(status=204)
 
     def put(self, request: Request, organization: Organization, project_id: int) -> Response:
         project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
@@ -280,8 +281,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
 
         replace_all_seer_project_repos(project, repos_data)
 
-        result = _get_project_repos_queryset(project)
-        return Response([_serialize_project_repo(r) for r in result])
+        return Response(status=204)
 
 
 @cell_silo_endpoint
@@ -295,7 +295,11 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
     def _get_project_repo(self, project: Project, repo_id: int) -> SeerProjectRepository | None:
-        return _get_project_repos_queryset(project).filter(repository_id=repo_id).first()
+        return (
+            _get_project_repos_queryset(project)
+            .filter(project_repository__repository_id=repo_id)
+            .first()
+        )
 
     def get(
         self, request: Request, organization: Organization, project_id: int, repo_id: int
@@ -317,18 +321,10 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        project_repo = self._get_project_repo(project, repo_id)
+        project_repo = update_seer_project_repo(project, repo_id, serializer.validated_data)
         if project_repo is None:
             return Response(status=404)
 
-        try:
-            update_seer_project_repo(project_repo, serializer.validated_data)
-        except DatabaseError:
-            return Response(status=404)
-
-        project_repo = self._get_project_repo(project, repo_id)
-        if project_repo is None:
-            return Response(status=404)
         return Response(_serialize_project_repo(project_repo))
 
     def delete(
@@ -338,9 +334,9 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             deleted_count, _ = SeerProjectRepository.objects.filter(
-                project=project,
-                repository_id=repo_id,
-                repository__status=ObjectStatus.ACTIVE,
+                project_repository__project=project,
+                project_repository__repository_id=repo_id,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
             ).delete()
 
         if deleted_count == 0:

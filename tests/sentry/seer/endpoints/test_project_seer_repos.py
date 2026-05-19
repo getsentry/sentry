@@ -47,13 +47,13 @@ class OrganizationSeerProjectReposGetTest(APITestCase):
         assert len(response.data) == 0
 
     def test_returns_connected_repos(self):
-        SeerProjectRepository.objects.create(
-            project=self.project,
+        self.create_seer_project_repository(
+            self.project,
             repository=self.repo1,
             branch_name="main",
             instructions="use pytest",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo2)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
 
         response = self.get_success_response()
         assert len(response.data) == 2
@@ -74,7 +74,7 @@ class OrganizationSeerProjectReposGetTest(APITestCase):
         assert project_repo_relay["instructions"] is None
 
     def test_excludes_inactive_repos(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.HIDDEN
         self.repo1.save()
 
@@ -82,9 +82,7 @@ class OrganizationSeerProjectReposGetTest(APITestCase):
         assert len(response.data) == 0
 
     def test_returns_branch_overrides(self):
-        project_repo = SeerProjectRepository.objects.create(
-            project=self.project, repository=self.repo1
-        )
+        project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=project_repo,
             tag_name="environment",
@@ -100,24 +98,24 @@ class OrganizationSeerProjectReposGetTest(APITestCase):
         assert branch_overrides["branchName"] == "release"
 
     def test_search_by_name(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo2)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
 
         response = self.get_success_response(qs_params={"query": "relay"})
         assert len(response.data) == 1
         assert response.data[0]["name"] == "relay"
 
     def test_search_by_name_exclude(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo2)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
 
         response = self.get_success_response(qs_params={"query": "!name:relay"})
         assert len(response.data) == 1
         assert response.data[0]["name"] == "sentry"
 
     def test_search_by_provider(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo2)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
 
         response = self.get_success_response(qs_params={"query": "provider:github"})
         assert len(response.data) == 2
@@ -126,16 +124,16 @@ class OrganizationSeerProjectReposGetTest(APITestCase):
         assert len(response.data) == 2
 
     def test_sort_by_name_ascending(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo2)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
 
         response = self.get_success_response(qs_params={"sortBy": "name"})
         names = [r["name"] for r in response.data]
         assert names == ["relay", "sentry"]
 
     def test_sort_by_name_descending(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo2)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
 
         response = self.get_success_response(qs_params={"sortBy": "-name"})
         names = [r["name"] for r in response.data]
@@ -179,7 +177,7 @@ class OrganizationSeerProjectReposPostTest(APITestCase):
         )
 
     def test_add_repos(self):
-        response = self.get_success_response(
+        self.get_success_response(
             repos=[
                 {
                     "repositoryId": self.repo1.id,
@@ -188,19 +186,20 @@ class OrganizationSeerProjectReposPostTest(APITestCase):
                 },
                 {"repositoryId": self.repo2.id},
             ],
-            status_code=201,
+            status_code=204,
         )
-        assert len(response.data) == 2
 
-        project_repos_by_id = {r["repositoryId"]: r for r in response.data}
-        assert project_repos_by_id[str(self.repo1.id)]["branchName"] == "main"
-        assert project_repos_by_id[str(self.repo1.id)]["instructions"] == "run tests"
-        assert project_repos_by_id[str(self.repo2.id)]["branchName"] is None
-
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 2
+        project_repos = SeerProjectRepository.objects.filter(
+            project_repository__project=self.project
+        ).select_related("project_repository")
+        assert project_repos.count() == 2
+        by_repo_id = {pr.project_repository.repository_id: pr for pr in project_repos}
+        assert by_repo_id[self.repo1.id].branch_name == "main"
+        assert by_repo_id[self.repo1.id].instructions == "run tests"
+        assert by_repo_id[self.repo2.id].branch_name is None
 
     def test_add_repos_with_branch_overrides(self):
-        response = self.get_success_response(
+        self.get_success_response(
             repos=[
                 {
                     "repositoryId": self.repo1.id,
@@ -213,10 +212,16 @@ class OrganizationSeerProjectReposPostTest(APITestCase):
                     ],
                 }
             ],
-            status_code=201,
+            status_code=204,
         )
-        assert len(response.data[0]["branchOverrides"]) == 1
-        assert response.data[0]["branchOverrides"][0]["branchName"] == "release"
+
+        project_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
+        )
+        overrides = list(project_repo.branch_overrides.all())
+        assert len(overrides) == 1
+        assert overrides[0].branch_name == "release"
 
     def test_empty_repos_returns_400(self):
         response = self.get_error_response(repos=[], status_code=400)
@@ -244,11 +249,21 @@ class OrganizationSeerProjectReposPostTest(APITestCase):
 
         self.get_error_response(repos=[{"repositoryId": unsupported_repo.id}], status_code=400)
 
-    def test_already_connected_repo_returns_409(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+    def test_upsert_existing_repo(self):
+        self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="old-branch"
+        )
 
-        response = self.get_error_response(repos=[{"repositoryId": self.repo1.id}], status_code=409)
-        assert "Repositories already connected" in response.data["detail"]
+        self.get_success_response(
+            repos=[{"repositoryId": self.repo1.id, "branchName": "new-branch"}],
+            status_code=204,
+        )
+
+        project_repos = SeerProjectRepository.objects.filter(
+            project_repository__project=self.project
+        )
+        assert project_repos.count() == 1
+        assert project_repos.first().branch_name == "new-branch"
 
     def test_inactive_repo_returns_400(self):
         self.repo1.status = ObjectStatus.HIDDEN
@@ -312,32 +327,38 @@ class OrganizationSeerProjectReposPutTest(APITestCase):
         )
 
     def test_replace_all_repos(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
 
-        response = self.get_success_response(
+        self.get_success_response(
             repos=[{"repositoryId": self.repo2.id, "branchName": "develop"}],
+            status_code=204,
         )
-        assert len(response.data) == 1
-        assert response.data[0]["repositoryId"] == str(self.repo2.id)
-        assert response.data[0]["branchName"] == "develop"
 
         assert not SeerProjectRepository.objects.filter(
-            project=self.project, repository=self.repo1
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
         ).exists()
+        new_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo2,
+        )
+        assert new_repo.branch_name == "develop"
 
     def test_replace_with_empty_clears_all(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo2)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
 
-        response = self.get_success_response(repos=[])
-        assert response.data == []
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        self.get_success_response(repos=[], status_code=204)
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     def test_replace_invalid_repo_returns_400(self):
         self.get_error_response(repos=[{"repositoryId": 99999}], status_code=400)
 
     def test_replace_with_branch_overrides(self):
-        response = self.get_success_response(
+        self.get_success_response(
             repos=[
                 {
                     "repositoryId": self.repo1.id,
@@ -350,8 +371,14 @@ class OrganizationSeerProjectReposPutTest(APITestCase):
                     ],
                 }
             ],
+            status_code=204,
         )
-        assert len(response.data[0]["branchOverrides"]) == 1
+
+        project_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
+        )
+        assert project_repo.branch_overrides.count() == 1
 
 
 class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
@@ -381,8 +408,8 @@ class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
         )
 
     def test_get_repo(self):
-        project_repo = SeerProjectRepository.objects.create(
-            project=self.project, repository=self.repo1, branch_name="main", instructions="hello"
+        project_repo = self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="main", instructions="hello"
         )
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=project_repo,
@@ -404,7 +431,7 @@ class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
         self.get_error_response(status_code=404)
 
     def test_inactive_repo_returns_404(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.HIDDEN
         self.repo1.save()
 
@@ -440,21 +467,19 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         )
 
     def test_update_branch_name(self):
-        SeerProjectRepository.objects.create(
-            project=self.project, repository=self.repo1, branch_name="main"
-        )
+        self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="main")
 
         response = self.get_success_response(branchName="develop")
         assert response.data["branchName"] == "develop"
 
     def test_update_instructions(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
 
         response = self.get_success_response(instructions="new instructions")
         assert response.data["instructions"] == "new instructions"
 
     def test_update_branch_overrides(self):
-        pr = SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        pr = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=pr,
             tag_name="environment",
@@ -480,8 +505,8 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         )
 
     def test_partial_update_preserves_other_fields(self):
-        SeerProjectRepository.objects.create(
-            project=self.project, repository=self.repo1, branch_name="main", instructions="original"
+        self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="main", instructions="original"
         )
 
         response = self.get_success_response(branchName="develop")
@@ -492,15 +517,13 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         self.get_error_response(branchName="main", status_code=404)
 
     def test_set_null_branch_name(self):
-        SeerProjectRepository.objects.create(
-            project=self.project, repository=self.repo1, branch_name="main"
-        )
+        self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="main")
 
         response = self.get_success_response(branchName=None)
         assert response.data["branchName"] is None
 
     def test_clear_branch_overrides(self):
-        pr = SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        pr = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=pr,
             tag_name="environment",
@@ -541,25 +564,26 @@ class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
         )
 
     def test_delete_repo(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
 
         self.get_success_response()
         assert not SeerProjectRepository.objects.filter(
-            project=self.project, repository=self.repo1
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
         ).exists()
 
     def test_delete_not_connected_returns_404(self):
         self.get_error_response(status_code=404)
 
     def test_delete_inactive_repo_returns_404(self):
-        SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.HIDDEN
         self.repo1.save()
 
         self.get_error_response(status_code=404)
 
     def test_delete_cascades_branch_overrides(self):
-        pr = SeerProjectRepository.objects.create(project=self.project, repository=self.repo1)
+        pr = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=pr,
             tag_name="environment",
