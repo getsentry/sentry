@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import itertools
 from collections.abc import Sequence
 from typing import cast
@@ -1601,7 +1602,7 @@ def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
 
 class _LoadSegmentDataRedis:
     def __init__(self) -> None:
-        self.sets: dict[bytes, set[bytes]] = {}
+        self.sets: dict[bytes, builtins.set[bytes]] = {}
         self.values: dict[bytes, bytes] = {}
         self.zsets: dict[bytes, dict[bytes, float]] = {}
 
@@ -1609,7 +1610,7 @@ class _LoadSegmentDataRedis:
         return _LoadSegmentDataPipeline(self)
 
     def sadd(self, key: bytes, *values: bytes | str) -> None:
-        self.sets.setdefault(key, set()).update(_as_redis_bytes(value) for value in values)
+        self.sets.setdefault(key, builtins.set()).update(_as_redis_bytes(value) for value in values)
 
     def set(self, key: bytes, value: bytes | int) -> None:
         self.values[key] = _as_redis_bytes(value)
@@ -1617,11 +1618,11 @@ class _LoadSegmentDataRedis:
     def zadd(self, key: bytes, mapping: dict[bytes, int]) -> None:
         self.zsets.setdefault(key, {}).update(mapping)
 
-    def smembers(self, key: bytes) -> set[bytes]:
-        return self.sets.get(key, set())
+    def smembers(self, key: bytes) -> builtins.set[bytes]:
+        return self.sets.get(key, builtins.set())
 
     def sscan(self, key: bytes, cursor: int = 0, count: int | None = None):
-        values = sorted(self.sets.get(key, set()))
+        values = sorted(self.sets.get(key, builtins.set()))
         page_size = count or len(values) or 1
         next_cursor = cursor + page_size
         if next_cursor >= len(values):
@@ -1670,12 +1671,16 @@ def _as_redis_bytes(value: bytes | str | int) -> bytes:
     return str(value).encode("ascii")
 
 
+_LOAD_SEGMENT_REDIS_TTL = cast(int, DEFAULT_OPTIONS["spans.buffer.redis-ttl"])
+_LOAD_SEGMENT_ROOT_TIMEOUT = cast(int, DEFAULT_OPTIONS["spans.buffer.root-timeout"])
+
+
 @pytest.fixture
 def load_segment_buffer() -> SpansBuffer:
     with override_options({**DEFAULT_OPTIONS, "spans.buffer.segment-page-size": 1}):
         buffer = SpansBuffer(assigned_shards=[0])
         buffer.__dict__["client"] = _LoadSegmentDataRedis()
-        return buffer
+        yield buffer
 
 
 def test_load_segment_data_reads_payloads_from_distributed_keys(
@@ -1765,16 +1770,13 @@ def test_load_segment_data_records_dropped_spans(load_segment_buffer: SpansBuffe
     [
         pytest.param(
             0,
-            DEFAULT_OPTIONS["spans.buffer.redis-ttl"]
-            - DEFAULT_OPTIONS["spans.buffer.root-timeout"]
-            + 1,
+            _LOAD_SEGMENT_REDIS_TTL - _LOAD_SEGMENT_ROOT_TIMEOUT + 1,
             True,
             id="expired",
         ),
         pytest.param(
             0,
-            DEFAULT_OPTIONS["spans.buffer.redis-ttl"]
-            - DEFAULT_OPTIONS["spans.buffer.root-timeout"],
+            _LOAD_SEGMENT_REDIS_TTL - _LOAD_SEGMENT_ROOT_TIMEOUT,
             False,
             id="not-expired",
         ),
