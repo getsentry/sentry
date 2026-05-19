@@ -18,7 +18,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import OrganizationAccessRequests from './organizationAccessRequests';
+import {OrganizationAccessRequests} from './organizationAccessRequests';
 import {OtherTeamsTable} from './otherTeamsTable';
 import {YourTeamsTable} from './yourTeamsTable';
 

@@ -114,7 +114,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
-from sentry.options.rollout import in_random_rollout
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
@@ -1957,12 +1956,6 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_URL,
-    retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
-)
-
-severity_connection_pool_group_seer = connection_from_url(
     settings.SEER_SCORING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
@@ -1990,11 +1983,8 @@ def make_severity_score_request(
         payload["trigger_timeout"] = True
     if options.get("processing.severity-backlog-test.error"):
         payload["trigger_error"] = True
-    default_connection_pool = severity_connection_pool
-    if in_random_rollout("issues.severity.group-seer-rollout-rate"):
-        default_connection_pool = severity_connection_pool_group_seer
     return make_signed_seer_api_request(
-        connection_pool or default_connection_pool,
+        connection_pool or severity_connection_pool,
         "/v0/issues/severity-score",
         body=orjson.dumps(payload),
         timeout=timeout,

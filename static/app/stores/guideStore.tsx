@@ -2,8 +2,8 @@ import {createStore} from 'reflux';
 
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -298,7 +298,7 @@ const storeConfig: GuideStoreDefinition = {
     this.state = {...this.state, currentGuide: nextGuide, currentStep};
 
     this.trigger(this.state);
-    HookStore.get('callback:on-guide-update').map(cb => cb(nextGuide, {dismissed}));
+    getOverride('callback:on-guide-update')?.(nextGuide, {dismissed});
   },
 };
 

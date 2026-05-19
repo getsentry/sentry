@@ -91,6 +91,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
     app_id: str | None = None
+    is_selective: bool = False
 
     # Solo fields (comparison_type == SOLO)
     images: list[SnapshotImageResponse] = []

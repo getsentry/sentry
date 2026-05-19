@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -59,6 +59,9 @@ export function RouteSource({searchOptions, query, children}: Props) {
   const params = useParams();
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: params.projectId});
+  const useBillingNavConfig =
+    getOverride('react-hook:use-billing-navigation-config') ?? (() => null);
+  const billingNavConfig = useBillingNavConfig();
 
   const resolvedTs = useMemo(() => makeResolvedTs(), []);
   const [fuzzy, setFuzzy] = useState<Fuse<NavigationItem> | null>(null);
@@ -71,11 +74,7 @@ export function RouteSource({searchOptions, query, children}: Props) {
       features: new Set(project?.features),
     } as Context;
 
-    const navigationFromHook = organization
-      ? HookStore.get('settings:organization-navigation-config').map(cb =>
-          cb(organization)
-        )
-      : [];
+    const navigationFromHook = billingNavConfig ? [billingNavConfig] : [];
 
     const searchMap = [
       mapFunc(getUserOrgNavigationConfiguration, context),
@@ -90,7 +89,7 @@ export function RouteSource({searchOptions, query, children}: Props) {
     });
 
     setFuzzy(search);
-  }, [organization, project, searchOptions]);
+  }, [billingNavConfig, organization, project, searchOptions]);
 
   useEffect(() => void createSearch(), [createSearch]);
 

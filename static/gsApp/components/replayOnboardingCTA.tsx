@@ -11,8 +11,10 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   openAM2UpsellModal,
@@ -24,8 +26,6 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-
-import {redirectToManage} from './upgradeNowModal/utils';
 
 type ReplayOnboardingCTAUpsellProps = {
   organization: Organization;
@@ -39,6 +39,7 @@ function ReplayOnboardingCTAUpsell({
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   const api = useApi();
+  const navigate = useNavigate();
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${organization.id}:dismiss-replay-update-plan-button`,
     expirationDays: 14,
@@ -94,9 +95,13 @@ function ReplayOnboardingCTAUpsell({
 
     if (previewData.error) {
       if (hasBillingAccess) {
-        // Redirect the user to the subscriptions page, where they will find important information.
-        // If they wish to update their plan, we ask them to contact our sales/support team.
-        redirectToManage(organization);
+        navigate(
+          normalizeUrl({
+            pathname: `/checkout/${organization.slug}/`,
+            query: {referrer: 'replay_onboarding_cta-preview_error'},
+          }),
+          {replace: true}
+        );
       }
       return;
     }
@@ -141,6 +146,7 @@ function ReplayOnboardingCTAUpsell({
     didClickOpenModal,
     hasBillingAccess,
     isDismissed,
+    navigate,
     organization,
     previewData,
     subscription,

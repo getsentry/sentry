@@ -26,7 +26,10 @@ from sentry.apidocs.parameters import (
     VisibilityParams,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
+from sentry.discover.endpoints.bases import (
+    DiscoverSavedQueryPermission,
+    filter_to_accessible_discover_queries,
+)
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.organization import Organization
@@ -78,6 +81,10 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             .prefetch_related("projects")
             .extra(select={"lower_name": "lower(name)"})
         ).exclude(is_homepage=True)
+        # Hide saved queries whose project scope the caller cannot access. The detail endpoint
+        # enforces this via `check_object_permissions`; without this filter the list endpoint
+        # would leak the body of queries belonging to projects the caller has no access to.
+        queryset = filter_to_accessible_discover_queries(request, queryset)
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)

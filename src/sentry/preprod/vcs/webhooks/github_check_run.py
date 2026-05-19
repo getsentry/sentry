@@ -16,15 +16,14 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import (
     APPROVE_SIZE_ACTION_IDENTIFIER,
     create_preprod_status_check_task,
 )
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     APPROVE_SNAPSHOT_ACTION_IDENTIFIER,
-    create_preprod_snapshot_status_check_task,
 )
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -221,15 +220,9 @@ def handle_preprod_check_run_event(
             caller="github_approve_webhook",
         )
     elif identifier == APPROVE_SNAPSHOT_ACTION_IDENTIFIER:
-        create_preprod_snapshot_status_check_task(
+        update_preprod_snapshot_vcs(
             preprod_artifact_id=artifact.id,
             caller="github_approve_webhook",
-        )
-        create_preprod_snapshot_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "github_approve_webhook",
-            },
         )
     else:
         raise ValueError(f"Unknown identifier: {identifier}")
