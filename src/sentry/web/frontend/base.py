@@ -246,6 +246,11 @@ def determine_active_organization(
 
     if active_organization is None and backup_organization:
         if not is_implicit:
+            # Explicit slug didn't match a membership and we don't fall back
+            # implicitly — still stash the (None) result so a subsequent
+            # ``react_config`` context processor doesn't reuse a stale value
+            # from an earlier call within the same request.
+            request._sentry_active_organization = None
             return None
         active_organization = organization_service.get_organization_by_id(
             id=backup_organization.id, user_id=request.user.id
@@ -253,6 +258,10 @@ def determine_active_organization(
 
     if active_organization and active_organization.member:
         auth.set_active_org(request, active_organization.organization.slug)
+
+    # Stash on the request so the ``react_config`` context processor can reuse
+    # the resolved organization context rather than repeating the lookup.
+    request._sentry_active_organization = active_organization
 
     return active_organization
 

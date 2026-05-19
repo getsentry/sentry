@@ -265,7 +265,6 @@ src/sentry/templatetags/sentry_avatars.py
 src/sentry/templatetags/sentry_features.py
 src/sentry/templatetags/sentry_helpers.py
 src/sentry/templatetags/sentry_platforms.py
-src/sentry/templatetags/sentry_react.py
 src/sentry/templatetags/sentry_status.py
 src/sentry/templatetags/sentry_trace.py
 src/sentry/tsdb/__init__.py

@@ -129,6 +129,21 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         # added by sentry.middleware.subdomain
         subdomain_tp = UnionType([NoneType(), ctx.api.named_type("builtins.str")])
         add_attribute_to_class(ctx.api, ctx.cls, "subdomain", subdomain_tp)
+        # added by sentry.web.frontend.base.determine_active_organization and
+        # consumed by sentry.web.contextprocessors.react_config
+        add_attribute_to_class(
+            ctx.api, ctx.cls, "_sentry_active_organization", AnyType(TypeOfAny.explicit)
+        )
+        # added by sentry.web.contextprocessors.react_config (memoisation)
+        add_attribute_to_class(
+            ctx.api, ctx.cls, "_sentry_react_config", AnyType(TypeOfAny.explicit)
+        )
+        # added by getsentry.web.contextprocessors.augment_react_config
+        # (dedicated cache of the augmented react_config dict, resilient to
+        # the base ``_sentry_react_config`` being cleared mid-request)
+        add_attribute_to_class(
+            ctx.api, ctx.cls, "_getsentry_augmented_react_config", AnyType(TypeOfAny.explicit)
+        )
         # added by sentry.middleware.superuser
         # TODO: figure out how to get the real types here
         add_attribute_to_class(ctx.api, ctx.cls, "superuser", AnyType(TypeOfAny.explicit))

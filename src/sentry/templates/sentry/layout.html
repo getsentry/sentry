@@ -40,7 +40,11 @@
   {% block initial_data %}
     {% script %}
     <script>
-      window.__initialData = {{ react_config|to_json }};
+      {# Fallback to an empty object so a rolling deploy (or a template
+         rendered outside a RequestContext) produces a parseable JS bootstrap
+         rather than a syntax error. The react_config context processor
+         normally populates this. #}
+      window.__initialData = {% if react_config %}{{ react_config|to_json }}{% else %}{}{% endif %};
     </script>
     {% endscript %}
   {% endblock %}
