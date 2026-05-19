@@ -1,0 +1,143 @@
+---
+title: Layer
+description: Layer creates isolated stacking contexts with built-in portal outlets for managing visual layering without global z-index values.
+category: layout
+source: '@sentry/scraps/layer'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layer/index.tsx
+---
+
+import {createPortal} from 'react-dom';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+import {Layer, useLayerContext, usePortalContainer} from '@sentry/scraps/layer';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/layer/layer');
+
+Layer wraps a region of the UI in an isolated stacking context (`isolation: isolate`) and provides a portal outlet for descendant overlays like tooltips, hovercards, and dropdowns.
+
+Stacking order between sibling Layers is determined by **DOM order**, not z-index. A Layer that appears later in the DOM paints above earlier siblings.
+
+<Storybook.Demo>
+  <Flex gap="lg" style={{position: 'relative', height: 120}}>
+    <Layer variant="content">
+      <Container
+        padding="lg"
+        border="primary"
+        style={{background: 'var(--background-secondary)'}}
+      >
+        <Text>Content layer (renders first)</Text>
+      </Container>
+    </Layer>
+    <Layer variant="overlay">
+      <Container
+        padding="lg"
+        border="primary"
+        style={{background: 'var(--background-overlay)'}}
+      >
+        <Text>Overlay layer (renders second, paints above)</Text>
+      </Container>
+    </Layer>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Layer variant="content">
+  <PageContent />
+</Layer>
+<Layer variant="overlay">
+  <Drawer />
+</Layer>
+```
+
+## Variants
+
+Layer accepts three semantic variants: `content`, `nav`, and `overlay`. Variants describe **what** the surface is, not where it stacks.
+
+| Variant   | Use for                                      |
+| --------- | -------------------------------------------- |
+| `content` | Page body, main content area                 |
+| `nav`     | App chrome, sidebar, top bar, sticky headers |
+| `overlay` | Drawers, modals, toasts                      |
+
+```jsx
+<Layer variant="content">...</Layer>
+<Layer variant="nav">...</Layer>
+<Layer variant="overlay">...</Layer>
+```
+
+## Recursive Nesting
+
+Layers can be nested. An inner Layer creates a nested stacking context within the parent.
+
+When nesting the same variant, `depth` increments automatically. When the variant changes, depth resets to 0.
+
+<Storybook.Demo>
+  {() => {
+    function DepthDisplay() {
+      const {variant, depth} = useLayerContext();
+      return (
+        <Text size="sm">
+          {variant} (depth {depth})
+        </Text>
+      );
+    }
+    return (
+      <Stack gap="md">
+        <Layer variant="overlay">
+          <Container padding="md" border="primary">
+            <DepthDisplay />
+            <Layer variant="overlay">
+              <Container padding="md" border="primary">
+                <DepthDisplay />
+              </Container>
+            </Layer>
+          </Container>
+        </Layer>
+      </Stack>
+    );
+  }}
+</Storybook.Demo>
+
+```jsx
+<Layer variant="overlay">
+  {/* depth 0 — e.g. drawer */}
+  <Layer variant="overlay">{/* depth 1 — e.g. modal inside drawer */}</Layer>
+</Layer>
+```
+
+## Portal Outlet
+
+Each Layer provides a portal outlet that portaled children (tooltips, hovercards, dropdowns) can render into via `usePortalContainer()`. Content rendered into the outlet stays within the Layer's stacking context.
+
+```jsx
+function MyOverlay() {
+  const portalOutlet = usePortalContainer();
+  if (!portalOutlet) return null;
+  return createPortal(<div>I render inside my Layer</div>, portalOutlet);
+}
+```
+
+This replaces the pattern of portaling to `document.body` with global z-index values. A tooltip inside a content Layer will paint behind an overlay Layer, because the portal outlet is contained within the content Layer's stacking context.
+
+## Hooks
+
+### useLayerContext
+
+Returns the current Layer context: `{ variant, depth, portalOutlet }`.
+
+```jsx
+const {variant, depth, portalOutlet} = useLayerContext();
+```
+
+### usePortalContainer
+
+Returns the nearest Layer's portal outlet element, or `null` if outside a Layer.
+
+```jsx
+const container = usePortalContainer();
+```
