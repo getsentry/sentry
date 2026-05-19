@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from datetime import datetime, timezone
 
 from rest_framework.request import Request
@@ -25,11 +24,6 @@ logger = logging.getLogger(__name__)
 FEATURE_TYPE_MAP = {
     "snapshots": PreprodComparisonApproval.FeatureType.SNAPSHOTS,
     "size": PreprodComparisonApproval.FeatureType.SIZE,
-}
-
-VCS_UPDATE_MAP: dict[PreprodComparisonApproval.FeatureType, Callable[..., None]] = {
-    PreprodComparisonApproval.FeatureType.SNAPSHOTS: lambda **kw: update_preprod_snapshot_vcs(**kw),
-    PreprodComparisonApproval.FeatureType.SIZE: lambda **kw: create_preprod_status_check_task(**kw),
 }
 
 
@@ -88,10 +82,11 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
             approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
         ).delete()
 
-        update_vcs = VCS_UPDATE_MAP[feature_type]
-        update_vcs(
-            preprod_artifact_id=artifact.id,
-            caller="approval_endpoint",
-        )
+        if feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS:
+            update_preprod_snapshot_vcs(preprod_artifact_id=artifact.id, caller="approval_endpoint")
+        elif feature_type == PreprodComparisonApproval.FeatureType.SIZE:
+            create_preprod_status_check_task(
+                preprod_artifact_id=artifact.id, caller="approval_endpoint"
+            )
 
         return Response({"detail": "Approved"}, status=201)
