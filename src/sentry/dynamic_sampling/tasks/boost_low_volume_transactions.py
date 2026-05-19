@@ -219,6 +219,8 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     # Only after checking the nullability of rebalanced_transactions, we want to unpack the tuple.
     named_rates, implicit_rate = rebalanced_transactions
+    if implicit_rate < sample_rate:
+        metrics.incr("dynamic_sampling.boost_low_volume_transactions.implicit_factor_below_one")
     set_transactions_resampling_rates(
         org_id=org_id,
         proj_id=project_id,
