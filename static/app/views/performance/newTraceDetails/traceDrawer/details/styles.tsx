@@ -711,7 +711,11 @@ const StyledPanelHeader = styled(PanelHeader)`
   padding: 0;
   line-height: normal;
   text-transform: none;
-  overflow: hidden;
+  overflow: visible;
+
+  > * {
+    min-width: 0;
+  }
 `;
 
 const SectionDivider = styled('hr')`
