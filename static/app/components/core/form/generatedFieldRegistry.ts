@@ -237,6 +237,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Application Metrics'),
     hintText: '',
   },
+  'project-filters-settings.legacy-browsers': {
+    name: 'legacy-browsers',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out legacy browsers'),
+    hintText: '',
+  },
   'project-filters-settings.filters:react-hydration-errors': {
     name: 'filters:react-hydration-errors',
     formId: 'project-filters-settings',

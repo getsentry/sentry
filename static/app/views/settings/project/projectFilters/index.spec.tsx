@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
@@ -131,13 +131,12 @@ describe('ProjectFilters', () => {
       url: PROJECT_URL,
       method: 'PUT',
       asyncDelay: 100,
-      body: {
-        ...project,
+      body: DetailedProjectFixture({
+        slug: project.slug,
         options: {
-          ...project.options,
           'filters:chunk-load-error': true,
         },
-      },
+      }),
     });
 
     const control = await screen.findByRole('checkbox', {
