@@ -61,6 +61,24 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
             resp = self.client.get(url, format="json")
             assert resp.status_code == 429
 
+    def test_access_non_member_project(self) -> None:
+        # Org member who is not on the project's owning team must not be able
+        # to resolve event IDs from that project, even with Open Membership off.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(user=user_no_team, organization=self.org, role="member", teams=[])
+        self.login_as(user_no_team)
+
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 404, response.content
+
     def test_invalid_event_id(self) -> None:
         with pytest.raises(NoReverseMatch):
             reverse(
