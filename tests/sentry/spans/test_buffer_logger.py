@@ -5,9 +5,126 @@ from unittest.mock import call
 
 from sentry.spans.buffer_logger import (
     BufferLogger,
+    DeadlineUpdateLog,
+    FlushSegmentLog,
+    ProcessSpansObservability,
+    SubsegmentDebugLog,
     emit_observability_metrics,
 )
+from sentry.spans.buffer_types import EvalshaResult
+from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
+
+
+def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
+    return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+
+
+def test_subsegment_debug_log_emits_debug_log() -> None:
+    span = mock.Mock()
+    debug_trace_logger = mock.Mock()
+
+    SubsegmentDebugLog(
+        project_and_trace=f"1:{'a' * 32}",
+        parent_span_id="b" * 16,
+        subsegment=[span],
+    ).emit(lambda: debug_trace_logger)
+
+    debug_trace_logger.log_subsegment_info.assert_called_once_with(
+        f"1:{'a' * 32}", "b" * 16, [span]
+    )
+
+
+def test_process_spans_observability_emits_evalsha_data() -> None:
+    observability = ProcessSpansObservability()
+    buffer_logger = mock.Mock()
+    latency_metrics = [(b"step", 20.0)]
+    gauge_metrics = [(b"gauge", 2.0)]
+
+    observability.record_evalsha_result(
+        "1:" + "a" * 32,
+        EvalshaResult(
+            segment_key=_segment_id(1, "a" * 32, "a" * 16),
+            has_root_span=False,
+            latency_ms=5,
+            latency_metrics=[(b"step", 5.0)],
+            gauge_metrics=[(b"gauge", 1.0)],
+        ),
+    )
+    observability.record_evalsha_result(
+        "1:" + "b" * 32,
+        EvalshaResult(
+            segment_key=_segment_id(1, "b" * 32, "b" * 16),
+            has_root_span=True,
+            latency_ms=20,
+            latency_metrics=latency_metrics,
+            gauge_metrics=gauge_metrics,
+        ),
+    )
+
+    with mock.patch("sentry.spans.buffer_logger.emit_observability_metrics") as emit_metrics:
+        observability.emit_evalsha_latency_log(buffer_logger)
+        observability.emit_observability_metrics()
+
+    buffer_logger.log.assert_called_once_with([("1:" + "a" * 32, 5), ("1:" + "b" * 32, 20)])
+    emit_metrics.assert_called_once_with(
+        [[(b"step", 5.0)], latency_metrics],
+        [[(b"gauge", 1.0)], gauge_metrics],
+        (20, latency_metrics, gauge_metrics),
+    )
+
+
+def test_deadline_update_log_reads_old_deadline_when_trace_is_enabled() -> None:
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    queue_key = b"span-buf:q:0"
+    client = mock.Mock()
+    client.zscore.return_value = 7
+    debug_trace_logger = mock.Mock()
+    debug_trace_logger._should_log_trace.return_value = True
+
+    DeadlineUpdateLog(
+        segment_key=segment_key,
+        project_and_trace="1:" + "a" * 32,
+        queue_key=queue_key,
+        new_deadline=11,
+        message_timestamp=1,
+        has_root_span=True,
+    ).emit(client, lambda: debug_trace_logger)
+
+    client.zscore.assert_called_once_with(queue_key, segment_key)
+    debug_trace_logger.log_deadline_update.assert_called_once_with(
+        segment_key=segment_key,
+        project_and_trace="1:" + "a" * 32,
+        old_deadline=7,
+        new_deadline=11,
+        message_timestamp=1,
+        has_root_span=True,
+    )
+
+
+def test_flush_segment_log_emits_debug_log() -> None:
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    debug_trace_logger = mock.Mock()
+
+    FlushSegmentLog(
+        segment_key=segment_key,
+        segment_span_id="b" * 16,
+        has_root_span=True,
+        num_spans=2,
+        shard=0,
+        queue_key=b"span-buf:q:0",
+        timestamp=11,
+    ).emit(lambda: debug_trace_logger)
+
+    debug_trace_logger.log_flush_info.assert_called_once_with(
+        segment_key,
+        "b" * 16,
+        True,
+        2,
+        0,
+        b"span-buf:q:0",
+        11,
+    )
 
 
 @mock.patch("sentry.spans.buffer_logger.time")

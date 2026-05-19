@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple, TypeVar
 
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
+
 from sentry import options
+from sentry.spans.buffer_types import EvalshaData, EvalshaResult
+from sentry.spans.debug_trace_logger import DebugTraceLogger
+from sentry.spans.segment_key import SegmentKey
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -123,8 +128,114 @@ class BufferLogger:
         )
 
 
-type DataPoint = tuple[bytes, float]
-type EvalshaData = list[DataPoint]
+type QueueKey = bytes
+
+
+class SubsegmentDebugLog(NamedTuple):
+    project_and_trace: str
+    parent_span_id: str
+    subsegment: Sequence[Any]
+
+    def emit(self, get_debug_trace_logger: Callable[[], DebugTraceLogger]) -> None:
+        try:
+            get_debug_trace_logger().log_subsegment_info(
+                self.project_and_trace, self.parent_span_id, self.subsegment
+            )
+        except Exception:
+            logger.exception("process_spans: Failed to log debug trace info")
+
+
+class ProcessSpansObservability:
+    def __init__(self) -> None:
+        self._latency_entries: list[tuple[str, int]] = []
+        self._latency_metrics: list[EvalshaData] = []
+        self._gauge_metrics: list[EvalshaData] = []
+        self._longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+            -1.0,
+            [],
+            [],
+        )
+
+    def record_evalsha_result(self, project_and_trace: str, result: EvalshaResult) -> None:
+        self._latency_entries.append((project_and_trace, result.latency_ms))
+        self._latency_metrics.append(result.latency_metrics)
+        self._gauge_metrics.append(result.gauge_metrics)
+
+        if result.latency_ms > self._longest_evalsha_data[0]:
+            self._longest_evalsha_data = (
+                result.latency_ms,
+                result.latency_metrics,
+                result.gauge_metrics,
+            )
+
+    def emit_evalsha_latency_log(self, buffer_logger: BufferLogger) -> None:
+        buffer_logger.log(self._latency_entries)
+
+    def emit_observability_metrics(self) -> None:
+        try:
+            emit_observability_metrics(
+                self._latency_metrics,
+                self._gauge_metrics,
+                self._longest_evalsha_data,
+            )
+        except Exception as e:
+            logger.exception("Error emitting observability metrics: %s", e)
+
+
+class DeadlineUpdateLog(NamedTuple):
+    segment_key: SegmentKey
+    project_and_trace: str
+    queue_key: QueueKey
+    new_deadline: int
+    message_timestamp: int
+    has_root_span: bool
+
+    def emit(
+        self,
+        client: RedisCluster[bytes] | StrictRedis[bytes],
+        get_debug_trace_logger: Callable[[], DebugTraceLogger],
+    ) -> None:
+        try:
+            old_deadline = None
+            debug_trace_logger = get_debug_trace_logger()
+            if debug_trace_logger._should_log_trace(self.project_and_trace):
+                old_deadline_score = client.zscore(self.queue_key, self.segment_key)
+                old_deadline = int(old_deadline_score) if old_deadline_score is not None else None
+
+            debug_trace_logger.log_deadline_update(
+                segment_key=self.segment_key,
+                project_and_trace=self.project_and_trace,
+                old_deadline=old_deadline,
+                new_deadline=self.new_deadline,
+                message_timestamp=self.message_timestamp,
+                has_root_span=self.has_root_span,
+            )
+        except Exception:
+            logger.exception("process_spans: Failed to log deadline update")
+
+
+class FlushSegmentLog(NamedTuple):
+    segment_key: SegmentKey
+    segment_span_id: str
+    has_root_span: bool
+    num_spans: int
+    shard: int
+    queue_key: QueueKey
+    timestamp: int
+
+    def emit(self, get_debug_trace_logger: Callable[[], DebugTraceLogger]) -> None:
+        try:
+            get_debug_trace_logger().log_flush_info(
+                self.segment_key,
+                self.segment_span_id,
+                self.has_root_span,
+                self.num_spans,
+                self.shard,
+                self.queue_key,
+                self.timestamp,
+            )
+        except Exception:
+            logger.exception("flush_segments: Failed to log debug trace flush info")
 
 
 def emit_observability_metrics(
