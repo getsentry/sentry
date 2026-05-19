@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -129,7 +130,9 @@ function TimelineItem({
           <NoteBody text={message} />
         </NoteWrapper>
       ) : (
-        <MessageWrapper size={size}>{message}</MessageWrapper>
+        <Text as="div" size={size}>
+          {message}
+        </Text>
       )}
     </ActivityTimelineItem>
   );
@@ -408,10 +411,6 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
 
 const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
   ${textStyles}
-  font-size: ${p => (p.size === 'md' ? p.theme.font.size.md : p.theme.font.size.sm)};
-`;
-
-const MessageWrapper = styled('div')<{size: 'sm' | 'md'}>`
   font-size: ${p => (p.size === 'md' ? p.theme.font.size.md : p.theme.font.size.sm)};
 `;
 
