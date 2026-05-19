@@ -33,7 +33,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
   }
 
   return (
-    <PinnedTableBody>
+    <PinnedTableBody data-test-id="pinned-logs-table-body">
       {expanded &&
         Array.from(logsPinning.pinnedRows).map(rowId => {
           const dataRow = allRows.find(datum => datum[OurLogKnownFieldKey.ID] === rowId);

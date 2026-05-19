@@ -536,7 +536,9 @@ describe('LogsInfiniteTable', () => {
 
     const [firstRow] = await screen.findAllByTestId('log-table-row');
 
-    expect(firstRow).toHaveAttribute('data-row-pinned', 'true');
+    expect(screen.getByTestId('pinned-logs-table-body').contains(firstRow ?? null)).toBe(
+      true
+    );
   });
 
   it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {

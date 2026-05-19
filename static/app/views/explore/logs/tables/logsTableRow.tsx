@@ -390,8 +390,8 @@ export const LogRowContent = memo(function LogRowContent({
     <Fragment>
       <LogTableRow
         data-test-id="log-table-row"
-        data-row-highlighted={isPseudoRow}
-        data-row-pinned={isPinned}
+        highlighted={isPseudoRow}
+        pinned={isPinned}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
         onMouseEnter={e => {

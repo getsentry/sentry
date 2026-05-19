@@ -23,7 +23,9 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  highlighted?: boolean;
   isClickable?: boolean;
+  pinned?: boolean;
 }
 
 const StyledPanel = styled(Panel)`
@@ -60,23 +62,30 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     height: 24px;
   }
 
-  &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
-    color: ${p => p.theme.tokens.content.danger};
+  ${p =>
+    p.highlighted &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      color: ${p.theme.tokens.content.danger};
 
-    &:hover {
-      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+      &:hover {
+        background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      }
     }
-  }
+  `}
 
-  &[data-row-pinned='true']:not(thead > &) {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  ${p =>
+    p.pinned &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
 
-    &:hover {
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+      &:hover {
+        background-color: ${p.theme.tokens.interactive.transparent.accent.selected.background.active};
+      }
     }
-  }
+  `}
 
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
