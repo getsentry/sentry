@@ -2,11 +2,12 @@ import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconChevron, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -196,7 +197,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
-      <VirtualScrollContainer ref={scrollRef}>
+      <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
         {hasGroups ? (
           <div
             style={{
@@ -239,7 +240,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
             </Text>
           </Flex>
         )}
-      </VirtualScrollContainer>
+      </Stack>
     </Stack>
   );
 });
@@ -254,17 +255,20 @@ const SectionHeaderRow = memo(function SectionHeaderRow({
   row: Extract<VirtualRow, {type: 'header'}>;
 }) {
   return (
-    <SectionHeaderButton
-      type="button"
-      aria-expanded={expanded}
-      onClick={() => onToggle(row.sectionType)}
+    <SectionDisclosure
+      size="xs"
+      expanded={expanded}
+      onExpandedChange={() => onToggle(row.sectionType)}
     >
-      <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-      <Dot pillColor={row.meta.color} active />
-      <Text size="sm" bold>
-        {row.meta.label}
-      </Text>
-    </SectionHeaderButton>
+      <Disclosure.Title>
+        <Flex align="center" gap="sm">
+          <Dot pillColor={row.meta.color} active />
+          <Text size="sm" bold>
+            {row.meta.label}
+          </Text>
+        </Flex>
+      </Disclosure.Title>
+    </SectionDisclosure>
   );
 });
 
@@ -407,11 +411,18 @@ const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   }
 `;
 
-const VirtualScrollContainer = styled('div')`
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+const SectionDisclosure = styled(Disclosure)`
+  width: 100%;
+  align-items: stretch;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
+  }
 `;
 
 const VirtualRowPositioner = styled('div')`
@@ -419,22 +430,4 @@ const VirtualRowPositioner = styled('div')`
   top: 0;
   left: 0;
   width: 100%;
-`;
-
-const SectionHeaderButton = styled('button')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  width: 100%;
-  height: ${p => p.theme.form.xs.height};
-  padding: ${p => p.theme.form.xs.paddingTop}px ${p => p.theme.form.xs.paddingRight}px
-    ${p => p.theme.form.xs.paddingBottom}px ${p => p.theme.space.xs};
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: ${p => p.theme.form.xs.fontSize};
-
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
 `;
