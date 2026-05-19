@@ -80,8 +80,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert not configuration.is_enabled
         with pytest.raises(AttributeError):
             getattr(configuration, "measure")
-        with pytest.raises(AttributeError):
-            getattr(configuration, "sample_rate")
+        assert configuration.sample_rate is None
 
     def test_subscription_backed_org_without_subscription_bubbles_terminal_status(self) -> None:
         org = self.create_organization()
@@ -182,8 +181,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                     project.id: 0.2,
                     project_without_rate.id: None,
                 }
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
                 get_blended_sample_rate.assert_not_called()
 
     def test_project_mode_custom_dynamic_sampling_without_project_rates_is_disabled(
@@ -210,8 +208,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert not configuration.is_enabled
                 assert configuration.measure == measure_case.expected_measure
                 assert configuration.project_target_sample_rates == {project.id: None}
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
 
     def test_project_mode_custom_dynamic_sampling_without_projects_is_disabled(self) -> None:
         for measure_case in MEASURE_OPTION_CASES:
@@ -234,8 +231,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert not configuration.is_enabled
                 assert configuration.measure == measure_case.expected_measure
                 assert configuration.project_target_sample_rates == {}
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
 
     def test_subscription_backed_org_uses_measure_options(self) -> None:
         for measure_case in MEASURE_OPTION_CASES:

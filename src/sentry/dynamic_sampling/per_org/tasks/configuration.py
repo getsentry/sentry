@@ -45,6 +45,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    sample_rate: TargetSampleRate = None
 
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
