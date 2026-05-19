@@ -1,8 +1,8 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
+import {registerHook} from 'sentry/hookRegistry';
 import {IconBusiness} from 'sentry/icons';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 
@@ -399,4 +399,4 @@ const entries = Object.entries as <T>(
 ) => Array<[Extract<keyof T, string>, T[keyof T]]>;
 
 export const registerHooks = () =>
-  entries(GETSENTRY_HOOKS).forEach(entry => HookStore.set(...entry));
+  entries(GETSENTRY_HOOKS).forEach(entry => registerHook(...entry));

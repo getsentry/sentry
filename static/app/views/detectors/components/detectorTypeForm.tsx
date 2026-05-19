@@ -8,8 +8,8 @@ import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
 import Hook from 'sentry/components/hook';
+import {getHook} from 'sentry/hookRegistry';
 import {t, tct} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
@@ -77,7 +77,7 @@ function MonitorTypeField() {
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
-    HookStore.get('react-hook:use-metric-detector-limit') ?? (() => null);
+    getHook('react-hook:use-metric-detector-limit') ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricDetector = !quota?.hasReachedLimit;
 
