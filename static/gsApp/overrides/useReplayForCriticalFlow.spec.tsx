@@ -9,8 +9,8 @@ jest.mock('getsentry/utils/useReplayInit');
 
 describe('useReplayForCriticalFlow (gsApp)', () => {
   const flush = jest.fn();
-  const setTag = Sentry.setTag as jest.Mock;
-  const getReplay = Sentry.getReplay as jest.Mock;
+  const setTag = jest.mocked(Sentry.setTag);
+  const getReplay = jest.mocked(Sentry.getReplay);
   const mockedUseReplayReady = jest.mocked(useReplayReady);
 
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe('useReplayForCriticalFlow (gsApp)', () => {
   // without mocking Math.random.
 
   it('tags and flushes at the default sampleRate of 1', () => {
-    getReplay.mockReturnValue({flush});
+    getReplay.mockReturnValue({flush} as unknown as ReturnType<typeof Sentry.getReplay>);
 
     const {unmount} = renderHookWithProviders(() =>
       useReplayForCriticalFlow({flowName: 'scm_onboarding'})
@@ -42,7 +42,7 @@ describe('useReplayForCriticalFlow (gsApp)', () => {
   });
 
   it('does nothing when sampleRate is 0', () => {
-    getReplay.mockReturnValue({flush});
+    getReplay.mockReturnValue({flush} as unknown as ReturnType<typeof Sentry.getReplay>);
 
     renderHookWithProviders(() =>
       useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0})
@@ -54,7 +54,7 @@ describe('useReplayForCriticalFlow (gsApp)', () => {
   });
 
   it('does nothing when disabled', () => {
-    getReplay.mockReturnValue({flush});
+    getReplay.mockReturnValue({flush} as unknown as ReturnType<typeof Sentry.getReplay>);
 
     renderHookWithProviders(() =>
       useReplayForCriticalFlow({flowName: 'scm_onboarding', enabled: false})
@@ -66,7 +66,7 @@ describe('useReplayForCriticalFlow (gsApp)', () => {
   });
 
   it('waits for replay to be ready before tagging or flushing', () => {
-    getReplay.mockReturnValue({flush});
+    getReplay.mockReturnValue({flush} as unknown as ReturnType<typeof Sentry.getReplay>);
     mockedUseReplayReady.mockReturnValue(false);
 
     renderHookWithProviders(() => useReplayForCriticalFlow({flowName: 'scm_onboarding'}));

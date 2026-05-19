@@ -55,7 +55,7 @@ describe('buttonTracking', () => {
   );
 
   afterEach(() => {
-    (rawTrackAnalyticsEvent as jest.Mock).mockClear();
+    jest.mocked(rawTrackAnalyticsEvent).mockClear();
   });
 
   it('calls rawTrackAnalyticsEvent with default values', () => {

@@ -40,7 +40,7 @@ function mockCreateProjectHook() {
   };
 }
 
-const mockUseCreateProject = useCreateProject as jest.Mock;
+const mockUseCreateProject = jest.mocked(useCreateProject);
 
 describe('useConfigureSdk', () => {
   const onComplete = jest.fn();
@@ -70,7 +70,9 @@ describe('useConfigureSdk', () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
     createProjectInstance = mockCreateProjectHook();
-    mockUseCreateProject.mockReturnValue(createProjectInstance);
+    mockUseCreateProject.mockReturnValue(
+      createProjectInstance as unknown as ReturnType<typeof useCreateProject>
+    );
     jest.mocked(useModal).mockReturnValue({
       openModal: mockOpenModal,
       closeModal: jest.fn(),
