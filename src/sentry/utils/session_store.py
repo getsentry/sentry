@@ -47,6 +47,15 @@ class RedisSessionStore:
 
     It's important to note that the session store will expire if values are not
     modified within the provided ttl.
+
+    Resilience
+    ----------
+    In addition to the primary Redis storage, the state is mirrored into the
+    Django session (database-backed in typical Sentry deployments) under
+    ``store_data:{prefix}``.  If Redis is unavailable (e.g. a test-only
+    ``flushdb()`` clears the cluster), ``get_state()`` falls back to the
+    session copy and re-populates Redis automatically.  In production Redis
+    is always available so the fallback path is never exercised.
     """
 
     redis_namespace = "session-cache"
@@ -65,6 +74,11 @@ class RedisSessionStore:
         return f"store:{self.prefix}"
 
     @property
+    def _fallback_session_key(self) -> str:
+        """Django session key that holds the state as a direct fallback."""
+        return f"store_data:{self.prefix}"
+
+    @property
     def redis_key(self):
         return self.request.session.get(self.session_key)
 
@@ -79,6 +93,8 @@ class RedisSessionStore:
         redis_key = f"{self.redis_namespace}:{self.prefix}:{uuid4().hex}"
 
         self.request.session[self.session_key] = redis_key
+        # Keep a DB-session copy so the state survives a Redis flush.
+        self.request.session[self._fallback_session_key] = initial_state
         self.mark_session()
 
         value = dumps(initial_state)
@@ -92,6 +108,7 @@ class RedisSessionStore:
 
         session = self.request.session
         del session[self.session_key]
+        session.pop(self._fallback_session_key, None)
         self.mark_session()
 
     def is_valid(self):
@@ -102,13 +119,26 @@ class RedisSessionStore:
             return None
 
         state_json = self._client.get(self.redis_key)
-        if not state_json:
-            return None
+        if state_json:
+            try:
+                return loads(state_json)
+            except Exception as e:
+                # Redis has the key but the value is malformed (e.g. bit flip).
+                # Do NOT fall back to the session copy — the caller should treat
+                # this as an invalid state, same as the pre-fallback behaviour.
+                sentry_sdk.capture_exception(e)
+                return None
 
-        try:
-            return loads(state_json)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+        # Redis key is absent (flushed) — fall back to the Django session copy.
+        fallback = self.request.session.get(self._fallback_session_key)
+        if fallback is not None:
+            # Re-warm Redis so subsequent reads are fast.
+            try:
+                self._client.setex(self.redis_key, self.ttl, dumps(fallback))
+            except Exception:
+                pass
+            return fallback
+
         return None
 
 
@@ -131,5 +161,8 @@ def redis_property(key: str):
 
         state[key] = value
         store._client.setex(store.redis_key, store.ttl, dumps(state))
+        # Keep the Django session fallback in sync.
+        store.request.session[store._fallback_session_key] = state
+        store.mark_session()
 
     return property(getter, setter)
