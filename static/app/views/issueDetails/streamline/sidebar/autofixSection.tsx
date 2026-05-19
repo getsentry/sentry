@@ -32,8 +32,8 @@ import {
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -111,8 +111,8 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
   );
 }
 
-const AutofixContentHook = HookOrDefault({
-  hookName: 'component:ai-configure-seer-quota-sidebar',
+const AutofixContentHook = OverrideOrDefault({
+  overrideName: 'component:ai-configure-seer-quota-sidebar',
   defaultComponent: AutofixContent,
 });
 

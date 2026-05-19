@@ -21,7 +21,7 @@ monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0009_clean_old_notificationmessage
+notifications: 0010_remove_metric_alert_columns_notificationmessage
 
 preprod: 0028_add_images_skipped_to_snapshot_comparison
 
@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0013_add_workflow_config
+seer: 0017_drop_old_fk_columns
 
-sentry: 1096_backfill_mcp_dashboard_widget_filters
+sentry: 1099_drop_old_fk_columns
 
 social_auth: 0003_social_auth_json_field
 

@@ -29,6 +29,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
@@ -544,12 +545,15 @@ def _run_autofix_for_candidates(
             )
             continue
 
+        # TODO: have trigger_autofix_agent return the SeerRun directly to avoid this lookup.
+        result_seer_run = SeerRun.objects.filter(seer_run_state_id=seer_run_id).first()
         results.append(
             SeerNightShiftRunResult(
                 run=run,
                 kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 group=c.group,
                 seer_run_id=str(seer_run_id),
+                result_seer_run=result_seer_run,
                 extras={"action": str(c.action)},
             )
         )

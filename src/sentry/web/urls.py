@@ -523,6 +523,11 @@ urlpatterns += [
         name="sentry-api-docs-redirect",
     ),
     re_path(
+        r"^scraps/?$",
+        RedirectView.as_view(pattern_name="stories", permanent=False),
+        name="sentry-scraps-redirect",
+    ),
+    re_path(
         r"^api/$",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
         name="sentry-api-redirect",

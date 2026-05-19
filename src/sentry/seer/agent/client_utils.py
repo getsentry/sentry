@@ -89,6 +89,7 @@ class AgentRunsRequest(TypedDict):
     expand: NotRequired[str]
     start: NotRequired[datetime]
     end: NotRequired[datetime]
+    query: NotRequired[str]
 
 
 class AgentUpdateRequest(TypedDict):

@@ -21,6 +21,8 @@ class SeerNightShiftRun(DefaultFieldsModel):
     workflow_config = FlexibleForeignKey(
         "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
     )
+    # TODO: make required once backfilled
+    seer_run = FlexibleForeignKey("seer.SeerRun", on_delete=models.SET_NULL, null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -48,7 +50,9 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
     group = FlexibleForeignKey(
         "sentry.Group", on_delete=models.CASCADE, db_constraint=False, null=True
     )
-    seer_run_id = models.TextField(null=True)
+    seer_run_id = models.TextField(null=True)  # TODO: remove once result_seer_run is backfilled
+    # TODO: make required once backfilled
+    result_seer_run = FlexibleForeignKey("seer.SeerRun", on_delete=models.SET_NULL, null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

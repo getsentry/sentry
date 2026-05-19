@@ -47,6 +47,7 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
                 user. If "false", return runs regardless of owner.
             category_key: Optional category key to filter by (e.g., "night_shift", "autofix")
             category_value: Optional category value to filter by (e.g., "org-123")
+            query: Optional search string to filter runs by title
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
@@ -54,6 +55,7 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
 
         category_key = request.GET.get("category_key")
         category_value = request.GET.get("category_value")
+        query = request.GET.get("query")
         only_current_user = request.GET.get("owner", "true").lower() != "false"
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
@@ -65,6 +67,7 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
                     offset=offset,
                     limit=limit,
                     only_current_user=only_current_user,
+                    query=query,
                 )
             except SeerPermissionError as e:
                 raise PermissionDenied(e.message) from e

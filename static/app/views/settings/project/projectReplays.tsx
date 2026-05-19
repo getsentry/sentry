@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -28,8 +28,8 @@ const replaySchema = z.object({
 
 type ReplaySchema = z.infer<typeof replaySchema>;
 
-const ReplaySettingsAlert = HookOrDefault({
-  hookName: 'component:replay-settings-alert',
+const ReplaySettingsAlert = OverrideOrDefault({
+  overrideName: 'component:replay-settings-alert',
   defaultComponent: null,
 });
 
