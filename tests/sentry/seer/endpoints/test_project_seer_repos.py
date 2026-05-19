@@ -259,11 +259,11 @@ class OrganizationSeerProjectReposPostTest(APITestCase):
             status_code=204,
         )
 
-        project_repos = SeerProjectRepository.objects.filter(
-            project_repository__project=self.project
+        project_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
         )
-        assert project_repos.count() == 1
-        assert project_repos.first().branch_name == "new-branch"
+        assert project_repo.branch_name == "new-branch"
 
     def test_inactive_repo_returns_400(self):
         self.repo1.status = ObjectStatus.HIDDEN
