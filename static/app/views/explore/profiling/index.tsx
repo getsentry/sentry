@@ -26,7 +26,7 @@ function ProfilingContainer() {
 
   return (
     <Feature
-      hookName="feature-disabled:profiling-page"
+      overrideName="feature-disabled:profiling-page"
       features={profilingFeature}
       organization={organization}
       renderDisabled={() => (

@@ -6,6 +6,10 @@ from typing import Literal
 from pydantic import BaseModel
 
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
+from sentry.preprod.api.models.snapshots.snapshot_status import (
+    ApprovalStatusLiteral,
+    ComparisonStateLiteral,
+)
 from sentry.preprod.models import PreprodArtifact
 
 
@@ -50,7 +54,7 @@ class SnapshotImageDetailImageInfo(BaseModel):
     height: int
     diff_threshold: float | None = None
     description: str | None = None
-    tags: list[str] | None = None
+    tags: dict[str, str] | None = None
     image_url: str
 
     class Config:
@@ -69,12 +73,6 @@ class SnapshotImageDetailResponse(BaseModel):
     previous_image_file_name: str | None = None
 
 
-class SnapshotComparisonRunInfo(BaseModel):
-    state: str | None = None
-    completed_at: str | None = None
-    duration_ms: int | None = None
-
-
 class SnapshotApprover(BaseModel):
     id: str | None = None
     name: str | None = None
@@ -85,12 +83,6 @@ class SnapshotApprover(BaseModel):
     source: Literal["sentry", "github"] = "sentry"
 
 
-class SnapshotApprovalInfo(BaseModel):
-    status: Literal["approved", "requires_approval"]
-    approvers: list[SnapshotApprover] = []
-    is_auto_approved: bool = False
-
-
 class SnapshotDetailsApiResponse(BaseModel):
     head_artifact_id: str
     base_artifact_id: str | None = None
@@ -99,6 +91,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
     app_id: str | None = None
+    is_selective: bool = False
 
     # Solo fields (comparison_type == SOLO)
     images: list[SnapshotImageResponse] = []
@@ -126,11 +119,12 @@ class SnapshotDetailsApiResponse(BaseModel):
     skipped: list[SnapshotImageResponse] = []
     skipped_count: int = 0
 
-    comparison_run_info: SnapshotComparisonRunInfo | None = None
-
-    approval_info: SnapshotApprovalInfo | None = None
-
     diff_threshold: float | None = None
+
+    comparison_state: ComparisonStateLiteral | None = None
+    approval_status: ApprovalStatusLiteral | None = None
+    comparison_error_message: str | None = None
+    approvers: list[SnapshotApprover] = []
 
 
 # TODO: POST request in the future when we migrate away from current schemas

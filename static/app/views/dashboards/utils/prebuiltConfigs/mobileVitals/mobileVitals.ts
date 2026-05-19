@@ -272,7 +272,9 @@ const AVG_FRAME_DELAY_WIDGET: Widget = {
 const APP_START_TABLE: Widget = {
   id: 'app-start-table',
   title: t('App Starts'),
-  description: '',
+  description: t(
+    "On iOS, cold and warm start classification may differ from Apple's definitions. Sentry defines a cold start as a launch after first install, reboot, or update; all other launches are warm starts. Warm start results may differ between prewarmed and non-prewarmed launches."
+  ),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -292,7 +294,12 @@ const APP_START_TABLE: Widget = {
         TRANSACTION_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
-      fieldAliases: [t('Screen'), t('Cold Start'), t('Warm Start'), t('Screen Loads')],
+      fieldAliases: [
+        t('Screen'),
+        t('Avg Cold Start'),
+        t('Avg Warm Start'),
+        t('Screen Loads'),
+      ],
       conditions: APP_START_TABLE_CONDITION,
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
@@ -386,7 +393,7 @@ const SCREEN_LOAD_TABLE: Widget = {
         TRANSACTION_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
-      fieldAliases: [t('Screen'), 'TTID', 'TTFD', t('Screen Loads')],
+      fieldAliases: [t('Screen'), t('Avg TTID'), t('Avg TTFD'), t('Screen Loads')],
       conditions: SCREEN_LOAD_TABLE_CONDITION,
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [

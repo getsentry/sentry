@@ -1,16 +1,12 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 
 describe('useReplayForCriticalFlow', () => {
-  afterEach(() => {
-    HookStore.init();
-  });
-
   it('delegates to the registered hook implementation', () => {
     const impl = jest.fn();
-    HookStore.add('react-hook:use-replay-for-critical-flow', impl);
+    registerOverride('react-hook:use-replay-for-critical-flow', impl);
 
     renderHookWithProviders(() =>
       useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0.5})

@@ -8,10 +8,8 @@ from django.db.models.functions import StrIndex
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Entity, Function, Op, Query
 from snuba_sdk import Request as SnubaRequest
 
-from sentry import features
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group, GroupStatus
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.fetch_issues import utils
@@ -208,25 +206,14 @@ def _get_projects_and_filenames_from_source_file(
     org_id: int, repo_id: int, pr_filename: str, max_num_left_truncated_paths: int = 2
 ) -> tuple[set[Project], set[str]]:
     # Fetch the code mappings in which the source_root is a substring at the start of pr_filename
-    org = Organization.objects.get(id=org_id)
-    use_fk = features.has("organizations:project-repository-fk-reads", org)
-    if use_fk:
-        base_qs = RepositoryProjectPathConfig.objects.filter(
-            organization_id=org_id,
-            project_repository__repository_id=repo_id,
-        ).select_related("project", "project_repository__project")
-    else:
-        base_qs = RepositoryProjectPathConfig.objects.filter(
-            organization_id=org_id,
-            repository_id=repo_id,
-        ).select_related("project")
+    base_qs = RepositoryProjectPathConfig.objects.filter(
+        organization_id=org_id,
+        project_repository__repository_id=repo_id,
+    ).select_related("project_repository__project")
     code_mappings = base_qs.annotate(
         substring_match=StrIndex(Value(pr_filename), "source_root")
     ).filter(substring_match=1)
-    if use_fk:
-        projects_set = {cm.project_repository.project for cm in code_mappings}
-    else:
-        projects_set = {cm.project for cm in code_mappings}
+    projects_set = {cm.project_repository.project for cm in code_mappings}
     sentry_filenames = {
         pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
         for code_mapping in code_mappings

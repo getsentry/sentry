@@ -90,6 +90,24 @@ New line here.
 
 The `components` prop lets you replace any rendered element with a custom React component. Keys are named after design system primitives: `Heading`, `Paragraph`, `Link`, `InlineCode`, `CodeBlock`, `Text`, etc.
 
+Every override receives a `Default` prop — a reference to the built-in component for that element. This lets you conditionally customize rendering without importing internal defaults.
+
+### Falling Back to the Default
+
+Use the `Default` prop to apply custom behavior for specific cases and fall through to the built-in rendering for everything else.
+
+```jsx
+<Markdown
+  raw={content}
+  components={{
+    Heading: ({children, level, Default}) => {
+      if (level > 3) return <strong>{children}</strong>;
+      return <Default level={level}>{children}</Default>;
+    },
+  }}
+/>
+```
+
 ### Custom Links and Text Transforms
 
 Use `components.Link` to control how links render (e.g., client-side navigation). Use `components.Text` to intercept plain text and inject patterns like issue linkification.
@@ -172,6 +190,8 @@ The component applies the same security model as the existing `MarkedText`:
 - **React escaping** handles all other content — no `dangerouslySetInnerHTML` for markdown tokens.
 
 ## Available Component Keys
+
+Every override receives a `Default` prop in addition to the props listed below (except `Image`, which has no built-in default).
 
 | Key              | Default                        | Props                        |
 | ---------------- | ------------------------------ | ---------------------------- |

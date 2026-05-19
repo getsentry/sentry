@@ -36,7 +36,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert data["authToken"] == "fake-token"
 
-        assert data["expirationPolicy"] == "ttl:30 days"
+        assert data["expirationPolicy"] == "tti:30 days"
 
         mock_get_session.assert_called_once_with(org=self.org.id, project=self.project.id)
 

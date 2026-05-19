@@ -167,6 +167,12 @@ class ProjectTraceItemDetailsEndpointTest(
             + "Z",
         }
 
+    @pytest.mark.xfail(
+        reason=(
+            "On snuba, attributes_array JSON column is no longer read on the trace-item-details hot path "
+            "and stack.* array attributes are not returned"
+        ),
+    )
     def test_details_exposes_arrays(self) -> None:
         event_id = uuid.uuid4().hex
         group = self.create_group(project=self.project)

@@ -41,6 +41,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
@@ -658,8 +659,16 @@ function LogsTableHeader({
                   isFrozen
                     ? undefined
                     : () => {
-                        const kind = direction === 'desc' ? 'asc' : 'desc';
-                        setSortBys([{field, kind}]);
+                        switch (direction) {
+                          case 'asc':
+                            setSortBys([logsTimestampDescendingSortBy]);
+                            break;
+                          case 'desc':
+                            setSortBys([{field, kind: 'asc'}]);
+                            break;
+                          default:
+                            setSortBys([{field, kind: 'desc'}]);
+                        }
                       }
                 }
                 isFrozen={isFrozen}

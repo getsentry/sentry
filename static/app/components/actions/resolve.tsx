@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
 import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
@@ -88,6 +88,8 @@ export function ResolveActions({
   hasSemverReleaseFeature,
   onUpdate,
 }: ResolveActionsProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   // resolve in semver release is eligible if the flag is enabled,

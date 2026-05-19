@@ -1,7 +1,7 @@
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 
-const DataConsentBanner = HookOrDefault({
-  hookName: 'component:data-consent-banner',
+const DataConsentBanner = OverrideOrDefault({
+  overrideName: 'component:data-consent-banner',
   defaultComponent: null,
 });
 

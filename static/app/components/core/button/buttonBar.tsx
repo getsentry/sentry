@@ -1,15 +1,17 @@
 import styled from '@emotion/styled';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 export interface ButtonBarProps extends Omit<GridProps, 'gap'> {
   children: NonNullable<React.ReactNode>;
   orientation?: 'horizontal' | 'vertical';
+  size?: 'xs' | 'sm' | 'md';
 }
 
 export const ButtonBar = styled(
-  ({children, orientation = 'horizontal', ...props}: ButtonBarProps) => {
-    return (
+  ({children, orientation = 'horizontal', size, ...props}: ButtonBarProps) => {
+    const content = (
       <Grid
         flow={orientation === 'horizontal' ? 'column' : 'row'}
         align="center"
@@ -19,6 +21,12 @@ export const ButtonBar = styled(
         {children}
       </Grid>
     );
+
+    if (size) {
+      return <SizeProvider size={size}>{content}</SizeProvider>;
+    }
+
+    return content;
   }
 )<ButtonBarProps>`
   /* Raised buttons show borders on both sides. Useful to create pill bars */

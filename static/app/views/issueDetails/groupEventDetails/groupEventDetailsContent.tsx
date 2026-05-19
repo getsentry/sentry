@@ -36,6 +36,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
@@ -80,7 +81,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
-import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
@@ -133,7 +133,7 @@ export function EventDetailsContent({
   }
 
   return (
-    <Fragment>
+    <DebugMetaSearchProvider key={event.id}>
       <ErrorBoundary mini>
         <HighlightsIconSummary event={event} group={group} />
       </ErrorBoundary>
@@ -164,11 +164,6 @@ export function EventDetailsContent({
       <EventEvidence event={event} group={group} project={project} />
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
-      )}
-      {issueTypeConfig.instrumentationFixSection.enabled && (
-        <ErrorBoundary mini>
-          <InstrumentationFixSection event={event} group={group} />
-        </ErrorBoundary>
       )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -417,7 +412,7 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
-    </Fragment>
+    </DebugMetaSearchProvider>
   );
 }
 

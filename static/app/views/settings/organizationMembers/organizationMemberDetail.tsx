@@ -20,9 +20,9 @@ import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -53,8 +53,8 @@ const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
 
-const DisabledMemberTooltip = HookOrDefault({
-  hookName: 'component:disabled-member-tooltip',
+const DisabledMemberTooltip = OverrideOrDefault({
+  overrideName: 'component:disabled-member-tooltip',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 

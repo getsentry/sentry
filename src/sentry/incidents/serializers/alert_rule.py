@@ -24,6 +24,7 @@ from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.utils import to_valid_int_id_list
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -43,7 +44,6 @@ from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_agg
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id_list
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
     dual_update_alert_rule,

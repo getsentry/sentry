@@ -863,6 +863,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Set test user
         test_user = self.create_user()
 
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            last_triggered_at=before_now(days=1),
+        )
+
         # Call the function
         response = trigger_legacy_autofix(
             group=group,
@@ -881,6 +887,9 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group.refresh_from_db()
         assert group.seer_autofix_last_triggered is not None
         assert isinstance(group.seer_autofix_last_triggered, datetime)
+
+        seer_run.refresh_from_db()
+        assert seer_run.last_triggered_at == group.seer_autofix_last_triggered
 
         # Verify the function calls
         mock_call.assert_called_once()

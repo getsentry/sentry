@@ -118,7 +118,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 self.integration_id = 42
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo(), default_branch="main"),
+            Mock(project_repository=Mock(repository=TestRepo()), default_branch="main"),
         ]
 
         self.login_as(user=self.user)
@@ -182,8 +182,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         repo2 = TestRepo("id456", "repo2", "gitlab", "example.com/repo2", 43)
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=repo1, default_branch="main"),
-            Mock(repository=repo2, default_branch="master"),
+            Mock(project_repository=Mock(repository=repo1), default_branch="main"),
+            Mock(project_repository=Mock(repository=repo2), default_branch="master"),
         ]
 
         self.login_as(user=self.user)
@@ -257,7 +257,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         # Create a repo with a different external_id than what's in the codebase
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo("different_id"), default_branch="main"),
+            Mock(
+                project_repository=Mock(repository=TestRepo("different_id")), default_branch="main"
+            ),
         ]
 
         self.login_as(user=self.user)
@@ -300,7 +302,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 self.integration_id = 42
 
         mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo(), default_branch="main"),
+            Mock(project_repository=Mock(repository=TestRepo()), default_branch="main"),
         ]
 
         self.login_as(user=self.user)
@@ -1122,6 +1124,35 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert (
                 mock_handoff.call_args.kwargs["referrer"] == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
             )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
+    def test_post_coding_agent_handoff_auto_creates_pr_by_default(self, mock_handoff, _):
+        mock_handoff.return_value = {"successes": [{"repo_name": "owner/repo"}], "failures": []}
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        with self.feature(EXPLORER_FLAGS[0]):
+            response = self.client.post(
+                self._get_url(group.id, mode="explorer"),
+                data={
+                    "step": "coding_agent_handoff",
+                    "run_id": 123,
+                    "integration_id": 456,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 202, response.data
+        mock_handoff.assert_called_once_with(
+            group=group,
+            run_id=123,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            integration_id=456,
+            provider=None,
+            user_id=self.user.id,
+            auto_create_pr=True,
+        )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos", return_value=True)
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
