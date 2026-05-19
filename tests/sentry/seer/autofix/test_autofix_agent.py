@@ -609,6 +609,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(repos) == 1
         assert repos[0].owner == "owner"
         assert repos[0].name == "repo"
+        assert call_kwargs["issue_short_id"] == self.group.qualified_short_id
 
     @patch("sentry.seer.autofix.autofix_agent.analytics.record")
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
@@ -796,6 +797,34 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
         assert call_kwargs["auto_create_pr"] is False
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_uses_auto_create_pr_override(
+        self, mock_client_class, mock_get_autofix_state
+    ):
+        """Test that manual handoff can force PR creation independent of automation settings."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
+        self._make_repo_and_projectrepo()
+        self._make_handoff(auto_create_pr=False)
+        mock_get_autofix_state.return_value = None
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+            auto_create_pr=True,
+        )
+
+        call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
+        assert call_kwargs["auto_create_pr"] is True
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")

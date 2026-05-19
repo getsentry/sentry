@@ -13,6 +13,8 @@ import {useRoutes} from './useRoutes';
  * use{Location,Params,Routes,Navigate}.
  *
  * react-router 6 does not include this hook.
+ *
+ * See https://github.com/getsentry/frontend-tsc/issues/78
  */
 export function useRouter(): InjectedRouter<any> {
   const navigate = useNavigate();

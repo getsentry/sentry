@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {registerSetOrganizationCallback} from 'sentry/utils/routeAnalytics/setOrganizationCallback';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 /**
@@ -10,9 +10,5 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
  */
 export function useRouteAnalyticsHookSetup() {
   const {setOrganization} = useContext(RouteAnalyticsContext);
-  HookStore.persistCallback(
-    'react-hook:route-activated',
-    'setOrganization',
-    setOrganization
-  );
+  registerSetOrganizationCallback(setOrganization);
 }

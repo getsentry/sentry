@@ -597,6 +597,7 @@ class SeerAgentClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
+        query: str | None = ...,
     ) -> list[AgentRunWithPrs]: ...
 
     @overload
@@ -611,6 +612,7 @@ class SeerAgentClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
+        query: str | None = ...,
     ) -> list[AgentRun]: ...
 
     def get_runs(
@@ -624,6 +626,7 @@ class SeerAgentClient:
         only_current_user: bool = True,
         start: datetime | None = None,
         end: datetime | None = None,
+        query: str | None = None,
     ) -> list[AgentRunWithPrs] | list[AgentRun]:
         """
         Get a list of Seer Agent runs for the organization with optional filters.
@@ -671,6 +674,8 @@ class SeerAgentClient:
             runs_body["start"] = start
         if end is not None:
             runs_body["end"] = end
+        if query is not None:
+            runs_body["query"] = query
 
         response = make_agent_runs_request(runs_body, viewer_context=self.viewer_context)
 
@@ -765,6 +770,7 @@ class SeerAgentClient:
         auto_create_pr: bool = False,
         provider: str | None = None,
         user_id: int | None = None,
+        issue_short_id: str | None = None,
     ) -> dict[str, list]:
         """
         Launch coding agents for an agent run.
@@ -781,6 +787,7 @@ class SeerAgentClient:
             auto_create_pr: Whether to automatically create a PR when agent finishes
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
             user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+            issue_short_id: Optional Sentry issue short ID for coding agent session naming
 
         Returns:
             Dictionary with 'successes' and 'failures' lists
@@ -795,4 +802,5 @@ class SeerAgentClient:
             auto_create_pr=auto_create_pr,
             provider=provider,
             user_id=user_id,
+            issue_short_id=issue_short_id,
         )
