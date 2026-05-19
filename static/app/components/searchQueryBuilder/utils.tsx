@@ -179,6 +179,10 @@ export function collapseTextTokens(tokens: ParseResult | null) {
     return null;
   }
 
+  if (!Array.isArray(tokens)) {
+    return null;
+  }
+
   return tokens.reduce<ParseResult>((acc, token) => {
     // For our purposes, SPACES are equivalent to FREE_TEXT
     // Combining them ensures that keys don't change when text is added or removed,
