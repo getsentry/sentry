@@ -135,6 +135,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
     estimateSize: i =>
       virtualRows[i]!.type === 'header' ? SECTION_HEADER_HEIGHT : ITEM_HEIGHT,
     overscan: 25,
+    initialRect: {width: 0, height: 500},
   });
 
   const prevActiveItemKeyRef = useRef(activeItemKey);
