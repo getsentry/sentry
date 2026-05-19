@@ -12,7 +12,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
+import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,

@@ -3,8 +3,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
@@ -35,6 +35,8 @@ const getRow = (doc: DocIntegration) => [
 ];
 
 export function DocIntegrations() {
+  const {openModal} = useModal();
+
   return (
     <div>
       <PageHeader title="Document Integrations">

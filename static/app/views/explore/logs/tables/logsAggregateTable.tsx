@@ -77,8 +77,10 @@ export function LogsAggregateTable({
   const {projects} = useProjects();
 
   const allFields: string[] = [];
-  allFields.push(...groupBys.filter(Boolean));
-  allFields.push(...visualizes.map(visualize => visualize.yAxis));
+  allFields.push(
+    ...groupBys.filter(Boolean),
+    ...visualizes.map(visualize => visualize.yAxis)
+  );
 
   const numberOfRowsNeedingColor = Math.min(data?.data?.length ?? 0, topEventsLimit ?? 0);
 
@@ -125,13 +127,21 @@ export function LogsAggregateTable({
                 canSort
                 direction={direction}
                 generateSortLink={() => {
+                  const nextSort = (() => {
+                    switch (direction) {
+                      case 'asc':
+                        return {
+                          field: visualizes[0]?.yAxis ?? allFields[0]!,
+                          kind: 'desc' as const,
+                        };
+                      case 'desc':
+                        return {field: column.key, kind: 'asc' as const};
+                      default:
+                        return {field: column.key, kind: 'desc' as const};
+                    }
+                  })();
                   return getTargetWithReadableQueryParams(location, {
-                    aggregateSortBys: [
-                      {
-                        field: column.key,
-                        kind: direction === 'desc' ? 'asc' : 'desc',
-                      },
-                    ],
+                    aggregateSortBys: [nextSort],
                   });
                 }}
                 title={title}

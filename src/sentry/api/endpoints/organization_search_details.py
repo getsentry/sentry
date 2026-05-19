@@ -17,10 +17,10 @@ from sentry.api.serializers.rest_framework.savedsearch import (
     OrganizationSearchAdminSerializer,
     OrganizationSearchMemberSerializer,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class OrganizationSearchEditPermission(OrganizationSearchPermission):

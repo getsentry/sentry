@@ -3,7 +3,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -23,6 +22,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
@@ -53,7 +53,7 @@ export interface NavButtonRefs {
 interface SnapshotMainContentProps {
   canNavigateNext: boolean;
   canNavigatePrev: boolean;
-  comparisonType: 'diff' | 'solo' | undefined;
+  comparisonType: 'diff' | 'solo' | 'waiting_for_base' | undefined;
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   hasDiffComparison: boolean;
@@ -184,14 +184,9 @@ export function SnapshotMainContent({
       <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
     </Fragment>
   ) : null;
-  let soloDiffToggle: React.ReactNode = null;
-  if (hasDiffComparison) {
-    soloDiffToggle = (
-      <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
-    );
-  } else if (comparisonType === 'solo') {
-    soloDiffToggle = <Tag variant="promotion">{t('Base')}</Tag>;
-  }
+  const soloDiffToggle = hasDiffComparison ? (
+    <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
+  ) : null;
 
   if (viewMode === 'list') {
     return (
@@ -519,7 +514,11 @@ function SingleViewLayout({
               </SnapshotCardFrame>
             </DarkAware>
           </Flex>
-          <Container flexShrink={0} onClick={e => e.stopPropagation()}>
+          <Container
+            flexShrink={0}
+            onClick={e => e.stopPropagation()}
+            display={{'2xs': 'none', sm: 'block'}}
+          >
             <NavGutter>
               <Tooltip title={t('Previous (↑)')} skipWrapper>
                 <Button
@@ -698,24 +697,25 @@ function DiffModeToggle({
   onDiffModeChange: (mode: DiffMode) => void;
 }) {
   const organization = useOrganization();
+  const breakpoints = useBreakpoints();
+  const handleChange = (value: DiffMode) => {
+    onDiffModeChange(value);
+    trackAnalytics('preprod.snapshots.details.diff_mode_changed', {
+      organization,
+      diff_mode: value,
+    });
+  };
+
   return (
-    <SegmentedControl
-      size="xs"
-      value={diffMode}
-      onChange={(value: DiffMode) => {
-        onDiffModeChange(value);
-        trackAnalytics('preprod.snapshots.details.diff_mode_changed', {
-          organization,
-          diff_mode: value,
-        });
-      }}
-    >
-      <SegmentedControl.Item
-        key="split"
-        icon={<IconPause />}
-        aria-label={t('Split')}
-        tooltip={t('Split')}
-      />
+    <SegmentedControl size="xs" value={diffMode} onChange={handleChange}>
+      {breakpoints.sm ? (
+        <SegmentedControl.Item
+          key="split"
+          icon={<IconPause />}
+          aria-label={t('Split')}
+          tooltip={t('Split')}
+        />
+      ) : null}
       <SegmentedControl.Item
         key="wipe"
         icon={<IconInput />}
@@ -741,6 +741,16 @@ const SingleViewScroll = styled('div')`
   padding-left: 0;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
+      p.theme.breakpoints.md}) {
+    padding-left: ${p => p.theme.space.xl};
+  }
 `;
 
 const NavGutter = styled('div')`
@@ -817,6 +827,10 @@ const ProgressCounter = styled(Text)`
 
 const ToolbarProgressBar = styled(ProgressBar)`
   width: 50px;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: none;
+  }
 `;
 
 const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
@@ -860,7 +874,7 @@ function ToolbarContainer({
         align="center"
         justify="between"
         gap="md"
-        padding="md xl md 0"
+        padding={{xs: 'md xl', md: 'md xl md 0'}}
         background="primary"
         onClick={e => e.stopPropagation()}
       >
@@ -875,7 +889,7 @@ function ToolbarContainer({
               {diffControls}
             </Flex>
           )}
-          {soloDiffToggle}
+          <Flex display={{'2xs': 'none', xs: 'none', sm: 'flex'}}>{soloDiffToggle}</Flex>
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />

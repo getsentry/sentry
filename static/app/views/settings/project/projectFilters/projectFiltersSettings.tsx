@@ -38,7 +38,7 @@ import {
 } from 'sentry/data/forms/inboundFilters';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -308,11 +308,17 @@ function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
   );
 }
 
-function CustomFilters({project, disabled}: {disabled: boolean; project: Project}) {
+function CustomFilters({
+  project,
+  disabled,
+}: {
+  disabled: boolean;
+  project: DetailedProject;
+}) {
   return (
     <Feature
       features="projects:custom-inbound-filters"
-      hookName="feature-disabled:custom-inbound-filters"
+      overrideName="feature-disabled:custom-inbound-filters"
       project={project}
       renderDisabled={({children, ...props}) => {
         if (typeof children === 'function') {
@@ -379,7 +385,7 @@ type Props = {
   params: {
     projectId: string;
   };
-  project: Project;
+  project: DetailedProject;
 };
 
 type Filter = {

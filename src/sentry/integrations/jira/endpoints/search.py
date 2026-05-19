@@ -25,7 +25,7 @@ from ..utils import build_user_choice
 
 @control_silo_endpoint
 class JiraSearchEndpoint(IntegrationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

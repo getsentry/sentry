@@ -7,6 +7,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -22,7 +23,6 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {useOurLogsTableExpando} from 'sentry/views/explore/logs/tables/useOurLogsTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -37,7 +37,6 @@ export default function LogsContent() {
     dataCategories: [DataCategory.LOG_BYTE],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-  const tableExpando = useOurLogsTableExpando();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
@@ -59,32 +58,27 @@ export default function LogsContent() {
         }
       >
         <AnalyticsArea name="explore.logs">
-          <LogsPageStack
-            flex={1}
-            data-footer-constrained={tableExpando ? '' : undefined}
-            data-hide-footer={tableExpando ? '' : undefined}
-          >
-            <LogsQueryParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              source="location"
-            >
-              <LogsHeader />
-              <LogsPageDataProvider allowHighFidelity>
-                {defined(onboardingProject) ? (
-                  <LogsTabOnboarding
-                    organization={organization}
-                    project={onboardingProject}
-                    datePageFilterProps={datePageFilterProps}
-                  />
-                ) : (
-                  <LogsTabContent
-                    datePageFilterProps={datePageFilterProps}
-                    tableExpando={tableExpando}
-                  />
-                )}
-              </LogsPageDataProvider>
-            </LogsQueryParamsProvider>
-          </LogsPageStack>
+          <AiQueryProvider>
+            <LogsPageStack flex={1} data-footer-constrained data-hide-footer>
+              <LogsQueryParamsProvider
+                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+                source="location"
+              >
+                <LogsHeader />
+                <LogsPageDataProvider allowHighFidelity>
+                  {defined(onboardingProject) ? (
+                    <LogsTabOnboarding
+                      organization={organization}
+                      project={onboardingProject}
+                      datePageFilterProps={datePageFilterProps}
+                    />
+                  ) : (
+                    <LogsTabContent datePageFilterProps={datePageFilterProps} />
+                  )}
+                </LogsPageDataProvider>
+              </LogsQueryParamsProvider>
+            </LogsPageStack>
+          </AiQueryProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>

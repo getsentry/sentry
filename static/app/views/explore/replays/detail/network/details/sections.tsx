@@ -292,8 +292,7 @@ function getBodyAndWarnings(reqOrRes?: ReplayNetworkRequestOrResponse): {
       warnings.push('JSON_TRUNCATED');
     } catch {
       // this can fail, in which case we just use the body string
-      warnings.push('INVALID_JSON');
-      warnings.push('TEXT_TRUNCATED');
+      warnings.push('INVALID_JSON', 'TEXT_TRUNCATED');
     }
   }
 

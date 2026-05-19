@@ -350,7 +350,7 @@ class BaseApiClient:
                     verify=environment_settings.get("verify"),
                     cert=environment_settings.get("cert"),
                 )
-                resp: Response = session.send(finalized_request, **session_settings)
+                resp = self._do_send(session, finalized_request, session_settings)
                 if raw_response:
                     return resp
                 resp.raise_for_status()
@@ -405,6 +405,11 @@ class BaseApiClient:
         return BaseApiResponse.from_response(
             resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
         )
+
+    def _do_send(
+        self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
+    ) -> Response:
+        return session.send(request, **session_settings)
 
     # subclasses should override ``request``
     def request(self, *args: Any, **kwargs: Any) -> Any:

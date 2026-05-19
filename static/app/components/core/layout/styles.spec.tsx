@@ -3,6 +3,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
 // eslint-disable-next-line boundaries/dependencies
@@ -58,7 +59,8 @@ const setupMediaQueries = (
 
 describe('rc', () => {
   it('returns a simple CSS declaration for a plain string value', () => {
-    const output = rc('color', 'red', theme)!;
+    const output = rc('color', 'red', theme);
+    assert(output);
     expect(
       normalizeCss(
         css`
@@ -73,7 +75,8 @@ describe('rc', () => {
   });
 
   it('applies a resolver to a plain value', () => {
-    const output = rc('color', 'primary', theme, value => `resolved-${value}`)!;
+    const output = rc('color', 'primary', theme, value => `resolved-${value}`);
+    assert(output);
     expect(
       normalizeCss(
         css`
@@ -89,7 +92,8 @@ describe('rc', () => {
 
   it('generates media queries for responsive values', () => {
     // First defined breakpoint gets both min-width and max-width; subsequent get min-width only.
-    const output = rc('color', {xs: 'blue', md: 'green'}, theme)!;
+    const output = rc('color', {xs: 'blue', md: 'green'}, theme);
+    assert(output);
     expect(
       normalizeCss(
         css`
@@ -101,7 +105,8 @@ describe('rc', () => {
 
   it('skips undefined intermediate breakpoints', () => {
     // xs and md are defined; 2xs, sm, lg, xl, 2xl are absent from the output.
-    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme)!;
+    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme);
+    assert(output);
     expect(
       normalizeCss(
         css`

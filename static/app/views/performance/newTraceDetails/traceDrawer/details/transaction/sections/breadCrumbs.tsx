@@ -23,7 +23,7 @@ import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const MAX_BREADCRUMBS_HEIGHT = 400;
 
@@ -128,9 +128,9 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
 
   return (
     <BreadcrumbsContainer>
-      <InterimSection
+      <FoldSection
         title={t('Breadcrumbs')}
-        type="breadcrumbs"
+        sectionKey="breadcrumbs"
         actions={actions}
         disableCollapsePersistence
       >
@@ -147,7 +147,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
             />
           )}
         </ScrollContainer>
-      </InterimSection>
+      </FoldSection>
     </BreadcrumbsContainer>
   );
 }

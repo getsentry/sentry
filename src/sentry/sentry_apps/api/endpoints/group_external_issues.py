@@ -21,7 +21,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupExternalIssuesEndpoint(GroupEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

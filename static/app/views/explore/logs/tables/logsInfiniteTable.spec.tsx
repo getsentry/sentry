@@ -11,6 +11,7 @@ import {
   userEvent,
   waitFor,
   within,
+  type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -194,8 +195,8 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
-  const renderWithProviders = (children: React.ReactNode) => {
-    return render(
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
       <OrganizationContext.Provider value={organization}>
         <LogsQueryParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -205,6 +206,10 @@ describe('LogsInfiniteTable', () => {
         </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
+  }
+
+  const renderWithProviders = (children: React.ReactElement, options?: RenderOptions) => {
+    return render(children, {additionalWrapper: Wrapper, ...options});
   };
 
   it('should render the table component', async () => {
@@ -264,11 +269,7 @@ describe('LogsInfiniteTable', () => {
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',
         });
-        if (field === 'timestamp') {
-          expect(actionsButton).toBeNull();
-        } else {
-          expect(actionsButton).toBeInTheDocument();
-        }
+        expect(actionsButton).toBeInTheDocument();
       }
     }
     for (const mock of traceItemMocks) {
@@ -475,5 +476,41 @@ describe('LogsInfiniteTable', () => {
 
     await screen.findByText('abc123de');
     await screen.findByText('abc123ee');
+  });
+
+  it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
+    // Start with severity sorted ascending (second click has already happened)
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: 'severity',
+        },
+      })
+    );
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: 'severity',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    // Wait for table headers to be rendered (empty while pending)
+    const severityHeader = await screen.findByText('Severity');
+
+    // Third click (asc → reset): should navigate to default timestamp desc sort
+    await userEvent.click(severityHeader);
+    expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('-timestamp');
   });
 });

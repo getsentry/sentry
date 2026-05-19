@@ -25,7 +25,7 @@ export function TraceFeature() {
   return (
     <Feature
       features={features}
-      hookName={undefined}
+      overrideName={undefined}
       organization={organization}
       renderDisabled={PerfDisabled}
     >

@@ -51,7 +51,7 @@ function AutofixInsightCardsDisplay({
     setExpandedCardIndex(prevIndex => (prevIndex === index ? null : index));
   };
 
-  const validInsightCount = insights.filter(insight => insight).length;
+  const validInsightCount = insights.filter(Boolean).length;
 
   return (
     <InsightsContainerWithLines>

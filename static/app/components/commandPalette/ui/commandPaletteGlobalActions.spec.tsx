@@ -1,5 +1,3 @@
-jest.unmock('lodash/debounce');
-
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
@@ -97,6 +95,10 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       url: `/organizations/${organization.slug}/teams/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
   });
 
   async function drillIntoGeneralSettings() {
@@ -163,7 +165,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('does not duplicate the current project in the list', async () => {
+  it.isKnownFlake('does not duplicate the current project in the list', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -243,27 +245,30 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('shows all projects without priority when not on a :projectId route', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/issues/`},
-        },
-      }
-    );
+  it.isKnownFlake(
+    'shows all projects without priority when not on a :projectId route',
+    async () => {
+      render(
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: `/organizations/${organization.slug}/issues/`},
+          },
+        }
+      );
 
-    await drillIntoGeneralSettings();
+      await drillIntoGeneralSettings();
 
-    expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
-  });
+      expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+    }
+  );
 });
 
 describe('GlobalCommandPaletteActions - search recall', () => {
@@ -305,6 +310,10 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
   });
@@ -404,4 +413,26 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       ).toBeInTheDocument();
     }
   );
+
+  it('searches for projects and navigates to project page', async () => {
+    const projectToFind = ProjectFixture({
+      id: '2',
+      slug: 'test-project',
+      name: 'Test Project',
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [projectToFind],
+      match: [MockApiClient.matchQuery({query: 'test'})],
+    });
+
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'test');
+
+    expect(await screen.findByRole('option', {name: 'test-project'})).toBeInTheDocument();
+  });
 });

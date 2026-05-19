@@ -1158,7 +1158,9 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
 
             # Verify the message text and parameters
             call_args_list = mock_capture_message.call_args_list
-            captured_artifact_ids = [call[1]["extras"]["artifact_id"] for call in call_args_list]
+            captured_artifact_ids = [
+                call[1]["extras"]["preprod_artifact_id"] for call in call_args_list
+            ]
 
             assert expired_artifact_1.id in captured_artifact_ids
             assert expired_artifact_2.id in captured_artifact_ids
@@ -1167,7 +1169,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             for call in call_args_list:
                 assert call[0][0] == "PreprodArtifact expired"
                 assert call[1]["level"] == "error"
-                assert "artifact_id" in call[1]["extras"]
+                assert "preprod_artifact_id" in call[1]["extras"]
 
     def test_detect_expired_preprod_artifacts_mixed_states(self) -> None:
         """Test that only artifacts in the right states are considered for expiration"""

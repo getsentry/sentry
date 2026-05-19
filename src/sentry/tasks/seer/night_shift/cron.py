@@ -25,11 +25,12 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
-    NightShiftRunResultKind,
     SeerNightShiftRun,
     SeerNightShiftRunResult,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRun
+from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
@@ -44,12 +45,12 @@ from sentry.tasks.seer.night_shift.tweaks import (
     get_night_shift_tweaks,
 )
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.utils.hashlib import md5_text
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_DISPATCH_STEP_SECONDS = 37
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
 
 BATCH_FEATURE_NAMES = [
@@ -118,12 +119,12 @@ def schedule_night_shift(
 
     seer_org_ids: set[int] = set()
     for spr in RangeQuerySetWrapper[SeerProjectRepository](
-        SeerProjectRepository.objects.filter(project__status=ObjectStatus.ACTIVE).select_related(
-            "project"
-        ),
+        SeerProjectRepository.objects.filter(
+            project_repository__project__status=ObjectStatus.ACTIVE
+        ).select_related("project_repository__project"),
         step=1000,
     ):
-        seer_org_ids.add(spr.project.organization_id)
+        seer_org_ids.add(spr.project_repository.project.organization_id)
 
     logger.info(
         "night_shift.schedule_org_ids_collected",
@@ -146,7 +147,7 @@ def schedule_night_shift(
         )
         eligible = _get_eligible_orgs_from_batch(org_batch)
         for org in eligible:
-            delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
+            delay = int(md5_text(str(org.id)).hexdigest(), 16) % spread_seconds
             run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
 
@@ -206,6 +207,11 @@ def run_night_shift_for_org(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
+    workflow_config = SeerWorkflowConfig.get_or_create_for_strategy(
+        organization_id=organization.id,
+        strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+    )
+
     extras: dict[str, object] = {"options": dict(resolved_options)}
     if project_ids is not None:
         extras["target_project_ids"] = project_ids
@@ -214,6 +220,7 @@ def run_night_shift_for_org(
 
     run = SeerNightShiftRun.objects.create(
         organization=organization,
+        workflow_config=workflow_config,
         extras=extras,
     )
 
@@ -538,12 +545,15 @@ def _run_autofix_for_candidates(
             )
             continue
 
+        # TODO: have trigger_autofix_agent return the SeerRun directly to avoid this lookup.
+        result_seer_run = SeerRun.objects.filter(seer_run_state_id=seer_run_id).first()
         results.append(
             SeerNightShiftRunResult(
                 run=run,
-                kind=NightShiftRunResultKind.AGENTIC_TRIAGE,
+                kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 group=c.group,
                 seer_run_id=str(seer_run_id),
+                result_seer_run=result_seer_run,
                 extras={"action": str(c.action)},
             )
         )

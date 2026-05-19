@@ -1,3 +1,4 @@
+import {isValidElement} from 'react';
 import type {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -120,12 +121,15 @@ describe('navigation ActionCreator', () => {
     navigateTo('/settings/:orgId/teams/:teamId/settings/', navigate, location);
     expect(openModal).toHaveBeenCalled();
 
-    const modalFactory = (openModal as jest.Mock).mock.calls[0]?.[0];
+    const modalFactory = jest.mocked(openModal).mock.calls[0]?.[0];
     if (!modalFactory) {
       throw new Error('Expected openModal to be called with a renderer');
     }
 
     const modal = modalFactory({closeModal: jest.fn()} as any);
+    if (!isValidElement<{needOrg: boolean; needTeam: boolean}>(modal)) {
+      throw new Error('Expected modalFactory to return a React element');
+    }
     expect(modal.props.needOrg).toBe(true);
     expect(modal.props.needTeam).toBe(true);
   });

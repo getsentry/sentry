@@ -9,7 +9,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const REPLAY_CLIP_OFFSETS = {
   durationAfterMs: 5_000,
@@ -68,13 +68,13 @@ export function ReplayPreview({
 
   return (
     <ReplayAccess>
-      <InterimSection
+      <FoldSection
         title={t('Session Replay')}
-        type="trace_session_replay"
+        sectionKey="trace_session_replay"
         disableCollapsePersistence
       >
         <ReplaySection event={event} organization={organization} />
-      </InterimSection>
+      </FoldSection>
     </ReplayAccess>
   );
 }

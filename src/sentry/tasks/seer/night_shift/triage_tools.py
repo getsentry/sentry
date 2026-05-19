@@ -181,7 +181,7 @@ class get_issue_details_agentic_triage(  # noqa: N801
             return "Issue not found. Check the issue_id and time range."
 
         project_id = result.get("project_id")
-        linked_repos = _format_linked_repos(project_id) if project_id else ""
+        linked_repos = _format_linked_repos(project_id, organization) if project_id else ""
         body = format_issue_output(result)
         return (
             f"Issue ID: {params.issue_id}\n"
@@ -192,7 +192,7 @@ class get_issue_details_agentic_triage(  # noqa: N801
         )
 
 
-def _format_linked_repos(project_id: int) -> str:
+def _format_linked_repos(project_id: int, organization: Organization) -> str:
     """Render the project's linked GitHub repos + source-root mappings.
 
     Surfaces the actual repo name (e.g. `getsentry/seer-test-sandbox`) so the
@@ -200,13 +200,13 @@ def _format_linked_repos(project_id: int) -> str:
     because many repos place app code under a subdirectory (e.g. `python/`).
     """
     configs = (
-        RepositoryProjectPathConfig.objects.filter(project_id=project_id)
-        .select_related("repository")
+        RepositoryProjectPathConfig.objects.filter(project_repository__project_id=project_id)
+        .select_related("project_repository__repository")
         .order_by("id")
     )
     lines: list[str] = []
     for cfg in configs:
-        repo_name = cfg.repository.name
+        repo_name = cfg.project_repository.repository.name
         source_root = cfg.source_root or ""
         stack_root = cfg.stack_root or ""
         parts = [f"- {repo_name}"]

@@ -330,6 +330,7 @@ def _launch_agents_for_repos(
             repository=repo,
             branch_name=sanitize_branch_name(autofix_state.request.issue["title"]),
             auto_create_pr=auto_create_pr,
+            issue_short_id=short_id,
         )
 
         try:
@@ -437,7 +438,6 @@ def launch_coding_agents_for_run(
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
     user_id: int | None = None,
-    initiator: str | None = None,
     referrer: str | None = None,
 ) -> dict[str, list]:
     """
@@ -541,7 +541,6 @@ def launch_coding_agents_for_run(
             group_id=autofix_state.request.issue["id"],
             referrer=referrer,
             coding_agent=coding_agent_name,
-            initiator=initiator,
         )
     )
 

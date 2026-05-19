@@ -16,7 +16,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
@@ -56,7 +56,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
-import type {AvatarProject} from 'sentry/types/project';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -324,12 +324,6 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('User Feedback')}}
             to={`${prefix}/issues/feedback/`}
           />
-          {organization.features.includes('seer-autopilot') && (
-            <CMDKAction
-              display={{label: t('Instrumentation')}}
-              to={`${prefix}/issues/instrumentation/`}
-            />
-          )}
           <CMDKAction display={{label: t('All Views')}} to={`${prefix}/issues/views/`} />
           {starredViews.map(starredView => (
             <CMDKAction
@@ -550,7 +544,7 @@ export function GlobalCommandPaletteActions() {
                 to={item.path}
               />
             ))}
-          <Hook name="cmdk:global-settings-actions" />
+          <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
 
         <CMDKAction
@@ -896,6 +890,39 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction
+        display={{label: t('Projects'), icon: <IconAllProjects />}}
+        prompt={t('Search for a project...')}
+        limit={4}
+        resource={query => {
+          return cmdkQueryOptions({
+            ...apiOptions.as<Project[]>()(
+              '/organizations/$organizationIdOrSlug/projects/',
+              {
+                path: {organizationIdOrSlug: organization.slug},
+                query: {query},
+                staleTime: 30_000,
+              }
+            ),
+            enabled: query.length >= 1,
+            select: data =>
+              data.json.map(project => ({
+                display: {
+                  label: project.slug,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                },
+                keywords: [project.name, project.slug],
+                to: makeProjectsPathname({
+                  path: `/${project.slug}/`,
+                  organization,
+                }),
+              })),
+          });
+        }}
+      >
+        {data => data.map((item, i) => renderAsyncResult(item, i))}
+      </CMDKAction>
+
+      <CMDKAction
         display={{label: t('Open Project'), icon: <IconAllProjects />}}
         keywords={[
           t('project'),
@@ -998,6 +1025,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction display={{label: t('Change Color Theme'), icon: <IconSettings />}}>
           <CMDKAction
             display={{label: t('System')}}
+            keywords={['default theme', 'system theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
@@ -1006,6 +1034,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Light')}}
+            keywords={['light mode', 'light theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
@@ -1014,6 +1043,7 @@ export function GlobalCommandPaletteActions() {
           />
           <CMDKAction
             display={{label: t('Dark')}}
+            keywords={['dark mode', 'dark theme']}
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});

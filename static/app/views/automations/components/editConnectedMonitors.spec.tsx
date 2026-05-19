@@ -45,6 +45,10 @@ describe('EditConnectedMonitors', () => {
     ProjectsStore.loadInitialData([project, otherProject]);
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       method: 'GET',
       body: [detector1],

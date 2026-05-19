@@ -1,5 +1,3 @@
-from dataclasses import asdict
-
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -108,7 +106,6 @@ def trigger_action(
 ) -> None:
     import uuid
 
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.workflow_engine.processors.detector import get_preferred_detector
 
     # Generate UUID if not provided (handles version skew at task boundary)
@@ -153,21 +150,7 @@ def trigger_action(
         tags={"action_type": action.type, "detector_type": detector.type},
         sample_rate=1.0,
     )
-
-    should_trigger_actions = should_fire_workflow_actions(
-        detector.project.organization, event_data.group.type
-    )
-
-    if should_trigger_actions:
-        # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
-        # in this scope is grouped properly.
-        with timeout_grouping_context(action.type):
-            action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
-    else:
-        logger.info(
-            "workflow_engine.triggered_actions.dry-run",
-            extra={
-                "action_ids": [action_id],
-                "event_data": asdict(event_data),
-            },
-        )
+    # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
+    # in this scope is grouped properly.
+    with timeout_grouping_context(action.type):
+        action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
