@@ -93,7 +93,7 @@ export function getInitialTab({
   isLoading: boolean;
   sections: ReturnType<typeof useTraceContextSections>;
   tabOptions: Tab[];
-  tabSlugFromUrl: unknown;
+  tabSlugFromUrl: string | undefined;
   logsEnabled?: boolean;
   meta?: TraceMetaQueryResults['data'];
   metricsEnabled?: boolean;
@@ -165,7 +165,7 @@ export function useTraceLayoutTabs({
   const tabOptions = getTabOptions({sections: {...sections}});
 
   const queryParams = qs.parse(window.location.search);
-  const tabSlugFromUrl = queryParams.tab;
+
   const initialTab = getInitialTab({
     isLoading,
     logsEnabled,
@@ -173,7 +173,7 @@ export function useTraceLayoutTabs({
     meta,
     sections,
     tabOptions,
-    tabSlugFromUrl,
+    tabSlugFromUrl: typeof queryParams.tab === 'string' ? queryParams.tab : undefined,
   });
 
   const [currentTab, setCurrentTab] = useState(initialTab.slug);
