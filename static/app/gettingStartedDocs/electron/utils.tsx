@@ -65,6 +65,11 @@ export function getMainConfigSnippet(params: DocsParams) {
     getIntegrations: () => [],
     getDynamicParts: p => {
       const parts: string[] = [];
+      if (p.isPerformanceSelected) {
+        parts.push(`
+      // Tracing
+      tracesSampleRate: 1.0, //  Capture 100% of the transactions`);
+      }
       if (p.isLogsSelected) {
         parts.push(`
       // Enable logs to be sent to Sentry
