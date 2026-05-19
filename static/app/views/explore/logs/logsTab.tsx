@@ -20,6 +20,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -248,6 +249,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
 
 function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) {
   const {openModal} = useModal();
+  const organization = useOrganization();
 
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
@@ -393,6 +395,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = (tab: 'aggregates' | 'logs') => {
+    trackAnalytics('logs.explorer.table_tab_changed', {organization, tab});
     if (tab === 'aggregates') {
       setSidebarOpen(true);
       setMode(Mode.AGGREGATE);
