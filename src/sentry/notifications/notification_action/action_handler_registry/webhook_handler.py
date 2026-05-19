@@ -39,14 +39,11 @@ class WebhookActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        if not isinstance(invocation.event_data.event, GroupEvent):
-            return
-
         organization = invocation.detector.project.organization
         new_path = features.has("organizations:legacy-webhook-new-path", organization)
         disable_old = features.has("organizations:legacy-webhook-disable-old-path", organization)
 
-        if new_path:
+        if new_path and isinstance(invocation.event_data.event, GroupEvent):
             send_legacy_webhooks_for_invocation(invocation)
 
         if not disable_old:

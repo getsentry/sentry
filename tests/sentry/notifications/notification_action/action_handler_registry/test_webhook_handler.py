@@ -107,14 +107,13 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
 
         assert len(responses.calls) == 0
 
-    @responses.activate
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
     )
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.execute_via_group_type_registry"
     )
-    def test_non_group_event_skips_both_paths(
+    def test_non_group_event_skips_new_path_but_old_path_still_runs(
         self, mock_old_path: mock.MagicMock, mock_new_path: mock.MagicMock
     ) -> None:
         activity = Activity.objects.create(
@@ -136,4 +135,4 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             WebhookActionHandler.execute(invocation)
 
         mock_new_path.assert_not_called()
-        mock_old_path.assert_not_called()
+        mock_old_path.assert_called_once_with(invocation)
