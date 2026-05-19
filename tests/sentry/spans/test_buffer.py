@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 import itertools
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import cast
 from unittest import mock
 
@@ -1676,7 +1676,7 @@ _LOAD_SEGMENT_ROOT_TIMEOUT = cast(int, DEFAULT_OPTIONS["spans.buffer.root-timeou
 
 
 @pytest.fixture
-def load_segment_buffer() -> SpansBuffer:
+def load_segment_buffer() -> Iterator[SpansBuffer]:
     with override_options({**DEFAULT_OPTIONS, "spans.buffer.segment-page-size": 1}):
         buffer = SpansBuffer(assigned_shards=[0])
         buffer.__dict__["client"] = _LoadSegmentDataRedis()
