@@ -3,7 +3,6 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
-import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
@@ -361,8 +360,7 @@ export function getContextIcon({
     return null;
   }
 
-  const imageName = getLogoImage(iconName);
-  if (imageName === logoUnknown) {
+  if (getLogoImage(iconName) === null) {
     return null;
   }
   return <ContextIcon name={iconName} {...contextIconProps} />;
