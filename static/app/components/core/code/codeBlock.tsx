@@ -142,6 +142,7 @@ export function CodeBlock({
 
   const hasTabs = tabs && tabs.length > 0;
   const hasFloatingHeader = !(filename || hasTabs);
+  const hasCopyButton = !hideCopyButton;
 
   const tooltipTitle =
     tooltipState === 'copy'
@@ -154,6 +155,7 @@ export function CodeBlock({
     <Wrapper
       isRounded={isRounded}
       className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
+      data-has-copy-button={hasCopyButton ? 'true' : undefined}
       data-render-inline={dataRenderInline}
     >
       <Header isFloating={hasFloatingHeader}>
@@ -177,7 +179,7 @@ export function CodeBlock({
         {icon}
         {filename && <FileName>{filename}</FileName>}
         {!hasTabs && <Container flexGrow={1} />}
-        {!hideCopyButton && (
+        {hasCopyButton && (
           <CopyButton
             type="button"
             size="xs"
@@ -216,12 +218,20 @@ export function CodeBlock({
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
     height: 100%;
+  }
+
+  &[data-has-copy-button='true'] pre {
+    max-width: 100%;
+    min-width: 100%;
+    overflow-x: auto;
   }
 
   &[data-render-inline='true'] pre {
