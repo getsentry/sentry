@@ -37,7 +37,7 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationProjectDetectorPermission,)
 
     @extend_schema(
@@ -58,8 +58,6 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     )
     def post(self, request: Request, project: Project) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Create a Monitor for a project
         """
         organization = project.organization

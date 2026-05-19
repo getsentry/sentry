@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -66,5 +66,36 @@ describe('TraceViewLogsSection', () => {
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the similar spans log row action', async () => {
+    const now = new Date();
+    const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [
+          {
+            'sentry.item_id': '11111111111111111111111111111111',
+            'project.id': 1,
+            trace: TRACE_SLUG,
+            severity_number: 0,
+            severity: 'info',
+            timestamp: now.toISOString(),
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: now.getTime() * 1e6,
+            message: 'i am a log',
+          },
+        ],
+        meta: {},
+      },
+    });
+    render(<Component traceSlug={TRACE_SLUG} />, {organization});
+
+    const row = await screen.findByTestId('log-table-row');
+    await userEvent.hover(row);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+
+    expect(await screen.findByText('Explore similar spans')).toBeInTheDocument();
   });
 });

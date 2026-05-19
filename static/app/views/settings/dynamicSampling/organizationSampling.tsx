@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -114,19 +113,16 @@ export function OrganizationSampling() {
                     targetSampleRateError={field.state.meta.errors[0]?.message}
                     actions={
                       <Fragment>
-                        <Button
-                          disabled={!isDirty || isPending}
-                          onClick={() => form.reset()}
-                        >
+                        <form.ResetButton disabled={isPending}>
                           {t('Reset')}
-                        </Button>
+                        </form.ResetButton>
                         <Tooltip
                           disabled={hasAccess}
                           title={t(
                             'You do not have permission to update these settings.'
                           )}
                         >
-                          <form.SubmitButton disabled={!hasAccess} formNoValidate>
+                          <form.SubmitButton disabled={!hasAccess}>
                             {t('Apply Changes')}
                           </form.SubmitButton>
                         </Tooltip>

@@ -7,7 +7,7 @@ import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfig
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-const MCP_RESOURCE_FILTER = `${SpanFields.NAME}:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`;
+const MCP_RESOURCE_FILTER = `${SpanFields.SPAN_OP}:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`;
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [

@@ -8,7 +8,7 @@ import {
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
-import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import type {TraceItemAttributeConfig} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';

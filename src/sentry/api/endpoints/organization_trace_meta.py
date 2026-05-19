@@ -39,7 +39,7 @@ class SerializedResponse(TypedDict, total=False):
     metricsCount: int
     performanceIssuesCount: int
     spansCount: int
-    uptimeCount: int  # Only present when include_uptime is True
+    uptimeCount: int
 
     transactionChildCountMap: SnubaData
     spansCountMap: dict[str, int]

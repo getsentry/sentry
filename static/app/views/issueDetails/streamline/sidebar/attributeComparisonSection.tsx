@@ -19,7 +19,7 @@ import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFiltere
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const BASELINE_DAYS = 7;
 const CHARTS_PER_PAGE = 9; // 3 rows × 3 columns max
@@ -122,9 +122,9 @@ export function AttributeComparisonSection({
   ]);
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey="attribute_comparison"
       title={t('Attribute Comparison')}
-      type="attribute_comparison"
       actions={
         <LinkButton size="xs" to={exploreUrl}>
           {t('View All')}
@@ -183,7 +183,7 @@ export function AttributeComparisonSection({
           <AttributeBreakdownsComponent.EmptySearchState />
         )}
       </Flex>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

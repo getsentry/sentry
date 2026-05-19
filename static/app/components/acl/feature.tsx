@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getHook} from 'sentry/hookRegistry';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {Config} from 'sentry/types/system';
-import {withConfig} from 'sentry/utils/withConfig';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {ComingSoon} from './comingSoon';
@@ -21,7 +21,6 @@ type Props = {
    * all the required feature.
    */
   children: React.ReactNode | ChildrenRenderFn;
-  config: Config;
   /**
    * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
    * On the backend end, feature tags have a scope prefix string that is stripped out on the
@@ -35,7 +34,7 @@ type Props = {
    */
   organization: Organization;
   /**
-   * Specify the key to use for hookstore functionality.
+   * Specify the key to use for hook registry functionality.
    *
    * The hookName should be prefixed with `feature-disabled`.
    *
@@ -132,7 +131,6 @@ const hasFeature = (
  */
 function Feature({
   children,
-  config,
   features: featuresProp,
   hookName,
   organization,
@@ -140,6 +138,8 @@ function Feature({
   renderDisabled = false,
   requireAll = true,
 }: Props) {
+  const config = useLegacyStore(ConfigStore);
+
   const features = useMemo(
     () => (Array.isArray(featuresProp) ? featuresProp : [featuresProp]),
     [featuresProp]
@@ -171,13 +171,13 @@ function Feature({
         ? renderDisabled
         : renderComingSoon;
 
-  // Override the renderDisabled function with a hook store function if there
+  // Override the renderDisabled function with a hook registry function if there
   // is one registered for the feature.
   if (hookName) {
-    const hooks = HookStore.get(hookName);
+    const hook = getHook(hookName);
 
-    if (hooks.length > 0) {
-      customDisabledRender = hooks[0]!;
+    if (hook) {
+      customDisabledRender = hook;
     }
   }
   const renderProps = {
@@ -198,4 +198,4 @@ function Feature({
   return hasFeatureEnabled && children ? children : null;
 }
 
-export default withOrganization(withConfig(Feature));
+export default withOrganization(Feature);

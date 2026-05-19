@@ -19,6 +19,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowPermission,
 )
@@ -55,8 +57,17 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationWorkflowPermission,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=50, window=60),
+            }
+        }
+    )
 
     @extend_schema(
         operation_id="Test Fire Actions",
@@ -133,11 +144,8 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
             config=action_data.get("config", {}),
         )
 
-        # Annotate the action with the workflow id
-        setattr(action, "workflow_id", workflow_id)
-
         # Test fire the action and collect any exceptions
-        exceptions = test_fire_action(action, workflow_event_data)
+        exceptions = test_fire_action(action, workflow_event_data, workflow_id=workflow_id)
         if exceptions:
             action_exceptions.extend(exceptions)
 

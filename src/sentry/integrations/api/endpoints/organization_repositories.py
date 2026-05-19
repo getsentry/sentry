@@ -33,7 +33,7 @@ UNMIGRATABLE_PROVIDERS = (
 
 @cell_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

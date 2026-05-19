@@ -16,8 +16,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
+import {getHook} from 'sentry/hookRegistry';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,7 +49,7 @@ export function MonitorCreateForm() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const monitorCreationCallbacks = HookStore.get('callback:on-monitor-created');
+  const onMonitorCreated = getHook('callback:on-monitor-created');
 
   const form = useRef(
     new FormModel({
@@ -79,7 +79,7 @@ export function MonitorCreateForm() {
         query: endpointOptions.query,
       })
     );
-    monitorCreationCallbacks.map(cb => cb(organization));
+    onMonitorCreated?.(organization);
   }
 
   function changeScheduleType(type: ScheduleType) {

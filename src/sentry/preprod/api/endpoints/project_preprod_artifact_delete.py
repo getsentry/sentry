@@ -48,7 +48,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
         except Exception:
             logger.exception(
                 "preprod_artifact.delete_failed",
-                extra={"artifact_id": int(head_artifact_id), "user_id": request.user.id},
+                extra={"preprod_artifact_id": int(head_artifact_id), "user_id": request.user.id},
             )
             return Response(
                 {
@@ -61,7 +61,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
         logger.info(
             "preprod_artifact.deleted",
             extra={
-                "artifact_id": int(head_artifact_id),
+                "preprod_artifact_id": int(head_artifact_id),
                 "user_id": request.user.id,
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,

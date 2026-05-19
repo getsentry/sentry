@@ -14,7 +14,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
-from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -156,12 +156,6 @@ def evaluate_workflow_triggers(
     # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
     data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(dcg_ids)
 
-    project = event_data.event.project  # expected to be already cached
-    dual_processing_logs_enabled = features.has(
-        "organizations:workflow-engine-metric-alert-dual-processing-logs",
-        project.organization,
-    )
-
     tainted_untriggered, untainted_untriggered = 0, 0
     for workflow in workflows:
         when_data_conditions = None
@@ -196,22 +190,6 @@ def evaluate_workflow_triggers(
         else:
             if evaluation.triggered:
                 triggered_workflows[workflow] = evaluation
-                if dual_processing_logs_enabled:
-                    try:
-                        detector = WorkflowEventContext.get().detector
-                        detector_id = detector.id if detector else None
-                        logger.info(
-                            "workflow_engine.process_workflows.workflow_triggered",
-                            extra={
-                                "workflow_id": workflow.id,
-                                "detector_id": detector_id,
-                                "organization_id": project.organization.id,
-                                "project_id": project.id,
-                                "group_type": event_data.group.type,
-                            },
-                        )
-                    except DetectorWorkflow.DoesNotExist:
-                        continue
             else:
                 if evaluation.is_tainted():
                     tainted_untriggered += 1

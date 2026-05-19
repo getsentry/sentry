@@ -94,7 +94,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "shared-issues",
             "sso-basic",
             "sso-saml2",
-            "symbol-sources",
             "team-insights",
             "team-roles",
             "uptime",

@@ -10,7 +10,8 @@ import type {SentryRouteObject} from 'sentry/router/types';
 import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
+import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
   useDefaultMaxPickableDays,
@@ -50,7 +51,6 @@ export interface Hooks
     FeatureDisabledHooks,
     InterfaceChromeHooks,
     OnboardingHooks,
-    SettingsHooks,
     FeatureSpecificHooks,
     ReactHooks,
     CallbackHooks {
@@ -225,6 +225,7 @@ type ComponentHooks = {
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
+  'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
@@ -315,14 +316,6 @@ type OnboardingHooks = {
 };
 
 /**
- * Settings navigation hooks.
- */
-type SettingsHooks = {
-  'settings:organization-navigation': OrganizationSettingsHook;
-  'settings:organization-navigation-config': SettingsConfigHook;
-};
-
-/**
  * Feature Specific Hooks
  */
 interface FeatureSpecificHooks extends SpendVisibilityHooks {}
@@ -342,6 +335,7 @@ type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:use-billing-navigation-config': () => NavigationSection | null;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
@@ -358,6 +352,9 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
+  'react-hook:use-replay-for-critical-flow': (
+    options: UseReplayForCriticalFlowOptions
+  ) => void;
   'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
 };
 
@@ -391,7 +388,7 @@ type GenericOrganizationComponentHook = (opts: {
 /**
  * Receives a project object and should return a React node.
  */
-type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
+type GenericProjectComponentHook = (opts: {project: DetailedProject}) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
@@ -433,7 +430,7 @@ type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 type AnalyticsInitUser = (user: User) => void;
 
 /**
- * Trigger analytics tracking in the hook store.
+ * Trigger analytics tracking in the hook registry.
  */
 type AnalyticsRawTrackEvent = (
   data: {
@@ -476,7 +473,7 @@ type AnalyticsRawTrackEvent = (
 ) => void;
 
 /**
- * Trigger recording a metric in the hook store.
+ * Trigger recording a metric in the hook registry.
  */
 type MetricsEvent = (
   /**
@@ -492,16 +489,6 @@ type MetricsEvent = (
    */
   tags?: Record<PropertyKey, unknown>
 ) => void;
-
-/**
- * Provides additional navigation components
- */
-type OrganizationSettingsHook = (organization: Organization) => React.ReactElement;
-
-/**
- * Provides additional setting configurations
- */
-type SettingsConfigHook = (organization: Organization) => NavigationSection;
 
 /**
  * Each sidebar label is wrapped with this hook, to allow sidebar item

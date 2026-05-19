@@ -15,15 +15,15 @@ import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboa
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {getHook} from 'sentry/hookRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
-import SystemAlerts from 'sentry/views/app/systemAlerts';
+import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
@@ -31,7 +31,8 @@ import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryN
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import {ExplorerFloatingActionButton} from 'sentry/views/seerExplorer/components/panel/explorerFAB';
+import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
@@ -45,7 +46,6 @@ export function OrganizationLayout() {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const hasPageFrame = useHasPageFrameFeature();
 
   useInitSentryToolbar(organization);
 
@@ -53,12 +53,15 @@ export function OrganizationLayout() {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <GlobalAnalytics />
       <OrganizationContainer>
-        <GlobalDrawer>
-          <SeerExplorerContextProvider>
-            {hasPageFrame ? null : <ExplorerFloatingActionButton />}
-            <AppLayout organization={organization} />
-          </SeerExplorerContextProvider>
-        </GlobalDrawer>
+        <SeerExplorerSessionsProvider>
+          <SeerExplorerChatStateProvider>
+            <GlobalDrawer>
+              <SeerExplorerContextProvider>
+                <AppLayout organization={organization} />
+              </SeerExplorerContextProvider>
+            </GlobalDrawer>
+          </SeerExplorerChatStateProvider>
+        </SeerExplorerSessionsProvider>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
@@ -85,7 +88,7 @@ function AppLayout({organization}: LayoutProps) {
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+    !getHook('component:superuser-warning-excluded')?.(organization);
 
   return (
     <PrimaryNavigationContextProvider>

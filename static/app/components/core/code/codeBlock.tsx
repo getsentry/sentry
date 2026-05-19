@@ -95,7 +95,6 @@ export function CodeBlock({
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
     async function loadLineHighlight() {
-      // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
       await import('prismjs/plugins/line-highlight/prism-line-highlight');
       setLineHighlightLoaded(true);
     }

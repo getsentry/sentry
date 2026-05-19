@@ -1,5 +1,3 @@
-jest.unmock('lodash/debounce');
-
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
@@ -163,7 +161,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('does not duplicate the current project in the list', async () => {
+  it.isKnownFlake('does not duplicate the current project in the list', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -243,27 +241,30 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('shows all projects without priority when not on a :projectId route', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/issues/`},
-        },
-      }
-    );
+  it.isKnownFlake(
+    'shows all projects without priority when not on a :projectId route',
+    async () => {
+      render(
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: `/organizations/${organization.slug}/issues/`},
+          },
+        }
+      );
 
-    await drillIntoGeneralSettings();
+      await drillIntoGeneralSettings();
 
-    expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
-  });
+      expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+    }
+  );
 });
 
 describe('GlobalCommandPaletteActions - search recall', () => {

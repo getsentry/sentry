@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -30,11 +31,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {
-  ComparisonState,
-  DiffStatus,
-  getImageName,
-} from 'sentry/views/preprod/types/snapshotTypes';
+import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -144,10 +141,8 @@ export default function SnapshotsPage() {
       // Skip retries on 4xx so error pages render instantly
       retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
-        const state = query.state.data?.json?.comparison_run_info?.state;
-        return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
-          ? 5_000
-          : false;
+        const state = query.state.data?.json?.comparison_state;
+        return state === 'pending' || state === 'processing' ? 5_000 : false;
       },
     }
   );
@@ -162,7 +157,7 @@ export default function SnapshotsPage() {
       organization,
       comparison_type: data.comparison_type,
       image_count: data.image_count,
-      approval_status: data.approval_info?.status ?? null,
+      approval_status: data.approval_status ?? null,
       has_base_build: !!data.base_artifact_id,
       project_id: data.project_id,
     });
@@ -181,6 +176,8 @@ export default function SnapshotsPage() {
     'snapshot-diff-mode',
     'split'
   );
+  const breakpoints = useBreakpoints();
+  const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)
@@ -206,8 +203,17 @@ export default function SnapshotsPage() {
   );
   const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
 
+  const availableStatuses = useMemo(
+    () =>
+      new Set((Object.values(DiffStatus) as DiffStatus[]).filter(s => data?.[s]?.length)),
+    [data]
+  );
+
   const handleToggleStatus = useCallback(
     (status: DiffStatus) => {
+      if (availableStatuses.size <= 1) {
+        return;
+      }
       startTransition(() => {
         setActiveStatusList(prev => {
           if (prev.length === 0) {
@@ -216,13 +222,21 @@ export default function SnapshotsPage() {
           if (prev.length === 1 && prev[0] === status) {
             return [];
           }
-          return prev.includes(status)
+          const next = prev.includes(status)
             ? prev.filter(s => s !== status)
             : [...prev, status];
+          if (
+            availableStatuses.size > 0 &&
+            next.length === availableStatuses.size &&
+            next.every(s => availableStatuses.has(s))
+          ) {
+            return [];
+          }
+          return next;
         });
       });
     },
-    [setActiveStatusList]
+    [setActiveStatusList, availableStatuses]
   );
 
   const {
@@ -244,9 +258,8 @@ export default function SnapshotsPage() {
   const hasDiffComparison = data?.comparison_type === 'diff';
   const comparisonType =
     viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
-  const comparisonRunInfo = data?.comparison_run_info;
 
-  const isSoloView = comparisonType === 'solo';
+  const isSoloView = comparisonType === 'solo' || comparisonType === 'waiting_for_base';
   const handleToggleView = useCallback(() => {
     const {view: _view, ...restQuery} = location.query;
     if (isSoloView) {
@@ -343,7 +356,7 @@ export default function SnapshotsPage() {
   }, [sidebarItems, memberSearchKeys, searchQuery]);
 
   const filteredItems = useMemo(() => {
-    const hasStatusFilter = activeStatuses.size > 0;
+    const hasStatusFilter = activeStatuses.size > 0 && comparisonType === 'diff';
     const base = hasStatusFilter
       ? searchFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : searchFilteredItems;
@@ -361,7 +374,7 @@ export default function SnapshotsPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [searchFilteredItems, activeStatuses, sortBy]);
+  }, [searchFilteredItems, activeStatuses, sortBy, comparisonType]);
 
   const sidebarSections = useMemo<SidebarSection[]>(() => {
     function toGroup(item: SidebarItem) {
@@ -630,10 +643,7 @@ export default function SnapshotsPage() {
   ]);
 
   const isComparisonProcessing =
-    !!comparisonRunInfo?.state &&
-    [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
-      comparisonRunInfo.state
-    );
+    data?.comparison_state === 'pending' || data?.comparison_state === 'processing';
 
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = imageBaseUrl;
@@ -659,6 +669,8 @@ export default function SnapshotsPage() {
         flexShrink={0}
         overflow="auto"
         borderRight="primary"
+        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+        maxWidth={{sm: '300px', md: 'none'}}
         style={{
           width: sidebarWidth,
           height: hasPageFrameFeature
@@ -693,7 +705,7 @@ export default function SnapshotsPage() {
           diffImageBaseUrl={diffImageBaseUrl}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
-          diffMode={diffMode}
+          diffMode={effectiveDiffMode}
           onDiffModeChange={setDiffMode}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -768,6 +780,10 @@ const DragHandle = styled('div')`
   position: relative;
   display: grid;
   place-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;

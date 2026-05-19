@@ -3,9 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AlertStore} from 'sentry/stores/alertStore';
+import {getHook, registerHook} from 'sentry/hookRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {App} from 'sentry/views/app';
@@ -42,8 +41,6 @@ describe('App', () => {
 
     ConfigStore.init();
     ConfigStore.loadInitialData(configState);
-
-    HookStore.init();
 
     MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -136,17 +133,17 @@ describe('App', () => {
       partnerDisplayName: 'Foo',
       agreements: ['standard', 'partner_presence'],
     });
-    HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
+    registerHook('component:partnership-agreement', () => <HookWrapper key={0} />);
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
-    expect(HookStore.get('component:partnership-agreement')).toHaveLength(1);
+    expect(getHook('component:partnership-agreement')).toBeDefined();
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
   });
 
   it('does not render PartnerAgreement for non-partnered orgs', async () => {
     ConfigStore.set('partnershipAgreementPrompt', null);
-    HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
+    registerHook('component:partnership-agreement', () => <HookWrapper key={0} />);
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
@@ -213,7 +210,7 @@ describe('App', () => {
     expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
   });
 
-  it('adds health issues to alertstore', async () => {
+  it('fetches health issues for self-hosted', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
@@ -236,16 +233,5 @@ describe('App', () => {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
     expect(getMock).toHaveBeenCalled();
-
-    await waitFor(() => {
-      expect(AlertStore.getState()).toEqual([
-        expect.objectContaining({
-          id: 'abc123',
-          message: 'Celery workers have not checked in',
-          opaque: true,
-          variant: 'danger',
-        }),
-      ]);
-    });
   });
 });

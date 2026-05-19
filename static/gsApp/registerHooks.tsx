@@ -1,8 +1,8 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
+import {registerHook} from 'sentry/hookRegistry';
 import {IconBusiness} from 'sentry/icons';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 
@@ -26,7 +26,6 @@ import DisabledSelectorItems from 'getsentry/components/features/disabledSelecto
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import {PerformanceNewProjectPrompt} from 'getsentry/components/features/performanceNewProjectPrompt';
 import {ProjectPerformanceScoreCard} from 'getsentry/components/features/projectPerformanceScoreCard';
-import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
 import {HelpSearchFooter} from 'getsentry/components/helpSearchFooter';
 import {InviteMembersButtonCustomization} from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
@@ -40,6 +39,7 @@ import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
+import {ReplayInit} from 'getsentry/components/replayInit';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import {
   shouldExcludeOrg,
@@ -69,10 +69,12 @@ import {SpikeProtectionProjectSettings} from 'getsentry/hooks/spendVisibility/sp
 import {subscriptionSettingsRoutes} from 'getsentry/hooks/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
+import {useBillingNavigationConfig} from 'getsentry/hooks/useBillingNavigationConfig';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
 import {useExperiment} from 'getsentry/hooks/useExperiment';
 import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
 import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
+import {useReplayForCriticalFlow} from 'getsentry/hooks/useReplayForCriticalFlow';
 import {useScmFeatureMeta} from 'getsentry/hooks/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
@@ -166,11 +168,15 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'cmdk:global-settings-actions': () => <GsBillingCommandPaletteActions />,
 
   /**
-   * Settings navigation configuration component
+   * Provides billing-related items for the org settings navigation.
    */
-  'settings:organization-navigation': organization => (
-    <GSBillingNavigationConfig organization={organization} />
-  ),
+  'react-hook:use-billing-navigation-config': useBillingNavigationConfig,
+
+  /**
+   * Drives Sentry Replay registration at the App root, so non-org routes
+   * like `/onboarding/*` are covered too.
+   */
+  'component:replay-init': ReplayInit,
 
   /**
    * Augment the header with the getsentry banners. This includes banners
@@ -267,6 +273,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
   'react-hook:use-experiment': useExperiment,
   'react-hook:use-product-billing-access': useProductBillingAccess,
+  'react-hook:use-replay-for-critical-flow': useReplayForCriticalFlow,
   'react-hook:use-scm-feature-meta': useScmFeatureMeta,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
@@ -392,4 +399,4 @@ const entries = Object.entries as <T>(
 ) => Array<[Extract<keyof T, string>, T[keyof T]]>;
 
 export const registerHooks = () =>
-  entries(GETSENTRY_HOOKS).forEach(entry => HookStore.add(...entry));
+  entries(GETSENTRY_HOOKS).forEach(entry => registerHook(...entry));

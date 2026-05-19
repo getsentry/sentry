@@ -14,7 +14,7 @@ class AuthUserMergeVerificationCodeEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     permission_classes = (SentryIsAuthenticated,)
     """
     Generate and update verification codes for the user account merge flow.

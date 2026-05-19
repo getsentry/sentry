@@ -5,8 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Feature from 'sentry/components/acl/feature';
+import {registerHook} from 'sentry/hookRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 
 describe('Feature', () => {
   const organization = OrganizationFixture({
@@ -284,11 +284,7 @@ describe('Feature', () => {
 
     beforeEach(() => {
       hookFn = jest.fn(() => null);
-      HookStore.add('feature-disabled:sso-basic', hookFn);
-    });
-
-    afterEach(() => {
-      HookStore.remove('feature-disabled:sso-basic', hookFn);
+      registerHook('feature-disabled:sso-basic', hookFn);
     });
 
     it('uses hookName if provided', () => {

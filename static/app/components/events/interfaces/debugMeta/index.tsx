@@ -13,9 +13,10 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {
   DebugImageDetails,
   modalCss,
@@ -32,7 +33,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {Status} from './debugImage/status';
 import {DebugImage} from './debugImage';
@@ -107,6 +108,8 @@ interface DebugMetaProps {
 type FilterSelections = Array<SelectOption<string>>;
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
 
@@ -215,7 +218,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         {modalCss: modalCss(theme)}
       );
     },
-    [event, groupId, organization, projectSlug, theme]
+    [event, groupId, organization, projectSlug, theme, openModal]
   );
 
   if (shouldSkipSection(filteredImages, data.images)) {
@@ -225,12 +228,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const showFilters = filterOptions.some(s => 'options' in s && s.options.length > 1);
 
   return (
-    <InterimSection
-      type={SectionKey.DEBUGMETA}
+    <FoldSection
+      sectionKey={SectionKey.DEBUGMETA}
       title={t('Images Loaded')}
-      help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash.'
-      )}
       initialCollapse
     >
       <Fragment>
@@ -325,7 +325,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           )}
         </Container>
       </Fragment>
-    </InterimSection>
+    </FoldSection>
   );
 }
 
