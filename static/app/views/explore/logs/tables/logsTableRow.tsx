@@ -455,9 +455,7 @@ export const LogRowContent = memo(function LogRowContent({
             ) : null;
 
           const shouldRenderActions =
-            (showCellActions ?? !embedded) &&
-            field !== OurLogKnownFieldKey.TIMESTAMP &&
-            shouldRenderHoverElements;
+            (showCellActions ?? !embedded) && shouldRenderHoverElements;
 
           const value = (dataRow as OurLogsResponseItem)[field];
 
