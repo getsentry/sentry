@@ -60,11 +60,11 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["mappings"][0]["status"] == "created"
 
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/maps"
+            project_repository__project=self.project1, stack_root="com/example/maps"
         )
         assert config.source_root == "modules/maps/src/main/java/com/example/maps"
         assert config.default_branch == "main"
-        assert config.repository == self.repo1
+        assert config.project_repository.repository == self.repo1
         assert config.organization_id == self.organization.id
         assert config.automatically_generated is False
         assert config.project_repository is not None
@@ -94,7 +94,12 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["created"] == 3
         assert response.data["updated"] == 0
-        assert RepositoryProjectPathConfig.objects.filter(project=self.project1).count() == 3
+        assert (
+            RepositoryProjectPathConfig.objects.filter(
+                project_repository__project=self.project1
+            ).count()
+            == 3
+        )
 
     def test_update_existing_mapping(self) -> None:
         self.create_code_mapping(
@@ -120,7 +125,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["updated"] == 1
 
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1,
+            project_repository__project=self.project1,
             stack_root="com/example/maps",
             source_root="modules/maps/src/main/java/com/example/maps",
         )
@@ -291,7 +296,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             response = self.client.post(self.url, data=payload, format="json")
         assert response.status_code == 200, response.content
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/a"
+            project_repository__project=self.project1, stack_root="com/example/a"
         )
         assert config.default_branch == "develop"
 
@@ -389,7 +394,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         carry the suppressed flag, so normal post_save signals fire for them."""
         self.make_post()
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/maps"
+            project_repository__project=self.project1, stack_root="com/example/maps"
         )
         assert config._skip_post_save is False
 
@@ -483,7 +488,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["updated"] == 0
 
         configs = RepositoryProjectPathConfig.objects.filter(
-            project=self.project1, stack_root="com/example/maps"
+            project_repository__project=self.project1, stack_root="com/example/maps"
         )
         assert configs.count() == 2
         assert set(configs.values_list("source_root", flat=True)) == {

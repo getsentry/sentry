@@ -56,7 +56,7 @@ function getReplayTabs({
           <FeatureBadge type="new" />
         </Flex>
       ) : null,
-    [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
+    [TabKey.BREADCRUMBS]: t('Activity'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.LOGS]: hasLogs ? t('Logs') : null,
     [TabKey.NETWORK]: t('Network'),

@@ -2,6 +2,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -41,15 +42,19 @@ class RepositoryCascadeDeleteOnHideTest(TestCase):
             message="various fixes",
             author=commit_author,
         )
-        code_mapping = RepositoryProjectPathConfig.objects.create(
+        project_repo, _ = ProjectRepository.objects.get_or_create(
             project=project,
             repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        code_mapping = RepositoryProjectPathConfig.objects.create(
             stack_root="",
             source_root="src/packages/store",
             default_branch="main",
             organization_integration_id=org_integration.id,
             integration_id=org_integration.integration_id,
             organization_id=org_integration.organization_id,
+            project_repository=project_repo,
         )
 
         repository_cascade_delete_on_hide(repo_id=repo.id)
@@ -67,7 +72,7 @@ class RepositoryCascadeDeleteOnHideTest(TestCase):
             name="example/example",
             status=ObjectStatus.HIDDEN,
         )
-        seer_project_repo = SeerProjectRepository.objects.create(
+        seer_project_repo = self.create_seer_project_repository(
             project=project,
             repository=repo,
         )

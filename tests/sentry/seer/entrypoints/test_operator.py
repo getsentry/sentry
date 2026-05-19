@@ -15,7 +15,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
@@ -323,6 +323,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_called_once()
+        assert mock_trigger_handoff_helper.call_args.kwargs["referrer"] == AutofixReferrer.SLACK
         assert self.entrypoint.handoff_successes == [
             (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
         ]
@@ -473,6 +474,7 @@ class SeerOperatorTest(TestCase):
         with self.feature("organizations:autofix-on-explorer"):
             self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_called_once()
+        assert mock_trigger_handoff_helper.call_args.kwargs["referrer"] == AutofixReferrer.SLACK
         assert self.entrypoint.handoff_successes == [
             (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
         ]
@@ -816,13 +818,15 @@ class SeerOperatorTest(TestCase):
             assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_seer_event_creates_activity(self, _mock_has_access):
+    def test_seer_event_creates_activity_rca_completed(self, _mock_has_access):
         event_payload = {
             "run_id": MOCK_RUN_ID,
             "group_id": self.group.id,
             "root_cause": {
-                "description": "Test root cause",
-                "steps": [{"title": "Step 1"}],
+                "one_line_description": "Test root cause summary",
+                "five_whys": ["why1", "why2"],
+                "reproduction_steps": ["step1"],
+                "relevant_repo": "getsentry/sentry",
             },
         }
 
@@ -837,7 +841,57 @@ class SeerOperatorTest(TestCase):
             group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
         )
         assert activity.data["run_id"] == MOCK_RUN_ID
-        assert activity.data["root_cause"]["description"] == "Test root cause"
+        assert activity.data["summary"] == "Test root cause summary"
+        assert "root_cause" not in activity.data
+        assert "five_whys" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_event_creates_activity_solution_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "solution": {
+                "one_line_summary": "Test solution summary",
+                "steps": [{"title": "Fix the bug", "description": "Change X to Y"}],
+            },
+        }
+
+        with self.feature("organizations:seer-activity-timeline"):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+        assert activity.data["run_id"] == MOCK_RUN_ID
+        assert activity.data["summary"] == "Test solution summary"
+        assert "solution" not in activity.data
+        assert "steps" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_event_creates_activity_coding_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "code_changes": {"getsentry/sentry": [{"diff": "...", "path": "foo.py"}]},
+        }
+
+        with self.feature("organizations:seer-activity-timeline"):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_CODING_COMPLETED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_CODING_COMPLETED.value
+        )
+        assert activity.data["run_id"] == MOCK_RUN_ID
+        assert "changes" not in activity.data
+        assert "code_changes" not in activity.data
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_all_mapped_event_types(self, _mock_has_access):
@@ -879,37 +933,6 @@ class SeerOperatorTest(TestCase):
 
         seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
         assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
-
-    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_create_seer_activity_pr_created_with_pull_requests(self, _mock_has_access):
-        event_payload = {
-            "run_id": MOCK_RUN_ID,
-            "group_id": self.group.id,
-            "pull_requests": [
-                {
-                    "pull_request": {
-                        "pr_number": 42,
-                        "pr_url": "https://github.com/owner/repo/pull/42",
-                    },
-                    "repo_name": "owner/repo",
-                    "provider": "github",
-                }
-            ],
-        }
-
-        with self.feature("organizations:seer-activity-timeline"):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
-
-        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
-        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
-        assert (
-            activity.data["pull_requests"][0]["pull_request"]["pr_url"]
-            == "https://github.com/owner/repo/pull/42"
-        )
 
 
 class TestGetAutofixExplorerStatus(TestCase):

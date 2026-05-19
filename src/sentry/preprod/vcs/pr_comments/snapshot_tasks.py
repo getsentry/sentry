@@ -326,6 +326,9 @@ def post_snapshot_pr_comment_task(
                         "organization_id": organization_id,
                         "preprod_artifact_id": artifact_id,
                         "comment_id": comment_id,
+                        "repo_name": repo_name,
+                        "pr_number": pr_number,
+                        "is_update": existing_comment_id is not None,
                     },
                 )
     except CommitComparison.DoesNotExist:

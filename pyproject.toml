@@ -4,6 +4,7 @@ name = "sentry"
 # which we intend to use for dependency management, not packaging
 version = "0.0.0"
 dependencies = [
+  "asyncpg>=0.31.0",
   "backports-zstd>=1.3.0",
   "beautifulsoup4>=4.7.1",
   "boto3>=1.34.128",
@@ -22,6 +23,9 @@ dependencies = [
   "django-pg-zero-downtime-migrations>=0.18",
   "djangorestframework>=3.16.1",
   "drf-spectacular>=0.27.2",
+  "emmett55>=1.3.0",
+  "emmett-prometheus>=0.3.0",
+  "emmett-sentry>=0.9.0",
   "fido2>=0.9.2",
   "google-api-core>=2.19.1",
   "google-auth>=2.29.0",
@@ -87,7 +91,7 @@ dependencies = [
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=2.1.27",
   "sentry-ophio>=1.1.3",
-  "sentry-protos>=0.8.32",
+  "sentry-protos>=0.10.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.27",
   "sentry-scm>=0.14.0",
@@ -347,12 +351,16 @@ follow_imports = "skip"
 # - or find a 3rd party stub
 [[tool.mypy.overrides]]
 module = [
+  "asyncpg.*",
   "boto3.*",
   "botocore.client.*",
   "botocore.exceptions.*",
   "confluent_kafka.*",
   "cssselect.*",
   "django_zero_downtime_migrations.backends.postgres.schema.*",
+  "emmett55.*",
+  "emmett_prometheus.*",
+  "emmett_sentry.*",
   "fido2.*",
   "google.auth.*",
   "google.cloud.*",
@@ -799,7 +807,6 @@ module = [
     "sentry.incidents.endpoints.organization_alert_rule_index",
     "sentry.incidents.endpoints.organization_incident_details",
     "sentry.incidents.endpoints.serializers.*",
-    "sentry.incidents.endpoints.team_alerts_triggered",
     "sentry.incidents.serializers.*",
     "sentry.ingest",
     "sentry.ingest.billing_metrics_consumer",
@@ -1881,7 +1888,6 @@ module = [
     "tests.sentry.api.endpoints.test_sudo",
     "tests.sentry.api.endpoints.test_system_health",
     "tests.sentry.api.endpoints.test_system_options",
-    "tests.sentry.api.endpoints.test_team_alerts_triggered",
     "tests.sentry.api.endpoints.test_user_organizations",
     "tests.sentry.api.endpoints.test_user_subscriptions",
     "tests.sentry.api.endpoints.test_warmup",
@@ -2157,7 +2163,6 @@ module = [
     "tests.sentry.notifications.test_class_manager",
     "tests.sentry.notifications.test_helpers",
     "tests.sentry.notifications.test_notificationcontroller",
-    "tests.sentry.notifications.test_notificationmessage_table_constraints",
     "tests.sentry.notifications.test_notifications",
     "tests.sentry.notifications.test_utils",
     "tests.sentry.objectstore.*",

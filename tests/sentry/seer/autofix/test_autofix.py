@@ -27,7 +27,6 @@ from sentry.seer.models import (
     SeerProjectPreference,
     SeerRepoDefinition,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.utils import get_github_username_for_user
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -864,6 +863,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Set test user
         test_user = self.create_user()
 
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            last_triggered_at=before_now(days=1),
+        )
+
         # Call the function
         response = trigger_legacy_autofix(
             group=group,
@@ -882,6 +887,9 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group.refresh_from_db()
         assert group.seer_autofix_last_triggered is not None
         assert isinstance(group.seer_autofix_last_triggered, datetime)
+
+        seer_run.refresh_from_db()
+        assert seer_run.last_triggered_at == group.seer_autofix_last_triggered
 
         # Verify the function calls
         mock_call.assert_called_once()
@@ -929,7 +937,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             external_id="456",
             name="getsentry/seer",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
         self.project.update_option("sentry:seer_automated_run_stopping_point", "code_changes")
 
         data = load_data("python", timestamp=before_now(minutes=1))
