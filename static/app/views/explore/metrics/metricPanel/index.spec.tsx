@@ -484,7 +484,7 @@ describe('MetricPanel', () => {
     const row = {
       ...metricFixtures.detailedFixtures[0]!,
       [TraceMetricKnownFieldKey.ID]: undefined,
-    };
+    } as unknown as TraceMetricEventsResponseItem;
     const traceDetailSpy = jest
       .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
       .mockReturnValue({
