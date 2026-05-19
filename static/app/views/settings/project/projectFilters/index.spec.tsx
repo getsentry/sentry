@@ -4,7 +4,13 @@ import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
@@ -14,10 +20,14 @@ describe('ProjectFilters', () => {
 
   const getFilterEndpoint = (filter: string) => `${PROJECT_URL}filters/${filter}/`;
 
-  const createFilterMock = (filter: string) =>
+  const createFilterMock = (
+    filter: string,
+    options: Parameters<typeof MockApiClient.addMockResponse>[0] = {}
+  ) =>
     MockApiClient.addMockResponse({
       url: getFilterEndpoint(filter),
       method: 'PUT',
+      ...options,
     });
 
   const initialRouterConfig = {
@@ -57,7 +67,7 @@ describe('ProjectFilters', () => {
     renderComponent();
 
     const filter = 'browser-extensions';
-    const mock = createFilterMock(filter);
+    const mock = createFilterMock(filter, {asyncDelay: 100});
 
     const control = await screen.findByRole('checkbox', {
       name: 'Filter out errors known to be caused by browser extensions',
@@ -65,6 +75,7 @@ describe('ProjectFilters', () => {
 
     expect(control).toBeChecked();
     await userEvent.click(control);
+    expect(control).not.toBeChecked();
 
     expect(mock).toHaveBeenCalledWith(
       getFilterEndpoint(filter),
@@ -75,6 +86,12 @@ describe('ProjectFilters', () => {
         },
       })
     );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: `Saving ${filter}`})
+      ).not.toBeInTheDocument();
+    });
+    expect(control).not.toBeChecked();
   });
 
   it('can toggle filters: localhost, web crawlers', async () => {
@@ -129,26 +146,40 @@ describe('ProjectFilters', () => {
     renderComponent();
 
     const filter = 'legacy-browsers';
-    const mock = createFilterMock(filter);
+    const mock = createFilterMock(filter, {asyncDelay: 100});
+    const firefoxToggle = await screen.findByRole('checkbox', {
+      name: 'Firefox Version 110 and lower',
+    });
 
-    await userEvent.click(
-      await screen.findByRole('checkbox', {
-        name: 'Firefox Version 110 and lower',
-      })
-    );
+    await userEvent.click(firefoxToggle);
+    expect(firefoxToggle).toBeChecked();
+    expect(
+      await screen.findByRole('status', {name: 'Saving legacy-browsers'})
+    ).toBeInTheDocument();
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
-    // Have to do this because no jest matcher for JS Set
-    expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
+    expect(Array.isArray(mock.mock.calls[0][1].data.subfilters)).toBe(true);
+    expect(mock.mock.calls[0][1].data.subfilters.toSorted()).toEqual([
+      'firefox',
       'ie',
       'safari',
-      'firefox',
     ]);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: 'Saving legacy-browsers'})
+      ).not.toBeInTheDocument();
+    });
+    expect(firefoxToggle).toBeChecked();
 
     // Toggle filter off
-    await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Firefox Version 110 and lower'})
-    );
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['ie', 'safari']);
+    await userEvent.click(firefoxToggle);
+    expect(firefoxToggle).not.toBeChecked();
+    expect(mock.mock.calls[1][1].data.subfilters.toSorted()).toEqual(['ie', 'safari']);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: 'Saving legacy-browsers'})
+      ).not.toBeInTheDocument();
+    });
+    expect(firefoxToggle).not.toBeChecked();
   });
 
   it('can toggle all/none for legacy browser', async () => {
@@ -159,19 +190,19 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
-    expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
-      'chrome',
-      'safari',
-      'firefox',
+    expect(mock.mock.calls[0][1].data.subfilters.toSorted()).toEqual([
       'android',
+      'chrome',
       'edge',
+      'firefox',
       'ie',
       'opera',
       'opera_mini',
+      'safari',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([]);
+    expect(mock.mock.calls[1][1].data.subfilters).toEqual([]);
   });
 
   it('can set ip address filter', async () => {
@@ -182,11 +213,10 @@ describe('ProjectFilters', () => {
       method: 'PUT',
     });
 
-    await userEvent.type(
-      await screen.findByRole('textbox', {name: 'IP Addresses'}),
-      'test\ntest2'
-    );
-    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+    const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    await userEvent.type(textbox, 'test\ntest2');
+    const form = textbox.closest('form')!;
+    await userEvent.click(within(form).getByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
@@ -221,22 +251,20 @@ describe('ProjectFilters', () => {
       method: 'PUT',
     });
 
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Releases'}),
-      'release\nrelease2'
-    );
-    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+    const releasesField = screen.getByRole('textbox', {name: 'Releases'});
+    await userEvent.type(releasesField, 'release\nrelease2');
+    const releasesForm = releasesField.closest('form')!;
+    await userEvent.click(within(releasesForm).getByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:releases']).toBe(
       'release\nrelease2'
     );
 
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Error Message'}),
-      'error\nerror2'
-    );
-    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+    const errorField = screen.getByRole('textbox', {name: 'Error Message'});
+    await userEvent.type(errorField, 'error\nerror2');
+    const errorForm = errorField.closest('form')!;
+    await userEvent.click(within(errorForm).getByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
       'error\nerror2'

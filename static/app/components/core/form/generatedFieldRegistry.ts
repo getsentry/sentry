@@ -202,6 +202,22 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Allowed Origins'),
     hintText: '',
   },
+  'project-filters-settings.filters:react-hydration-errors': {
+    name: 'filters:react-hydration-errors',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out hydration errors'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:chunk-load-error': {
+    name: 'filters:chunk-load-error',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out ChunkLoadError(s)'),
+    hintText: t(
+      "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+    ),
+  },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',
     formId: 'project-replays',
