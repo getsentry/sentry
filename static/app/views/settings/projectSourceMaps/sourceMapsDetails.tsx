@@ -231,13 +231,13 @@ export function SourceMapsDetails({bundleId, project}: Props) {
     <Fragment>
       <SettingsPageHeader
         title={isDebugIdBundle ? bundleId : t('Release Bundle')}
-        action={
-          isDebugIdBundle && (
-            <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
-          )
-        }
         subtitle={!isDebugIdBundle && <VersionAndDetails>{bundleId}</VersionAndDetails>}
       />
+      {isDebugIdBundle && (
+        <Flex justify="end" marginBottom="xl">
+          <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
+        </Flex>
+      )}
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
         <DetailsPanel>
           <DebugIdBundleDetails

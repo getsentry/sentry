@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -440,15 +440,14 @@ export default function AccountSecurityEnroll() {
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
         title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
-        action={
-          authenticator.isEnrolled &&
-          authenticator.removeButton && (
-            <RemoveConfirm onConfirm={handleRemove}>
-              <Button variant="danger">{authenticator.removeButton}</Button>
-            </RemoveConfirm>
-          )
-        }
       />
+      {authenticator.isEnrolled && authenticator.removeButton && (
+        <Flex justify="end" marginBottom="xl">
+          <RemoveConfirm onConfirm={handleRemove}>
+            <Button variant="danger">{authenticator.removeButton}</Button>
+          </RemoveConfirm>
+        </Flex>
+      )}
 
       <TextBlock>{authenticator.description}</TextBlock>
 

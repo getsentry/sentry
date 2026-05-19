@@ -9,7 +9,7 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -156,34 +156,30 @@ export default function AccountSecurityDetails() {
             isActive={authenticator.isEnrolled}
           />
         }
-        action={
-          <Grid flow="column" align="center" gap="md">
-            {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
-              <LinkButton
-                to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
-              >
-                {t('Rotate Secret Key')}
-              </LinkButton>
-            )}
-            {authenticator.isEnrolled && authenticator.removeButton && (
-              <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
-                <Button
-                  tooltipProps={{
-                    title: deleteDisabled
-                      ? t(
-                          "Two-factor authentication is required for at least one organization you're a member of."
-                        )
-                      : undefined,
-                  }}
-                  variant="danger"
-                >
-                  {authenticator.removeButton}
-                </Button>
-              </RemoveConfirm>
-            )}
-          </Grid>
-        }
       />
+      <Flex justify="end" gap="md" marginBottom="xl">
+        {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
+          <LinkButton to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}>
+            {t('Rotate Secret Key')}
+          </LinkButton>
+        )}
+        {authenticator.isEnrolled && authenticator.removeButton && (
+          <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
+            <Button
+              tooltipProps={{
+                title: deleteDisabled
+                  ? t(
+                      "Two-factor authentication is required for at least one organization you're a member of."
+                    )
+                  : undefined,
+              }}
+              variant="danger"
+            >
+              {authenticator.removeButton}
+            </Button>
+          </RemoveConfirm>
+        )}
+      </Flex>
 
       <TextBlock>{authenticator.description}</TextBlock>
 

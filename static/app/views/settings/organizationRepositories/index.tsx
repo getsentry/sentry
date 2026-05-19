@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 import uniq from 'lodash/uniq';
 
 import {Input} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -259,18 +259,15 @@ export default function OrganizationRepositories() {
   return (
     <AnalyticsArea name="repositories-v2">
       <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
-      <SettingsPageHeader
-        title={t('Repositories')}
-        subtitle={pageDescription}
-        action={
-          scmIntegrations.length > 0 ? (
-            <ConnectProviderDropdown
-              providers={scmProviders.filter(p => p.canAdd)}
-              onAddIntegration={handleAddIntegration}
-            />
-          ) : null
-        }
-      />
+      <SettingsPageHeader title={t('Repositories')} subtitle={pageDescription} />
+      {scmIntegrations.length > 0 && (
+        <Flex justify="end" marginBottom="xl">
+          <ConnectProviderDropdown
+            providers={scmProviders.filter(p => p.canAdd)}
+            onAddIntegration={handleAddIntegration}
+          />
+        </Flex>
+      )}
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (

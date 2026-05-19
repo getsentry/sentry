@@ -1,8 +1,9 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -149,12 +150,12 @@ export default function ProjectPluginDetails() {
     const toggleEnable = enabled ? disable : enable;
 
     return (
-      <div className="pull-right">
+      <Fragment>
         {pluginDetails.canDisable && toggleEnable}
         <Button size="sm" onClick={() => resetMutation.mutate()}>
           {t('Reset Configuration')}
         </Button>
-      </div>
+      </Fragment>
     );
   };
 
@@ -180,7 +181,10 @@ export default function ProjectPluginDetails() {
   return (
     <div>
       <SentryDocumentTitle title={pluginDetails.name} projectSlug={project.slug} />
-      <SettingsPageHeader title={pluginDetails.name} action={renderActions()} />
+      <SettingsPageHeader title={pluginDetails.name} />
+      <Flex justify="end" gap="md" marginBottom="xl">
+        {renderActions()}
+      </Flex>
       <div className="row">
         <div className="col-md-7">
           <PluginConfig
