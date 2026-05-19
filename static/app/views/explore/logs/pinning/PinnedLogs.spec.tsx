@@ -89,7 +89,7 @@ describe('PinnedLogs', () => {
   it('shows the count of pinned rows in the collapse toggle label', () => {
     renderPinnedLogs({
       initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: ['log-1', 'log-2']}},
+        location: {pathname: '/', query: {logsPinned: 'log-1,log-2'}},
       },
     });
 

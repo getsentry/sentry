@@ -520,6 +520,7 @@ describe('LogsInfiniteTable', () => {
     mockUseLocation.mockReturnValue(
       LocationFixture({
         pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        search: '?logsPinned=1',
         query: {
           [LOGS_FIELDS_KEY]: visibleColumnFields,
           [LOGS_SORT_BYS_KEY]: '-timestamp',
