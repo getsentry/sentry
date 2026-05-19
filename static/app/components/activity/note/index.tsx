@@ -91,7 +91,7 @@ function Note(props: Props) {
       <ActivityItem noPadding {...activityItemProps}>
         <NoteInput
           {...{noteId, minHeight, text, projectSlugs}}
-          onEditFinish={() => setEditing(false)}
+          onCancel={() => setEditing(false)}
           onUpdate={note => {
             onUpdate(note, props);
             setEditing(false);

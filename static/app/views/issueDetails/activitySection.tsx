@@ -44,24 +44,21 @@ export function ActivitySection(props: Props) {
 
   return (
     <Fragment>
-      <ActivityItem noPadding author={{type: 'user', user: me}}>
-        <NoteInputWithStorage
-          key={inputId}
-          storageKey="groupinput:latest"
-          itemKey={group.id}
-          onCreate={n => {
-            onCreate(n, me);
-            trackAnalytics('issue_details.comment_created', {
-              organization,
-              org_streamline_only: organization.streamlineOnly ?? undefined,
-              streamline: false,
-            });
-            setInputId(uniqueId());
-          }}
-          source="activity"
-          {...noteProps}
-        />
-      </ActivityItem>
+      <NoteInputWithStorage
+        key={inputId}
+        storageKey="groupinput:latest"
+        itemKey={group.id}
+        onCreate={n => {
+          onCreate(n, me);
+          trackAnalytics('issue_details.comment_created', {
+            organization,
+            org_streamline_only: organization.streamlineOnly ?? undefined,
+            streamline: false,
+          });
+          setInputId(uniqueId());
+        }}
+        {...noteProps}
+      />
 
       {visibleActivities.map(item => {
         const authorName = item.user ? item.user.name : 'Sentry';
