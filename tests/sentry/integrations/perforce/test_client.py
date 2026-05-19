@@ -717,3 +717,137 @@ class PerforceClientTest(TestCase):
     def test_module_level_p4config_is_set(self) -> None:
         """Verify that importing the client module sets P4CONFIG."""
         assert os.environ.get("P4CONFIG") == ".p4config"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_sets_charset_for_unicode_server(self, mock_p4_class):
+        """_connect() must set p4.charset before connect() when configured for a Unicode server."""
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        unicode_integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce Unicode",
+            external_id="perforce-unicode",
+            metadata={
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+                "auth_type": "password",
+                "charset": "utf8",
+            },
+        )
+        unicode_org_integration = unicode_integration.organizationintegration_set.first()
+        client = PerforceClient(
+            integration=unicode_integration, org_integration=unicode_org_integration
+        )
+
+        with client._connect():
+            pass
+
+        # charset must be set, and it must be set before connect() so the
+        # server sees it during the initial handshake.
+        assert p4_stub.charset == "utf8"
+        assert "charset" in p4_stub.attrs_set_before_connect
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_does_not_set_charset_for_non_unicode_server(self, mock_p4_class):
+        """_connect() must NOT touch p4.charset when configured for a non-Unicode server."""
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        # Default fixture client has no charset → non-Unicode server.
+        with self.p4_client._connect():
+            pass
+
+        assert "charset" not in p4_stub.attrs_set
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_does_not_set_charset_when_explicitly_none(self, mock_p4_class):
+        """The 'none' sentinel must behave the same as not setting charset at all."""
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        none_integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce None",
+            external_id="perforce-none-charset",
+            metadata={
+                "p4port": "perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+                "auth_type": "password",
+                "charset": "none",
+            },
+        )
+        none_org_integration = none_integration.organizationintegration_set.first()
+        client = PerforceClient(integration=none_integration, org_integration=none_org_integration)
+
+        with client._connect():
+            pass
+
+        assert "charset" not in p4_stub.attrs_set
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_translates_unicode_server_error(self, mock_p4_class):
+        """Connecting to a Unicode server without a charset must surface an actionable error."""
+        from P4 import P4Exception
+
+        from sentry.shared_integrations.exceptions import ApiError
+
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.connect.side_effect = P4Exception(
+            "Unicode server permits only unicode enabled clients."
+        )
+
+        with pytest.raises(ApiError) as exc_info:
+            with self.p4_client._connect():
+                pass
+
+        # The user-facing message must point at the fix, not just the raw P4 string.
+        message = str(exc_info.value)
+        assert "Unicode mode" in message
+        assert "Server Encoding" in message
+
+
+class _P4AttributeRecorder:
+    """
+    Minimal stand-in for the P4Python `P4` object that records every attribute
+    assignment so tests can assert exactly which fields `_connect()` set on the
+    client (e.g. that `charset` was — or was not — assigned before `connect()`).
+
+    A plain `Mock` is unsuitable here: reading `mock.charset` after the fact
+    auto-creates a child Mock, making it indistinguishable from a real
+    assignment. This stub gives us a deterministic set of assignments instead.
+    """
+
+    def __init__(self) -> None:
+        object.__setattr__(self, "attrs_set", set())
+        object.__setattr__(self, "attrs_set_before_connect", set())
+        object.__setattr__(self, "_connect_called", False)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        self.attrs_set.add(name)
+        if not self._connect_called:
+            self.attrs_set_before_connect.add(name)
+        object.__setattr__(self, name, value)
+
+    def connect(self) -> None:
+        object.__setattr__(self, "_connect_called", True)
+
+    def disconnect(self) -> None:
+        pass
+
+    def connected(self) -> bool:
+        return True
+
+    def run(self, *args: object, **kwargs: object) -> list:
+        return []
+
+    def run_login(self) -> None:
+        pass
+
+    def run_trust(self, *args: object) -> None:
+        pass
