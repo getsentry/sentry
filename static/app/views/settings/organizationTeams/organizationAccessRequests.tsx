@@ -24,15 +24,48 @@ export function OrganizationAccessRequests({
   requestList,
   onRemoveAccessRequest,
 }: Props) {
-  const {mutate, isPending, variables} = useMutation({
-    mutationFn: ({id, isApproved}: {id: string; isApproved: boolean}) => {
+  if (!requestList?.length) {
+    return null;
+  }
+
+  return (
+    <Panel>
+      <PanelHeader>{t('Pending Team Requests')}</PanelHeader>
+
+      <PanelBody>
+        {requestList.map(accessRequest => (
+          <AccessRequestItem
+            key={accessRequest.id}
+            accessRequest={accessRequest}
+            orgSlug={orgSlug}
+            onRemoveAccessRequest={onRemoveAccessRequest}
+          />
+        ))}
+      </PanelBody>
+    </Panel>
+  );
+}
+
+function AccessRequestItem({
+  accessRequest,
+  orgSlug,
+  onRemoveAccessRequest,
+}: {
+  accessRequest: AccessRequest;
+  onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
+  orgSlug: string;
+}) {
+  const {id, member, team, requester} = accessRequest;
+
+  const {mutate, isPending} = useMutation({
+    mutationFn: ({isApproved}: {isApproved: boolean}) => {
       return fetchMutation({
         method: 'PUT',
         url: `/organizations/${orgSlug}/access-requests/${id}/`,
         data: {isApproved},
       });
     },
-    onSuccess: (_data, {id, isApproved}) => {
+    onSuccess: (_data, {isApproved}) => {
       onRemoveAccessRequest(id, isApproved);
       addSuccessMessage(
         isApproved ? t('Team request approved') : t('Team request denied')
@@ -45,64 +78,49 @@ export function OrganizationAccessRequests({
     },
   });
 
-  if (!requestList?.length) {
-    return null;
-  }
+  const memberName =
+    member.user && (member.user.name || member.user.email || member.user.username);
+  const requesterName =
+    requester && (requester.name || requester.email || requester.username);
 
   return (
-    <Panel>
-      <PanelHeader>{t('Pending Team Requests')}</PanelHeader>
-
-      <PanelBody>
-        {requestList.map(({id, member, team, requester}) => {
-          const memberName =
-            member.user &&
-            (member.user.name || member.user.email || member.user.username);
-          const requesterName =
-            requester && (requester.name || requester.email || requester.username);
-          const isBusy = isPending && variables?.id === id;
-          return (
-            <StyledPanelItem key={id}>
-              <div data-test-id="request-message">
-                {requesterName
-                  ? tct('[requesterName] requests to add [name] to the [team] team.', {
-                      requesterName,
-                      name: <strong>{memberName}</strong>,
-                      team: <strong>#{team.slug}</strong>,
-                    })
-                  : tct('[name] requests access to the [team] team.', {
-                      name: <strong>{memberName}</strong>,
-                      team: <strong>#{team.slug}</strong>,
-                    })}
-              </div>
-              <Flex gap="md">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={e => {
-                    e.stopPropagation();
-                    mutate({id, isApproved: true});
-                  }}
-                  busy={isBusy}
-                >
-                  {t('Approve')}
-                </Button>
-                <Button
-                  busy={isBusy}
-                  onClick={e => {
-                    e.stopPropagation();
-                    mutate({id, isApproved: false});
-                  }}
-                  size="sm"
-                >
-                  {t('Deny')}
-                </Button>
-              </Flex>
-            </StyledPanelItem>
-          );
-        })}
-      </PanelBody>
-    </Panel>
+    <StyledPanelItem>
+      <div data-test-id="request-message">
+        {requesterName
+          ? tct('[requesterName] requests to add [name] to the [team] team.', {
+              requesterName,
+              name: <strong>{memberName}</strong>,
+              team: <strong>#{team.slug}</strong>,
+            })
+          : tct('[name] requests access to the [team] team.', {
+              name: <strong>{memberName}</strong>,
+              team: <strong>#{team.slug}</strong>,
+            })}
+      </div>
+      <Flex gap="md">
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={e => {
+            e.stopPropagation();
+            mutate({isApproved: true});
+          }}
+          busy={isPending}
+        >
+          {t('Approve')}
+        </Button>
+        <Button
+          busy={isPending}
+          onClick={e => {
+            e.stopPropagation();
+            mutate({isApproved: false});
+          }}
+          size="sm"
+        >
+          {t('Deny')}
+        </Button>
+      </Flex>
+    </StyledPanelItem>
   );
 }
 
