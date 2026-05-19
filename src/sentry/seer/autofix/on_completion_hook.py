@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import analytics
@@ -30,6 +31,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
+    SeerRun,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -88,7 +90,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         group = Group.objects.get(id=group_id, project__organization_id=organization.id)
-        group.update(seer_explorer_autofix_last_triggered=timezone.now())
+        now = timezone.now()
+        with transaction.atomic(using=router.db_for_write(Group)):
+            group.update(seer_explorer_autofix_last_triggered=now)
+            SeerRun.objects.filter(
+                organization_id=organization.id,
+                seer_run_state_id=run_id,
+            ).update(last_triggered_at=now)
 
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, state, group)
@@ -329,7 +337,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # Check if we should trigger coding agent handoff instead of continuing
         handoff_config = cls._get_handoff_config_if_applicable(stopping_point, current_step, group)
         if handoff_config:
-            cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config)
+            cls._trigger_coding_agent_handoff(
+                organization,
+                run_id,
+                group,
+                handoff_config,
+                referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+            )
             return
 
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
@@ -481,6 +495,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         group: Group,
         handoff_config: SeerAutomationHandoffConfiguration,
+        referrer: AutofixReferrer = AutofixReferrer.ON_COMPLETION_HOOK,
     ) -> None:
         """Trigger coding agent handoff using the configured integration."""
         logger.info(
@@ -498,7 +513,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
-                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+                referrer=referrer,
                 integration_id=handoff_config.integration_id,
             )
             logger.info(

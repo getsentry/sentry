@@ -25,6 +25,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
@@ -51,14 +52,15 @@ function TransactionOverview() {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const {addAlert} = useGlobalAlerts();
 
   useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
+    loadOrganizationTags(api, organization.slug, selection, addAlert);
     addRoutePerformanceContext(selection);
     trackAnalytics('performance_views.transaction_summary.view', {
       organization,
     });
-  }, [selection, organization, api]);
+  }, [selection, organization, api, addAlert]);
 
   const shouldUseTransactionSummaryEAP = useTransactionSummaryEAP();
 
@@ -76,7 +78,7 @@ function TransactionOverview() {
 function CardinalityLoadingWrapper() {
   const mepCardinalityContext = useMetricsCardinalityContext();
 
-  if (mepCardinalityContext.isLoading) {
+  if (mepCardinalityContext?.isLoading) {
     return <LoadingContainer isLoading />;
   }
 
@@ -86,7 +88,7 @@ function CardinalityLoadingWrapper() {
 function EAPCardinalityLoadingWrapper() {
   const mepCardinalityContext = useMetricsCardinalityContext();
 
-  if (mepCardinalityContext.isLoading) {
+  if (mepCardinalityContext?.isLoading) {
     return <LoadingContainer isLoading />;
   }
 

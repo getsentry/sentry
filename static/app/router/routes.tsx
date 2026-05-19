@@ -46,7 +46,7 @@ import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper'
 import {type SentryRouteObject} from './types';
 
 const routeHook = (name: HookName): SentryRouteObject => {
-  return HookStore.get(name)?.[0]?.() ?? {};
+  return HookStore.get(name)?.() ?? {};
 };
 
 function buildRoutes(): RouteObject[] {
@@ -2525,10 +2525,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: `${IssueTaxonomy.SENTRY_CONFIGURATION}/`,
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
-    },
-    {
-      path: 'instrumentation/',
-      component: make(() => import('sentry/views/issueList/pages/instrumentation')),
     },
     {
       path: 'views/',

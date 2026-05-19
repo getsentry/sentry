@@ -1,15 +1,21 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {showIntercom} from 'sentry/utils/intercom';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {ANNUAL} from 'getsentry/constants';
 import {CohortId, type PlanMigration, type Subscription} from 'getsentry/types';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {PanelBodyWithTable} from 'getsentry/views/subscriptionPage/styles';
 
 import {PlanMigrationTable} from './planMigrationTable';
@@ -39,9 +45,45 @@ function getMigrationDate(migration: PlanMigration, subscription: Subscription) 
 }
 
 export function PlanMigrationActive({subscription, migration}: Props) {
+  const organization = useOrganization();
+  const hasIntercom = organization.features.includes('intercom-support');
+  const shouldRender = Boolean(migration?.cohort?.nextPlan);
+
+  useEffect(() => {
+    if (shouldRender && hasIntercom) {
+      trackGetsentryAnalytics('intercom_link.viewed', {
+        organization,
+        source: 'billing',
+      });
+    }
+  }, [shouldRender, hasIntercom, organization]);
+
   if (!migration?.cohort?.nextPlan) {
     return null;
   }
+
+  async function handleIntercomClick() {
+    trackGetsentryAnalytics('intercom_link.clicked', {
+      organization,
+      source: 'billing',
+    });
+    try {
+      await showIntercom(organization.slug);
+    } catch {
+      const supportEmail = ConfigStore.get('supportEmail');
+      if (supportEmail) {
+        window.location.href = `mailto:${supportEmail}?subject=${window.encodeURIComponent('Legacy Plan Migration Question')}`;
+      }
+    }
+  }
+
+  const supportLink = hasIntercom ? (
+    <Button size="zero" variant="link" onClick={handleIntercomClick}>
+      {null}
+    </Button>
+  ) : (
+    <ZendeskLink subject="Legacy Plan Migration Question" source="billing" />
+  );
 
   const isAM3Migration = migration.cohort.cohortId >= CohortId.EIGHTH;
 
@@ -90,17 +132,12 @@ export function PlanMigrationActive({subscription, migration}: Props) {
 
           <MoreInfo>
             {tct(
-              'For more details please see our [faqLink:FAQ] or contact [zendeskLink:Support].',
+              'For more details please see our [faqLink:FAQ] or contact [supportLink:Support].',
               {
                 faqLink: (
                   <ExternalLink href="https://www.sentry.help/en/articles/13964853-how-is-my-legacy-plan-changing-september-12-2024" />
                 ),
-                zendeskLink: (
-                  <ZendeskLink
-                    subject="Legacy Plan Migration Question"
-                    source="billing"
-                  />
-                ),
+                supportLink,
               }
             )}
           </MoreInfo>

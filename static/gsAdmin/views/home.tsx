@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
@@ -81,7 +81,7 @@ export function HomePage() {
     return <Overview />;
   }
   return (
-    <SplashWrapper>
+    <Container padding="2xl">
       <Flex align="center" margin="3xl 0">
         <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
       </Flex>
@@ -109,7 +109,9 @@ export function HomePage() {
         </Warning>
       </Flex>
       <div>
-        <SearchLabel>Users</SearchLabel>
+        <Container as="label" display="block" marginTop="xl">
+          Users
+        </Container>
         <DebounceSearch
           path="/users/"
           onSelectResult={userSelect}
@@ -119,7 +121,7 @@ export function HomePage() {
           createSuggestionPath={buildUserPath}
         />
       </div>
-      <RegionPanel>
+      <Container padding="3xl 0">
         <CompactSelect
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
@@ -134,7 +136,9 @@ export function HomePage() {
           }}
         />
 
-        <SearchLabel>Organizations</SearchLabel>
+        <Container as="label" display="block" marginTop="xl">
+          Organizations
+        </Container>
         <DebounceSearch
           host={regionUrl}
           path={
@@ -149,7 +153,9 @@ export function HomePage() {
           createSuggestionPath={buildOrgPath}
         />
 
-        <SearchLabel>Projects (by ID)</SearchLabel>
+        <Container as="label" display="block" marginTop="xl">
+          Projects (by ID)
+        </Container>
         <DebounceSearch
           createSuggestionPath={buildProjPath}
           onSelectResult={projSelect}
@@ -159,30 +165,17 @@ export function HomePage() {
           path="/projects/?show=all"
           suggestionContent={renderProjSuggestion}
         />
-      </RegionPanel>
+      </Container>
 
-      <OverviewWrap>
+      <Container margin="xl 0">
         <div>Looking for the old overview page?</div>
         <Button size="xs" onClick={() => setOldSplash(true)}>
           click here
         </Button>
-      </OverviewWrap>
-    </SplashWrapper>
+      </Container>
+    </Container>
   );
 }
-
-const RegionPanel = styled('div')`
-  padding: ${p => p.theme.space['3xl']} 0;
-`;
-
-const SearchLabel = styled('label')`
-  display: block;
-  margin-top: ${p => p.theme.space.xl};
-`;
-
-const SplashWrapper = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-`;
 
 const HeaderTitle = styled('h3')`
   margin: 0;
@@ -191,9 +184,6 @@ const HeaderTitle = styled('h3')`
   color: ${p => p.theme.tokens.content.primary};
 `;
 
-const OverviewWrap = styled('div')`
-  margin: ${p => p.theme.space.xl} 0;
-`;
 const SecondaryText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;

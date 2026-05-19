@@ -145,9 +145,6 @@ def _detect_for_config(
     errors: Sequence[Mapping[str, Any]],
     config: DetectorConfig,
 ) -> None:
-    if config.feature_flag and not features.has(config.feature_flag, event.project.organization):
-        return
-
     if not any(e.get("type") in config.handler_cls.error_types for e in errors):
         return
 
@@ -166,6 +163,9 @@ def _detect_for_config(
             "project_age_bucket": _project_age_bucket(event.project),
         },
     )
+
+    if config.feature_flag and not features.has(config.feature_flag, event.project.organization):
+        return
 
     project_id = event.project.id
 

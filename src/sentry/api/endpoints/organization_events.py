@@ -385,7 +385,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
-                    scoped_query,
+                    scoped_query or "",
                 )
                 has_errors = False
                 has_transactions = False
@@ -393,8 +393,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 # See if we can infer which dataset based on selected columns and query string.
                 with handle_query_errors():
                     if (
-                        dataset := SAVED_QUERY_DATASET_MAP.get(dataset_inferred_from_query)
-                    ) is not None:
+                        dataset_inferred_from_query is not None
+                        and (dataset := SAVED_QUERY_DATASET_MAP.get(dataset_inferred_from_query))
+                        is not None
+                    ):
                         result = _data_fn(
                             dataset.query,
                             offset,

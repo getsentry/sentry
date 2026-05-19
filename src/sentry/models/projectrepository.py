@@ -17,7 +17,7 @@ class ProjectRepositorySource(models.IntegerChoices):
 
 @cell_silo_model
 class ProjectRepository(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Global
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     repository = FlexibleForeignKey("sentry.Repository", on_delete=models.CASCADE)

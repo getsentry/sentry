@@ -48,7 +48,7 @@ export default function AlertWizard() {
   const {project} = useAlertBuilderOutlet();
 
   const useMetricDetectorLimit =
-    HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
+    HookStore.get('react-hook:use-metric-detector-limit') ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricAlert = !quota?.hasReachedLimit;
 

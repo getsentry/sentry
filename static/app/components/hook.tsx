@@ -14,52 +14,54 @@ type Props<H extends ComponentHookName> = {
    */
   name: H;
   /**
-   * If children are provided as a function to the Hook, the hooks will be
-   * passed down as a render prop.
+   * If children are provided as a function to the Hook, the rendered hook
+   * will be passed down as a render prop.
    */
-  children?: (opts: {hooks: Array<Hooks[H]>}) => React.ReactNode;
+  children?: (opts: {rendered: React.ReactNode}) => React.ReactNode;
 } & Omit<Parameters<Hooks[H]>[0], 'name'>;
 
 /**
  * Instead of accessing the HookStore directly, use this.
  *
- * If the hook slot needs to perform anything w/ the hooks, you can pass a
- * function as a child and you will receive an object with a `hooks` key
+ * If the hook slot needs to perform anything w/ the hook, you can pass a
+ * function as a child and you will receive an object with a `hook` key.
  *
  * Example:
  *
  *   <Hook name="my-hook">
- *     {({hooks}) => hooks.map(hook => (
- *       <Wrapper>{hook}</Wrapper>
- *     ))}
+ *     {({rendered}) => <Wrapper>{rendered}</Wrapper>}
  *   </Hook>
  */
 function Hook<H extends ComponentHookName>({name, children, ...props}: Props<H>) {
-  const [hookCallbacks, setHookCallbacks] = useState<Array<Hooks[H]>>(() =>
+  // Wrap in a thunk: useState(fn) calls fn() as a lazy initializer, so storing
+  // a function as state requires the () => fn pattern throughout.
+  const [hookCallback, setHookCallback] = useState<Hooks[H] | undefined>(() =>
     HookStore.get(name)
   );
 
   useEffect(() => {
-    setHookCallbacks([...HookStore.get(name)]);
+    setHookCallback(() => HookStore.get(name));
 
-    const unsubscribe = HookStore.listen((hookName: HookName, hooks: Array<Hooks[H]>) => {
-      if (hookName === name) {
-        setHookCallbacks([...hooks]);
-      }
-    }, undefined);
+    const unsubscribe = HookStore.listen(
+      (hookName: HookName, hook: Hooks[H] | undefined) => {
+        if (hookName === name) {
+          setHookCallback(() => hook);
+        }
+      },
+      undefined
+    );
     return () => unsubscribe();
   }, [name]);
 
-  if (!hookCallbacks?.length) {
+  if (!hookCallback) {
     return null;
   }
 
-  const rendered = hookCallbacks.map((HookComp, index) => (
-    <HookComp key={index} {...props} />
-  ));
+  const HookComp = hookCallback as React.ComponentType<any>;
+  const rendered = <HookComp {...props} />;
 
   if (typeof children === 'function') {
-    return children({hooks: rendered});
+    return children({rendered});
   }
 
   return rendered;

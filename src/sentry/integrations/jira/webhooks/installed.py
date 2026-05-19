@@ -14,6 +14,7 @@ from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.jira.webhooks.base import JiraWebhookBase
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -24,7 +25,7 @@ from sentry.utils import jwt
 
 @control_silo_endpoint
 class JiraSentryInstalledWebhook(JiraWebhookBase):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -88,6 +89,22 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 lifecycle.record_halt(halt_reason="Could not decode JWT token")
                 return self.respond(
                     {"detail": "Could not decode JWT token"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Bind iss to whichever value build_integration will persist as
+            # Integration.external_id. Branch on state["jira"] (the parent
+            # dict) to match build_integration exactly — branching on the
+            # inner external_id's truthiness diverges when it's empty.
+            jira_state = state.get(IntegrationProviderSlug.JIRA.value)
+            if jira_state:
+                expected_external_id = jira_state.get("external_id")
+            else:
+                expected_external_id = state.get("clientKey")
+            if decoded_claims.get("iss") != expected_external_id:
+                lifecycle.record_halt(halt_reason="JWT iss does not match clientKey")
+                return self.respond(
+                    {"detail": "Token issuer does not match clientKey"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             data = JiraIntegrationProvider().build_integration(state)

@@ -10,7 +10,7 @@ describe('useReplayForCriticalFlow', () => {
 
   it('delegates to the registered hook implementation', () => {
     const impl = jest.fn();
-    HookStore.add('react-hook:use-replay-for-critical-flow', impl);
+    HookStore.set('react-hook:use-replay-for-critical-flow', impl);
 
     renderHookWithProviders(() =>
       useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0.5})

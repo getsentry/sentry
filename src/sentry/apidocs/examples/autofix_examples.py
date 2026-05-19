@@ -48,7 +48,7 @@ AUTOFIX_GET_RESPONSE = [
                         ]
                     },
                     "options": {
-                        "auto_run_source": "issue_summary_on_alert_fixability",
+                        "auto_run_source": "issue_summary_on_post_process_fixability",
                     },
                 },
                 "updated_at": "2025-09-23T21:02:18.160885",

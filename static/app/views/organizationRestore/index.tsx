@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import {Navigate} from 'react-router-dom';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ApiForm} from 'sentry/components/forms/apiForm';
@@ -107,11 +107,11 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
             'Would you like to cancel this process and restore the organization back to the original state?'
           )}
         </p>
-        <ButtonWrapper>
+        <Container marginBottom="xl">
           <Button data-test-id="form-submit" variant="primary" type="submit">
             {t('Restore Organization')}
           </Button>
-        </ButtonWrapper>
+        </Container>
       </ApiForm>
       <p>
         {t(
@@ -121,9 +121,5 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
     </Fragment>
   );
 }
-
-const ButtonWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 export default OrganizationRestore;

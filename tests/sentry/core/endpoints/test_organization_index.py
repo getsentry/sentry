@@ -217,24 +217,7 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         assert len(control_response.data) == 1
         assert len(cell_response.data) == 1
 
-        # TODO(cells): fields the control serializer doesn't return yet. Remove
-        # entries as they're ported — once empty, drop the filter and assert
-        # full equality.
-        missing_fields = {
-            "allowMemberInvite",
-            "allowMemberProjectCreation",
-            "allowSuperuserAccess",
-            "avatar",
-            "dateCreated",
-            "hasAuthProvider",
-            "isEarlyAdopter",
-            "links",
-            "require2FA",
-            "status",
-        }
-        assert control_response.data[0] == {
-            k: v for k, v in cell_response.data[0].items() if k not in missing_fields
-        }
+        assert control_response.data == cell_response.data
 
 
 @control_silo_test(cells=create_test_cells("us", "de"))
@@ -316,6 +299,23 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             # Validate ownership of the new org
             owners = [owner.id for owner in org.get_owners()]
             assert [self.user.id] == owners
+
+    @override_options(
+        {
+            "provision_organization.override.rate": 1.0,
+            "provision_organization.override.mapping": {"us": "de"},
+        }
+    )
+    def test_locality_to_cell_overrides(self) -> None:
+        # When these options are active we can redirect one storage location to another.
+        response = self.get_success_response(
+            name="implicit org", slug="implicit-org", dataStorageLocation="us"
+        )
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
+        assert mapping.cell_name == "de"
 
     def test_with_default_team_true(self) -> None:
         data = {"name": "hello world", "slug": "foobar", "defaultTeam": True}
@@ -683,7 +683,6 @@ class OrganizationsCreateInCellTest(OrganizationIndexTest, HybridCloudTestMixin)
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
 
-    @override_options({"provision_organization_in_cell.record_analytics": True})
     @mock.patch("sentry.analytics.record")
     def test_success_analytics_in_rpc_call(self, mock_record: mock.MagicMock) -> None:
         self.login_as(user=self.user)

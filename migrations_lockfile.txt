@@ -21,7 +21,7 @@ monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0007_delete_issue_alert_columns_notificationmessage
+notifications: 0009_clean_old_notificationmessage
 
 preprod: 0028_add_images_skipped_to_snapshot_comparison
 
@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0011_add_project_repository_fk_to_seer
+seer: 0017_drop_old_fk_columns
 
-sentry: 1090_rm_triggered_incidents_alertruletrigger
+sentry: 1099_drop_old_fk_columns
 
 social_auth: 0003_social_auth_json_field
 

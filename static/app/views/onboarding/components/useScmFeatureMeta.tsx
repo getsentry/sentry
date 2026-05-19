@@ -103,6 +103,6 @@ function useFallbackScmFeatureMeta(): UseScmFeatureMetaResult {
  */
 export function useScmFeatureMeta(): UseScmFeatureMetaResult {
   const hook =
-    HookStore.get('react-hook:use-scm-feature-meta')[0] ?? useFallbackScmFeatureMeta;
+    HookStore.get('react-hook:use-scm-feature-meta') ?? useFallbackScmFeatureMeta;
   return hook();
 }
