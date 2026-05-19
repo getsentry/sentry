@@ -231,6 +231,7 @@ const LeadHint = styled('span')`
   display: block;
   max-width: 100%;
   line-height: 1.2;
+  padding-right: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
