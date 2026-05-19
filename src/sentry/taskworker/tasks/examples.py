@@ -5,9 +5,12 @@ import random
 from time import sleep
 from typing import Any
 
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import Topic
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
 from taskbroker_client.retry import retry_task as retry_task_helper
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.taskworker.namespaces import exampletasks
 from sentry.utils.redis import redis_clusters
@@ -123,3 +126,24 @@ def simple_task_with_random_duration(
     else:
         raise ValueError(f"Invalid distribution: {distribution}")
     logger.debug("simple_task_with_random_duration complete")
+
+
+@exampletasks.register(name="examples.task_that_produces")
+def task_that_produces(
+    payload: bytes,
+    destination_topic: str = "test-topic",
+    bootstrap_servers: str = "localhost:9092",
+    production_count: int = 1,
+    random_count: bool = False,
+) -> None:
+    assert production_count > 0
+    kafka_producer = KafkaProducer({"bootstrap.servers": bootstrap_servers})
+    producer = TaskProducer(kafka_producer)
+    production_count = random.randint(1, production_count) if random_count else production_count
+    for i in range(production_count):
+        logger.debug(f"Producing message {i} onto topic {destination_topic}...")
+        producer.produce(
+            topic=Topic(destination_topic),
+            payload=KafkaPayload(key=None, value=payload, headers=[]),
+        )
+    kafka_producer.close()
