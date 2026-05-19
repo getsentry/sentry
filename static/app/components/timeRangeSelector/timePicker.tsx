@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -16,84 +16,63 @@ type Props = {
   start?: string;
 };
 
-type State = {
-  focused: boolean;
-};
+export const TimePicker = styled(function TimePicker({
+  className,
+  start,
+  end,
+  disabled,
+  onChangeStart,
+  onChangeEnd,
+  hasStartErrors,
+  hasEndErrors,
+}: Props) {
+  const [localStart, setLocalStart] = useState(start ?? '');
+  const [localEnd, setLocalEnd] = useState(end ?? '');
 
-export const TimePicker = styled(
-  class TimePicker extends Component<Props, State> {
-    state: State = {
-      focused: false,
-    };
+  // Sync local state when props change from parent (e.g. date range selection
+  // resets times to 00:00 / 23:59)
+  useEffect(() => {
+    setLocalStart(start ?? '');
+  }, [start]);
 
-    shouldComponentUpdate() {
-      // This is necessary because when a change event happens,
-      // the change is propagated up to the dropdown. This causes
-      // a re-render of this component which in turn causes the
-      // input element to lose focus. To get around losing focus,
-      // we prevent the component from updating when one of the
-      // inputs has focus. This is okay because the inputs will
-      // keep track of their own values so we do not have to keep
-      // track of it.
-      return !this.state.focused;
-    }
+  useEffect(() => {
+    setLocalEnd(end ?? '');
+  }, [end]);
 
-    handleFocus = () => {
-      this.setState({focused: true});
-    };
+  return (
+    <div className={classNames(className, 'rdrDateDisplay')}>
+      <div>
+        <Input
+          type="time"
+          value={localStart}
+          className="rdrDateDisplayItem"
+          data-test-id="startTime"
+          aria-invalid={hasStartErrors}
+          disabled={disabled}
+          onChange={e => {
+            setLocalStart(e.target.value);
+            onChangeStart(e);
+          }}
+        />
+      </div>
 
-    handleBlur = () => {
-      this.setState({focused: false});
-    };
-
-    render() {
-      const {
-        className,
-        start,
-        end,
-        disabled,
-        onChangeStart,
-        onChangeEnd,
-        hasStartErrors,
-        hasEndErrors,
-      } = this.props;
-
-      return (
-        <div className={classNames(className, 'rdrDateDisplay')}>
-          <div>
-            <Input
-              type="time"
-              key={start}
-              defaultValue={start}
-              className="rdrDateDisplayItem"
-              data-test-id="startTime"
-              aria-invalid={hasStartErrors}
-              disabled={disabled}
-              onFocus={this.handleFocus}
-              onBlur={this.handleBlur}
-              onChange={onChangeStart}
-            />
-          </div>
-
-          <div>
-            <Input
-              type="time"
-              defaultValue={end}
-              key={end}
-              className="rdrDateDisplayItem"
-              data-test-id="endTime"
-              disabled={disabled}
-              aria-invalid={hasEndErrors}
-              onFocus={this.handleFocus}
-              onBlur={this.handleBlur}
-              onChange={onChangeEnd}
-            />
-          </div>
-        </div>
-      );
-    }
-  }
-)`
+      <div>
+        <Input
+          type="time"
+          value={localEnd}
+          className="rdrDateDisplayItem"
+          data-test-id="endTime"
+          disabled={disabled}
+          aria-invalid={hasEndErrors}
+          onChange={e => {
+            setLocalEnd(e.target.value);
+            onChangeEnd(e);
+          }}
+        />
+      </div>
+    </div>
+  );
+})`
   &.rdrDateDisplay {
     display: grid;
     background: transparent;
