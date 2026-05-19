@@ -1,6 +1,11 @@
-import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {
+  mutationOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import iconAndroid from 'sentry-logos/logo-android.svg';
 import iconChrome from 'sentry-logos/logo-chrome.svg';
 import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
@@ -8,8 +13,17 @@ import iconFirefox from 'sentry-logos/logo-firefox.svg';
 import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
+import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {
+  AutoSaveForm,
+  defaultFormOptions,
+  FieldGroup,
+  FormSearch,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
@@ -17,32 +31,17 @@ import {Switch} from '@sentry/scraps/switch';
 import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
-import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
-import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
-import type {FormProps} from 'sentry/components/forms/form';
-import {Form} from 'sentry/components/forms/form';
-import {FormField} from 'sentry/components/forms/formField';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelItem} from 'sentry/components/panels/panelItem';
-import {
-  customFilterFields,
-  formGroups as filterGroups,
-  getOptionsData,
-} from 'sentry/data/forms/inboundFilters';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const filterDescriptions = {
@@ -188,97 +187,81 @@ const LEGACY_BROWSER_SUBFILTERS = {
 
 type LegacyBrowserSubfilterKeys = Array<keyof typeof LEGACY_BROWSER_SUBFILTERS>;
 
-type FormFieldProps = React.ComponentProps<typeof FormField>;
-
-type RowProps = {
-  data: {
-    active: string[] | boolean;
-  };
-  onToggle: (
-    data: RowProps['data'],
-    filters: Set<string>,
-    event: React.ChangeEvent | React.MouseEvent
-  ) => void;
-  disabled?: boolean;
-};
-
-function getActiveSubfilters() {
-  return new Set(
-    Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-      key =>
-        !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS].legacy
-    )
+function getActiveSubfilters(): string[] {
+  return Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
+    key =>
+      !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS].legacy
   );
 }
 
-function getInitialSubfilters(active: boolean | string[]): Set<string> {
+function getInitialSubfilters(active: boolean | string[]): string[] {
   switch (active) {
     case true:
       return getActiveSubfilters();
     case false:
-      return new Set();
+      return [];
     default:
-      return new Set(active);
+      return active;
   }
 }
 
-function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
-  const [subfilters, setSubfilters] = useState(getInitialSubfilters(data.active));
+function LegacyBrowserFilterRow({
+  subfilters,
+  disabled,
+  hintText,
+  indicator,
+  label,
+  onToggle,
+}: {
+  hintText: React.ReactNode;
+  label: React.ReactNode;
+  onToggle: (newSubfilters: string[]) => void;
+  subfilters: string[];
+  disabled?: boolean;
+  indicator?: React.ReactNode;
+}) {
+  const subfilterSet = new Set(subfilters);
 
-  const createHandleToggleSubfilters = (subfilter: boolean | string) => {
-    return (e: React.ChangeEvent | React.MouseEvent) => {
-      let newSubfilters = new Set(subfilters);
+  const toggleSubfilter = (subfilter: string) => {
+    const newSet = new Set(subfilterSet);
 
-      if (subfilter === true) {
-        newSubfilters = getActiveSubfilters();
-      } else if (subfilter === false) {
-        newSubfilters = new Set();
-      } else if (newSubfilters.has(subfilter)) {
-        newSubfilters.delete(subfilter);
-      } else {
-        newSubfilters.add(subfilter);
-      }
+    if (newSet.has(subfilter)) {
+      newSet.delete(subfilter);
+    } else {
+      newSet.add(subfilter);
+    }
 
-      setSubfilters(newSubfilters);
-      onToggle(data, newSubfilters, e);
-    };
+    onToggle([...newSet]);
   };
 
   return (
-    <div>
-      <div>
+    <Flex direction="column" flexGrow={1} width="100%">
+      <Flex align="center" gap="xs" justify="between">
         <Flex align="center" gap="xs">
-          <FieldLabel disabled={disabled}>{t('Filter out legacy browsers')}:</FieldLabel>
+          {label}
           <Grid flow="column" align="center" gap="md">
             <Button
               variant="link"
-              onClick={createHandleToggleSubfilters(true)}
+              onClick={() => onToggle(getActiveSubfilters())}
               disabled={disabled}
             >
               {t('All')}
             </Button>
-            <Button
-              variant="link"
-              onClick={createHandleToggleSubfilters(false)}
-              disabled={disabled}
-            >
+            <Button variant="link" onClick={() => onToggle([])} disabled={disabled}>
               {t('None')}
             </Button>
           </Grid>
         </Flex>
-        <FieldHelp>
-          {t(
-            'The browser versions filtered out will be periodically evaluated and updated.'
-          )}
-        </FieldHelp>
-      </div>
+        {indicator}
+      </Flex>
+      {hintText}
       <FilterGrid>
         {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
           .filter(key => {
             if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
               return true;
             }
-            return subfilters.has(key);
+            return subfilterSet.has(key);
           })
           .map(key => {
             const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
@@ -291,30 +274,101 @@ function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
                 </div>
                 <Switch
                   aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                  checked={subfilters.has(key)}
+                  checked={subfilterSet.has(key)}
                   disabled={disabled}
-                  css={css`
-                    flex-shrink: 0;
-                    margin-left: 6;
-                  `}
-                  onChange={createHandleToggleSubfilters(key)}
+                  onChange={() => toggleSubfilter(key)}
                   size="lg"
                 />
               </FilterGridItem>
             );
           })}
       </FilterGrid>
-    </div>
+    </Flex>
   );
 }
 
-function CustomFilters({
+const booleanFilterSchema = z.object({
+  'browser-extensions': z.boolean(),
+  localhost: z.boolean(),
+  'filtered-transaction': z.boolean(),
+  'web-crawlers': z.boolean(),
+});
+
+const projectBooleanSchema = z.object({
+  'filters:react-hydration-errors': z.boolean(),
+  'filters:chunk-load-error': z.boolean(),
+});
+
+const legacyBrowserSchema = z.object({'legacy-browsers': z.array(z.string())});
+
+const customFiltersSchema = z.object({
+  'filters:blacklisted_ips': z.string(),
+  'filters:releases': z.string(),
+  'filters:error_messages': z.string(),
+  'filters:log_messages': z.string(),
+  'filters:trace_metric_names': z.string(),
+});
+
+const newLineHelpText = t('Separate multiple entries with a newline.');
+const globHelpText = tct('Allows [link:glob pattern matching].', {
+  link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
+});
+
+type CustomFiltersFormValues = z.infer<typeof customFiltersSchema>;
+
+function CustomFiltersForm({
   project,
   disabled,
+  projectEndpoint,
+  projectSlug,
 }: {
   disabled: boolean;
   project: DetailedProject;
+  projectEndpoint: string;
+  projectSlug: string;
 }) {
+  const queryClient = useQueryClient();
+  const org = useOrganization();
+  const mutation = useMutation({
+    mutationFn: (data: CustomFiltersFormValues) =>
+      fetchMutation<DetailedProject>({
+        url: projectEndpoint,
+        method: 'PUT',
+        data: {options: data},
+      }),
+    onSuccess: response => {
+      const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
+        orgSlug: org.slug,
+        projectSlug,
+      });
+      ProjectsStore.onUpdateSuccess(response);
+      queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+        prev ? {...prev, json: response} : {headers: {}, json: response}
+      );
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      'filters:blacklisted_ips': String(
+        project.options?.['filters:blacklisted_ips'] ?? ''
+      ),
+      'filters:releases': String(project.options?.['filters:releases'] ?? ''),
+      'filters:error_messages': String(project.options?.['filters:error_messages'] ?? ''),
+      'filters:log_messages': String(project.options?.['filters:log_messages'] ?? ''),
+      'filters:trace_metric_names': String(
+        project.options?.['filters:trace_metric_names'] ?? ''
+      ),
+    },
+    validators: {onDynamic: customFiltersSchema},
+    onSubmit: ({value, formApi}) =>
+      mutation
+        .mutateAsync(value)
+        .then(() => formApi.reset(value))
+        .catch(() => {}),
+  });
+
   return (
     <Feature
       features="projects:custom-inbound-filters"
@@ -340,41 +394,181 @@ function CustomFilters({
       }}
     >
       {({hasFeature, organization, renderDisabled, ...featureProps}) => (
-        <Fragment>
-          {!hasFeature &&
-            typeof renderDisabled === 'function' &&
-            // XXX: children is set to null as we're doing tricksy things
-            // in the renderDisabled prop a few lines higher.
-            renderDisabled({
-              organization,
-              hasFeature,
-              children: null,
-              ...featureProps,
-            })}
+        <form.AppForm form={form}>
+          <FormSearch route="/settings/:orgId/projects/:projectId/filters/">
+            <FieldGroup title={t('Custom Filters')}>
+              {!hasFeature &&
+                typeof renderDisabled === 'function' &&
+                renderDisabled({
+                  organization,
+                  hasFeature,
+                  children: null,
+                  ...featureProps,
+                })}
 
-          {customFilterFields
-            .filter(field => {
-              if (defined(field.feature)) {
-                return organization.features.includes(field.feature);
-              }
-              return true;
-            })
-            .map(field => (
-              <FieldFromConfig
-                key={field.name}
-                field={field}
-                disabled={disabled || !hasFeature}
-              />
-            ))}
+              <form.AppField name="filters:blacklisted_ips">
+                {field => (
+                  <field.Layout.Row
+                    label={t('IP Addresses')}
+                    hintText={
+                      <Fragment>
+                        {t('Filter events from these IP addresses. ')}
+                        {newLineHelpText}
+                      </Fragment>
+                    }
+                  >
+                    <field.TextArea
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={disabled}
+                      monospace
+                      autosize
+                      rows={1}
+                      maxRows={10}
+                      placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
 
-          {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
-              {t(
-                "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
+              <form.AppField name="filters:releases">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Releases')}
+                    hintText={
+                      <Fragment>
+                        {t('Filter events from these releases. ')}
+                        {newLineHelpText} {globHelpText}
+                      </Fragment>
+                    }
+                  >
+                    <field.TextArea
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={disabled || !hasFeature}
+                      monospace
+                      autosize
+                      rows={1}
+                      maxRows={10}
+                      placeholder="e.g. 1.* or [!3].[0-9].*"
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+
+              <form.AppField name="filters:error_messages">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Error Message')}
+                    hintText={
+                      <Fragment>
+                        {t('Filter events by error messages. ')}
+                        {newLineHelpText} {globHelpText}{' '}
+                        {t(
+                          'Exceptions are matched on "<type>: <message>", for example "TypeError: *".'
+                        )}
+                      </Fragment>
+                    }
+                  >
+                    <field.TextArea
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={disabled || !hasFeature}
+                      monospace
+                      autosize
+                      rows={1}
+                      maxRows={10}
+                      placeholder="e.g. TypeError* or *: integer division or modulo by zero"
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+
+              {organization.features.includes('ourlogs-ingestion') && (
+                <form.AppField name="filters:log_messages">
+                  {field => (
+                    <field.Layout.Row
+                      label={t('Log Message')}
+                      hintText={
+                        <Fragment>
+                          {t('Filter logs by messages. ')}
+                          {newLineHelpText} {globHelpText}{' '}
+                          {t(
+                            'Logs are matched on "<message>", for example "Rate limit*".'
+                          )}
+                        </Fragment>
+                      }
+                    >
+                      <field.TextArea
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        disabled={disabled || !hasFeature}
+                        monospace
+                        autosize
+                        rows={1}
+                        maxRows={10}
+                        placeholder="e.g. Rate limit* or *connection"
+                      />
+                    </field.Layout.Row>
+                  )}
+                </form.AppField>
               )}
-            </PanelAlert>
-          )}
-        </Fragment>
+
+              {organization.features.includes('tracemetrics-ingestion') && (
+                <form.AppField name="filters:trace_metric_names">
+                  {field => (
+                    <field.Layout.Row
+                      label={t('Application Metrics')}
+                      hintText={
+                        <Fragment>
+                          {t('Filter application metrics by name. ')}
+                          {newLineHelpText} {globHelpText}{' '}
+                          {t(
+                            'Application metrics are matched on the metric name, for example "my_metric.*".'
+                          )}
+                        </Fragment>
+                      }
+                    >
+                      <field.TextArea
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        disabled={disabled || !hasFeature}
+                        monospace
+                        autosize
+                        rows={1}
+                        maxRows={10}
+                        placeholder="e.g. my_metric.*"
+                      />
+                    </field.Layout.Row>
+                  )}
+                </form.AppField>
+              )}
+
+              {hasFeature && project.options?.['filters:error_messages'] && (
+                <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
+                  {t(
+                    "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
+                  )}
+                </PanelAlert>
+              )}
+              <Flex gap="sm" align="center">
+                <form.Subscribe selector={state => state.isDirty}>
+                  {isDirty =>
+                    isDirty ? (
+                      <Alert variant="info">
+                        {t('Changing this filter will apply to all new events.')}
+                      </Alert>
+                    ) : null
+                  }
+                </form.Subscribe>
+                <Flex gap="sm" justify="end" flexGrow={1}>
+                  <form.ResetButton>{t('Cancel')}</form.ResetButton>
+                  <form.SubmitButton>{t('Save')}</form.SubmitButton>
+                </Flex>
+              </Flex>
+            </FieldGroup>
+          </FormSearch>
+        </form.AppForm>
       )}
     </Feature>
   );
@@ -396,44 +590,163 @@ type Filter = {
   name: string;
 };
 
-export function ProjectFiltersSettings({project, params, features}: Props) {
+type StandardFilterId = keyof z.infer<typeof booleanFilterSchema>;
+type ProjectBooleanFilterId = keyof z.infer<typeof projectBooleanSchema>;
+
+function StandardFilter({
+  description,
+  filter,
+  filtersEndpoint,
+  hasAccess,
+  organization,
+  project,
+  onUpdate,
+}: {
+  description: (typeof filterDescriptions)[keyof typeof filterDescriptions];
+  filter: Filter;
+  filtersEndpoint: string;
+  hasAccess: boolean;
+  onUpdate: (filterId: string, active: boolean | string[]) => boolean | string[];
+  organization: Organization;
+  project: DetailedProject;
+}) {
+  const name = filter.id as StandardFilterId;
+
+  return (
+    <AutoSaveForm
+      name={name}
+      schema={booleanFilterSchema}
+      initialValue={!!filter.active}
+      mutationOptions={{
+        mutationFn: (data: Record<StandardFilterId, boolean>) => {
+          trackAnalytics('settings.inbound_filter_updated', {
+            organization,
+            project_id: parseInt(project.id, 10),
+            filter: filter.id,
+            new_state: data[name] ? 'enabled' : 'disabled',
+          });
+          return fetchMutation({
+            url: `${filtersEndpoint}${filter.id}/`,
+            method: 'PUT',
+            data: {active: data[name]},
+          });
+        },
+        onMutate: data => ({
+          previousActive: onUpdate(filter.id, data[name]),
+        }),
+        onError: (_error, _data, context) => {
+          if (context) {
+            onUpdate(filter.id, context.previousActive);
+          }
+        },
+      }}
+    >
+      {field => (
+        <field.Layout.Row label={description.label} hintText={description.help}>
+          <field.Switch
+            checked={field.state.value}
+            onChange={field.handleChange}
+            disabled={!hasAccess}
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveForm>
+  );
+}
+
+export function ProjectFiltersSettings({project, params, features: _features}: Props) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {projectId: projectSlug} = params;
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const filtersEndpoint = `${projectEndpoint}filters/`;
+  const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
+  const {data: currentProject = project} = useQuery({
+    ...detailedProjectQueryOptions,
+    initialData: {headers: {}, json: project},
+  });
+
+  const getProjectBooleanMutationOptions = <TName extends ProjectBooleanFilterId>({
+    name,
+  }: {
+    name: TName;
+  }) =>
+    mutationOptions({
+      mutationFn: (data: Record<TName, boolean>) => {
+        trackAnalytics('settings.inbound_filter_updated', {
+          organization,
+          project_id: parseInt(project.id, 10),
+          filter: name,
+          new_state: data[name] ? 'enabled' : 'disabled',
+        });
+        return fetchMutation<DetailedProject>({
+          url: projectEndpoint,
+          method: 'PUT',
+          data: {options: data},
+        });
+      },
+      onMutate: data => {
+        const previousProject = currentProject;
+        const updatedProject = {
+          ...previousProject,
+          options: {...previousProject.options, ...data},
+        };
+        ProjectsStore.onUpdateSuccess(updatedProject);
+        queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+          prev ? {...prev, json: updatedProject} : {headers: {}, json: updatedProject}
+        );
+        return {previousProject};
+      },
+      onError: (_error, _data, context) => {
+        if (context) {
+          ProjectsStore.onUpdateSuccess(context.previousProject);
+          queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+            prev ? {...prev, json: context.previousProject} : prev
+          );
+        }
+      },
+      onSuccess: response => {
+        ProjectsStore.onUpdateSuccess(response);
+        queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+          prev ? {...prev, json: response} : {headers: {}, json: response}
+        );
+      },
+    });
+
+  const filterQueryOptions = apiOptions.as<Filter[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectSlug,
+      },
+      staleTime: 0,
+    }
+  );
 
   const {
     data: filterListData,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Filter[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      gcTime: 0,
-    }
-  );
+  } = useQuery(filterQueryOptions);
 
   const filterList = filterListData ?? [];
 
-  const handleLegacyChange = ({
-    onChange,
-    onBlur,
-    event,
-    subfilters,
-  }: {
-    event: React.ChangeEvent | React.MouseEvent;
-    onBlur: FormFieldProps['onBlur'];
-    onChange: FormFieldProps['onChange'];
-    subfilters: Set<string>;
-  }) => {
-    onChange?.(subfilters, event);
-    onBlur?.(subfilters, event);
+  const updateFilterCache = (filterId: string, active: boolean | string[]) => {
+    const previous = filterList.find(f => f.id === filterId)?.active ?? false;
+    queryClient.setQueryData(filterQueryOptions.queryKey, prev =>
+      prev
+        ? {
+            ...prev,
+            json: prev.json.map(f => (f.id === filterId ? {...f, active} : f)),
+          }
+        : prev
+    );
+    return previous;
   };
 
   if (isPending) {
@@ -445,187 +758,168 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
   }
 
   return (
-    <Access access={['project:write']} project={project}>
-      {({hasAccess}) => (
-        <Fragment>
-          <Panel>
-            <PanelHeader>{t('Filters')}</PanelHeader>
-            <PanelBody>
+    <FormSearch route="/settings/:orgId/projects/:projectId/filters/">
+      <Access access={['project:write']} project={project}>
+        {({hasAccess}) => (
+          <Fragment>
+            <FieldGroup title={t('Filters')}>
               {filterList.map(filter => {
-                const fieldProps = {
-                  name: filter.id,
-                  disabled: !hasAccess,
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  ...filterDescriptions[filter.id],
-                };
-
-                // Note by default, forms generate data in the format of:
-                // { [fieldName]: [value] }
-                // Endpoints for these filters expect data to be:
-                // { 'active': [value] }
-                return (
-                  <PanelItem key={filter.id} noPadding>
-                    <NestedForm
-                      apiMethod="PUT"
-                      apiEndpoint={`${filtersEndpoint}${filter.id}/`}
-                      initialData={{[filter.id]: filter.active}}
-                      saveOnBlur
-                      onFieldChange={(name, value) => {
-                        trackAnalytics('settings.inbound_filter_updated', {
-                          organization,
-                          project_id: parseInt(project.id, 10),
-                          filter: name,
-                          new_state:
-                            filter.id === 'legacy-browsers' && value instanceof Set
-                              ? [...value].sort().join(',')
-                              : value
-                                ? 'enabled'
-                                : 'disabled',
-                        });
+                if (filter.id === 'legacy-browsers') {
+                  return (
+                    <AutoSaveForm
+                      key={filter.id}
+                      name="legacy-browsers"
+                      schema={legacyBrowserSchema}
+                      initialValue={getInitialSubfilters(filter.active)}
+                      mutationOptions={{
+                        mutationFn: (data: {'legacy-browsers': string[]}) => {
+                          const newSubfilters = data['legacy-browsers'];
+                          trackAnalytics('settings.inbound_filter_updated', {
+                            organization,
+                            project_id: parseInt(project.id, 10),
+                            filter: filter.id,
+                            new_state: [...newSubfilters].sort().join(','),
+                          });
+                          return fetchMutation({
+                            url: `${filtersEndpoint}${filter.id}/`,
+                            method: 'PUT',
+                            data: {subfilters: newSubfilters},
+                          });
+                        },
+                        onMutate: data => ({
+                          previousActive: updateFilterCache(
+                            filter.id,
+                            data['legacy-browsers']
+                          ),
+                        }),
+                        onError: (_error, _data, context) => {
+                          if (context) {
+                            updateFilterCache(filter.id, context.previousActive);
+                          }
+                        },
                       }}
                     >
-                      {filter.id === 'legacy-browsers' ? (
-                        <FormField
-                          inline={false}
-                          {...fieldProps}
-                          getData={(data: any) => ({
-                            subfilters: [...data[filter.id]],
-                          })}
-                        >
-                          {({onChange, onBlur}: any) => (
+                      {field => (
+                        <field.Base disabled={!hasAccess}>
+                          {(baseProps, {indicator}) => (
                             <LegacyBrowserFilterRow
-                              key={filter.id}
-                              data={filter}
-                              disabled={!hasAccess}
-                              onToggle={(_data, subfilters, event) =>
-                                handleLegacyChange({onChange, onBlur, event, subfilters})
+                              subfilters={field.state.value}
+                              disabled={baseProps.disabled}
+                              hintText={
+                                <field.Meta.HintText>
+                                  {t(
+                                    'The browser versions filtered out will be periodically evaluated and updated.'
+                                  )}
+                                </field.Meta.HintText>
                               }
+                              indicator={indicator}
+                              label={
+                                <field.Meta.Label>
+                                  {t('Filter out legacy browsers')}
+                                </field.Meta.Label>
+                              }
+                              onToggle={newSubfilters => {
+                                field.handleChange(newSubfilters);
+                                baseProps.onBlur();
+                              }}
                             />
                           )}
-                        </FormField>
-                      ) : (
-                        <FieldFromConfig
-                          key={filter.id}
-                          getData={data => ({active: data[filter.id]})}
-                          field={{
-                            type: 'boolean',
-                            ...fieldProps,
-                          }}
-                        />
+                        </field.Base>
                       )}
-                    </NestedForm>
-                  </PanelItem>
+                    </AutoSaveForm>
+                  );
+                }
+
+                const desc =
+                  filterDescriptions[filter.id as keyof typeof filterDescriptions];
+                if (!desc) {
+                  return null;
+                }
+
+                return (
+                  <StandardFilter
+                    key={filter.id}
+                    description={desc}
+                    filter={filter}
+                    filtersEndpoint={filtersEndpoint}
+                    hasAccess={hasAccess}
+                    organization={organization}
+                    project={project}
+                    onUpdate={updateFilterCache}
+                  />
                 );
               })}
-              <PanelItem noPadding>
-                <NestedForm
-                  apiMethod="PUT"
-                  apiEndpoint={projectEndpoint}
-                  initialData={{
-                    'filters:react-hydration-errors':
-                      project.options?.['filters:react-hydration-errors'],
-                  }}
-                  saveOnBlur
-                  onFieldChange={(name, value) => {
-                    trackAnalytics('settings.inbound_filter_updated', {
-                      organization,
-                      project_id: parseInt(project.id, 10),
-                      filter: name,
-                      new_state: value ? 'enabled' : 'disabled',
-                    });
-                  }}
-                  onSubmitSuccess={(
-                    response // This will update our project context
-                  ) => ProjectsStore.onUpdateSuccess(response)}
-                >
-                  <FieldFromConfig
-                    getData={getOptionsData}
-                    field={{
-                      type: 'boolean',
-                      name: 'filters:react-hydration-errors',
-                      label: t('Filter out hydration errors'),
-                      help: tct(
-                        'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
-                        {
-                          replaySettings: (
-                            <Link
-                              to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
-                            />
-                          ),
-                        }
-                      ),
-                      disabled: !hasAccess,
-                    }}
-                  />
-                </NestedForm>
-              </PanelItem>
-              <PanelItem noPadding>
-                <NestedForm
-                  apiMethod="PUT"
-                  apiEndpoint={projectEndpoint}
-                  initialData={{
-                    'filters:chunk-load-error':
-                      project.options?.['filters:chunk-load-error'],
-                  }}
-                  saveOnBlur
-                  onFieldChange={(name, value) => {
-                    trackAnalytics('settings.inbound_filter_updated', {
-                      organization,
-                      project_id: parseInt(project.id, 10),
-                      filter: name,
-                      new_state: value ? 'enabled' : 'disabled',
-                    });
-                  }}
-                  onSubmitSuccess={(
-                    response // This will update our project context
-                  ) => ProjectsStore.onUpdateSuccess(response)}
-                >
-                  <FieldFromConfig
-                    getData={getOptionsData}
-                    field={{
-                      type: 'boolean',
-                      name: 'filters:chunk-load-error',
-                      label: t('Filter out ChunkLoadError(s)'),
-                      help: t(
-                        "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
-                      ),
-                      disabled: !hasAccess,
-                    }}
-                  />
-                </NestedForm>
-              </PanelItem>
-            </PanelBody>
-          </Panel>
 
-          <Form
-            apiMethod="PUT"
-            apiEndpoint={projectEndpoint}
-            initialData={project.options}
-            saveOnBlur
-            onSubmitSuccess={response =>
-              // This will update our project context
-              ProjectsStore.onUpdateSuccess(response)
-            }
-          >
-            <JsonForm
-              features={features}
-              forms={filterGroups}
+              <AutoSaveForm
+                name="filters:react-hydration-errors"
+                schema={projectBooleanSchema}
+                initialValue={
+                  !!currentProject.options?.['filters:react-hydration-errors']
+                }
+                mutationOptions={getProjectBooleanMutationOptions({
+                  name: 'filters:react-hydration-errors',
+                })}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Filter out hydration errors')}
+                    hintText={tct(
+                      'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
+                      {
+                        replaySettings: (
+                          <Link
+                            to={`/settings/${organization.slug}/projects/${currentProject.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                          />
+                        ),
+                      }
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+
+              <AutoSaveForm
+                name="filters:chunk-load-error"
+                schema={projectBooleanSchema}
+                initialValue={!!currentProject.options?.['filters:chunk-load-error']}
+                mutationOptions={getProjectBooleanMutationOptions({
+                  name: 'filters:chunk-load-error',
+                })}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Filter out ChunkLoadError(s)')}
+                    hintText={t(
+                      "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+            </FieldGroup>
+
+            <CustomFiltersForm
+              project={project}
               disabled={!hasAccess}
-              renderFooter={() => (
-                <CustomFilters disabled={!hasAccess} project={project} />
-              )}
+              projectEndpoint={projectEndpoint}
+              projectSlug={projectSlug}
             />
-          </Form>
-        </Fragment>
-      )}
-    </Access>
+          </Fragment>
+        )}
+      </Access>
+    </FormSearch>
   );
 }
-
-// TODO(ts): Understand why styled is not correctly inheriting props here
-const NestedForm = styled(Form)<FormProps>`
-  flex: 1;
-`;
 
 const FilterGrid = styled('div')`
   display: grid;
