@@ -911,7 +911,10 @@ export function GlobalCommandPaletteActions() {
                   icon: <ProjectAvatar project={project} size={16} />,
                 },
                 keywords: [project.name, project.slug],
-                to: `/organizations/${organization.slug}/projects/${project.slug}/`,
+                to: makeProjectsPathname({
+                  path: `/projects/${project.slug}/`,
+                  organization,
+                }),
               })),
           });
         }}
