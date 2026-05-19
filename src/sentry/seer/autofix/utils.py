@@ -805,7 +805,7 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
 
     with transaction.atomic(using=router.db_for_write(ProjectOption)):
         # Lock project rows to serialize concurrent writes.
-        list(Project.objects.select_for_update().filter(id=project.id).first())
+        Project.objects.select_for_update().filter(id=project.id).first()
 
         for key in options_to_delete:
             project.delete_option(key)
