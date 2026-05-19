@@ -107,11 +107,7 @@ interface DebugMetaProps {
 
 type FilterSelections = Array<SelectOption<string>>;
 
-export function DebugMeta(props: DebugMetaProps) {
-  return <DebugMetaContent {...props} />;
-}
-
-function DebugMetaContent({data, projectSlug, groupId, event}: DebugMetaProps) {
+export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const {openModal} = useModal();
 
   const theme = useTheme();
