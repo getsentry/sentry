@@ -60,3 +60,5 @@ class TestSendLegacyWebhookTask(BaseWorkflowTest):
         assert call_args[0][0] == "legacy_webhook.dry_run"
         assert call_args[1]["extra"]["url"] == "http://example.com/hook"
         assert call_args[1]["extra"]["payload"] == payload
+        headers = call_args[1]["extra"]["headers"]
+        assert headers["Content-Type"] == "application/json"

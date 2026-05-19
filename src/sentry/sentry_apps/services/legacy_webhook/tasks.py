@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from requests import Request
 from requests.exceptions import ConnectionError, ReadTimeout
 from taskbroker_client.retry import Retry
 
@@ -43,11 +44,13 @@ def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: 
     organization = group.project.organization
 
     if features.has("organizations:legacy-webhook-dry-run", organization):
+        prepared = Request(method="POST", url=url, json=payload).prepare()
         logger.info(
             "legacy_webhook.dry_run",
             extra={
                 "url": url,
                 "payload": payload,
+                "headers": dict(prepared.headers),
             },
         )
         return
