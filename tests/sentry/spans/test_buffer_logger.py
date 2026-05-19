@@ -63,8 +63,8 @@ def test_process_spans_observability_emits_evalsha_data() -> None:
     )
 
     with mock.patch("sentry.spans.buffer_logger.emit_observability_metrics") as emit_metrics:
-        observability.emit_evalsha_latency_log(buffer_logger)
-        observability.emit_observability_metrics()
+        buffer_logger.log(observability.evalsha_latency_entries)
+        observability.emit_metrics()
 
     buffer_logger.log.assert_called_once_with([("1:" + "a" * 32, 5), ("1:" + "b" * 32, 20)])
     emit_metrics.assert_called_once_with(

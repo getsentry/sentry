@@ -433,7 +433,7 @@ class SpansBuffer:
                     )
                 delete_set.discard(evalsha_result.segment_key)
 
-            observability.emit_evalsha_latency_log(self._buffer_logger)
+            self._buffer_logger.log(observability.evalsha_latency_entries)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
@@ -453,7 +453,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
         metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
-        observability.emit_observability_metrics()
+        observability.emit_metrics()
 
     def _ensure_script(self) -> str:
         """

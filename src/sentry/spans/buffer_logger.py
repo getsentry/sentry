@@ -168,10 +168,11 @@ class ProcessSpansObservability:
                 result.gauge_metrics,
             )
 
-    def emit_evalsha_latency_log(self, buffer_logger: BufferLogger) -> None:
-        buffer_logger.log(self._latency_entries)
+    @property
+    def evalsha_latency_entries(self) -> list[tuple[str, int]]:
+        return self._latency_entries
 
-    def emit_observability_metrics(self) -> None:
+    def emit_metrics(self) -> None:
         try:
             emit_observability_metrics(
                 self._latency_metrics,
