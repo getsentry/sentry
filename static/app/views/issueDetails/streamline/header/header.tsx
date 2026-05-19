@@ -64,8 +64,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
   const useGetMaxRetentionDays =
-    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
-    (() => MAX_PICKABLE_DAYS);
+    HookStore.get('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays();
   const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
   const {title: primaryTitle, subtitle} = getTitle(group);

@@ -13,12 +13,12 @@ interface Internals {
 type HookCallback = (...args: any[]) => void;
 
 interface HookStoreDefinition extends StoreDefinition, Internals {
-  add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
-  get<H extends HookName>(hookName: H): Array<Hooks[H]>;
+  get<H extends HookName>(hookName: H): Hooks[H] | undefined;
   getCallback(hookName: HookName, key: string): HookCallback | undefined;
   init(): void;
   persistCallback(hookName: HookName, key: string, value: HookCallback): void;
-  remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
+  remove(hookName: HookName): void;
+  set<H extends HookName>(hookName: H, callback: Hooks[H]): void;
 }
 
 const storeConfig: HookStoreDefinition = {
@@ -33,25 +33,18 @@ const storeConfig: HookStoreDefinition = {
     this.hookCallbacks = {}; // For persisting hook pure functions / useX react hooks remotely.
   },
 
-  add(hookName, callback) {
-    if (this.hooks[hookName] === undefined) {
-      this.hooks[hookName] = [];
-    }
-
-    this.hooks[hookName].push(callback);
-    this.trigger(hookName, this.hooks[hookName]);
+  set(hookName, callback) {
+    this.hooks[hookName] = callback;
+    this.trigger(hookName, callback);
   },
 
-  remove(hookName, callback) {
-    if (this.hooks[hookName] === undefined) {
-      return;
-    }
-    this.hooks[hookName] = this.hooks[hookName]!.filter((cb: any) => cb !== callback);
-    this.trigger(hookName, this.hooks[hookName]);
+  remove(hookName) {
+    delete this.hooks[hookName];
+    this.trigger(hookName, undefined);
   },
 
   get(hookName) {
-    return this.hooks[hookName]! || [];
+    return this.hooks[hookName];
   },
 
   persistCallback(hookName, key, value) {

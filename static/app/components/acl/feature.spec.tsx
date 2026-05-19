@@ -284,11 +284,11 @@ describe('Feature', () => {
 
     beforeEach(() => {
       hookFn = jest.fn(() => null);
-      HookStore.add('feature-disabled:sso-basic', hookFn);
+      HookStore.set('feature-disabled:sso-basic', hookFn);
     });
 
     afterEach(() => {
-      HookStore.remove('feature-disabled:sso-basic', hookFn);
+      HookStore.remove('feature-disabled:sso-basic');
     });
 
     it('uses hookName if provided', () => {

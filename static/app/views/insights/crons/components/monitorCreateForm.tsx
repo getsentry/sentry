@@ -49,7 +49,7 @@ export function MonitorCreateForm() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const monitorCreationCallbacks = HookStore.get('callback:on-monitor-created');
+  const onMonitorCreated = HookStore.get('callback:on-monitor-created');
 
   const form = useRef(
     new FormModel({
@@ -79,7 +79,7 @@ export function MonitorCreateForm() {
         query: endpointOptions.query,
       })
     );
-    monitorCreationCallbacks.map(cb => cb(organization));
+    onMonitorCreated?.(organization);
   }
 
   function changeScheduleType(type: ScheduleType) {

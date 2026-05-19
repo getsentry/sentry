@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {callSetOrganizationCallback} from 'sentry/utils/routeAnalytics/setOrganizationCallback';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
@@ -31,8 +31,7 @@ describe('useRouteAnalyticsHookSetup', () => {
         </OrganizationContext>
       </RouteAnalyticsContext>
     );
-    expect(
-      HookStore.getCallback('react-hook:route-activated', 'setOrganization')
-    ).toEqual(setOrganization);
+    callSetOrganizationCallback(organization);
+    expect(setOrganization).toHaveBeenCalledWith(organization);
   });
 });

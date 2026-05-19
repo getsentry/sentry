@@ -25,7 +25,7 @@ describe('HookOrDefault', () => {
   });
 
   it('should render from HookStore', () => {
-    HookStore.add(
+    HookStore.set(
       'component:replay-onboarding-cta',
       () =>
         function ({organization}) {

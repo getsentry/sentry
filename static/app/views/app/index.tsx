@@ -142,7 +142,7 @@ export function App() {
 
     // Set the user for analytics
     if (user) {
-      HookStore.get('analytics:init-user').map(cb => cb(user));
+      HookStore.get('analytics:init-user')?.(user);
     }
 
     initApiClientErrorHandling();

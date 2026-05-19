@@ -46,7 +46,7 @@ function OrganizationCreate() {
   const client = useApi();
 
   const hasDataConsent =
-    HookStore.get('component:data-consent-org-creation-checkbox').length !== 0;
+    HookStore.get('component:data-consent-org-creation-checkbox') !== undefined;
 
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host

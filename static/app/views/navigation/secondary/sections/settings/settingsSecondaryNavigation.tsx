@@ -2,7 +2,7 @@ import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
+import {OrganizationSettingsNavigation} from 'sentry/views/settings/organization/organizationSettingsNavigation';
 import {ProjectSettingsNavigation} from 'sentry/views/settings/project/projectSettingsNavigation';
 
 export function SettingsSecondaryNavigation() {
@@ -15,5 +15,5 @@ export function SettingsSecondaryNavigation() {
     return <ProjectSettingsNavigation organization={organization} />;
   }
 
-  return <OrganizationSettingsNavigation organization={organization} />;
+  return <OrganizationSettingsNavigation />;
 }

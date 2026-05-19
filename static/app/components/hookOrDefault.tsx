@@ -25,9 +25,7 @@ interface Params<H extends HookName> {
  * Use this instead of the usual ternery operator when using getsentry hooks.
  * So in lieu of:
  *
- *  HookStore.get('component:org-auth-view').length
- *   ? HookStore.get('component:org-auth-view')[0]()
- *   : OrganizationAuth
+ *  HookStore.get('component:org-auth-view')?.() ?? OrganizationAuth
  *
  * do this instead:
  *
@@ -70,25 +68,27 @@ export function HookOrDefault<H extends HookName>({
   }
 
   function HookOrDefaultComponent(props: Props) {
-    const [hooks, setHooks] = useState(HookStore.get(hookName));
+    // Wrap in a thunk: useState(fn) calls fn() as a lazy initializer, so storing
+    // a function as state requires the () => fn pattern throughout.
+    const [hook, setHook] = useState(() => HookStore.get(hookName));
 
     useEffect(() => {
-      const unsubscribe = HookStore.listen((name: string, newHooks: Array<Hooks[H]>) => {
-        if (name === hookName) {
-          setHooks(newHooks);
-        }
-      }, undefined);
+      const unsubscribe = HookStore.listen(
+        (name: string, newHook: Hooks[H] | undefined) => {
+          if (name === hookName) {
+            setHook(() => newHook);
+          }
+        },
+        undefined
+      );
 
       return () => {
         unsubscribe();
       };
     }, []);
 
-    const hookExists = hooks?.length;
-    const componentFromHook = hooks[0]?.();
     // Defining the props here is unnecessary and slow for typescript
-    const HookComponent: React.ComponentType<any> =
-      hookExists && componentFromHook ? componentFromHook : getDefaultComponent();
+    const HookComponent: React.ComponentType<any> = hook?.() ?? getDefaultComponent();
 
     if (!HookComponent) {
       return null;

@@ -83,7 +83,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+    !HookStore.get('component:superuser-warning-excluded')?.(organization);
 
   const hasPageFrame = useHasPageFrameFeature();
 

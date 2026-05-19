@@ -540,7 +540,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     selection: {datetime},
   } = usePageFilters();
   const useRetentionLimit =
-    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ?? (() => null);
+    HookStore.get('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });

@@ -20,7 +20,7 @@ describe('Hook', () => {
   });
 
   it('renders component from a hook', () => {
-    HookStore.add('sidebar:help-menu', ({organization}) => (
+    HookStore.set('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         {organization.slug}
       </HookWrapper>
@@ -32,13 +32,13 @@ describe('Hook', () => {
       </div>
     );
 
-    expect(HookStore.get('sidebar:help-menu')).toHaveLength(1);
+    expect(HookStore.get('sidebar:help-menu')).toBeDefined();
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
     expect(screen.getByTestId('hook-wrapper')).toHaveTextContent('org-slug');
   });
 
-  it('can re-render when hooks get after initial render', () => {
-    HookStore.add('sidebar:help-menu', ({organization}) => (
+  it('re-renders when hook is replaced after initial render', () => {
+    HookStore.set('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         Old Hook
       </HookWrapper>
@@ -51,7 +51,7 @@ describe('Hook', () => {
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
 
     act(() =>
-      HookStore.add('sidebar:help-menu', () => (
+      HookStore.set('sidebar:help-menu', () => (
         <HookWrapper key="new" organization={null}>
           New Hook
         </HookWrapper>
@@ -60,19 +60,19 @@ describe('Hook', () => {
 
     rerender(<Hook name="sidebar:help-menu" organization={OrganizationFixture()} />);
 
-    expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
+    expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(1);
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
-    expect(screen.getByText(/Old Hook/)).toBeInTheDocument();
+    expect(screen.queryByText(/Old Hook/)).not.toBeInTheDocument();
   });
 
   it('re-fetches hooks when name prop changes', () => {
-    HookStore.add('sidebar:help-menu', ({organization}) => (
+    HookStore.set('sidebar:help-menu', ({organization}) => (
       <HookWrapper key="help" organization={organization}>
         Help Hook
       </HookWrapper>
     ));
 
-    HookStore.add('sidebar:organization-dropdown-menu', () => (
+    HookStore.set('sidebar:organization-dropdown-menu', () => (
       <HookWrapper key="bottom">Bottom Hook</HookWrapper>
     ));
 
@@ -95,21 +95,14 @@ describe('Hook', () => {
   });
 
   it('can use children as a render prop', () => {
-    let idx = 0;
     render(
       <Hook name="sidebar:help-menu" organization={OrganizationFixture()}>
-        {({hooks}) =>
-          hooks.map((hook, i) => (
-            <HookWrapper key={i}>
-              {hook} {`hook: ${++idx}`}
-            </HookWrapper>
-          ))
-        }
+        {({rendered}) => <HookWrapper>{rendered} hook: 1</HookWrapper>}
       </Hook>
     );
 
     act(() =>
-      HookStore.add('sidebar:help-menu', () => (
+      HookStore.set('sidebar:help-menu', () => (
         <HookWrapper key="new" organization={null}>
           First Hook
         </HookWrapper>
@@ -117,18 +110,18 @@ describe('Hook', () => {
     );
 
     act(() =>
-      HookStore.add('sidebar:help-menu', () => (
+      HookStore.set('sidebar:help-menu', () => (
         <HookWrapper key="new" organization={null}>
           Second Hook
         </HookWrapper>
       ))
     );
 
-    for (let i = 0; i < idx; i++) {
-      expect(screen.getByText(`hook: ${idx}`)).toBeInTheDocument();
-    }
+    expect(screen.getByText(/hook: 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Second Hook/)).toBeInTheDocument();
+    expect(screen.queryByText(/First Hook/)).not.toBeInTheDocument();
 
-    // Has 2 Wrappers from store, and each is wrapped by another Wrapper
-    expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(4);
+    // 2 HookWrappers: the render prop's outer wrapper + the registered hook's inner wrapper
+    expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
   });
 });
