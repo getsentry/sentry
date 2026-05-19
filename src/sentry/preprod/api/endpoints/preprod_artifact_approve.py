@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,11 +17,8 @@ from sentry.api.bases.organization import (
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
-from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    create_preprod_snapshot_status_check_task,
-)
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +27,9 @@ FEATURE_TYPE_MAP = {
     "size": PreprodComparisonApproval.FeatureType.SIZE,
 }
 
-STATUS_CHECK_TASK_MAP: dict[PreprodComparisonApproval.FeatureType, Callable[..., Any]] = {
-    PreprodComparisonApproval.FeatureType.SNAPSHOTS: create_preprod_snapshot_status_check_task,
-    PreprodComparisonApproval.FeatureType.SIZE: create_preprod_status_check_task,
+VCS_UPDATE_MAP: dict[PreprodComparisonApproval.FeatureType, Callable[..., None]] = {
+    PreprodComparisonApproval.FeatureType.SNAPSHOTS: lambda **kw: update_preprod_snapshot_vcs(**kw),
+    PreprodComparisonApproval.FeatureType.SIZE: lambda **kw: create_preprod_status_check_task(**kw),
 }
 
 
@@ -92,18 +88,10 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
             approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
         ).delete()
 
-        task = STATUS_CHECK_TASK_MAP[feature_type]
-        task(
+        update_vcs = VCS_UPDATE_MAP[feature_type]
+        update_vcs(
             preprod_artifact_id=artifact.id,
             caller="approval_endpoint",
         )
-
-        if feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS:
-            create_preprod_snapshot_pr_comment_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": artifact.id,
-                    "caller": "approval_endpoint",
-                },
-            )
 
         return Response({"detail": "Approved"}, status=201)

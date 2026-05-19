@@ -17,7 +17,6 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     ENABLED_DEFAULT,
     ENABLED_OPTION_KEY,
@@ -45,6 +44,7 @@ from sentry.preprod.vcs.status_checks.utils import (
     get_status_check_provider,
     update_posted_status_check,
 )
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -328,20 +328,10 @@ def create_preprod_snapshot_status_check_task(
     )
 
     if waiting_for_base:
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": preprod_artifact_id,
-                "caller": "missing_base_timeout",
-                "is_timeout_check": True,
-            },
-            countdown=MISSING_BASE_GRACE_PERIOD_SECONDS,
-        )
-        create_preprod_snapshot_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": preprod_artifact_id,
-                "caller": "missing_base_timeout",
-                "is_timeout_check": True,
-            },
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=preprod_artifact_id,
+            caller="missing_base_timeout",
+            is_timeout_check=True,
             countdown=MISSING_BASE_GRACE_PERIOD_SECONDS,
         )
 

@@ -484,12 +484,10 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
     @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
     @patch(f"{TASK_MODULE}.get_status_check_provider")
     @patch(f"{TASK_MODULE}.get_status_check_client")
-    @patch(f"{TASK_MODULE}.create_preprod_snapshot_pr_comment_task")
-    @patch(f"{TASK_MODULE}.create_preprod_snapshot_status_check_task.apply_async")
+    @patch(f"{TASK_MODULE}.update_preprod_snapshot_vcs")
     def test_missing_base_first_attempt_posts_in_progress(
         self,
-        mock_status_apply_async,
-        mock_pr_comment_task,
+        mock_update_vcs,
         mock_get_client,
         mock_get_provider,
         mock_post_task,
@@ -508,18 +506,12 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
         call_kwargs = mock_post_task.delay.call_args[1]
         assert call_kwargs["status"] == StatusCheckStatus.IN_PROGRESS.value
 
-        mock_status_apply_async.assert_called_once()
-        status_kwargs = mock_status_apply_async.call_args[1]
-        assert status_kwargs["kwargs"]["is_timeout_check"] is True
-        assert status_kwargs["kwargs"]["preprod_artifact_id"] == artifact.id
-        assert status_kwargs["countdown"] == 600
-
-        mock_pr_comment_task.apply_async.assert_called_once()
-        pr_kwargs = mock_pr_comment_task.apply_async.call_args[1]
-        assert pr_kwargs["kwargs"]["is_timeout_check"] is True
-        assert pr_kwargs["kwargs"]["preprod_artifact_id"] == artifact.id
-        assert pr_kwargs["kwargs"]["caller"] == "missing_base_timeout"
-        assert pr_kwargs["countdown"] == 600
+        mock_update_vcs.assert_called_once_with(
+            preprod_artifact_id=artifact.id,
+            caller="missing_base_timeout",
+            is_timeout_check=True,
+            countdown=600,
+        )
 
     @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
     @patch(f"{TASK_MODULE}.get_status_check_provider")
