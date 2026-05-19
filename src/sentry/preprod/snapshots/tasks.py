@@ -349,12 +349,6 @@ def compare_snapshots(
         },
     )
 
-    update_preprod_snapshot_vcs(
-        preprod_artifact_id=head_artifact_id,
-        caller="compare_start",
-        update_pr_comment=False,
-    )
-
     try:
         head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
             id=head_artifact_id,
@@ -449,6 +443,12 @@ def compare_snapshots(
             comparison.id,
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
+
+    update_preprod_snapshot_vcs(
+        preprod_artifact_id=head_artifact_id,
+        caller="compare_start",
+        update_pr_comment=False,
+    )
 
     try:
         session = get_preprod_session(org_id, project_id)
