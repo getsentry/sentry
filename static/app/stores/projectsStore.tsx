@@ -26,7 +26,7 @@ interface ProjectsStoreDefinition
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
   isLoading(): boolean;
-  loadInitialData(projects: Project[]): void;
+  loadInitialData(projects?: Project[]): void;
   onAddTeam(team: Team, projectSlug: string): void;
   onChangeSlug(prevSlug: string, newSlug: string): void;
   onCreateSuccess(project: Project, orgSlug: string): void;
@@ -58,7 +58,7 @@ const storeConfig: ProjectsStoreDefinition = {
     };
   },
 
-  loadInitialData(items: Project[]) {
+  loadInitialData(items: Project[] = []) {
     this.state = {
       projects: items.toSorted((a: any, b: any) => a.slug.localeCompare(b.slug)),
       loading: false,
