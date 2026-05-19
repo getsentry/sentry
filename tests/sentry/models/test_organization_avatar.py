@@ -1,4 +1,3 @@
-from sentry.api.utils import generate_locality_url
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.files.file import File
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
@@ -13,6 +12,7 @@ from sentry.testutils.silo import (
     cell_silo_test,
     create_test_cells,
 )
+from sentry.types.cell import get_local_locality
 
 
 class OrganizationAvatarTestCase(TestCase):
@@ -35,9 +35,9 @@ class OrganizationAvatarTestCase(TestCase):
         with outbox_runner():
             avatar = OrganizationAvatar.objects.create(organization=org, file_id=afile.id)
 
-        host = generate_locality_url()
+        host = get_local_locality().to_url("")
         avatar_url = avatar.absolute_url()
-        assert avatar_url == f"{host}/organizations/acme/avatar/{avatar.ident}"
+        assert avatar_url == f"{host}/organization-avatar/acme/{avatar.ident}/"
 
         # Ensure replica model makes the same URL.
         with assume_test_silo_mode_of(OrganizationAvatarReplica):

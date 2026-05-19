@@ -633,7 +633,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == generate_locality_url() + "/organization-avatar/abc123/"
+            == generate_locality_url() + f"/organization-avatar/{organization.slug}/abc123/"
         )
 
     def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:

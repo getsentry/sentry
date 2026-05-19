@@ -3196,7 +3196,7 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
-    "sentry-organization-avatar-url",
+    "sentry-organization-avatar-url-deprecated",
     "sentry-chartcuterie-config",
     "sentry-robots-txt",
 }
