@@ -6,8 +6,16 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
+import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -23,6 +31,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+const TRACE_METRIC_FIXTURE_DATE = new Date('2025-04-03T15:50:10.000Z');
 
 function createWrapper({
   queryParams,
@@ -337,5 +347,166 @@ describe('MetricPanel', () => {
 
     expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
     expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
+  });
+
+  it('fetches trace meta for expanded samples with the row timestamp', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const traceMetaMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      match: [MockApiClient.matchData({timestamp})],
+      body: {
+        errors: 1,
+        performance_issues: 0,
+        projects: 1,
+        transactions: 1,
+        transaction_child_count_map: [],
+        span_count: 2,
+        span_count_map: {},
+      },
+    });
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText('Errors: 1, Logs: 0, Spans: 2, Metrics: 0')
+    ).toBeInTheDocument();
+  });
+
+  it('shows an error state when expanded sample trace meta fails to load', async () => {
+    const metricFixtures = createTraceMetricFixtures(
+      organization,
+      project,
+      TRACE_METRIC_FIXTURE_DATE
+    );
+    const row = metricFixtures.detailedFixtures[0]!;
+    const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const traceMetaMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      match: [MockApiClient.matchData({timestamp})],
+      statusCode: 500,
+      body: {detail: 'Internal Server Error'},
+    });
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Failed to fetch trace summary')).toBeInTheDocument();
+    expect(screen.getByText('Attributes')).toBeInTheDocument();
+  });
+
+  it('shows an error state when expanded sample details fail to load', () => {
+    const metricFixtures = createTraceMetricFixtures(
+      organization,
+      project,
+      TRACE_METRIC_FIXTURE_DATE
+    );
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: true,
+        isPending: false,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
+  });
+
+  it('shows an empty state when expanded sample details have no data', () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: false,
+        isPending: false,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
+  });
+
+  it('shows an empty state when expanded sample details have no attributes', () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: {
+          attributes: [],
+          meta: {},
+        },
+        isError: false,
+        isPending: false,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
   });
 });

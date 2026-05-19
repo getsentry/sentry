@@ -325,7 +325,7 @@ export function SampleTableRow({
       </StickyTableRow>
       {isExpanded && (
         <ExpandedRowContainer>
-          <MetricDetails dataRow={row} ref={measureRef} />
+          <MetricDetails dataRow={row} ref={measureRef} showTelemetry={!embedded} />
         </ExpandedRowContainer>
       )}
     </TableRowContainer>

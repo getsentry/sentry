@@ -6,6 +6,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 
 import {
   getTraceMetaErrorCount,
+  getTraceMetaMetricsCount,
   getTraceMetaSpanCount,
   useTraceMeta,
   type TraceMetaTrace,
@@ -136,7 +137,7 @@ describe('useTraceMeta', () => {
       body: {
         errorsCount: 1,
         logsCount: 1,
-        metricsCount: 0,
+        metricsCount: 1,
         performanceIssuesCount: 1,
         spansCount: 1,
         spansCountMap: {
@@ -152,7 +153,7 @@ describe('useTraceMeta', () => {
       body: {
         errorsCount: 1,
         logsCount: 1,
-        metricsCount: 0,
+        metricsCount: 2,
         performanceIssuesCount: 1,
         spansCount: 1,
         spansCountMap: {
@@ -169,7 +170,7 @@ describe('useTraceMeta', () => {
       body: {
         errorsCount: 1,
         logsCount: 1,
-        metricsCount: 0,
+        metricsCount: 3,
         performanceIssuesCount: 1,
         spansCount: 1,
         spansCountMap: {
@@ -198,7 +199,7 @@ describe('useTraceMeta', () => {
       data: {
         errorsCount: 3,
         logsCount: 3,
-        metricsCount: 0,
+        metricsCount: 6,
         performanceIssuesCount: 3,
         spansCount: 3,
         spansCountMap: {
@@ -217,6 +218,7 @@ describe('useTraceMeta', () => {
       isLoading: false,
       status: 'success',
     });
+    expect(getTraceMetaMetricsCount(result.current.data)).toBe(6);
   });
 
   it('EAP - accepts trace meta without transactionsCount', async () => {
