@@ -79,7 +79,7 @@ export function MetricDetails({
 
   const {
     data: traceDetailsData,
-    isPending,
+    isLoading: isTraceDetailsLoading,
     isError,
   } = useMetricTraceDetail({
     metricId: String(dataRow[TraceMetricKnownFieldKey.ID] ?? ''),
@@ -110,7 +110,7 @@ export function MetricDetails({
     );
   }
 
-  if (isPending || (isTraceMetaLoading && showTelemetry)) {
+  if (isTraceDetailsLoading || (isTraceMetaLoading && showTelemetry)) {
     return (
       <MetricsDetailsWrapper ref={ref}>
         <LogDetailTableBodyCell colSpan={0}>

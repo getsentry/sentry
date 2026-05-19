@@ -479,6 +479,42 @@ describe('MetricPanel', () => {
     traceDetailSpy.mockRestore();
   });
 
+  it('shows an empty state instead of loading when expanded sample details are disabled', () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = {
+      ...metricFixtures.detailedFixtures[0]!,
+      [TraceMetricKnownFieldKey.ID]: undefined,
+    };
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: false,
+        isLoading: false,
+        isPending: true,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(traceDetailSpy).toHaveBeenCalledWith(
+      expect.objectContaining({enabled: false})
+    );
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
+  });
+
   it('shows an empty state when expanded sample details have no attributes', () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = metricFixtures.detailedFixtures[0]!;
