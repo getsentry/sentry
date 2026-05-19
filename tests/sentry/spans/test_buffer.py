@@ -8,15 +8,18 @@ from unittest import mock
 import orjson
 import pytest
 import sentry_kafka_schemas
+import zstandard
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.constants import DataCategory
 from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
 from sentry.spans.consumers.process.factory import SPANS_CODEC, validate_span_event
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.outcomes import Outcome
 
 pytestmark = [pytest.mark.django_db]
 
@@ -53,6 +56,10 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
     return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+
+
+def _payload_key(project_id: int, trace_id: str, salt: str) -> bytes:
+    return f"span-buf:s:{{{project_id}:{trace_id}:{salt}}}:{salt}".encode("ascii")
 
 
 def _payload(span_id: str) -> bytes:
@@ -1590,6 +1597,208 @@ def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
 
         # Assert that the lock actually prevents double-flushing.
         assert not rv2
+
+
+class _LoadSegmentDataRedis:
+    def __init__(self) -> None:
+        self.sets: dict[bytes, set[bytes]] = {}
+        self.values: dict[bytes, bytes] = {}
+        self.zsets: dict[bytes, dict[bytes, float]] = {}
+
+    def pipeline(self, transaction: bool = False):
+        return _LoadSegmentDataPipeline(self)
+
+    def sadd(self, key: bytes, *values: bytes | str) -> None:
+        self.sets.setdefault(key, set()).update(_as_redis_bytes(value) for value in values)
+
+    def set(self, key: bytes, value: bytes | int) -> None:
+        self.values[key] = _as_redis_bytes(value)
+
+    def zadd(self, key: bytes, mapping: dict[bytes, int]) -> None:
+        self.zsets.setdefault(key, {}).update(mapping)
+
+    def smembers(self, key: bytes) -> set[bytes]:
+        return self.sets.get(key, set())
+
+    def sscan(self, key: bytes, cursor: int = 0, count: int | None = None):
+        values = sorted(self.sets.get(key, set()))
+        page_size = count or len(values) or 1
+        next_cursor = cursor + page_size
+        if next_cursor >= len(values):
+            return 0, values[cursor:]
+        return next_cursor, values[cursor:next_cursor]
+
+    def get(self, key: bytes) -> bytes | None:
+        return self.values.get(key)
+
+    def zscore(self, key: bytes, value: bytes) -> float | None:
+        return self.zsets.get(key, {}).get(value)
+
+
+class _LoadSegmentDataPipeline:
+    def __init__(self, client: _LoadSegmentDataRedis) -> None:
+        self.client = client
+        self.commands: list[tuple[str, tuple[object, ...]]] = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        return None
+
+    def smembers(self, key: bytes) -> None:
+        self.commands.append(("smembers", (key,)))
+
+    def sscan(self, key: bytes, cursor: int = 0, count: int | None = None) -> None:
+        self.commands.append(("sscan", (key, cursor, count)))
+
+    def get(self, key: bytes) -> None:
+        self.commands.append(("get", (key,)))
+
+    def execute(self):
+        results = []
+        for command, args in self.commands:
+            method = getattr(self.client, command)
+            results.append(method(*args))
+        self.commands = []
+        return results
+
+
+def _as_redis_bytes(value: bytes | str | int) -> bytes:
+    if isinstance(value, bytes):
+        return value
+    return str(value).encode("ascii")
+
+
+@pytest.fixture
+def load_segment_buffer() -> SpansBuffer:
+    with override_options({**DEFAULT_OPTIONS, "spans.buffer.segment-page-size": 1}):
+        buffer = SpansBuffer(assigned_shards=[0])
+        buffer.__dict__["client"] = _LoadSegmentDataRedis()
+        return buffer
+
+
+def test_load_segment_data_reads_payloads_from_distributed_keys(
+    load_segment_buffer: SpansBuffer,
+) -> None:
+    buffer = load_segment_buffer
+    trace_id = "a" * 32
+    segment_key = _segment_id(1, trace_id, "b" * 16)
+    first_salt = "1" * 32
+    second_salt = "2" * 32
+    first_payload_key = _payload_key(1, trace_id, first_salt)
+    second_payload_key = _payload_key(1, trace_id, second_salt)
+    span_a = _payload("a" * 16)
+    span_b = _payload("b" * 16)
+    span_c = _payload("c" * 16)
+
+    buffer.client.sadd(buffer._get_payload_key_index(segment_key), first_salt, second_salt)
+    buffer.client.sadd(first_payload_key, span_a, span_b)
+    buffer.client.sadd(second_payload_key, span_c)
+    buffer.client.set(b"span-buf:ic:" + segment_key, 3)
+    buffer.client.set(b"span-buf:ibc:" + segment_key, len(span_a) + len(span_b) + len(span_c))
+
+    payloads, payload_keys_map = buffer._load_segment_data([segment_key], {}, now=0)
+
+    assert set(payloads[segment_key]) == {span_a, span_b, span_c}
+    assert set(payload_keys_map[segment_key]) == {first_payload_key, second_payload_key}
+
+
+def test_load_segment_data_decompresses_payload_batches(
+    load_segment_buffer: SpansBuffer,
+) -> None:
+    buffer = load_segment_buffer
+    trace_id = "a" * 32
+    segment_key = _segment_id(1, trace_id, "b" * 16)
+    salt = "1" * 32
+    payload_key = _payload_key(1, trace_id, salt)
+    span_a = _payload("a" * 16)
+    span_b = _payload("b" * 16)
+    compressed = zstandard.ZstdCompressor(level=0).compress(b"\x00".join([span_a, span_b]))
+
+    buffer.client.sadd(buffer._get_payload_key_index(segment_key), salt)
+    buffer.client.sadd(payload_key, compressed)
+    buffer.client.set(b"span-buf:ic:" + segment_key, 2)
+
+    payloads, payload_keys_map = buffer._load_segment_data([segment_key], {}, now=0)
+
+    assert set(payloads[segment_key]) == {span_a, span_b}
+    assert payload_keys_map[segment_key] == [payload_key]
+
+
+def test_load_segment_data_records_dropped_spans(load_segment_buffer: SpansBuffer) -> None:
+    buffer = load_segment_buffer
+    trace_id = "a" * 32
+    segment_key = _segment_id(1, trace_id, "b" * 16)
+    salt = "1" * 32
+    payload_key = _payload_key(1, trace_id, salt)
+    span_a = _payload("a" * 16)
+
+    buffer.client.sadd(buffer._get_payload_key_index(segment_key), salt)
+    buffer.client.sadd(payload_key, span_a)
+    buffer.client.set(b"span-buf:ic:" + segment_key, 3)
+    buffer.client.set(b"span-buf:ibc:" + segment_key, len(span_a))
+
+    mock_project = mock.Mock(organization_id=100)
+    with (
+        mock.patch("sentry.spans.buffer.Project") as project_model,
+        mock.patch("sentry.spans.buffer.track_outcome") as track_outcome,
+    ):
+        project_model.objects.get_from_cache.return_value = mock_project
+        payloads, payload_keys_map = buffer._load_segment_data([segment_key], {}, now=0)
+
+    assert payloads[segment_key] == [span_a]
+    assert payload_keys_map[segment_key] == [payload_key]
+    track_outcome.assert_called_once()
+    outcome_kwargs = track_outcome.call_args.kwargs
+    assert outcome_kwargs["org_id"] == 100
+    assert outcome_kwargs["project_id"] == 1
+    assert outcome_kwargs["key_id"] is None
+    assert outcome_kwargs["outcome"] == Outcome.INVALID
+    assert outcome_kwargs["reason"] == "segment_too_large"
+    assert outcome_kwargs["category"] == DataCategory.SPAN_INDEXED
+    assert outcome_kwargs["quantity"] == 2
+
+
+@pytest.mark.parametrize(
+    ("deadline", "now", "expected_expired"),
+    [
+        pytest.param(
+            0,
+            DEFAULT_OPTIONS["spans.buffer.redis-ttl"]
+            - DEFAULT_OPTIONS["spans.buffer.root-timeout"]
+            + 1,
+            True,
+            id="expired",
+        ),
+        pytest.param(
+            0,
+            DEFAULT_OPTIONS["spans.buffer.redis-ttl"]
+            - DEFAULT_OPTIONS["spans.buffer.root-timeout"],
+            False,
+            id="not-expired",
+        ),
+    ],
+)
+def test_load_segment_data_records_empty_expired_segments(
+    load_segment_buffer: SpansBuffer, deadline: int, now: int, expected_expired: bool
+) -> None:
+    buffer = load_segment_buffer
+    trace_id = "a" * 32
+    segment_key = _segment_id(1, trace_id, "b" * 16)
+    queue_key = buffer._get_queue_key(0)
+    buffer.client.zadd(queue_key, {segment_key: deadline})
+
+    with mock.patch("sentry.spans.buffer.metrics.incr") as metrics_incr:
+        payloads, payload_keys_map = buffer._load_segment_data(
+            [segment_key], {segment_key: queue_key}, now=now
+        )
+
+    assert payloads[segment_key] == []
+    assert payload_keys_map[segment_key] == []
+    incr_names = [call.args[0] for call in metrics_incr.call_args_list]
+    assert ("spans.buffer.segment_expired_before_flush" in incr_names) is expected_expired
+    assert "spans.buffer.empty_segments" in incr_names
 
 
 # --- Distributed payload keys tests ---
