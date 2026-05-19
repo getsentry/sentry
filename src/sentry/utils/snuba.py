@@ -571,19 +571,49 @@ class RetrySkipTimeout(urllib3.Retry):
             )
 
 
-_snuba_pool = connection_from_url(
-    settings.SENTRY_SNUBA,
-    retries=RetrySkipTimeout(
-        total=5,
-        # Our calls to snuba frequently fail due to network issues. We want to
-        # automatically retry most requests. Some of our POSTs and all of our DELETEs
-        # do cause mutations, but we have other things in place to handle duplicate
-        # mutations.
-        allowed_methods={"GET", "POST", "DELETE"},
-    ),
-    timeout=settings.SENTRY_SNUBA_TIMEOUT,
-    maxsize=10,
-)
+class _SnubaPool:
+    """Proxy for the Snuba HTTP connection pool.
+
+    Reads ``settings.SENTRY_SNUBA`` on first use instead of at module-import
+    time.  This ensures xdist workers that override the setting in
+    ``pytest_configure`` (to point at a per-worker snuba-gw container) get the
+    correct pool, even when the module was imported before the override ran.
+
+    The proxy is a regular object so existing ``patch.object(_snuba_pool, ...)``
+    calls in tests continue to work without modification.
+    """
+
+    def __init__(self) -> None:
+        self._pool: urllib3.HTTPConnectionPool | None = None
+        self._url: str | None = None
+
+    def _get(self) -> urllib3.HTTPConnectionPool:
+        # Prefer the env-var override set by pytest_runtest_setup, which is
+        # immune to Django override_settings / TestCase isolation that can
+        # reset settings.SENTRY_SNUBA back to the default 1218 mid-session.
+        url = os.environ.get("_SENTRY_SNUBA_POOL_URL") or settings.SENTRY_SNUBA
+        if self._pool is None or self._url != url:
+            self._pool = connection_from_url(
+                url,
+                retries=RetrySkipTimeout(
+                    total=5,
+                    # Our calls to snuba frequently fail due to network issues. We want to
+                    # automatically retry most requests. Some of our POSTs and all of our DELETEs
+                    # do cause mutations, but we have other things in place to handle duplicate
+                    # mutations.
+                    allowed_methods={"GET", "POST", "DELETE"},
+                ),
+                timeout=settings.SENTRY_SNUBA_TIMEOUT,
+                maxsize=10,
+            )
+            self._url = url
+        return self._pool
+
+    def urlopen(self, *args: Any, **kwargs: Any) -> urllib3.response.HTTPResponse:
+        return self._get().urlopen(*args, **kwargs)
+
+
+_snuba_pool = _SnubaPool()
 
 
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)
