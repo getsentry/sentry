@@ -85,6 +85,7 @@ search_config = SearchConfig.create_from(
         "images_renamed",
         "images_skipped",
         "images_unchanged",
+        "install_groups",
         "install_size",
         "installable",
         "is",
@@ -329,6 +330,17 @@ def apply_filters(
         if name == "distribution_error_code":
             values = token.value.value if token.is_in_filter else [token.value.value]
             q = Q(**{f"{db_field}__in": [_translate_distribution_error_code(v) for v in values]})
+            if token.is_negation:
+                queryset = queryset.exclude(q)
+            else:
+                queryset = queryset.filter(q)
+            continue
+
+        if name == "install_groups":
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            q = Q()
+            for group in values:
+                q |= Q(extras__install_groups__contains=[group])
             if token.is_negation:
                 queryset = queryset.exclude(q)
             else:
