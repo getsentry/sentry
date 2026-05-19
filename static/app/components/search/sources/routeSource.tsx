@@ -74,9 +74,7 @@ export function RouteSource({searchOptions, query, children}: Props) {
     const navConfigHook = organization
       ? HookStore.get('settings:organization-navigation-config')
       : undefined;
-    const navigationFromHook: NavigationSection[] = navConfigHook
-      ? [navConfigHook(organization!)]
-      : [];
+    const navigationFromHook = navConfigHook ? [navConfigHook(organization)] : [];
 
     const searchMap = [
       mapFunc(getUserOrgNavigationConfiguration, context),
