@@ -10,7 +10,9 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.tasks.queries import (
+    ProjectVolume,
     get_eap_organization_volume,
+    get_eap_project_volumes,
     run_eap_spans_table_query_in_chunks,
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
@@ -79,7 +81,10 @@ class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
 
 
 class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
-    def get_config(self, organization: Organization) -> BaseDynamicSamplingConfiguration:
+    def get_config(
+        self,
+        organization: Organization,
+    ) -> BaseDynamicSamplingConfiguration:
         with patch(
             "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
             return_value=1.0,
@@ -166,8 +171,108 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
     def test_get_eap_organization_volume_without_projects(self) -> None:
         organization = self.create_organization()
 
-        org_volume = get_eap_organization_volume(
-            self.get_config(organization), time_interval=timedelta(hours=1)
-        )
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query"
+        ) as run_table_query:
+            org_volume = get_eap_organization_volume(
+                self.get_config(organization), time_interval=timedelta(hours=1)
+            )
 
         assert org_volume is None
+        run_table_query.assert_not_called()
+
+    def test_get_eap_project_volumes_existing_org(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        other_organization = self.create_organization()
+        self.create_project(organization=other_organization)
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
+            return_value={
+                "data": [
+                    {
+                        "sentry.dsc.root_project": project.id,
+                        "count()": 2,
+                        "count_sample()": 2,
+                    },
+                    {
+                        "sentry.dsc.root_project": other_project.id,
+                        "count()": 1,
+                        "count_sample()": 1,
+                    },
+                ]
+            },
+        ) as run_table_query:
+            project_volumes = get_eap_project_volumes(
+                self.get_config(organization), time_interval=timedelta(hours=1)
+            )
+
+        assert sorted(project_volumes) == [
+            ProjectVolume(project_id=project.id, total=2, keep=2, drop=0),
+            ProjectVolume(project_id=other_project.id, total=1, keep=1, drop=0),
+        ]
+        run_table_query.assert_called_once()
+        assert sorted(run_table_query.call_args.kwargs["params"].projects, key=lambda p: p.id) == [
+            project,
+            other_project,
+        ]
+        assert run_table_query.call_args.kwargs["query_string"] == "is_segment:true"
+        assert run_table_query.call_args.kwargs["selected_columns"] == [
+            "sentry.dsc.root_project",
+            "count()",
+            "count_sample()",
+        ]
+        assert run_table_query.call_args.kwargs["orderby"] == ["sentry.dsc.root_project"]
+        assert (
+            run_table_query.call_args.kwargs["referrer"]
+            == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
+        )
+
+    def test_get_eap_project_volumes_without_traffic(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
+            return_value={"data": []},
+        ):
+            project_volumes = get_eap_project_volumes(
+                self.get_config(organization), time_interval=timedelta(hours=1)
+            )
+
+        assert project_volumes == []
+
+    def test_get_eap_project_volumes_handles_none_aggregate_values(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
+            return_value={
+                "data": [
+                    {
+                        "sentry.dsc.root_project": project.id,
+                        "count()": None,
+                        "count_sample()": None,
+                    }
+                ]
+            },
+        ):
+            project_volumes = get_eap_project_volumes(self.get_config(organization))
+
+        assert project_volumes == [ProjectVolume(project_id=project.id, total=0, keep=0, drop=0)]
+
+    def test_get_eap_project_volumes_without_projects(self) -> None:
+        organization = self.create_organization()
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query"
+        ) as run_table_query:
+            project_volumes = get_eap_project_volumes(
+                self.get_config(organization), time_interval=timedelta(hours=1)
+            )
+
+        assert project_volumes == []
+        run_table_query.assert_not_called()
