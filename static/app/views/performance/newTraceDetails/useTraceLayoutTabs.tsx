@@ -98,30 +98,40 @@ export function getInitialTab({
   meta?: TraceMetaQueryResults['data'];
   metricsEnabled?: boolean;
 }): Tab {
-  const hasAuthoritativeNoLogs =
-    logsEnabled && getTraceMetaLogsCount(meta) === 0 && !sections.hasLogs;
-  const hasAuthoritativeNoMetrics =
+  const hasNoLogs = logsEnabled && getTraceMetaLogsCount(meta) === 0 && !sections.hasLogs;
+  const hasNoMetrics =
     metricsEnabled && getTraceMetaMetricsCount(meta) === 0 && !sections.hasMetrics;
 
-  if (
-    isLoading &&
-    ((logsEnabled &&
-      !hasAuthoritativeNoLogs &&
-      tabSlugFromUrl === TraceLayoutTabKeys.LOGS) ||
-      (metricsEnabled &&
-        !hasAuthoritativeNoMetrics &&
-        tabSlugFromUrl === TraceLayoutTabKeys.METRICS) ||
-      tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS)
-  ) {
-    return TAB_DEFINITIONS[tabSlugFromUrl];
+  const shouldKeepLogsTabWhileLoading =
+    logsEnabled && !hasNoLogs && tabSlugFromUrl === TraceLayoutTabKeys.LOGS;
+
+  const shouldKeepMetricsTabWhileLoading =
+    metricsEnabled && !hasNoMetrics && tabSlugFromUrl === TraceLayoutTabKeys.METRICS;
+
+  if (isLoading) {
+    if (shouldKeepLogsTabWhileLoading) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
+    }
+
+    if (shouldKeepMetricsTabWhileLoading) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS];
+    }
+
+    if (tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.AI_SPANS];
+    }
   }
 
-  return (
-    tabOptions.find(tab => tab.slug === tabSlugFromUrl) ??
-    (sections.hasTraceEvents
-      ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
-      : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS])
-  );
+  const tabFromUrl = tabOptions.find(tab => tab.slug === tabSlugFromUrl);
+  if (tabFromUrl) {
+    return tabFromUrl;
+  }
+
+  if (sections.hasTraceEvents) {
+    return TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL];
+  }
+
+  return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
 }
 
 interface UseTraceLayoutTabsProps {
