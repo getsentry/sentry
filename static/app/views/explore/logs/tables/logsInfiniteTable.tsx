@@ -18,6 +18,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
@@ -44,7 +45,7 @@ import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
-import {LogsBytesScanned} from 'sentry/views/explore/logs/logsPayloadBytesDisplay';
+import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -716,6 +717,11 @@ export function LoadingRenderer({
   bytesScanned?: number;
   totalPayloadBytes?: number;
 }) {
+  const displayTotalPayloadBytes = getDisplayTotalPayloadBytes(
+    bytesScanned,
+    totalPayloadBytes
+  );
+
   return (
     <TableStatus>
       <Stack align="center">
@@ -726,14 +732,14 @@ export function LoadingRenderer({
               {t('Searching for a needle in a haystack. This could take a while.')}
               <br />
               <span>
-                {tct('[bytes] scanned', {
-                  bytes: (
-                    <LogsBytesScanned
-                      bytesScanned={bytesScanned}
-                      totalPayloadBytes={totalPayloadBytes}
-                    />
-                  ),
-                })}
+                {displayTotalPayloadBytes
+                  ? tct('[bytesScanned] of ~[totalBytes] scanned', {
+                      bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                      totalBytes: <FileSize bytes={displayTotalPayloadBytes} base={2} />,
+                    })
+                  : tct('[bytesScanned] scanned', {
+                      bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                    })}
               </span>
             </Fragment>
           )}
