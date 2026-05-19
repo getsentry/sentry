@@ -117,18 +117,13 @@ describe('LogsPage', () => {
   });
 
   it('hides the footer when logs table is expanded', async () => {
-    const organizationWithExpando = {
-      ...organization,
-      features: [...organization.features, 'ourlogs-table-expando'],
-    };
-
     render(
       <div>
         <LogsPage />
         <footer data-test-id="global-footer" />
       </div>,
       {
-        organization: organizationWithExpando,
+        organization,
         initialRouterConfig: {
           location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
         },
