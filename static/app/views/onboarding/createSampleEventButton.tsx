@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
@@ -41,6 +41,13 @@ export function CreateSampleEventButton({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const pollingAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      pollingAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (project) {
@@ -81,6 +88,10 @@ export function CreateSampleEventButton({
       });
     },
     onSuccess({groupID}) {
+      pollingAbortRef.current?.abort();
+      const abortController = new AbortController();
+      pollingAbortRef.current = abortController;
+
       const t0 = performance.now();
       let retries = 0;
 
@@ -98,12 +109,18 @@ export function CreateSampleEventButton({
             }
           ),
           retry(failureCount) {
+            if (abortController.signal.aborted) {
+              return false;
+            }
             retries = failureCount + 1;
             return failureCount < EVENT_POLL_RETRIES;
           },
           retryDelay: EVENT_POLL_INTERVAL,
         })
         .then(() => {
+          if (abortController.signal.aborted) {
+            return;
+          }
           clearIndicators();
 
           trackAnalytics('sample_event.created', {
@@ -125,6 +142,9 @@ export function CreateSampleEventButton({
           );
         })
         .catch(() => {
+          if (abortController.signal.aborted) {
+            return;
+          }
           clearIndicators();
 
           const duration = Math.ceil(performance.now() - t0);
