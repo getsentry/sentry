@@ -23,6 +23,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
@@ -335,8 +336,13 @@ function CustomFiltersForm({
     onSubmit: ({value, formApi}) =>
       updateProject
         .mutateAsync({options: value})
-        .then(() => formApi.reset(value))
-        .catch(() => {}),
+        .then(() => {
+          formApi.reset(value);
+          addSuccessMessage(t('Filter settings saved.'));
+        })
+        .catch(() => {
+          addErrorMessage(t('Unable to save filter changes.'));
+        }),
   });
 
   return (
