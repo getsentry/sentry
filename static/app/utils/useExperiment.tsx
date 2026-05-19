@@ -88,6 +88,6 @@ function useNoopExperiment(options: UseExperimentOptions): UseExperimentResult {
  */
 export function useExperiment(options: UseExperimentOptions): UseExperimentResult {
   const useExperimentHook =
-    HookStore.get('react-hook:use-experiment')[0] ?? useNoopExperiment;
+    HookStore.get('react-hook:use-experiment') ?? useNoopExperiment;
   return useExperimentHook(options);
 }

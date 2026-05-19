@@ -39,7 +39,7 @@ interface Props {
 }
 
 export function RouteAnalyticsContextProvider({children}: Props) {
-  const useRouteActivatedHook = HookStore.get('react-hook:route-activated')[0];
+  const useRouteActivatedHook = HookStore.get('react-hook:route-activated');
 
   const context: RouteContextInterface = {
     params: useParams(),

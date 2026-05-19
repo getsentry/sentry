@@ -77,7 +77,7 @@ export function MobileNavigation() {
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+    !HookStore.get('component:superuser-warning-excluded')?.(organization);
 
   return (
     <MobileNavigationHeader>

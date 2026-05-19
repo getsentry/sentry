@@ -21,7 +21,7 @@ export function StatusToggleButton({
   const organization = useOrganization();
   const {status} = monitor;
   const isDisabled = status === 'disabled';
-  const monitorCreationCallbacks = HookStore.get('callback:on-monitor-created');
+  const onMonitorCreated = HookStore.get('callback:on-monitor-created');
 
   const Icon = isDisabled ? IconPlay : IconPause;
 
@@ -38,7 +38,7 @@ export function StatusToggleButton({
         await onToggleStatus(isDisabled ? 'active' : 'disabled');
         // TODO(epurkhiser): This hook is probably too specialized and could
         // maybe do to be a component hook instead
-        monitorCreationCallbacks.map(cb => cb(organization));
+        onMonitorCreated?.(organization);
       }}
       {...props}
     />

@@ -70,7 +70,7 @@ const defaultFeatureGateComponents: ReturnType<Hooks['integrations:feature-gates
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
-  const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
+  const featureHook = HookStore.get('integrations:feature-gates') || defaultHook;
   return featureHook();
 };
 

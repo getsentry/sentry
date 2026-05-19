@@ -24,13 +24,11 @@ type NavProps = NavigationProps & {
 
 class GSBillingNavigationConfig extends Component<Props> {
   componentDidMount() {
-    // Clear store before adding since this can be called multiple times
-    HookStore.remove('settings:organization-navigation-config', this.getConfig);
-    HookStore.add('settings:organization-navigation-config', this.getConfig);
+    HookStore.set('settings:organization-navigation-config', this.getConfig);
   }
 
   componentWillUnmount() {
-    HookStore.remove('settings:organization-navigation-config', this.getConfig);
+    HookStore.remove('settings:organization-navigation-config');
   }
 
   getConfig = (organization: Organization): NavigationSection => {

@@ -70,8 +70,7 @@ function InviteMembersModal({
   }
 
   const defaultOrgRoles =
-    HookStore.get('member-invite-modal:organization-roles')[0]?.(organization) ??
-    ORG_ROLES;
+    HookStore.get('member-invite-modal:organization-roles')?.(organization) ?? ORG_ROLES;
 
   return (
     <ErrorBoundary>

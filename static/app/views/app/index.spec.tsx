@@ -136,17 +136,17 @@ describe('App', () => {
       partnerDisplayName: 'Foo',
       agreements: ['standard', 'partner_presence'],
     });
-    HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
+    HookStore.set('component:partnership-agreement', () => <HookWrapper key={0} />);
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
-    expect(HookStore.get('component:partnership-agreement')).toHaveLength(1);
+    expect(HookStore.get('component:partnership-agreement')).toBeDefined();
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
   });
 
   it('does not render PartnerAgreement for non-partnered orgs', async () => {
     ConfigStore.set('partnershipAgreementPrompt', null);
-    HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
+    HookStore.set('component:partnership-agreement', () => <HookWrapper key={0} />);
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);

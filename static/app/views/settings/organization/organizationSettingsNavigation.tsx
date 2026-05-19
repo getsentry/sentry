@@ -40,9 +40,9 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
   unsubscribe = HookStore.listen(
     (
       hookName: HookName,
-      hooks: Array<Hooks['settings:organization-navigation-config']>
+      hook: Hooks['settings:organization-navigation-config'] | undefined
     ) => {
-      this.handleHooks(hookName, hooks);
+      this.handleHooks(hookName, hook);
     },
     undefined
   );
@@ -51,25 +51,24 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
     // Allow injection via getsentry et all
     const {organization} = this.props as Props;
 
+    const navConfig = HookStore.get('settings:organization-navigation-config');
+    const navHook = HookStore.get('settings:organization-navigation');
+
     return {
-      hookConfigs: HookStore.get('settings:organization-navigation-config').map(cb =>
-        cb(organization)
-      ),
-      hooks: HookStore.get('settings:organization-navigation').map(cb =>
-        cb(organization)
-      ),
+      hookConfigs: navConfig ? [navConfig(organization)] : [],
+      hooks: navHook ? [navHook(organization)] : [],
     };
   }
 
   handleHooks(
     name: HookName,
-    hooks: Array<Hooks['settings:organization-navigation-config']>
+    hook: Hooks['settings:organization-navigation-config'] | undefined
   ) {
     const org = this.props.organization;
     if (name !== 'settings:organization-navigation-config') {
       return;
     }
-    this.setState({hookConfigs: hooks.map(cb => cb(org))});
+    this.setState({hookConfigs: hook ? [hook(org)] : []});
   }
 
   render() {

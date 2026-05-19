@@ -298,7 +298,7 @@ const storeConfig: GuideStoreDefinition = {
     this.state = {...this.state, currentGuide: nextGuide, currentStep};
 
     this.trigger(this.state);
-    HookStore.get('callback:on-guide-update').map(cb => cb(nextGuide, {dismissed}));
+    HookStore.get('callback:on-guide-update')?.(nextGuide, {dismissed});
   },
 };
 
