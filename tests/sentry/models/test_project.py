@@ -253,8 +253,6 @@ class ProjectTest(APITestCase, TestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         repository_project_path_config = RepositoryProjectPathConfig.objects.create(
-            project=project,
-            repository=repository,
             organization_integration_id=org_integration.id,
             organization_id=from_org.id,
             integration_id=integration.id,

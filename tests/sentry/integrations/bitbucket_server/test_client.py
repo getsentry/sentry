@@ -226,6 +226,6 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         )
 
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert result == BITBUCKET_SERVER_CODEOWNERS
