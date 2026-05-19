@@ -28,7 +28,10 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
-from sentry.billing.platform.services.category_mapping import proto_to_sentry_category
+from sentry.billing.platform.services.category_mapping import (
+    proto_to_sentry_category,
+    sentry_to_proto_category,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
@@ -190,7 +193,7 @@ def _build_response(rows: list[dict], last_usage_ts: datetime | None) -> GetUsag
 
     for row in rows:
         day = row["time"]
-        category = int(row["category"])
+        category = sentry_to_proto_category(int(row["category"]))
         days_map[day][category] = {
             "total": int(row["total"]),
             "accepted": int(row["accepted"]),
